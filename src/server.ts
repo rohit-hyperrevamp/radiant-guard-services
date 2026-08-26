@@ -1,3 +1,7 @@
+import { applyProductionServerEnv } from "./lib/server-env";
+
+applyProductionServerEnv();
+
 import "./lib/error-capture";
 
 import handler, { createServerEntry, type ServerEntry } from "@tanstack/react-start/server-entry";
@@ -54,6 +58,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 export default createServerEntry({
   async fetch(...args) {
+    applyProductionServerEnv();
     try {
       const response = await handler.fetch(...args);
       return await normalizeCatastrophicSsrResponse(response);
