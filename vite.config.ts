@@ -9,22 +9,23 @@ const PRODUCTION_SUPABASE_CLIENT = {
   VITE_SUPABASE_URL: "https://yimpxawqoarprhtxapie.supabase.co",
   VITE_SUPABASE_PUBLISHABLE_KEY:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTgyMzYsImV4cCI6MjEwMzMzNDIzNn0.6MaMS-my38sgzBhVkYJ0-GNT7SMIhy3C61gKNmFKq1o",
-} as const;
+};
 
-export default defineConfig(({ command }) => {
-  const isBuild = command === "build";
+// Only for production builds; the dev server keeps its injected preview values.
+const isBuild = process.argv.includes("build");
 
-  return {
-    nitro: { preset: "vercel" },
-    vite: {
-      define: isBuild
-        ? Object.fromEntries(
-            Object.entries(PRODUCTION_SUPABASE_CLIENT).map(([key, value]) => [
-              `import.meta.env.${key}`,
-              JSON.stringify(value),
-            ]),
-          )
-        : {},
-    },
-  };
+const define = isBuild
+  ? Object.fromEntries(
+      Object.entries(PRODUCTION_SUPABASE_CLIENT).map(([key, value]) => [
+        `import.meta.env.${key}`,
+        JSON.stringify(value),
+      ]),
+    )
+  : {};
+
+export default defineConfig({
+  nitro: { preset: "vercel" },
+  // Disables the wrapper's own VITE_* define pass so these values win.
+  envDefine: !isBuild,
+  vite: { define },
 });
