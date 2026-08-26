@@ -1,4 +1,7 @@
-import "./lib/server-env";
+import { applyProductionServerEnv } from "./lib/server-env";
+
+applyProductionServerEnv();
+
 import "./lib/error-capture";
 
 import handler, { createServerEntry, type ServerEntry } from "@tanstack/react-start/server-entry";
