@@ -607,5 +607,3 @@ function DetailsView({ details }: { details: Record<string, unknown> }) {
     </div>
   );
 }
-
-export default SystemLogsPage;
