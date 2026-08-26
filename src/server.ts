@@ -1,3 +1,4 @@
+import "./lib/server-env";
 import "./lib/error-capture";
 
 import handler, { createServerEntry, type ServerEntry } from "@tanstack/react-start/server-entry";
