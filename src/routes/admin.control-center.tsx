@@ -87,6 +87,13 @@ const tiles: Tile[] = [
     icon: BadgeCheck,
   },
   {
+    to: "/admin/department-manager",
+    label: "Department Manager",
+    description: "Manage company departments used across employee records and designations.",
+    icon: Network,
+  },
+
+  {
     to: "/admin/cost-component-manager",
     label: "Cost Component Manager",
     description: "Configure CTC cost components like EPF, ESI, Bonus, Gratuity, LWF, etc.",
