@@ -176,6 +176,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "deduction_type_manager",   label: "Deduction Type Manager",   path: "/admin/deduction-type-manager",   icon: HandCoins },
       { key: "billing_type_manager",     label: "Billing Type Manager",     path: "/admin/billing-type-manager",     icon: Receipt },
       { key: "designation_manager",      label: "Designation Manager",      path: "/admin/designation-manager",      icon: BadgeCheck },
+      { key: "department_manager",       label: "Department Manager",       path: "/admin/department-manager",       icon: BadgeCheck },
       { key: "cost_component_manager",   label: "Cost Component Manager",   path: "/admin/cost-component-manager",   icon: Calculator },
       { key: "ex_service_manager",       label: "Ex-Service Manager",       path: "/admin/ex-service-manager",       icon: Shield },
       { key: "offboarding_reason_manager", label: "Offboarding Reason Manager", path: "/admin/offboarding-reason-manager", icon: LogOut },

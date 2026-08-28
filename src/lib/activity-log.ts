@@ -11,6 +11,7 @@ const MODULE_LINKS: Record<string, string> = {
   "Unit Manager": "/admin/customers/unit-manager",
   "State Manager": "/admin/customers/state-manager",
   "Designation Manager": "/admin/designation-manager",
+  "Department Manager": "/admin/department-manager",
   "Asset Manager": "/admin/asset-manager",
   "Duty Manager": "/admin/duty-manager",
   "Allowance Manager": "/admin/allowance-manager",
