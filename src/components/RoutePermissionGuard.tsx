@@ -42,6 +42,7 @@ const EXTRA_PATH_TO_MODULE: Record<string, string> = {
   "/admin/deduction-type-manager": "control_center",
   "/admin/billing-type-manager": "control_center",
   "/admin/designation-manager": "control_center",
+  "/admin/department-manager": "control_center",
   "/admin/cost-component-manager": "control_center",
   "/admin/ex-service-manager": "control_center",
   "/admin/offboarding-reason-manager": "control_center",
