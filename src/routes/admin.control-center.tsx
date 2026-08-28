@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -86,6 +86,13 @@ const tiles: Tile[] = [
     description: "Manage employee designations used across rosters and payroll.",
     icon: BadgeCheck,
   },
+  {
+    to: "/admin/department-manager",
+    label: "Department Manager",
+    description: "Manage company departments used across employee records and designations.",
+    icon: Network,
+  },
+
   {
     to: "/admin/cost-component-manager",
     label: "Cost Component Manager",

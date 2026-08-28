@@ -43,6 +43,7 @@ import { Route as AdminEmployeesRouteImport } from './routes/admin.employees'
 import { Route as AdminEmployeeDashboardRouteImport } from './routes/admin.employee-dashboard'
 import { Route as AdminDutyManagerRouteImport } from './routes/admin.duty-manager'
 import { Route as AdminDesignationManagerRouteImport } from './routes/admin.designation-manager'
+import { Route as AdminDepartmentManagerRouteImport } from './routes/admin.department-manager'
 import { Route as AdminDeductionsRouteImport } from './routes/admin.deductions'
 import { Route as AdminDeductionTypeManagerRouteImport } from './routes/admin.deduction-type-manager'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
@@ -281,6 +282,11 @@ const AdminDutyManagerRoute = AdminDutyManagerRouteImport.update({
 const AdminDesignationManagerRoute = AdminDesignationManagerRouteImport.update({
   id: '/designation-manager',
   path: '/designation-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDepartmentManagerRoute = AdminDepartmentManagerRouteImport.update({
+  id: '/department-manager',
+  path: '/department-manager',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDeductionsRoute = AdminDeductionsRouteImport.update({
@@ -661,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
   '/admin/deductions': typeof AdminDeductionsRoute
+  '/admin/department-manager': typeof AdminDepartmentManagerRoute
   '/admin/designation-manager': typeof AdminDesignationManagerRoute
   '/admin/duty-manager': typeof AdminDutyManagerRoute
   '/admin/employee-dashboard': typeof AdminEmployeeDashboardRoute
@@ -762,6 +769,7 @@ export interface FileRoutesByTo {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
   '/admin/deductions': typeof AdminDeductionsRoute
+  '/admin/department-manager': typeof AdminDepartmentManagerRoute
   '/admin/designation-manager': typeof AdminDesignationManagerRoute
   '/admin/duty-manager': typeof AdminDutyManagerRoute
   '/admin/employee-dashboard': typeof AdminEmployeeDashboardRoute
@@ -863,6 +871,7 @@ export interface FileRoutesById {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
   '/admin/deductions': typeof AdminDeductionsRoute
+  '/admin/department-manager': typeof AdminDepartmentManagerRoute
   '/admin/designation-manager': typeof AdminDesignationManagerRoute
   '/admin/duty-manager': typeof AdminDutyManagerRoute
   '/admin/employee-dashboard': typeof AdminEmployeeDashboardRoute
@@ -967,6 +976,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
     | '/admin/deductions'
+    | '/admin/department-manager'
     | '/admin/designation-manager'
     | '/admin/duty-manager'
     | '/admin/employee-dashboard'
@@ -1068,6 +1078,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
     | '/admin/deductions'
+    | '/admin/department-manager'
     | '/admin/designation-manager'
     | '/admin/duty-manager'
     | '/admin/employee-dashboard'
@@ -1168,6 +1179,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
     | '/admin/deductions'
+    | '/admin/department-manager'
     | '/admin/designation-manager'
     | '/admin/duty-manager'
     | '/admin/employee-dashboard'
@@ -1493,6 +1505,13 @@ declare module '@tanstack/react-router' {
       path: '/designation-manager'
       fullPath: '/admin/designation-manager'
       preLoaderRoute: typeof AdminDesignationManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/department-manager': {
+      id: '/admin/department-manager'
+      path: '/department-manager'
+      fullPath: '/admin/department-manager'
+      preLoaderRoute: typeof AdminDepartmentManagerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/deductions': {
@@ -2123,6 +2142,7 @@ interface AdminRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDeductionTypeManagerRoute: typeof AdminDeductionTypeManagerRoute
   AdminDeductionsRoute: typeof AdminDeductionsRoute
+  AdminDepartmentManagerRoute: typeof AdminDepartmentManagerRoute
   AdminDesignationManagerRoute: typeof AdminDesignationManagerRoute
   AdminDutyManagerRoute: typeof AdminDutyManagerRoute
   AdminEmployeeDashboardRoute: typeof AdminEmployeeDashboardRoute
@@ -2184,6 +2204,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDeductionTypeManagerRoute: AdminDeductionTypeManagerRoute,
   AdminDeductionsRoute: AdminDeductionsRoute,
+  AdminDepartmentManagerRoute: AdminDepartmentManagerRoute,
   AdminDesignationManagerRoute: AdminDesignationManagerRoute,
   AdminDutyManagerRoute: AdminDutyManagerRoute,
   AdminEmployeeDashboardRoute: AdminEmployeeDashboardRoute,
