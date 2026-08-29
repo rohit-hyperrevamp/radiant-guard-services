@@ -32,6 +32,10 @@ type Msg91Response = {
   request_id?: string;
 };
 
+type WidgetVerificationResponse = Msg91Response & {
+  status?: string;
+};
+
 async function callMsg91Api(path: string, method: "GET" | "POST" = "GET") {
   const authKey = process.env["MSG91_AUTH_KEY"];
   if (!authKey) {
@@ -78,4 +82,23 @@ export async function callMsg91(
   if (!otp || otp.length !== OTP_LENGTH) throw new Error("Enter the 4-digit code.");
   const params = new URLSearchParams({ mobile, otp });
   await callMsg91Api(`otp/verify?${params.toString()}`);
+}
+
+export async function verifyMsg91WidgetAccessToken(accessToken: string): Promise<void> {
+  const authKey = process.env["MSG91_AUTH_KEY"];
+  if (!authKey) throw new Error("SMS service is not configured on this deployment.");
+
+  const response = await fetch(`${MSG91_API}/widget/verifyAccessToken`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ authkey: authKey, "access-token": accessToken }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
+  if (
+    !response.ok ||
+    payload.type?.toLowerCase() === "error" ||
+    payload.status?.toLowerCase() === "error"
+  ) {
+    throw new Error(payload.message || "OTP verification failed. Please try again.");
+  }
 }

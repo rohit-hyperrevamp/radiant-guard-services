@@ -26,7 +26,6 @@ export const sendLoginOtp = createServerFn({ method: "POST" })
     const mode = await resolveOtpMode(data.phone);
     if (mode === "fixed") return { mode };
 
-    await callMsg91("send", data.phone);
     return { mode: "sms" };
   });
 
@@ -37,7 +36,6 @@ export const resendLoginOtp = createServerFn({ method: "POST" })
     const mode = await resolveOtpMode(data.phone);
     if (mode === "fixed") return { mode };
 
-    await callMsg91("retry", data.phone);
     return { mode: "sms" };
   });
 
@@ -47,6 +45,7 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       .object({
         phone: z.string().regex(/^\d{10}$/),
         otp: z.string().regex(/^\d{4}$/),
+        accessToken: z.string().min(10).optional(),
       })
       .parse(input),
   )
@@ -62,6 +61,8 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    await callMsg91("verify", data.phone, data.otp);
+    if (!data.accessToken) throw new Error("OTP verification could not be confirmed.");
+    const { verifyMsg91WidgetAccessToken } = await import("@/lib/otp.server");
+    await verifyMsg91WidgetAccessToken(data.accessToken);
     return { ok: true };
   });
