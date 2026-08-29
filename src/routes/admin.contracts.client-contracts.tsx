@@ -2569,7 +2569,12 @@ function ClientContractsPage() {
             toast.success(editing ? "Contract updated" : "Contract created");
             return null;
           } catch (e) {
-            return e instanceof Error ? e.message : "Could not save contract";
+            console.error("[contract-save] failed", e);
+            const err = e as { message?: string; details?: string; hint?: string; code?: string } | null;
+            const parts = [err?.message, err?.details, err?.hint, err?.code ? `(${err.code})` : ""].filter(
+              (x): x is string => !!x && x.trim().length > 0,
+            );
+            return parts.length ? parts.join(" · ") : "Could not save contract";
           }
         }}
         canManageApproval={canApprove}
