@@ -4613,10 +4613,12 @@ function CandidateWizard({
     const { unit_ids, unit_designations: _unitDesignations, ...rest } = form;
     void _unitDesignations;
     const mirroredPrimary = unit_ids[0] ?? null;
+    // Non-billable employees are billed against their home unit, not a client unit.
+    const billingUnitId = isEmployeeMode && homeUnitId ? homeUnitId : mirroredPrimary;
     const basePayload = form.same_as_permanent
       ? {
           ...rest,
-          unit_id: mirroredPrimary,
+          unit_id: billingUnitId,
           present_address1: form.permanent_address1,
           present_address2: form.permanent_address2,
           present_landmark: form.permanent_landmark,
@@ -4627,7 +4629,7 @@ function CandidateWizard({
           present_country: form.permanent_country,
           present_police_station: form.permanent_police_station,
         }
-      : { ...rest, unit_id: mirroredPrimary };
+      : { ...rest, unit_id: billingUnitId };
     return {
       ...basePayload,
       status,
