@@ -12,7 +12,7 @@ import type { OtpMode } from "@/lib/otp.server";
  * Phone OTP for sign-in.
  *
  * - Real OTPs are sent through MSG91 (API v5, account default template/sender),
- *   exactly like the working MSG91 widget flow — 4 digit codes.
+ *   with 4 digit codes.
  * - The super admin always signs in with the fixed code 2503 (never SMS).
  * - When Platform Settings → "MSG91 real OTP" is toggled OFF, every other user
  *   falls back to the fixed code 1111.
