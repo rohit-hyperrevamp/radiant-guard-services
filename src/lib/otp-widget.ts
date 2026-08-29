@@ -120,7 +120,7 @@ export async function retryWidgetOtp(requestId: string | null): Promise<string |
   return new Promise((resolve, reject) => {
     window.retryOtp?.(
       "11",
-      (data) => resolve(data.request_id ?? data.reqId ?? data.message ?? requestId),
+      () => resolve(requestId),
       (error) => reject(new Error(messageOf(error, "Could not resend the code. Please try again."))),
       requestId,
     );
