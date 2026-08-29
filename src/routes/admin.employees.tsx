@@ -1481,6 +1481,7 @@ function EmployeesPage() {
     email: false,
     unit: true,
     designation: true,
+    department: true,
     role: true,
     dob: false,
     doj: false,
