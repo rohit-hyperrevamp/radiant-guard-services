@@ -16,7 +16,14 @@ import {
 } from "@/components/candidate-extra-sections";
 import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
-import { ResourceFormDialog, type ContractResource } from "./admin.contracts.client-contracts";
+import {
+  type ContractResource,
+  useAllowanceTypes,
+  usePayrollDayBases,
+  useCostComponentOptions,
+  computeBenefitAmount,
+  hasConfiguredFormula,
+} from "./admin.contracts.client-contracts";
 
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -138,6 +145,368 @@ import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-e
 
 
 type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string };
+
+
+const EMPTY_WAGE: ContractResource = {
+  designationId: "",
+  roleKey: null,
+  serviceTypeId: "",
+  quantity: 1,
+  shiftHours: 8,
+  components: [],
+  payrollDayBaseId: null,
+  benefits: [],
+  deductions: [],
+  employerContributions: [],
+};
+
+/**
+ * Lightweight inline wage editor for non-billable employees. Rendered directly
+ * inside the employee wizard (no nested dialog). Only uses Select/Input
+ * primitives — Popover/Command pickers trigger a Radix ref loop when mounted
+ * inline inside the wizard's Dialog, so they are intentionally avoided here.
+ */
+function InlineWageEditor({
+  value,
+  onChange,
+}: {
+  value: ContractResource;
+  onChange: (r: ContractResource) => void;
+}) {
+  const allowanceTypes = useAllowanceTypes();
+  const payrollDayBases = usePayrollDayBases();
+  const costComponents = useCostComponentOptions();
+  const components = value.components ?? [];
+  const deductions = value.deductions ?? [];
+  const employerContribs = value.employerContributions ?? [];
+  const gross = components.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  const patch = (p: Partial<ContractResource>) => onChange({ ...value, ...p });
+
+  // Recompute percentage / formula-based amounts whenever wage components change.
+  useEffect(() => {
+    let changed = false;
+    const nextComponents = components.map((c) => {
+      const at = allowanceTypes.find((a) => a.id === c.allowanceId);
+      if (!at) return c;
+      if (!hasConfiguredFormula(at) && at.calcType !== "percentage") return c;
+      const others = components.filter((x) => x.allowanceId !== c.allowanceId);
+      const amt = computeBenefitAmount(
+        {
+          calcType: at.calcType,
+          percentage: at.percentage,
+          baseComponents: at.baseComponents,
+          capAmount: at.capAmount,
+          capFlatAmount: null,
+          amount: 0,
+          formulaMode: at.formulaMode ?? null,
+          formulaExpression: at.formulaExpression ?? null,
+          name: at.shortName || at.displayName || at.name,
+        },
+        others,
+        [],
+        allowanceTypes,
+      );
+      if (amt === c.amount) return c;
+      changed = true;
+      return { ...c, amount: amt };
+    });
+    const recomputeItems = (items: typeof deductions) =>
+      items.map((b) => {
+        if (!hasConfiguredFormula(b) && b.calcType !== "percentage") return b;
+        const amt = computeBenefitAmount(b, nextComponents, [], allowanceTypes, employerContribs);
+        if (amt === b.amount) return b;
+        changed = true;
+        return { ...b, amount: amt };
+      });
+    const nextDeductions = recomputeItems(deductions);
+    const nextEmployer = recomputeItems(employerContribs);
+    if (changed) {
+      onChange({ ...value, components: nextComponents, deductions: nextDeductions, employerContributions: nextEmployer });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [components, allowanceTypes]);
+
+  const usedComponentIds = new Set(components.map((c) => c.allowanceId));
+  const usedDeductionIds = new Set(deductions.map((b) => b.costComponentId));
+  const usedEmployerIds = new Set(employerContribs.map((b) => b.costComponentId));
+
+  const toBenefitItem = (c: (typeof costComponents)[number]) => ({
+    costComponentId: c.id,
+    name: c.name,
+    calcType: c.calcType,
+    percentage: c.percentage,
+    baseComponents: c.baseComponents,
+    capAmount: c.capAmount,
+    capFlatAmount: c.capFlatAmount,
+    amount: c.calcType === "fixed" ? Number(c.amount ?? 0) : 0,
+    state: c.state,
+    deductionCalcType: c.deductionCalcType,
+    fixedCalcMethod: c.fixedCalcMethod,
+    fixedDutyComponents: c.fixedDutyComponents,
+    fixedDutyDivisor: c.fixedDutyDivisor,
+    formulaMode: c.formulaMode ?? null,
+    formulaExpression: c.formulaExpression ?? null,
+    formulaVersion: c.formulaVersion ?? null,
+  });
+
+  const addComponent = (id: string) => {
+    const at = allowanceTypes.find((a) => a.id === id);
+    if (!at) return;
+    let amount = 0;
+    if (hasConfiguredFormula(at) || at.calcType === "percentage") {
+      amount = computeBenefitAmount(
+        {
+          calcType: at.calcType,
+          percentage: at.percentage,
+          baseComponents: at.baseComponents,
+          capAmount: at.capAmount,
+          capFlatAmount: null,
+          amount: 0,
+          formulaMode: at.formulaMode ?? null,
+          formulaExpression: at.formulaExpression ?? null,
+          name: at.shortName || at.displayName || at.name,
+        },
+        components,
+        [],
+        allowanceTypes,
+      );
+    }
+    patch({
+      components: [
+        ...components,
+        {
+          allowanceId: at.id,
+          name: at.shortName || at.displayName || at.name,
+          amount,
+          includeInOt: at.includeInOt !== false,
+          formulaMode: at.formulaMode ?? null,
+          formulaExpression: at.formulaExpression ?? null,
+          formulaVersion: at.formulaVersion ?? null,
+          fixedCalcMethod: at.fixedCalcMethod ?? "flat",
+          fixedDutyComponents: at.fixedDutyComponents ?? [],
+          fixedDutyDivisor: at.fixedDutyDivisor ?? "base_days",
+        },
+      ],
+    });
+  };
+
+  const addDeduction = (id: string) => {
+    const c = costComponents.find((x) => x.id === id);
+    if (!c) return;
+    const item = toBenefitItem(c);
+    if (hasConfiguredFormula(item) || item.calcType === "percentage") {
+      item.amount = computeBenefitAmount(item, components, [], allowanceTypes);
+    }
+    patch({ deductions: [...deductions, item] });
+  };
+
+  const addEmployer = (id: string) => {
+    const c = costComponents.find((x) => x.id === id);
+    if (!c) return;
+    const item = toBenefitItem(c);
+    if (hasConfiguredFormula(item) || item.calcType === "percentage") {
+      item.amount = computeBenefitAmount(item, components, [], allowanceTypes, employerContribs);
+    }
+    patch({ employerContributions: [...employerContribs, item] });
+  };
+
+  const picker = (
+    placeholder: string,
+    options: { id: string; label: string }[],
+    onPick: (id: string) => void,
+  ) => (
+    <Select value="" onValueChange={(v) => v && onPick(v)}>
+      <SelectTrigger className="h-8 w-[190px] text-xs">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.length === 0 ? (
+          <SelectItem value="__empty" disabled className="text-xs">All components added</SelectItem>
+        ) : (
+          options.map((o) => (
+            <SelectItem key={o.id} value={o.id} className="text-xs">{o.label}</SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
+  );
+
+  const itemRow = (
+    key: string,
+    name: string,
+    amount: number,
+    onAmount: (n: number) => void,
+    onRemove: () => void,
+  ) => (
+    <div key={key} className="grid gap-1">
+      <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+        <span className="truncate">{name}</span>
+        <button type="button" onClick={onRemove} className="text-muted-foreground hover:text-destructive" aria-label={`Remove ${name}`}>
+          <X className="h-3 w-3" />
+        </button>
+      </Label>
+      <Input
+        type="number"
+        className="h-9"
+        value={Number.isFinite(amount) ? amount : 0}
+        onChange={(e) => onAmount(Number(e.target.value) || 0)}
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Shift Hours *</Label>
+          <Select
+            value={String(value.shiftHours ?? 8)}
+            onValueChange={(v) => patch({ shiftHours: v === "12" ? 12 : 8 })}
+          >
+            <SelectTrigger className="h-10 rounded-lg">
+              <SelectValue placeholder="Select shift" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="8">8 hours</SelectItem>
+              <SelectItem value="12">12 hours</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Payroll Days *</Label>
+          <Select
+            value={value.payrollDayBaseId ?? ""}
+            onValueChange={(v) => patch({ payrollDayBaseId: v || null })}
+          >
+            <SelectTrigger className="h-10 rounded-lg">
+              <SelectValue placeholder="Select payroll-days rule" />
+            </SelectTrigger>
+            <SelectContent>
+              {payrollDayBases.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} · {p.method === "fixed_days" ? `Fixed ${p.fixedDays ?? 26} days` : p.method === "actual_minus_weekly_off" ? "Actual − weekly off" : "Actual days in month"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-secondary/30 p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Wage Components</h4>
+          {picker(
+            "Add component…",
+            allowanceTypes.filter((a) => !usedComponentIds.has(a.id)).map((a) => ({ id: a.id, label: a.shortName || a.displayName || a.name })),
+            addComponent,
+          )}
+        </div>
+        {components.length === 0 ? (
+          <div className="py-3 text-center text-xs text-muted-foreground">No wage components yet.</div>
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {components.map((c) => (
+                <div key={c.allowanceId} className="grid gap-1">
+                  <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                    <span className="truncate">{c.name}</span>
+                    <span className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        title="Include in Extra Duty base"
+                        onClick={() =>
+                          patch({ components: components.map((x) => x.allowanceId === c.allowanceId ? { ...x, includeInOt: x.includeInOt === false } : x) })
+                        }
+                        className={cn(
+                          "rounded px-1 text-[10px] font-bold uppercase",
+                          c.includeInOt !== false ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        ED
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => patch({ components: components.filter((x) => x.allowanceId !== c.allowanceId) })}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label={`Remove ${c.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  </Label>
+                  <Input
+                    type="number"
+                    className="h-9"
+                    value={Number.isFinite(c.amount) ? c.amount : 0}
+                    onChange={(e) =>
+                      patch({ components: components.map((x) => x.allowanceId === c.allowanceId ? { ...x, amount: Number(e.target.value) || 0 } : x) })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-end border-t border-border pt-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Gross</span>
+              <span className="ml-3 text-base font-bold text-foreground">{gross.toFixed(2)}</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-secondary/30 p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Deductions</h4>
+          {picker(
+            "Add deduction…",
+            costComponents.filter((c) => !usedDeductionIds.has(c.id) && c.party !== "employer").map((c) => ({ id: c.id, label: c.name })),
+            addDeduction,
+          )}
+        </div>
+        {deductions.length === 0 ? (
+          <div className="py-3 text-center text-xs text-muted-foreground">No deductions added.</div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {deductions.map((b) =>
+              itemRow(
+                b.costComponentId,
+                b.name,
+                b.amount,
+                (n) => patch({ deductions: deductions.map((x) => (x.costComponentId === b.costComponentId ? { ...x, amount: n } : x)) }),
+                () => patch({ deductions: deductions.filter((x) => x.costComponentId !== b.costComponentId) }),
+              ),
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-secondary/30 p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Employer Contributions</h4>
+          {picker(
+            "Add contribution…",
+            costComponents.filter((c) => !usedEmployerIds.has(c.id) && c.party !== "employee").map((c) => ({ id: c.id, label: c.name })),
+            addEmployer,
+          )}
+        </div>
+        {employerContribs.length === 0 ? (
+          <div className="py-3 text-center text-xs text-muted-foreground">No employer contributions added.</div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {employerContribs.map((b) =>
+              itemRow(
+                b.costComponentId,
+                b.name,
+                b.amount,
+                (n) => patch({ employerContributions: employerContribs.map((x) => (x.costComponentId === b.costComponentId ? { ...x, amount: n } : x)) }),
+                () => patch({ employerContributions: employerContribs.filter((x) => x.costComponentId !== b.costComponentId) }),
+              ),
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/admin/employees")({
   validateSearch: (search: Record<string, unknown>): EmployeesSearch => ({
@@ -4386,7 +4755,6 @@ function CandidateWizard({
 
   const [wage, setWage] = useState<ContractResource | null>(null);
   const [wageEditorOpen, setWageEditorOpen] = useState(false);
-  const wageInitialRef = useRef<ContractResource | null>(null);
   const [wageRowId, setWageRowId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -4396,7 +4764,6 @@ function CandidateWizard({
       setWage(null);
       setWageRowId(null);
       setWageEditorOpen(false);
-      wageInitialRef.current = null;
       return;
     }
     void (async () => {
@@ -4410,7 +4777,6 @@ function CandidateWizard({
         setWageRowId(null);
         setWage(null);
         setWageEditorOpen(false);
-        wageInitialRef.current = null;
         return;
       }
       const r = data as unknown as Record<string, unknown>;
@@ -4428,7 +4794,6 @@ function CandidateWizard({
       } as ContractResource;
       setWageRowId(String(r.id));
       setWage(loaded);
-      wageInitialRef.current = loaded;
       setWageEditorOpen(true);
     })();
     return () => {
@@ -6061,9 +6426,8 @@ function CandidateWizard({
 
               {isEmployeeMode && (
                 <Section title="Wages">
-                  {/* Editor stays mounted (hidden when dismissed) — dynamically inserting
-                      large content inside this Radix dialog triggers a ref setState loop. */}
-                  <div className={wageEditorOpen ? "rounded-xl border border-input bg-muted/20 p-3 sm:p-4" : "hidden"}>
+                  {wageEditorOpen && (
+                  <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs text-muted-foreground">
                         Shift hours, payroll days and wage components for this employee. Changes are saved with the employee.
@@ -6075,23 +6439,15 @@ function CandidateWizard({
                         aria-label="Remove wages"
                         onClick={() => {
                           setWage(null);
-                          wageInitialRef.current = null;
                           setWageEditorOpen(false);
                         }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <ResourceFormDialog
-                      inline
-                      open
-                      onOpenChange={() => {}}
-                      initial={wageInitialRef.current}
-                      variant="wages"
-                      onSubmit={(r) => setWage(r)}
-                      onChange={(r) => setWage(r)}
-                    />
+                    <InlineWageEditor value={wage ?? EMPTY_WAGE} onChange={setWage} />
                   </div>
+                  )}
                   {!wageEditorOpen && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
                       <p className="text-xs text-muted-foreground">
@@ -6102,7 +6458,7 @@ function CandidateWizard({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          wageInitialRef.current = wage;
+                          setWage((w) => w ?? { ...EMPTY_WAGE, components: [], deductions: [], employerContributions: [] });
                           setWageEditorOpen(true);
                         }}
                       >
