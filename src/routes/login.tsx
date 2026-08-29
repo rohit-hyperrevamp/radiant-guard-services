@@ -13,12 +13,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
 import { OTP_LENGTH } from "@/lib/otp-config";
 import {
-  prepareMsg91,
-  resendMsg91Otp,
-  sendMsg91Otp,
-  verifyMsg91Otp,
-} from "@/lib/msg91.client";
-import {
   enableBiometric,
   getBiometricStatus,
   signInWithBiometric,
@@ -56,7 +50,6 @@ export const Route = createFileRoute("/login")({
 });
 
 type Step = "phone" | "otp";
-type OtpMode = "sms" | "fixed";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -69,8 +62,6 @@ function LoginPage() {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [otpMode, setOtpMode] = useState<OtpMode>("sms");
-  const [msg91RequestId, setMsg91RequestId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,10 +83,6 @@ function LoginPage() {
   }, []);
 
   useEffect(() => {
-    void prepareMsg91().catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     if (resendIn <= 0) return;
     const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
     return () => clearTimeout(t);
@@ -113,16 +100,6 @@ function LoginPage() {
       const result = isResend
         ? await requestOtpAgain({ data: { phone } })
         : await requestOtp({ data: { phone } });
-      setOtpMode(result.mode);
-      if (result.mode === "sms") {
-        if (isResend && msg91RequestId) {
-          await resendMsg91Otp(msg91RequestId);
-        } else {
-          setMsg91RequestId(await sendMsg91Otp(phone));
-        }
-      } else {
-        setMsg91RequestId(null);
-      }
       setStep("otp");
       setResendIn(30);
       setOtp("");
@@ -147,9 +124,6 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      if (otpMode === "sms") {
-        await verifyMsg91Otp(code, msg91RequestId);
-      }
       await checkOtp({ data: { phone, otp: code } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();

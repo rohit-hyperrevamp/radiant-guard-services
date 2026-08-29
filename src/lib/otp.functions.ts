@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   FALLBACK_OTP,
+  OTP_LENGTH,
   SUPER_ADMIN_OTP,
   SUPER_ADMIN_OTP_PHONE as SUPER_ADMIN_PHONE,
 } from "@/lib/otp-config";
@@ -17,6 +18,8 @@ import {
  */
 
 
+const MSG91_API = "https://control.msg91.com/api/v5";
+const OTP_EXPIRY_MIN = 10;
 const SETTING_KEY = "msg91_otp_enabled";
 
 const phoneSchema = z.object({ phone: z.string().regex(/^\d{10}$/) });
@@ -26,6 +29,33 @@ const verifySchema = z.object({
 });
 
 type Mode = "sms" | "fixed";
+
+async function msg91Call(path: string, method: "GET" | "POST" = "GET") {
+  const authKey = process.env["MSG91_AUTH_KEY"] ?? "";
+  if (!authKey) throw new Error("SMS service is not configured.");
+  const res = await fetch(`${MSG91_API}/${path}`, {
+    method,
+    headers: { authkey: authKey, "Content-Type": "application/json" },
+  });
+  const text = await res.text();
+  let data: Record<string, unknown> = {};
+  try {
+    data = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    data = { message: text.slice(0, 300) };
+  }
+  const failed = !res.ok || String(data?.["type"] ?? "").toLowerCase() === "error";
+  return { failed, data };
+}
+
+async function msg91Send(phone: string) {
+  const params = new URLSearchParams({
+    mobile: `91${phone}`,
+    otp_length: String(OTP_LENGTH),
+    otp_expiry: String(OTP_EXPIRY_MIN),
+  });
+  return msg91Call(`otp?${params.toString()}`, "POST");
+}
 
 async function isMsg91Enabled(): Promise<boolean> {
   try {
@@ -50,13 +80,31 @@ async function resolveMode(phone: string): Promise<Mode> {
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => phoneSchema.parse(input))
   .handler(async ({ data }): Promise<{ mode: Mode }> => {
-    return { mode: await resolveMode(data.phone) };
+    const mode = await resolveMode(data.phone);
+    if (mode === "fixed") return { mode };
+
+    const { failed, data: res } = await msg91Send(data.phone);
+    if (failed) {
+      throw new Error(
+        String(res?.["message"] ?? "Could not send the code. Please try again."),
+      );
+    }
+    return { mode: "sms" };
   });
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => phoneSchema.parse(input))
   .handler(async ({ data }): Promise<{ mode: Mode }> => {
-    return { mode: await resolveMode(data.phone) };
+    const mode = await resolveMode(data.phone);
+    if (mode === "fixed") return { mode };
+
+    const { failed, data: res } = await msg91Send(data.phone);
+    if (failed) {
+      throw new Error(
+        String(res?.["message"] ?? "Could not resend the code. Please try again."),
+      );
+    }
+    return { mode: "sms" };
   });
 
 export const verifyLoginOtp = createServerFn({ method: "POST" })
@@ -72,8 +120,11 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    // Real SMS codes are verified by the hosted MSG91 widget in the browser.
-    // This server check confirms the setting did not switch to fixed mode
-    // while the user was entering the code.
+    const { failed, data: res } = await msg91Call(
+      `otp/verify?mobile=91${data.phone}&otp=${data.otp}`,
+    );
+    if (failed) {
+      throw new Error(String(res?.["message"] ?? "Wrong code. Please try again."));
+    }
     return { ok: true };
   });
