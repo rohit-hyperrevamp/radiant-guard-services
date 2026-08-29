@@ -4395,6 +4395,8 @@ function CandidateWizard({
     if (!isEmployeeMode || !cid) {
       setWage(null);
       setWageRowId(null);
+      setWageEditorOpen(false);
+      wageInitialRef.current = null;
       return;
     }
     void (async () => {
@@ -4403,10 +4405,16 @@ function CandidateWizard({
         .select("id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
         .eq("candidate_id", cid)
         .maybeSingle();
-      if (cancelled || !data) return;
+      if (cancelled) return;
+      if (!data) {
+        setWageRowId(null);
+        setWage(null);
+        setWageEditorOpen(false);
+        wageInitialRef.current = null;
+        return;
+      }
       const r = data as unknown as Record<string, unknown>;
-      setWageRowId(String(r.id));
-      setWage({
+      const loaded = {
         designationId: "",
         roleKey: null,
         serviceTypeId: "",
@@ -4417,7 +4425,11 @@ function CandidateWizard({
         benefits: (r.benefits as ContractResource["benefits"]) ?? [],
         deductions: (r.deductions as ContractResource["deductions"]) ?? [],
         employerContributions: (r.employer_contributions as ContractResource["employerContributions"]) ?? [],
-      } as ContractResource);
+      } as ContractResource;
+      setWageRowId(String(r.id));
+      setWage(loaded);
+      wageInitialRef.current = loaded;
+      setWageEditorOpen(true);
     })();
     return () => {
       cancelled = true;
