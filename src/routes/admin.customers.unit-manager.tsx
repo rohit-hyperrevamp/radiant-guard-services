@@ -221,14 +221,37 @@ function UnitManagerPage() {
       />
 
       <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-2.5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by code, name, branch, organisation…"
-            className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
-          />
+        <div className="flex w-full flex-col gap-2 sm:max-w-2xl sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by code, name, branch, organisation…"
+              className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
+            />
+          </div>
+          <Select value={orgFilter} onValueChange={setOrgFilter}>
+            <SelectTrigger className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[220px]">
+              <SelectValue placeholder="All organisations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All organisations</SelectItem>
+              {orgOptions.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button
