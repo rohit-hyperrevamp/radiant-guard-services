@@ -437,6 +437,36 @@ function UnitManagerPage() {
         </div>
       </div>
 
+      <Dialog open={!!peopleFor} onOpenChange={(o) => !o && setPeopleFor(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              People in {peopleFor?.name ?? "unit"}
+            </DialogTitle>
+            <DialogDescription>
+              {peopleFor?.isBillable === false
+                ? "Department-wise hierarchy of everyone onboarded under this unit."
+                : "Field officers and security guards deployed to this unit."}
+            </DialogDescription>
+          </DialogHeader>
+          {peopleFor && (
+            <div className="max-h-[60vh] overflow-y-auto pr-1">
+              <UnitDeployedPeople
+                unitId={peopleFor.id}
+                branchId={peopleFor.branchId ?? null}
+                customerId={peopleFor.customerId ?? null}
+                stateName={
+                  peopleFor.branchId
+                    ? stateById.get(branchById.get(peopleFor.branchId)?.stateId ?? "")?.name ?? ""
+                    : ""
+                }
+                isBillable={peopleFor.isBillable !== false}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <UnitFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
