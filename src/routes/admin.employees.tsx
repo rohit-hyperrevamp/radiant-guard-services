@@ -1214,6 +1214,19 @@ function EmployeesPage() {
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
 
+  // Self-heal: an approved/active person must carry an EMP-### employee ID.
+  // Older records (or rows created before the DB trigger existed) sometimes
+  // still show their CAN-### candidate number in the Emp ID column.
+  const codeHealRef = useRef(false);
+  useEffect(() => {
+    if (codeHealRef.current || candidates.length === 0) return;
+    codeHealRef.current = true;
+    void healEmployeeCodes(candidates).then((n) => {
+      if (n > 0) qc.invalidateQueries({ queryKey: QK });
+    });
+  }, [candidates, qc]);
+
+
   const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
   const canAddEmployee = isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? "");
