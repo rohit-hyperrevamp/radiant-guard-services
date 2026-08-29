@@ -16,9 +16,10 @@ function useEmployeeCounts() {
     queryFn: async () => {
       const [employees, candidates, pendingApproval, offboarded] = await Promise.all([
         supabase.from("candidates").select("id", { count: "exact", head: true })
-          .eq("is_enabled", true).eq("status", "active"),
+          .eq("is_enabled", true).in("status", ["active", "approved"]),
         supabase.from("candidates").select("id", { count: "exact", head: true })
-          .in("status", ["draft", "submitted", "pending", "candidate", "approved"]),
+          .in("status", ["draft", "submitted", "pending", "candidate"]),
+
         supabase.from("candidates").select("id", { count: "exact", head: true })
           .in("status", ["submitted", "pending"]),
         supabase.from("candidates").select("id", { count: "exact", head: true })
