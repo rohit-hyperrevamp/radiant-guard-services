@@ -2808,6 +2808,12 @@ function EmployeesPage() {
                       {desig?.name || "—"}
                     </div>
                   )}
+                  {(mode === "candidate" || columnsVisible.department) && (
+                    <div className="truncate" title={deptName}>
+                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Department</span>
+                      {deptName || "—"}
+                    </div>
+                  )}
                   {mode === "employee" && columnsVisible.role && (
                     <div className="truncate">
                       <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Role</span>
