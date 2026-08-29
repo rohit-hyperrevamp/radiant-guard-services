@@ -5518,7 +5518,7 @@ function CandidateWizard({
         } as never);
       if (esaErr) console.error("home unit sync failed", esaErr);
     }
-    if (isEmployeeMode && cidForBranch) await syncEmployeeWages(cidForBranch);
+    if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
     // Await so the caller (Save/Send-to-Approval handlers) can close the
