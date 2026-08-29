@@ -689,6 +689,7 @@ export type Database = {
           created_by: string | null
           criminal_history: Json
           date_of_birth: string | null
+          department_id: string | null
           designation_id: string | null
           documents: Json
           educations: Json
@@ -780,6 +781,7 @@ export type Database = {
           created_by?: string | null
           criminal_history?: Json
           date_of_birth?: string | null
+          department_id?: string | null
           designation_id?: string | null
           documents?: Json
           educations?: Json
@@ -871,6 +873,7 @@ export type Database = {
           created_by?: string | null
           criminal_history?: Json
           date_of_birth?: string | null
+          department_id?: string | null
           designation_id?: string | null
           documents?: Json
           educations?: Json
@@ -940,7 +943,15 @@ export type Database = {
           unit_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "candidates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_contracts: {
         Row: {
@@ -1761,6 +1772,93 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      employee_wages: {
+        Row: {
+          benefits: Json
+          candidate_id: string
+          components: Json
+          created_at: string
+          deductions: Json
+          department_id: string | null
+          designation_id: string | null
+          employer_contributions: Json
+          gross: number
+          id: string
+          payroll_day_base_id: string | null
+          shift_hours: number
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          benefits?: Json
+          candidate_id: string
+          components?: Json
+          created_at?: string
+          deductions?: Json
+          department_id?: string | null
+          designation_id?: string | null
+          employer_contributions?: Json
+          gross?: number
+          id?: string
+          payroll_day_base_id?: string | null
+          shift_hours?: number
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          benefits?: Json
+          candidate_id?: string
+          components?: Json
+          created_at?: string
+          deductions?: Json
+          department_id?: string | null
+          designation_id?: string | null
+          employer_contributions?: Json
+          gross?: number
+          id?: string
+          payroll_day_base_id?: string | null
+          shift_hours?: number
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_wages_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_wages_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_wages_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_wages_payroll_day_base_id_fkey"
+            columns: ["payroll_day_base_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_day_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_wages_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employer_contributions: {
         Row: {
