@@ -396,6 +396,7 @@ type UnitLite = {
   branch_id: string | null;
   uniform_included?: boolean | null;
   uniform_fee_amount?: number | string | null;
+  is_billable?: boolean | null;
   customer_name?: string;
 };
 
@@ -585,7 +586,7 @@ function useUnits() {
       const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
         await supabase
           .from("units" as never)
-          .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount")
+          .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
           .order("name", { ascending: true })
           .limit(2000)
           .abortSignal(signal),
@@ -4108,7 +4109,6 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
-const DEFAULT_HOME_BRANCH_ID = "8897587c-e532-47ad-af01-353409cc6b23"; // PUNE — Radiant HQ branch
 
 function CandidateWizard({
   open,
@@ -4195,7 +4195,22 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  const [homeBranchId, setHomeBranchId] = useState<string>(DEFAULT_HOME_BRANCH_ID);
+  // Non-billable employees: the "home unit" (a non-billable unit) they belong to.
+  const [homeUnitId, setHomeUnitId] = useState<string>(RADIANT_BILLING_UNIT_ID);
+  const nonBillableUnits = useMemo(
+    () => units.filter((u) => u.is_billable === false),
+    [units],
+  );
+  // Keep the selection valid as units load / change.
+  useEffect(() => {
+    if (!isEmployeeMode) return;
+    if (nonBillableUnits.length === 0) return;
+    if (!nonBillableUnits.some((u) => u.id === homeUnitId)) {
+      setHomeUnitId(
+        nonBillableUnits.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ?? nonBillableUnits[0].id,
+      );
+    }
+  }, [isEmployeeMode, nonBillableUnits, homeUnitId]);
   const isEditingEmployeeProfile =
     !!editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive");
 
@@ -4256,26 +4271,26 @@ function CandidateWizard({
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
-      setHomeBranchId(DEFAULT_HOME_BRANCH_ID);
+      setHomeUnitId(RADIANT_BILLING_UNIT_ID);
     }
   }, [open, editing, isEmployeeMode]);
 
-  // Load existing Home Branch (employee_scope_assignments · scope_type='branch') for edit mode.
+  // Load existing Home Unit (employee_scope_assignments · scope_type='unit') for edit mode.
   useEffect(() => {
-    if (!open || !editing) return;
+    if (!open || !editing || !isEmployeeMode) return;
     (async () => {
       const { data, error } = await supabase
         .from("employee_scope_assignments" as never)
         .select("scope_id")
         .eq("candidate_id", editing.id)
-        .eq("scope_type", "branch")
+        .eq("scope_type", "unit")
         .limit(1)
         .maybeSingle();
       if (error || !data) return;
       const sid = (data as { scope_id?: string }).scope_id;
-      if (sid) setHomeBranchId(sid);
+      if (sid) setHomeUnitId(sid);
     })();
-  }, [open, editing]);
+  }, [open, editing, isEmployeeMode]);
 
   const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -4292,9 +4307,9 @@ function CandidateWizard({
   // define the valid designations for that unit.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
-    if (isEmployeeMode) ids.add(RADIANT_BILLING_UNIT_ID);
+    if (isEmployeeMode) ids.add(homeUnitId || RADIANT_BILLING_UNIT_ID);
     return Array.from(ids);
-  }, [form.unit_ids, isEmployeeMode]);
+  }, [form.unit_ids, isEmployeeMode, homeUnitId]);
   const selectedUnitIdsKey = desigLookupUnitIds.slice().sort().join(",");
   const contractDesigQuery = useQuery({
     queryKey: ["wizard-contract-designations", selectedUnitIdsKey],
@@ -4598,10 +4613,12 @@ function CandidateWizard({
     const { unit_ids, unit_designations: _unitDesignations, ...rest } = form;
     void _unitDesignations;
     const mirroredPrimary = unit_ids[0] ?? null;
+    // Non-billable employees are billed against their home unit, not a client unit.
+    const billingUnitId = isEmployeeMode && homeUnitId ? homeUnitId : mirroredPrimary;
     const basePayload = form.same_as_permanent
       ? {
           ...rest,
-          unit_id: mirroredPrimary,
+          unit_id: billingUnitId,
           present_address1: form.permanent_address1,
           present_address2: form.permanent_address2,
           present_landmark: form.permanent_landmark,
@@ -4612,7 +4629,7 @@ function CandidateWizard({
           present_country: form.permanent_country,
           present_police_station: form.permanent_police_station,
         }
-      : { ...rest, unit_id: mirroredPrimary };
+      : { ...rest, unit_id: billingUnitId };
     return {
       ...basePayload,
       status,
@@ -4790,24 +4807,24 @@ function CandidateWizard({
       }
     }
 
-    // Sync Home Branch → employee_scope_assignments (non-billable employees only).
+    // Sync Home Unit → employee_scope_assignments (non-billable employees only).
     const cidForBranch = editing?.id ?? createdCandidateId;
-    if (isEmployeeMode && homeBranchId && cidForBranch) {
-      const branchLabel = branches.find((b) => b.id === homeBranchId)?.name ?? "";
+    if (isEmployeeMode && homeUnitId && cidForBranch) {
+      const unitLabel = units.find((u) => u.id === homeUnitId)?.name ?? "";
       await supabase
         .from("employee_scope_assignments" as never)
         .delete()
         .eq("candidate_id", cidForBranch)
-        .eq("scope_type", "branch");
+        .eq("scope_type", "unit");
       const { error: esaErr } = await supabase
         .from("employee_scope_assignments" as never)
         .insert({
           candidate_id: cidForBranch,
-          scope_type: "branch",
-          scope_id: homeBranchId,
-          scope_label: branchLabel,
+          scope_type: "unit",
+          scope_id: homeUnitId,
+          scope_label: unitLabel,
         } as never);
-      if (esaErr) console.error("home branch sync failed", esaErr);
+      if (esaErr) console.error("home unit sync failed", esaErr);
     }
 
     toast.success(successMsg);
@@ -4962,27 +4979,33 @@ function CandidateWizard({
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+                {nonBillableUnits.length <= 1 && (
+                  <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
+                    Billing Unit · {nonBillableUnits[0]?.name ?? "Radiant Guards - Pune Office"}
+                  </Badge>
+                )}
               </div>
-              <div className="grid gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
-                <Select value={homeBranchId} onValueChange={setHomeBranchId}>
-                  <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
-                    <SelectValue placeholder="Select home branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches
-                      .slice()
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((b) => (
-                        <SelectItem key={b.id} value={b.id} className="text-xs">
-                          {b.name} {b.code ? <span className="ml-1 text-muted-foreground">· {b.code}</span> : null}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-[11px] text-muted-foreground">Where this employee reports for stock, transfers &amp; demands.</span>
-              </div>
+              {nonBillableUnits.length > 1 && (
+                <div className="grid gap-1.5">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Unit</label>
+                  <Select value={homeUnitId} onValueChange={setHomeUnitId}>
+                    <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
+                      <SelectValue placeholder="Select home unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nonBillableUnits
+                        .slice()
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((u) => (
+                          <SelectItem key={u.id} value={u.id} className="text-xs">
+                            {u.name} {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-[11px] text-muted-foreground">The non-billable unit this employee belongs to (payroll &amp; billing base).</span>
+                </div>
+              )}
             </div>
           )}
 
