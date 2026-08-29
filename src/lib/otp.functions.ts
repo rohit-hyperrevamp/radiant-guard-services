@@ -22,17 +22,23 @@ import type { OtpMode } from "@/lib/otp.server";
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { resolveOtpMode } = await import("@/lib/otp.server");
+    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
     const mode = await resolveOtpMode(data.phone);
-    return { mode };
+    if (mode === "fixed") return { mode };
+
+    await callMsg91("send", data.phone);
+    return { mode: "sms" };
   });
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { resolveOtpMode } = await import("@/lib/otp.server");
+    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
     const mode = await resolveOtpMode(data.phone);
-    return { mode };
+    if (mode === "fixed") return { mode };
+
+    await callMsg91("retry", data.phone);
+    return { mode: "sms" };
   });
 
 export const verifyLoginOtp = createServerFn({ method: "POST" })
@@ -41,7 +47,6 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       .object({
         phone: z.string().regex(/^\d{10}$/),
         otp: z.string().regex(/^\d{4}$/),
-        accessToken: z.string().min(10).optional(),
       })
       .parse(input),
   )
@@ -51,13 +56,12 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    const { resolveOtpMode, verifyMsg91AccessToken } = await import("@/lib/otp.server");
+    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
     if ((await resolveOtpMode(data.phone)) === "fixed") {
       if (data.otp !== FALLBACK_OTP) throw new Error("Wrong code. Please try again.");
       return { ok: true };
     }
 
-    if (!data.accessToken) throw new Error("OTP verification token is missing. Please request a new code.");
-    await verifyMsg91AccessToken(data.accessToken);
+    await callMsg91("verify", data.phone, data.otp);
     return { ok: true };
   });
