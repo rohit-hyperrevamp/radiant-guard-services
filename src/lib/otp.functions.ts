@@ -22,7 +22,7 @@ import type { OtpMode } from "@/lib/otp.server";
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const { resolveOtpMode } = await import("@/lib/otp.server");
     const mode = await resolveOtpMode(data.phone);
     if (mode === "fixed") return { mode };
 
@@ -32,7 +32,7 @@ export const sendLoginOtp = createServerFn({ method: "POST" })
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const { resolveOtpMode } = await import("@/lib/otp.server");
     const mode = await resolveOtpMode(data.phone);
     if (mode === "fixed") return { mode };
 
@@ -55,14 +55,13 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const { resolveOtpMode, verifyMsg91WidgetAccessToken } = await import("@/lib/otp.server");
     if ((await resolveOtpMode(data.phone)) === "fixed") {
       if (data.otp !== FALLBACK_OTP) throw new Error("Wrong code. Please try again.");
       return { ok: true };
     }
 
     if (!data.accessToken) throw new Error("OTP verification could not be confirmed.");
-    const { verifyMsg91WidgetAccessToken } = await import("@/lib/otp.server");
     await verifyMsg91WidgetAccessToken(data.accessToken);
     return { ok: true };
   });
