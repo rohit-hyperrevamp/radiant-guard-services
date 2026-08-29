@@ -998,6 +998,46 @@ function preferredEmployeeRecordFirst(a: CandidateListItem, b: CandidateListItem
   return employeeStatusRank(b) - employeeStatusRank(a) || newestEmployeeRecordFirst(a, b);
 }
 
+/**
+ * Approved / active people must carry an EMP-### employee ID. Rows that still
+ * display their candidate number (CAN-###, EC-###) — or nothing at all — are
+ * repaired here by allocating the next free EMP number.
+ * Returns how many rows were fixed.
+ */
+async function healEmployeeCodes(rows: CandidateListItem[]): Promise<number> {
+  const needsCode = rows.filter(
+    (r) =>
+      ["active", "approved"].includes(r.status) &&
+      (!r.employee_code || /^(CAN|EC)[-_]?\d*/i.test(r.employee_code)),
+  );
+  if (needsCode.length === 0) return 0;
+
+  const { data } = await supabase
+    .from("candidates" as never)
+    .select("employee_code")
+    .ilike("employee_code", "EMP-%")
+    .limit(5000);
+  let next = 0;
+  for (const row of ((data ?? []) as Array<{ employee_code: string | null }>)) {
+    const n = Number(String(row.employee_code ?? "").replace(/\D/g, ""));
+    if (Number.isFinite(n) && n > next) next = n;
+  }
+
+  let fixed = 0;
+  for (const r of needsCode) {
+    next += 1;
+    const code = `EMP-${String(next).padStart(3, "0")}`;
+    const { error } = await supabase
+      .from("candidates" as never)
+      .update({ employee_code: code } as never)
+      .eq("id", r.id);
+    if (!error) fixed += 1;
+  }
+  return fixed;
+}
+
+
+
 function useSignedDocsSummary() {
   return useQuery({
     queryKey: QK_SIGNED_DOCS,
