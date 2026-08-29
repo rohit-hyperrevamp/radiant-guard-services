@@ -130,6 +130,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { confirmAction } from "@/components/ConfirmProvider";
 import {
+  QK_CANDIDATE_UNITS,
   QK_SCOPE_ASSIGNMENTS,
   SCOPE_TYPE_LABEL,
   useScopeAssignments,
@@ -4791,6 +4792,19 @@ function CandidateWizard({
       );
     }
   }, [isEmployeeMode, nonBillableUnits, homeUnitId]);
+
+  // Home Unit is the actual unit assignment for an internal employee. Keep
+  // the shared assignment model in sync so validation, candidate_units,
+  // wages, and the employee list all persist/read the same unit.
+  useEffect(() => {
+    if (!isEmployeeMode || !homeUnitId) return;
+    setForm((current) => {
+      if (current.unit_ids.length === 1 && current.unit_ids[0] === homeUnitId && current.unit_id === homeUnitId) {
+        return current;
+      }
+      return { ...current, unit_id: homeUnitId, unit_ids: [homeUnitId] };
+    });
+  }, [isEmployeeMode, homeUnitId]);
   const isEditingEmployeeProfile =
     !!editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive");
 
@@ -4817,6 +4831,7 @@ function CandidateWizard({
       // Optimistically seed with the single mirrored unit_id so the picker isn't empty during fetch.
       const initialUnitIds = rest.unit_id ? [rest.unit_id] : [];
       const normalizedStatus = rest.status === "approved" ? "active" : rest.status;
+      if (isEmployeeMode && rest.unit_id) setHomeUnitId(rest.unit_id);
       setInitialUnitIds(initialUnitIds);
       setForm({
         ...(rest as CandidateForm),
@@ -4840,6 +4855,7 @@ function CandidateWizard({
         const desig: Record<string, string | null> = {};
         for (const r of rows) desig[r.unit_id] = r.designation_id ?? null;
         setInitialUnitIds(ids);
+        if (isEmployeeMode && ids[0]) setHomeUnitId(ids[0]);
         setForm((f) => ({
           ...f,
           unit_ids: ids,
@@ -4924,7 +4940,11 @@ function CandidateWizard({
     let base = designations;
     // Non-billable employees are NOT deployed against a client contract, so
     // their designation comes straight from the Designation master.
-    if (isEmployeeMode) return base.filter((d) => d.billable === false);
+    if (isEmployeeMode) {
+      // The master designation remains valid for an internal employee even
+      // if its historical billable flag was configured differently.
+      return base;
+    }
     if (desigLookupUnitIds.length === 0) return base;
     if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
@@ -4935,6 +4955,9 @@ function CandidateWizard({
   // contracts, clear it so the user picks a valid one.
   useEffect(() => {
     if (isEmployeeMode) return;
+    // Never destroy a designation already saved on an existing profile while
+    // contract/designation lookups are settling during dialog open.
+    if (editing) return;
     if (form.unit_ids.length === 0) return;
     if (contractDesigQuery.isLoading) return;
     if (!form.designation_id) return;
@@ -4942,7 +4965,7 @@ function CandidateWizard({
       setForm((f) => ({ ...f, designation_id: null }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUnitIdsKey, contractDesigQuery.isLoading, allowedDesignationIds.join(",")]);
+  }, [editing, selectedUnitIdsKey, contractDesigQuery.isLoading, allowedDesignationIds.join(",")]);
 
   // ----- Non-billable: departments + per-employee wage sheet ----- //
   const departmentsQuery = useQuery({
@@ -4970,9 +4993,8 @@ function CandidateWizard({
 
   /** Units the Wages section renders a sheet for. */
   const wageUnitIds = useMemo(() => {
-    const ids = isEmployeeMode ? [homeUnitId].filter(Boolean) : form.unit_ids;
-    return (ids as string[]).filter(Boolean);
-  }, [isEmployeeMode, homeUnitId, form.unit_ids]);
+    return form.unit_ids.filter(Boolean);
+  }, [form.unit_ids]);
 
   useEffect(() => {
     if (wageUnitIds.length === 0) {
@@ -4997,7 +5019,10 @@ function CandidateWizard({
       if (cancelled) return;
       const next: Record<string, ContractResource | null> = {};
       for (const row of ((data ?? []) as unknown as Array<Record<string, unknown>>)) {
-        const key = (row.unit_id as string) ?? "";
+        // Older wage rows could have a null unit_id. Attach those to the
+        // employee's persisted unit so the saved sheet remains visible.
+        const key = (row.unit_id as string | null) ?? editing.unit_id ?? homeUnitId;
+        if (!key) continue;
         next[key] = {
           designationId: "",
           roleKey: null,
@@ -5017,7 +5042,7 @@ function CandidateWizard({
     return () => {
       cancelled = true;
     };
-  }, [editing?.id]);
+  }, [editing?.id, editing?.unit_id, homeUnitId]);
 
   const activeWage = activeWageUnit ? wagesByUnit[activeWageUnit] ?? null : null;
   const setActiveWage = (next: ContractResource | null) =>
@@ -5044,11 +5069,31 @@ function CandidateWizard({
         };
       })
       .filter(Boolean);
-    if (rows.length === 0) return;
-    const { error } = await supabase
+    if (rows.length > 0) {
+      const { error } = await supabase
+        .from("employee_wages" as never)
+        .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
+      if (error) throw new Error(`Wage sheet sync failed: ${error.message}`);
+    }
+
+    // Remove sheets explicitly crossed out, legacy null-unit sheets that were
+    // migrated above, and sheets for units no longer assigned to the person.
+    const retainedUnits = new Set(rows.map((row) => row?.unit_id).filter(Boolean));
+    const { data: savedRows, error: savedRowsError } = await supabase
       .from("employee_wages" as never)
-      .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
-    if (error) console.error("employee wages sync failed", error);
+      .select("id,unit_id")
+      .eq("candidate_id", candidateId);
+    if (savedRowsError) throw new Error(`Wage sheet cleanup failed: ${savedRowsError.message}`);
+    const staleIds = ((savedRows ?? []) as Array<{ id: string; unit_id: string | null }>)
+      .filter((row) => !row.unit_id || !retainedUnits.has(row.unit_id))
+      .map((row) => row.id);
+    if (staleIds.length > 0) {
+      const { error: cleanupError } = await supabase
+        .from("employee_wages" as never)
+        .delete()
+        .in("id", staleIds);
+      if (cleanupError) throw new Error(`Wage sheet cleanup failed: ${cleanupError.message}`);
+    }
   };
 
 
@@ -5284,7 +5329,7 @@ function CandidateWizard({
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
-    { key: "Designation", ok: !!form.designation_id },
+    { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
 
   ];
@@ -5324,6 +5369,7 @@ function CandidateWizard({
     return {
       ...basePayload,
       status,
+      designation_id: form.designation_id ?? editing?.designation_id ?? null,
       role_key: (form.role_key ?? "").trim() || null,
       emergency_contact_name: emergencyContact?.name ?? "",
       emergency_contact_relation: emergencyContact?.relation ?? "",
@@ -5525,7 +5571,7 @@ function CandidateWizard({
     // wizard AFTER the list has refetched — prevents the "count went up
     // but I don't see my row" flash.
     await qc.invalidateQueries({ queryKey: QK, refetchType: "active" });
-    await qc.invalidateQueries({ queryKey: ["candidate_units"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS, refetchType: "active" });
   };
 
 
