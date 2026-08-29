@@ -8,7 +8,14 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useAuth, verifyOtp } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  OTP_LENGTH,
+  resendLoginOtp,
+  sendLoginOtp,
+  verifyLoginOtp,
+} from "@/lib/otp.functions";
 import {
   enableBiometric,
   getBiometricStatus,
@@ -51,6 +58,9 @@ type Step = "phone" | "otp";
 function LoginPage() {
   const navigate = useNavigate();
   const { user, login } = useAuth();
+  const requestOtp = useServerFn(sendLoginOtp);
+  const requestOtpAgain = useServerFn(resendLoginOtp);
+  const checkOtp = useServerFn(verifyLoginOtp);
   const verifyInFlightRef = useRef(false);
 
   const [step, setStep] = useState<Step>("phone");
@@ -86,30 +96,39 @@ function LoginPage() {
 
   async function sendOtp(e?: React.FormEvent) {
     e?.preventDefault();
-    if (!phoneValid) return;
+    if (!phoneValid || sending) return;
     setSending(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setSending(false);
-    setStep("otp");
-    setResendIn(30);
-    setOtp("");
     setError(null);
-    toast.success(`OTP sent to +91 ••• ••• ${phone.slice(-4)}`);
+    try {
+      const isResend = step === "otp";
+      const result = isResend
+        ? await requestOtpAgain({ data: { phone } })
+        : await requestOtp({ data: { phone } });
+      setStep("otp");
+      setResendIn(30);
+      setOtp("");
+      toast.success(
+        result.mode === "sms"
+          ? `OTP sent to +91 ••• ••• ${phone.slice(-4)}`
+          : "Enter your access code to continue",
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not send the code. Please try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
   }
 
   async function handleVerify(value?: string) {
     const code = value ?? otp;
-    if (code.length !== 6 || verifyInFlightRef.current) return;
+    if (code.length !== OTP_LENGTH || verifyInFlightRef.current) return;
     verifyInFlightRef.current = true;
     setVerifying(true);
-    if (!verifyOtp(code)) {
-      verifyInFlightRef.current = false;
-      setVerifying(false);
-      setError("Incorrect code. Please check your SMS and try again.");
-      setOtp("");
-      return;
-    }
     try {
+      await checkOtp({ data: { phone, otp: code } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
@@ -244,7 +263,7 @@ function LoginPage() {
               <p className="mt-2 text-[14.5px] leading-relaxed text-muted-foreground">
                 {step === "phone"
                   ? "Enter your mobile number to receive a one-time code."
-                  : `We sent a 6-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
+                  : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
               </p>
 
               <div className="mt-7">
@@ -312,17 +331,17 @@ function LoginPage() {
                   <div className="space-y-5">
                     <div className={error ? "animate-shake" : ""}>
                       <InputOTP
-                        maxLength={6}
+                        maxLength={OTP_LENGTH}
                         value={otp}
                         onChange={(v) => {
                           setOtp(v);
                           setError(null);
-                          if (v.length === 6) handleVerify(v);
+                          if (v.length === OTP_LENGTH) handleVerify(v);
                         }}
                         containerClassName="justify-between gap-2"
                       >
                         <InputOTPGroup className="flex w-full justify-between gap-2">
-                          {[0, 1, 2, 3, 4, 5].map((i) => (
+                          {Array.from({ length: OTP_LENGTH }, (_, i) => i).map((i) => (
                           <InputOTPSlot
                               key={i}
                               index={i}
@@ -338,14 +357,14 @@ function LoginPage() {
                         </p>
                       ) : (
                         <p className="mt-3 text-center text-[13px] text-muted-foreground">
-                          Enter the 6-digit code sent to your phone
+                          Enter the {OTP_LENGTH}-digit code sent to your phone
                         </p>
                       )}
                     </div>
 
                     <Button
                       onClick={() => handleVerify()}
-                      disabled={otp.length !== 6 || verifying}
+                      disabled={otp.length !== OTP_LENGTH || verifying}
                       className="h-14 w-full rounded-2xl bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_18px_40px_-12px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90 disabled:bg-slate-700 disabled:text-white disabled:opacity-60"
                     >
                       {verifying ? (
