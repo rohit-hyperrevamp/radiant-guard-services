@@ -1,5 +1,3 @@
-import type { OtpMode } from "@/lib/otp.server";
-
 const MSG91_ENDPOINT =
   "https://ogmhspwsvzvwqoavlxjn.supabase.co/functions/v1/msg91-otp";
 const MSG91_PUBLISHABLE_KEY = "sb_publishable_poMI4GzypzM-3Y4znIJDEA_ocG6BARb";
@@ -32,12 +30,12 @@ async function callMsg91(action: Msg91Action, phone: string, otp?: string) {
   }
 }
 
-export async function sendRealLoginOtp(phone: string): Promise<{ mode: OtpMode }> {
+export async function sendRealLoginOtp(phone: string): Promise<{ mode: "sms" }> {
   await callMsg91("send", phone);
   return { mode: "sms" };
 }
 
-export async function resendRealLoginOtp(phone: string): Promise<{ mode: OtpMode }> {
+export async function resendRealLoginOtp(phone: string): Promise<{ mode: "sms" }> {
   await callMsg91("retry", phone);
   return { mode: "sms" };
 }

@@ -71,6 +71,7 @@ function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
+  const [otpMode, setOtpMode] = useState<"sms" | "fixed">("sms");
   const [revealing, setRevealing] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
@@ -103,13 +104,20 @@ function LoginPage() {
     try {
       const isResend = step === "otp";
       const isSuperAdmin = phone === SUPER_ADMIN_OTP_PHONE;
-      const result = isSuperAdmin
-        ? isResend
+      let result: { mode: "sms" | "fixed" };
+      try {
+        result = isResend
           ? await requestOtpAgain({ data: { phone } })
-          : await requestOtp({ data: { phone } })
-        : isResend
+          : await requestOtp({ data: { phone } });
+      } catch (serverError) {
+        const message = serverError instanceof Error ? serverError.message : "";
+        const isConfigurationFailure = /sms service is not configured/i.test(message);
+        if (isSuperAdmin || !isConfigurationFailure) throw serverError;
+        result = isResend
           ? await resendRealLoginOtp(phone)
           : await sendRealLoginOtp(phone);
+      }
+      setOtpMode(result.mode);
       setStep("otp");
       setResendIn(30);
       setOtp("");
@@ -134,7 +142,7 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      if (phone === SUPER_ADMIN_OTP_PHONE) {
+      if (phone === SUPER_ADMIN_OTP_PHONE || otpMode === "fixed") {
         await checkOtp({ data: { phone, otp: code } });
       } else {
         await verifyRealLoginOtp(phone, code);
