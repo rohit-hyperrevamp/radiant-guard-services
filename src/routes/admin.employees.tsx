@@ -4657,6 +4657,8 @@ function CandidateWizard({
 }) {
   const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
   const qc = useQueryClient();
+  const rolesQuery = useRolesLite();
+  const rolesList = rolesQuery.data ?? [];
   const extractFn = useServerFn(extractAadhaar);
   const { branches } = useBranches();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
