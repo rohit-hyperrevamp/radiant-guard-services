@@ -4271,26 +4271,26 @@ function CandidateWizard({
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
-      setHomeBranchId(DEFAULT_HOME_BRANCH_ID);
+      setHomeUnitId(RADIANT_BILLING_UNIT_ID);
     }
   }, [open, editing, isEmployeeMode]);
 
-  // Load existing Home Branch (employee_scope_assignments · scope_type='branch') for edit mode.
+  // Load existing Home Unit (employee_scope_assignments · scope_type='unit') for edit mode.
   useEffect(() => {
-    if (!open || !editing) return;
+    if (!open || !editing || !isEmployeeMode) return;
     (async () => {
       const { data, error } = await supabase
         .from("employee_scope_assignments" as never)
         .select("scope_id")
         .eq("candidate_id", editing.id)
-        .eq("scope_type", "branch")
+        .eq("scope_type", "unit")
         .limit(1)
         .maybeSingle();
       if (error || !data) return;
       const sid = (data as { scope_id?: string }).scope_id;
-      if (sid) setHomeBranchId(sid);
+      if (sid) setHomeUnitId(sid);
     })();
-  }, [open, editing]);
+  }, [open, editing, isEmployeeMode]);
 
   const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -4805,24 +4805,24 @@ function CandidateWizard({
       }
     }
 
-    // Sync Home Branch → employee_scope_assignments (non-billable employees only).
+    // Sync Home Unit → employee_scope_assignments (non-billable employees only).
     const cidForBranch = editing?.id ?? createdCandidateId;
-    if (isEmployeeMode && homeBranchId && cidForBranch) {
-      const branchLabel = branches.find((b) => b.id === homeBranchId)?.name ?? "";
+    if (isEmployeeMode && homeUnitId && cidForBranch) {
+      const unitLabel = units.find((u) => u.id === homeUnitId)?.name ?? "";
       await supabase
         .from("employee_scope_assignments" as never)
         .delete()
         .eq("candidate_id", cidForBranch)
-        .eq("scope_type", "branch");
+        .eq("scope_type", "unit");
       const { error: esaErr } = await supabase
         .from("employee_scope_assignments" as never)
         .insert({
           candidate_id: cidForBranch,
-          scope_type: "branch",
-          scope_id: homeBranchId,
-          scope_label: branchLabel,
+          scope_type: "unit",
+          scope_id: homeUnitId,
+          scope_label: unitLabel,
         } as never);
-      if (esaErr) console.error("home branch sync failed", esaErr);
+      if (esaErr) console.error("home unit sync failed", esaErr);
     }
 
     toast.success(successMsg);
