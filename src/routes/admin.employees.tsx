@@ -4109,7 +4109,6 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
-const DEFAULT_HOME_BRANCH_ID = "8897587c-e532-47ad-af01-353409cc6b23"; // PUNE — Radiant HQ branch
 
 function CandidateWizard({
   open,
@@ -4196,7 +4195,22 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  const [homeBranchId, setHomeBranchId] = useState<string>(DEFAULT_HOME_BRANCH_ID);
+  // Non-billable employees: the "home unit" (a non-billable unit) they belong to.
+  const [homeUnitId, setHomeUnitId] = useState<string>(RADIANT_BILLING_UNIT_ID);
+  const nonBillableUnits = useMemo(
+    () => units.filter((u) => u.is_billable === false),
+    [units],
+  );
+  // Keep the selection valid as units load / change.
+  useEffect(() => {
+    if (!isEmployeeMode) return;
+    if (nonBillableUnits.length === 0) return;
+    if (!nonBillableUnits.some((u) => u.id === homeUnitId)) {
+      setHomeUnitId(
+        nonBillableUnits.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ?? nonBillableUnits[0].id,
+      );
+    }
+  }, [isEmployeeMode, nonBillableUnits, homeUnitId]);
   const isEditingEmployeeProfile =
     !!editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive");
 
