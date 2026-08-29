@@ -4831,6 +4831,7 @@ function CandidateWizard({
       // Optimistically seed with the single mirrored unit_id so the picker isn't empty during fetch.
       const initialUnitIds = rest.unit_id ? [rest.unit_id] : [];
       const normalizedStatus = rest.status === "approved" ? "active" : rest.status;
+      if (isEmployeeMode && rest.unit_id) setHomeUnitId(rest.unit_id);
       setInitialUnitIds(initialUnitIds);
       setForm({
         ...(rest as CandidateForm),
@@ -4854,6 +4855,7 @@ function CandidateWizard({
         const desig: Record<string, string | null> = {};
         for (const r of rows) desig[r.unit_id] = r.designation_id ?? null;
         setInitialUnitIds(ids);
+        if (isEmployeeMode && ids[0]) setHomeUnitId(ids[0]);
         setForm((f) => ({
           ...f,
           unit_ids: ids,
@@ -4938,7 +4940,11 @@ function CandidateWizard({
     let base = designations;
     // Non-billable employees are NOT deployed against a client contract, so
     // their designation comes straight from the Designation master.
-    if (isEmployeeMode) return base.filter((d) => d.billable === false);
+    if (isEmployeeMode) {
+      // The master designation remains valid for an internal employee even
+      // if its historical billable flag was configured differently.
+      return base;
+    }
     if (desigLookupUnitIds.length === 0) return base;
     if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
