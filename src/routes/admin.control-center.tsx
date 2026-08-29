@@ -87,6 +87,12 @@ const tiles: Tile[] = [
     icon: BadgeCheck,
   },
   {
+    to: "/admin/platform-settings",
+    label: "Platform Settings",
+    description: "Toggle real MSG91 SMS OTP for sign-in and other platform-wide switches.",
+    icon: Settings,
+  },
+  {
     to: "/admin/department-manager",
     label: "Department Manager",
     description: "Manage company departments used across employee records and designations.",
