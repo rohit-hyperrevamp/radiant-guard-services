@@ -1662,7 +1662,7 @@ function EmployeesPage() {
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
+    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, filterDepartment, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
   );
   const candidateRows = useMemo(
     () => candidates.filter((c) => {
