@@ -6082,15 +6082,7 @@ function CandidateWizard({
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <ResourceFormDialog
-                      inline
-                      open
-                      onOpenChange={() => {}}
-                      initial={wageInitialRef.current}
-                      variant="wages"
-                      onSubmit={(r) => setWage(r)}
-                      onChange={(r) => setWage(r)}
-                    />
+                    <div data-testid="wages-placeholder">wages placeholder</div>
                   </div>
                   {!wageEditorOpen && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
