@@ -1,5 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import {
+  FALLBACK_OTP,
+  OTP_LENGTH,
+  SUPER_ADMIN_OTP,
+  SUPER_ADMIN_OTP_PHONE as SUPER_ADMIN_PHONE,
+} from "@/lib/otp-config";
 
 /**
  * Phone OTP for sign-in.
@@ -11,10 +17,6 @@ import { z } from "zod";
  *   falls back to the fixed code 1111.
  */
 
-export const OTP_LENGTH = 4;
-export const SUPER_ADMIN_OTP = "2503";
-export const FALLBACK_OTP = "1111";
-const SUPER_ADMIN_PHONE = "8373914073";
 
 const MSG91_API = "https://control.msg91.com/api/v5";
 const OTP_EXPIRY_MIN = 10;

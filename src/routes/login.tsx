@@ -10,12 +10,8 @@ import {
 } from "@/components/ui/input-otp";
 import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  OTP_LENGTH,
-  resendLoginOtp,
-  sendLoginOtp,
-  verifyLoginOtp,
-} from "@/lib/otp.functions";
+import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
+import { OTP_LENGTH } from "@/lib/otp-config";
 import {
   enableBiometric,
   getBiometricStatus,
