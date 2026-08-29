@@ -529,6 +529,7 @@ function CustomerUnitsDialog({
                         branchId={u.branchId ?? null}
                         customerId={u.customerId ?? null}
                         stateName={stName}
+                        isBillable={u.isBillable !== false}
                       />
                     </div>
                   </li>
