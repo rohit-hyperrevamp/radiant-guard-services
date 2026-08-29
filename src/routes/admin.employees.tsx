@@ -16,6 +16,7 @@ import {
 } from "@/components/candidate-extra-sections";
 import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+import { ResourceFormDialog, type ContractResource } from "./admin.contracts.client-contracts";
 
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -246,6 +247,7 @@ type Candidate = {
   preferred_joining_date: string | null;
   unit_id: string | null;
   designation_id: string | null;
+  department_id: string | null;
   status: string;
   // Extended (JSONB) sections
   physical_health: Record<string, any>;
@@ -4092,6 +4094,7 @@ function emptyForm(): CandidateForm {
     unit_designations: {},
 
     designation_id: null,
+    department_id: null,
     status: "pending",
     physical_health: {},
     compliance: {},
@@ -4342,7 +4345,9 @@ function CandidateWizard({
   const allowedDesignationIds = contractDesigQuery.data ?? [];
   const filteredDesignations = useMemo(() => {
     let base = designations;
-    if (isEmployeeMode) base = base.filter((d) => d.billable === false);
+    // Non-billable employees are NOT deployed against a client contract, so
+    // their designation comes straight from the Designation master.
+    if (isEmployeeMode) return base.filter((d) => d.billable === false);
     if (desigLookupUnitIds.length === 0) return base;
     if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
@@ -4352,6 +4357,7 @@ function CandidateWizard({
   // If the currently selected designation is no longer allowed by the units'
   // contracts, clear it so the user picks a valid one.
   useEffect(() => {
+    if (isEmployeeMode) return;
     if (form.unit_ids.length === 0) return;
     if (contractDesigQuery.isLoading) return;
     if (!form.designation_id) return;
@@ -4360,6 +4366,90 @@ function CandidateWizard({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUnitIdsKey, contractDesigQuery.isLoading, allowedDesignationIds.join(",")]);
+
+  // ----- Non-billable: departments + per-employee wage sheet ----- //
+  const departmentsQuery = useQuery({
+    queryKey: ["wizard-departments"],
+    enabled: isEmployeeMode,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments" as never)
+        .select("id,name,enabled")
+        .eq("enabled", true)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{ id: string; name: string }>;
+    },
+  });
+  const departments = departmentsQuery.data ?? [];
+
+  const [wage, setWage] = useState<ContractResource | null>(null);
+  const [wageDialogOpen, setWageDialogOpen] = useState(false);
+  const [wageRowId, setWageRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cid = editing?.id;
+    if (!isEmployeeMode || !cid) {
+      setWage(null);
+      setWageRowId(null);
+      return;
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from("employee_wages" as never)
+        .select("id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
+        .eq("candidate_id", cid)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const r = data as unknown as Record<string, unknown>;
+      setWageRowId(String(r.id));
+      setWage({
+        designationId: "",
+        roleKey: null,
+        serviceTypeId: "",
+        quantity: 1,
+        shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
+        payrollDayBaseId: (r.payroll_day_base_id as string) ?? null,
+        components: (r.components as ContractResource["components"]) ?? [],
+        benefits: (r.benefits as ContractResource["benefits"]) ?? [],
+        deductions: (r.deductions as ContractResource["deductions"]) ?? [],
+        employerContributions: (r.employer_contributions as ContractResource["employerContributions"]) ?? [],
+      } as ContractResource);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editing?.id, isEmployeeMode]);
+
+  const wageGross = useMemo(
+    () => (wage?.components ?? []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0),
+    [wage],
+  );
+
+  /** Persist the per-employee wage sheet for non-billable employees. */
+  const syncEmployeeWages = async (candidateId: string) => {
+    if (!isEmployeeMode || !wage) return;
+    const row = {
+      candidate_id: candidateId,
+      unit_id: homeUnitId || null,
+      designation_id: form.designation_id,
+      department_id: form.department_id,
+      shift_hours: wage.shiftHours,
+      payroll_day_base_id: wage.payrollDayBaseId ?? null,
+      components: wage.components ?? [],
+      benefits: wage.benefits ?? [],
+      deductions: wage.deductions ?? [],
+      employer_contributions: wage.employerContributions ?? [],
+      gross: wageGross,
+    };
+    const { error } = await supabase
+      .from("employee_wages" as never)
+      .upsert(row as never, { onConflict: "candidate_id" } as never);
+    if (error) console.error("employee wages sync failed", error);
+    else if (!wageRowId) setWageRowId("saved");
+  };
 
 
   // ----- File upload helper ----- //
@@ -4826,6 +4916,7 @@ function CandidateWizard({
         } as never);
       if (esaErr) console.error("home unit sync failed", esaErr);
     }
+    if (isEmployeeMode && cidForBranch) await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
     // Await so the caller (Save/Send-to-Approval handlers) can close the
@@ -5722,7 +5813,7 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
-                  {form.unit_ids.length > 0 && (
+                  {!isEmployeeMode && form.unit_ids.length > 0 && (
                     <div className="sm:col-span-2">
                       <Field label="Designation at each unit (from that unit's contract)">
                         <div className="space-y-2 rounded-md border border-input bg-muted/20 p-2">
@@ -5795,9 +5886,11 @@ function CandidateWizard({
                   </div>
                   <Field
                     label={
-                      form.unit_ids.length === 0
-                        ? "Designation (Primary) — select a unit first"
-                        : `Designation (Primary) — ${filteredDesignations.length} available in unit contract${form.unit_ids.length > 1 ? "s" : ""}`
+                      isEmployeeMode
+                        ? `Designation — ${filteredDesignations.length} in master`
+                        : form.unit_ids.length === 0
+                          ? "Designation (Primary) — select a unit first"
+                          : `Designation (Primary) — ${filteredDesignations.length} available in unit contract${form.unit_ids.length > 1 ? "s" : ""}`
                     }
                   >
                     <DesignationPicker
@@ -5807,8 +5900,8 @@ function CandidateWizard({
                       disabled={
                         designationsLoading ||
                         !!designationsError ||
-                        form.unit_ids.length === 0 ||
-                        contractDesigQuery.isLoading
+                        (!isEmployeeMode &&
+                          (form.unit_ids.length === 0 || contractDesigQuery.isLoading))
                       }
                       emptyMessage={
                         designationsError
@@ -5821,6 +5914,86 @@ function CandidateWizard({
                       }
                     />
                   </Field>
+                  {isEmployeeMode && (
+                    <Field label="Department">
+                      <Select
+                        value={form.department_id ?? "__none"}
+                        onValueChange={(v) => set("department_id", v === "__none" ? null : v)}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">— None —</SelectItem>
+                          {departments.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+
+                  {isEmployeeMode && (
+                    <div className="sm:col-span-2">
+                      <Field label="Wages">
+                        <div className="rounded-xl border border-input bg-muted/20 p-3">
+                          {wage ? (
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-foreground">
+                                  {form.full_name || "This employee"}
+                                  {form.employee_code ? (
+                                    <span className="ml-2 font-mono text-[11px] text-muted-foreground">{form.employee_code}</span>
+                                  ) : null}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {wage.shiftHours}h shift · {(wage.components ?? []).length} wage component(s) ·
+                                  {" "}Gross ₹{Math.round(wageGross).toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button type="button" variant="outline" size="sm" onClick={() => setWageDialogOpen(true)}>
+                                  <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setWage(null)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="text-xs text-muted-foreground">
+                                Non-billable employees have their own wage sheet — shift hours, payroll days and wage components.
+                              </p>
+                              <Button type="button" variant="outline" size="sm" onClick={() => setWageDialogOpen(true)}>
+                                <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Wages
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </Field>
+                      <ResourceFormDialog
+                        open={wageDialogOpen}
+                        onOpenChange={setWageDialogOpen}
+                        initial={wage}
+                        variant="wages"
+                        subject={{
+                          name: form.full_name || "New employee",
+                          employeeCode: form.employee_code || null,
+                          designationName:
+                            designations.find((d) => d.id === form.designation_id)?.name ?? null,
+                          departmentName: departments.find((d) => d.id === form.department_id)?.name ?? null,
+                        }}
+                        onSubmit={(r) => {
+                          setWage(r);
+                          setWageDialogOpen(false);
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {editing?.id ? (
                     <Field label="Additional Designations">
                       <CandidateDesignationsEditor

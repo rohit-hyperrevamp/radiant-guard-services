@@ -722,6 +722,42 @@ function PayrollUnitPage() {
         resourceByDesignation.set(r.designationId, r);
       }
 
+      // 3c. Per-employee wage sheets (non-billable employees). These override
+      // the contract resource: a non-billable employee is not deployed against
+      // a client contract, their wages are their own.
+      const resourceByCandidate = new Map<string, ContractResourceLike>();
+      {
+        const rosterIds = roster.map((c) => c.id);
+        if (rosterIds.length > 0) {
+          const { data: ew } = await supabase
+            .from("employee_wages" as never)
+            .select(
+              "candidate_id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id",
+            )
+            .in("candidate_id", rosterIds);
+          const raw = ((ew ?? []) as unknown) as Record<string, unknown>[];
+          for (const r of raw) {
+            resourceByCandidate.set(String(r.candidate_id), {
+              designationId: String(r.designation_id ?? ""),
+              components: Array.isArray(r.components) ? (r.components as ContractResourceLike["components"]) : [],
+              benefits: Array.isArray(r.benefits) ? (r.benefits as ContractResourceLike["benefits"]) : [],
+              deductions: Array.isArray(r.deductions) ? (r.deductions as ContractResourceLike["deductions"]) : [],
+              employerContributions: Array.isArray(r.employer_contributions)
+                ? (r.employer_contributions as ContractResourceLike["employerContributions"])
+                : [],
+              payrollDayBase: r.payroll_day_base_id ? pdbMap.get(String(r.payroll_day_base_id)) ?? null : null,
+            });
+          }
+          if (resourceByCandidate.size > 0) {
+            const ids = Array.from(resourceByCandidate.keys());
+            const hydratedEw = await hydrateFormulasFromMaster(
+              ids.map((id) => resourceByCandidate.get(id)!),
+            );
+            hydratedEw.forEach((r, i) => resourceByCandidate.set(ids[i], r));
+          }
+        }
+      }
+
       // 4. Build line items per (candidate, designation_id).
       // Each candidate gets a primary line (their own designation) plus an extra
       // line for any other designation found in their attendance entries.
@@ -769,7 +805,7 @@ function PayrollUnitPage() {
           const phDisplay = phDisplayCountByCandidate.get(c.id) ?? 0;
           if (phDisplay) totals.phDays = totals.phDays + phDisplay;
         }
-        const resource = resourceByDesignation.get(did);
+        const resource = resourceByCandidate.get(c.id) ?? resourceByDesignation.get(did);
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })

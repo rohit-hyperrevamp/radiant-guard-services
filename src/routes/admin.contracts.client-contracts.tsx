@@ -236,7 +236,7 @@ type AllowanceType = {
   fixedDutyDivisor?: "base_days" | "days_in_month" | "payable_days" | "fixed_26";
 };
 
-type ResourceComponent = {
+export type ResourceComponent = {
   allowanceId: string;
   name: string;
   amount: number;
@@ -253,7 +253,7 @@ type FixedCalcMethod = "flat" | "per_duty";
 type FixedDutyBucket = "p_days" | "ot_days" | "ph_days" | "other_paid_days";
 type FixedDutyDivisor = "base_days" | "days_in_month" | "payable_days" | "fixed_26";
 
-type BenefitItem = {
+export type BenefitItem = {
   costComponentId: string;
   name: string;
   calcType: "percentage" | "fixed";
@@ -273,7 +273,7 @@ type BenefitItem = {
 };
 
 
-type ContractResource = {
+export type ContractResource = {
   id?: string;
   designationId: string;
   roleKey?: string | null;
@@ -3794,17 +3794,34 @@ function ResourcesSection({
   );
 }
 
-function ResourceFormDialog({
+export type WagesSubject = {
+  name: string;
+  employeeCode?: string | null;
+  designationName?: string | null;
+  departmentName?: string | null;
+};
+
+export function ResourceFormDialog({
   open,
   onOpenChange,
   initial,
   onSubmit,
+  /**
+   * "wages" = per-employee wage sheet (non-billable onboarding). Hides the
+   * contract-only deployment fields (designation, service type, agreed
+   * deployment quantity, role) — those come from the employee record.
+   */
+  variant = "contract",
+  subject,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initial: ContractResource | null;
   onSubmit: (r: ContractResource) => void;
+  variant?: "contract" | "wages";
+  subject?: WagesSubject | null;
 }) {
+  const isWages = variant === "wages";
   const designations = useDesignations();
   const serviceTypes = useServiceTypes();
   const allowanceTypes = useAllowanceTypes();
@@ -4344,11 +4361,11 @@ function ResourceFormDialog({
   };
 
   const handleSubmit = () => {
-    if (!designationId) {
+    if (!isWages && !designationId) {
       toast.error("Please select a designation");
       return;
     }
-    if (!serviceTypeId) {
+    if (!isWages && !serviceTypeId) {
       toast.error("Please select a service type");
       return;
     }
@@ -4356,7 +4373,7 @@ function ResourceFormDialog({
       toast.error("Please select Payroll Days");
       return;
     }
-    const q = parseInt(quantity, 10);
+    const q = isWages ? 1 : parseInt(quantity, 10);
     if (!q || q < 1) {
       toast.error("Quantity must be at least 1");
       return;
@@ -4423,16 +4440,39 @@ function ResourceFormDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {initial?.id ? "Edit Resource" : "Add Resource"}
+            {isWages
+              ? initial?.id ? "Edit Wages" : "Add Wages"
+              : initial?.id ? "Edit Resource" : "Add Resource"}
           </DialogTitle>
           <DialogDescription>
-            Map a designation, service type and quantity, then configure wage
-            components.
+            {isWages
+              ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
+              : "Map a designation, service type and quantity, then configure wage components."}
           </DialogDescription>
         </DialogHeader>
 
+        {isWages && subject && (
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="text-sm font-semibold text-foreground">
+              {subject.name || "—"}
+              {subject.employeeCode ? (
+                <span className="ml-2 font-mono text-[11px] text-muted-foreground">{subject.employeeCode}</span>
+              ) : null}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+              {subject.designationName ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.designationName}</span>
+              ) : null}
+              {subject.departmentName ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.departmentName}</span>
+              ) : null}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4 py-2">
           <div className="grid gap-4 sm:grid-cols-3">
+            {!isWages && (<>
             <Field label="Designation *">
               <Popover open={designationOpen} onOpenChange={setDesignationOpen}>
                 <PopoverTrigger asChild>
@@ -4526,6 +4566,7 @@ function ResourceFormDialog({
               />
             </Field>
 
+            </>)}
             <Field label="Shift Hours *">
               <Select value={shiftHours} onValueChange={setShiftHours}>
                 <SelectTrigger className="h-10 rounded-lg">
@@ -4540,6 +4581,7 @@ function ResourceFormDialog({
           </div>
 
 
+          {!isWages && (
           <Field label="Role">
             <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
               <SelectTrigger className="h-10 rounded-lg">
@@ -4556,6 +4598,8 @@ function ResourceFormDialog({
             </Select>
           </Field>
 
+
+          )}
 
           <Field label="Payroll Days *">
             <Select value={payrollDayBaseId} onValueChange={setPayrollDayBaseId}>
