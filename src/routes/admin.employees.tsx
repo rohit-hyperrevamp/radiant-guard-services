@@ -396,6 +396,7 @@ type UnitLite = {
   branch_id: string | null;
   uniform_included?: boolean | null;
   uniform_fee_amount?: number | string | null;
+  is_billable?: boolean | null;
   customer_name?: string;
 };
 
@@ -585,7 +586,7 @@ function useUnits() {
       const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
         await supabase
           .from("units" as never)
-          .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount")
+          .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
           .order("name", { ascending: true })
           .limit(2000)
           .abortSignal(signal),
