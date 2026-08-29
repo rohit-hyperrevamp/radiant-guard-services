@@ -3109,7 +3109,9 @@ function EmployeesPage() {
 
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {tab === "candidate" && (
                 <DropdownMenu>
+
                   <DropdownMenuTrigger asChild>
                     <Button
                       className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 sm:h-11 sm:px-6"
