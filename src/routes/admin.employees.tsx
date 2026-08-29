@@ -1581,7 +1581,12 @@ function EmployeesPage() {
   const matchesFilters = (c: CandidateListItem) => {
     if (filterRole !== "all" && c.role_key !== filterRole) return false;
     if (filterDesignation !== "all" && c.designation_id !== filterDesignation) return false;
-    if (filterUnit !== "all" && c.unit_id !== filterUnit) return false;
+    if (filterUnit !== "all" && (unitOfCandidate(c)?.id ?? c.unit_id) !== filterUnit) return false;
+    if (filterDepartment !== "all") {
+      if (filterDepartment === "none") {
+        if (c.department_id) return false;
+      } else if (c.department_id !== filterDepartment) return false;
+    }
     if (filterCustomer !== "all") {
       const unit = unitOfCandidate(c);
       if (!unit || unit.customer_id !== filterCustomer) return false;
