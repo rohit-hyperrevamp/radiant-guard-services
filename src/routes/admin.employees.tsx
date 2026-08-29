@@ -5069,23 +5069,38 @@ function CandidateWizard({
         };
       })
       .filter(Boolean);
-    if (rows.length > 0) {
-      const { error } = await supabase
-        .from("employee_wages" as never)
-        .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
-      if (error) throw new Error(`Wage sheet sync failed: ${error.message}`);
-    }
-
-    // Remove sheets explicitly crossed out, legacy null-unit sheets that were
-    // migrated above, and sheets for units no longer assigned to the person.
-    const retainedUnits = new Set(rows.map((row) => row?.unit_id).filter(Boolean));
+    // Do not rely on PostgREST's ON CONFLICT schema cache. Some deployed
+    // databases were still serving the earlier constraint metadata, causing
+    // a valid wage sheet to abort the whole employee save. Resolve each row
+    // explicitly and update/insert by its primary key instead.
     const { data: savedRows, error: savedRowsError } = await supabase
       .from("employee_wages" as never)
       .select("id,unit_id")
       .eq("candidate_id", candidateId);
-    if (savedRowsError) throw new Error(`Wage sheet cleanup failed: ${savedRowsError.message}`);
-    const staleIds = ((savedRows ?? []) as Array<{ id: string; unit_id: string | null }>)
+    if (savedRowsError) throw new Error(`Wage sheet save failed: ${savedRowsError.message}`);
+    const existingRows = (savedRows ?? []) as Array<{ id: string; unit_id: string | null }>;
+    for (const row of rows) {
+      if (!row) continue;
+      const existing = existingRows.find((saved) => saved.unit_id === row.unit_id)
+        ?? (existingRows.length === 1 && existingRows[0].unit_id === null ? existingRows[0] : undefined);
+      if (existing) {
+        const { error } = await supabase
+          .from("employee_wages" as never)
+          .update(row as never)
+          .eq("id", existing.id);
+        if (error) throw new Error(`Wage sheet save failed: ${error.message}`);
+      } else {
+        const { error } = await supabase.from("employee_wages" as never).insert(row as never);
+        if (error) throw new Error(`Wage sheet save failed: ${error.message}`);
+      }
+    }
+
+    // Remove sheets explicitly crossed out and sheets for units no longer
+    // assigned to the person.
+    const retainedUnits = new Set(rows.map((row) => row?.unit_id).filter(Boolean));
+    const staleIds = existingRows
       .filter((row) => !row.unit_id || !retainedUnits.has(row.unit_id))
+      .filter((row) => !rows.some((saved) => saved && existingRows.length === 1 && row.unit_id === null))
       .map((row) => row.id);
     if (staleIds.length > 0) {
       const { error: cleanupError } = await supabase
