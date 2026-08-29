@@ -4977,27 +4977,33 @@ function CandidateWizard({
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+                {nonBillableUnits.length <= 1 && (
+                  <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
+                    Billing Unit · {nonBillableUnits[0]?.name ?? "Radiant Guards - Pune Office"}
+                  </Badge>
+                )}
               </div>
-              <div className="grid gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
-                <Select value={homeBranchId} onValueChange={setHomeBranchId}>
-                  <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
-                    <SelectValue placeholder="Select home branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches
-                      .slice()
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((b) => (
-                        <SelectItem key={b.id} value={b.id} className="text-xs">
-                          {b.name} {b.code ? <span className="ml-1 text-muted-foreground">· {b.code}</span> : null}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-[11px] text-muted-foreground">Where this employee reports for stock, transfers &amp; demands.</span>
-              </div>
+              {nonBillableUnits.length > 1 && (
+                <div className="grid gap-1.5">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Unit</label>
+                  <Select value={homeUnitId} onValueChange={setHomeUnitId}>
+                    <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
+                      <SelectValue placeholder="Select home unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nonBillableUnits
+                        .slice()
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((u) => (
+                          <SelectItem key={u.id} value={u.id} className="text-xs">
+                            {u.name} {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-[11px] text-muted-foreground">The non-billable unit this employee belongs to (payroll &amp; billing base).</span>
+                </div>
+              )}
             </div>
           )}
 
