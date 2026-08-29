@@ -22,23 +22,17 @@ import type { OtpMode } from "@/lib/otp.server";
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const { resolveOtpMode } = await import("@/lib/otp.server");
     const mode = await resolveOtpMode(data.phone);
-    if (mode === "fixed") return { mode };
-
-    await callMsg91("send", data.phone);
-    return { mode: "sms" };
+    return { mode };
   });
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const { resolveOtpMode } = await import("@/lib/otp.server");
     const mode = await resolveOtpMode(data.phone);
-    if (mode === "fixed") return { mode };
-
-    await callMsg91("retry", data.phone);
-    return { mode: "sms" };
+    return { mode };
   });
 
 export const verifyLoginOtp = createServerFn({ method: "POST" })
@@ -47,6 +41,7 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       .object({
         phone: z.string().regex(/^\d{10}$/),
         otp: z.string().regex(/^\d{4}$/),
+        accessToken: z.string().min(10).optional(),
       })
       .parse(input),
   )
@@ -56,12 +51,13 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    const { callMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const { resolveOtpMode, verifyMsg91AccessToken } = await import("@/lib/otp.server");
     if ((await resolveOtpMode(data.phone)) === "fixed") {
       if (data.otp !== FALLBACK_OTP) throw new Error("Wrong code. Please try again.");
       return { ok: true };
     }
 
-    await callMsg91("verify", data.phone, data.otp);
+    if (!data.accessToken) throw new Error("OTP verification token is missing. Please request a new code.");
+    await verifyMsg91AccessToken(data.accessToken);
     return { ok: true };
   });
