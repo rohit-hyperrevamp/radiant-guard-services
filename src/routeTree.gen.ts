@@ -69,6 +69,7 @@ import { Route as AdminPayrollIndexRouteImport } from './routes/admin.payroll.in
 import { Route as AdminInvoiceIndexRouteImport } from './routes/admin.invoice.index'
 import { Route as AdminFieldSenseIndexRouteImport } from './routes/admin.field-sense.index'
 import { Route as AdminAttendanceIndexRouteImport } from './routes/admin.attendance.index'
+import { Route as ApiPublicOtpHealthRouteImport } from './routes/api/public/otp-health'
 import { Route as AdminVehiclesServiceManagerRouteImport } from './routes/admin.vehicles.service-manager'
 import { Route as AdminVehiclesPucsRouteImport } from './routes/admin.vehicles.pucs'
 import { Route as AdminVehiclesInventoryRouteImport } from './routes/admin.vehicles.inventory'
@@ -421,6 +422,11 @@ const AdminAttendanceIndexRoute = AdminAttendanceIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminAttendanceRoute,
 } as any)
+const ApiPublicOtpHealthRoute = ApiPublicOtpHealthRouteImport.update({
+  id: '/api/public/otp-health',
+  path: '/api/public/otp-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminVehiclesServiceManagerRoute =
   AdminVehiclesServiceManagerRouteImport.update({
     id: '/service-manager',
@@ -743,6 +749,7 @@ export interface FileRoutesByFullPath {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
   '/admin/field-sense/': typeof AdminFieldSenseIndexRoute
   '/admin/invoice/': typeof AdminInvoiceIndexRoute
@@ -844,6 +851,7 @@ export interface FileRoutesByTo {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance': typeof AdminAttendanceIndexRoute
   '/admin/field-sense': typeof AdminFieldSenseIndexRoute
   '/admin/invoice': typeof AdminInvoiceIndexRoute
@@ -949,6 +957,7 @@ export interface FileRoutesById {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
   '/admin/field-sense/': typeof AdminFieldSenseIndexRoute
   '/admin/invoice/': typeof AdminInvoiceIndexRoute
@@ -1055,6 +1064,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/api/public/otp-health'
     | '/admin/attendance/'
     | '/admin/field-sense/'
     | '/admin/invoice/'
@@ -1156,6 +1166,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/api/public/otp-health'
     | '/admin/attendance'
     | '/admin/field-sense'
     | '/admin/invoice'
@@ -1260,6 +1271,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/api/public/otp-health'
     | '/admin/attendance/'
     | '/admin/field-sense/'
     | '/admin/invoice/'
@@ -1275,6 +1287,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   WelcomeRoute: typeof WelcomeRoute
+  ApiPublicOtpHealthRoute: typeof ApiPublicOtpHealthRoute
   ApiPublicHooksDailyPeoplePingsRoute: typeof ApiPublicHooksDailyPeoplePingsRoute
   ApiPublicNativePushRoute: typeof ApiPublicNativePushRoute
 }
@@ -1700,6 +1713,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/attendance/'
       preLoaderRoute: typeof AdminAttendanceIndexRouteImport
       parentRoute: typeof AdminAttendanceRoute
+    }
+    '/api/public/otp-health': {
+      id: '/api/public/otp-health'
+      path: '/api/public/otp-health'
+      fullPath: '/api/public/otp-health'
+      preLoaderRoute: typeof ApiPublicOtpHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/vehicles/service-manager': {
       id: '/admin/vehicles/service-manager'
@@ -2273,6 +2293,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   WelcomeRoute: WelcomeRoute,
+  ApiPublicOtpHealthRoute: ApiPublicOtpHealthRoute,
   ApiPublicHooksDailyPeoplePingsRoute: ApiPublicHooksDailyPeoplePingsRoute,
   ApiPublicNativePushRoute: ApiPublicNativePushRoute,
 }
