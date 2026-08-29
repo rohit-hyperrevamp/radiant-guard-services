@@ -149,6 +149,8 @@ function UnitManagerPage() {
   const { states } = useStates();
 
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [orgFilter, setOrgFilter] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
