@@ -1,2 +1,2 @@
-build: 2026-08-29T07:04:00Z
-reason: deploy self-contained Radiant MSG91 OTP integration
+build: 2026-08-29T07:22:00Z
+reason: deploy production-backed OTP fallback toggle fix
