@@ -872,7 +872,7 @@ type CandidateListItem = Pick<
   | "unit_id"
   | "designation_id"
   | "status"
-> & { employee_code: string; role_key: string; is_enabled: boolean; reports_to: string | null; offboarding_reason_id: string | null; offboarded_at: string | null; assigned_asset_ids: string[]; no_hire: boolean; offboarding_details: OffboardingDetails; onboarding_details: OnboardingDetails; date_of_birth: string | null; preferred_joining_date: string | null; approved_at: string | null; created_by: string | null; created_at: string | null; updated_at: string | null };
+> & { employee_code: string; role_key: string; is_enabled: boolean; reports_to: string | null; department_id: string | null; offboarding_reason_id: string | null; offboarded_at: string | null; assigned_asset_ids: string[]; no_hire: boolean; offboarding_details: OffboardingDetails; onboarding_details: OnboardingDetails; date_of_birth: string | null; preferred_joining_date: string | null; approved_at: string | null; created_by: string | null; created_at: string | null; updated_at: string | null };
 
 type ReactivationResult = {
   id: string;
@@ -1078,6 +1078,26 @@ function useEsicBranchesLite() {
   });
 }
 
+type DepartmentLite = { id: string; name: string };
+
+function useDepartmentsLite() {
+  return useQuery({
+    queryKey: ["admin", "departments-lite"] as const,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+    queryFn: async (): Promise<DepartmentLite[]> => {
+      const { data, error } = await supabase
+        .from("departments" as never)
+        .select("id,name")
+        .order("name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return ((data as unknown) as DepartmentLite[]) ?? [];
+    },
+  });
+}
+
 async function runWithQueryTimeout<T>(label: string, run: (signal: AbortSignal) => Promise<T>, timeoutMs = 8_000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -1104,7 +1124,7 @@ function useCandidates() {
       const { data, error } = await runWithQueryTimeout("Employees", async (signal) =>
         await supabase
           .from("candidates" as never)
-          .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,status,role_key,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
+          .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
           .order("created_at", { ascending: false })
           .limit(250)
           .abortSignal(signal),
@@ -1421,10 +1441,19 @@ function EmployeesPage() {
   const [filterEnabled, setFilterEnabled] = useState<"all" | "enabled" | "disabled">("all");
   const [filterBillable, setFilterBillable] = useState<"all" | "billable" | "nonbillable">("all");
   const [filterOffboardReason, setFilterOffboardReason] = useState<string>("all");
+  const [filterDepartment, setFilterDepartment] = useState<string>("all");
+
+  const departmentsListQuery = useDepartmentsLite();
+  const departmentsList = departmentsListQuery.data ?? [];
+  const deptMap = useMemo(
+    () => new Map(departmentsList.map((d) => [d.id, d.name])),
+    [departmentsList],
+  );
 
   const DEFAULT_FILTERS_VIS = {
     role: true,
     designation: true,
+    department: true,
     customer: true,
     unit: true,
     manager: true,
@@ -1452,6 +1481,7 @@ function EmployeesPage() {
     email: false,
     unit: true,
     designation: true,
+    department: true,
     role: true,
     dob: false,
     doj: false,
@@ -1551,7 +1581,12 @@ function EmployeesPage() {
   const matchesFilters = (c: CandidateListItem) => {
     if (filterRole !== "all" && c.role_key !== filterRole) return false;
     if (filterDesignation !== "all" && c.designation_id !== filterDesignation) return false;
-    if (filterUnit !== "all" && c.unit_id !== filterUnit) return false;
+    if (filterUnit !== "all" && (unitOfCandidate(c)?.id ?? c.unit_id) !== filterUnit) return false;
+    if (filterDepartment !== "all") {
+      if (filterDepartment === "none") {
+        if (c.department_id) return false;
+      } else if (c.department_id !== filterDepartment) return false;
+    }
     if (filterCustomer !== "all") {
       const unit = unitOfCandidate(c);
       if (!unit || unit.customer_id !== filterCustomer) return false;
@@ -1627,7 +1662,7 @@ function EmployeesPage() {
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
+    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, filterDepartment, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
   );
   const candidateRows = useMemo(
     () => candidates.filter((c) => {
@@ -2666,7 +2701,7 @@ function EmployeesPage() {
 
   const renderRows = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
     const empCols = 4 + Object.values(columnsVisible).filter(Boolean).length;
-    const candCols = 7;
+    const candCols = 8;
     if (isLoading) {
       const cols = mode === "employee" ? empCols : candCols;
       return (
@@ -2711,6 +2746,7 @@ function EmployeesPage() {
     return rows.map((c) => {
       const unit = unitOfCandidate(c);
       const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
+      const deptName = (c.department_id && deptMap.get(c.department_id)) || "";
       const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
       const isDisabled = mode === "employee" && !c.is_enabled;
       const isPendingOffboarding =
@@ -2772,6 +2808,12 @@ function EmployeesPage() {
                       {desig?.name || "—"}
                     </div>
                   )}
+                  {(mode === "candidate" || columnsVisible.department) && (
+                    <div className="truncate" title={deptName}>
+                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Department</span>
+                      {deptName || "—"}
+                    </div>
+                  )}
                   {mode === "employee" && columnsVisible.role && (
                     <div className="truncate">
                       <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Role</span>
@@ -2802,6 +2844,9 @@ function EmployeesPage() {
           )}
           {(mode === "candidate" || columnsVisible.designation) && (
             <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={desig?.name ?? ""}>{desig?.name ?? "—"}</span></td>
+          )}
+          {(mode === "candidate" || columnsVisible.department) && (
+            <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={deptName}>{deptName || "—"}</span></td>
           )}
           {mode === "employee" && columnsVisible.dob && (
             <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.date_of_birth)}</td>
@@ -3439,6 +3484,11 @@ function EmployeesPage() {
                   Designation
                 </th>
               )}
+              {(mode === "candidate" || columnsVisible.department) && (
+                <th className="hidden w-[140px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                  Department
+                </th>
+              )}
               {mode === "employee" && columnsVisible.dob && (
                 <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
                   Date of Birth
@@ -3796,6 +3846,16 @@ function EmployeesPage() {
                 </SelectContent>
               </Select>
             )}
+            {filtersVisible.department && (
+              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Department" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All departments</SelectItem>
+                  <SelectItem value="none" className="text-xs">No department</SelectItem>
+                  {departmentsList.map((d) => (<SelectItem key={d.id} value={d.id} className="text-xs">{d.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            )}
             {filtersVisible.customer && (
               <Select value={filterCustomer} onValueChange={setFilterCustomer}>
                 <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Organization" /></SelectTrigger>
@@ -3862,6 +3922,7 @@ function EmployeesPage() {
               onClick={() => {
                 setFilterRole("all"); setFilterDesignation("all"); setFilterCustomer("all");
                 setFilterUnit("all"); setFilterManager("all"); setFilterEnabled("all"); setFilterBillable("all"); setFilterOffboardReason("all");
+                setFilterDepartment("all");
               }}
               className="h-9 text-xs text-muted-foreground"
             >
@@ -3894,7 +3955,7 @@ function EmployeesPage() {
                   <div className="space-y-2">
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show filters</div>
                     {([
-                      ["role", "Role"], ["designation", "Designation"], ["customer", "Organization"],
+                      ["role", "Role"], ["designation", "Designation"], ["department", "Department"], ["customer", "Organization"],
                       ["unit", "Unit"], ["manager", "Reports to"], ["enabled", "Active / Inactive"], ["billable", "Billable"], ["offboardReason", "Offboarding reason"],
                     ] as const).map(([k, label]) => (
                       <label key={k} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
@@ -3907,7 +3968,7 @@ function EmployeesPage() {
                     ))}
                     <div className="pt-2 mt-2 border-t border-border/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show columns</div>
                     {([
-                      ["mobile", "Mobile"], ["email", "Email"], ["unit", "Unit"], ["designation", "Designation"],
+                      ["mobile", "Mobile"], ["email", "Email"], ["unit", "Unit"], ["designation", "Designation"], ["department", "Department"],
                       ["dob", "Date of Birth"], ["doj", "Date of Joining"], ["role", "Role"], ["active", "Active toggle"],
                     ] as const).map(([k, label]) => (
                       <label key={`col-${k}`} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
@@ -5244,8 +5305,12 @@ function CandidateWizard({
         }
         case "address":
           return /[A-Za-z]{3,}/.test(next) && !/[`~^*_={}|<>]{2,}/.test(next);
-        case "place":
-          return /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(next);
+        case "place": {
+          if (!/^[A-Za-z][A-Za-z .'-]{1,79}$/.test(next)) return false;
+          // Reject generic UI/boilerplate strings that OCR sometimes picks up.
+          const junk = /(click|here|tap|select|choose|enter|type|scan|verify|download|address|district|state|pin\s*code|government|india|unique|identification|authority|aadhaar)/i;
+          return !junk.test(next);
+        }
         case "pin":
           return /^\d{6}$/.test(next);
         case "aadhaar":
@@ -5647,6 +5712,8 @@ function CandidateWizard({
       if (!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim())
         return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card", "blood_group");
 
+      if (form.unit_ids.length === 0)
+        return failValidation("At least one unit must be mapped before saving (Deployment section)");
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address", "permanent_district");
       if (!form.same_as_permanent && !form.present_district.trim())
         return failValidation("District is required in the present address", "present_district");
