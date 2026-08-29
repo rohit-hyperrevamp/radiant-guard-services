@@ -217,7 +217,7 @@ type PayrollWindow = {
 type BillingType = { id: string; name: string };
 type EsicBranch = { id: string; esicCode: string; location: string };
 type Designation = { id: string; name: string; code: string };
-type AllowanceType = {
+export type AllowanceType = {
   id: string;
   name: string;
   displayName: string;
@@ -321,7 +321,7 @@ function serializeContractResources(resources: ContractResource[]): string {
   return JSON.stringify(resources.map(cloneContractResource));
 }
 
-type PayrollDayBase = {
+export type PayrollDayBase = {
   id: string;
   name: string;
   code: string;
@@ -331,7 +331,7 @@ type PayrollDayBase = {
   includedWeekdays: number[] | null;
 };
 
-type CostComponentOption = {
+export type CostComponentOption = {
   id: string;
   name: string;
   calcType: "percentage" | "fixed";
@@ -970,7 +970,7 @@ function useRolesList() {
 }
 
 
-function useAllowanceTypes() {
+export function useAllowanceTypes() {
   const { data = [] } = useQuery({
     queryKey: QK_ALW,
     queryFn: async (): Promise<AllowanceType[]> => {
@@ -1046,7 +1046,7 @@ function useContractResources(contractId: string | null) {
   return data;
 }
 
-function usePayrollDayBases() {
+export function usePayrollDayBases() {
   const { data = [] } = useQuery({
     queryKey: QK_PDB,
     queryFn: async (): Promise<PayrollDayBase[]> => {
@@ -1074,7 +1074,7 @@ function usePayrollDayBases() {
   return data;
 }
 
-function useCostComponentOptions() {
+export function useCostComponentOptions() {
   const { data = [] } = useQuery({
     queryKey: QK_CC,
     queryFn: async (): Promise<CostComponentOption[]> => {
@@ -1159,7 +1159,7 @@ function isEsiItem(item: { name?: unknown } | null | undefined): boolean {
   return ESI_COMPONENT_RE.test(String(item?.name ?? ""));
 }
 
-function hasConfiguredFormula(item: { formulaExpression?: string | null }): boolean {
+export function hasConfiguredFormula(item: { formulaExpression?: string | null }): boolean {
   return !!item.formulaExpression?.trim();
 }
 
@@ -1262,7 +1262,7 @@ function syncResourceComponentMasterFields(
 }
 
 /** Compute benefit amount from a percentage component using the resource's wage components. */
-function computeBenefitAmount(
+export function computeBenefitAmount(
   benefit: Pick<BenefitItem, "calcType" | "percentage" | "baseComponents" | "capAmount" | "capFlatAmount" | "amount"> & {
     formulaMode?: string | null;
     formulaExpression?: string | null;
