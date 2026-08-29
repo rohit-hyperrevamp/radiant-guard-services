@@ -543,7 +543,7 @@ function InlineWageEditor({
           <div><h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Benefits</h4><p className="text-[11px] text-muted-foreground">Add earnings and benefit components included in gross pay.</p></div>
           {picker("Add benefit…", costComponents.filter((c) => !usedBenefitIds.has(c.id)).map((c) => ({ id: c.id, label: c.name })), addBenefit)}
         </div>
-        {benefits.length === 0 ? <div className="py-3 text-center text-xs text-muted-foreground">No benefits added.</div> : <div className="space-y-2">{benefits.map((item) => detailedItemRow(item, (amount) => patch({ benefits: benefits.map((entry) => entry.costComponentId === item.costComponentId ? { ...entry, amount } : entry) }), () => patch({ benefits: benefits.filter((entry) => entry.costComponentId !== item.costComponentId) }))}</div>}
+        {benefits.length === 0 ? <div className="py-3 text-center text-xs text-muted-foreground">No benefits added.</div> : <div className="space-y-2">{benefits.map((item) => detailedItemRow(item, (amount) => patch({ benefits: benefits.map((entry) => entry.costComponentId === item.costComponentId ? { ...entry, amount } : entry) }), () => patch({ benefits: benefits.filter((entry) => entry.costComponentId !== item.costComponentId) })))}</div>}
       </div>
 
       <div className="rounded-xl border border-border bg-secondary/30 p-3">
@@ -558,7 +558,7 @@ function InlineWageEditor({
         {deductions.length === 0 ? (
           <div className="py-3 text-center text-xs text-muted-foreground">No deductions added.</div>
         ) : (
-          <div className="space-y-2">{deductions.map((b) => detailedItemRow(b, (n) => patch({ deductions: deductions.map((x) => x.costComponentId === b.costComponentId ? { ...x, amount: n } : x) }), () => patch({ deductions: deductions.filter((x) => x.costComponentId !== b.costComponentId) }))}</div>
+          <div className="space-y-2">{deductions.map((b) => detailedItemRow(b, (n) => patch({ deductions: deductions.map((x) => x.costComponentId === b.costComponentId ? { ...x, amount: n } : x) }), () => patch({ deductions: deductions.filter((x) => x.costComponentId !== b.costComponentId) })))}</div>
         )}
       </div>
 
@@ -574,7 +574,7 @@ function InlineWageEditor({
         {employerContribs.length === 0 ? (
           <div className="py-3 text-center text-xs text-muted-foreground">No employer contributions added.</div>
         ) : (
-          <div className="space-y-2">{employerContribs.map((b) => detailedItemRow(b, (n) => patch({ employerContributions: employerContribs.map((x) => x.costComponentId === b.costComponentId ? { ...x, amount: n } : x) }), () => patch({ employerContributions: employerContribs.filter((x) => x.costComponentId !== b.costComponentId) }))}</div>
+          <div className="space-y-2">{employerContribs.map((b) => detailedItemRow(b, (n) => patch({ employerContributions: employerContribs.map((x) => x.costComponentId === b.costComponentId ? { ...x, amount: n } : x) }), () => patch({ employerContributions: employerContribs.filter((x) => x.costComponentId !== b.costComponentId) })))}</div>
         )}
       </div>
 
