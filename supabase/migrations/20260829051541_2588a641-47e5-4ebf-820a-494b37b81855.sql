@@ -1,0 +1,1 @@
+ALTER TABLE public.candidates ALTER COLUMN role_key SET NOT NULL;

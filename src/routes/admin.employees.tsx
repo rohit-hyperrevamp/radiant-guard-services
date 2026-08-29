@@ -4518,6 +4518,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 }
 
 type CandidateForm = Omit<Candidate, "id"> & {
+  /** Application role (role key from public.roles). Mandatory for non-billable employees. */
+  role_key?: string | null;
   /** All units assigned to this candidate. First entry is the primary unit (mirrored to candidates.unit_id). */
   unit_ids: string[];
   /** Contracted designation the person fills at each unit (unit_id -> designation_id). */
@@ -4604,6 +4606,7 @@ function emptyForm(): CandidateForm {
     assigned_asset_ids: [],
     no_hire: false,
     offboarding_details: {},
+    role_key: "",
   };
 }
 
@@ -4654,6 +4657,8 @@ function CandidateWizard({
 }) {
   const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
   const qc = useQueryClient();
+  const rolesQuery = useRolesLite();
+  const rolesList = rolesQuery.data ?? [];
   const extractFn = useServerFn(extractAadhaar);
   const { branches } = useBranches();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
@@ -5228,6 +5233,7 @@ function CandidateWizard({
     return {
       ...basePayload,
       status,
+      role_key: (form.role_key ?? "").trim() || null,
       emergency_contact_name: emergencyContact?.name ?? "",
       emergency_contact_relation: emergencyContact?.relation ?? "",
       emergency_contact_mobile: emergencyContact?.mobile ?? "",
@@ -5476,6 +5482,8 @@ function CandidateWizard({
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
+      if (isEmployeeMode && !String(form.role_key ?? "").trim())
+        return failValidation("Role is required for non-billable employees — pick a role (e.g. Operations) in the Employment section", "role_key");
       if (!/^[6-9]\d{9}$/.test(form.mobile.trim()))
         return failValidation("A valid 10-digit mobile number is required (Basic Information) — it is also the login ID", "mobile");
       // Email is optional, but when supplied it must be well formed so posting
@@ -6437,6 +6445,30 @@ function CandidateWizard({
                           ))}
                         </SelectContent>
                       </Select>
+                    </Field>
+                  )}
+
+                  {isEmployeeMode && (
+                    <Field label="Role — required">
+                      <Select
+                        value={form.role_key || "__none"}
+                        onValueChange={(v) => set("role_key", v === "__none" ? "" : v)}
+                      >
+                        <SelectTrigger className={cn("h-10", !form.role_key && "border-amber-400/70")}>
+                          <SelectValue placeholder="Select role (e.g. Operations)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">— Select role —</SelectItem>
+                          {rolesList.map((r) => (
+                            <SelectItem key={r.key} value={r.key}>
+                              {r.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-[11px] text-muted-foreground">
+                        Determines what this employee can access in the app (e.g. Operations, HR, Field Officer).
+                      </span>
                     </Field>
                   )}
 
