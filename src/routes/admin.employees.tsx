@@ -186,6 +186,11 @@ function InlineWageEditor({
     .filter((component) => component.includeInOt !== false)
     .reduce((sum, component) => sum + (Number(component.amount) || 0), 0);
   const selectedPayrollBase = payrollDayBases.find((base) => base.id === value.payrollDayBaseId);
+  const edDivisor = selectedPayrollBase?.method === "fixed_days"
+    ? Number(selectedPayrollBase.fixedDays ?? 0)
+    : selectedPayrollBase
+      ? 30
+      : 0;
   const patch = (p: Partial<ContractResource>) => onChange({ ...value, ...p });
 
   // Recompute percentage / formula-based amounts whenever wage components change.
@@ -216,27 +221,71 @@ function InlineWageEditor({
       changed = true;
       return { ...c, amount: amt };
     });
+    const componentMaster = new Map(costComponents.map((item) => [item.id, item]));
+    const syncMaster = (item: (typeof deductions)[number]) => {
+      const master = componentMaster.get(item.costComponentId);
+      if (!master) return item;
+      const next = {
+        ...item,
+        formulaMode: master.formulaMode ?? null,
+        formulaExpression: master.formulaExpression ?? null,
+        formulaVersion: master.formulaVersion ?? null,
+      };
+      if (next.formulaMode !== item.formulaMode || next.formulaExpression !== item.formulaExpression || next.formulaVersion !== item.formulaVersion) changed = true;
+      return next;
+    };
     const recomputeItems = (items: typeof deductions, wageBenefits = benefits, employerItems = employerContribs) =>
       items.map((b) => {
-        if (!hasConfiguredFormula(b) && b.calcType !== "percentage") return b;
-        const amt = computeBenefitAmount(b, nextComponents, wageBenefits, allowanceTypes, employerItems);
-        if (amt === b.amount) return b;
+        const synced = syncMaster(b);
+        if (!hasConfiguredFormula(synced) && synced.calcType !== "percentage") return synced;
+        const amt = computeBenefitAmount(synced, nextComponents, wageBenefits, allowanceTypes, employerItems);
+        if (amt === synced.amount) return synced;
         changed = true;
-        return { ...b, amount: amt };
+        return { ...synced, amount: amt };
       });
     const nextBenefits = recomputeItems(benefits, []);
     const nextDeductions = recomputeItems(deductions, nextBenefits);
-    const nextEmployer = recomputeItems(employerContribs, nextBenefits, employerContribs);
+    const firstEmployerPass = recomputeItems(employerContribs, nextBenefits);
+    const referencesCtc = (item: (typeof employerContribs)[number]) => item.baseComponents.some((base) => ["ctc", "total ctc"].includes(base.label.trim().toLowerCase()));
+    const ctcBase = firstEmployerPass.filter((item) => !referencesCtc(item) && !/management\s*fee/i.test(item.name));
+    const nextEmployer = firstEmployerPass.map((item) => {
+      if ((!hasConfiguredFormula(item) && item.calcType !== "percentage") || !referencesCtc(item)) return item;
+      const amount = computeBenefitAmount(item, nextComponents, nextBenefits, allowanceTypes, ctcBase);
+      if (amount === item.amount) return item;
+      changed = true;
+      return { ...item, amount };
+    });
     if (changed) {
       onChange({ ...value, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployer });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [components, allowanceTypes]);
+  }, [components, allowanceTypes, costComponents]);
 
   const usedComponentIds = new Set(components.map((c) => c.allowanceId));
   const usedBenefitIds = new Set(benefits.map((b) => b.costComponentId));
   const usedDeductionIds = new Set(deductions.map((b) => b.costComponentId));
   const usedEmployerIds = new Set(employerContribs.map((b) => b.costComponentId));
+  const PT_SYNTHETIC_ID = "__pt__";
+  const ptSynthetic = {
+    id: PT_SYNTHETIC_ID,
+    name: "Professional Tax (PT)",
+    calcType: "fixed" as const,
+    percentage: 0,
+    baseComponents: [],
+    capAmount: null,
+    capFlatAmount: null,
+    amount: 0,
+    state: "Per state slab (resolved at payroll from unit state, employee gender, earned gross)",
+    description: "",
+    party: "employee" as const,
+    deductionCalcType: "fixed_amount" as const,
+    fixedCalcMethod: "flat" as const,
+    fixedDutyComponents: [],
+    fixedDutyDivisor: "base_days" as const,
+    formulaMode: null,
+    formulaExpression: null,
+    formulaVersion: null,
+  };
 
   const toBenefitItem = (c: (typeof costComponents)[number]) => ({
     costComponentId: c.id,
@@ -299,7 +348,7 @@ function InlineWageEditor({
   };
 
   const addDeduction = (id: string) => {
-    const c = costComponents.find((x) => x.id === id);
+    const c = id === PT_SYNTHETIC_ID ? ptSynthetic : costComponents.find((x) => x.id === id);
     if (!c) return;
     const item = toBenefitItem(c);
     if (hasConfiguredFormula(item) || item.calcType === "percentage") {
@@ -533,7 +582,10 @@ function InlineWageEditor({
                 );
               })}
             </div>
-            <div className="mt-3 flex items-center justify-end gap-3 border-t border-border pt-3"><span className="text-xs font-semibold uppercase text-muted-foreground">ED Base</span><span className="text-base font-bold">{edBase.toFixed(2)}</span></div>
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 border-t border-border pt-3">
+              <span className="text-[11px] text-muted-foreground">ED per duty = ED base ÷ payroll days{edDivisor ? ` (${edDivisor}) = ${(edBase / edDivisor).toFixed(2)}` : ""}</span>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">ED Base</span><span className="text-base font-bold">{edBase.toFixed(2)}</span>
+            </div>
           </>
         )}
       </div>
@@ -551,7 +603,7 @@ function InlineWageEditor({
           <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Deductions</h4>
           {picker(
             "Add deduction…",
-            costComponents.filter((c) => !usedDeductionIds.has(c.id) && c.party !== "employer").map((c) => ({ id: c.id, label: c.name })),
+            [...costComponents.filter((c) => !usedDeductionIds.has(c.id) && c.party !== "employer"), ...(usedDeductionIds.has(PT_SYNTHETIC_ID) ? [] : [ptSynthetic])].map((c) => ({ id: c.id, label: c.name })),
             addDeduction,
           )}
         </div>
