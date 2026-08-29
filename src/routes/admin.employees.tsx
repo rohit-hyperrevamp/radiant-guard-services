@@ -6061,29 +6061,38 @@ function CandidateWizard({
 
               {isEmployeeMode && (
                 <Section title="Wages">
-                  {wageEditorOpen ? (
-                    <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <p className="text-xs text-muted-foreground">
-                          Shift hours, payroll days and wage components for this employee. Changes are saved with the employee.
-                        </p>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Remove wages"
-                          onClick={() => {
-                            setWage(null);
-                            wageInitialRef.current = null;
-                            setWageEditorOpen(false);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div data-testid="wages-placeholder">wages placeholder</div>
+                  {/* Editor stays mounted (hidden when dismissed) — dynamically inserting
+                      large content inside this Radix dialog triggers a ref setState loop. */}
+                  <div className={wageEditorOpen ? "rounded-xl border border-input bg-muted/20 p-3 sm:p-4" : "hidden"}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground">
+                        Shift hours, payroll days and wage components for this employee. Changes are saved with the employee.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Remove wages"
+                        onClick={() => {
+                          setWage(null);
+                          wageInitialRef.current = null;
+                          setWageEditorOpen(false);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ) : (
+                    <ResourceFormDialog
+                      inline
+                      open
+                      onOpenChange={() => {}}
+                      initial={wageInitialRef.current}
+                      variant="wages"
+                      onSubmit={(r) => setWage(r)}
+                      onChange={(r) => setWage(r)}
+                    />
+                  </div>
+                  {!wageEditorOpen && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
                       <p className="text-xs text-muted-foreground">
                         Non-billable employees have their own wage sheet — shift hours, payroll days and wage components.
