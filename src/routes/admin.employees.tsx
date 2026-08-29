@@ -1499,7 +1499,7 @@ function EmployeesPage() {
     if (filterDesignation !== "all" && c.designation_id !== filterDesignation) return false;
     if (filterUnit !== "all" && c.unit_id !== filterUnit) return false;
     if (filterCustomer !== "all") {
-      const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+      const unit = unitOfCandidate(c);
       if (!unit || unit.customer_id !== filterCustomer) return false;
     }
     if (filterManager !== "all" && c.reports_to !== filterManager) return false;
@@ -2420,7 +2420,7 @@ function EmployeesPage() {
       // Fire-and-forget: activity log + notifications should not block the UI.
       void (async () => {
         try {
-          const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+          const unit = unitOfCandidate(c);
           const unitName = unit?.name ?? "";
           const clientName = unit?.customer_name ?? "";
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
@@ -2649,7 +2649,7 @@ function EmployeesPage() {
       );
     }
     return rows.map((c) => {
-      const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+      const unit = unitOfCandidate(c);
       const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
       const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
       const isDisabled = mode === "employee" && !c.is_enabled;
@@ -3115,7 +3115,7 @@ function EmployeesPage() {
     return (
       <div className="grid gap-2.5 md:hidden">
         {rows.map((c) => {
-          const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+          const unit = unitOfCandidate(c);
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
           const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
           const isDisabled = mode === "employee" && !c.is_enabled;
