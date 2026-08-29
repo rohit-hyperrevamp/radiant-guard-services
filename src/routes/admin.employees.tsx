@@ -3922,6 +3922,7 @@ function EmployeesPage() {
               onClick={() => {
                 setFilterRole("all"); setFilterDesignation("all"); setFilterCustomer("all");
                 setFilterUnit("all"); setFilterManager("all"); setFilterEnabled("all"); setFilterBillable("all"); setFilterOffboardReason("all");
+                setFilterDepartment("all");
               }}
               className="h-9 text-xs text-muted-foreground"
             >
