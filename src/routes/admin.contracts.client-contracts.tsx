@@ -236,7 +236,7 @@ type AllowanceType = {
   fixedDutyDivisor?: "base_days" | "days_in_month" | "payable_days" | "fixed_26";
 };
 
-type ResourceComponent = {
+export type ResourceComponent = {
   allowanceId: string;
   name: string;
   amount: number;
@@ -253,7 +253,7 @@ type FixedCalcMethod = "flat" | "per_duty";
 type FixedDutyBucket = "p_days" | "ot_days" | "ph_days" | "other_paid_days";
 type FixedDutyDivisor = "base_days" | "days_in_month" | "payable_days" | "fixed_26";
 
-type BenefitItem = {
+export type BenefitItem = {
   costComponentId: string;
   name: string;
   calcType: "percentage" | "fixed";
@@ -273,7 +273,7 @@ type BenefitItem = {
 };
 
 
-type ContractResource = {
+export type ContractResource = {
   id?: string;
   designationId: string;
   roleKey?: string | null;
