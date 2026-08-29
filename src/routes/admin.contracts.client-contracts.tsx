@@ -4436,7 +4436,8 @@ export function ResourceFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={dialogContentRef}
-        className="max-h-[92vh] overflow-y-auto sm:max-w-[min(92vw,1100px)]"
+        overlayClassName={isWages ? "z-[110]" : undefined}
+        className={`max-h-[92vh] overflow-y-auto sm:max-w-[min(92vw,1100px)]${isWages ? " z-[110]" : ""}`}
       >
         <DialogHeader>
           <DialogTitle>
