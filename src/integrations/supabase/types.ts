@@ -752,7 +752,7 @@ export type Database = {
           rejection_reason: string
           religion: string
           reports_to: string | null
-          role_key: string
+          role_key: string | null
           same_as_permanent: boolean
           signature_url: string
           status: string
@@ -844,7 +844,7 @@ export type Database = {
           rejection_reason?: string
           religion?: string
           reports_to?: string | null
-          role_key?: string
+          role_key?: string | null
           same_as_permanent?: boolean
           signature_url?: string
           status?: string
@@ -936,7 +936,7 @@ export type Database = {
           rejection_reason?: string
           religion?: string
           reports_to?: string | null
-          role_key?: string
+          role_key?: string | null
           same_as_permanent?: boolean
           signature_url?: string
           status?: string
