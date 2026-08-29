@@ -134,7 +134,8 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      const accessToken = otpMode === "sms" ? await verifyMsg91Otp(code, otpRequestId) : undefined;
+      const accessToken =
+        otpMode === "sms" ? await verifyMsg91Otp(code, otpRequestId) : undefined;
       await checkOtp({ data: { phone, otp: code, accessToken } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
@@ -163,7 +164,6 @@ function LoginPage() {
         err instanceof Error ? err.message : "Could not start session. Try again.",
       );
       setOtp("");
-                           setOtpRequestId(null);
     } finally {
       verifyInFlightRef.current = false;
       setVerifying(false);
