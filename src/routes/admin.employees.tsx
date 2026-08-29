@@ -1441,10 +1441,19 @@ function EmployeesPage() {
   const [filterEnabled, setFilterEnabled] = useState<"all" | "enabled" | "disabled">("all");
   const [filterBillable, setFilterBillable] = useState<"all" | "billable" | "nonbillable">("all");
   const [filterOffboardReason, setFilterOffboardReason] = useState<string>("all");
+  const [filterDepartment, setFilterDepartment] = useState<string>("all");
+
+  const departmentsListQuery = useDepartmentsLite();
+  const departmentsList = departmentsListQuery.data ?? [];
+  const deptMap = useMemo(
+    () => new Map(departmentsList.map((d) => [d.id, d.name])),
+    [departmentsList],
+  );
 
   const DEFAULT_FILTERS_VIS = {
     role: true,
     designation: true,
+    department: true,
     customer: true,
     unit: true,
     manager: true,
