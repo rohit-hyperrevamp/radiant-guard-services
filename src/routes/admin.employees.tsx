@@ -2746,6 +2746,7 @@ function EmployeesPage() {
     return rows.map((c) => {
       const unit = unitOfCandidate(c);
       const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
+      const deptName = (c.department_id && deptMap.get(c.department_id)) || "";
       const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
       const isDisabled = mode === "employee" && !c.is_enabled;
       const isPendingOffboarding =
