@@ -389,6 +389,16 @@ function UnitManagerPage() {
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => setPeopleFor(u)}
+                        aria-label="People in this unit"
+                        title="People in this unit"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => {
                           setEditing(u);
                           setFormOpen(true);
