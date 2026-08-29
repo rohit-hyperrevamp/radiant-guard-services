@@ -3056,7 +3056,9 @@ function EmployeesPage() {
                 <span className="hidden min-[360px]:inline">Add Candidate</span>
                 <span className="min-[360px]:hidden">Add</span>
               </Button>
+              ) : null
             ) : (
+
               <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
