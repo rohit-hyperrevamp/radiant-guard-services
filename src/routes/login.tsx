@@ -11,7 +11,12 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
-import { OTP_LENGTH } from "@/lib/otp-config";
+import { OTP_LENGTH, SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
+import {
+  resendRealLoginOtp,
+  sendRealLoginOtp,
+  verifyRealLoginOtp,
+} from "@/lib/otp.client";
 import {
   enableBiometric,
   getBiometricStatus,
@@ -66,6 +71,7 @@ function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
+  const [otpMode, setOtpMode] = useState<"sms" | "fixed">("sms");
   const [revealing, setRevealing] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
@@ -97,9 +103,21 @@ function LoginPage() {
     setError(null);
     try {
       const isResend = step === "otp";
-      const result = isResend
-        ? await requestOtpAgain({ data: { phone } })
-        : await requestOtp({ data: { phone } });
+      const isSuperAdmin = phone === SUPER_ADMIN_OTP_PHONE;
+      let result: { mode: "sms" | "fixed" };
+      try {
+        result = isResend
+          ? await requestOtpAgain({ data: { phone } })
+          : await requestOtp({ data: { phone } });
+      } catch (serverError) {
+        const message = serverError instanceof Error ? serverError.message : "";
+        const isConfigurationFailure = /sms service is not configured/i.test(message);
+        if (isSuperAdmin || !isConfigurationFailure) throw serverError;
+        result = isResend
+          ? await resendRealLoginOtp(phone)
+          : await sendRealLoginOtp(phone);
+      }
+      setOtpMode(result.mode);
       setStep("otp");
       setResendIn(30);
       setOtp("");
@@ -124,7 +142,11 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      await checkOtp({ data: { phone, otp: code } });
+      if (phone === SUPER_ADMIN_OTP_PHONE || otpMode === "fixed") {
+        await checkOtp({ data: { phone, otp: code } });
+      } else {
+        await verifyRealLoginOtp(phone, code);
+      }
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
