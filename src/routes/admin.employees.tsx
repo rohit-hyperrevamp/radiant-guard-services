@@ -1434,7 +1434,24 @@ function EmployeesPage() {
 
   const { candidateId: currentCandidateId, isLoading: roleLoading } = useCurrentUserRole();
   const candidateUnitsQuery = useCandidateUnits();
+  /**
+   * Fallback unit for the list: `candidates.unit_id` mirrors the primary unit,
+   * but older / non-billable records may only have rows in `candidate_units`.
+   */
+  const primaryUnitIdByCandidate = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const cu of candidateUnitsQuery.data ?? []) {
+      if (!cu.unit_id) continue;
+      if (cu.is_primary || !m.has(cu.candidate_id)) m.set(cu.candidate_id, cu.unit_id);
+    }
+    return m;
+  }, [candidateUnitsQuery.data]);
+  const unitOfCandidate = (c: { id: string; unit_id: string | null }) => {
+    const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
+    return id ? unitMap.get(id) : undefined;
+  };
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
+
   const scopedUnitsForWizard = useMemo(() => {
     if (!isFieldOfficer) return units;
     if (!currentCandidateId) return [] as typeof units;
