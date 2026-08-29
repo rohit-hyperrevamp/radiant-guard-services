@@ -83,6 +83,7 @@ function PlatformSettingsPage() {
       <PageHeader
         title="Platform Settings"
         description="Platform-wide switches that change how the application behaves for every user."
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Platform Settings" }]}
       />
 
       <div className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur">
