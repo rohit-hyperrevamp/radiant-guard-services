@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Edit2, MapPin, Plus, Search, Warehouse, X } from "lucide-react";
+import { Download, Edit2, MapPin, Plus, Search, Users, Warehouse, X } from "lucide-react";
+import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
 import { Badge } from "@/components/ui/badge";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { csvDate, csvJoin, csvMapLink, csvStatus, csvYesNo, downloadCsv } from "@/lib/csv-export";
@@ -151,6 +152,7 @@ function UnitManagerPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
+  const [peopleFor, setPeopleFor] = useState<Unit | null>(null);
 
   const branchById = useMemo(() => new Map(branches.map((b) => [b.id, b])), [branches]);
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
@@ -387,6 +389,16 @@ function UnitManagerPage() {
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => setPeopleFor(u)}
+                        aria-label="People in this unit"
+                        title="People in this unit"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => {
                           setEditing(u);
                           setFormOpen(true);
@@ -424,6 +436,36 @@ function UnitManagerPage() {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!peopleFor} onOpenChange={(o) => !o && setPeopleFor(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              People in {peopleFor?.name ?? "unit"}
+            </DialogTitle>
+            <DialogDescription>
+              {peopleFor?.isBillable === false
+                ? "Department-wise hierarchy of everyone onboarded under this unit."
+                : "Field officers and security guards deployed to this unit."}
+            </DialogDescription>
+          </DialogHeader>
+          {peopleFor && (
+            <div className="max-h-[60vh] overflow-y-auto pr-1">
+              <UnitDeployedPeople
+                unitId={peopleFor.id}
+                branchId={peopleFor.branchId ?? null}
+                customerId={peopleFor.customerId ?? null}
+                stateName={
+                  peopleFor.branchId
+                    ? stateById.get(branchById.get(peopleFor.branchId)?.stateId ?? "")?.name ?? ""
+                    : ""
+                }
+                isBillable={peopleFor.isBillable !== false}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <UnitFormDialog
         open={formOpen}
