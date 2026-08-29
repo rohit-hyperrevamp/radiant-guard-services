@@ -41,21 +41,29 @@ function PlatformSettingsPage() {
     queryKey: QK,
     queryFn: async (): Promise<boolean> => {
       const { data, error } = await supabase
-        .from("platform_settings" as never)
-        .select("enabled")
+        .from("inv_settings" as never)
+        .select("value")
         .eq("key", OTP_KEY)
         .maybeSingle();
       if (error) throw error;
-      return Boolean((data as unknown as { enabled?: boolean } | null)?.enabled ?? true);
+      const value = (data as unknown as { value?: { enabled?: boolean } } | null)?.value;
+      return Boolean(value?.enabled ?? true);
     },
   });
 
   const toggleMut = useMutation({
     mutationFn: async (enabled: boolean) => {
       const { error } = await supabase
-        .from("platform_settings" as never)
-        .update({ enabled } as never)
-        .eq("key", OTP_KEY);
+        .from("inv_settings" as never)
+        .upsert(
+          {
+            key: OTP_KEY,
+            value: { enabled },
+            description:
+              "Controls real MSG91 OTP delivery. When disabled, users sign in with 1111; the super admin uses 2503.",
+          } as never,
+          { onConflict: "key" },
+        );
       if (error) throw error;
       return enabled;
     },
@@ -64,7 +72,7 @@ function PlatformSettingsPage() {
       void logActivity({
         module: MODULE,
         action: enabled ? "enable" : "disable",
-        entityType: "platform_settings",
+        entityType: "inv_settings",
         entityLabel: "MSG91 OTP",
         details: { key: OTP_KEY, enabled },
       });

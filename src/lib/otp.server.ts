@@ -12,12 +12,13 @@ export async function resolveOtpMode(phone: string): Promise<OtpMode> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
-      .from("platform_settings" as never)
-      .select("enabled")
+      .from("inv_settings" as never)
+      .select("value")
       .eq("key", "msg91_otp_enabled")
       .maybeSingle();
     if (error || !data) return "sms";
-    return Boolean((data as unknown as { enabled?: boolean }).enabled ?? true)
+    const value = (data as unknown as { value?: { enabled?: boolean } }).value;
+    return Boolean(value?.enabled ?? true)
       ? "sms"
       : "fixed";
   } catch {
