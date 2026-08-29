@@ -6,6 +6,7 @@ import {
   SUPER_ADMIN_OTP,
   SUPER_ADMIN_OTP_PHONE as SUPER_ADMIN_PHONE,
 } from "@/lib/otp-config";
+import type { OtpMode } from "@/lib/otp.server";
 
 /**
  * Phone OTP for sign-in.
@@ -18,72 +19,49 @@ import {
  */
 
 
-const SETTING_KEY = "msg91_otp_enabled";
-
-const phoneSchema = z.object({ phone: z.string().regex(/^\d{10}$/) });
-const verifySchema = z.object({
-  phone: z.string().regex(/^\d{10}$/),
-  otp: z.string().regex(/^\d{4}$/),
-});
-
-type Mode = "sms" | "fixed";
-
-async function isMsg91Enabled(): Promise<boolean> {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("platform_settings" as never)
-      .select("enabled")
-      .eq("key", SETTING_KEY)
-      .maybeSingle();
-    if (error || !data) return true; // fail safe: real OTPs stay on
-    return Boolean((data as unknown as { enabled?: boolean }).enabled ?? true);
-  } catch {
-    return true;
-  }
-}
-
-async function resolveMode(phone: string): Promise<Mode> {
-  if (phone === SUPER_ADMIN_PHONE) return "fixed";
-  return (await isMsg91Enabled()) ? "sms" : "fixed";
-}
-
 export const sendLoginOtp = createServerFn({ method: "POST" })
-  .inputValidator((input) => phoneSchema.parse(input))
-  .handler(async ({ data }): Promise<{ mode: Mode }> => {
-    const mode = await resolveMode(data.phone);
+  .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
+  .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
+    const { callSharedMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const mode = await resolveOtpMode(data.phone);
     if (mode === "fixed") return { mode };
 
-    const { callSharedMsg91 } = await import("@/lib/otp.server");
     await callSharedMsg91("send", data.phone);
     return { mode: "sms" };
   });
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
-  .inputValidator((input) => phoneSchema.parse(input))
-  .handler(async ({ data }): Promise<{ mode: Mode }> => {
-    const mode = await resolveMode(data.phone);
+  .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
+  .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
+    const { callSharedMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    const mode = await resolveOtpMode(data.phone);
     if (mode === "fixed") return { mode };
 
-    const { callSharedMsg91 } = await import("@/lib/otp.server");
     await callSharedMsg91("retry", data.phone);
     return { mode: "sms" };
   });
 
 export const verifyLoginOtp = createServerFn({ method: "POST" })
-  .inputValidator((input) => verifySchema.parse(input))
+  .inputValidator((input) =>
+    z
+      .object({
+        phone: z.string().regex(/^\d{10}$/),
+        otp: z.string().regex(/^\d{4}$/),
+      })
+      .parse(input),
+  )
   .handler(async ({ data }): Promise<{ ok: true }> => {
     if (data.phone === SUPER_ADMIN_PHONE) {
       if (data.otp !== SUPER_ADMIN_OTP) throw new Error("Wrong code. Please try again.");
       return { ok: true };
     }
 
-    if (!(await isMsg91Enabled())) {
+    const { callSharedMsg91, resolveOtpMode } = await import("@/lib/otp.server");
+    if ((await resolveOtpMode(data.phone)) === "fixed") {
       if (data.otp !== FALLBACK_OTP) throw new Error("Wrong code. Please try again.");
       return { ok: true };
     }
 
-    const { callSharedMsg91 } = await import("@/lib/otp.server");
     await callSharedMsg91("verify", data.phone, data.otp);
     return { ok: true };
   });
