@@ -4731,7 +4731,7 @@ function CandidateWizard({
   onReject?: () => void;
   onRequestOffboard?: () => void;
 }) {
-  const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
+  const isEmployeeMode = mode === "employee";
   const qc = useQueryClient();
   const rolesQuery = useRolesLite();
   const rolesList = rolesQuery.data ?? [];
