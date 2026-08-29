@@ -3794,17 +3794,34 @@ function ResourcesSection({
   );
 }
 
-function ResourceFormDialog({
+export type WagesSubject = {
+  name: string;
+  employeeCode?: string | null;
+  designationName?: string | null;
+  departmentName?: string | null;
+};
+
+export function ResourceFormDialog({
   open,
   onOpenChange,
   initial,
   onSubmit,
+  /**
+   * "wages" = per-employee wage sheet (non-billable onboarding). Hides the
+   * contract-only deployment fields (designation, service type, agreed
+   * deployment quantity, role) — those come from the employee record.
+   */
+  variant = "contract",
+  subject,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initial: ContractResource | null;
   onSubmit: (r: ContractResource) => void;
+  variant?: "contract" | "wages";
+  subject?: WagesSubject | null;
 }) {
+  const isWages = variant === "wages";
   const designations = useDesignations();
   const serviceTypes = useServiceTypes();
   const allowanceTypes = useAllowanceTypes();
