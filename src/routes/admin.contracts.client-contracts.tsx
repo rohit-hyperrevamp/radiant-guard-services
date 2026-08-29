@@ -4361,11 +4361,11 @@ export function ResourceFormDialog({
   };
 
   const handleSubmit = () => {
-    if (!designationId) {
+    if (!isWages && !designationId) {
       toast.error("Please select a designation");
       return;
     }
-    if (!serviceTypeId) {
+    if (!isWages && !serviceTypeId) {
       toast.error("Please select a service type");
       return;
     }
@@ -4373,7 +4373,7 @@ export function ResourceFormDialog({
       toast.error("Please select Payroll Days");
       return;
     }
-    const q = parseInt(quantity, 10);
+    const q = isWages ? 1 : parseInt(quantity, 10);
     if (!q || q < 1) {
       toast.error("Quantity must be at least 1");
       return;
