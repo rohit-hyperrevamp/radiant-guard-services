@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Edit2, MapPin, Plus, Search, Warehouse, X } from "lucide-react";
+import { Download, Edit2, MapPin, Plus, Search, Users, Warehouse, X } from "lucide-react";
+import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
 import { Badge } from "@/components/ui/badge";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { csvDate, csvJoin, csvMapLink, csvStatus, csvYesNo, downloadCsv } from "@/lib/csv-export";
@@ -151,6 +152,7 @@ function UnitManagerPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
+  const [peopleFor, setPeopleFor] = useState<Unit | null>(null);
 
   const branchById = useMemo(() => new Map(branches.map((b) => [b.id, b])), [branches]);
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
