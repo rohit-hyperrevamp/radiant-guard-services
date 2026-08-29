@@ -2594,8 +2594,14 @@ function EmployeesPage() {
         toast.error("Only leadership or super admin can edit an inactive employee's profile.");
         return;
       }
+      // Editing must reopen in the same flavour the record was created in:
+      // a non-billable (internal) employee sits on a non-billable unit.
+      const recUnitId = record?.unit_id || primaryUnitIdByCandidate.get(record?.id ?? "") || null;
+      const recUnit = recUnitId ? unitMap.get(recUnitId) : undefined;
+      setWizardMode((recUnit as { is_billable?: boolean } | undefined)?.is_billable === false ? "employee" : "candidate");
       setEditing(record);
       setOpenWizard(true);
+
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open candidate");
     } finally {
