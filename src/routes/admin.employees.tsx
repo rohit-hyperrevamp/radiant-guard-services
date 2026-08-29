@@ -6445,6 +6445,30 @@ function CandidateWizard({
                     </Field>
                   )}
 
+                  {isEmployeeMode && (
+                    <Field label="Role — required">
+                      <Select
+                        value={form.role_key || "__none"}
+                        onValueChange={(v) => set("role_key" as never, v === "__none" ? "" : v)}
+                      >
+                        <SelectTrigger className={cn("h-10", !form.role_key && "border-amber-400/70")}>
+                          <SelectValue placeholder="Select role (e.g. Operations)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">— Select role —</SelectItem>
+                          {rolesList.map((r) => (
+                            <SelectItem key={r.key} value={r.key}>
+                              {r.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-[11px] text-muted-foreground">
+                        Determines what this employee can access in the app (e.g. Operations, HR, Field Officer).
+                      </span>
+                    </Field>
+                  )}
+
                   {editing?.id ? (
                     <Field label="Additional Designations">
                       <CandidateDesignationsEditor
