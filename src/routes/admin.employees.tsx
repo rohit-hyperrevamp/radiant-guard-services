@@ -3028,7 +3028,9 @@ function EmployeesPage() {
 
           <div className={cn(
             "grid w-full items-center gap-2 md:flex md:w-auto md:gap-3",
-            isFieldOfficer ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto_auto]",
+            isFieldOfficer
+              ? (tab === "candidate" ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-1")
+              : (tab === "candidate" ? "grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]"),
           )}>
             <div className="relative flex-1 md:w-80">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -3040,8 +3042,10 @@ function EmployeesPage() {
               />
             </div>
             {isFieldOfficer ? (
+              tab === "candidate" ? (
               <Button
                 className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-none sm:h-11 sm:px-5 sm:text-sm"
+
                 onClick={() => {
                   setEditing(null);
                   setWizardMode("candidate");
@@ -3052,7 +3056,9 @@ function EmployeesPage() {
                 <span className="hidden min-[360px]:inline">Add Candidate</span>
                 <span className="min-[360px]:hidden">Add</span>
               </Button>
+              ) : null
             ) : (
+
               <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -3103,7 +3109,9 @@ function EmployeesPage() {
 
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {tab === "candidate" && (
                 <DropdownMenu>
+
                   <DropdownMenuTrigger asChild>
                     <Button
                       className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 sm:h-11 sm:px-6"
@@ -3149,6 +3157,8 @@ function EmployeesPage() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                )}
+
               </>
             )}
 
