@@ -5813,7 +5813,7 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
-                  {form.unit_ids.length > 0 && (
+                  {!isEmployeeMode && form.unit_ids.length > 0 && (
                     <div className="sm:col-span-2">
                       <Field label="Designation at each unit (from that unit's contract)">
                         <div className="space-y-2 rounded-md border border-input bg-muted/20 p-2">
@@ -5886,9 +5886,11 @@ function CandidateWizard({
                   </div>
                   <Field
                     label={
-                      form.unit_ids.length === 0
-                        ? "Designation (Primary) — select a unit first"
-                        : `Designation (Primary) — ${filteredDesignations.length} available in unit contract${form.unit_ids.length > 1 ? "s" : ""}`
+                      isEmployeeMode
+                        ? `Designation — ${filteredDesignations.length} in master`
+                        : form.unit_ids.length === 0
+                          ? "Designation (Primary) — select a unit first"
+                          : `Designation (Primary) — ${filteredDesignations.length} available in unit contract${form.unit_ids.length > 1 ? "s" : ""}`
                     }
                   >
                     <DesignationPicker
@@ -5898,8 +5900,8 @@ function CandidateWizard({
                       disabled={
                         designationsLoading ||
                         !!designationsError ||
-                        form.unit_ids.length === 0 ||
-                        contractDesigQuery.isLoading
+                        (!isEmployeeMode &&
+                          (form.unit_ids.length === 0 || contractDesigQuery.isLoading))
                       }
                       emptyMessage={
                         designationsError
