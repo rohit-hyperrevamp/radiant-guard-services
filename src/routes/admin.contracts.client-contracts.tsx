@@ -3813,6 +3813,13 @@ export function ResourceFormDialog({
    */
   variant = "contract",
   subject,
+  /**
+   * inline = render the fields directly inside the parent form (no dialog,
+   * no header/footer, no Save button). Every change is pushed up through
+   * onChange so the parent owns persistence.
+   */
+  inline = false,
+  onChange,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -3820,6 +3827,8 @@ export function ResourceFormDialog({
   onSubmit: (r: ContractResource) => void;
   variant?: "contract" | "wages";
   subject?: WagesSubject | null;
+  inline?: boolean;
+  onChange?: (r: ContractResource) => void;
 }) {
   const isWages = variant === "wages";
   const designations = useDesignations();
@@ -4393,6 +4402,28 @@ export function ResourceFormDialog({
     });
   };
 
+  // Inline mode: no Save button — every edit is pushed up immediately.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    if (!inline || !onChangeRef.current || resourceBaselineSnapshot === "") return;
+    if (currentResourceSnapshot === resourceBaselineSnapshot) return;
+    onChangeRef.current({
+      id: initial?.id,
+      designationId,
+      roleKey: roleKey || null,
+      serviceTypeId,
+      quantity: isWages ? 1 : parseInt(quantity, 10) || 1,
+      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+      components,
+      payrollDayBaseId: payrollDayBaseId || null,
+      benefits,
+      deductions,
+      employerContributions,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inline, currentResourceSnapshot]);
+
   const totalBenefits = benefits.reduce((s, b) => s + (Number(b.amount) || 0), 0);
 
   // Statutory ESI on the contract (full-month) gross. Percentages and the
@@ -4432,45 +4463,7 @@ export function ResourceFormDialog({
 
   const selectedDesignation = designations.find((d) => d.id === designationId);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        ref={dialogContentRef}
-        overlayClassName={isWages ? "z-[110]" : undefined}
-        className={`max-h-[92vh] overflow-y-auto sm:max-w-[min(92vw,1100px)]${isWages ? " z-[110]" : ""}`}
-      >
-        <DialogHeader>
-          <DialogTitle>
-            {isWages
-              ? initial?.id ? "Edit Wages" : "Add Wages"
-              : initial?.id ? "Edit Resource" : "Add Resource"}
-          </DialogTitle>
-          <DialogDescription>
-            {isWages
-              ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
-              : "Map a designation, service type and quantity, then configure wage components."}
-          </DialogDescription>
-        </DialogHeader>
-
-        {isWages && subject && (
-          <div className="rounded-xl border border-border bg-secondary/30 p-3">
-            <div className="text-sm font-semibold text-foreground">
-              {subject.name || "—"}
-              {subject.employeeCode ? (
-                <span className="ml-2 font-mono text-[11px] text-muted-foreground">{subject.employeeCode}</span>
-              ) : null}
-            </div>
-            <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-              {subject.designationName ? (
-                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.designationName}</span>
-              ) : null}
-              {subject.departmentName ? (
-                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.departmentName}</span>
-              ) : null}
-            </div>
-          </div>
-        )}
-
+  const content = (
         <div className="space-y-4 py-2">
           <div className="grid gap-4 sm:grid-cols-3">
             {!isWages && (<>
@@ -5146,6 +5139,56 @@ export function ResourceFormDialog({
             employerContributions={employerContributions}
           />
         </div>
+  );
+
+  if (inline) {
+    return (
+      <div ref={dialogContentRef} className="space-y-4">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        ref={dialogContentRef}
+        overlayClassName={isWages ? "z-[110]" : undefined}
+        className={`max-h-[92vh] overflow-y-auto sm:max-w-[min(92vw,1100px)]${isWages ? " z-[110]" : ""}`}
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {isWages
+              ? initial?.id ? "Edit Wages" : "Add Wages"
+              : initial?.id ? "Edit Resource" : "Add Resource"}
+          </DialogTitle>
+          <DialogDescription>
+            {isWages
+              ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
+              : "Map a designation, service type and quantity, then configure wage components."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isWages && subject && (
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="text-sm font-semibold text-foreground">
+              {subject.name || "—"}
+              {subject.employeeCode ? (
+                <span className="ml-2 font-mono text-[11px] text-muted-foreground">{subject.employeeCode}</span>
+              ) : null}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+              {subject.designationName ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.designationName}</span>
+              ) : null}
+              {subject.departmentName ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.departmentName}</span>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {content}
 
         <DialogFooter>
           <Button
