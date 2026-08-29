@@ -5069,11 +5069,31 @@ function CandidateWizard({
         };
       })
       .filter(Boolean);
-    if (rows.length === 0) return;
-    const { error } = await supabase
+    if (rows.length > 0) {
+      const { error } = await supabase
+        .from("employee_wages" as never)
+        .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
+      if (error) throw new Error(`Wage sheet sync failed: ${error.message}`);
+    }
+
+    // Remove sheets explicitly crossed out, legacy null-unit sheets that were
+    // migrated above, and sheets for units no longer assigned to the person.
+    const retainedUnits = new Set(rows.map((row) => row?.unit_id).filter(Boolean));
+    const { data: savedRows, error: savedRowsError } = await supabase
       .from("employee_wages" as never)
-      .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
-    if (error) throw new Error(`Wage sheet sync failed: ${error.message}`);
+      .select("id,unit_id")
+      .eq("candidate_id", candidateId);
+    if (savedRowsError) throw new Error(`Wage sheet cleanup failed: ${savedRowsError.message}`);
+    const staleIds = ((savedRows ?? []) as Array<{ id: string; unit_id: string | null }>)
+      .filter((row) => !row.unit_id || !retainedUnits.has(row.unit_id))
+      .map((row) => row.id);
+    if (staleIds.length > 0) {
+      const { error: cleanupError } = await supabase
+        .from("employee_wages" as never)
+        .delete()
+        .in("id", staleIds);
+      if (cleanupError) throw new Error(`Wage sheet cleanup failed: ${cleanupError.message}`);
+    }
   };
 
 
