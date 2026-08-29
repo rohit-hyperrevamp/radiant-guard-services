@@ -13,6 +13,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
 import { OTP_LENGTH, SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
 import {
+  retryMsg91WidgetOtp,
+  sendMsg91WidgetOtp,
+  verifyMsg91WidgetOtp,
+} from "@/lib/msg91-widget";
+import {
   enableBiometric,
   getBiometricStatus,
   signInWithBiometric,
@@ -58,6 +63,7 @@ function LoginPage() {
   const requestOtpAgain = useServerFn(resendLoginOtp);
   const checkOtp = useServerFn(verifyLoginOtp);
   const verifyInFlightRef = useRef(false);
+  const otpRequestIdRef = useRef<string | null>(null);
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
@@ -101,6 +107,12 @@ function LoginPage() {
       const result = isResend
         ? await requestOtpAgain({ data: { phone } })
         : await requestOtp({ data: { phone } });
+      if (result.mode === "sms") {
+        if (isResend) await retryMsg91WidgetOtp(otpRequestIdRef.current);
+        else otpRequestIdRef.current = await sendMsg91WidgetOtp(phone);
+      } else {
+        otpRequestIdRef.current = null;
+      }
       setOtpMode(result.mode);
       setStep("otp");
       setResendIn(30);
@@ -126,7 +138,11 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      await checkOtp({ data: { phone, otp: code } });
+      const accessToken =
+        otpMode === "sms"
+          ? await verifyMsg91WidgetOtp(code, otpRequestIdRef.current)
+          : undefined;
+      await checkOtp({ data: { phone, otp: code, accessToken } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
