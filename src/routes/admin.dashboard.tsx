@@ -141,7 +141,7 @@ function DashboardPage() {
       ] = await Promise.all([
         supabase.from("customers").select("id", { count: "exact", head: true }),
         supabase.from("units").select("id", { count: "exact", head: true }),
-        supabase.from("candidates").select("id", { count: "exact", head: true }).eq("is_enabled", true).eq("status", "active"),
+        supabase.from("candidates").select("id", { count: "exact", head: true }).eq("is_enabled", true).in("status", ["active", "approved"]),
         supabase.from("client_contracts").select("id", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("client_contracts")
           .select("id, contract_code, end_date, unit_id, status")
@@ -257,7 +257,7 @@ function DashboardPage() {
               .select("id, full_name, designation_id, unit_id")
               .in("unit_id", unitIdsInScope)
               .eq("is_enabled", true)
-              .eq("status", "active")
+              .in("status", ["active", "approved"])
           : Promise.resolve({ data: [] as Record<string, unknown>[] }),
         unitIdsInScope.length
           ? supabase
@@ -329,7 +329,7 @@ function DashboardPage() {
             .select("id, full_name, designation_id")
             .in("id", secondaryIds)
             .eq("is_enabled", true)
-            .eq("status", "active")
+            .in("status", ["active", "approved"])
         : { data: [] as Array<{ id: string; full_name: string | null; designation_id: string | null }> };
       const candById = new Map<string, { id: string; full_name: string | null; designation_id: string | null }>();
       for (const c of primaryCands) candById.set(c.id, c);
