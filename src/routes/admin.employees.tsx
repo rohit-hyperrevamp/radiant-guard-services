@@ -4367,6 +4367,90 @@ function CandidateWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUnitIdsKey, contractDesigQuery.isLoading, allowedDesignationIds.join(",")]);
 
+  // ----- Non-billable: departments + per-employee wage sheet ----- //
+  const departmentsQuery = useQuery({
+    queryKey: ["wizard-departments"],
+    enabled: isEmployeeMode,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments" as never)
+        .select("id,name,enabled")
+        .eq("enabled", true)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{ id: string; name: string }>;
+    },
+  });
+  const departments = departmentsQuery.data ?? [];
+
+  const [wage, setWage] = useState<ContractResource | null>(null);
+  const [wageDialogOpen, setWageDialogOpen] = useState(false);
+  const [wageRowId, setWageRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cid = editing?.id;
+    if (!isEmployeeMode || !cid) {
+      setWage(null);
+      setWageRowId(null);
+      return;
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from("employee_wages" as never)
+        .select("id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
+        .eq("candidate_id", cid)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const r = data as unknown as Record<string, unknown>;
+      setWageRowId(String(r.id));
+      setWage({
+        designationId: "",
+        roleKey: null,
+        serviceTypeId: "",
+        quantity: 1,
+        shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
+        payrollDayBaseId: (r.payroll_day_base_id as string) ?? null,
+        components: (r.components as ContractResource["components"]) ?? [],
+        benefits: (r.benefits as ContractResource["benefits"]) ?? [],
+        deductions: (r.deductions as ContractResource["deductions"]) ?? [],
+        employerContributions: (r.employer_contributions as ContractResource["employerContributions"]) ?? [],
+      } as ContractResource);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editing?.id, isEmployeeMode]);
+
+  const wageGross = useMemo(
+    () => (wage?.components ?? []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0),
+    [wage],
+  );
+
+  /** Persist the per-employee wage sheet for non-billable employees. */
+  const syncEmployeeWages = async (candidateId: string) => {
+    if (!isEmployeeMode || !wage) return;
+    const row = {
+      candidate_id: candidateId,
+      unit_id: homeUnitId || null,
+      designation_id: form.designation_id,
+      department_id: form.department_id,
+      shift_hours: wage.shiftHours,
+      payroll_day_base_id: wage.payrollDayBaseId ?? null,
+      components: wage.components ?? [],
+      benefits: wage.benefits ?? [],
+      deductions: wage.deductions ?? [],
+      employer_contributions: wage.employerContributions ?? [],
+      gross: wageGross,
+    };
+    const { error } = await supabase
+      .from("employee_wages" as never)
+      .upsert(row as never, { onConflict: "candidate_id" } as never);
+    if (error) console.error("employee wages sync failed", error);
+    else if (!wageRowId) setWageRowId("saved");
+  };
+
 
   // ----- File upload helper ----- //
   const uploadFile = async (file: File, slot: "photo" | "signature" | "aadhaar" | "pan"): Promise<string> => {
@@ -4832,6 +4916,7 @@ function CandidateWizard({
         } as never);
       if (esaErr) console.error("home unit sync failed", esaErr);
     }
+    if (isEmployeeMode && cidForBranch) await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
     // Await so the caller (Save/Send-to-Approval handlers) can close the
