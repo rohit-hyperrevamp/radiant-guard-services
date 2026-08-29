@@ -1358,24 +1358,15 @@ async function persistResources(contractId: string, resources: ContractResource[
   const normalizedResources = resources.map(cloneContractResource);
   const prev = await supabase
     .from("contract_resources" as never)
-    .select("designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+    .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
     .eq("contract_id", contractId)
     .order("sort_order");
+  if (prev.error) throw prev.error;
   const beforeRows = (prev.data ?? []) as Record<string, unknown>[];
-  const del = await supabase
-    .from("contract_resources" as never)
-    .delete()
-    .eq("contract_id", contractId);
-  if (del.error) throw del.error;
   if (normalizedResources.length === 0) {
-    void logActivity({
-      module: "Contract Resources",
-      action: "update",
-      entityType: "contract_resources",
-      entityId: contractId,
-      before: { count: beforeRows.length, resources: beforeRows },
-      after: { count: 0, resources: [] },
-    });
+    if (beforeRows.length > 0) {
+      throw new Error("This contract already has resource lines. Remove them individually before saving an empty contract.");
+    }
     return;
   }
   const rows = normalizedResources.map((r, idx) => ({
@@ -1393,12 +1384,44 @@ async function persistResources(contractId: string, resources: ContractResource[
     deductions: r.deductions,
     employer_contributions: r.employerContributions,
   }));
-  const ins = await supabase
-    .from("contract_resources" as never)
-    .insert(rows as never)
-    .select("designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order");
-  if (ins.error) throw ins.error;
-  const savedRows = ((ins.data ?? []) as Record<string, unknown>[]).sort(
+  // Save first and delete stale rows only after every write succeeds. The old
+  // delete-then-insert sequence could permanently empty a contract whenever
+  // an insert failed or a stale client submitted an empty resource array.
+  const savedRows: Record<string, unknown>[] = [];
+  for (let idx = 0; idx < rows.length; idx += 1) {
+    const resource = normalizedResources[idx];
+    const row = rows[idx];
+    const write = resource.id
+      ? await supabase
+          .from("contract_resources" as never)
+          .update(row as never)
+          .eq("id", resource.id)
+          .eq("contract_id", contractId)
+          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+          .single()
+      : await supabase
+          .from("contract_resources" as never)
+          .insert(row as never)
+          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+          .single();
+    if (write.error) throw write.error;
+    savedRows.push(write.data as unknown as Record<string, unknown>);
+  }
+
+  const savedIds = new Set(savedRows.map((row) => String(row.id)));
+  const staleIds = beforeRows
+    .map((row) => String(row.id))
+    .filter((id) => !savedIds.has(id));
+  for (const staleId of staleIds) {
+    const removed = await supabase
+      .from("contract_resources" as never)
+      .delete()
+      .eq("id", staleId)
+      .eq("contract_id", contractId);
+    if (removed.error) throw removed.error;
+  }
+
+  savedRows.sort(
     (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0),
   );
   if (savedRows.length !== rows.length) {
