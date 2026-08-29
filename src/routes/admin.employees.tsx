@@ -4604,6 +4604,7 @@ function emptyForm(): CandidateForm {
     assigned_asset_ids: [],
     no_hire: false,
     offboarding_details: {},
+    role_key: "",
   };
 }
 
