@@ -16,7 +16,7 @@ import {
   resendRealLoginOtp,
   sendRealLoginOtp,
   verifyRealLoginOtp,
-} from "@/lib/otp.client";
+} from "@/lib/otp-gateway";
 import {
   enableBiometric,
   getBiometricStatus,
