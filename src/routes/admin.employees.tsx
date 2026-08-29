@@ -1078,6 +1078,26 @@ function useEsicBranchesLite() {
   });
 }
 
+type DepartmentLite = { id: string; name: string };
+
+function useDepartmentsLite() {
+  return useQuery({
+    queryKey: ["admin", "departments-lite"] as const,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+    queryFn: async (): Promise<DepartmentLite[]> => {
+      const { data, error } = await supabase
+        .from("departments" as never)
+        .select("id,name")
+        .order("name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return ((data as unknown) as DepartmentLite[]) ?? [];
+    },
+  });
+}
+
 async function runWithQueryTimeout<T>(label: string, run: (signal: AbortSignal) => Promise<T>, timeoutMs = 8_000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
