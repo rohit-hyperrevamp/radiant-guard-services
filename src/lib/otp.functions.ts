@@ -30,21 +30,6 @@ const verifySchema = z.object({
 
 type Mode = "sms" | "fixed";
 
-async function isMsg91Enabled(): Promise<boolean> {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("platform_settings" as never)
-      .select("enabled")
-      .eq("key", SETTING_KEY)
-      .maybeSingle();
-    if (error || !data) return true; // fail safe: real OTPs stay on
-    return Boolean((data as unknown as { enabled?: boolean }).enabled ?? true);
-  } catch {
-    return true;
-  }
-}
-
 async function msg91Call(path: string, method: "GET" | "POST" = "GET") {
   const authKey = process.env["MSG91_AUTH_KEY"] ?? "";
   if (!authKey) throw new Error("SMS service is not configured.");
@@ -70,6 +55,21 @@ async function msg91Send(phone: string) {
     otp_expiry: String(OTP_EXPIRY_MIN),
   });
   return msg91Call(`otp?${params.toString()}`, "POST");
+}
+
+async function isMsg91Enabled(): Promise<boolean> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("platform_settings" as never)
+      .select("enabled")
+      .eq("key", SETTING_KEY)
+      .maybeSingle();
+    if (error || !data) return true; // fail safe: real OTPs stay on
+    return Boolean((data as unknown as { enabled?: boolean }).enabled ?? true);
+  } catch {
+    return true;
+  }
 }
 
 async function resolveMode(phone: string): Promise<Mode> {
@@ -98,8 +98,6 @@ export const resendLoginOtp = createServerFn({ method: "POST" })
     const mode = await resolveMode(data.phone);
     if (mode === "fixed") return { mode };
 
-    // Start a fresh transaction rather than reviving an older request, so a
-    // delayed SMS from a previous attempt cannot invalidate the new code.
     const { failed, data: res } = await msg91Send(data.phone);
     if (failed) {
       throw new Error(
