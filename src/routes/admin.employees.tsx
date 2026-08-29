@@ -4961,81 +4961,96 @@ function CandidateWizard({
   });
   const departments = departmentsQuery.data ?? [];
 
-  const [wage, setWage] = useState<ContractResource | null>(null);
-  const [wageEditorOpen, setWageEditorOpen] = useState(false);
-  const [wageRowId, setWageRowId] = useState<string | null>(null);
+  /**
+   * Wage sheets, keyed by unit id (non-billable employees use their home unit).
+   * A person mapped to several units gets one wage sheet per unit.
+   */
+  const [wagesByUnit, setWagesByUnit] = useState<Record<string, ContractResource | null>>({});
+  const [activeWageUnit, setActiveWageUnit] = useState<string>("");
+
+  /** Units the Wages section renders a sheet for. */
+  const wageUnitIds = useMemo(() => {
+    const ids = isEmployeeMode ? [homeUnitId].filter(Boolean) : form.unit_ids;
+    return (ids as string[]).filter(Boolean);
+  }, [isEmployeeMode, homeUnitId, form.unit_ids]);
+
+  useEffect(() => {
+    if (wageUnitIds.length === 0) {
+      setActiveWageUnit("");
+      return;
+    }
+    setActiveWageUnit((u) => (u && wageUnitIds.includes(u) ? u : wageUnitIds[0]));
+  }, [wageUnitIds]);
 
   useEffect(() => {
     let cancelled = false;
     const cid = editing?.id;
-    if (!isEmployeeMode || !cid) {
-      setWage(null);
-      setWageRowId(null);
-      setWageEditorOpen(false);
+    if (!cid) {
+      setWagesByUnit({});
       return;
     }
     void (async () => {
       const { data } = await supabase
         .from("employee_wages" as never)
-        .select("id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
-        .eq("candidate_id", cid)
-        .maybeSingle();
+        .select("id,unit_id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
+        .eq("candidate_id", cid);
       if (cancelled) return;
-      if (!data) {
-        setWageRowId(null);
-        setWage(null);
-        setWageEditorOpen(false);
-        return;
+      const next: Record<string, ContractResource | null> = {};
+      for (const row of ((data ?? []) as unknown as Array<Record<string, unknown>>)) {
+        const key = (row.unit_id as string) ?? "";
+        next[key] = {
+          designationId: "",
+          roleKey: null,
+          serviceTypeId: "",
+          quantity: 1,
+          shiftHours: Number(row.shift_hours) === 12 ? 12 : 8,
+          payrollDayBaseId: (row.payroll_day_base_id as string) ?? null,
+          components: (row.components as ContractResource["components"]) ?? [],
+          benefits: (row.benefits as ContractResource["benefits"]) ?? [],
+          deductions: (row.deductions as ContractResource["deductions"]) ?? [],
+          employerContributions:
+            (row.employer_contributions as ContractResource["employerContributions"]) ?? [],
+        } as ContractResource;
       }
-      const r = data as unknown as Record<string, unknown>;
-      const loaded = {
-        designationId: "",
-        roleKey: null,
-        serviceTypeId: "",
-        quantity: 1,
-        shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
-        payrollDayBaseId: (r.payroll_day_base_id as string) ?? null,
-        components: (r.components as ContractResource["components"]) ?? [],
-        benefits: (r.benefits as ContractResource["benefits"]) ?? [],
-        deductions: (r.deductions as ContractResource["deductions"]) ?? [],
-        employerContributions: (r.employer_contributions as ContractResource["employerContributions"]) ?? [],
-      } as ContractResource;
-      setWageRowId(String(r.id));
-      setWage(loaded);
-      setWageEditorOpen(true);
+      setWagesByUnit(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, [editing?.id, isEmployeeMode]);
+  }, [editing?.id]);
 
-  const wageGross = useMemo(
-    () => (wage?.components ?? []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0),
-    [wage],
-  );
+  const activeWage = activeWageUnit ? wagesByUnit[activeWageUnit] ?? null : null;
+  const setActiveWage = (next: ContractResource | null) =>
+    setWagesByUnit((m) => ({ ...m, [activeWageUnit]: next }));
 
-  /** Persist the per-employee wage sheet for non-billable employees. */
+  /** Persist one wage sheet per mapped unit. */
   const syncEmployeeWages = async (candidateId: string) => {
-    if (!isEmployeeMode || !wage) return;
-    const row = {
-      candidate_id: candidateId,
-      unit_id: homeUnitId || null,
-      designation_id: form.designation_id,
-      department_id: form.department_id,
-      shift_hours: wage.shiftHours,
-      payroll_day_base_id: wage.payrollDayBaseId ?? null,
-      components: wage.components ?? [],
-      benefits: wage.benefits ?? [],
-      deductions: wage.deductions ?? [],
-      employer_contributions: wage.employerContributions ?? [],
-      gross: wageGross,
-    };
+    const rows = wageUnitIds
+      .map((unitId) => {
+        const w = wagesByUnit[unitId];
+        if (!w) return null;
+        return {
+          candidate_id: candidateId,
+          unit_id: unitId,
+          designation_id: (form.unit_designations ?? {})[unitId] ?? form.designation_id,
+          department_id: form.department_id,
+          shift_hours: w.shiftHours,
+          payroll_day_base_id: w.payrollDayBaseId ?? null,
+          components: w.components ?? [],
+          benefits: w.benefits ?? [],
+          deductions: w.deductions ?? [],
+          employer_contributions: w.employerContributions ?? [],
+          gross: (w.components ?? []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0),
+        };
+      })
+      .filter(Boolean);
+    if (rows.length === 0) return;
     const { error } = await supabase
       .from("employee_wages" as never)
-      .upsert(row as never, { onConflict: "candidate_id" } as never);
+      .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
     if (error) console.error("employee wages sync failed", error);
-    else if (!wageRowId) setWageRowId("saved");
   };
+
 
 
   // ----- File upload helper ----- //
