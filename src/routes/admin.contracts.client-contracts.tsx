@@ -4407,6 +4407,7 @@ export function ResourceFormDialog({
   onChangeRef.current = onChange;
   useEffect(() => {
     if (!inline || !onChangeRef.current || resourceBaselineSnapshot === "") return;
+    if (currentResourceSnapshot === resourceBaselineSnapshot) return;
     onChangeRef.current({
       id: initial?.id,
       designationId,
