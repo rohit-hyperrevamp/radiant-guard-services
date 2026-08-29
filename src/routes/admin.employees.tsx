@@ -16,6 +16,7 @@ import {
 } from "@/components/candidate-extra-sections";
 import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+import { ResourceFormDialog, type ContractResource } from "./admin.contracts.client-contracts";
 
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -246,6 +247,7 @@ type Candidate = {
   preferred_joining_date: string | null;
   unit_id: string | null;
   designation_id: string | null;
+  department_id: string | null;
   status: string;
   // Extended (JSONB) sections
   physical_health: Record<string, any>;
@@ -4092,6 +4094,7 @@ function emptyForm(): CandidateForm {
     unit_designations: {},
 
     designation_id: null,
+    department_id: null,
     status: "pending",
     physical_health: {},
     compliance: {},
@@ -4342,7 +4345,9 @@ function CandidateWizard({
   const allowedDesignationIds = contractDesigQuery.data ?? [];
   const filteredDesignations = useMemo(() => {
     let base = designations;
-    if (isEmployeeMode) base = base.filter((d) => d.billable === false);
+    // Non-billable employees are NOT deployed against a client contract, so
+    // their designation comes straight from the Designation master.
+    if (isEmployeeMode) return base.filter((d) => d.billable === false);
     if (desigLookupUnitIds.length === 0) return base;
     if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
@@ -4352,6 +4357,7 @@ function CandidateWizard({
   // If the currently selected designation is no longer allowed by the units'
   // contracts, clear it so the user picks a valid one.
   useEffect(() => {
+    if (isEmployeeMode) return;
     if (form.unit_ids.length === 0) return;
     if (contractDesigQuery.isLoading) return;
     if (!form.designation_id) return;
