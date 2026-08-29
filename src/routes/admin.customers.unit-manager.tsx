@@ -84,6 +84,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     location: "",
     description: "",
     status: "active",
+    isBillable: true,
     branchId: null,
     customerId: null,
     onboardingDate: "",
@@ -896,6 +897,17 @@ function UnitFormDialog({
                   <Switch
                     checked={form.status === "active"}
                     onCheckedChange={(v) => set("status", v ? "active" : "inactive")}
+                  />
+                </div>
+              </Field>
+              <Field label="Billable">
+                <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">
+                  <span className="text-sm font-medium text-foreground">
+                    {form.isBillable ? "Billable" : "Non-billable"}
+                  </span>
+                  <Switch
+                    checked={form.isBillable}
+                    onCheckedChange={(v) => set("isBillable", v)}
                   />
                 </div>
               </Field>

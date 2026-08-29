@@ -590,6 +590,8 @@ export type Unit = {
   epfCapEnabled: boolean;
   /** ESIC branch (sub-code) this unit is registered under. */
   esicBranchId: string | null;
+  /** false = non-billable unit (e.g. Radiant Office); drives non-billable onboarding. */
+  isBillable: boolean;
 };
 
 export type BonusFrequency = "monthly" | "yearly" | "on_reimbursement";
@@ -674,6 +676,7 @@ type UnitRow = {
   bonus_frequency?: string | null;
   epf_cap_enabled?: boolean | null;
   esic_branch_id?: string | null;
+  is_billable?: boolean | null;
 };
 
 function rowToUnit(r: UnitRow): Unit {
@@ -745,6 +748,7 @@ function rowToUnit(r: UnitRow): Unit {
     bonusFrequency: (r.bonus_frequency as BonusFrequency | null) ?? null,
     epfCapEnabled: r.epf_cap_enabled == null ? true : Boolean(r.epf_cap_enabled),
     esicBranchId: r.esic_branch_id ?? null,
+    isBillable: r.is_billable == null ? true : Boolean(r.is_billable),
   };
 }
 
@@ -815,6 +819,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     bonus_frequency: data.bonusEnabled ? (data.bonusFrequency ?? "monthly") : null,
     epf_cap_enabled: data.epfCapEnabled,
     esic_branch_id: data.esicBranchId || null,
+    is_billable: data.isBillable !== false,
   };
 }
 
