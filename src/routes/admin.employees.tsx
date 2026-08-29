@@ -6449,7 +6449,7 @@ function CandidateWizard({
                     <Field label="Role — required">
                       <Select
                         value={form.role_key || "__none"}
-                        onValueChange={(v) => set("role_key" as never, v === "__none" ? "" : v)}
+                        onValueChange={(v) => set("role_key", v === "__none" ? "" : v)}
                       >
                         <SelectTrigger className={cn("h-10", !form.role_key && "border-amber-400/70")}>
                           <SelectValue placeholder="Select role (e.g. Operations)" />
