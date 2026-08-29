@@ -5482,6 +5482,8 @@ function CandidateWizard({
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
+      if (isEmployeeMode && !String(form.role_key ?? "").trim())
+        return failValidation("Role is required for non-billable employees — pick a role (e.g. Operations) in the Employment section", "role_key");
       if (!/^[6-9]\d{9}$/.test(form.mobile.trim()))
         return failValidation("A valid 10-digit mobile number is required (Basic Information) — it is also the login ID", "mobile");
       // Email is optional, but when supplied it must be well formed so posting
