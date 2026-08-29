@@ -263,6 +263,7 @@ function AdminLayout() {
     { prefix: "/admin/billing-type-manager", module: "control_center" },
     { prefix: "/admin/designation-manager", module: "control_center" },
     { prefix: "/admin/department-manager", module: "control_center" },
+    { prefix: "/admin/platform-settings", module: "control_center" },
     { prefix: "/admin/cost-component-manager", module: "control_center" },
     { prefix: "/admin/ex-service-manager", module: "control_center" },
     { prefix: "/admin/offboarding-reason-manager", module: "control_center" },

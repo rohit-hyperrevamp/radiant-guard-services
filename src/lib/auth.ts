@@ -8,7 +8,10 @@ const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
 const IP_LOOKUP_TIMEOUT_MS = 1_500;
 /**
- * ⚠️ PRE-LAUNCH TESTING ONLY ⚠️
+ * OTP verification now happens server-side (MSG91) in `src/lib/otp.functions.ts`.
+ * Legacy note kept for the super-admin phone constant below.
+ *
+ * ⚠️ Session bridging below is still deterministic-credential based ⚠️
  * The OTP below is a hardcoded development bypass used while the SMS gateway
  * integration is pending. Before launch, this MUST be replaced with a real
  * OTP provider (Twilio / MSG91 / Supabase phone auth) and the value should
@@ -18,9 +21,6 @@ const IP_LOOKUP_TIMEOUT_MS = 1_500;
  *   VITE_DEMO_OTP            (default: "111111")
  *   VITE_SUPER_ADMIN_PHONE   (default: "8373914073")
  */
-const DEMO_OTP =
-  (import.meta.env.VITE_DEMO_OTP as string | undefined) ?? "111111";
-
 export const SUPER_ADMIN_PHONE =
   (import.meta.env.VITE_SUPER_ADMIN_PHONE as string | undefined) ??
   "8373914073";
@@ -305,11 +305,3 @@ export function useAuth() {
 
   return { user, login, logout, isReady };
 }
-
-// TODO: replace with real OTP provider (Twilio / MSG91 / Supabase phone auth).
-// Hardcoded OTP is ONLY for pre-launch testing.
-export function verifyOtp(code: string): boolean {
-  return code === DEMO_OTP;
-}
-
-export const DEMO_OTP_HINT = DEMO_OTP;
