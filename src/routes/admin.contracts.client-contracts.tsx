@@ -4440,16 +4440,39 @@ export function ResourceFormDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {initial?.id ? "Edit Resource" : "Add Resource"}
+            {isWages
+              ? initial?.id ? "Edit Wages" : "Add Wages"
+              : initial?.id ? "Edit Resource" : "Add Resource"}
           </DialogTitle>
           <DialogDescription>
-            Map a designation, service type and quantity, then configure wage
-            components.
+            {isWages
+              ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
+              : "Map a designation, service type and quantity, then configure wage components."}
           </DialogDescription>
         </DialogHeader>
 
+        {isWages && subject && (
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="text-sm font-semibold text-foreground">
+              {subject.name || "—"}
+              {subject.employeeCode ? (
+                <span className="ml-2 font-mono text-[11px] text-muted-foreground">{subject.employeeCode}</span>
+              ) : null}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+              {subject.designationName ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.designationName}</span>
+              ) : null}
+              {subject.departmentName ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5">{subject.departmentName}</span>
+              ) : null}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4 py-2">
           <div className="grid gap-4 sm:grid-cols-3">
+            {!isWages && (<>
             <Field label="Designation *">
               <Popover open={designationOpen} onOpenChange={setDesignationOpen}>
                 <PopoverTrigger asChild>
@@ -4543,6 +4566,7 @@ export function ResourceFormDialog({
               />
             </Field>
 
+            </>)}
             <Field label="Shift Hours *">
               <Select value={shiftHours} onValueChange={setShiftHours}>
                 <SelectTrigger className="h-10 rounded-lg">
@@ -4557,6 +4581,7 @@ export function ResourceFormDialog({
           </div>
 
 
+          {!isWages && (
           <Field label="Role">
             <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
               <SelectTrigger className="h-10 rounded-lg">
@@ -4573,6 +4598,8 @@ export function ResourceFormDialog({
             </Select>
           </Field>
 
+
+          )}
 
           <Field label="Payroll Days *">
             <Select value={payrollDayBaseId} onValueChange={setPayrollDayBaseId}>
