@@ -664,6 +664,7 @@ function HierarchyTreeDialog({
                             branchId={u.branchId ?? null}
                             customerId={u.customerId ?? null}
                             stateName={st?.name ?? ""}
+                            isBillable={u.isBillable !== false}
                           />
                         </div>
                       </li>
