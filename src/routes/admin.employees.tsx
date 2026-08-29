@@ -998,6 +998,46 @@ function preferredEmployeeRecordFirst(a: CandidateListItem, b: CandidateListItem
   return employeeStatusRank(b) - employeeStatusRank(a) || newestEmployeeRecordFirst(a, b);
 }
 
+/**
+ * Approved / active people must carry an EMP-### employee ID. Rows that still
+ * display their candidate number (CAN-###, EC-###) — or nothing at all — are
+ * repaired here by allocating the next free EMP number.
+ * Returns how many rows were fixed.
+ */
+async function healEmployeeCodes(rows: CandidateListItem[]): Promise<number> {
+  const needsCode = rows.filter(
+    (r) =>
+      ["active", "approved"].includes(r.status) &&
+      (!r.employee_code || /^(CAN|EC)[-_]?\d*/i.test(r.employee_code)),
+  );
+  if (needsCode.length === 0) return 0;
+
+  const { data } = await supabase
+    .from("candidates" as never)
+    .select("employee_code")
+    .ilike("employee_code", "EMP-%")
+    .limit(5000);
+  let next = 0;
+  for (const row of ((data ?? []) as Array<{ employee_code: string | null }>)) {
+    const n = Number(String(row.employee_code ?? "").replace(/\D/g, ""));
+    if (Number.isFinite(n) && n > next) next = n;
+  }
+
+  let fixed = 0;
+  for (const r of needsCode) {
+    next += 1;
+    const code = `EMP-${String(next).padStart(3, "0")}`;
+    const { error } = await supabase
+      .from("candidates" as never)
+      .update({ employee_code: code } as never)
+      .eq("id", r.id);
+    if (!error) fixed += 1;
+  }
+  return fixed;
+}
+
+
+
 function useSignedDocsSummary() {
   return useQuery({
     queryKey: QK_SIGNED_DOCS,
@@ -1213,6 +1253,19 @@ function EmployeesPage() {
   const isLoading = candidatesQuery.isLoading;
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
+
+  // Self-heal: an approved/active person must carry an EMP-### employee ID.
+  // Older records (or rows created before the DB trigger existed) sometimes
+  // still show their CAN-### candidate number in the Emp ID column.
+  const codeHealRef = useRef(false);
+  useEffect(() => {
+    if (codeHealRef.current || candidates.length === 0) return;
+    codeHealRef.current = true;
+    void healEmployeeCodes(candidates).then((n) => {
+      if (n > 0) qc.invalidateQueries({ queryKey: QK });
+    });
+  }, [candidates, qc]);
+
 
   const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
@@ -1434,7 +1487,24 @@ function EmployeesPage() {
 
   const { candidateId: currentCandidateId, isLoading: roleLoading } = useCurrentUserRole();
   const candidateUnitsQuery = useCandidateUnits();
+  /**
+   * Fallback unit for the list: `candidates.unit_id` mirrors the primary unit,
+   * but older / non-billable records may only have rows in `candidate_units`.
+   */
+  const primaryUnitIdByCandidate = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const cu of candidateUnitsQuery.data ?? []) {
+      if (!cu.unit_id) continue;
+      if (cu.is_primary || !m.has(cu.candidate_id)) m.set(cu.candidate_id, cu.unit_id);
+    }
+    return m;
+  }, [candidateUnitsQuery.data]);
+  const unitOfCandidate = (c: { id: string; unit_id: string | null }) => {
+    const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
+    return id ? unitMap.get(id) : undefined;
+  };
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
+
   const scopedUnitsForWizard = useMemo(() => {
     if (!isFieldOfficer) return units;
     if (!currentCandidateId) return [] as typeof units;
@@ -1482,7 +1552,7 @@ function EmployeesPage() {
     if (filterDesignation !== "all" && c.designation_id !== filterDesignation) return false;
     if (filterUnit !== "all" && c.unit_id !== filterUnit) return false;
     if (filterCustomer !== "all") {
-      const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+      const unit = unitOfCandidate(c);
       if (!unit || unit.customer_id !== filterCustomer) return false;
     }
     if (filterManager !== "all" && c.reports_to !== filterManager) return false;
@@ -2403,7 +2473,7 @@ function EmployeesPage() {
       // Fire-and-forget: activity log + notifications should not block the UI.
       void (async () => {
         try {
-          const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+          const unit = unitOfCandidate(c);
           const unitName = unit?.name ?? "";
           const clientName = unit?.customer_name ?? "";
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
@@ -2577,8 +2647,14 @@ function EmployeesPage() {
         toast.error("Only leadership or super admin can edit an inactive employee's profile.");
         return;
       }
+      // Editing must reopen in the same flavour the record was created in:
+      // a non-billable (internal) employee sits on a non-billable unit.
+      const recUnitId = record?.unit_id || primaryUnitIdByCandidate.get(record?.id ?? "") || null;
+      const recUnit = recUnitId ? unitMap.get(recUnitId) : undefined;
+      setWizardMode((recUnit as { is_billable?: boolean } | undefined)?.is_billable === false ? "employee" : "candidate");
       setEditing(record);
       setOpenWizard(true);
+
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open candidate");
     } finally {
@@ -2632,7 +2708,7 @@ function EmployeesPage() {
       );
     }
     return rows.map((c) => {
-      const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+      const unit = unitOfCandidate(c);
       const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
       const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
       const isDisabled = mode === "employee" && !c.is_enabled;
@@ -3098,7 +3174,7 @@ function EmployeesPage() {
     return (
       <div className="grid gap-2.5 md:hidden">
         {rows.map((c) => {
-          const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+          const unit = unitOfCandidate(c);
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
           const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
           const isDisabled = mode === "employee" && !c.is_enabled;
@@ -4655,7 +4731,7 @@ function CandidateWizard({
   onReject?: () => void;
   onRequestOffboard?: () => void;
 }) {
-  const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
+  const isEmployeeMode = mode === "employee";
   const qc = useQueryClient();
   const rolesQuery = useRolesLite();
   const rolesList = rolesQuery.data ?? [];
@@ -4885,81 +4961,96 @@ function CandidateWizard({
   });
   const departments = departmentsQuery.data ?? [];
 
-  const [wage, setWage] = useState<ContractResource | null>(null);
-  const [wageEditorOpen, setWageEditorOpen] = useState(false);
-  const [wageRowId, setWageRowId] = useState<string | null>(null);
+  /**
+   * Wage sheets, keyed by unit id (non-billable employees use their home unit).
+   * A person mapped to several units gets one wage sheet per unit.
+   */
+  const [wagesByUnit, setWagesByUnit] = useState<Record<string, ContractResource | null>>({});
+  const [activeWageUnit, setActiveWageUnit] = useState<string>("");
+
+  /** Units the Wages section renders a sheet for. */
+  const wageUnitIds = useMemo(() => {
+    const ids = isEmployeeMode ? [homeUnitId].filter(Boolean) : form.unit_ids;
+    return (ids as string[]).filter(Boolean);
+  }, [isEmployeeMode, homeUnitId, form.unit_ids]);
+
+  useEffect(() => {
+    if (wageUnitIds.length === 0) {
+      setActiveWageUnit("");
+      return;
+    }
+    setActiveWageUnit((u) => (u && wageUnitIds.includes(u) ? u : wageUnitIds[0]));
+  }, [wageUnitIds]);
 
   useEffect(() => {
     let cancelled = false;
     const cid = editing?.id;
-    if (!isEmployeeMode || !cid) {
-      setWage(null);
-      setWageRowId(null);
-      setWageEditorOpen(false);
+    if (!cid) {
+      setWagesByUnit({});
       return;
     }
     void (async () => {
       const { data } = await supabase
         .from("employee_wages" as never)
-        .select("id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
-        .eq("candidate_id", cid)
-        .maybeSingle();
+        .select("id,unit_id,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions")
+        .eq("candidate_id", cid);
       if (cancelled) return;
-      if (!data) {
-        setWageRowId(null);
-        setWage(null);
-        setWageEditorOpen(false);
-        return;
+      const next: Record<string, ContractResource | null> = {};
+      for (const row of ((data ?? []) as unknown as Array<Record<string, unknown>>)) {
+        const key = (row.unit_id as string) ?? "";
+        next[key] = {
+          designationId: "",
+          roleKey: null,
+          serviceTypeId: "",
+          quantity: 1,
+          shiftHours: Number(row.shift_hours) === 12 ? 12 : 8,
+          payrollDayBaseId: (row.payroll_day_base_id as string) ?? null,
+          components: (row.components as ContractResource["components"]) ?? [],
+          benefits: (row.benefits as ContractResource["benefits"]) ?? [],
+          deductions: (row.deductions as ContractResource["deductions"]) ?? [],
+          employerContributions:
+            (row.employer_contributions as ContractResource["employerContributions"]) ?? [],
+        } as ContractResource;
       }
-      const r = data as unknown as Record<string, unknown>;
-      const loaded = {
-        designationId: "",
-        roleKey: null,
-        serviceTypeId: "",
-        quantity: 1,
-        shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
-        payrollDayBaseId: (r.payroll_day_base_id as string) ?? null,
-        components: (r.components as ContractResource["components"]) ?? [],
-        benefits: (r.benefits as ContractResource["benefits"]) ?? [],
-        deductions: (r.deductions as ContractResource["deductions"]) ?? [],
-        employerContributions: (r.employer_contributions as ContractResource["employerContributions"]) ?? [],
-      } as ContractResource;
-      setWageRowId(String(r.id));
-      setWage(loaded);
-      setWageEditorOpen(true);
+      setWagesByUnit(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, [editing?.id, isEmployeeMode]);
+  }, [editing?.id]);
 
-  const wageGross = useMemo(
-    () => (wage?.components ?? []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0),
-    [wage],
-  );
+  const activeWage = activeWageUnit ? wagesByUnit[activeWageUnit] ?? null : null;
+  const setActiveWage = (next: ContractResource | null) =>
+    setWagesByUnit((m) => ({ ...m, [activeWageUnit]: next }));
 
-  /** Persist the per-employee wage sheet for non-billable employees. */
+  /** Persist one wage sheet per mapped unit. */
   const syncEmployeeWages = async (candidateId: string) => {
-    if (!isEmployeeMode || !wage) return;
-    const row = {
-      candidate_id: candidateId,
-      unit_id: homeUnitId || null,
-      designation_id: form.designation_id,
-      department_id: form.department_id,
-      shift_hours: wage.shiftHours,
-      payroll_day_base_id: wage.payrollDayBaseId ?? null,
-      components: wage.components ?? [],
-      benefits: wage.benefits ?? [],
-      deductions: wage.deductions ?? [],
-      employer_contributions: wage.employerContributions ?? [],
-      gross: wageGross,
-    };
+    const rows = wageUnitIds
+      .map((unitId) => {
+        const w = wagesByUnit[unitId];
+        if (!w) return null;
+        return {
+          candidate_id: candidateId,
+          unit_id: unitId,
+          designation_id: (form.unit_designations ?? {})[unitId] ?? form.designation_id,
+          department_id: form.department_id,
+          shift_hours: w.shiftHours,
+          payroll_day_base_id: w.payrollDayBaseId ?? null,
+          components: w.components ?? [],
+          benefits: w.benefits ?? [],
+          deductions: w.deductions ?? [],
+          employer_contributions: w.employerContributions ?? [],
+          gross: (w.components ?? []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0),
+        };
+      })
+      .filter(Boolean);
+    if (rows.length === 0) return;
     const { error } = await supabase
       .from("employee_wages" as never)
-      .upsert(row as never, { onConflict: "candidate_id" } as never);
+      .upsert(rows as never, { onConflict: "candidate_id,unit_id" } as never);
     if (error) console.error("employee wages sync failed", error);
-    else if (!wageRowId) setWageRowId("saved");
   };
+
 
 
   // ----- File upload helper ----- //
@@ -5427,7 +5518,7 @@ function CandidateWizard({
         } as never);
       if (esaErr) console.error("home unit sync failed", esaErr);
     }
-    if (isEmployeeMode && cidForBranch) await syncEmployeeWages(cidForBranch);
+    if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
     // Await so the caller (Save/Send-to-Approval handlers) can close the
@@ -6583,50 +6674,79 @@ function CandidateWizard({
                 <NomineeSection form={form} setSection={setSection} set={(k, v) => set(k as never, v as never)} />
               </Section>
 
-              {isEmployeeMode && (
-                <Section title="Wages">
-                  {wageEditorOpen && (
-                  <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs text-muted-foreground">
-                        Shift hours, payroll days and wage components for this employee. Changes are saved with the employee.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label="Remove wages"
-                        onClick={() => {
-                          setWage(null);
-                          setWageEditorOpen(false);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <InlineWageEditor value={wage ?? EMPTY_WAGE} onChange={setWage} />
+              <Section title="Wages">
+                {wageUnitIds.length === 0 ? (
+                  <div className="rounded-xl border border-input bg-muted/20 p-3 text-xs text-muted-foreground">
+                    Assign {isEmployeeMode ? "a home unit" : "at least one unit"} first — the wage sheet is maintained per unit.
                   </div>
-                  )}
-                  {!wageEditorOpen && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Non-billable employees have their own wage sheet — shift hours, payroll days and wage components.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setWage((w) => w ?? { ...EMPTY_WAGE, components: [], deductions: [], employerContributions: [] });
-                          setWageEditorOpen(true);
-                        }}
-                      >
-                        <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Wages
-                      </Button>
-                    </div>
-                  )}
-                </Section>
-              )}
+                ) : (
+                  <div className="space-y-3">
+                    {wageUnitIds.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {wageUnitIds.map((uid) => {
+                          const u = units.find((x) => x.id === uid);
+                          const has = !!wagesByUnit[uid];
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => setActiveWageUnit(uid)}
+                              className={cn(
+                                "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                                activeWageUnit === uid
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-input bg-muted/20 text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              {u?.name ?? "Unit"}
+                              <span className="ml-1.5 opacity-70">{has ? "✓" : "—"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {activeWage ? (
+                      <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-xs text-muted-foreground">
+                            Shift hours, payroll days and wage components for{" "}
+                            {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"}. Saved with the profile.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Remove wages"
+                            onClick={() => setActiveWage(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <InlineWageEditor value={activeWage ?? EMPTY_WAGE} onChange={setActiveWage} />
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          No wage sheet yet for {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"} — shift
+                          hours, payroll days, wage components, deductions and employer contributions.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setActiveWage({ ...EMPTY_WAGE, components: [], deductions: [], employerContributions: [] })
+                          }
+                        >
+                          <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Wages
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Section>
+
 
             </div>
           )}
