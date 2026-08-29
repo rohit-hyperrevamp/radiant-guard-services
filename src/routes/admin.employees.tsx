@@ -23,6 +23,7 @@ import {
   useCostComponentOptions,
   computeBenefitAmount,
   hasConfiguredFormula,
+  SalaryBreakdownTable,
 } from "./admin.contracts.client-contracts";
 
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
@@ -177,9 +178,19 @@ function InlineWageEditor({
   const payrollDayBases = usePayrollDayBases();
   const costComponents = useCostComponentOptions();
   const components = value.components ?? [];
+  const benefits = value.benefits ?? [];
   const deductions = value.deductions ?? [];
   const employerContribs = value.employerContributions ?? [];
   const gross = components.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  const edBase = components
+    .filter((component) => component.includeInOt !== false)
+    .reduce((sum, component) => sum + (Number(component.amount) || 0), 0);
+  const selectedPayrollBase = payrollDayBases.find((base) => base.id === value.payrollDayBaseId);
+  const edDivisor = selectedPayrollBase?.method === "fixed_days"
+    ? Number(selectedPayrollBase.fixedDays ?? 0)
+    : selectedPayrollBase
+      ? 30
+      : 0;
   const patch = (p: Partial<ContractResource>) => onChange({ ...value, ...p });
 
   // Recompute percentage / formula-based amounts whenever wage components change.
@@ -210,25 +221,71 @@ function InlineWageEditor({
       changed = true;
       return { ...c, amount: amt };
     });
-    const recomputeItems = (items: typeof deductions) =>
+    const componentMaster = new Map(costComponents.map((item) => [item.id, item]));
+    const syncMaster = (item: (typeof deductions)[number]) => {
+      const master = componentMaster.get(item.costComponentId);
+      if (!master) return item;
+      const next = {
+        ...item,
+        formulaMode: master.formulaMode ?? null,
+        formulaExpression: master.formulaExpression ?? null,
+        formulaVersion: master.formulaVersion ?? null,
+      };
+      if (next.formulaMode !== item.formulaMode || next.formulaExpression !== item.formulaExpression || next.formulaVersion !== item.formulaVersion) changed = true;
+      return next;
+    };
+    const recomputeItems = (items: typeof deductions, wageBenefits = benefits, employerItems = employerContribs) =>
       items.map((b) => {
-        if (!hasConfiguredFormula(b) && b.calcType !== "percentage") return b;
-        const amt = computeBenefitAmount(b, nextComponents, [], allowanceTypes, employerContribs);
-        if (amt === b.amount) return b;
+        const synced = syncMaster(b);
+        if (!hasConfiguredFormula(synced) && synced.calcType !== "percentage") return synced;
+        const amt = computeBenefitAmount(synced, nextComponents, wageBenefits, allowanceTypes, employerItems);
+        if (amt === synced.amount) return synced;
         changed = true;
-        return { ...b, amount: amt };
+        return { ...synced, amount: amt };
       });
-    const nextDeductions = recomputeItems(deductions);
-    const nextEmployer = recomputeItems(employerContribs);
+    const nextBenefits = recomputeItems(benefits, []);
+    const nextDeductions = recomputeItems(deductions, nextBenefits);
+    const firstEmployerPass = recomputeItems(employerContribs, nextBenefits);
+    const referencesCtc = (item: (typeof employerContribs)[number]) => item.baseComponents.some((base) => ["ctc", "total ctc"].includes(base.label.trim().toLowerCase()));
+    const ctcBase = firstEmployerPass.filter((item) => !referencesCtc(item) && !/management\s*fee/i.test(item.name));
+    const nextEmployer = firstEmployerPass.map((item) => {
+      if ((!hasConfiguredFormula(item) && item.calcType !== "percentage") || !referencesCtc(item)) return item;
+      const amount = computeBenefitAmount(item, nextComponents, nextBenefits, allowanceTypes, ctcBase);
+      if (amount === item.amount) return item;
+      changed = true;
+      return { ...item, amount };
+    });
     if (changed) {
-      onChange({ ...value, components: nextComponents, deductions: nextDeductions, employerContributions: nextEmployer });
+      onChange({ ...value, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployer });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [components, allowanceTypes]);
+  }, [components, allowanceTypes, costComponents]);
 
   const usedComponentIds = new Set(components.map((c) => c.allowanceId));
+  const usedBenefitIds = new Set(benefits.map((b) => b.costComponentId));
   const usedDeductionIds = new Set(deductions.map((b) => b.costComponentId));
   const usedEmployerIds = new Set(employerContribs.map((b) => b.costComponentId));
+  const PT_SYNTHETIC_ID = "__pt__";
+  const ptSynthetic = {
+    id: PT_SYNTHETIC_ID,
+    name: "Professional Tax (PT)",
+    calcType: "fixed" as const,
+    percentage: 0,
+    baseComponents: [],
+    capAmount: null,
+    capFlatAmount: null,
+    amount: 0,
+    state: "Per state slab (resolved at payroll from unit state, employee gender, earned gross)",
+    description: "",
+    party: "employee" as const,
+    deductionCalcType: "fixed_amount" as const,
+    fixedCalcMethod: "flat" as const,
+    fixedDutyComponents: [],
+    fixedDutyDivisor: "base_days" as const,
+    formulaMode: null,
+    formulaExpression: null,
+    formulaVersion: null,
+  };
 
   const toBenefitItem = (c: (typeof costComponents)[number]) => ({
     costComponentId: c.id,
@@ -291,13 +348,23 @@ function InlineWageEditor({
   };
 
   const addDeduction = (id: string) => {
-    const c = costComponents.find((x) => x.id === id);
+    const c = id === PT_SYNTHETIC_ID ? ptSynthetic : costComponents.find((x) => x.id === id);
     if (!c) return;
     const item = toBenefitItem(c);
     if (hasConfiguredFormula(item) || item.calcType === "percentage") {
       item.amount = computeBenefitAmount(item, components, [], allowanceTypes);
     }
     patch({ deductions: [...deductions, item] });
+  };
+
+  const addBenefit = (id: string) => {
+    const c = costComponents.find((x) => x.id === id);
+    if (!c) return;
+    const item = toBenefitItem(c);
+    if (hasConfiguredFormula(item) || item.calcType === "percentage") {
+      item.amount = computeBenefitAmount(item, components, [], allowanceTypes);
+    }
+    patch({ benefits: [...benefits, item] });
   };
 
   const addEmployer = (id: string) => {
@@ -351,6 +418,44 @@ function InlineWageEditor({
         value={Number.isFinite(amount) ? amount : 0}
         onChange={(e) => onAmount(Number(e.target.value) || 0)}
       />
+    </div>
+  );
+
+  const itemDescription = (item: (typeof deductions)[number]) => {
+    if (hasConfiguredFormula(item)) return `Formula${item.formulaVersion ? ` · v${item.formulaVersion}` : ""}: ${item.formulaExpression ?? ""}`;
+    if (item.calcType === "percentage") {
+      const basis = item.baseComponents.map((base, index) => `${index === 0 ? "" : `${base.operator} `}${base.label}`).join(" ") || "configured base";
+      return `${item.percentage}% of ${basis}${item.capAmount ? ` · cap ₹${item.capAmount.toLocaleString("en-IN")}` : ""}`;
+    }
+    return item.fixedCalcMethod === "per_duty" ? "Fixed per duty" : "Fixed amount";
+  };
+
+  const detailedItemRow = (
+    item: (typeof deductions)[number],
+    onAmount: (amount: number) => void,
+    onRemove: () => void,
+  ) => (
+    <div key={item.costComponentId} className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">{item.name}</span>
+          {item.state && item.state !== "N/A" && <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{item.state}</span>}
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            {hasConfiguredFormula(item) ? "Formula" : item.calcType === "percentage" ? `${item.percentage}%` : "Fixed"}
+          </span>
+        </div>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground" title={itemDescription(item)}>{itemDescription(item)}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {item.calcType === "fixed" && !hasConfiguredFormula(item) ? (
+          <Input type="number" className="h-9 w-28" value={Number.isFinite(item.amount) ? item.amount : 0} onChange={(event) => onAmount(Number(event.target.value) || 0)} />
+        ) : (
+          <span className="w-28 text-right text-sm font-semibold tabular-nums text-foreground">{Number(item.amount).toFixed(2)}</span>
+        )}
+        <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={onRemove} aria-label={`Remove ${item.name}`}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   );
 
@@ -455,27 +560,57 @@ function InlineWageEditor({
 
       <div className="rounded-xl border border-border bg-secondary/30 p-3">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Extra Duty (ED)</h4>
+            <p className="text-[11px] text-muted-foreground">Choose the wage components that form the Extra Duty base.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant="outline" className="h-8" disabled={components.length === 0} onClick={() => patch({ components: components.map((component) => ({ ...component, includeInOt: true })) })}>Select all</Button>
+            <Button type="button" size="sm" variant="outline" className="h-8" disabled={components.length === 0} onClick={() => patch({ components: components.map((component) => ({ ...component, includeInOt: false })) })}>Clear all</Button>
+          </div>
+        </div>
+        {components.length === 0 ? <div className="py-3 text-center text-xs text-muted-foreground">Add wage components first.</div> : (
+          <>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {components.map((component) => {
+                const selected = component.includeInOt !== false;
+                return (
+                  <Button key={`ed-${component.allowanceId}`} type="button" variant="outline" onClick={() => patch({ components: components.map((entry) => entry.allowanceId === component.allowanceId ? { ...entry, includeInOt: !selected } : entry) })} className={cn("h-auto justify-between px-3 py-2", selected && "border-primary/40 bg-primary/10")}>
+                    <span className="min-w-0 text-left"><span className="block truncate text-xs font-semibold">{component.name}</span><span className="block text-[11px] tabular-nums text-muted-foreground">{Number(component.amount).toFixed(2)}</span></span>
+                    {selected ? <Check className="h-4 w-4 text-primary" /> : <Plus className="h-4 w-4 text-muted-foreground" />}
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 border-t border-border pt-3">
+              <span className="text-[11px] text-muted-foreground">ED per duty = ED base ÷ payroll days{edDivisor ? ` (${edDivisor}) = ${(edBase / edDivisor).toFixed(2)}` : ""}</span>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">ED Base</span><span className="text-base font-bold">{edBase.toFixed(2)}</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-secondary/30 p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div><h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Benefits</h4><p className="text-[11px] text-muted-foreground">Add earnings and benefit components included in gross pay.</p></div>
+          {picker("Add benefit…", costComponents.filter((c) => !usedBenefitIds.has(c.id)).map((c) => ({ id: c.id, label: c.name })), addBenefit)}
+        </div>
+        {benefits.length === 0 ? <div className="py-3 text-center text-xs text-muted-foreground">No benefits added.</div> : <div className="space-y-2">{benefits.map((item) => detailedItemRow(item, (amount) => patch({ benefits: benefits.map((entry) => entry.costComponentId === item.costComponentId ? { ...entry, amount } : entry) }), () => patch({ benefits: benefits.filter((entry) => entry.costComponentId !== item.costComponentId) })))}</div>}
+      </div>
+
+      <div className="rounded-xl border border-border bg-secondary/30 p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Deductions</h4>
           {picker(
             "Add deduction…",
-            costComponents.filter((c) => !usedDeductionIds.has(c.id) && c.party !== "employer").map((c) => ({ id: c.id, label: c.name })),
+            [...costComponents.filter((c) => !usedDeductionIds.has(c.id) && c.party !== "employer"), ...(usedDeductionIds.has(PT_SYNTHETIC_ID) ? [] : [ptSynthetic])].map((c) => ({ id: c.id, label: c.name })),
             addDeduction,
           )}
         </div>
         {deductions.length === 0 ? (
           <div className="py-3 text-center text-xs text-muted-foreground">No deductions added.</div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {deductions.map((b) =>
-              itemRow(
-                b.costComponentId,
-                b.name,
-                b.amount,
-                (n) => patch({ deductions: deductions.map((x) => (x.costComponentId === b.costComponentId ? { ...x, amount: n } : x)) }),
-                () => patch({ deductions: deductions.filter((x) => x.costComponentId !== b.costComponentId) }),
-              ),
-            )}
-          </div>
+          <div className="space-y-2">{deductions.map((b) => detailedItemRow(b, (n) => patch({ deductions: deductions.map((x) => x.costComponentId === b.costComponentId ? { ...x, amount: n } : x) }), () => patch({ deductions: deductions.filter((x) => x.costComponentId !== b.costComponentId) })))}</div>
         )}
       </div>
 
@@ -491,19 +626,11 @@ function InlineWageEditor({
         {employerContribs.length === 0 ? (
           <div className="py-3 text-center text-xs text-muted-foreground">No employer contributions added.</div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {employerContribs.map((b) =>
-              itemRow(
-                b.costComponentId,
-                b.name,
-                b.amount,
-                (n) => patch({ employerContributions: employerContribs.map((x) => (x.costComponentId === b.costComponentId ? { ...x, amount: n } : x)) }),
-                () => patch({ employerContributions: employerContribs.filter((x) => x.costComponentId !== b.costComponentId) }),
-              ),
-            )}
-          </div>
+          <div className="space-y-2">{employerContribs.map((b) => detailedItemRow(b, (n) => patch({ employerContributions: employerContribs.map((x) => x.costComponentId === b.costComponentId ? { ...x, amount: n } : x) }), () => patch({ employerContributions: employerContribs.filter((x) => x.costComponentId !== b.costComponentId) })))}</div>
         )}
       </div>
+
+      <SalaryBreakdownTable designationName="" payrollDayBase={selectedPayrollBase} components={components} benefits={benefits} deductions={deductions} employerContributions={employerContribs} />
     </div>
   );
 }

@@ -5215,7 +5215,7 @@ export function ResourceFormDialog({
 /* Salary Breakdown Table                                             */
 /* ------------------------------------------------------------------ */
 
-function SalaryBreakdownTable({
+export function SalaryBreakdownTable({
   designationName,
   payrollDayBase,
   components,
