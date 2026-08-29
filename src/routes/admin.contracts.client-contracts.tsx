@@ -5154,7 +5154,7 @@ export function ResourceFormDialog({
       <DialogContent
         ref={dialogContentRef}
         overlayClassName={isWages ? "z-[110]" : undefined}
-        className={`max-h-[92vh] overflow-y-auto sm:max-w-[min(92vw,1100px)]${isWages ? " z-[110]" : ""}`}
+        className={`max-h-[94dvh] overflow-y-auto sm:w-[calc(100vw-3rem)] sm:max-w-6xl xl:max-w-7xl${isWages ? " z-[110]" : ""}`}
       >
         <DialogHeader>
           <DialogTitle>
