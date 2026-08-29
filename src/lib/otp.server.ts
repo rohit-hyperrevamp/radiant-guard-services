@@ -45,7 +45,13 @@ async function callMsg91Api(path: string, method: "GET" | "POST" = "GET") {
       "Content-Type": "application/json",
     },
   });
-  const payload = (await response.json().catch(() => ({}))) as Msg91Response;
+  const text = await response.text();
+  let payload: Msg91Response;
+  try {
+    payload = JSON.parse(text) as Msg91Response;
+  } catch {
+    payload = { message: text.slice(0, 300) };
+  }
   if (!response.ok || payload.type?.toLowerCase() === "error") {
     throw new Error(payload.message || "Could not process the code. Please try again.");
   }
