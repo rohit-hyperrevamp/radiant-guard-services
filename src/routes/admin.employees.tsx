@@ -3484,6 +3484,11 @@ function EmployeesPage() {
                   Designation
                 </th>
               )}
+              {(mode === "candidate" || columnsVisible.department) && (
+                <th className="hidden w-[140px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                  Department
+                </th>
+              )}
               {mode === "employee" && columnsVisible.dob && (
                 <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
                   Date of Birth
