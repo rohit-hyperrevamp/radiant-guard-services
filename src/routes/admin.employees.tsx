@@ -5914,6 +5914,86 @@ function CandidateWizard({
                       }
                     />
                   </Field>
+                  {isEmployeeMode && (
+                    <Field label="Department">
+                      <Select
+                        value={form.department_id ?? "__none"}
+                        onValueChange={(v) => set("department_id", v === "__none" ? null : v)}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">— None —</SelectItem>
+                          {departments.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+
+                  {isEmployeeMode && (
+                    <div className="sm:col-span-2">
+                      <Field label="Wages">
+                        <div className="rounded-xl border border-input bg-muted/20 p-3">
+                          {wage ? (
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-foreground">
+                                  {form.full_name || "This employee"}
+                                  {form.employee_code ? (
+                                    <span className="ml-2 font-mono text-[11px] text-muted-foreground">{form.employee_code}</span>
+                                  ) : null}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {wage.shiftHours}h shift · {(wage.components ?? []).length} wage component(s) ·
+                                  {" "}Gross ₹{Math.round(wageGross).toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button type="button" variant="outline" size="sm" onClick={() => setWageDialogOpen(true)}>
+                                  <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setWage(null)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="text-xs text-muted-foreground">
+                                Non-billable employees have their own wage sheet — shift hours, payroll days and wage components.
+                              </p>
+                              <Button type="button" variant="outline" size="sm" onClick={() => setWageDialogOpen(true)}>
+                                <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Wages
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </Field>
+                      <ResourceFormDialog
+                        open={wageDialogOpen}
+                        onOpenChange={setWageDialogOpen}
+                        initial={wage}
+                        variant="wages"
+                        subject={{
+                          name: form.full_name || "New employee",
+                          employeeCode: form.employee_code || null,
+                          designationName:
+                            designations.find((d) => d.id === form.designation_id)?.name ?? null,
+                          departmentName: departments.find((d) => d.id === form.department_id)?.name ?? null,
+                        }}
+                        onSubmit={(r) => {
+                          setWage(r);
+                          setWageDialogOpen(false);
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {editing?.id ? (
                     <Field label="Additional Designations">
                       <CandidateDesignationsEditor
