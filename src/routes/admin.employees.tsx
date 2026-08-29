@@ -4307,9 +4307,9 @@ function CandidateWizard({
   // define the valid designations for that unit.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
-    if (isEmployeeMode) ids.add(RADIANT_BILLING_UNIT_ID);
+    if (isEmployeeMode) ids.add(homeUnitId || RADIANT_BILLING_UNIT_ID);
     return Array.from(ids);
-  }, [form.unit_ids, isEmployeeMode]);
+  }, [form.unit_ids, isEmployeeMode, homeUnitId]);
   const selectedUnitIdsKey = desigLookupUnitIds.slice().sort().join(",");
   const contractDesigQuery = useQuery({
     queryKey: ["wizard-contract-designations", selectedUnitIdsKey],
