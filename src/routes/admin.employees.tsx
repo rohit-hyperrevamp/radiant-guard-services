@@ -5305,8 +5305,12 @@ function CandidateWizard({
         }
         case "address":
           return /[A-Za-z]{3,}/.test(next) && !/[`~^*_={}|<>]{2,}/.test(next);
-        case "place":
-          return /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(next);
+        case "place": {
+          if (!/^[A-Za-z][A-Za-z .'-]{1,79}$/.test(next)) return false;
+          // Reject generic UI/boilerplate strings that OCR sometimes picks up.
+          const junk = /(click|here|tap|select|choose|enter|type|scan|verify|download|address|district|state|pin\s*code|government|india|unique|identification|authority|aadhaar)/i;
+          return !junk.test(next);
+        }
         case "pin":
           return /^\d{6}$/.test(next);
         case "aadhaar":
