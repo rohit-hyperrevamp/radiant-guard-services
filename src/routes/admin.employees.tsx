@@ -6674,50 +6674,79 @@ function CandidateWizard({
                 <NomineeSection form={form} setSection={setSection} set={(k, v) => set(k as never, v as never)} />
               </Section>
 
-              {isEmployeeMode && (
-                <Section title="Wages">
-                  {wageEditorOpen && (
-                  <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs text-muted-foreground">
-                        Shift hours, payroll days and wage components for this employee. Changes are saved with the employee.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label="Remove wages"
-                        onClick={() => {
-                          setWage(null);
-                          setWageEditorOpen(false);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <InlineWageEditor value={wage ?? EMPTY_WAGE} onChange={setWage} />
+              <Section title="Wages">
+                {wageUnitIds.length === 0 ? (
+                  <div className="rounded-xl border border-input bg-muted/20 p-3 text-xs text-muted-foreground">
+                    Assign {isEmployeeMode ? "a home unit" : "at least one unit"} first — the wage sheet is maintained per unit.
                   </div>
-                  )}
-                  {!wageEditorOpen && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Non-billable employees have their own wage sheet — shift hours, payroll days and wage components.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setWage((w) => w ?? { ...EMPTY_WAGE, components: [], deductions: [], employerContributions: [] });
-                          setWageEditorOpen(true);
-                        }}
-                      >
-                        <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Wages
-                      </Button>
-                    </div>
-                  )}
-                </Section>
-              )}
+                ) : (
+                  <div className="space-y-3">
+                    {wageUnitIds.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {wageUnitIds.map((uid) => {
+                          const u = units.find((x) => x.id === uid);
+                          const has = !!wagesByUnit[uid];
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => setActiveWageUnit(uid)}
+                              className={cn(
+                                "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                                activeWageUnit === uid
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-input bg-muted/20 text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              {u?.name ?? "Unit"}
+                              <span className="ml-1.5 opacity-70">{has ? "✓" : "—"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {activeWage ? (
+                      <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-xs text-muted-foreground">
+                            Shift hours, payroll days and wage components for{" "}
+                            {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"}. Saved with the profile.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Remove wages"
+                            onClick={() => setActiveWage(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <InlineWageEditor value={activeWage ?? EMPTY_WAGE} onChange={setActiveWage} />
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          No wage sheet yet for {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"} — shift
+                          hours, payroll days, wage components, deductions and employer contributions.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setActiveWage({ ...EMPTY_WAGE, components: [], deductions: [], employerContributions: [] })
+                          }
+                        >
+                          <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Wages
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Section>
+
 
             </div>
           )}
