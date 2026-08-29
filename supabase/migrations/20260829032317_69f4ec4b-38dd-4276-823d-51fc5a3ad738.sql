@@ -1,0 +1,1 @@
+ALTER TABLE public.units ADD COLUMN is_billable boolean NOT NULL DEFAULT true;
