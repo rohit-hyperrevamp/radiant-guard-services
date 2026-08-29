@@ -3813,6 +3813,13 @@ export function ResourceFormDialog({
    */
   variant = "contract",
   subject,
+  /**
+   * inline = render the fields directly inside the parent form (no dialog,
+   * no header/footer, no Save button). Every change is pushed up through
+   * onChange so the parent owns persistence.
+   */
+  inline = false,
+  onChange,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -3820,6 +3827,8 @@ export function ResourceFormDialog({
   onSubmit: (r: ContractResource) => void;
   variant?: "contract" | "wages";
   subject?: WagesSubject | null;
+  inline?: boolean;
+  onChange?: (r: ContractResource) => void;
 }) {
   const isWages = variant === "wages";
   const designations = useDesignations();
@@ -4392,6 +4401,27 @@ export function ResourceFormDialog({
       employerContributions,
     });
   };
+
+  // Inline mode: no Save button — every edit is pushed up immediately.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    if (!inline || !onChangeRef.current || resourceBaselineSnapshot === "") return;
+    onChangeRef.current({
+      id: initial?.id,
+      designationId,
+      roleKey: roleKey || null,
+      serviceTypeId,
+      quantity: isWages ? 1 : parseInt(quantity, 10) || 1,
+      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+      components,
+      payrollDayBaseId: payrollDayBaseId || null,
+      benefits,
+      deductions,
+      employerContributions,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inline, currentResourceSnapshot]);
 
   const totalBenefits = benefits.reduce((s, b) => s + (Number(b.amount) || 0), 0);
 
