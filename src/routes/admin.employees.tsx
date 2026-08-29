@@ -5233,6 +5233,7 @@ function CandidateWizard({
     return {
       ...basePayload,
       status,
+      role_key: (form.role_key ?? "").trim() || null,
       emergency_contact_name: emergencyContact?.name ?? "",
       emergency_contact_relation: emergencyContact?.relation ?? "",
       emergency_contact_mobile: emergencyContact?.mobile ?? "",
