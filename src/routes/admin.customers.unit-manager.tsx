@@ -176,9 +176,14 @@ function UnitManagerPage() {
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
       });
-    if (!query.trim()) return list;
+    const filtered = list.filter((u) => {
+      if (statusFilter !== "all" && u.status !== statusFilter) return false;
+      if (orgFilter !== "all" && u.customerId !== orgFilter) return false;
+      return true;
+    });
+    if (!query.trim()) return filtered;
     const q = query.trim().toLowerCase();
-    return list.filter(
+    return filtered.filter(
       (u) =>
         u.code.toLowerCase().includes(q) ||
         u.name.toLowerCase().includes(q) ||
@@ -186,7 +191,12 @@ function UnitManagerPage() {
         u.branchLabel.toLowerCase().includes(q) ||
         u.customerLabel.toLowerCase().includes(q),
     );
-  }, [units, branchById, customerById, stateById, query]);
+  }, [units, branchById, customerById, stateById, query, statusFilter, orgFilter]);
+
+  const orgOptions = useMemo(
+    () => [...customers].sort((a, b) => a.name.localeCompare(b.name)),
+    [customers],
+  );
 
   const activeCount = units.filter((u) => u.status === "active").length;
 
