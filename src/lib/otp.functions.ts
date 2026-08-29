@@ -6,7 +6,6 @@ import {
   SUPER_ADMIN_OTP,
   SUPER_ADMIN_OTP_PHONE as SUPER_ADMIN_PHONE,
 } from "@/lib/otp-config";
-import { callSharedMsg91 } from "@/lib/otp.server";
 
 /**
  * Phone OTP for sign-in.
@@ -55,6 +54,7 @@ export const sendLoginOtp = createServerFn({ method: "POST" })
     const mode = await resolveMode(data.phone);
     if (mode === "fixed") return { mode };
 
+    const { callSharedMsg91 } = await import("@/lib/otp.server");
     await callSharedMsg91("send", data.phone);
     return { mode: "sms" };
   });
@@ -65,6 +65,7 @@ export const resendLoginOtp = createServerFn({ method: "POST" })
     const mode = await resolveMode(data.phone);
     if (mode === "fixed") return { mode };
 
+    const { callSharedMsg91 } = await import("@/lib/otp.server");
     await callSharedMsg91("retry", data.phone);
     return { mode: "sms" };
   });
@@ -82,6 +83,7 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
+    const { callSharedMsg91 } = await import("@/lib/otp.server");
     await callSharedMsg91("verify", data.phone, data.otp);
     return { ok: true };
   });
