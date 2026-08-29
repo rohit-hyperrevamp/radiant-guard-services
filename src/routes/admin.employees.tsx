@@ -3846,6 +3846,16 @@ function EmployeesPage() {
                 </SelectContent>
               </Select>
             )}
+            {filtersVisible.department && (
+              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Department" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All departments</SelectItem>
+                  <SelectItem value="none" className="text-xs">No department</SelectItem>
+                  {departmentsList.map((d) => (<SelectItem key={d.id} value={d.id} className="text-xs">{d.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            )}
             {filtersVisible.customer && (
               <Select value={filterCustomer} onValueChange={setFilterCustomer}>
                 <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Organization" /></SelectTrigger>
