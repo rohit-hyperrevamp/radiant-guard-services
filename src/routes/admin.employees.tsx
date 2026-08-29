@@ -2838,6 +2838,9 @@ function EmployeesPage() {
           {(mode === "candidate" || columnsVisible.designation) && (
             <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={desig?.name ?? ""}>{desig?.name ?? "—"}</span></td>
           )}
+          {(mode === "candidate" || columnsVisible.department) && (
+            <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={deptName}>{deptName || "—"}</span></td>
+          )}
           {mode === "employee" && columnsVisible.dob && (
             <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.date_of_birth)}</td>
           )}
