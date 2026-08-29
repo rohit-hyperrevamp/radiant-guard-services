@@ -203,7 +203,7 @@ function UnitManagerPage() {
           <>
             <PageStat label="Total units" value={units.length} icon={Warehouse} />
             <PageStat label="Active" value={activeCount} tone="accent" />
-            <PageStat label="Inactive" value={units.length - activeCount} tone="warning" />
+            <PageStat label="Inactive" value={units.length - activeCount} tone="destructive" />
           </>
         }
       />
@@ -522,10 +522,10 @@ function StatusBadge({ active }: { active: boolean }) {
     <span
       className={cn(
         "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
-        active ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground",
+        active ? "bg-accent/15 text-accent" : "bg-rose-500/15 text-rose-700",
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-accent" : "bg-muted-foreground")} />
+      <span className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-accent" : "bg-rose-500")} />
       {active ? "active" : "inactive"}
     </span>
   );
