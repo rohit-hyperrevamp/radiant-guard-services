@@ -13,11 +13,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
 import { OTP_LENGTH, SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
 import {
-  resendRealLoginOtp,
-  sendRealLoginOtp,
-  verifyRealLoginOtp,
-} from "@/lib/otp-gateway";
-import {
   enableBiometric,
   getBiometricStatus,
   signInWithBiometric,
@@ -103,20 +98,9 @@ function LoginPage() {
     setError(null);
     try {
       const isResend = step === "otp";
-      const isSuperAdmin = phone === SUPER_ADMIN_OTP_PHONE;
-      let result: { mode: "sms" | "fixed" };
-      try {
-        result = isResend
-          ? await requestOtpAgain({ data: { phone } })
-          : await requestOtp({ data: { phone } });
-      } catch (serverError) {
-        const message = serverError instanceof Error ? serverError.message : "";
-        const isConfigurationFailure = /sms service is not configured/i.test(message);
-        if (isSuperAdmin || !isConfigurationFailure) throw serverError;
-        result = isResend
-          ? await resendRealLoginOtp(phone)
-          : await sendRealLoginOtp(phone);
-      }
+      const result = isResend
+        ? await requestOtpAgain({ data: { phone } })
+        : await requestOtp({ data: { phone } });
       setOtpMode(result.mode);
       setStep("otp");
       setResendIn(30);
@@ -142,11 +126,7 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      if (phone === SUPER_ADMIN_OTP_PHONE || otpMode === "fixed") {
-        await checkOtp({ data: { phone, otp: code } });
-      } else {
-        await verifyRealLoginOtp(phone, code);
-      }
+      await checkOtp({ data: { phone, otp: code } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
