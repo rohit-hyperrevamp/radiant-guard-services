@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
-import { OTP_LENGTH, SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
+import { OTP_LENGTH } from "@/lib/otp-config";
 import {
   loadMsg91Widget,
   retryWidgetOtp,
