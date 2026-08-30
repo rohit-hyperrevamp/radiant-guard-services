@@ -4384,9 +4384,16 @@ export function ResourceFormDialog({
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
     setDeductions((prev) => {
-      const next = prev.map(overlay);
+      const next = prev.map((b) => {
+        const synced = overlay(b);
+        if (synced === b) return b;
+        return synced.calcType === "percentage" || hasConfiguredFormula(synced)
+          ? { ...synced, amount: computeBenefitAmount(synced, components, benefits, allowanceTypes) }
+          : synced;
+      });
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
+
     setEmployerContributions((prev) => {
       const synced = prev.map(overlay);
       const referencesCtc = (b: BenefitItem) =>
