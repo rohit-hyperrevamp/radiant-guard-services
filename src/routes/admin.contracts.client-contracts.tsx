@@ -1287,6 +1287,13 @@ export function computeBenefitAmount(
       basic: 0,
       da: 0,
       gross: componentsTotal + benefitsTotal,
+      // Earned gross is the wage-component total only. Cost benefits are
+      // included in the broader contract gross above, but must not inflate
+      // statutory ESIC formulas such as earned gross - WA - conveyance.
+      earned_gross: componentsTotal,
+      earnedgross: componentsTotal,
+      earned_wages: componentsTotal,
+      earnedwages: componentsTotal,
       ctc: componentsTotal + benefitsTotal + employerTotal,
       fixed_amount: Number(benefit.amount) || 0,
       days_in_month: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
