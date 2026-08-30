@@ -222,11 +222,28 @@ function evalNode(n: Node, ctx: FormulaContext): number {
   }
 }
 
+/**
+ * Derived aliases every caller gets for free.
+ * `earned_gross` is the label the formula builder emits for the gross chip;
+ * callers already put the (pro-rated) gross under `gross`, so mirror it so a
+ * formula referencing earned_gross never silently resolves to 0.
+ */
+export function applyDerivedAliases(ctx: FormulaContext): FormulaContext {
+  const grossVal = Number(ctx.gross) || 0;
+  for (const key of ["earned_gross", "earnedgross", "earned_wages", "earnedwages"]) {
+    if (ctx[key] === undefined) ctx[key] = grossVal;
+  }
+  const ctcVal = Number(ctx.ctc) || 0;
+  if (ctcVal && ctx["total_ctc"] === undefined) ctx["total_ctc"] = ctcVal;
+  return ctx;
+}
+
 export function evaluateExpression(expr: string, ctx: FormulaContext): number {
   if (!expr || !expr.trim()) return 0;
   const ast = new Parser(tokenize(expr)).parse();
-  return evalNode(ast, ctx);
+  return evalNode(ast, applyDerivedAliases({ ...ctx }));
 }
+
 
 export function validateExpression(expr: string): { ok: true } | { ok: false; error: string } {
   try { new Parser(tokenize(expr)).parse(); return { ok: true }; }
