@@ -5605,7 +5605,7 @@ export function SalaryBreakdownTable({
             ))}
             {mgmtFeeItems.length > 0 && (
               <tr className="bg-indigo-100 font-bold dark:bg-indigo-500/20">
-                <td className="uppercase">Grand Total Rs.</td>
+                <td className="uppercase">Final Billing Rate Rs.</td>
                 <td className="text-center tabular-nums">{grandTotal.toFixed(2)}</td>
                 <td />
                 <td className="text-right text-base tabular-nums">{earnedGrand.toFixed(2)}</td>
