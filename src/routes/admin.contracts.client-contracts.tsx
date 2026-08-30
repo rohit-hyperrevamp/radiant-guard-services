@@ -4137,6 +4137,20 @@ export function ResourceFormDialog({
   };
 
 
+  const costComponentById = new Map(costComponents.map((c) => [c.id, c]));
+  // Human-readable description for formula-driven components: prefer the
+  // description maintained on the Cost Component master, fall back to a
+  // percentage/base summary, and never show the raw formula JSON.
+  const describeFormulaItem = (b: BenefitItem): string => {
+    const masterDesc = (costComponentById.get(b.costComponentId)?.description ?? "").trim();
+    if (masterDesc) return masterDesc;
+    if (b.percentage) {
+      const base = b.baseComponents.map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`)).join(" ");
+      return `${b.percentage}%${base ? ` of ${base}` : ""}${b.capAmount ? ` · cap ₹${b.capAmount.toLocaleString("en-IN")}` : ""}`;
+    }
+    return "Custom formula";
+  };
+
   const usedBenefitIds = new Set(benefits.map((b) => b.costComponentId));
   const usedDeductionIds = new Set(deductions.map((b) => b.costComponentId));
   const usedEmployerIds = new Set(employerContributions.map((b) => b.costComponentId));
@@ -4949,7 +4963,7 @@ export function ResourceFormDialog({
                       </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground" title={hasConfiguredFormula(b) ? String(b.formulaExpression ?? "") : undefined}>
                         {hasConfiguredFormula(b)
-                          ? `Custom formula · ${b.formulaExpression?.slice(0, 60) ?? ""}${(b.formulaExpression?.length ?? 0) > 60 ? "…" : ""}`
+                          ? describeFormulaItem(b)
                           : b.calcType === "percentage"
                           ? isStatutoryEsi(b)
                             ? `${b.percentage}% · ${ESI_CONTRACT_NOTE}`
@@ -5109,7 +5123,7 @@ export function ResourceFormDialog({
                       </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground" title={hasConfiguredFormula(b) ? String(b.formulaExpression ?? "") : undefined}>
                         {hasConfiguredFormula(b)
-                          ? `Custom formula · ${b.formulaExpression?.slice(0, 60) ?? ""}${(b.formulaExpression?.length ?? 0) > 60 ? "…" : ""}`
+                          ? describeFormulaItem(b)
                           : b.calcType === "percentage"
                           ? isStatutoryEsi(b)
                             ? `${b.percentage}% · ${ESI_CONTRACT_NOTE}`
