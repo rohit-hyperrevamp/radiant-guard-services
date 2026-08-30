@@ -34,9 +34,11 @@ import { csvDate, downloadCsv } from "@/lib/csv-export";
 import {
   evaluateFormula,
   parseFormulaConfig,
+  presetToExpression,
   slugifyVar,
   type FormulaContext,
 } from "@/lib/formula-engine";
+
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
