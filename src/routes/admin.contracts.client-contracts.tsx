@@ -5199,7 +5199,7 @@ export function ResourceFormDialog({
               </div>
             ) : (
               <div className="space-y-2">
-                {employerContributions.map((b) => (
+                {employerContributions.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b)).map((b) => (
                   <div
                     key={b.costComponentId}
                     className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
