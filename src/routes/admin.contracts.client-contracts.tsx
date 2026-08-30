@@ -5709,14 +5709,14 @@ export function SalaryBreakdownTable({
   const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever).slice(0, 1);
   const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee).slice(0, 1);
 
-  // Replace the saved ESI amount with the live statutory calculation. Adding
-  // the live value after summing every saved row counted ESI twice in totals.
+  // Totals must use exactly the same value each row displays: the statutory
+  // fallback only applies when the ESI component has no configured formula.
   const deductionsTotal = deductions.reduce(
-    (sum, item) => sum + (isEsiItem(item) ? esiEmployeeAmount : contractTotalAmount(item)),
+    (sum, item) => sum + (isStatutoryEsi(item) ? esiEmployeeAmount : contractTotalAmount(item)),
     0,
   );
   const coreEmployerTotal = coreEmployer.reduce(
-    (sum, item) => sum + (isEsiItem(item) ? esiEmployerAmount : contractTotalAmount(item)),
+    (sum, item) => sum + (isStatutoryEsi(item) ? esiEmployerAmount : contractTotalAmount(item)),
     0,
   );
   // Always evaluate reliever against the live Total CTC. Saved contract rows
