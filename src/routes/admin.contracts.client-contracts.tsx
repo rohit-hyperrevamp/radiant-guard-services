@@ -5709,14 +5709,16 @@ export function SalaryBreakdownTable({
   const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever).slice(0, 1);
   const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee).slice(0, 1);
 
-  const hasEsiDeduction = deductions.some(isEsiItem);
-  const hasEsiEmployer = coreEmployer.some(isEsiItem);
-  const deductionsTotal =
-    deductions.reduce((s, b) => s + contractTotalAmount(b), 0) +
-    (hasEsiDeduction ? esiEmployeeAmount : 0);
-  const coreEmployerTotal =
-    coreEmployer.reduce((s, b) => s + contractTotalAmount(b), 0) +
-    (hasEsiEmployer ? esiEmployerAmount : 0);
+  // Replace the saved ESI amount with the live statutory calculation. Adding
+  // the live value after summing every saved row counted ESI twice in totals.
+  const deductionsTotal = deductions.reduce(
+    (sum, item) => sum + (isEsiItem(item) ? esiEmployeeAmount : contractTotalAmount(item)),
+    0,
+  );
+  const coreEmployerTotal = coreEmployer.reduce(
+    (sum, item) => sum + (isEsiItem(item) ? esiEmployerAmount : contractTotalAmount(item)),
+    0,
+  );
   // Always evaluate reliever against the live Total CTC. Saved contract rows
   // may contain an amount from an older master formula and must not win here.
   const relieverTotal = relieverItems.reduce(
