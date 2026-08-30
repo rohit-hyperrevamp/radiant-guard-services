@@ -5549,6 +5549,7 @@ export function SalaryBreakdownTable({
   benefits,
   deductions,
   employerContributions,
+  componentDescriptions,
 }: {
   designationName: string;
   payrollDayBase: PayrollDayBase | undefined;
@@ -5556,9 +5557,13 @@ export function SalaryBreakdownTable({
   benefits: BenefitItem[];
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
+  componentDescriptions?: Record<string, string>;
 }) {
+  const describeRow = (b: BenefitItem) =>
+    describeComponentFormula(b, componentDescriptions?.[b.costComponentId] ?? null);
   const payableDays = computePayableDays(payrollDayBase);
   const divisorDays = payableDays;
+
   const componentsTotal = components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
   // Reliever charges and management fee are billing add-ons — they sit after
   // Total CTC, never inside gross.
