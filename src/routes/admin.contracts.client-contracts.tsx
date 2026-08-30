@@ -1168,6 +1168,50 @@ export function hasConfiguredFormula(item: { formulaExpression?: string | null }
   return !!item.formulaExpression?.trim();
 }
 
+// ---- Canonical statutory masters -----------------------------------------
+// EPF must be computed on (Gross − HRA) with the ₹15,000 wage ceiling, i.e.
+// ₹1,800 employee / ₹1,950 employer once the base crosses the ceiling, and
+// ESIC on (earned gross − washing − conveyance). Contract rows that still
+// point at an uncapped EPF master, or at an ESI master with no formula, are
+// re-linked to these canonical masters so every contract uses the correct
+// statutory formula without manual re-selection.
+const EPF_COMPONENT_RE = /(epf|provident\s*fund|\bpf\b)/i;
+
+function isEpfItem(item: { name?: unknown } | null | undefined): boolean {
+  return EPF_COMPONENT_RE.test(String(item?.name ?? ""));
+}
+
+const CANONICAL_STATUTORY_CODES = {
+  employee: { epf: "EPFEMPLOYEECONTRIBUTIONGROSSHRA", esi: "ESIEMPLOYEECONTRIBUTIONGROSS" },
+  employer: { epf: "EPFEMPLOYERCONTRIBUTIONGROSSHRA", esi: "ESIEMPLOYERCONTRIBUTIONNET" },
+} as const;
+
+function isEmployerStatutoryRow(item: { name?: unknown }): boolean {
+  return /^\s*er\b|employer/i.test(String(item?.name ?? ""));
+}
+
+/**
+ * Returns the canonical statutory master a row should use, or undefined when
+ * the row is already correctly configured (capped EPF, or ESI with a formula).
+ */
+function canonicalStatutoryMaster(
+  item: { name?: unknown; capAmount?: number | null; formulaExpression?: string | null },
+  masters: CostComponentOption[],
+): CostComponentOption | undefined {
+  const party = isEmployerStatutoryRow(item) ? "employer" : "employee";
+  const byCode = (code: string) => masters.find((m) => (m.code ?? "").toUpperCase() === code);
+  if (isEpfItem(item)) {
+    const capped = Number(item.capAmount) > 0;
+    if (capped || hasConfiguredFormula(item)) return undefined;
+    return byCode(CANONICAL_STATUTORY_CODES[party].epf);
+  }
+  if (isEsiItem(item) && !hasConfiguredFormula(item)) {
+    return byCode(CANONICAL_STATUTORY_CODES[party].esi);
+  }
+  return undefined;
+}
+
+
 // ESI rows fall back to the statutory calc only when no custom formula is set
 // in Cost Component Manager. When a formula IS configured the row uses its own
 // evaluated amount instead of the statutory 0.75% / 3.25% override.
