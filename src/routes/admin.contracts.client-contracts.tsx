@@ -5407,7 +5407,7 @@ export function SalaryBreakdownTable({
             </tr>
             {(() => {
               const visibleComponents = components.filter((c) => Number(c.amount) > 0);
-              const visibleBenefits = benefits.filter((b) => Number(b.amount) > 0);
+              const visibleBenefits = coreBenefits.filter((b) => Number(b.amount) > 0);
               if (visibleComponents.length === 0 && visibleBenefits.length === 0) {
                 return (
                   <tr>
