@@ -4316,18 +4316,26 @@ export function ResourceFormDialog({
 
 
   const costComponentById = new Map(costComponents.map((c) => [c.id, c]));
+  // Description map handed to the breakdown preview so it can show the master
+  // description instead of a raw formula string.
+  const componentDescriptions = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of costComponents) {
+      if (c.description) map[c.id] = String(c.description);
+    }
+    for (const a of allowanceTypes) {
+      const d = (a as { description?: string | null }).description;
+      if (d) map[a.id] = String(d);
+    }
+    return map;
+  }, [costComponents, allowanceTypes]);
   // Human-readable description for formula-driven components: prefer the
   // description maintained on the Cost Component master, fall back to a
-  // percentage/base summary, and never show the raw formula JSON.
-  const describeFormulaItem = (b: BenefitItem): string => {
-    const masterDesc = (costComponentById.get(b.costComponentId)?.description ?? "").trim();
-    if (masterDesc) return masterDesc;
-    if (b.percentage) {
-      const base = b.baseComponents.map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`)).join(" ");
-      return `${b.percentage}%${base ? ` of ${base}` : ""}${b.capAmount ? ` · cap ₹${b.capAmount.toLocaleString("en-IN")}` : ""}`;
-    }
-    return "Custom formula";
-  };
+  // readable formula/percentage summary, and never show the raw formula JSON.
+  const describeFormulaItem = (b: BenefitItem): string =>
+    describeComponentFormula(b, costComponentById.get(b.costComponentId)?.description ?? null) ||
+    "Custom formula";
+
 
   const usedBenefitIds = new Set(benefits.map((b) => b.costComponentId));
   const usedDeductionIds = new Set(deductions.map((b) => b.costComponentId));
