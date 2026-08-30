@@ -5709,8 +5709,6 @@ export function SalaryBreakdownTable({
   const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever).slice(0, 1);
   const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee).slice(0, 1);
 
-  const hasEsiDeduction = deductions.some(isEsiItem);
-  const hasEsiEmployer = coreEmployer.some(isEsiItem);
   // Replace the saved ESI amount with the live statutory calculation. Adding
   // the live value after summing every saved row counted ESI twice in totals.
   const deductionsTotal = deductions.reduce(
