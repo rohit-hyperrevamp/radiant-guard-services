@@ -4123,6 +4123,9 @@ export function ResourceFormDialog({
     const byId = new Map(costComponents.map((c) => [c.id, c]));
     const componentNameKey = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
     const findMaster = (b: BenefitItem) => {
+      // Custom (manually entered) billing add-ons have synthetic ids and must
+      // never be re-linked to a master formula.
+      if (String(b.costComponentId).startsWith("__")) return undefined;
       const byStoredId = byId.get(b.costComponentId);
       if (byStoredId) return byStoredId;
       const key = componentNameKey(b.name);
@@ -4134,6 +4137,7 @@ export function ResourceFormDialog({
       }
       return undefined;
     };
+
     const overlay = (b: BenefitItem): BenefitItem => {
       // Older contract rows may carry a deleted/replaced component ID. Recover
       // the current master by its stable display name so formula updates apply.
