@@ -4124,7 +4124,7 @@ export function ResourceFormDialog({
     const overlay = (b: BenefitItem): BenefitItem => {
       const m = byId.get(b.costComponentId);
       if (!m) return b;
-      return {
+      const synced: BenefitItem = {
         ...b,
         calcType: m.calcType,
         percentage: m.percentage,
@@ -4135,6 +4135,16 @@ export function ResourceFormDialog({
         formulaExpression: m.formulaExpression ?? null,
         formulaVersion: m.formulaVersion ?? null,
       };
+      const unchanged =
+        b.calcType === synced.calcType &&
+        b.percentage === synced.percentage &&
+        JSON.stringify(b.baseComponents) === JSON.stringify(synced.baseComponents) &&
+        b.capAmount === synced.capAmount &&
+        b.capFlatAmount === synced.capFlatAmount &&
+        b.formulaMode === synced.formulaMode &&
+        b.formulaExpression === synced.formulaExpression &&
+        b.formulaVersion === synced.formulaVersion;
+      return unchanged ? b : synced;
     };
     setBenefits((prev) => {
       const next = prev.map(overlay);
