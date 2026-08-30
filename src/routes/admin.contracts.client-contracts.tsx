@@ -4618,8 +4618,9 @@ export function ResourceFormDialog({
 
   const totalDeductions =
     deductions.reduce((s, b) => s + (isStatutoryEsi(b) ? esiEmployeeAmount : contractTotalAmount(b)), 0);
-  const totalEmployer =
-    employerContributions.reduce((s, b) => s + (isStatutoryEsi(b) ? esiEmployerAmount : contractTotalAmount(b)), 0);
+  const totalEmployer = employerContributions
+    .filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b))
+    .reduce((s, b) => s + (isStatutoryEsi(b) ? esiEmployerAmount : contractTotalAmount(b)), 0);
 
   const selectedDesignation = designations.find((d) => d.id === designationId);
 
