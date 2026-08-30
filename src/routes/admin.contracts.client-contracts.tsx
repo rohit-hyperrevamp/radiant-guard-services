@@ -5302,7 +5302,11 @@ export function SalaryBreakdownTable({
   const payableDays = computePayableDays(payrollDayBase);
   const divisorDays = payableDays;
   const componentsTotal = components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const benefitsTotal = benefits.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  // Reliever charges and management fee are billing add-ons — they sit after
+  // Total CTC, never inside gross.
+  const coreBenefits = benefits.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b));
+  const benefitAddOns = benefits.filter((b) => isRelieverLine(b) || isMgmtFeeLine(b));
+  const benefitsTotal = coreBenefits.reduce((s, b) => s + (Number(b.amount) || 0), 0);
   const gross = componentsTotal + benefitsTotal;
 
   // Statutory ESI: percentages and the wage ceiling come from the ESI
