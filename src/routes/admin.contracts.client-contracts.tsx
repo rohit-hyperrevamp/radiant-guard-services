@@ -1261,6 +1261,16 @@ function syncResourceComponentMasterFields(
   };
 }
 
+/**
+ * Reliever charges and the management fee are billing add-ons, never wage or
+ * CTC lines. They sit *after* Total CTC: CTC + reliever = Billing Rate,
+ * + management fee = Final Billing Rate.
+ */
+export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String(x?.name ?? ""));
+export const isMgmtFeeLine = (x: { name?: unknown }) =>
+  /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
+
 /** Compute benefit amount from a percentage component using the resource's wage components. */
 export function computeBenefitAmount(
   benefit: Pick<BenefitItem, "calcType" | "percentage" | "baseComponents" | "capAmount" | "capFlatAmount" | "amount"> & {
