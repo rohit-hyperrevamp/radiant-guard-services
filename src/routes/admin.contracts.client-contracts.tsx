@@ -1331,8 +1331,12 @@ export function computeBenefitAmount(
   }
   if (benefit.calcType === "fixed") return Number(benefit.amount) || 0;
   const componentsTotal = wageComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const benefitsTotal = benefitItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
-  const employerTotal = employerItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const benefitsTotal = benefitItems
+    .filter((b) => !isBillingAddOn(b))
+    .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const employerTotal = employerItems
+    .filter((b) => !isBillingAddOn(b))
+    .reduce((s, b) => s + (Number(b.amount) || 0), 0);
   if (isEsiItem(benefit as { name?: unknown })) return 0;
   const norm = (s: string) => s.trim().toLowerCase();
   const compactNorm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
