@@ -4328,17 +4328,25 @@ export function ResourceFormDialog({
       // Custom (manually entered) billing add-ons have synthetic ids and must
       // never be re-linked to a master formula.
       if (String(b.costComponentId).startsWith("__")) return undefined;
-      const byStoredId = byId.get(b.costComponentId);
-      if (byStoredId) return byStoredId;
-      const key = componentNameKey(b.name);
-      if (!key) return undefined;
-      const exactName = costComponents.find((c) => componentNameKey(c.name) === key);
-      if (exactName) return exactName;
-      if (isRelieverLine(b)) {
-        return costComponents.find((c) => componentNameKey(c.name) === "relievercharges");
-      }
-      return undefined;
+      const resolved = (() => {
+        const byStoredId = byId.get(b.costComponentId);
+        if (byStoredId) return byStoredId;
+        const key = componentNameKey(b.name);
+        if (!key) return undefined;
+        const exactName = costComponents.find((c) => componentNameKey(c.name) === key);
+        if (exactName) return exactName;
+        if (isRelieverLine(b)) {
+          return costComponents.find((c) => componentNameKey(c.name) === "relievercharges");
+        }
+        return undefined;
+      })();
+      // EPF without the ₹15,000 ceiling, or ESI without a formula, is upgraded
+      // to the canonical statutory master (capped Gross − HRA EPF / gross-based
+      // ESIC) so the contract shows ₹1,800 / ₹1,950 and the correct ESIC.
+      const canonical = canonicalStatutoryMaster(resolved ?? b, costComponents);
+      return canonical ?? resolved;
     };
+
 
     const overlay = (b: BenefitItem): BenefitItem => {
       // Older contract rows may carry a deleted/replaced component ID. Recover
