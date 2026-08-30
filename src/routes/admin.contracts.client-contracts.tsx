@@ -336,6 +336,8 @@ export type PayrollDayBase = {
 export type CostComponentOption = {
   id: string;
   name: string;
+  code?: string;
+
   calcType: "percentage" | "fixed";
   percentage: number;
   baseComponents: { label: string; operator: "+" | "-" }[];
@@ -1082,7 +1084,7 @@ export function useCostComponentOptions() {
     queryFn: async (): Promise<CostComponentOption[]> => {
       const { data, error } = await supabase
         .from("cost_components" as never)
-        .select("id,name,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,description,formula_mode,formula_expression,formula_version,party")
+        .select("id,name,code,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,description,formula_mode,formula_expression,formula_version,party")
         .order("sort_order")
         .order("name");
       if (error) throw error;
@@ -1091,6 +1093,7 @@ export function useCostComponentOptions() {
         .map((r) => ({
           id: String(r.id),
           name: String(r.name),
+          code: String(r.code ?? ""),
           calcType: (r.calc_type as "percentage" | "fixed") ?? "percentage",
           percentage: Number(r.percentage ?? 0),
           baseComponents: Array.isArray(r.base_components)
@@ -1164,6 +1167,50 @@ function isEsiItem(item: { name?: unknown } | null | undefined): boolean {
 export function hasConfiguredFormula(item: { formulaExpression?: string | null }): boolean {
   return !!item.formulaExpression?.trim();
 }
+
+// ---- Canonical statutory masters -----------------------------------------
+// EPF must be computed on (Gross − HRA) with the ₹15,000 wage ceiling, i.e.
+// ₹1,800 employee / ₹1,950 employer once the base crosses the ceiling, and
+// ESIC on (earned gross − washing − conveyance). Contract rows that still
+// point at an uncapped EPF master, or at an ESI master with no formula, are
+// re-linked to these canonical masters so every contract uses the correct
+// statutory formula without manual re-selection.
+const EPF_COMPONENT_RE = /(epf|provident\s*fund|\bpf\b)/i;
+
+function isEpfItem(item: { name?: unknown } | null | undefined): boolean {
+  return EPF_COMPONENT_RE.test(String(item?.name ?? ""));
+}
+
+const CANONICAL_STATUTORY_CODES = {
+  employee: { epf: "EPFEMPLOYEECONTRIBUTIONGROSSHRA", esi: "ESIEMPLOYEECONTRIBUTIONGROSS" },
+  employer: { epf: "EPFEMPLOYERCONTRIBUTIONGROSSHRA", esi: "ESIEMPLOYERCONTRIBUTIONNET" },
+} as const;
+
+function isEmployerStatutoryRow(item: { name?: unknown }): boolean {
+  return /^\s*er\b|employer/i.test(String(item?.name ?? ""));
+}
+
+/**
+ * Returns the canonical statutory master a row should use, or undefined when
+ * the row is already correctly configured (capped EPF, or ESI with a formula).
+ */
+function canonicalStatutoryMaster(
+  item: { name?: unknown; capAmount?: number | null; formulaExpression?: string | null },
+  masters: CostComponentOption[],
+): CostComponentOption | undefined {
+  const party = isEmployerStatutoryRow(item) ? "employer" : "employee";
+  const byCode = (code: string) => masters.find((m) => (m.code ?? "").toUpperCase() === code);
+  if (isEpfItem(item)) {
+    const capped = Number(item.capAmount) > 0;
+    if (capped || hasConfiguredFormula(item)) return undefined;
+    return byCode(CANONICAL_STATUTORY_CODES[party].epf);
+  }
+  if (isEsiItem(item) && !hasConfiguredFormula(item)) {
+    return byCode(CANONICAL_STATUTORY_CODES[party].esi);
+  }
+  return undefined;
+}
+
 
 // ESI rows fall back to the statutory calc only when no custom formula is set
 // in Cost Component Manager. When a formula IS configured the row uses its own
@@ -4281,17 +4328,25 @@ export function ResourceFormDialog({
       // Custom (manually entered) billing add-ons have synthetic ids and must
       // never be re-linked to a master formula.
       if (String(b.costComponentId).startsWith("__")) return undefined;
-      const byStoredId = byId.get(b.costComponentId);
-      if (byStoredId) return byStoredId;
-      const key = componentNameKey(b.name);
-      if (!key) return undefined;
-      const exactName = costComponents.find((c) => componentNameKey(c.name) === key);
-      if (exactName) return exactName;
-      if (isRelieverLine(b)) {
-        return costComponents.find((c) => componentNameKey(c.name) === "relievercharges");
-      }
-      return undefined;
+      const resolved = (() => {
+        const byStoredId = byId.get(b.costComponentId);
+        if (byStoredId) return byStoredId;
+        const key = componentNameKey(b.name);
+        if (!key) return undefined;
+        const exactName = costComponents.find((c) => componentNameKey(c.name) === key);
+        if (exactName) return exactName;
+        if (isRelieverLine(b)) {
+          return costComponents.find((c) => componentNameKey(c.name) === "relievercharges");
+        }
+        return undefined;
+      })();
+      // EPF without the ₹15,000 ceiling, or ESI without a formula, is upgraded
+      // to the canonical statutory master (capped Gross − HRA EPF / gross-based
+      // ESIC) so the contract shows ₹1,800 / ₹1,950 and the correct ESIC.
+      const canonical = canonicalStatutoryMaster(resolved ?? b, costComponents);
+      return canonical ?? resolved;
     };
+
 
     const overlay = (b: BenefitItem): BenefitItem => {
       // Older contract rows may carry a deleted/replaced component ID. Recover
@@ -4329,9 +4384,16 @@ export function ResourceFormDialog({
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
     setDeductions((prev) => {
-      const next = prev.map(overlay);
+      const next = prev.map((b) => {
+        const synced = overlay(b);
+        if (synced === b) return b;
+        return synced.calcType === "percentage" || hasConfiguredFormula(synced)
+          ? { ...synced, amount: computeBenefitAmount(synced, components, benefits, allowanceTypes) }
+          : synced;
+      });
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
+
     setEmployerContributions((prev) => {
       const synced = prev.map(overlay);
       const referencesCtc = (b: BenefitItem) =>
