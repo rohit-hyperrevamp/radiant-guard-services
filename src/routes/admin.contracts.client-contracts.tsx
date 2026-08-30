@@ -1261,6 +1261,16 @@ function syncResourceComponentMasterFields(
   };
 }
 
+/**
+ * Reliever charges and the management fee are billing add-ons, never wage or
+ * CTC lines. They sit *after* Total CTC: CTC + reliever = Billing Rate,
+ * + management fee = Final Billing Rate.
+ */
+export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String(x?.name ?? ""));
+export const isMgmtFeeLine = (x: { name?: unknown }) =>
+  /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
+
 /** Compute benefit amount from a percentage component using the resource's wage components. */
 export function computeBenefitAmount(
   benefit: Pick<BenefitItem, "calcType" | "percentage" | "baseComponents" | "capAmount" | "capFlatAmount" | "amount"> & {
@@ -1281,8 +1291,14 @@ export function computeBenefitAmount(
     : null;
   if (cfg && !(cfg.mode === "advanced" && !cfg.expression?.trim())) {
     const componentsTotal = wageComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-    const benefitsTotal = benefitItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
-    const employerTotal = employerItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    // Billing add-ons (reliever charges, management fee) sit above Total CTC and
+    // must never inflate gross or CTC bases.
+    const benefitsTotal = benefitItems
+      .filter((b) => !isBillingAddOn(b))
+      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const employerTotal = employerItems
+      .filter((b) => !isBillingAddOn(b))
+      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
     const ctx: FormulaContext = {
       basic: 0,
       da: 0,
@@ -1315,8 +1331,12 @@ export function computeBenefitAmount(
   }
   if (benefit.calcType === "fixed") return Number(benefit.amount) || 0;
   const componentsTotal = wageComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const benefitsTotal = benefitItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
-  const employerTotal = employerItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const benefitsTotal = benefitItems
+    .filter((b) => !isBillingAddOn(b))
+    .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const employerTotal = employerItems
+    .filter((b) => !isBillingAddOn(b))
+    .reduce((s, b) => s + (Number(b.amount) || 0), 0);
   if (isEsiItem(benefit as { name?: unknown })) return 0;
   const norm = (s: string) => s.trim().toLowerCase();
   const compactNorm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -5282,7 +5302,11 @@ export function SalaryBreakdownTable({
   const payableDays = computePayableDays(payrollDayBase);
   const divisorDays = payableDays;
   const componentsTotal = components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const benefitsTotal = benefits.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  // Reliever charges and management fee are billing add-ons — they sit after
+  // Total CTC, never inside gross.
+  const coreBenefits = benefits.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b));
+  const benefitAddOns = benefits.filter((b) => isRelieverLine(b) || isMgmtFeeLine(b));
+  const benefitsTotal = coreBenefits.reduce((s, b) => s + (Number(b.amount) || 0), 0);
   const gross = componentsTotal + benefitsTotal;
 
   // Statutory ESI: percentages and the wage ceiling come from the ESI
@@ -5311,11 +5335,11 @@ export function SalaryBreakdownTable({
   const esiEmployeeAmount = esiEligible ? Math.ceil(esiBase * (esiEmpPct / 100)) : 0;
   const esiEmployerAmount = esiEligible ? Math.ceil(esiBase * (esiErPct / 100)) : 0;
 
-  const isReliever = (b: BenefitItem) => /reliever/i.test(b.name);
-  const isMgmtFee = (b: BenefitItem) => /management\s*fee/i.test(b.name);
+  const isReliever = (b: BenefitItem) => isRelieverLine(b);
+  const isMgmtFee = (b: BenefitItem) => isMgmtFeeLine(b);
   const coreEmployer = employerContributions.filter((b) => !isReliever(b) && !isMgmtFee(b));
-  const relieverItems = employerContributions.filter(isReliever);
-  const mgmtFeeItems = employerContributions.filter(isMgmtFee);
+  const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever);
+  const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee);
 
   const hasEsiDeduction = deductions.some(isEsiItem);
   const hasEsiEmployer = coreEmployer.some(isEsiItem);
@@ -5383,7 +5407,7 @@ export function SalaryBreakdownTable({
             </tr>
             {(() => {
               const visibleComponents = components.filter((c) => Number(c.amount) > 0);
-              const visibleBenefits = benefits.filter((b) => Number(b.amount) > 0);
+              const visibleBenefits = coreBenefits.filter((b) => Number(b.amount) > 0);
               if (visibleComponents.length === 0 && visibleBenefits.length === 0) {
                 return (
                   <tr>
@@ -5554,7 +5578,7 @@ export function SalaryBreakdownTable({
             ))}
             {relieverItems.length > 0 && (
               <tr className="bg-teal-100 font-bold dark:bg-teal-500/20">
-                <td className="uppercase">Total Rate Rs.</td>
+                <td className="uppercase">Billing Rate Rs.</td>
                 <td className="text-center tabular-nums">{totalRate.toFixed(2)}</td>
                 <td />
                 <td className="text-right text-base tabular-nums">{earnedRate.toFixed(2)}</td>
@@ -5581,7 +5605,7 @@ export function SalaryBreakdownTable({
             ))}
             {mgmtFeeItems.length > 0 && (
               <tr className="bg-indigo-100 font-bold dark:bg-indigo-500/20">
-                <td className="uppercase">Grand Total Rs.</td>
+                <td className="uppercase">Final Billing Rate Rs.</td>
                 <td className="text-center tabular-nums">{grandTotal.toFixed(2)}</td>
                 <td />
                 <td className="text-right text-base tabular-nums">{earnedGrand.toFixed(2)}</td>
