@@ -4239,7 +4239,11 @@ export function ResourceFormDialog({
     ...(usedDeductionIds.has(PT_SYNTHETIC_ID) ? [] : [ptSynthetic]),
   ];
   const availableEmployer = costComponents.filter(
-    (c) => !usedEmployerIds.has(c.id) && c.party !== "employee",
+    (c) =>
+      !usedEmployerIds.has(c.id) &&
+      c.party !== "employee" &&
+      !isRelieverLine(c) &&
+      !isMgmtFeeLine(c),
   );
   const filteredAvailableBenefits = useMemo(() => {
     const q = benefitQuery.trim().toLowerCase();
