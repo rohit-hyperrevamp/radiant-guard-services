@@ -1084,7 +1084,7 @@ export function useCostComponentOptions() {
     queryFn: async (): Promise<CostComponentOption[]> => {
       const { data, error } = await supabase
         .from("cost_components" as never)
-        .select("id,name,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,description,formula_mode,formula_expression,formula_version,party")
+        .select("id,name,code,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,description,formula_mode,formula_expression,formula_version,party")
         .order("sort_order")
         .order("name");
       if (error) throw error;
@@ -1093,6 +1093,7 @@ export function useCostComponentOptions() {
         .map((r) => ({
           id: String(r.id),
           name: String(r.name),
+          code: String(r.code ?? ""),
           calcType: (r.calc_type as "percentage" | "fixed") ?? "percentage",
           percentage: Number(r.percentage ?? 0),
           baseComponents: Array.isArray(r.base_components)
