@@ -5462,7 +5462,9 @@ export function ResourceFormDialog({
             benefits={benefits}
             deductions={deductions}
             employerContributions={employerContributions}
+            componentDescriptions={componentDescriptions}
           />
+
         </div>
   );
 
