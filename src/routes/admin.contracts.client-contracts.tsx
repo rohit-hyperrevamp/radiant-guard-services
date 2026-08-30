@@ -4442,7 +4442,7 @@ export function ResourceFormDialog({
     setDeductions((prev) => prev.filter((b) => b.costComponentId !== id));
   };
 
-  const addEmployerContribution = (c: CostComponentOption) => {
+  const buildEmployerItem = (c: CostComponentOption): BenefitItem => {
     const item: BenefitItem = {
       costComponentId: c.id,
       name: c.name,
@@ -4475,6 +4475,11 @@ export function ResourceFormDialog({
         refsCtc ? employerContributions : [],
       );
     }
+    return item;
+  };
+
+  const addEmployerContribution = (c: CostComponentOption) => {
+    const item = buildEmployerItem(c);
     preserveDialogScroll(() => {
       setEmployerContributions((prev) => [...prev, item]);
       setEmployerQuery("");
@@ -4488,6 +4493,36 @@ export function ResourceFormDialog({
 
   const removeEmployerContribution = (id: string) => {
     setEmployerContributions((prev) => prev.filter((b) => b.costComponentId !== id));
+  };
+
+  // ---- Billing add-ons (Reliever charges / Management fee) -----------------
+  // These are picked as a single choice each (multiple masters can exist), and
+  // are stored alongside employer contributions so all downstream calculation
+  // and persistence keeps working unchanged.
+  const relieverMasters = useMemo(
+    () => costComponents.filter((c) => isRelieverLine(c)),
+    [costComponents],
+  );
+  const mgmtFeeMasters = useMemo(
+    () => costComponents.filter((c) => isMgmtFeeLine(c)),
+    [costComponents],
+  );
+  const selectedRelieverId =
+    employerContributions.find((b) => isRelieverLine(b))?.costComponentId ?? "";
+  const selectedMgmtFeeId =
+    employerContributions.find((b) => isMgmtFeeLine(b))?.costComponentId ?? "";
+
+  const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
+    const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
+    preserveDialogScroll(() => {
+      setEmployerContributions((prev) => {
+        const rest = prev.filter((b) => !match(b));
+        if (componentId === "__none__") return rest;
+        const master = costComponents.find((c) => c.id === componentId);
+        if (!master) return rest;
+        return [...rest, buildEmployerItem(master)];
+      });
+    });
   };
 
   const handleSubmit = () => {
