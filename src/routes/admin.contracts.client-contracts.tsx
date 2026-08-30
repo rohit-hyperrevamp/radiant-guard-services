@@ -5335,11 +5335,11 @@ export function SalaryBreakdownTable({
   const esiEmployeeAmount = esiEligible ? Math.ceil(esiBase * (esiEmpPct / 100)) : 0;
   const esiEmployerAmount = esiEligible ? Math.ceil(esiBase * (esiErPct / 100)) : 0;
 
-  const isReliever = (b: BenefitItem) => /reliever/i.test(b.name);
-  const isMgmtFee = (b: BenefitItem) => /management\s*fee/i.test(b.name);
+  const isReliever = (b: BenefitItem) => isRelieverLine(b);
+  const isMgmtFee = (b: BenefitItem) => isMgmtFeeLine(b);
   const coreEmployer = employerContributions.filter((b) => !isReliever(b) && !isMgmtFee(b));
-  const relieverItems = employerContributions.filter(isReliever);
-  const mgmtFeeItems = employerContributions.filter(isMgmtFee);
+  const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever);
+  const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee);
 
   const hasEsiDeduction = deductions.some(isEsiItem);
   const hasEsiEmployer = coreEmployer.some(isEsiItem);
