@@ -5794,19 +5794,14 @@ export function SalaryBreakdownTable({
                 <tr key={`e-${b.costComponentId}`}>
                   <td>
                     {b.name}
-                    {hasConfiguredFormula(b) ? (
+                    {isStatutoryEsi(b) ? (
                       <span className="ml-2 text-[11px] text-muted-foreground">
-                        @ formula · {b.formulaExpression?.slice(0, 80) ?? ""}{(b.formulaExpression?.length ?? 0) > 80 ? "…" : ""}
+                        {describeRow(b) || `${b.percentage}% · ${ESI_CONTRACT_NOTE}`}
                       </span>
-                    ) : b.calcType === "percentage" && (
-                      <span className="ml-2 text-[11px] text-muted-foreground">
-                        {isStatutoryEsi(b)
-                          ? `@ ${b.percentage}% · ${ESI_CONTRACT_NOTE}`
-                          : `@ ${b.percentage}% of ${b.baseComponents
-                              .map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`))
-                              .join(" ") || "—"}${b.capAmount ? ` (cap ₹${b.capAmount.toLocaleString("en-IN")})` : ""}`}
-                      </span>
-                    )}
+                    ) : describeRow(b) ? (
+                      <span className="ml-2 text-[11px] text-muted-foreground">{describeRow(b)}</span>
+                    ) : null}
+
 
                   </td>
                   <td className="text-center tabular-nums">{isStatutoryEsi(b) ? esiEmployerAmount.toFixed(2) : Number(b.amount).toFixed(2)}</td>
