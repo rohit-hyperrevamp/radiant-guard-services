@@ -1444,6 +1444,10 @@ export function computeBenefitAmount(
     const employerTotal = employerItems
       .filter((b) => !isBillingAddOn(b))
       .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const relieverTotal = employerItems
+      .filter(isRelieverLine)
+      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const totalCtc = componentsTotal + benefitsTotal + employerTotal;
     const ctx: FormulaContext = {
       basic: 0,
       da: 0,
@@ -1455,7 +1459,10 @@ export function computeBenefitAmount(
       earnedgross: componentsTotal,
       earned_wages: componentsTotal,
       earnedwages: componentsTotal,
-      ctc: componentsTotal + benefitsTotal + employerTotal,
+      ctc: totalCtc,
+      total_ctc: totalCtc,
+      billing_rate: totalCtc + relieverTotal,
+      billingrate: totalCtc + relieverTotal,
       fixed_amount: Number(benefit.amount) || 0,
       days_in_month: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
       working_days: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
@@ -5717,9 +5724,20 @@ export function SalaryBreakdownTable({
       sum + computeBenefitAmount(item, components, coreBenefits, [], coreEmployer),
     0,
   );
-  const mgmtFeeTotal = mgmtFeeItems.reduce((s, b) => s + contractTotalAmount(b), 0);
   const totalCTC = gross + coreEmployerTotal;
   const totalRate = totalCTC + relieverTotal;
+  const managementAmountFor = (item: BenefitItem) =>
+    item.costComponentId === CUSTOM_MANAGEMENT_FEE_ID ||
+    (item.calcType === "fixed" && !hasConfiguredFormula(item))
+      ? Number(item.amount) || 0
+      : computeBenefitAmount(item, components, coreBenefits, [], [
+          ...coreEmployer,
+          ...relieverItems.map((reliever) => ({
+            ...reliever,
+            amount: computeBenefitAmount(reliever, components, coreBenefits, [], coreEmployer),
+          })),
+        ]);
+  const mgmtFeeTotal = mgmtFeeItems.reduce((sum, item) => sum + managementAmountFor(item), 0);
   const grandTotal = totalRate + mgmtFeeTotal;
 
   const basisLabel = payrollDayBase
@@ -5944,7 +5962,9 @@ export function SalaryBreakdownTable({
                 <td className="text-right text-base tabular-nums">{earnedRate.toFixed(2)}</td>
               </tr>
             )}
-            {mgmtFeeItems.map((b) => (
+            {mgmtFeeItems.map((b) => {
+              const liveAmount = managementAmountFor(b);
+              return (
               <tr key={`m-${b.costComponentId}`} className="bg-amber-50 dark:bg-amber-500/10">
                 <td className="font-semibold">
                   {b.name}
@@ -5958,11 +5978,12 @@ export function SalaryBreakdownTable({
                     </span>
                   )}
                 </td>
-                <td className="text-center tabular-nums">{Number(b.amount).toFixed(2)}</td>
+                <td className="text-center tabular-nums">{liveAmount.toFixed(2)}</td>
                 <td />
-                <td className="text-right tabular-nums">{earnedFor(Number(b.amount)).toFixed(2)}</td>
+                <td className="text-right tabular-nums">{earnedFor(liveAmount).toFixed(2)}</td>
               </tr>
-            ))}
+              );
+            })}
             {mgmtFeeItems.length > 0 && (
               <tr className="bg-indigo-100 font-bold dark:bg-indigo-500/20">
                 <td className="uppercase">Final Billing Rate Rs.</td>
