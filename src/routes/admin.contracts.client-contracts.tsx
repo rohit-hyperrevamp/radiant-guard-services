@@ -4124,11 +4124,27 @@ export function ResourceFormDialog({
     const overlay = (b: BenefitItem): BenefitItem => {
       const m = byId.get(b.costComponentId);
       if (!m) return b;
-      const expr = m.formulaExpression ?? null;
-      const mode = m.formulaMode ?? null;
-      const ver = m.formulaVersion ?? null;
-      if ((b.formulaExpression ?? null) === expr && (b.formulaMode ?? null) === mode && (b.formulaVersion ?? null) === ver) return b;
-      return { ...b, formulaMode: mode, formulaExpression: expr, formulaVersion: ver };
+      const synced: BenefitItem = {
+        ...b,
+        calcType: m.calcType,
+        percentage: m.percentage,
+        baseComponents: m.baseComponents,
+        capAmount: m.capAmount,
+        capFlatAmount: m.capFlatAmount,
+        formulaMode: m.formulaMode ?? null,
+        formulaExpression: m.formulaExpression ?? null,
+        formulaVersion: m.formulaVersion ?? null,
+      };
+      const unchanged =
+        b.calcType === synced.calcType &&
+        b.percentage === synced.percentage &&
+        JSON.stringify(b.baseComponents) === JSON.stringify(synced.baseComponents) &&
+        b.capAmount === synced.capAmount &&
+        b.capFlatAmount === synced.capFlatAmount &&
+        b.formulaMode === synced.formulaMode &&
+        b.formulaExpression === synced.formulaExpression &&
+        b.formulaVersion === synced.formulaVersion;
+      return unchanged ? b : synced;
     };
     setBenefits((prev) => {
       const next = prev.map(overlay);
@@ -4139,10 +4155,27 @@ export function ResourceFormDialog({
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
     setEmployerContributions((prev) => {
-      const next = prev.map(overlay);
+      const synced = prev.map(overlay);
+      const referencesCtc = (b: BenefitItem) =>
+        /\bctc\b/i.test(b.formulaExpression ?? "") ||
+        b.baseComponents.some((base) => /^(total\s+)?ctc$/i.test(base.label.trim()));
+      const firstPass = synced.map((b) =>
+        (b.calcType === "percentage" || hasConfiguredFormula(b)) && !referencesCtc(b)
+          ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes) }
+          : b,
+      );
+      const ctcContributions = firstPass.filter((b) => !referencesCtc(b) && !isBillingAddOn(b));
+      const next = firstPass.map((b) =>
+        (b.calcType === "percentage" || hasConfiguredFormula(b)) && referencesCtc(b)
+          ? {
+              ...b,
+              amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcContributions),
+            }
+          : b,
+      );
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
-  }, [costComponents]);
+  }, [allowanceTypes, benefits, components, costComponents]);
 
   const PT_SYNTHETIC_ID = "__pt__";
   const ptSynthetic: CostComponentOption = {
@@ -5349,7 +5382,13 @@ export function SalaryBreakdownTable({
   const coreEmployerTotal =
     coreEmployer.reduce((s, b) => s + contractTotalAmount(b), 0) +
     (hasEsiEmployer ? esiEmployerAmount : 0);
-  const relieverTotal = relieverItems.reduce((s, b) => s + contractTotalAmount(b), 0);
+  // Always evaluate reliever against the live Total CTC. Saved contract rows
+  // may contain an amount from an older master formula and must not win here.
+  const relieverTotal = relieverItems.reduce(
+    (sum, item) =>
+      sum + computeBenefitAmount(item, components, coreBenefits, [], coreEmployer),
+    0,
+  );
   const mgmtFeeTotal = mgmtFeeItems.reduce((s, b) => s + contractTotalAmount(b), 0);
   const totalCTC = gross + coreEmployerTotal;
   const totalRate = totalCTC + relieverTotal;
