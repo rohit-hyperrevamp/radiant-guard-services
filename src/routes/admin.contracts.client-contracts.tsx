@@ -1272,6 +1272,56 @@ export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
+const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
+
+function normalizeBillingAddOns(
+  benefits: BenefitItem[],
+  employerContributions: BenefitItem[],
+): { benefits: BenefitItem[]; employerContributions: BenefitItem[] } {
+  const all = [...employerContributions, ...benefits.filter(isBillingAddOn)];
+  const relievers = all.filter(isRelieverLine);
+  const managementFees = all.filter(isMgmtFeeLine);
+  const referencesCtc = (item: BenefitItem) =>
+    /\bctc\b/i.test(item.formulaExpression ?? "") ||
+    item.baseComponents.some((base) => /^(total\s+)?ctc$/i.test(base.label.trim()));
+  const reliever = [...relievers].sort(
+    (a, b) => Number(referencesCtc(b)) - Number(referencesCtc(a)),
+  )[0];
+  const managementFee = [...managementFees].sort((a, b) => {
+    const customDifference =
+      Number(b.costComponentId === CUSTOM_MANAGEMENT_FEE_ID) -
+      Number(a.costComponentId === CUSTOM_MANAGEMENT_FEE_ID);
+    if (customDifference) return customDifference;
+    return (Number(b.amount) || 0) - (Number(a.amount) || 0);
+  })[0];
+  // Legacy contracts could hold the same billing add-on in both benefits and
+  // employer contributions. Keep exactly one canonical row of each type.
+  // If duplicate management rows include a real entered amount while formula
+  // rows are zero, preserve that value as a custom fixed fee.
+  const canonicalManagementFee =
+    managementFees.length > 1 && managementFee && Number(managementFee.amount) > 0
+      ? {
+          ...managementFee,
+          costComponentId: CUSTOM_MANAGEMENT_FEE_ID,
+          name: "Custom Management Fee",
+          calcType: "fixed" as const,
+          percentage: 0,
+          baseComponents: [],
+          capAmount: null,
+          capFlatAmount: null,
+          formulaMode: null,
+          formulaExpression: null,
+        }
+      : managementFee;
+  return {
+    benefits: benefits.filter((item) => !isBillingAddOn(item)),
+    employerContributions: [
+      ...employerContributions.filter((item) => !isBillingAddOn(item)),
+      ...(reliever ? [reliever] : []),
+      ...(canonicalManagementFee ? [canonicalManagementFee] : []),
+    ],
+  };
+}
 
 /* ---------------- Readable formula descriptions ---------------- */
 
@@ -4030,9 +4080,12 @@ export function ResourceFormDialog({
         return initial.components
           .map((c) => syncResourceComponentMasterFields(c, allowanceTypes));
       })();
-      const nextBenefits = initial.benefits.map(cloneBenefitItem);
+      const loadedBenefits = initial.benefits.map(cloneBenefitItem);
       const nextDeductions = (initial.deductions ?? []).map(cloneBenefitItem);
-      const nextEmployerContributions = (initial.employerContributions ?? []).map(cloneBenefitItem);
+      const loadedEmployerContributions = (initial.employerContributions ?? []).map(cloneBenefitItem);
+      const normalizedAddOns = normalizeBillingAddOns(loadedBenefits, loadedEmployerContributions);
+      const nextBenefits = normalizedAddOns.benefits;
+      const nextEmployerContributions = normalizedAddOns.employerContributions;
       setDesignationId(initial.designationId);
       setRoleKey(initial.roleKey ?? "");
       setServiceTypeId(initial.serviceTypeId);
@@ -4626,9 +4679,30 @@ export function ResourceFormDialog({
   const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
     const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
     preserveDialogScroll(() => {
+      setBenefits((prev) => prev.filter((b) => !match(b)));
       setEmployerContributions((prev) => {
         const rest = prev.filter((b) => !match(b));
         if (componentId === "__none__") return rest;
+        if (componentId === CUSTOM_MANAGEMENT_FEE_ID && kind === "mgmt") {
+          const previousAmount = prev.find(isMgmtFeeLine)?.amount ?? 0;
+          return [
+            ...rest,
+            {
+              costComponentId: CUSTOM_MANAGEMENT_FEE_ID,
+              name: "Custom Management Fee",
+              calcType: "fixed",
+              percentage: 0,
+              baseComponents: [],
+              capAmount: null,
+              capFlatAmount: null,
+              amount: Number(previousAmount) || 0,
+              state: "Custom fixed amount",
+              formulaMode: null,
+              formulaExpression: null,
+              formulaVersion: null,
+            },
+          ];
+        }
         const master = costComponents.find((c) => c.id === componentId);
         if (!master) return rest;
         return [...rest, buildEmployerItem(master)];
@@ -5434,8 +5508,32 @@ export function ResourceFormDialog({
                             {c.name}
                           </SelectItem>
                         ))}
+                        {cfg.kind === "mgmt" && (
+                          <SelectItem value={CUSTOM_MANAGEMENT_FEE_ID}>Custom amount</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
+                    {cfg.kind === "mgmt" && item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID && (
+                      <div className="mt-2">
+                        <Label className="sr-only" htmlFor="custom-management-fee">
+                          Custom management fee amount
+                        </Label>
+                        <Input
+                          id="custom-management-fee"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={Number(item.amount) || ""}
+                          placeholder="Enter custom amount"
+                          onChange={(event) =>
+                            updateEmployerAmount(
+                              CUSTOM_MANAGEMENT_FEE_ID,
+                              Math.max(0, Number(event.target.value) || 0),
+                            )
+                          }
+                        />
+                      </div>
+                    )}
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-[11px] text-muted-foreground">
                         {item ? describeFormulaItem(item) : "None selected"}
@@ -5601,8 +5699,8 @@ export function SalaryBreakdownTable({
   const isReliever = (b: BenefitItem) => isRelieverLine(b);
   const isMgmtFee = (b: BenefitItem) => isMgmtFeeLine(b);
   const coreEmployer = employerContributions.filter((b) => !isReliever(b) && !isMgmtFee(b));
-  const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever);
-  const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee);
+  const relieverItems = [...employerContributions, ...benefitAddOns].filter(isReliever).slice(0, 1);
+  const mgmtFeeItems = [...employerContributions, ...benefitAddOns].filter(isMgmtFee).slice(0, 1);
 
   const hasEsiDeduction = deductions.some(isEsiItem);
   const hasEsiEmployer = coreEmployer.some(isEsiItem);
@@ -5816,7 +5914,9 @@ export function SalaryBreakdownTable({
               <td />
               <td className="text-right text-base tabular-nums">{earnedCTC.toFixed(2)}</td>
             </tr>
-            {relieverItems.map((b) => (
+            {relieverItems.map((b) => {
+              const liveAmount = computeBenefitAmount(b, components, coreBenefits, [], coreEmployer);
+              return (
               <tr key={`r-${b.costComponentId}`}>
                 <td>
                   {b.name}
@@ -5830,11 +5930,12 @@ export function SalaryBreakdownTable({
                     </span>
                   )}
                 </td>
-                <td className="text-center tabular-nums">{Number(b.amount).toFixed(2)}</td>
+                <td className="text-center tabular-nums">{liveAmount.toFixed(2)}</td>
                 <td />
-                <td className="text-right tabular-nums">{earnedFor(Number(b.amount)).toFixed(2)}</td>
+                <td className="text-right tabular-nums">{earnedFor(liveAmount).toFixed(2)}</td>
               </tr>
-            ))}
+              );
+            })}
             {relieverItems.length > 0 && (
               <tr className="bg-teal-100 font-bold dark:bg-teal-500/20">
                 <td className="uppercase">Billing Rate Rs.</td>
