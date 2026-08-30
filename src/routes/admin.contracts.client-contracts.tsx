@@ -34,9 +34,11 @@ import { csvDate, downloadCsv } from "@/lib/csv-export";
 import {
   evaluateFormula,
   parseFormulaConfig,
+  presetToExpression,
   slugifyVar,
   type FormulaContext,
 } from "@/lib/formula-engine";
+
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
@@ -1270,6 +1272,99 @@ export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
+
+/* ---------------- Readable formula descriptions ---------------- */
+
+const FORMULA_VAR_LABELS: Record<string, string> = {
+  earned_gross: "Earned Gross",
+  earnedgross: "Earned Gross",
+  earned_wages: "Earned Gross",
+  gross: "Gross",
+  basic: "Basic",
+  da: "DA",
+  hra: "HRA",
+  ctc: "Total CTC",
+  total_ctc: "Total CTC",
+  wa: "WA",
+  conv_allow: "Conv Allow",
+  conveyance: "Conveyance",
+  fixed_amount: "Fixed Amount",
+  payable_days: "Payable Days",
+  working_days: "Working Days",
+  days_in_month: "Days in Month",
+  other_allowance: "Other Allowance",
+  management_fee: "Management Fee",
+};
+
+/** Turn a raw math expression into something a human can read. */
+export function humanizeFormulaExpression(raw: string): string {
+  const expr = String(raw ?? "").trim();
+  if (!expr) return "";
+  const pretty = (s: string) =>
+    s
+      .replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, (t) => {
+        const key = t.toLowerCase();
+        if (["min", "max", "round", "floor", "ceil"].includes(key)) return key;
+        return (
+          FORMULA_VAR_LABELS[key] ??
+          key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        );
+      })
+      .replace(/\s+/g, " ")
+      .trim();
+
+  // "X * 0.75 / 100" reads much better as "0.75% of X".
+  const pct = expr.match(/^\s*\(?(.+?)\)?\s*\*\s*([\d.]+)\s*\/\s*100\s*$/);
+  if (pct) {
+    const base = pretty(pct[1]).replace(/^\((.*)\)$/, "$1");
+    return `${Number(pct[2])}% of ${base}`;
+  }
+  const div = expr.match(/^\s*\(?(.+?)\)?\s*\/\s*([\d.]+)\s*$/);
+  if (div && !/[+\-*/]/.test(div[1])) return `${pretty(div[1])} ÷ ${Number(div[2])}`;
+  return pretty(expr);
+}
+
+/**
+ * Best available human description for a component row: the description kept
+ * on the Cost Component / Allowance master wins, then a readable rendering of
+ * the configured formula, then the percentage/base summary. Raw formula JSON
+ * is never shown.
+ */
+export function describeComponentFormula(
+  b: {
+    name?: string;
+    calcType?: "percentage" | "fixed";
+    percentage?: number;
+    baseComponents?: { label: string; operator: "+" | "-" }[];
+    capAmount?: number | null;
+    formulaMode?: string | null;
+    formulaExpression?: string | null;
+  },
+  masterDescription?: string | null,
+): string {
+  const desc = String(masterDescription ?? "").trim();
+  if (desc) return desc;
+  const cfg = parseFormulaConfig(b.formulaMode ?? null, b.formulaExpression ?? null);
+  if (cfg) {
+    try {
+      const expr = cfg.mode === "preset" ? presetToExpression(cfg.preset) : cfg.expression;
+      const readable = humanizeFormulaExpression(expr ?? "");
+      if (readable) return readable;
+    } catch {
+      /* fall through to the percentage summary */
+    }
+  }
+  if (b.calcType === "percentage" && Number(b.percentage) > 0) {
+    const base = (b.baseComponents ?? [])
+      .map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`))
+      .join(" ");
+    return `${b.percentage}%${base ? ` of ${base}` : ""}${
+      b.capAmount ? ` (cap ₹${Number(b.capAmount).toLocaleString("en-IN")})` : ""
+    }`;
+  }
+  return "";
+}
+
 
 /** Compute benefit amount from a percentage component using the resource's wage components. */
 export function computeBenefitAmount(
@@ -4123,6 +4218,9 @@ export function ResourceFormDialog({
     const byId = new Map(costComponents.map((c) => [c.id, c]));
     const componentNameKey = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
     const findMaster = (b: BenefitItem) => {
+      // Custom (manually entered) billing add-ons have synthetic ids and must
+      // never be re-linked to a master formula.
+      if (String(b.costComponentId).startsWith("__")) return undefined;
       const byStoredId = byId.get(b.costComponentId);
       if (byStoredId) return byStoredId;
       const key = componentNameKey(b.name);
@@ -4134,6 +4232,7 @@ export function ResourceFormDialog({
       }
       return undefined;
     };
+
     const overlay = (b: BenefitItem): BenefitItem => {
       // Older contract rows may carry a deleted/replaced component ID. Recover
       // the current master by its stable display name so formula updates apply.
@@ -4217,18 +4316,26 @@ export function ResourceFormDialog({
 
 
   const costComponentById = new Map(costComponents.map((c) => [c.id, c]));
+  // Description map handed to the breakdown preview so it can show the master
+  // description instead of a raw formula string.
+  const componentDescriptions = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of costComponents) {
+      if (c.description) map[c.id] = String(c.description);
+    }
+    for (const a of allowanceTypes) {
+      const d = (a as { description?: string | null }).description;
+      if (d) map[a.id] = String(d);
+    }
+    return map;
+  }, [costComponents, allowanceTypes]);
   // Human-readable description for formula-driven components: prefer the
   // description maintained on the Cost Component master, fall back to a
-  // percentage/base summary, and never show the raw formula JSON.
-  const describeFormulaItem = (b: BenefitItem): string => {
-    const masterDesc = (costComponentById.get(b.costComponentId)?.description ?? "").trim();
-    if (masterDesc) return masterDesc;
-    if (b.percentage) {
-      const base = b.baseComponents.map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`)).join(" ");
-      return `${b.percentage}%${base ? ` of ${base}` : ""}${b.capAmount ? ` · cap ₹${b.capAmount.toLocaleString("en-IN")}` : ""}`;
-    }
-    return "Custom formula";
-  };
+  // readable formula/percentage summary, and never show the raw formula JSON.
+  const describeFormulaItem = (b: BenefitItem): string =>
+    describeComponentFormula(b, costComponentById.get(b.costComponentId)?.description ?? null) ||
+    "Custom formula";
+
 
   const usedBenefitIds = new Set(benefits.map((b) => b.costComponentId));
   const usedDeductionIds = new Set(deductions.map((b) => b.costComponentId));
@@ -5355,7 +5462,9 @@ export function ResourceFormDialog({
             benefits={benefits}
             deductions={deductions}
             employerContributions={employerContributions}
+            componentDescriptions={componentDescriptions}
           />
+
         </div>
   );
 
@@ -5440,6 +5549,7 @@ export function SalaryBreakdownTable({
   benefits,
   deductions,
   employerContributions,
+  componentDescriptions,
 }: {
   designationName: string;
   payrollDayBase: PayrollDayBase | undefined;
@@ -5447,9 +5557,13 @@ export function SalaryBreakdownTable({
   benefits: BenefitItem[];
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
+  componentDescriptions?: Record<string, string>;
 }) {
+  const describeRow = (b: BenefitItem) =>
+    describeComponentFormula(b, componentDescriptions?.[b.costComponentId] ?? null);
   const payableDays = computePayableDays(payrollDayBase);
   const divisorDays = payableDays;
+
   const componentsTotal = components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
   // Reliever charges and management fee are billing add-ons — they sit after
   // Total CTC, never inside gross.
@@ -5631,19 +5745,14 @@ export function SalaryBreakdownTable({
                 <tr key={`d-${b.costComponentId}`}>
                   <td>
                     {b.name}
-                    {hasConfiguredFormula(b) ? (
+                    {isStatutoryEsi(b) ? (
                       <span className="ml-2 text-[11px] text-muted-foreground">
-                        @ formula · {b.formulaExpression?.slice(0, 80) ?? ""}{(b.formulaExpression?.length ?? 0) > 80 ? "…" : ""}
+                        {describeRow(b) || `${b.percentage}% · ${ESI_CONTRACT_NOTE}`}
                       </span>
-                    ) : b.calcType === "percentage" && (
-                      <span className="ml-2 text-[11px] text-muted-foreground">
-                        {isStatutoryEsi(b)
-                          ? `@ ${b.percentage}% · ${ESI_CONTRACT_NOTE}`
-                          : `@ ${b.percentage}% of ${b.baseComponents
-                              .map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`))
-                              .join(" ") || "—"}${b.capAmount ? ` (cap ₹${b.capAmount.toLocaleString("en-IN")})` : ""}`}
-                      </span>
-                    )}
+                    ) : describeRow(b) ? (
+                      <span className="ml-2 text-[11px] text-muted-foreground">{describeRow(b)}</span>
+                    ) : null}
+
 
                   </td>
                   <td className="text-center tabular-nums">{isStatutoryEsi(b) ? esiEmployeeAmount.toFixed(2) : Number(b.amount).toFixed(2)}</td>
@@ -5685,19 +5794,14 @@ export function SalaryBreakdownTable({
                 <tr key={`e-${b.costComponentId}`}>
                   <td>
                     {b.name}
-                    {hasConfiguredFormula(b) ? (
+                    {isStatutoryEsi(b) ? (
                       <span className="ml-2 text-[11px] text-muted-foreground">
-                        @ formula · {b.formulaExpression?.slice(0, 80) ?? ""}{(b.formulaExpression?.length ?? 0) > 80 ? "…" : ""}
+                        {describeRow(b) || `${b.percentage}% · ${ESI_CONTRACT_NOTE}`}
                       </span>
-                    ) : b.calcType === "percentage" && (
-                      <span className="ml-2 text-[11px] text-muted-foreground">
-                        {isStatutoryEsi(b)
-                          ? `@ ${b.percentage}% · ${ESI_CONTRACT_NOTE}`
-                          : `@ ${b.percentage}% of ${b.baseComponents
-                              .map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`))
-                              .join(" ") || "—"}${b.capAmount ? ` (cap ₹${b.capAmount.toLocaleString("en-IN")})` : ""}`}
-                      </span>
-                    )}
+                    ) : describeRow(b) ? (
+                      <span className="ml-2 text-[11px] text-muted-foreground">{describeRow(b)}</span>
+                    ) : null}
+
 
                   </td>
                   <td className="text-center tabular-nums">{isStatutoryEsi(b) ? esiEmployerAmount.toFixed(2) : Number(b.amount).toFixed(2)}</td>
