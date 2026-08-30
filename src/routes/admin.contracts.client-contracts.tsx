@@ -1291,8 +1291,14 @@ export function computeBenefitAmount(
     : null;
   if (cfg && !(cfg.mode === "advanced" && !cfg.expression?.trim())) {
     const componentsTotal = wageComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-    const benefitsTotal = benefitItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
-    const employerTotal = employerItems.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    // Billing add-ons (reliever charges, management fee) sit above Total CTC and
+    // must never inflate gross or CTC bases.
+    const benefitsTotal = benefitItems
+      .filter((b) => !isBillingAddOn(b))
+      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const employerTotal = employerItems
+      .filter((b) => !isBillingAddOn(b))
+      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
     const ctx: FormulaContext = {
       basic: 0,
       da: 0,
