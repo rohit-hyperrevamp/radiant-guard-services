@@ -336,6 +336,7 @@ export type PayrollDayBase = {
 export type CostComponentOption = {
   id: string;
   name: string;
+  code: string;
   calcType: "percentage" | "fixed";
   percentage: number;
   baseComponents: { label: string; operator: "+" | "-" }[];
