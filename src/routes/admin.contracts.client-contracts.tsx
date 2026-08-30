@@ -1273,6 +1273,99 @@ export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
 
+/* ---------------- Readable formula descriptions ---------------- */
+
+const FORMULA_VAR_LABELS: Record<string, string> = {
+  earned_gross: "Earned Gross",
+  earnedgross: "Earned Gross",
+  earned_wages: "Earned Gross",
+  gross: "Gross",
+  basic: "Basic",
+  da: "DA",
+  hra: "HRA",
+  ctc: "Total CTC",
+  total_ctc: "Total CTC",
+  wa: "WA",
+  conv_allow: "Conv Allow",
+  conveyance: "Conveyance",
+  fixed_amount: "Fixed Amount",
+  payable_days: "Payable Days",
+  working_days: "Working Days",
+  days_in_month: "Days in Month",
+  other_allowance: "Other Allowance",
+  management_fee: "Management Fee",
+};
+
+/** Turn a raw math expression into something a human can read. */
+export function humanizeFormulaExpression(raw: string): string {
+  const expr = String(raw ?? "").trim();
+  if (!expr) return "";
+  const pretty = (s: string) =>
+    s
+      .replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, (t) => {
+        const key = t.toLowerCase();
+        if (["min", "max", "round", "floor", "ceil"].includes(key)) return key;
+        return (
+          FORMULA_VAR_LABELS[key] ??
+          key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        );
+      })
+      .replace(/\s+/g, " ")
+      .trim();
+
+  // "X * 0.75 / 100" reads much better as "0.75% of X".
+  const pct = expr.match(/^\s*\(?(.+?)\)?\s*\*\s*([\d.]+)\s*\/\s*100\s*$/);
+  if (pct) {
+    const base = pretty(pct[1]).replace(/^\((.*)\)$/, "$1");
+    return `${Number(pct[2])}% of ${base}`;
+  }
+  const div = expr.match(/^\s*\(?(.+?)\)?\s*\/\s*([\d.]+)\s*$/);
+  if (div && !/[+\-*/]/.test(div[1])) return `${pretty(div[1])} ÷ ${Number(div[2])}`;
+  return pretty(expr);
+}
+
+/**
+ * Best available human description for a component row: the description kept
+ * on the Cost Component / Allowance master wins, then a readable rendering of
+ * the configured formula, then the percentage/base summary. Raw formula JSON
+ * is never shown.
+ */
+export function describeComponentFormula(
+  b: {
+    name?: string;
+    calcType?: "percentage" | "fixed";
+    percentage?: number;
+    baseComponents?: { label: string; operator: "+" | "-" }[];
+    capAmount?: number | null;
+    formulaMode?: string | null;
+    formulaExpression?: string | null;
+  },
+  masterDescription?: string | null,
+): string {
+  const desc = String(masterDescription ?? "").trim();
+  if (desc) return desc;
+  const cfg = parseFormulaConfig(b.formulaMode ?? null, b.formulaExpression ?? null);
+  if (cfg) {
+    try {
+      const expr = cfg.mode === "preset" ? presetToExpression(cfg.preset) : cfg.expression;
+      const readable = humanizeFormulaExpression(expr ?? "");
+      if (readable) return readable;
+    } catch {
+      /* fall through to the percentage summary */
+    }
+  }
+  if (b.calcType === "percentage" && Number(b.percentage) > 0) {
+    const base = (b.baseComponents ?? [])
+      .map((x, i) => (i === 0 ? x.label : `${x.operator} ${x.label}`))
+      .join(" ");
+    return `${b.percentage}%${base ? ` of ${base}` : ""}${
+      b.capAmount ? ` (cap ₹${Number(b.capAmount).toLocaleString("en-IN")})` : ""
+    }`;
+  }
+  return "";
+}
+
+
 /** Compute benefit amount from a percentage component using the resource's wage components. */
 export function computeBenefitAmount(
   benefit: Pick<BenefitItem, "calcType" | "percentage" | "baseComponents" | "capAmount" | "capFlatAmount" | "amount"> & {
