@@ -4121,11 +4121,28 @@ export function ResourceFormDialog({
   useEffect(() => {
     if (!costComponents.length) return;
     const byId = new Map(costComponents.map((c) => [c.id, c]));
+    const componentNameKey = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const findMaster = (b: BenefitItem) => {
+      const byStoredId = byId.get(b.costComponentId);
+      if (byStoredId) return byStoredId;
+      const key = componentNameKey(b.name);
+      if (!key) return undefined;
+      const exactName = costComponents.find((c) => componentNameKey(c.name) === key);
+      if (exactName) return exactName;
+      if (isRelieverLine(b)) {
+        return costComponents.find((c) => componentNameKey(c.name) === "relievercharges");
+      }
+      return undefined;
+    };
     const overlay = (b: BenefitItem): BenefitItem => {
-      const m = byId.get(b.costComponentId);
+      // Older contract rows may carry a deleted/replaced component ID. Recover
+      // the current master by its stable display name so formula updates apply.
+      const m = findMaster(b);
       if (!m) return b;
       const synced: BenefitItem = {
         ...b,
+        costComponentId: m.id,
+        name: m.name,
         calcType: m.calcType,
         percentage: m.percentage,
         baseComponents: m.baseComponents,
@@ -4136,6 +4153,8 @@ export function ResourceFormDialog({
         formulaVersion: m.formulaVersion ?? null,
       };
       const unchanged =
+        b.costComponentId === synced.costComponentId &&
+        b.name === synced.name &&
         b.calcType === synced.calcType &&
         b.percentage === synced.percentage &&
         JSON.stringify(b.baseComponents) === JSON.stringify(synced.baseComponents) &&
