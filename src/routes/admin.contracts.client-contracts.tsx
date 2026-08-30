@@ -5190,11 +5190,11 @@ export function ResourceFormDialog({
               </Popover>
             </div>
 
-            {employerContributions.length === 0 ? (
+            {employerContributions.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b)).length === 0 ? (
               <div className="rounded-lg border border-dashed border-border bg-card/50 px-4 py-6 text-center">
                 <div className="text-sm font-medium text-foreground">No employer contributions added</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  Click <span className="font-semibold text-foreground">Add component</span> to attach PF, ESIC, Gratuity, Management Fee…
+                  Click <span className="font-semibold text-foreground">Add component</span> to attach PF, ESIC, Gratuity, Bonus…
                 </div>
               </div>
             ) : (
