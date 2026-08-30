@@ -5290,6 +5290,63 @@ export function ResourceFormDialog({
             )}
           </div>
 
+          {/* Reliever & Management Fee (billing add-ons) */}
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="mb-2">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Reliever &amp; Management Fee
+              </h4>
+              <p className="text-[11px] text-muted-foreground">
+                Billing add-ons applied after Total CTC: Total CTC → Reliever → Billing Rate → Management Fee → Final Billing Rate.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                { kind: "reliever" as const, label: "Reliever charges", masters: relieverMasters, selected: selectedRelieverId },
+                { kind: "mgmt" as const, label: "Management fee", masters: mgmtFeeMasters, selected: selectedMgmtFeeId },
+              ]).map((cfg) => {
+                const item = employerContributions.find((b) =>
+                  cfg.kind === "reliever" ? isRelieverLine(b) : isMgmtFeeLine(b),
+                );
+                return (
+                  <div key={cfg.kind} className="rounded-lg border border-border bg-card px-3 py-2">
+                    <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {cfg.label}
+                    </Label>
+                    <Select
+                      value={cfg.selected || "__none__"}
+                      onValueChange={(v) => setBillingAddOn(cfg.kind, v)}
+                    >
+                      <SelectTrigger className="mt-1 h-9">
+                        <SelectValue placeholder={`Select ${cfg.label.toLowerCase()}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Not applicable</SelectItem>
+                        {cfg.masters.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-muted-foreground">
+                        {item ? describeFormulaItem(item) : "None selected"}
+                      </span>
+                      {item && (
+                        <span className="text-sm font-semibold text-foreground">
+                          {Number(item.amount).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+
+
           {/* Salary Breakdown Preview */}
           <SalaryBreakdownTable
             designationName={selectedDesignation?.name ?? ""}
