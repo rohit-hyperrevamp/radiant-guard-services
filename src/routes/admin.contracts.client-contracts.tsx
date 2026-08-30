@@ -4239,7 +4239,11 @@ export function ResourceFormDialog({
     ...(usedDeductionIds.has(PT_SYNTHETIC_ID) ? [] : [ptSynthetic]),
   ];
   const availableEmployer = costComponents.filter(
-    (c) => !usedEmployerIds.has(c.id) && c.party !== "employee",
+    (c) =>
+      !usedEmployerIds.has(c.id) &&
+      c.party !== "employee" &&
+      !isRelieverLine(c) &&
+      !isMgmtFeeLine(c),
   );
   const filteredAvailableBenefits = useMemo(() => {
     const q = benefitQuery.trim().toLowerCase();
@@ -4442,7 +4446,7 @@ export function ResourceFormDialog({
     setDeductions((prev) => prev.filter((b) => b.costComponentId !== id));
   };
 
-  const addEmployerContribution = (c: CostComponentOption) => {
+  const buildEmployerItem = (c: CostComponentOption): BenefitItem => {
     const item: BenefitItem = {
       costComponentId: c.id,
       name: c.name,
@@ -4475,6 +4479,11 @@ export function ResourceFormDialog({
         refsCtc ? employerContributions : [],
       );
     }
+    return item;
+  };
+
+  const addEmployerContribution = (c: CostComponentOption) => {
+    const item = buildEmployerItem(c);
     preserveDialogScroll(() => {
       setEmployerContributions((prev) => [...prev, item]);
       setEmployerQuery("");
@@ -4488,6 +4497,36 @@ export function ResourceFormDialog({
 
   const removeEmployerContribution = (id: string) => {
     setEmployerContributions((prev) => prev.filter((b) => b.costComponentId !== id));
+  };
+
+  // ---- Billing add-ons (Reliever charges / Management fee) -----------------
+  // These are picked as a single choice each (multiple masters can exist), and
+  // are stored alongside employer contributions so all downstream calculation
+  // and persistence keeps working unchanged.
+  const relieverMasters = useMemo(
+    () => costComponents.filter((c) => isRelieverLine(c)),
+    [costComponents],
+  );
+  const mgmtFeeMasters = useMemo(
+    () => costComponents.filter((c) => isMgmtFeeLine(c)),
+    [costComponents],
+  );
+  const selectedRelieverId =
+    employerContributions.find((b) => isRelieverLine(b))?.costComponentId ?? "";
+  const selectedMgmtFeeId =
+    employerContributions.find((b) => isMgmtFeeLine(b))?.costComponentId ?? "";
+
+  const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
+    const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
+    preserveDialogScroll(() => {
+      setEmployerContributions((prev) => {
+        const rest = prev.filter((b) => !match(b));
+        if (componentId === "__none__") return rest;
+        const master = costComponents.find((c) => c.id === componentId);
+        if (!master) return rest;
+        return [...rest, buildEmployerItem(master)];
+      });
+    });
   };
 
   const handleSubmit = () => {
@@ -4579,8 +4618,9 @@ export function ResourceFormDialog({
 
   const totalDeductions =
     deductions.reduce((s, b) => s + (isStatutoryEsi(b) ? esiEmployeeAmount : contractTotalAmount(b)), 0);
-  const totalEmployer =
-    employerContributions.reduce((s, b) => s + (isStatutoryEsi(b) ? esiEmployerAmount : contractTotalAmount(b)), 0);
+  const totalEmployer = employerContributions
+    .filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b))
+    .reduce((s, b) => s + (isStatutoryEsi(b) ? esiEmployerAmount : contractTotalAmount(b)), 0);
 
   const selectedDesignation = designations.find((d) => d.id === designationId);
 
@@ -5151,16 +5191,16 @@ export function ResourceFormDialog({
               </Popover>
             </div>
 
-            {employerContributions.length === 0 ? (
+            {employerContributions.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b)).length === 0 ? (
               <div className="rounded-lg border border-dashed border-border bg-card/50 px-4 py-6 text-center">
                 <div className="text-sm font-medium text-foreground">No employer contributions added</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  Click <span className="font-semibold text-foreground">Add component</span> to attach PF, ESIC, Gratuity, Management Fee…
+                  Click <span className="font-semibold text-foreground">Add component</span> to attach PF, ESIC, Gratuity, Bonus…
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
-                {employerContributions.map((b) => (
+                {employerContributions.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b)).map((b) => (
                   <div
                     key={b.costComponentId}
                     className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
@@ -5249,6 +5289,63 @@ export function ResourceFormDialog({
               </div>
             )}
           </div>
+
+          {/* Reliever & Management Fee (billing add-ons) */}
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="mb-2">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Reliever &amp; Management Fee
+              </h4>
+              <p className="text-[11px] text-muted-foreground">
+                Billing add-ons applied after Total CTC: Total CTC → Reliever → Billing Rate → Management Fee → Final Billing Rate.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                { kind: "reliever" as const, label: "Reliever charges", masters: relieverMasters, selected: selectedRelieverId },
+                { kind: "mgmt" as const, label: "Management fee", masters: mgmtFeeMasters, selected: selectedMgmtFeeId },
+              ]).map((cfg) => {
+                const item = employerContributions.find((b) =>
+                  cfg.kind === "reliever" ? isRelieverLine(b) : isMgmtFeeLine(b),
+                );
+                return (
+                  <div key={cfg.kind} className="rounded-lg border border-border bg-card px-3 py-2">
+                    <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {cfg.label}
+                    </Label>
+                    <Select
+                      value={cfg.selected || "__none__"}
+                      onValueChange={(v) => setBillingAddOn(cfg.kind, v)}
+                    >
+                      <SelectTrigger className="mt-1 h-9">
+                        <SelectValue placeholder={`Select ${cfg.label.toLowerCase()}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Not applicable</SelectItem>
+                        {cfg.masters.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-muted-foreground">
+                        {item ? describeFormulaItem(item) : "None selected"}
+                      </span>
+                      {item && (
+                        <span className="text-sm font-semibold text-foreground">
+                          {Number(item.amount).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+
 
           {/* Salary Breakdown Preview */}
           <SalaryBreakdownTable
