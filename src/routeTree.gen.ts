@@ -13,6 +13,7 @@ import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DigilockerCallbackRouteImport } from './routes/digilocker.callback'
 import { Route as AdminWorkflowManagerRouteImport } from './routes/admin.workflow-manager'
 import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as AdminSystemLogsRouteImport } from './routes/admin.system-logs'
@@ -131,6 +132,11 @@ const AdminRoute = AdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DigilockerCallbackRoute = DigilockerCallbackRouteImport.update({
+  id: '/digilocker/callback',
+  path: '/digilocker/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminWorkflowManagerRoute = AdminWorkflowManagerRouteImport.update({
@@ -711,6 +717,7 @@ export interface FileRoutesByFullPath {
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/admin/workflow-manager': typeof AdminWorkflowManagerRoute
+  '/digilocker/callback': typeof DigilockerCallbackRoute
   '/admin/assets/expense-manager': typeof AdminAssetsExpenseManagerRoute
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
@@ -813,6 +820,7 @@ export interface FileRoutesByTo {
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/admin/workflow-manager': typeof AdminWorkflowManagerRoute
+  '/digilocker/callback': typeof DigilockerCallbackRoute
   '/admin/assets/expense-manager': typeof AdminAssetsExpenseManagerRoute
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
@@ -919,6 +927,7 @@ export interface FileRoutesById {
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/admin/workflow-manager': typeof AdminWorkflowManagerRoute
+  '/digilocker/callback': typeof DigilockerCallbackRoute
   '/admin/assets/expense-manager': typeof AdminAssetsExpenseManagerRoute
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
@@ -1026,6 +1035,7 @@ export interface FileRouteTypes {
     | '/admin/system-logs'
     | '/admin/vehicles'
     | '/admin/workflow-manager'
+    | '/digilocker/callback'
     | '/admin/assets/expense-manager'
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
@@ -1128,6 +1138,7 @@ export interface FileRouteTypes {
     | '/admin/system-logs'
     | '/admin/vehicles'
     | '/admin/workflow-manager'
+    | '/digilocker/callback'
     | '/admin/assets/expense-manager'
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
@@ -1233,6 +1244,7 @@ export interface FileRouteTypes {
     | '/admin/system-logs'
     | '/admin/vehicles'
     | '/admin/workflow-manager'
+    | '/digilocker/callback'
     | '/admin/assets/expense-manager'
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
@@ -1287,6 +1299,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   WelcomeRoute: typeof WelcomeRoute
+  DigilockerCallbackRoute: typeof DigilockerCallbackRoute
   ApiPublicOtpHealthRoute: typeof ApiPublicOtpHealthRoute
   ApiPublicHooksDailyPeoplePingsRoute: typeof ApiPublicHooksDailyPeoplePingsRoute
   ApiPublicNativePushRoute: typeof ApiPublicNativePushRoute
@@ -1320,6 +1333,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/digilocker/callback': {
+      id: '/digilocker/callback'
+      path: '/digilocker/callback'
+      fullPath: '/digilocker/callback'
+      preLoaderRoute: typeof DigilockerCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/workflow-manager': {
@@ -2293,6 +2313,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   WelcomeRoute: WelcomeRoute,
+  DigilockerCallbackRoute: DigilockerCallbackRoute,
   ApiPublicOtpHealthRoute: ApiPublicOtpHealthRoute,
   ApiPublicHooksDailyPeoplePingsRoute: ApiPublicHooksDailyPeoplePingsRoute,
   ApiPublicNativePushRoute: ApiPublicNativePushRoute,

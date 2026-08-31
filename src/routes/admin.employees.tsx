@@ -6130,6 +6130,29 @@ function CandidateWizard({
                     {aadhaarChecking && (
                       <div className="mt-1 text-[11px] text-muted-foreground">Checking existing records…</div>
                     )}
+                    <DigilockerVerify
+                      aadhaar={form.aadhaar_number}
+                      mobile={form.mobile}
+                      onVerified={(profile) => {
+                        const keep = (next: string, current: string) => (next ? next : current);
+                        setForm((f) => ({
+                          ...f,
+                          full_name: keep(profile.full_name, f.full_name),
+                          date_of_birth: profile.date_of_birth || f.date_of_birth,
+                          gender: keep(profile.gender, f.gender),
+                          aadhaar_number: profile.aadhaar_number || f.aadhaar_number,
+                          permanent_address1: keep(profile.address_line1, f.permanent_address1),
+                          permanent_address2: keep(profile.address_line2, f.permanent_address2),
+                          permanent_landmark: keep(profile.landmark, f.permanent_landmark),
+                          permanent_city: keep(profile.city, f.permanent_city),
+                          permanent_district: keep(profile.district, f.permanent_district),
+                          permanent_state: keep(profile.state, f.permanent_state),
+                          permanent_pincode: keep(profile.pincode, f.permanent_pincode),
+                          permanent_country: keep(profile.country, f.permanent_country),
+                        }));
+                      }}
+                    />
+                    
                     <RehireRequestDialog
                       open={rehireOpen}
                       match={rehireMatch}
