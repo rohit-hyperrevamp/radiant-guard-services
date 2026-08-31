@@ -77,6 +77,7 @@ import { findCandidateByAadhaar } from "@/lib/workflows";
 import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/RehireRequestDialog";
 
 import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
+import { DigilockerVerify } from "@/components/DigilockerVerify";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
 import { RehireEnableDialog } from "@/components/RehireEnableDialog";
