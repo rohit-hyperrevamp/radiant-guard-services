@@ -231,7 +231,7 @@ function MusterRollPage() {
   const { data: employees, isLoading, error: rosterError } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
     queryFn: async () => {
-      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, date_of_birth, is_enabled, status, role_key, non_billable";
+      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, offboarded_at, date_of_birth, is_enabled, status, role_key, non_billable";
 
       const { data: prim, error: primError } = await supabase
         .from("candidates")
@@ -345,6 +345,7 @@ function MusterRollPage() {
             designation: designationName,
             employee_type: classifyAttendanceEmployee(c.role_key, designationName),
             doj: c.preferred_joining_date || "",
+            left_on: ((c as { offboarded_at?: string | null }).offboarded_at || "").slice(0, 10),
             is_non_billable: isNonBillable,
             is_home_mapped: homeMapped.has(c.id),
              is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
@@ -1166,6 +1167,10 @@ function MusterRollPage() {
       // historical sheet when they joined after the period AND have no
       // attendance recorded in it (i.e. they belong to a later month).
       if (emp.doj && emp.doj > periodEnd && !candidatesWithEntries.has(emp.id)) continue;
+      // Same rule on the exit side: someone who left before this period started
+      // and has no attendance in it belongs to earlier months only.
+      const leftOn = (emp as { left_on?: string }).left_on;
+      if (leftOn && leftOn < periodStart && !candidatesWithEntries.has(emp.id)) continue;
       // A guard may be deployed at many units — "is_home_mapped" here means
       // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
@@ -1276,7 +1281,7 @@ function MusterRollPage() {
           a.i - b.i,
       )
       .map((x) => x.r);
-  }, [employees, entries, extraRows, contractDesignations, periodEnd]);
+  }, [employees, entries, extraRows, contractDesignations, periodStart, periodEnd]);
 
   // Client-side filter: name / employee_code / designation substring match.
   const visibleMusterRows = useMemo(() => {
