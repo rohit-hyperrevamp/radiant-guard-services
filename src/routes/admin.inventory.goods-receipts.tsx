@@ -1,6 +1,4 @@
-</table>
-          <DataPagination {...pg} />
-  const pg = usePagination(filtered);import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus, Search, PackageCheck, Eye, Trash2, FileText } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
