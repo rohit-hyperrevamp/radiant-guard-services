@@ -1281,7 +1281,7 @@ function MusterRollPage() {
           a.i - b.i,
       )
       .map((x) => x.r);
-  }, [employees, entries, extraRows, contractDesignations, periodEnd]);
+  }, [employees, entries, extraRows, contractDesignations, periodStart, periodEnd]);
 
   // Client-side filter: name / employee_code / designation substring match.
   const visibleMusterRows = useMemo(() => {
