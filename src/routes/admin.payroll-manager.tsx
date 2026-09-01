@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/payroll-manager")({
   component: PayrollManagerPage,
@@ -155,6 +156,8 @@ function PayrollManagerPage() {
     return items.filter((i) => windowLabel(i).toLowerCase().includes(q));
   }, [items, query]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -228,7 +231,7 @@ function PayrollManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -294,6 +297,7 @@ function PayrollManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <PayrollFormDialog

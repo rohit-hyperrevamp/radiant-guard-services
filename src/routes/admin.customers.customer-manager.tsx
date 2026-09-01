@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader, PageStat } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,6 +106,7 @@ function CustomerManagerPage() {
   }, [customers, query, statusFilter]);
 
   const activeCount = customers.filter((c) => c.status === "active").length;
+  const pg = usePagination(rows);
 
   return (
     <div>
@@ -209,7 +211,7 @@ function CustomerManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((c) => (
+              {pg.pageRows.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-mono text-xs font-semibold text-accent">
                     {c.code}
@@ -296,6 +298,7 @@ function CustomerManagerPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

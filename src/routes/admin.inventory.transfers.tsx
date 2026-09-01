@@ -17,6 +17,7 @@ import { nextSeq, fmtNumber, postMovements, statusBadgeClass, type LocationType 
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 
 
@@ -198,6 +199,7 @@ function TransfersPage() {
     onSuccess: invalidate,
   });
   const demandInfo = useDemandRequesters(filtered.map((t) => t.demand_id));
+  const pg = usePagination(filtered);
 
   return (
     <div>
@@ -229,7 +231,7 @@ function TransfersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((t) => {
+              {pg.pageRows.map((t) => {
                 const info = t.demand_id ? demandInfo.get(t.demand_id) : null;
                 return (
                 <tr key={t.id} className="hover:bg-secondary/30">
@@ -267,6 +269,7 @@ function TransfersPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
 

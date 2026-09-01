@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/lwf-manager")({
   component: LwfManagerPage,
@@ -208,6 +209,7 @@ function LwfManagerPage() {
       );
     });
   }, [items, query, stateFilter, freqFilter]);
+  const pg = usePagination(filtered);
 
   return (
     <div>
@@ -329,7 +331,7 @@ function LwfManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => {
+              {pg.pageRows.map((i) => {
                 const total = i.employeeContribution + i.employerContribution;
                 return (
                   <tr key={i.id} className="hover:bg-secondary/30">
@@ -399,6 +401,7 @@ function LwfManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <LwfFormDialog

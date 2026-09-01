@@ -8,6 +8,7 @@ import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -396,6 +397,8 @@ function CostComponentManagerPage() {
     });
   }, [items, query]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -469,7 +472,7 @@ function CostComponentManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -528,6 +531,7 @@ function CostComponentManagerPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

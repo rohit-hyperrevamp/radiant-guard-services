@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 const NET_DAY_OPTIONS = ["0", "7", "15", "30", "45", "60", "75", "90", "120"];
 function parsePaymentTerms(s: string): { mode: "single" | "window"; from: string; to: string } {
@@ -175,6 +176,7 @@ function VendorsPage() {
   const enabledCount = useMemo(() => vendors.filter((v) => v.enabled).length, [vendors]);
   const cityCount = useMemo(() => new Set(vendors.map((v) => v.city).filter(Boolean)).size, [vendors]);
   const mappedItems = useMemo(() => new Set((capsQ.data ?? []).map((c) => c.item_id)).size, [capsQ.data]);
+  const pg = usePagination(filtered);
 
   return (
     <div className="page-enter">
@@ -263,7 +265,7 @@ function VendorsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((v) => {
+              {pg.pageRows.map((v) => {
                 const caps = capsByVendor.get(v.id) ?? [];
                 const distinctItems = new Set(caps.map((c) => c.item_id)).size;
                 return (
@@ -324,6 +326,7 @@ function VendorsPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
 

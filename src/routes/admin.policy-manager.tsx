@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -199,6 +200,8 @@ function PolicyManagerPage() {
     );
   }, [items, query]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -290,7 +293,7 @@ function PolicyManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -380,6 +383,7 @@ function PolicyManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <PolicyFormDialog

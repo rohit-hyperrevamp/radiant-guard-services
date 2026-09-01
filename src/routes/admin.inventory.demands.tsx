@@ -17,6 +17,7 @@ import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useItemSizeOptions, sizePlaceholder, type ItemSizeOptions } from "@/lib/inv-sizes";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/inventory/demands")({ component: DemandsPage });
 
@@ -137,6 +138,7 @@ function DemandsPage() {
     return demands.filter((d) => d.demand_number.toLowerCase().includes(q));
   }, [demands, query]);
 
+  const pg = usePagination(filtered);
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["inv", "demands"] });
     qc.invalidateQueries({ queryKey: ["inv", "demand-line-agg"] });
@@ -170,7 +172,7 @@ function DemandsPage() {
 
       {/* Mobile card list */}
       <div className="space-y-2.5 lg:hidden">
-        {filtered.map((d) => {
+        {pg.pageRows.map((d) => {
           const agg = lineAgg.get(d.id) ?? { items: 0, qty: 0 };
           const wh = d.warehouse_id ? warehouseMap.get(d.warehouse_id) : null;
           const br = d.branch_id ? branchMap.get(d.branch_id) : null;
@@ -245,7 +247,7 @@ function DemandsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((d) => {
+              {pg.pageRows.map((d) => {
                 const agg = lineAgg.get(d.id) ?? { items: 0, qty: 0 };
                 const wh = d.warehouse_id ? warehouseMap.get(d.warehouse_id) : null;
                 const br = d.branch_id ? branchMap.get(d.branch_id) : null;
@@ -290,6 +292,7 @@ function DemandsPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
 

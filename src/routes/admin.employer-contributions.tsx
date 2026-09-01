@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Download, Search } from "lucide-react";
@@ -120,6 +121,8 @@ function EmployerContributionsPage() {
 
   const total = useMemo(() => filtered.reduce((s, r) => s + (Number(r.amount) || 0), 0), [filtered]);
 
+  const pg = usePagination(filtered);
+
   const byHead = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of filtered) m.set(r.contribution_name, (m.get(r.contribution_name) ?? 0) + (Number(r.amount) || 0));
@@ -236,7 +239,7 @@ function EmployerContributionsPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => (
+                pg.pageRows.map((r) => (
                   <tr key={r.id} className="hover:bg-muted/40">
                     <td className="px-4 py-3 font-mono text-xs">{r.empCode || "—"}</td>
                     <td className="px-4 py-3 font-medium">{r.empName}</td>
@@ -268,6 +271,7 @@ function EmployerContributionsPage() {
               </tfoot>
             )}
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
     </div>
