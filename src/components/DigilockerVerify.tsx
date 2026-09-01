@@ -16,6 +16,8 @@ import {
 type Props = {
   aadhaar: string;
   mobile?: string;
+  verified?: boolean;
+  verifiedName?: string;
   onVerified: (profile: DigilockerProfile) => void;
 };
 
