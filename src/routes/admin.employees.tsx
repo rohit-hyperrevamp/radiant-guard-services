@@ -4860,6 +4860,7 @@ function CandidateWizard({
     if (!open) return;
     setSaveError(null);
     lastAadhaarLookupRef.current = "";
+    setDigilockerVerified(false);
     setRehireMatch(null);
     setRehireOpen(false);
     if (editing) {
