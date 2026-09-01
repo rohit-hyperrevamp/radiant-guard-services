@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/service-type-manager")({
   component: ServiceTypeManagerPage,
@@ -137,6 +138,8 @@ function ServiceTypeManagerPage() {
     );
   }, [items, query]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -204,7 +207,7 @@ function ServiceTypeManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -262,6 +265,7 @@ function ServiceTypeManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <ServiceTypeFormDialog
