@@ -105,7 +105,7 @@ export const extractMigrationSheet = createServerFn({ method: "POST" })
     ].join("\n\n");
 
     const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash"),
+      model,
       system: SYSTEM_PROMPT,
       temperature: 0,
       messages: [
