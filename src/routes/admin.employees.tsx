@@ -5817,12 +5817,12 @@ function CandidateWizard({
                   />
                   <UploadTile
                     label="Aadhaar Card"
-                    required
+                    required={!digilockerVerified}
                     url={form.aadhaar_image_url}
                     accept="image/*,application/pdf"
                     onPick={(f) => handleFile(f, "aadhaar")}
                     uploading={uploading === "aadhaar"}
-                                      />
+                  />
                   <UploadTile
                     label="PAN Card"
                     required
