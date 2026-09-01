@@ -102,6 +102,7 @@ async function readCachedProfile(clientId: string): Promise<DigilockerProfile | 
 }
 
 async function writeCachedProfile(clientId: string, profile: DigilockerProfile): Promise<void> {
+  if (!profile.full_name) throw new Error("DigiLocker returned an empty Aadhaar profile");
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin
@@ -170,6 +171,17 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
     const url = s((d as { url?: unknown }).url);
     const clientId = s((d as { client_id?: unknown }).client_id);
     if (!url || !clientId) throw new Error("DigiLocker did not return a consent link");
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error } = await supabaseAdmin.from("digilocker_sessions").upsert(
+        { client_id: clientId, profile: null, status: "pending", updated_at: new Date().toISOString() },
+        { onConflict: "client_id" },
+      );
+      if (error) throw error;
+    } catch (error) {
+      console.error("[surepass] session registration failed", error);
+      throw new Error("Could not securely register the DigiLocker session");
+    }
     return {
       client_id: clientId,
       url,
@@ -220,22 +232,51 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
     const cached = await readCachedProfile(data.clientId);
     if (cached && cached.full_name) return cached;
 
+    // Polling requests can overlap. Claim the one-shot download in the database so only
+    // one request reaches Surepass; the others wait briefly for its cached result.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const { data: claimed, error: claimError } = await supabaseAdmin
+      .from("digilocker_sessions")
+      .update({ status: "downloading", updated_at: now })
+      .eq("client_id", data.clientId)
+      .eq("status", "pending")
+      .select("client_id")
+      .maybeSingle();
+    if (claimError) throw claimError;
+
+    if (!claimed) {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const replay = await readCachedProfile(data.clientId);
+        if (replay?.full_name) return replay;
+      }
+      throw new Error("DigiLocker details are still being secured. Click Fetch details now once more.");
+    }
+
     let a: Record<string, unknown>;
     try {
       const aadhaar = await surepass<Record<string, unknown>>(
         `/api/v1/digilocker/download-aadhaar/${encodeURIComponent(data.clientId)}`,
         { method: "GET" },
       );
-      a = (aadhaar.data ?? {}) as Record<string, unknown>;
+      const responseData = (aadhaar.data ?? {}) as Record<string, unknown>;
+      a = (responseData["aadhaar_xml_data"] ?? responseData) as Record<string, unknown>;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       if (/already\s*download/i.test(detail)) {
         const replay = await readCachedProfile(data.clientId);
         if (replay && replay.full_name) return replay;
-        throw new Error(
-          "DigiLocker already released this Aadhaar for the previous attempt. Start DigiLocker again to pull the details.",
-        );
+        await supabaseAdmin
+          .from("digilocker_sessions")
+          .update({ status: "consumed_without_profile", updated_at: new Date().toISOString() })
+          .eq("client_id", data.clientId);
+        throw new Error("This completed DigiLocker response was consumed before its details were saved. No further Aadhaar action is required from you; an administrator can recover this attempt with Surepass.");
       }
+      await supabaseAdmin
+        .from("digilocker_sessions")
+        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .eq("client_id", data.clientId);
       throw error;
     }
 
@@ -249,7 +290,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
     const profile: DigilockerProfile = {
       ...empty,
       status: "completed",
-      full_name: s(a["name"]) || s(a["full_name"]),
+      full_name: s(a["full_name"]) || s(a["name"]),
       date_of_birth: s(a["dob"]) || s(a["date_of_birth"]),
       gender: /^m/i.test(s(a["gender"])) ? "Male" : /^f/i.test(s(a["gender"])) ? "Female" : s(a["gender"]),
       aadhaar_number: s(a["aadhaar_number"]).replace(/\D/g, "").slice(0, 12),
@@ -264,6 +305,13 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       message: "Verified via DigiLocker",
     };
 
+    if (!profile.full_name) {
+      await supabaseAdmin
+        .from("digilocker_sessions")
+        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .eq("client_id", data.clientId);
+      throw new Error("DigiLocker completed, but Surepass returned no identity details");
+    }
     await writeCachedProfile(data.clientId, profile);
     return profile;
   });
