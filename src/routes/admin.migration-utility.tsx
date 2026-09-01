@@ -123,7 +123,12 @@ function parseSpreadsheetRows(
   const labels = header.map((cell) => normalizedCell(cell).toLowerCase());
   const findColumn = (patterns: RegExp[]) => labels.findIndex((label) => patterns.some((pattern) => pattern.test(label)));
   const nameCol = findColumn([/^(employee )?name$/, /^guard name$/, /^staff name$/]);
-  const codeCol = findColumn([/^emp(LOYEE)?[ ._-]*(code|id|no)/, /^code$/, /^id$/]);
+  const codeCol = findColumn([
+    /^emp(loyee)?[ ._-]*(code|id|no|number)\b/i,
+    /^(employee|emp)[ ._-]*(code|id)$/i,
+    /^(code|id|emp id|empid|emp code|empcode|token|token no)$/i,
+    /employee[ ._-]*(code|id|no)/i,
+  ]);
   const mobileCol = findColumn([/mobile/, /phone/, /contact/]);
   const designationCol = findColumn([/designation/, /^post$/, /^role$/]);
   const dateColumns = header
