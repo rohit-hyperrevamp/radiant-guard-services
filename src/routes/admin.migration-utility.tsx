@@ -528,7 +528,7 @@ function MigrationUtilityPage() {
             <div>
               <div className="font-display text-base font-bold">Attendance sheet</div>
               <p className="text-sm text-muted-foreground">
-                Upload the sheet image and it is read automatically, or paste rows below.
+                Upload the sheet as an image or an Excel/CSV file and it is read automatically, or paste rows below.
               </p>
             </div>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10">
