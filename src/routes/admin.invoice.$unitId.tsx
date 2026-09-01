@@ -32,7 +32,6 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
-import { evaluateFormula, parseFormulaConfig, slugifyVar, type FormulaContext } from "@/lib/formula-engine";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -84,58 +83,6 @@ type RateCardItem = {
   formulaExpression?: string | null;
 };
 
-function addRateAliases(ctx: FormulaContext, items: RateCardItem[]) {
-  for (const item of items) {
-    const name = String(item.name ?? "").trim();
-    if (!name) continue;
-    const amount = Number(item.amount) || 0;
-    const slug = slugifyVar(name);
-    ctx[slug] = amount;
-    ctx[slug.replace(/_/g, "")] = amount;
-  }
-}
-
-function evaluateContractItem(
-  item: RateCardItem,
-  components: RateCardItem[],
-  benefits: RateCardItem[],
-  employer: RateCardItem[],
-  totals: { ctc: number; billingRate: number },
-): number {
-  const componentTotal = components.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
-  const benefitTotal = benefits.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
-  const ctx: FormulaContext = {
-    gross: componentTotal + benefitTotal,
-    earned_gross: componentTotal,
-    earnedgross: componentTotal,
-    earned_wages: componentTotal,
-    earnedwages: componentTotal,
-    ctc: totals.ctc,
-    total_ctc: totals.ctc,
-    billing_rate: totals.billingRate,
-    billingrate: totals.billingRate,
-    fixed_amount: Number(item.amount) || 0,
-  };
-  addRateAliases(ctx, [...components, ...benefits, ...employer]);
-  const config = parseFormulaConfig(item.formulaMode, item.formulaExpression);
-  if (config) {
-    const result = evaluateFormula(config, ctx);
-    if (!result.error) return result.amount;
-  }
-  if (item.calcType === "percentage" && Array.isArray(item.baseComponents)) {
-    const base = item.baseComponents.reduce((sum, part) => {
-      const key = slugifyVar(part.label);
-      const value = Number(ctx[key] ?? ctx[key.replace(/_/g, "")]) || 0;
-      return part.operator === "-" ? sum - value : sum + value;
-    }, 0);
-    const percentage = Number(item.percentage) || 0;
-    const cap = Number(item.capAmount) || 0;
-    const cappedAmount = Number(item.capFlatAmount) || 0;
-    return Math.round((cap > 0 && base > cap && cappedAmount > 0 ? cappedAmount : percentage * Math.min(base, cap || base) / 100) * 100) / 100;
-  }
-  return Number(item.amount) || 0;
-}
-
 /**
  * Full-month statutory ESI on the contract rate card (same maths the client
  * contract card uses): percentages / ceiling come from the configured ESI
@@ -179,11 +126,10 @@ const isMgmtFeeLine = (x: { name?: unknown }) =>
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
 
 /**
- * Contracted value per head per month = exactly the contract card's
- * FINAL BILLING RATE: gross (wage components + core benefits) + employer cost
- * lines (Total CTC) + reliever charges + management fee. ESI rows with a
- * configured formula use their stored amount; rows without one fall back to
- * the statutory calc.
+ * Contracted value per head per month = exactly the saved contract card's
+ * FINAL BILLING RATE. The contract editor has already evaluated and saved all
+ * formulas, caps and add-ons; invoices must consume those saved amounts and
+ * must never independently recalculate them.
  */
 function contractBillableMonthly(resource: {
   components: RateCardItem[];
@@ -191,29 +137,13 @@ function contractBillableMonthly(resource: {
   deductions?: RateCardItem[];
   employerContributions?: RateCardItem[];
 }): number {
-  const all = [...(resource.employerContributions ?? []), ...(resource.benefits ?? [])];
-  const components = resource.components ?? [];
-  const benefits = (resource.benefits ?? []).filter((item) => !isBillingAddOn(item));
-  const coreEmployer = (resource.employerContributions ?? []).filter((item) => !isBillingAddOn(item));
-  const gross = [...components, ...benefits].reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const esi = contractEsiAmounts(resource);
-  const employer = coreEmployer.reduce((sum, item) => {
-    const amount = isStatutoryEsi(item)
-      ? esi.employer
-      : Number(item.amount) || 0;
-    return sum + amount;
-  }, 0);
-  const totalCtc = gross + employer;
-  const relieverItem = all.find(isRelieverLine);
-  const reliever = relieverItem
-    ? evaluateContractItem(relieverItem, components, benefits, coreEmployer, { ctc: totalCtc, billingRate: totalCtc })
-    : 0;
-  const billingRate = totalCtc + reliever;
-  const managementItem = all.find(isMgmtFeeLine);
-  const management = managementItem
-    ? evaluateContractItem(managementItem, components, benefits, [...coreEmployer, ...(relieverItem ? [{ ...relieverItem, amount: reliever }] : [])], { ctc: totalCtc, billingRate })
-    : 0;
-  return Math.round((billingRate + management) * 100) / 100;
+  const sumSaved = (items: RateCardItem[] | undefined) =>
+    (items ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  return Math.round((
+    sumSaved(resource.components)
+    + sumSaved(resource.benefits)
+    + sumSaved(resource.employerContributions)
+  ) * 100) / 100;
 }
 
 
