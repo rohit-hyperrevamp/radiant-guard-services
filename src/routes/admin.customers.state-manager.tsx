@@ -68,7 +68,7 @@ function StateManagerPage() {
         icon={MapPin}
         description="All states served by Radiant Guard. Source of truth for branch mappings."
         crumbs={[
-          { label: "Organizations", to: "/admin/customers" },
+          { label: "Organizations", to: "/admin/customers/customer-manager" },
           { label: "State Manager" },
         ]}
         kpis={

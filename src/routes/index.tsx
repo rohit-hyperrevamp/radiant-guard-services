@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
 
 const ORDER = ["organizations","contracts","employees","vehicles","assets","inventory","attendance","payroll","control_center","notification_center","rbac"] as const;
 const PATH_FOR: Record<string,string> = {
-  organizations: "/admin/customers",
+  organizations: "/admin/customers/customer-manager",
   contracts: "/admin/contracts/client-contracts",
   employees: "/admin/employees",
   vehicles: "/admin/vehicles",

@@ -211,7 +211,7 @@ function UnitManagerPage() {
         icon={Warehouse}
         description="Track operational units deployed across branches."
         crumbs={[
-          { label: "Organizations", to: "/admin/customers" },
+          { label: "Organizations", to: "/admin/customers/customer-manager" },
           { label: "Unit Manager" },
         ]}
         kpis={

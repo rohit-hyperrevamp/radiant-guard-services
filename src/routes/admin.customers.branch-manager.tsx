@@ -109,7 +109,7 @@ function BranchManagerPage() {
         icon={Building2}
         description="Map a unique branch code to each state. Branches display as CODE – STATE."
         crumbs={[
-          { label: "Organizations", to: "/admin/customers" },
+          { label: "Organizations", to: "/admin/customers/customer-manager" },
           { label: "Branch Manager" },
         ]}
         kpis={
