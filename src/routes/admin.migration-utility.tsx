@@ -138,18 +138,18 @@ function MigrationUtilityPage() {
       if (!q) throw new Error("Enter a contract ID");
       const { data, error } = await supabase
         .from("client_contracts" as never)
-        .select("id, contract_code, unit_id, payroll_window_id, units:unit_id(name, unit_code, customer_name)")
+        .select("id, contract_code, unit_id, payroll_window_id, units:unit_id(name, code, customers:customer_id(name))")
         .ilike("contract_code", `%${q}%`)
         .limit(1)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       if (!data) throw new Error(`No contract found for "${q}"`);
       const r = data as unknown as {
         id: string;
         contract_code: string;
         unit_id: string;
         payroll_window_id: string | null;
-        units?: { name?: string; unit_code?: string; customer_name?: string } | null;
+        units?: { name?: string; code?: string; customers?: { name?: string } | null } | null;
       };
       if (!r.unit_id) throw new Error("This contract is not mapped to a unit");
       return {
@@ -158,8 +158,8 @@ function MigrationUtilityPage() {
         unit_id: r.unit_id,
         payroll_window_id: r.payroll_window_id,
         unit_name: r.units?.name ?? "",
-        unit_code: r.units?.unit_code ?? "",
-        customer_name: r.units?.customer_name ?? "",
+        unit_code: r.units?.code ?? "",
+        customer_name: r.units?.customers?.name ?? "",
       };
     },
     onSuccess: (hit) => {
