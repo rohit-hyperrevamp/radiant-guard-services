@@ -231,7 +231,7 @@ function MusterRollPage() {
   const { data: employees, isLoading, error: rosterError } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
     queryFn: async () => {
-      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, date_of_birth, is_enabled, status, role_key, non_billable";
+      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, offboarded_at, date_of_birth, is_enabled, status, role_key, non_billable";
 
       const { data: prim, error: primError } = await supabase
         .from("candidates")
@@ -1167,6 +1167,10 @@ function MusterRollPage() {
       // historical sheet when they joined after the period AND have no
       // attendance recorded in it (i.e. they belong to a later month).
       if (emp.doj && emp.doj > periodEnd && !candidatesWithEntries.has(emp.id)) continue;
+      // Same rule on the exit side: someone who left before this period started
+      // and has no attendance in it belongs to earlier months only.
+      const leftOn = (emp as { left_on?: string }).left_on;
+      if (leftOn && leftOn < periodStart && !candidatesWithEntries.has(emp.id)) continue;
       // A guard may be deployed at many units — "is_home_mapped" here means
       // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
