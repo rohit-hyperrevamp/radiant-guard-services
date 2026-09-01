@@ -1160,6 +1160,9 @@ function MusterRollPage() {
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
 
     for (const emp of employees ?? []) {
+      // Historical sheets must only show employees who had joined by the end
+      // of that payroll period. Later unit assignments belong to later months.
+      if (emp.doj && emp.doj > periodEnd) continue;
       // A guard may be deployed at many units — "is_home_mapped" here means
       // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
@@ -1270,7 +1273,7 @@ function MusterRollPage() {
           a.i - b.i,
       )
       .map((x) => x.r);
-  }, [employees, entries, extraRows, contractDesignations]);
+  }, [employees, entries, extraRows, contractDesignations, periodEnd]);
 
   // Client-side filter: name / employee_code / designation substring match.
   const visibleMusterRows = useMemo(() => {
