@@ -76,10 +76,25 @@ function num(value: unknown) {
 export const extractMigrationSheet = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<MigrationSheetResult> => {
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("AI service is not configured. Please contact support.");
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(key);
+    const gatewayKey = process.env["LOVABLE_API_KEY"];
+    const geminiKey = process.env["GEMINI_API_KEY"];
+    if (!gatewayKey && !geminiKey) {
+      throw new Error("AI service is not configured. Please contact support.");
+    }
+
+    let model;
+    if (gatewayKey) {
+      const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+      model = createLovableAiGatewayProvider(gatewayKey)("google/gemini-2.5-flash");
+    } else {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
+      model = createOpenAICompatible({
+        name: "google",
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+        apiKey: geminiKey,
+      })("gemini-2.5-flash");
+    }
+
 
     const prompt = [
       `Allowed attendance codes: ${data.codes.map((c) => `${c.code} = ${c.label}`).join(", ")}`,
@@ -90,7 +105,7 @@ export const extractMigrationSheet = createServerFn({ method: "POST" })
     ].join("\n\n");
 
     const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash"),
+      model,
       system: SYSTEM_PROMPT,
       temperature: 0,
       messages: [

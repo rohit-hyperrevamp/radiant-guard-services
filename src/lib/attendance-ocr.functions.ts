@@ -185,8 +185,10 @@ export const extractAttendanceFromImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<AttendanceOcrResult> => {
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI service is not configured. Please contact support.");
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!key && !geminiKey) {
+      throw new Error("AI service is not configured. Please contact support.");
+    }
 
     const employeeList = data.employees
       .map(
@@ -199,9 +201,21 @@ export const extractAttendanceFromImage = createServerFn({ method: "POST" })
 
     const promptText = `Allowed attendance codes:\n${codeList}\n\nPeriod dates (ONLY emit rows for dates whose day-of-month is actually visible as a column on the sheet):\n${dateList}\n\nEmployees — each line is ONE allowed (candidate_id, designation_id) pair. The SAME person may appear multiple times with DIFFERENT designation_id values when they worked under more than one role this period. Match each printed muster row to the pair whose name/code AND printed designation column best match what is written on the sheet:\n${employeeList}\n\nIn output rows and row_summaries, ALWAYS include BOTH candidate_id AND designation_id from the matched pair above (copy the designation_id verbatim, or use empty string "" if the pair line shows designation_id=""). If the sheet shows a person under a designation that does NOT appear in any pair for that candidate, add the visible name to unmatched_names instead of guessing. Return ONLY a JSON object in this shape:\n{"rows":[{"candidate_id":"uuid","designation_id":"uuid-or-empty","entry_date":"YYYY-MM-DD","code":"P","ot_hours":0,"confident":true}],"row_summaries":[{"candidate_id":"uuid","designation_id":"uuid-or-empty","p_days":26.5,"ot_days":18.5,"t_days":45,"confident":true}],"unmatched_names":[],"notes":"visible_days=NN"}`;
 
-    const gateway = createLovableAiGatewayProvider(key);
-    // Use Gemini 3 Flash preview — multimodal, ~5-10x faster than 2.5-pro for OCR while keeping strong accuracy on handwritten musters.
-    const model = gateway("google/gemini-2.5-flash");
+    // Multimodal Gemini Flash — fast and accurate on handwritten musters.
+    // Prefer the Lovable AI gateway; fall back to the direct Gemini key when the
+    // gateway key is not present in this runtime.
+    let model;
+    if (key) {
+      const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+      model = createLovableAiGatewayProvider(key)("google/gemini-2.5-flash");
+    } else {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
+      model = createOpenAICompatible({
+        name: "google",
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+        apiKey: geminiKey,
+      })("gemini-2.5-flash");
+    }
 
     const { text } = await generateText({
       model,
