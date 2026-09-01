@@ -72,7 +72,6 @@ import { Route as AdminInvoiceIndexRouteImport } from './routes/admin.invoice.in
 import { Route as AdminFieldSenseIndexRouteImport } from './routes/admin.field-sense.index'
 import { Route as AdminAttendanceIndexRouteImport } from './routes/admin.attendance.index'
 import { Route as ApiPublicOtpHealthRouteImport } from './routes/api/public/otp-health'
-import { Route as ApiPublicEnvcheckRouteImport } from './routes/api/public/envcheck'
 import { Route as AdminVehiclesServiceManagerRouteImport } from './routes/admin.vehicles.service-manager'
 import { Route as AdminVehiclesPucsRouteImport } from './routes/admin.vehicles.pucs'
 import { Route as AdminVehiclesInventoryRouteImport } from './routes/admin.vehicles.inventory'
@@ -440,11 +439,6 @@ const ApiPublicOtpHealthRoute = ApiPublicOtpHealthRouteImport.update({
   path: '/api/public/otp-health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicEnvcheckRoute = ApiPublicEnvcheckRouteImport.update({
-  id: '/api/public/envcheck',
-  path: '/api/public/envcheck',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminVehiclesServiceManagerRoute =
   AdminVehiclesServiceManagerRouteImport.update({
     id: '/service-manager',
@@ -769,7 +763,6 @@ export interface FileRoutesByFullPath {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
-  '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
   '/admin/field-sense/': typeof AdminFieldSenseIndexRoute
@@ -874,7 +867,6 @@ export interface FileRoutesByTo {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
-  '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance': typeof AdminAttendanceIndexRoute
   '/admin/field-sense': typeof AdminFieldSenseIndexRoute
@@ -983,7 +975,6 @@ export interface FileRoutesById {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
-  '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
   '/admin/field-sense/': typeof AdminFieldSenseIndexRoute
@@ -1093,7 +1084,6 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
-    | '/api/public/envcheck'
     | '/api/public/otp-health'
     | '/admin/attendance/'
     | '/admin/field-sense/'
@@ -1198,7 +1188,6 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
-    | '/api/public/envcheck'
     | '/api/public/otp-health'
     | '/admin/attendance'
     | '/admin/field-sense'
@@ -1306,7 +1295,6 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
-    | '/api/public/envcheck'
     | '/api/public/otp-health'
     | '/admin/attendance/'
     | '/admin/field-sense/'
@@ -1324,7 +1312,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   WelcomeRoute: typeof WelcomeRoute
   DigilockerCallbackRoute: typeof DigilockerCallbackRoute
-  ApiPublicEnvcheckRoute: typeof ApiPublicEnvcheckRoute
   ApiPublicOtpHealthRoute: typeof ApiPublicOtpHealthRoute
   ApiPublicHooksDailyPeoplePingsRoute: typeof ApiPublicHooksDailyPeoplePingsRoute
   ApiPublicNativePushRoute: typeof ApiPublicNativePushRoute
@@ -1771,13 +1758,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/otp-health'
       fullPath: '/api/public/otp-health'
       preLoaderRoute: typeof ApiPublicOtpHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/envcheck': {
-      id: '/api/public/envcheck'
-      path: '/api/public/envcheck'
-      fullPath: '/api/public/envcheck'
-      preLoaderRoute: typeof ApiPublicEnvcheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/vehicles/service-manager': {
@@ -2355,7 +2335,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   WelcomeRoute: WelcomeRoute,
   DigilockerCallbackRoute: DigilockerCallbackRoute,
-  ApiPublicEnvcheckRoute: ApiPublicEnvcheckRoute,
   ApiPublicOtpHealthRoute: ApiPublicOtpHealthRoute,
   ApiPublicHooksDailyPeoplePingsRoute: ApiPublicHooksDailyPeoplePingsRoute,
   ApiPublicNativePushRoute: ApiPublicNativePushRoute,
