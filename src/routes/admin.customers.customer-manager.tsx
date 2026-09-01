@@ -85,11 +85,13 @@ function CustomerManagerPage() {
   const [viewingUnits, setViewingUnits] = useState<Customer | null>(null);
 
   const rows = useMemo(() => {
-    const list = [...customers].sort((a, b) => {
-      const na = parseInt(a.code.replace(/\D/g, ""), 10) || 0;
-      const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
-      return na - nb;
-    });
+    const list = [...customers]
+      .filter((c) => statusFilter === "all" || c.status === statusFilter)
+      .sort((a, b) => {
+        const na = parseInt(a.code.replace(/\D/g, ""), 10) || 0;
+        const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
+        return na - nb;
+      });
     if (!query.trim()) return list;
     const q = query.trim().toLowerCase();
     return list.filter(
@@ -100,7 +102,7 @@ function CustomerManagerPage() {
         c.phone.toLowerCase().includes(q) ||
         c.address.toLowerCase().includes(q),
     );
-  }, [customers, query]);
+  }, [customers, query, statusFilter]);
 
   const activeCount = customers.filter((c) => c.status === "active").length;
 
