@@ -37,6 +37,7 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
   const [session, setSession] = useState<DigilockerSession | null>(null);
   const [qr, setQr] = useState<string>("");
   const [polling, setPolling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
   const clean = (aadhaar ?? "").replace(/\D/g, "");
@@ -71,23 +72,40 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
     }
   };
 
+  const pullDetails = async (clientId: string, silent: boolean) => {
+    try {
+      const profile = await fetchProfile({ data: { clientId } });
+      if (!profile.completed || !profile.full_name) {
+        if (!silent) toast.info(profile.message || "Waiting for the candidate to finish DigiLocker");
+        return false;
+      }
+      if (pollRef.current) window.clearInterval(pollRef.current);
+      setPolling(false);
+      setOpen(false);
+      setError(null);
+      onVerified(profile);
+      toast.success("DigiLocker verified — details filled in");
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not read DigiLocker status";
+      setError(message);
+      if (!silent) toast.error(message);
+      return false;
+    }
+  };
+
   const beginPolling = (clientId: string) => {
     if (pollRef.current) window.clearInterval(pollRef.current);
     setPolling(true);
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const profile = await fetchProfile({ data: { clientId } });
-        if (!profile.completed) return;
+    let ticks = 0;
+    pollRef.current = window.setInterval(() => {
+      ticks += 1;
+      if (ticks > 75) {
         if (pollRef.current) window.clearInterval(pollRef.current);
         setPolling(false);
-        setOpen(false);
-        onVerified(profile);
-        toast.success("DigiLocker verified — details filled in");
-      } catch (error) {
-        if (pollRef.current) window.clearInterval(pollRef.current);
-        setPolling(false);
-        toast.error(error instanceof Error ? error.message : "Could not read DigiLocker status");
+        return;
       }
+      void pullDetails(clientId, true);
     }, 4000);
   };
 
@@ -178,6 +196,17 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 {polling && <Loader2 className="h-3 w-3 animate-spin" />} Waiting for the candidate to complete…
               </p>
+              {error && <p className="text-center text-[11px] text-destructive">{error}</p>}
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void pullDetails(session.client_id, false)}
+                >
+                  Fetch details now
+                </Button>
+              </div>
             </div>
           )}
         </div>

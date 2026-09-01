@@ -1671,6 +1671,30 @@ export type Database = {
         }
         Relationships: []
       }
+      digilocker_sessions: {
+        Row: {
+          client_id: string
+          created_at: string
+          profile: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          profile?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          profile?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       duties: {
         Row: {
           created_at: string

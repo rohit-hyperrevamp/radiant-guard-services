@@ -84,6 +84,37 @@ async function surepass<T>(
 
 const s = (v: unknown) => String(v ?? "").trim();
 
+/** Persisted cache so a DigiLocker download (one-shot at Surepass) can be replayed into the form. */
+async function readCachedProfile(clientId: string): Promise<DigilockerProfile | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("digilocker_sessions")
+      .select("profile")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    const profile = (data as { profile?: unknown } | null)?.profile;
+    return profile ? (profile as DigilockerProfile) : null;
+  } catch (error) {
+    console.error("[surepass] cache read failed", error);
+    return null;
+  }
+}
+
+async function writeCachedProfile(clientId: string, profile: DigilockerProfile): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("digilocker_sessions")
+      .upsert(
+        { client_id: clientId, profile: JSON.parse(JSON.stringify(profile)), status: "completed", updated_at: new Date().toISOString() },
+        { onConflict: "client_id" },
+      );
+  } catch (error) {
+    console.error("[surepass] cache write failed", error);
+  }
+}
+
 export const validateAadhaarNumber = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -179,13 +210,35 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       message: s(status.message) || (completed ? "DigiLocker completed" : "Waiting for the candidate to finish"),
     };
 
-    if (!completed) return empty;
+    if (!completed) {
+      // A cached profile means the download already succeeded earlier in this session.
+      const cached = await readCachedProfile(data.clientId);
+      return cached ?? empty;
+    }
 
-    const aadhaar = await surepass<Record<string, unknown>>(
-      `/api/v1/digilocker/download-aadhaar/${encodeURIComponent(data.clientId)}`,
-      { method: "GET" },
-    );
-    const a = (aadhaar.data ?? {}) as Record<string, unknown>;
+    // Surepass allows the Aadhaar download only once per client_id, so replay the cached copy.
+    const cached = await readCachedProfile(data.clientId);
+    if (cached && cached.full_name) return cached;
+
+    let a: Record<string, unknown>;
+    try {
+      const aadhaar = await surepass<Record<string, unknown>>(
+        `/api/v1/digilocker/download-aadhaar/${encodeURIComponent(data.clientId)}`,
+        { method: "GET" },
+      );
+      a = (aadhaar.data ?? {}) as Record<string, unknown>;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      if (/already\s*download/i.test(detail)) {
+        const replay = await readCachedProfile(data.clientId);
+        if (replay && replay.full_name) return replay;
+        throw new Error(
+          "DigiLocker already released this Aadhaar for the previous attempt. Start DigiLocker again to pull the details.",
+        );
+      }
+      throw error;
+    }
+
     const address = (a["address"] ?? {}) as Record<string, unknown>;
 
     const house = s(address["house"]);
@@ -193,7 +246,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
     const loc = s(address["loc"]);
     const vtc = s(address["vtc"]);
 
-    return {
+    const profile: DigilockerProfile = {
       ...empty,
       status: "completed",
       full_name: s(a["name"]) || s(a["full_name"]),
@@ -210,4 +263,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       country: s(address["country"]) || "India",
       message: "Verified via DigiLocker",
     };
+
+    await writeCachedProfile(data.clientId, profile);
+    return profile;
   });
