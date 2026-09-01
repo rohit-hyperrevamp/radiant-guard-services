@@ -198,17 +198,15 @@ export const hasCompletedDigilockerVerification = createServerFn({ method: "POST
   )
   .handler(async ({ data }): Promise<boolean> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    const { data: match, error } = await supabaseAdmin
       .from("digilocker_sessions")
-      .select("profile")
+      .select("client_id")
       .eq("status", "completed")
-      .limit(100);
+      .contains("profile", { aadhaar_number: data.aadhaar })
+      .limit(1)
+      .maybeSingle();
     if (error) throw error;
-    return (rows ?? []).some((row) => {
-      const profile = (row as { profile?: unknown }).profile;
-      if (!profile || typeof profile !== "object" || Array.isArray(profile)) return false;
-      return s((profile as Record<string, unknown>)["aadhaar_number"]).replace(/\D/g, "") === data.aadhaar;
-    });
+    return Boolean(match);
   });
 
 export const startDigilockerSession = createServerFn({ method: "POST" })
