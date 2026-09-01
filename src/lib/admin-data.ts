@@ -831,10 +831,23 @@ export function useUnits() {
     queryKey: QK_UNITS,
     enabled,
     queryFn: async (): Promise<Unit[]> => {
-      const { data, error } = await supabase.from("units").select("*");
-      if (error) throw error;
-      return ((data ?? []) as UnitRow[]).map(rowToUnit);
+      // PostgREST caps a single response at 1000 rows — page through everything.
+      const pageSize = 1000;
+      const all: UnitRow[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("units")
+          .select("*")
+          .order("code", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as UnitRow[];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+      }
+      return all.map(rowToUnit);
     },
+
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: QK_UNITS });
