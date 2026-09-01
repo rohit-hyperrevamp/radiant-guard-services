@@ -52,7 +52,7 @@ async function surepass<T>(
   init: { method: "GET" | "POST"; body?: unknown },
 ): Promise<SurepassEnvelope<T>> {
   const token = process.env["SUREPASS_TOKEN"];
-  const baseUrl = process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.app";
+  const baseUrl = (process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.io").replace(/\/+$/, "");
   if (!token) throw new Error("SUREPASS_TOKEN is not configured");
 
   const res = await fetch(`${baseUrl}${path}`, {
