@@ -115,10 +115,18 @@ function contractEsiAmounts(resource: {
   };
 }
 
+/** Billing add-ons that sit after Total CTC on the contract rate card. */
+const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String(x?.name ?? ""));
+const isMgmtFeeLine = (x: { name?: unknown }) =>
+  /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
+
 /**
- * Contracted (final billing) value per head per month = wage components +
- * every employer cost line, including ESI. ESI rows with a configured formula
- * use their evaluated amount; rows without one fall back to the statutory calc.
+ * Contracted value per head per month = exactly the contract card's
+ * FINAL BILLING RATE: gross (wage components + core benefits) + employer cost
+ * lines (Total CTC) + reliever charges + management fee. ESI rows with a
+ * configured formula use their stored amount; rows without one fall back to
+ * the statutory calc.
  */
 function contractBillableMonthly(resource: {
   components: RateCardItem[];
@@ -127,12 +135,18 @@ function contractBillableMonthly(resource: {
   employerContributions?: RateCardItem[];
 }): number {
   const esi = contractEsiAmounts(resource);
-  const gross = (resource.components ?? []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const employer = (resource.employerContributions ?? []).reduce(
-    (s, b) => s + (isStatutoryEsi(b) ? esi.employer : Number(b.amount) || 0),
-    0,
-  );
-  return Math.round((gross + employer) * 100) / 100;
+  const all = [...(resource.employerContributions ?? []), ...(resource.benefits ?? [])];
+  const gross =
+    (resource.components ?? []).reduce((s, c) => s + (Number(c.amount) || 0), 0) +
+    (resource.benefits ?? [])
+      .filter((b) => !isBillingAddOn(b))
+      .reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const employer = (resource.employerContributions ?? [])
+    .filter((b) => !isBillingAddOn(b))
+    .reduce((s, b) => s + (isStatutoryEsi(b) ? esi.employer : Number(b.amount) || 0), 0);
+  const reliever = all.filter(isRelieverLine).slice(0, 1).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const mgmtFee = all.filter(isMgmtFeeLine).slice(0, 1).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  return Math.round((gross + employer + reliever + mgmtFee) * 100) / 100;
 }
 
 
