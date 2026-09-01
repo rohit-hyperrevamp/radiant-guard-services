@@ -116,7 +116,7 @@ function CustomerManagerPage() {
         icon={Network}
         description="Onboard organisations and manage their contract details."
         crumbs={[
-          { label: "Organizations", to: "/admin/customers" },
+          { label: "Organizations", to: "/admin/customers/customer-manager" },
           { label: "Organization Manager" },
         ]}
         kpis={

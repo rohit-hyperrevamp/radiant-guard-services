@@ -39,7 +39,7 @@ export function PageHeader({
         <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <li>
             <Link
-              to="/admin/customers"
+              to="/admin/customers/customer-manager"
               className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
             >
               <Home className="h-3 w-3" />
