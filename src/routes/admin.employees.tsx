@@ -30,7 +30,6 @@ import {
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createClientOnlyFn, useServerFn } from "@tanstack/react-start";
 import {
   Camera,
   Check,
@@ -4643,21 +4642,6 @@ function maskAadhaar(n: string) {
 // ---------------- Wizard ---------------- //
 type WizardStep = "aadhaar" | "otp" | "form";
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
-    promise.then(
-      (value) => {
-        window.clearTimeout(timeoutId);
-        resolve(value);
-      },
-      (error) => {
-        window.clearTimeout(timeoutId);
-        reject(error);
-      },
-    );
-  });
-}
 
 type CandidateForm = Omit<Candidate, "id"> & {
   /** Application role (role key from public.roles). Mandatory for non-billable employees. */
