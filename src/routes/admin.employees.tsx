@@ -5298,7 +5298,9 @@ function CandidateWizard({
       ...basePayload,
       status,
       designation_id: form.designation_id ?? editing?.designation_id ?? null,
-      role_key: (form.role_key ?? "").trim() || null,
+      // Never write a null role_key (NOT NULL in DB) — omit it when unset so the
+      // insert can fall back and updates keep the existing role.
+      ...((form.role_key ?? "").trim() ? { role_key: (form.role_key ?? "").trim() } : {}),
       emergency_contact_name: emergencyContact?.name ?? "",
       emergency_contact_relation: emergencyContact?.relation ?? "",
       emergency_contact_mobile: emergencyContact?.mobile ?? "",
