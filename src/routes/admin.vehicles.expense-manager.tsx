@@ -203,6 +203,7 @@ function ExpenseManagerPage() {
     }
   }), [filtered, sort.sort, vehMap]);
 
+  const pg = usePagination(sortedFiltered);
 
   const stats = useMemo(() => {
     const totalSpend = filtered.reduce((s, e) => s + (e.amount || 0), 0);
@@ -409,7 +410,7 @@ function ExpenseManagerPage() {
                   </td>
                 </tr>
               )}
-              {sortedFiltered.map((e) => (
+              {pg.pageRows.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/20">
                   <td className="px-3 py-2.5 whitespace-nowrap">
                     <div className="font-medium">{fmtDate(e.entry_date)}</div>
@@ -494,6 +495,7 @@ function ExpenseManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <AddEntryDialog
