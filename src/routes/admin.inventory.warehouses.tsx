@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/inventory/warehouses")({ component: WarehousesPage });
 
@@ -68,6 +69,7 @@ function WarehousesPage() {
   }, [items, query]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const pg = usePagination(filtered);
 
   const addMut = useMutation({
     mutationFn: async (p: Payload) => {
@@ -129,7 +131,7 @@ function WarehousesPage() {
               <tr><th className="px-5 py-3">Code</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Address</th><th className="px-5 py-3">City</th><th className="px-5 py-3">Default</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right" data-col="actions">Actions</th></tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((w) => (
+              {pg.pageRows.map((w) => (
                 <tr key={w.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{w.warehouse_code}</td>
                   <td className="px-5 py-3 font-medium"><span className="inline-flex items-center gap-2"><Warehouse className="h-4 w-4 text-muted-foreground" />{w.name}</span></td>
@@ -144,6 +146,7 @@ function WarehousesPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <WHFormDialog open={addOpen} onOpenChange={setAddOpen} title="Add Warehouse" onSubmit={async (p) => { try { await addMut.mutateAsync(p); toast.success("Warehouse added"); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />

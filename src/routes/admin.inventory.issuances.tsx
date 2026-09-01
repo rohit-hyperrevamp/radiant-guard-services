@@ -19,6 +19,7 @@ import { useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 
 
@@ -260,6 +261,7 @@ function IssuancesPage() {
   });
 
   const demandInfo = useDemandRequesters(filtered.map((i) => i.demand_id));
+  const pg = usePagination(filtered);
 
   return (
     <div>
@@ -304,7 +306,7 @@ function IssuancesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => {
+              {pg.pageRows.map((i) => {
                 const info = i.demand_id ? demandInfo.get(i.demand_id) : null;
                 return (
                 <tr key={i.id} className="hover:bg-secondary/30">
@@ -342,6 +344,7 @@ function IssuancesPage() {
               {!filtered.length && <tr><td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground"><UserCheck className="mx-auto mb-2 h-8 w-8 opacity-40" />No issuances yet.</td></tr>}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

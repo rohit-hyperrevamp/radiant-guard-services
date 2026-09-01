@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/offboarding-reason-manager")({
   component: OffboardingReasonManagerPage,
@@ -143,6 +144,7 @@ function OffboardingReasonManagerPage() {
       (i) => i.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q),
     );
   }, [items, query]);
+  const pg = usePagination(filtered);
 
   return (
     <div>
@@ -217,7 +219,7 @@ function OffboardingReasonManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -276,6 +278,7 @@ function OffboardingReasonManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <ReasonFormDialog

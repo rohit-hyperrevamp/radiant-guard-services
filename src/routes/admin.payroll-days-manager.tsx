@@ -51,6 +51,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/payroll-days-manager")({
   component: PayrollDaysManagerPage,
@@ -306,6 +307,8 @@ function PayrollDaysManagerPage() {
     );
   }, [items, query]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -409,7 +412,7 @@ function PayrollDaysManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => {
+              {pg.pageRows.map((i) => {
                 const meta = METHOD_META[i.method];
                 const Icon = meta.icon;
                 return (
@@ -508,6 +511,7 @@ function PayrollDaysManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <PayrollDayBaseFormDialog

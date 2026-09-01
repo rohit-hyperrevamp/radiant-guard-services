@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, Shield } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -139,6 +140,8 @@ function ExServiceManagerPage() {
     );
   }, [items, query]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -206,7 +209,7 @@ function ExServiceManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -263,6 +266,7 @@ function ExServiceManagerPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

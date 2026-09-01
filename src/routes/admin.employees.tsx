@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { NOMANS_UNIT_ID as NOMANS_UNIT_ID_CONST } from "@/lib/business-constants";
 import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
 import {
@@ -1683,6 +1684,9 @@ function EmployeesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [candidates, rehireByCandidate, search, isFieldOfficer, currentUserId, scopedUnitIdSet],
   );
+
+  const pgEmployees = usePagination(employees);
+  const pgCandidates = usePagination(candidateRows);
 
   // ---------------- Export ---------------- //
   const [exporting, setExporting] = useState(false);
@@ -3446,13 +3450,13 @@ function EmployeesPage() {
     );
   };
 
-  const renderTable = (rows: CandidateListItem[], mode: "employee" | "candidate") => (
+  const renderTable = (rows: CandidateListItem[], mode: "employee" | "candidate", pg: ReturnType<typeof usePagination<CandidateListItem>>) => (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20 sm:rounded-3xl">
       <div className="flex items-center justify-between border-b border-border bg-accent/10 px-3 py-2 text-xs font-medium text-foreground sm:px-5 sm:py-2.5">
         <span className="inline-flex items-center gap-2"><span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">{rows.length}</span><span className="uppercase tracking-[0.14em] text-muted-foreground">Total {rows.length === 1 ? "row" : "rows"}</span></span>
       </div>
       <div className="p-2.5 md:hidden">
-        {renderMobileCards(rows, mode)}
+        {renderMobileCards(pg.pageRows, mode)}
       </div>
       <div className="hidden w-full overflow-x-auto md:block">
         <table className="ios-table w-full table-auto text-sm 2xl:min-w-[1480px]">
@@ -3519,8 +3523,9 @@ function EmployeesPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/50">{renderRows(rows, mode)}</tbody>
+          <tbody className="divide-y divide-border/50">{renderRows(pg.pageRows, mode)}</tbody>
         </table>
+        <DataPagination {...pg} />
       </div>
     </div>
   );
@@ -3996,14 +4001,14 @@ function EmployeesPage() {
               unitMap={unitMap}
             />
           ) : (
-            renderTable(employees, "employee")
+            renderTable(employees, "employee", pgEmployees)
           )}
         </TabsContent>
         <TabsContent value="candidate" className="mt-0">
           <div className="mb-4">
             <RehireApprovalsCard onReview={(request) => setRehireReviewTarget(request)} />
           </div>
-          {renderTable(candidateRows, "candidate")}
+          {renderTable(candidateRows, "candidate", pgCandidates)}
         </TabsContent>
       </Tabs>
 

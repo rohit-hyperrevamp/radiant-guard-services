@@ -18,6 +18,7 @@ import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 
 
@@ -234,6 +235,7 @@ function GRNPage() {
   const grnDemandId = (g: GRN): string | null =>
     g.demand_id ?? (g.transfer_id ? transferDemandMap.get(g.transfer_id) ?? null : null);
   const demandInfo = useDemandRequesters(filtered.map((g) => grnDemandId(g)));
+  const pg = usePagination(filtered);
 
 
   const invalidate = () => {
@@ -286,7 +288,7 @@ function GRNPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((g) => {
+              {pg.pageRows.map((g) => {
                 const agg = lineAgg.get(g.id) ?? { products: 0, qty: 0, value: 0 };
                 const did = grnDemandId(g);
                 const info = did ? demandInfo.get(did) : null;
@@ -328,6 +330,7 @@ function GRNPage() {
               {!filtered.length && <tr><td colSpan={11} className="px-5 py-12 text-center text-sm text-muted-foreground"><PackageCheck className="mx-auto mb-2 h-8 w-8 opacity-40" />No delivery challans yet.</td></tr>}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

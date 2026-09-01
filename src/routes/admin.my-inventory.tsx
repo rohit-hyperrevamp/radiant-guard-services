@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { statusBadgeClass, postMovements, type LocationType } from "@/lib/inv-helpers";
 import { DashboardSkeleton } from "@/components/Skeletons";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 
 export const Route = createFileRoute("/admin/my-inventory")({ component: MyInventoryPage });
@@ -126,6 +127,7 @@ function MyInventoryPage() {
 
 
   const pending = issuances.filter((i) => i.status === "issued");
+  const pg = usePagination(holdings);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["my-issuances"] });
@@ -234,7 +236,7 @@ function MyInventoryPage() {
               <tr><th className="px-4 py-2">Item</th><th className="px-4 py-2">Size</th><th className="px-4 py-2 text-right">Qty</th></tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {holdings.map((h) => (
+              {pg.pageRows.map((h) => (
                 <tr key={`${h.item_id}-${h.size_value}`}>
                   <td className="px-4 py-2 font-medium">{itemMap.get(h.item_id)?.name ?? "—"}</td>
                   <td className="px-4 py-2 text-muted-foreground">{h.size_value || "—"}</td>
@@ -244,6 +246,7 @@ function MyInventoryPage() {
             </tbody>
           </table>
         )}
+        {holdings.length > 0 && <DataPagination {...pg} />}
       </section>
     </DashboardShell>
   );

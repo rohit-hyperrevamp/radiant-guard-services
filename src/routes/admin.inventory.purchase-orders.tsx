@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useItemSizeOptions, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 // PO status → user-facing delivery label. Legacy "approved" maps to Delivery Open.
 const PO_STATUS_LABEL: Record<string, string> = {
@@ -200,6 +201,7 @@ function POPage() {
       return p.po_number.toLowerCase().includes(q) || v.toLowerCase().includes(q);
     });
   }, [pos, query, statusFilter, vendorMap]);
+  const pg = usePagination(filtered);
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["inv", "pos"] });
     qc.invalidateQueries({ queryKey: ["inv", "po-line-agg"] });
@@ -307,7 +309,7 @@ function POPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((p) => {
+              {pg.pageRows.map((p) => {
                 const agg = lineAgg.get(p.id) ?? { products: 0, qty: 0 };
                 const canEdit = p.status !== "cancelled";
                 const canDownload = p.status !== "draft" && p.status !== "cancelled";
@@ -354,6 +356,7 @@ function POPage() {
               {!filtered.length && <tr><td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground"><FileText className="mx-auto mb-2 h-8 w-8 opacity-40" />No purchase orders yet. Click <span className="font-semibold text-foreground">Order from Vendor</span> to create your first PO.</td></tr>}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

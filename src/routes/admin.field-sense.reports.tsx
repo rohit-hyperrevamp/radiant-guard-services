@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
 import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 import radiantLogo from "@/assets/radiant-logo-v2.png";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/field-sense/reports")({
   component: () => (<FieldSenseAdminGuard sub="reports"><ReportsPage /></FieldSenseAdminGuard>),
@@ -70,6 +71,7 @@ function ReportsPage() {
   const [customerId, setCustomerId] = useState<string>("");
   const [unitIds, setUnitIds] = useState<string[]>([]); // empty = all
   const [downloading, setDownloading] = useState(false);
+
 
   const range = useMemo(
     () => resolveRange(preset, customStart || null, customEnd || null),
@@ -141,6 +143,7 @@ function ReportsPage() {
   });
 
   const visits = visitQ.data?.visits ?? [];
+  const pg = usePagination(visits);
   const candMap = visitQ.data?.candMap ?? new Map<string, Candidate>();
   const unitMap = useMemo(() => new Map((unitQ.data ?? []).map((u) => [u.id, u])), [unitQ.data]);
   const customer = (custQ.data ?? []).find((c) => c.id === customerId) ?? null;
@@ -341,7 +344,7 @@ function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {visits.map((v) => (
+                {pg.pageRows.map((v) => (
                   <tr key={v.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30">
                     <td className="px-3 py-2 font-semibold text-foreground whitespace-nowrap">{fmtDate(v.visit_date)}</td>
                     <td className="px-3 py-2 text-foreground">{unitMap.get(v.unit_id)?.name || unitMap.get(v.unit_id)?.code || "—"}</td>
@@ -365,6 +368,7 @@ function ReportsPage() {
                 ))}
               </tbody>
             </table>
+            <DataPagination {...pg} />
           </div>
         )}
       </div>

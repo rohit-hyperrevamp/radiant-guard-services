@@ -30,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/system-logs")({
   component: SystemLogsPage,
@@ -164,6 +165,8 @@ function SystemLogsPage() {
         l.error_message.toLowerCase().includes(t),
     );
   }, [logs, text]);
+
+  const pg = usePagination(filtered);
 
   return (
     <div>
@@ -325,7 +328,7 @@ function SystemLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((l) => (
+              {pg.pageRows.map((l) => (
                 <tr
                   key={l.id}
                   className="cursor-pointer hover:bg-secondary/30"
@@ -375,6 +378,7 @@ function SystemLogsPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader, PageStat } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,6 +88,8 @@ function BranchManagerPage() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [states, mappedStateIds],
   );
+
+  const pg = usePagination(rows);
 
   function openAdd() {
     setEditing(null);
@@ -187,7 +190,7 @@ function BranchManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((b) => (
+              {pg.pageRows.map((b) => (
                 <tr key={b.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-mono text-xs font-semibold text-foreground">
                     {b.code}
@@ -240,6 +243,7 @@ function BranchManagerPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

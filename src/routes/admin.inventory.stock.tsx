@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
 export const Route = createFileRoute("/admin/inventory/stock")({ component: StockPage });
@@ -182,6 +183,7 @@ function StockPage() {
   }, [balances, itemMap]);
 
   const totalQty = rows.reduce((s, r) => s + r.qty, 0);
+  const pg = usePagination(rows);
 
   // ---------- Pretty XLSX one-click report ----------
   function downloadFullReport() {
@@ -420,7 +422,7 @@ function StockPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => (
+              {pg.pageRows.map((r) => (
                 <tr key={r.key} className={r.low ? "bg-amber-500/5" : "hover:bg-secondary/30"}>
                   <td className="px-5 py-3 font-medium">{r.holder_label}</td>
                   <td className="px-5 py-3">
@@ -441,6 +443,7 @@ function StockPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
     </div>
   );

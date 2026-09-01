@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate } from "@/lib/vehicle-helpers";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/assets/loan-manager")({
   component: LoanManagerPage,
@@ -207,6 +208,8 @@ function LoanManagerPage() {
     })));
   }
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -248,7 +251,7 @@ function LoanManagerPage() {
                   <Banknote className="mx-auto mb-2 h-6 w-6 opacity-40" /> No loans recorded yet.
                 </td></tr>
               )}
-              {filtered.map((it) => (
+              {pg.pageRows.map((it) => (
                 <tr key={it.id} className="hover:bg-muted/30">
                   <td className="px-5 py-3 font-semibold">{propMap.get(it.property_id) ?? "—"}</td>
                   <td className="px-5 py-3">{it.lender_name}</td>
@@ -273,6 +276,7 @@ function LoanManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

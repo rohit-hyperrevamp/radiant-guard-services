@@ -12,6 +12,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { createNotification } from "@/lib/notifications";
 import { toast } from "sonner";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/inventory/caps")({
   component: CapsPage,
@@ -423,6 +424,7 @@ function CapsTable({
   onEdit: (r: Row) => void;
   onResetOverride: (r: Row) => void;
 }) {
+  const pg = usePagination(rows);
   return (
     <div className="rounded-2xl border bg-card">
       <div className="flex items-center gap-2 px-5 py-3 border-b">
@@ -444,7 +446,7 @@ function CapsTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {pg.pageRows.map((r) => {
               const s = statusFor(r.value, r.min, r.max);
               const pct = r.max > 0 ? Math.min(100, Math.round((r.value / r.max) * 100)) : 0;
               const barColor = s === "red" ? "bg-rose-500" : s === "amber" ? "bg-amber-500" : "bg-emerald-500";
@@ -487,6 +489,7 @@ function CapsTable({
             )}
           </tbody>
         </table>
+        <DataPagination {...pg} />
       </div>
     </div>
   );

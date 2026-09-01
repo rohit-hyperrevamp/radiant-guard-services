@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -235,6 +236,8 @@ function AllowanceManagerPage() {
     return Array.from(set);
   };
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -315,7 +318,7 @@ function AllowanceManagerPage() {
             </thead>
             <tbody className="divide-y divide-border">
 
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
@@ -411,6 +414,7 @@ function AllowanceManagerPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <AllowanceFormDialog

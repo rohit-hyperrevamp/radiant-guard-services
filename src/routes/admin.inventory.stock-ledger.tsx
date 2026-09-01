@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/inventory/stock-ledger")({ component: StockLedgerPage });
 
@@ -317,6 +318,7 @@ function StockLedgerPage() {
   const totalCreditVal = rows.reduce((s, r) => s + r.credit_val, 0);
   const net = totalDebit - totalCredit;
   const netVal = totalDebitVal - totalCreditVal;
+  const pgMovement = usePagination(rows);
   const fmtInr = (n: number) => "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
   // ------- By-Item summary: opening + in/out (in period) + closing, per item+size -------
@@ -389,6 +391,7 @@ function StockLedgerPage() {
     return out;
   }, [view, movements, openingMoves, isVisible, holderType, holderId, q, itemMap]);
 
+  const pgItem = usePagination(itemRows);
   const itemTotals = useMemo(() => ({
     opening: itemRows.reduce((s, r) => s + r.opening, 0),
     in_qty: itemRows.reduce((s, r) => s + r.in_qty, 0),
@@ -680,7 +683,7 @@ function StockLedgerPage() {
               {isLoading && (
                 <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-muted-foreground">Loading ledger…</td></tr>
               )}
-              {!isLoading && rows.map((r) => (
+              {!isLoading && pgMovement.pageRows.map((r) => (
                 <tr key={r.id} className="hover:bg-secondary/30">
                   <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums whitespace-nowrap">{fmtWhen(r.when)}</td>
                   <td className="px-4 py-3 text-xs"><span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">{r.type}</span></td>
@@ -735,7 +738,7 @@ function StockLedgerPage() {
               {isLoading && (
                 <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-muted-foreground">Loading…</td></tr>
               )}
-              {!isLoading && itemRows.map((r) => (
+              {!isLoading && pgItem.pageRows.map((r) => (
                 <tr key={r.key} className="hover:bg-secondary/30">
                   <td className="px-4 py-3">
                     <span className="font-medium">{r.item_name}</span>
@@ -770,6 +773,7 @@ function StockLedgerPage() {
             )}
           </table>
           )}
+          {view === "movement" ? <DataPagination {...pgMovement} /> : <DataPagination {...pgItem} />}
         </div>
       </div>
     </div>

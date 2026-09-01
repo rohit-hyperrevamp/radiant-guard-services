@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,6 +193,8 @@ function UnitManagerPage() {
         u.customerLabel.toLowerCase().includes(q),
     );
   }, [units, branchById, customerById, stateById, query, statusFilter, orgFilter]);
+
+  const pg = usePagination(rows);
 
   const orgOptions = useMemo(
     () => [...customers].sort((a, b) => a.name.localeCompare(b.name)),
@@ -392,7 +395,7 @@ function UnitManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((u) => (
+              {pg.pageRows.map((u) => (
                 <tr key={u.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-mono text-xs font-semibold text-accent">{u.code}</td>
                   <td className="px-5 py-3 font-semibold text-foreground" data-wrap="true">{u.name}</td>
@@ -469,6 +472,7 @@ function UnitManagerPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

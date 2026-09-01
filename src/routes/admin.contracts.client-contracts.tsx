@@ -40,6 +40,7 @@ import {
 } from "@/lib/formula-engine";
 
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
@@ -2261,6 +2262,8 @@ function ClientContractsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enriched, query, statusFilter, orgFilter, unitFilter, tab, renewalOnly, renewalWindow]);
 
+  const pg = usePagination(filtered);
+
   const renewalCount6m = useMemo(
     () => items.filter(isUpForRenewal).length,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2601,7 +2604,7 @@ function ClientContractsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((c) => (
+              {pg.pageRows.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-mono text-xs font-semibold text-accent" data-col="code">
                     {tab === "client" ? c.contractCode : c.prospectCode}
@@ -2793,6 +2796,7 @@ function ClientContractsPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

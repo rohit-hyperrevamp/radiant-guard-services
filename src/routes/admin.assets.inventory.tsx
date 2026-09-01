@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate } from "@/lib/vehicle-helpers";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/assets/inventory")({
   component: AssetInventoryPage,
@@ -218,6 +219,8 @@ function AssetInventoryPage() {
     })));
   }
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -257,7 +260,7 @@ function AssetInventoryPage() {
                   No properties yet. Add the first one to get started.
                 </td></tr>
               )}
-              {filtered.map((it) => (
+              {pg.pageRows.map((it) => (
                 <tr key={it.id} className="hover:bg-muted/30">
                   <td className="px-5 py-3 font-semibold">{it.house_number}</td>
                   <td className="px-5 py-3">{it.name || "—"}</td>
@@ -283,6 +286,7 @@ function AssetInventoryPage() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

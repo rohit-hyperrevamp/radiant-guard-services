@@ -37,6 +37,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/vehicles/insight-lab")({
   component: InsightLabPage,
@@ -642,6 +643,7 @@ function ChartView({
   seriesKeys: string[];
   xLabel: string;
 }) {
+  const pg = usePagination(rows);
   if (kind === "table") {
     return (
       <div className="overflow-auto">
@@ -655,7 +657,7 @@ function ChartView({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {pg.pageRows.map((r, i) => (
               <tr key={i} className={cn(i % 2 ? "bg-muted/20" : "")}>
                 <td className="px-3 py-2 font-medium">{String(r.x)}</td>
                 {seriesKeys.map((s) => (
@@ -667,6 +669,7 @@ function ChartView({
             ))}
           </tbody>
         </table>
+        <DataPagination {...pg} />
       </div>
     );
   }
