@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader, PageStat } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,7 @@ function StateManagerPage() {
   }, [states, query]);
 
   const mappedCount = states.filter((s) => mappedStateIds.has(s.id)).length;
+  const pg = usePagination(filtered);
 
   return (
     <div>
@@ -155,7 +157,7 @@ function StateManagerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((s, i) => {
+              {pg.pageRows.map((s, i) => {
                 const mapped = mappedStateIds.has(s.id);
                 return (
                   <tr key={s.id} className="hover:bg-secondary/30">
@@ -211,6 +213,7 @@ function StateManagerPage() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 
