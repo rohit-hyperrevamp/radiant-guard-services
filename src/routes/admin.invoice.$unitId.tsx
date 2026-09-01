@@ -200,7 +200,7 @@ function contractBillableMonthly(resource: {
   const employer = coreEmployer.reduce((sum, item) => {
     const amount = isStatutoryEsi(item)
       ? esi.employer
-      : evaluateContractItem(item, components, benefits, coreEmployer, { ctc: gross, billingRate: gross });
+      : Number(item.amount) || 0;
     return sum + amount;
   }, 0);
   const totalCtc = gross + employer;
