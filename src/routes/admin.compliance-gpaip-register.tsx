@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Download, Search, ShieldPlus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,6 +188,8 @@ function GpaipRegisterPage() {
     return c;
   }, [members]);
 
+  const pg = usePagination(rows);
+
   const monthLabel = new Date(ym + "-01T00:00:00").toLocaleDateString("en-IN", {
     month: "long",
     year: "numeric",
@@ -345,7 +348,7 @@ function GpaipRegisterPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {rows.map((r, i) => (
+              {pg.pageRows.map((r, i) => (
                 <tr key={r.id} className="hover:bg-muted/30">
                   <td className="px-3 py-2 tabular-nums text-muted-foreground">{i + 1}</td>
                   <td className="px-3 py-2 text-muted-foreground">{r.code}</td>
@@ -367,6 +370,7 @@ function GpaipRegisterPage() {
               ))}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       )}
     </div>

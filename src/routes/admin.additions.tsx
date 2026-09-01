@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { PayrollTabs } from "@/components/PayrollTabs";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -159,6 +160,8 @@ function AdditionList() {
 
   const [deleting, setDeleting] = useState<Addition | null>(null);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PayrollTabs />
@@ -239,7 +242,7 @@ function AdditionList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => {
+              {pg.pageRows.map((i) => {
                 const emp = empMap.get(i.candidate_id);
                 const type = typeMap.get(i.addition_type_id);
                 return (
@@ -278,6 +281,7 @@ function AdditionList() {
             </tbody>
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>

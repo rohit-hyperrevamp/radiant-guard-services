@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,8 @@ function AdditionTypeManagerPage() {
     return items.filter((i) => i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s));
   }, [items, q]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div>
       <PageHeader
@@ -110,7 +113,7 @@ function AdditionTypeManagerPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((i) => (
+            {pg.pageRows.map((i) => (
               <tr key={i.id} className="hover:bg-secondary/30">
                 <td className="px-5 py-3 font-medium"><span className="inline-flex items-center gap-2"><TrendingUp className="h-4 w-4 text-muted-foreground" />{i.name}</span></td>
                 <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{i.code}</td>
@@ -128,6 +131,7 @@ function AdditionTypeManagerPage() {
             {filtered.length === 0 && <tr><td colSpan={4} className="px-5 py-12 text-center text-sm text-muted-foreground">No addition types.</td></tr>}
           </tbody>
         </table>
+        <DataPagination {...pg} />
       </div>
 
       <FormDialog
