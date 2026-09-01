@@ -87,6 +87,74 @@ function parseToken(token: string, allowed: Set<string>) {
   return { code, ot };
 }
 
+function normalizedCell(value: unknown) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function excelDateKey(value: unknown, dates: string[]) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  }
+  const raw = normalizedCell(value);
+  const iso = raw.match(/^(\d{4})[-/]([01]?\d)[-/]([0-3]?\d)$/);
+  if (iso) return `${iso[1]}-${iso[2]!.padStart(2, "0")}-${iso[3]!.padStart(2, "0")}`;
+  const day = raw.match(/^(?:[A-Za-z]{3,9}[ -])?([0-3]?\d)(?:st|nd|rd|th)?$/i);
+  if (!day) return null;
+  return dates.find((date) => Number(date.slice(-2)) === Number(day[1])) ?? null;
+}
+
+function parseSpreadsheetRows(
+  matrix: unknown[][],
+  dates: string[],
+  allowedCodes: Set<string>,
+  designations: Array<{ id: string; name: string }>,
+) {
+  const rows = matrix.filter((row) => row.some((cell) => normalizedCell(cell)));
+  if (!rows.length) return [];
+
+  const headerIndex = rows.findIndex((row) => {
+    const labels = row.map((cell) => normalizedCell(cell).toLowerCase());
+    return labels.some((label) => /^(employee )?name$|^guard name$|^staff name$/.test(label)) &&
+      row.filter((cell) => excelDateKey(cell, dates)).length > 0;
+  });
+  if (headerIndex < 0) return [];
+
+  const header = rows[headerIndex]!;
+  const labels = header.map((cell) => normalizedCell(cell).toLowerCase());
+  const findColumn = (patterns: RegExp[]) => labels.findIndex((label) => patterns.some((pattern) => pattern.test(label)));
+  const nameCol = findColumn([/^(employee )?name$/, /^guard name$/, /^staff name$/]);
+  const codeCol = findColumn([/^emp(LOYEE)?[ ._-]*(code|id|no)/, /^code$/, /^id$/]);
+  const mobileCol = findColumn([/mobile/, /phone/, /contact/]);
+  const designationCol = findColumn([/designation/, /^post$/, /^role$/]);
+  const dateColumns = header
+    .map((cell, index) => ({ index, date: excelDateKey(cell, dates) }))
+    .filter((item): item is { index: number; date: string } => Boolean(item.date));
+  if (nameCol < 0 || !dateColumns.length) return [];
+
+  const defaultDesignation = designations.length === 1 ? designations[0]!.id : null;
+  const parsed: SheetRow[] = [];
+  for (const source of rows.slice(headerIndex + 1)) {
+    const name = normalizedCell(source[nameCol]);
+    if (!name || /^(total|grand total|signature|authori[sz]ed)/i.test(name)) continue;
+    const cells: SheetRow["cells"] = {};
+    for (const column of dateColumns) {
+      const token = parseToken(normalizedCell(source[column.index]), allowedCodes);
+      if (token) cells[column.date] = { code: token.code, ot: token.ot };
+    }
+    if (!Object.keys(cells).length) continue;
+    const designationName = designationCol >= 0 ? normalizedCell(source[designationCol]).toLowerCase() : "";
+    const designationId = designations.find((item) => item.name.toLowerCase() === designationName)?.id ?? defaultDesignation;
+    parsed.push({
+      name,
+      employee_code: codeCol >= 0 ? normalizedCell(source[codeCol]) : "",
+      mobile: mobileCol >= 0 ? normalizedCell(source[mobileCol]).replace(/\D/g, "").slice(-10) : "",
+      designation_id: designationId,
+      cells,
+    });
+  }
+  return parsed;
+}
+
 function MigrationUtilityPage() {
   const [codeInput, setCodeInput] = useState("");
   const [contract, setContract] = useState<ContractHit | null>(null);
@@ -215,13 +283,20 @@ function MigrationUtilityPage() {
       if (isSpreadsheet) {
         const XLSX = await import("xlsx");
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
         const parts: string[] = [];
+        const directRows: SheetRow[] = [];
         for (const name of wb.SheetNames) {
           const ws = wb.Sheets[name];
           if (!ws) continue;
+          const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });
+          directRows.push(...parseSpreadsheetRows(matrix, dates, allowedCodes, designations));
           const tsv = XLSX.utils.sheet_to_csv(ws, { FS: "\t", blankrows: false });
           if (tsv.trim()) parts.push(`--- Sheet: ${name} ---\n${tsv}`);
+        }
+        if (directRows.length) {
+          applyRows(directRows);
+          return;
         }
         const sheetText = parts.join("\n\n").slice(0, 380_000);
         if (!sheetText.trim()) throw new Error("That spreadsheet appears to be empty");

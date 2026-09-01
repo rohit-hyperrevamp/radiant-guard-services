@@ -81,8 +81,8 @@ function num(value: unknown) {
 export const extractMigrationSheet = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<MigrationSheetResult> => {
-    const gatewayKey = process.env["LOVABLE_API_KEY"];
-    const geminiKey = process.env["GEMINI_API_KEY"];
+    const gatewayKey = process.env["LOVABLE_API_KEY"]?.trim();
+    const geminiKey = process.env["GEMINI_API_KEY"]?.trim();
     if (!gatewayKey && !geminiKey) {
       throw new Error("AI service is not configured. Please contact support.");
     }
@@ -90,7 +90,7 @@ export const extractMigrationSheet = createServerFn({ method: "POST" })
     let model;
     if (gatewayKey) {
       const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-      model = createLovableAiGatewayProvider(gatewayKey)("google/gemini-2.5-flash");
+      model = createLovableAiGatewayProvider(gatewayKey)("google/gemini-3.7-flash");
     } else {
       const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       model = createOpenAICompatible({
