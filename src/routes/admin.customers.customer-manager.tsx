@@ -41,6 +41,13 @@ import {
   type CustomerStatus,
   type Unit,
 } from "@/lib/admin-data";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
 import { cn } from "@/lib/utils";
