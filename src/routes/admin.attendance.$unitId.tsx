@@ -1158,11 +1158,14 @@ function MusterRollPage() {
     }> = [];
     const seen = new Set<string>();
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
+    // Who actually has any attendance recorded inside this period?
+    const candidatesWithEntries = new Set((entries ?? []).map((e) => e.candidate_id));
 
     for (const emp of employees ?? []) {
-      // Historical sheets must only show employees who had joined by the end
-      // of that payroll period. Later unit assignments belong to later months.
-      if (emp.doj && emp.doj > periodEnd) continue;
+      // Joining date never hides real data: a person is only kept off a
+      // historical sheet when they joined after the period AND have no
+      // attendance recorded in it (i.e. they belong to a later month).
+      if (emp.doj && emp.doj > periodEnd && !candidatesWithEntries.has(emp.id)) continue;
       // A guard may be deployed at many units — "is_home_mapped" here means
       // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
