@@ -30,7 +30,6 @@ import {
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createClientOnlyFn, useServerFn } from "@tanstack/react-start";
 import {
   Camera,
   Check,
@@ -77,7 +76,6 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { findCandidateByAadhaar } from "@/lib/workflows";
 import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/RehireRequestDialog";
 
-import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { DigilockerVerify } from "@/components/DigilockerVerify";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
@@ -663,7 +661,6 @@ const MARITAL_STATUSES = ["Single", "Married", "Divorced", "Widowed", "Separated
 const GENDERS = ["Male", "Female", "Other"];
 const MOCK_OTP = "1111";
 
-const getAadhaarOcrClient = createClientOnlyFn(() => import("@/lib/aadhaar-ocr.client"));
 
 // ---------------- Types ---------------- //
 type AddressBlock = {
@@ -4645,21 +4642,6 @@ function maskAadhaar(n: string) {
 // ---------------- Wizard ---------------- //
 type WizardStep = "aadhaar" | "otp" | "form";
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
-    promise.then(
-      (value) => {
-        window.clearTimeout(timeoutId);
-        resolve(value);
-      },
-      (error) => {
-        window.clearTimeout(timeoutId);
-        reject(error);
-      },
-    );
-  });
-}
 
 type CandidateForm = Omit<Candidate, "id"> & {
   /** Application role (role key from public.roles). Mandatory for non-billable employees. */
@@ -4803,14 +4785,13 @@ function CandidateWizard({
   const qc = useQueryClient();
   const rolesQuery = useRolesLite();
   const rolesList = rolesQuery.data ?? [];
-  const extractFn = useServerFn(extractAadhaar);
   const { branches } = useBranches();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [invalidField, setInvalidField] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [digilockerVerified, setDigilockerVerified] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
   // exists and must go through the configurable rehire approval chain.
@@ -4879,6 +4860,7 @@ function CandidateWizard({
     if (!open) return;
     setSaveError(null);
     lastAadhaarLookupRef.current = "";
+    setDigilockerVerified(false);
     setRehireMatch(null);
     setRehireOpen(false);
     if (editing) {
@@ -5210,79 +5192,12 @@ function CandidateWizard({
     }
     setUploading(slot);
     try {
-      const uploadPromise = uploadFile(file, slot);
-      if (slot === "photo" || slot === "signature" || slot === "pan") {
-        const url = await uploadPromise;
-        if (slot === "photo") set("photo_url", url);
-        else if (slot === "signature") set("signature_url", url);
-        else set("pan_image_url", url);
-        toast.success(`${slot[0].toUpperCase() + slot.slice(1)} uploaded`);
-        return;
-      }
-
-      if (slot === "aadhaar") {
-        const clientOcr = await getAadhaarOcrClient();
-        setScanning(true);
-        try {
-          // Read file as data URL. For PDFs we also rasterize pages so the AI
-          // gets actual image content (UIDAI PDFs use scrambled fonts).
-          const pageImageDataUrlsPromise = isPdf
-            ? clientOcr.renderPdfPagesAsDataUrls(file).catch(() => [])
-            : Promise.resolve<string[]>([]);
-
-          const [uploadedUrl, pageImageDataUrls] = await Promise.all([
-            uploadPromise,
-            pageImageDataUrlsPromise,
-          ]);
-          set("aadhaar_image_url", uploadedUrl);
-          toast.success("Aadhaar uploaded — scanning…");
-
-          let extraction: AadhaarExtraction;
-          try {
-            extraction = await withTimeout(
-              extractFn({
-                data: {
-                  fileUrl: uploadedUrl,
-                  mimeType: file.type || (isPdf ? "application/pdf" : "image/jpeg"),
-                  pageImageDataUrls,
-                },
-              }) as Promise<AadhaarExtraction>,
-              45_000,
-              "Aadhaar scan timed out — please try again or fill the form manually",
-            );
-          } catch (serverScanError) {
-            console.warn("Server Aadhaar scan failed, falling back to client OCR", serverScanError);
-            extraction = await withTimeout(
-              clientOcr.extractAadhaarClient(file),
-              45_000,
-              "Aadhaar scan timed out — please try again or fill the form manually",
-            );
-            toast.warning("Server scan unavailable — used local OCR fallback. Please review the extracted fields.");
-          }
-
-          // If the user already typed an Aadhaar number and the AI couldn't read one, keep theirs.
-          const finalExtraction: AadhaarExtraction =
-            form.aadhaar_number && !/^\d{12}$/.test(extraction.aadhaar_number)
-              ? { ...extraction, aadhaar_number: form.aadhaar_number }
-              : extraction;
-
-          applyExtraction(finalExtraction);
-          const extractedAadhaar = (finalExtraction.aadhaar_number || "").replace(/\D/g, "");
-          if (extractedAadhaar.length === 12) void checkAadhaarForRehire(extractedAadhaar);
-          const filled = clientOcr.countExtractedFields(finalExtraction);
-          if (filled === 0) {
-            toast.warning("Scan complete but no fields could be read. Please fill manually or upload a clearer scan.");
-          } else if (filled >= 8) {
-            toast.success(`Aadhaar scanned — ${filled} field(s) auto-filled. Please review.`);
-          } else {
-            toast.success(`Aadhaar scanned — ${filled} field(s) auto-filled. Please review and complete the rest.`);
-          }
-        } catch (e) {
-          toast.error(e instanceof Error ? e.message : "Aadhaar scan failed");
-        } finally {
-          setScanning(false);
-        }
-      }
+      const url = await uploadFile(file, slot);
+      if (slot === "photo") set("photo_url", url);
+      else if (slot === "signature") set("signature_url", url);
+      else if (slot === "pan") set("pan_image_url", url);
+      else set("aadhaar_image_url", url);
+      toast.success(`${slot[0].toUpperCase() + slot.slice(1)} uploaded`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -5290,84 +5205,11 @@ function CandidateWizard({
     }
   };
 
-  const applyExtraction = (x: AadhaarExtraction) => {
-    const cleanValue = (incoming: string) => incoming?.trim() ?? "";
-    const looksSuspicious = (value: string) => {
-      const next = cleanValue(value);
-      if (!next) return false;
-      return /[`~^*_={}|<>]/.test(next) || /[;:]{2,}/.test(next) || /\b[il1|]\s*[;:=]\s*/i.test(next);
-    };
-    const looksUseful = (value: string, kind: "name" | "address" | "place" | "pin" | "aadhaar" | "gender") => {
-      const next = cleanValue(value);
-      if (!next) return false;
-      if ((kind === "name" || kind === "address" || kind === "place") && looksSuspicious(next)) return false;
-      switch (kind) {
-        case "name": {
-          if (!/^[A-Za-z][A-Za-z .'-]{1,79}$/.test(next)) return false;
-          const parts = next.match(/[A-Za-z]+/g) ?? [];
-          const meaningfulParts = parts.filter((part) => part.length >= 2);
-          const longestPart = meaningfulParts.reduce((max, part) => Math.max(max, part.length), 0);
-          return parts.join("").length >= 4 && (meaningfulParts.length >= 2 || longestPart >= 4);
-        }
-        case "address":
-          return /[A-Za-z]{3,}/.test(next) && !/[`~^*_={}|<>]{2,}/.test(next);
-        case "place": {
-          if (!/^[A-Za-z][A-Za-z .'-]{1,79}$/.test(next)) return false;
-          // Reject generic UI/boilerplate strings that OCR sometimes picks up.
-          const junk = /(click|here|tap|select|choose|enter|type|scan|verify|download|address|district|state|pin\s*code|government|india|unique|identification|authority|aadhaar)/i;
-          return !junk.test(next);
-        }
-        case "pin":
-          return /^\d{6}$/.test(next);
-        case "aadhaar":
-          return /^\d{12}$/.test(next);
-        case "gender":
-          return /^(male|female|other)$/i.test(next);
-        default:
-          return false;
-      }
-    };
-    const pick = (incoming: string, current: string, kind: Parameters<typeof looksUseful>[1]) => {
-      const next = cleanValue(incoming);
-      return looksUseful(next, kind) ? next : current;
-    };
-    setForm((f) => {
-      const resolvedName = pick(x.full_name, f.full_name, "name");
-      const next: CandidateForm = {
-        ...f,
-        full_name: resolvedName,
-        date_of_birth: /^\d{4}-\d{2}-\d{2}$/.test(x.date_of_birth) ? x.date_of_birth : f.date_of_birth,
-        gender: looksUseful(x.gender, "gender") ? toTitle(x.gender) : f.gender,
-        aadhaar_number: pick(x.aadhaar_number, f.aadhaar_number, "aadhaar"),
-        birthplace: pick(x.birthplace, f.birthplace, "place"),
-        permanent_address1: pick(x.address_line1, f.permanent_address1, "address"),
-        permanent_address2: pick(x.address_line2, f.permanent_address2, "address"),
-        permanent_landmark: pick(x.landmark, f.permanent_landmark, "address"),
-        permanent_pincode: pick(x.pincode, f.permanent_pincode, "pin"),
-        permanent_city: pick(x.city, f.permanent_city, "place"),
-        permanent_district: pick(x.district, f.permanent_district, "place"),
-        permanent_state: pick(x.state, f.permanent_state, "place"),
-        permanent_country: cleanValue(x.country) || f.permanent_country || "India",
-      };
-      if (next.same_as_permanent) {
-        next.present_address1 = next.permanent_address1;
-        next.present_address2 = next.permanent_address2;
-        next.present_landmark = next.permanent_landmark;
-        next.present_pincode = next.permanent_pincode;
-        next.present_city = next.permanent_city;
-        next.present_district = next.permanent_district;
-        next.present_state = next.permanent_state;
-        next.present_country = next.permanent_country;
-        next.present_police_station = next.permanent_police_station;
-      }
-      return next;
-    });
-  };
 
   // ----- Profile completion meter ----- //
   const completionChecks: Array<{ key: string; ok: boolean }> = [
     { key: "Photograph", ok: !!form.photo_url },
-    { key: "Aadhaar upload", ok: !!form.aadhaar_image_url },
+    { key: "Aadhaar verified / uploaded", ok: digilockerVerified || !!form.aadhaar_image_url },
     { key: "PAN upload", ok: !!form.pan_image_url },
     { key: "Signature", ok: !!form.signature_url },
     { key: "Full name", ok: !!form.full_name.trim() },
@@ -5701,7 +5543,8 @@ function CandidateWizard({
     setSaveError(null);
     if (!isEditingEmployeeProfile) {
       if (!form.photo_url) return failValidation("Photograph is required");
-      if (!form.aadhaar_image_url) return failValidation("Aadhaar upload is required");
+      if (!digilockerVerified && !form.aadhaar_image_url)
+        return failValidation("Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy");
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
@@ -5976,12 +5819,11 @@ function CandidateWizard({
                   />
                   <UploadTile
                     label="Aadhaar Card"
-                    required
+                    required={!digilockerVerified}
                     url={form.aadhaar_image_url}
                     accept="image/*,application/pdf"
                     onPick={(f) => handleFile(f, "aadhaar")}
-                    uploading={uploading === "aadhaar" || scanning}
-                    badge={scanning ? "Scanning…" : undefined}
+                    uploading={uploading === "aadhaar"}
                   />
                   <UploadTile
                     label="PAN Card"
@@ -6156,9 +5998,10 @@ function CandidateWizard({
                           permanent_pincode: keep(profile.pincode, f.permanent_pincode),
                           permanent_country: keep(profile.country, f.permanent_country),
                         }));
+                        setDigilockerVerified(true);
                       }}
                     />
-                    
+
                     <RehireRequestDialog
                       open={rehireOpen}
                       match={rehireMatch}
@@ -6944,7 +6787,7 @@ function CandidateWizard({
               <>
                 <Button
                   onClick={() => onApprove?.()}
-                  disabled={isApproving || submitting || savingDraft || !!uploading || scanning}
+                  disabled={isApproving || submitting || savingDraft || !!uploading}
                   className="h-11 flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-10 sm:flex-none"
                   title="Approve & assign Employee ID"
                 >
@@ -6954,7 +6797,7 @@ function CandidateWizard({
                 <Button
                   variant="outline"
                   onClick={() => onReject?.()}
-                  disabled={submitting || savingDraft || !!uploading || scanning}
+                  disabled={submitting || savingDraft || !!uploading}
                   className="h-11 flex-1 border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-50 hover:text-rose-600 sm:h-10 sm:flex-none dark:border-rose-500/40 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
                 >
                   <X className="mr-1.5 h-4 w-4" />
@@ -6967,7 +6810,7 @@ function CandidateWizard({
             <Button
               variant="secondary"
               onClick={saveDraft}
-              disabled={savingDraft || submitting || !!uploading || scanning}
+              disabled={savingDraft || submitting || !!uploading}
               className="h-11 w-full sm:h-10 sm:w-auto"
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
@@ -6975,7 +6818,7 @@ function CandidateWizard({
             </Button>
             {(() => {
               const isExistingEmployee = !!editing;
-              const submitDisabled = submitting || savingDraft || !!uploading || scanning;
+              const submitDisabled = submitting || savingDraft || !!uploading;
               return (
                 <Button
                   onClick={submit}
