@@ -185,8 +185,10 @@ export const extractAttendanceFromImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<AttendanceOcrResult> => {
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI service is not configured. Please contact support.");
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!key && !geminiKey) {
+      throw new Error("AI service is not configured. Please contact support.");
+    }
 
     const employeeList = data.employees
       .map(
