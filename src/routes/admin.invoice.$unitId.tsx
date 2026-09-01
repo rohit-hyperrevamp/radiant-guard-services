@@ -801,6 +801,50 @@ function PayrollUnitPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, billingMode]);
 
+  /** One row per designation: headcount, billed hours, per-hour rate and money. */
+  const designationRows = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        key: string;
+        designation: string;
+        headcount: number;
+        billedDays: number;
+        billedHours: number;
+        perHour: number;
+        contracted: number;
+        actual: number;
+      }
+    >();
+    for (const r of rows) {
+      if (!r.wages) continue;
+      const m = invoiceMathFor(r);
+      const key = String(r.designationId ?? "__none__");
+      const existing =
+        map.get(key) ??
+        {
+          key,
+          designation: r.designation,
+          headcount: 0,
+          billedDays: 0,
+          billedHours: 0,
+          perHour: m.perHour,
+          contracted: 0,
+          actual: 0,
+        };
+      existing.headcount += 1;
+      existing.billedDays = Math.round((existing.billedDays + m.billedDays) * 100) / 100;
+      existing.billedHours = Math.round((existing.billedHours + m.billedHours) * 100) / 100;
+      existing.perHour = m.perHour || existing.perHour;
+      existing.contracted = Math.round((existing.contracted + m.contracted) * 100) / 100;
+      existing.actual = Math.round((existing.actual + m.actual) * 100) / 100;
+      map.set(key, existing);
+    }
+    return Array.from(map.values()).sort((a, b) => a.designation.localeCompare(b.designation));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, billingMode]);
+
+
   // GST split: intra-state (customer in company state) → CGST + SGST; else IGST.
   const isIntraStateCurrent =
     (unitState ?? "").trim().toLowerCase() === COMPANY_STATE.toLowerCase();
