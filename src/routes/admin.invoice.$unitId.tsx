@@ -1207,7 +1207,13 @@ function PayrollUnitPage() {
             components={r.resource!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
             benefits={(r.resource!.benefits ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             deductions={(r.resource!.deductions ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
-            employerContributions={(r.resource!.employerContributions ?? []).map((b) => ({ name: b.name, amount: contractTotalAmount(b) }))}
+            employerContributions={(r.resource!.employerContributions ?? []).map((b) => ({
+              name: b.name,
+              amount: isStatutoryEsi(b as never)
+                ? contractEsiAmounts(r.resource as never).employer
+                : Number(b.amount) || 0,
+            }))}
+
             earnedComponents={r.wages!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
             earnedGross={r.wages!.earnedGross}
             earnedEmployerContributions={r.wages!.employerContributions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
