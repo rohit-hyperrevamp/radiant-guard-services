@@ -37,6 +37,7 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
   const [session, setSession] = useState<DigilockerSession | null>(null);
   const [qr, setQr] = useState<string>("");
   const [polling, setPolling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
   const clean = (aadhaar ?? "").replace(/\D/g, "");
