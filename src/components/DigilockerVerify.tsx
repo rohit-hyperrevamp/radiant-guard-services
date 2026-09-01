@@ -4,7 +4,7 @@ import { BadgeCheck, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import {
   getDigilockerProfile,
   startDigilockerSession,
@@ -106,8 +106,13 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
         },
       });
       setSession(created);
-      const QRCode = (await import("qrcode")).default;
-      setQr(await QRCode.toDataURL(created.url, { width: 320, margin: 1 }));
+      try {
+        const QRCode = (await import("qrcode")).default;
+        setQr(await QRCode.toDataURL(created.url, { width: 320, margin: 1 }));
+      } catch {
+        setQr("");
+      }
+      window.open(created.url, "_blank", "noopener,noreferrer");
       beginPolling(created.client_id);
     } catch (error) {
       setOpen(false);
@@ -117,64 +122,67 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
     }
   };
 
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <Button type="button" size="sm" variant="outline" disabled={!ready || validating} onClick={runValidation}>
-        {validating ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="mr-1 h-3.5 w-3.5" />}
-        Validate Aadhaar
-      </Button>
-      <Button type="button" size="sm" variant="secondary" disabled={starting} onClick={() => void startDigilocker()}>
-        {starting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="mr-1 h-3.5 w-3.5" />}
-        Verify via DigiLocker
-      </Button>
-      {validation && <span className="text-[11px] text-muted-foreground">{validation}</span>}
+  const closePanel = () => {
+    if (pollRef.current) window.clearInterval(pollRef.current);
+    setPolling(false);
+    setOpen(false);
+  };
 
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!next && pollRef.current) {
-            window.clearInterval(pollRef.current);
-            setPolling(false);
-          }
-          setOpen(next);
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>DigiLocker verification</DialogTitle>
-            <DialogDescription>
-              The candidate scans this QR (or opens the link) and signs in to DigiLocker. Verified Aadhaar details fill
-              in automatically once they finish.
-            </DialogDescription>
-          </DialogHeader>
+  return (
+    <div className="mt-2 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" variant="outline" disabled={!ready || validating} onClick={runValidation}>
+          {validating ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="mr-1 h-3.5 w-3.5" />}
+          Validate Aadhaar
+        </Button>
+        <Button type="button" size="sm" variant="secondary" disabled={starting} onClick={() => void startDigilocker()}>
+          {starting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="mr-1 h-3.5 w-3.5" />}
+          Verify via DigiLocker
+        </Button>
+        {validation && <span className="text-[11px] text-muted-foreground">{validation}</span>}
+      </div>
+
+      {open && (
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">DigiLocker verification</p>
+              <p className="text-[11px] text-muted-foreground">
+                The candidate scans the QR or opens the link and signs in to DigiLocker. Verified Aadhaar details fill in
+                automatically once they finish.
+              </p>
+            </div>
+            <Button type="button" size="sm" variant="ghost" onClick={closePanel}>
+              Close
+            </Button>
+          </div>
 
           {!session ? (
-            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating secure link…
             </div>
           ) : (
-            <div className="space-y-3">
-              {qr && <img src={qr} alt="DigiLocker consent QR code" className="mx-auto h-56 w-56 rounded-lg border" />}
+            <div className="mt-3 space-y-2">
+              {qr && <img src={qr} alt="DigiLocker consent QR code" className="mx-auto h-48 w-48 rounded-lg border bg-card" />}
               <a
                 href={session.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-center gap-1 text-xs text-primary underline break-all"
+                className="flex items-center justify-center gap-1 break-all text-xs text-primary underline"
               >
                 Open DigiLocker link <ExternalLink className="h-3 w-3" />
               </a>
               {(mobile ?? "").replace(/\D/g, "").length === 10 && (
-                <p className="text-center text-[11px] text-muted-foreground">
-                  Link also sent by SMS to {mobile}
-                </p>
+                <p className="text-center text-[11px] text-muted-foreground">Link also sent by SMS to {mobile}</p>
               )}
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 {polling && <Loader2 className="h-3 w-3 animate-spin" />} Waiting for the candidate to complete…
               </p>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
+
