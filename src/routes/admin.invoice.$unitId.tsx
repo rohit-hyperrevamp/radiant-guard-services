@@ -63,8 +63,78 @@ const ESI_COMPONENT_RE = /\besi(c)?\b/i;
 const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bpt\b/i;
 const isEsiItem = (item: { name?: unknown }) => ESI_COMPONENT_RE.test(String(item.name ?? ""));
 const isPtItem = (item: { name?: unknown }) => PT_COMPONENT_RE.test(String(item.name ?? ""));
+const hasConfiguredFormula = (item: { formulaExpression?: string | null }) =>
+  !!String(item?.formulaExpression ?? "").trim();
+/** ESI rows fall back to the statutory calc only when no formula is configured. */
+const isStatutoryEsi = (item: { name?: unknown; formulaExpression?: string | null }) =>
+  isEsiItem(item) && !hasConfiguredFormula(item);
 const contractTotalAmount = (item: { name?: unknown; amount?: unknown }) =>
   isEsiItem(item) || isPtItem(item) ? 0 : Number(item.amount) || 0;
+
+type RateCardItem = {
+  name?: unknown;
+  amount?: unknown;
+  percentage?: number | string | null;
+  capAmount?: number | string | null;
+  formulaExpression?: string | null;
+};
+
+/**
+ * Full-month statutory ESI on the contract rate card (same maths the client
+ * contract card uses): percentages / ceiling come from the configured ESI
+ * rows, base is gross minus washing & conveyance.
+ */
+function contractEsiAmounts(resource: {
+  components: RateCardItem[];
+  benefits?: RateCardItem[];
+  deductions?: RateCardItem[];
+  employerContributions?: RateCardItem[];
+}): { employee: number; employer: number } {
+  const sum = (list: RateCardItem[] | undefined) =>
+    (list ?? []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const gross = sum(resource.components) + sum(resource.benefits);
+  const washing = (resource.components ?? [])
+    .filter((c) => /\bwashing\b/i.test(String(c.name ?? "")))
+    .reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const conveyance = (resource.components ?? [])
+    .filter((c) => /\bconveyance\b|\bconv\.?\b/i.test(String(c.name ?? "")))
+    .reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const base = Math.max(0, gross - washing - conveyance);
+  const empItem = (resource.deductions ?? []).find(isEsiItem);
+  const erItem = (resource.employerContributions ?? []).find(isEsiItem);
+  const empPct = empItem && Number(empItem.percentage) > 0 ? Number(empItem.percentage) : 0.75;
+  const erPct = erItem && Number(erItem.percentage) > 0 ? Number(erItem.percentage) : 3.25;
+  const cap =
+    (empItem && Number(empItem.capAmount) > 0 && Number(empItem.capAmount)) ||
+    (erItem && Number(erItem.capAmount) > 0 && Number(erItem.capAmount)) ||
+    21000;
+  const eligible = base > 0 && base <= cap;
+  return {
+    employee: eligible ? Math.ceil(base * (empPct / 100)) : 0,
+    employer: eligible ? Math.ceil(base * (erPct / 100)) : 0,
+  };
+}
+
+/**
+ * Contracted (final billing) value per head per month = wage components +
+ * every employer cost line, including ESI. ESI rows with a configured formula
+ * use their evaluated amount; rows without one fall back to the statutory calc.
+ */
+function contractBillableMonthly(resource: {
+  components: RateCardItem[];
+  benefits?: RateCardItem[];
+  deductions?: RateCardItem[];
+  employerContributions?: RateCardItem[];
+}): number {
+  const esi = contractEsiAmounts(resource);
+  const gross = (resource.components ?? []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const employer = (resource.employerContributions ?? []).reduce(
+    (s, b) => s + (isStatutoryEsi(b) ? esi.employer : Number(b.amount) || 0),
+    0,
+  );
+  return Math.round((gross + employer) * 100) / 100;
+}
+
 
 
 function fmtPretty(iso: string) {
