@@ -135,6 +135,16 @@ function CustomerManagerPage() {
             placeholder="Search by ID, name, website, phone, address…"
             className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
           />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="mt-3 h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:mt-0 sm:w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button
