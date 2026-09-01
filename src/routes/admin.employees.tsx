@@ -5441,7 +5441,9 @@ function CandidateWizard({
         const roleFromContract = (cr as { role_key?: string | null } | null)?.role_key ?? "";
         if (roleFromContract) derivedRoleKey = roleFromContract;
       }
-      const insertPayload = { ...(payload as Record<string, unknown>), created_by: creatorId, role_key: derivedRoleKey || null };
+      // role_key is NOT NULL in the database. Drafts are saved before the role is
+      // picked, so fall back to "guard" — the user can still change it afterwards.
+      const insertPayload = { ...(payload as Record<string, unknown>), created_by: creatorId, role_key: derivedRoleKey || "guard" };
       const { data, error } = await supabase
         .from("candidates" as never)
         .insert(insertPayload as never)
