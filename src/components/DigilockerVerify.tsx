@@ -51,24 +51,22 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
     };
   }, []);
 
-  const runValidation = async () => {
-    if (!ready) {
-      toast.error("Enter a 12-digit Aadhaar number first");
-      return;
-    }
+  /** Silent pre-check: the number must exist with UIDAI before we spend a DigiLocker consent link. */
+  const runValidation = async (): Promise<boolean> => {
     setValidating(true);
     try {
       const result = await validate({ data: { aadhaar: clean } });
       setValidation(
         result.valid
-          ? `Valid · ${[result.state, result.age_range && `age ${result.age_range}`].filter(Boolean).join(" · ")}`.trim()
+          ? `Aadhaar valid · ${[result.state, result.age_range && `age ${result.age_range}`].filter(Boolean).join(" · ")}`.trim()
           : result.message,
       );
-      if (result.valid) toast.success("Aadhaar number validated");
-      else toast.error(result.message || "Aadhaar could not be validated");
+      if (!result.valid) toast.error(result.message || "Aadhaar could not be validated");
+      return result.valid;
     } catch (error) {
       setValidation(null);
       toast.error(error instanceof Error ? error.message : "Aadhaar validation failed");
+      return false;
     } finally {
       setValidating(false);
     }
