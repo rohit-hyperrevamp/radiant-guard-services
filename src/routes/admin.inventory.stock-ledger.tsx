@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/inventory/stock-ledger")({ component: StockLedgerPage });
 
@@ -317,6 +318,7 @@ function StockLedgerPage() {
   const totalCreditVal = rows.reduce((s, r) => s + r.credit_val, 0);
   const net = totalDebit - totalCredit;
   const netVal = totalDebitVal - totalCreditVal;
+  const pgMovement = usePagination(rows);
   const fmtInr = (n: number) => "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
   // ------- By-Item summary: opening + in/out (in period) + closing, per item+size -------
