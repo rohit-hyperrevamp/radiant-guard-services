@@ -5214,7 +5214,7 @@ function CandidateWizard({
     { key: "Signature", ok: !!form.signature_url },
     { key: "Full name", ok: !!form.full_name.trim() },
     { key: "Mobile", ok: /^[6-9]\d{9}$/.test(form.mobile.trim()) },
-    { key: "Aadhaar number", ok: /^\d{12}$/.test(form.aadhaar_number) },
+    { key: "Aadhaar number", ok: digilockerVerified || /^\d{12}$/.test(form.aadhaar_number) },
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
     {
@@ -5985,6 +5985,8 @@ function CandidateWizard({
                     <DigilockerVerify
                       aadhaar={form.aadhaar_number}
                       mobile={form.mobile}
+                      verified={digilockerVerified}
+                      verifiedName={form.full_name}
                       onVerified={(profile) => {
                         const keep = (next: string, current: string) => (next ? next : current);
                         setForm((f) => ({
