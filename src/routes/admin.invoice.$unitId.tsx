@@ -5,7 +5,7 @@ import { ChevronLeft, Download, FileText } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { InvoicePreviewDialog } from "@/components/InvoicePreviewDialog";
+import { TaxInvoiceSheet, type TaxInvoiceData } from "@/components/TaxInvoiceSheet";
 
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
@@ -754,27 +754,33 @@ function PayrollUnitPage() {
       resolvePayrollDayCount(r.resource?.payrollDayBase ?? null, periodDates) ??
       (r.wages?.baseDays || periodDates.length || 30);
     const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
-    const perDay = payrollDays > 0 ? contracted / payrollDays : 0;
-    // Hourly rate = final billing rate / payroll days / contracted shift hours.
+    // Billing is HOURLY: hourly rate = final billing rate ÷ payroll days ÷ shift
+    // hours, rounded to 2 dp (the rate that is actually printed on the invoice),
+    // and the amount = that printed rate × billed hours.
     const shiftHours = shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
-    const perHour = shiftHours > 0 ? perDay / shiftHours : 0;
+    const perHour =
+      payrollDays > 0 && shiftHours > 0
+        ? Math.round((contracted / payrollDays / shiftHours) * 100) / 100
+        : 0;
+    const billedHours = Math.round(billedDays * shiftHours * 100) / 100;
     const actual =
       !r.wages || !r.resource
         ? 0
         : billingMode === "lumpsum"
           ? contracted
-          : Math.round(perDay * billedDays * 100) / 100;
+          : Math.round(perHour * billedHours * 100) / 100;
     return {
       contracted,
       payrollDays,
       billedDays,
-      perDay: Math.round(perDay * 100) / 100,
       shiftHours,
-      perHour: Math.round(perHour * 100) / 100,
+      billedHours,
+      perHour,
       actual,
       variance: Math.round((actual - contracted) * 100) / 100,
     };
   };
+
 
   const billableFor = (r: (typeof rows)[number]): number => invoiceMathFor(r).actual;
 
@@ -800,16 +806,118 @@ function PayrollUnitPage() {
   const isIntraStateCurrent =
     (unitState ?? "").trim().toLowerCase() === COMPANY_STATE.toLowerCase();
   const GST_RATE = 18;
-  const gstAmount = Math.round(totals.actualTotal * (GST_RATE / 100) * 100) / 100;
-  const cgstAmount = isIntraStateCurrent ? Math.round(gstAmount / 2 * 100) / 100 : 0;
-  const sgstAmount = isIntraStateCurrent ? Math.round(gstAmount / 2 * 100) / 100 : 0;
-  const igstAmount = isIntraStateCurrent ? 0 : gstAmount;
-  const grandTotal = Math.round((totals.actualTotal + gstAmount) * 100) / 100;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const cgstAmount = isIntraStateCurrent ? r2(totals.actualTotal * (GST_RATE / 2 / 100)) : 0;
+  const sgstAmount = isIntraStateCurrent ? r2(totals.actualTotal * (GST_RATE / 2 / 100)) : 0;
+  const igstAmount = isIntraStateCurrent ? 0 : r2(totals.actualTotal * (GST_RATE / 100));
+  const gstAmount = r2(cgstAmount + sgstAmount + igstAmount);
+  const grandTotal = r2(totals.actualTotal + gstAmount);
+  const roundedGrandTotal = Math.round(grandTotal);
+  const roundingOff = r2(roundedGrandTotal - grandTotal);
+
+  // Printed tax invoice: one line per designation × hourly rate, billed on hours.
+  const invoiceSheetData: TaxInvoiceData | null = useMemo(() => {
+    const billable = rows.filter((r) => r.wages && r.resource);
+    if (billable.length === 0) return null;
+    const hsn = orgSettings?.default_hsn_sac ?? "";
+    type Group = {
+      designation: string;
+      payrollDays: number;
+      shiftHours: number;
+      perHour: number;
+      hours: number;
+      amount: number;
+    };
+    const groups = new Map<string, Group>();
+    for (const r of billable) {
+      const m = invoiceMathFor(r);
+      const key = `${r.designation}|${m.perHour}|${m.shiftHours}|${m.payrollDays}`;
+      const g = groups.get(key) ?? {
+        designation: r.designation,
+        payrollDays: m.payrollDays,
+        shiftHours: m.shiftHours,
+        perHour: m.perHour,
+        hours: 0,
+        amount: 0,
+      };
+      g.hours = r2(g.hours + m.billedHours);
+      g.amount = r2(g.amount + m.actual);
+      groups.set(key, g);
+    }
+    const list = Array.from(groups.values());
+    const totalHours = r2(list.reduce((s, g) => s + g.hours, 0));
+    const monthIdx = Number(start.split("-")[1]) - 1;
+    const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][monthIdx] ?? "";
+    return {
+      invoiceNumber: `${orgSettings?.company_state_code ?? ""}-${monthAbbr}${start.slice(2, 4)}-${(unit?.code ?? "UNIT").toUpperCase()}`,
+      invoiceDate: fmtPretty(end),
+      periodLabel: `${start.split("-").reverse().join("-")} To ${end.split("-").reverse().join("-")}`,
+      company: {
+        name: orgSettings?.company_name ?? "",
+        registeredAddress: orgSettings?.registered_address ?? "",
+        corporateAddress: orgSettings?.corporate_address ?? "",
+        gstin: orgSettings?.company_gstin ?? "",
+        stateName: COMPANY_STATE,
+        stateCode: orgSettings?.company_state_code ?? "",
+        cin: orgSettings?.cin ?? "",
+        pan: orgSettings?.pan ?? "",
+        email: orgSettings?.email ?? "",
+        phone: orgSettings?.phone ?? "",
+        bankName: orgSettings?.bank_name ?? "",
+        bankAccountNo: orgSettings?.bank_account_no ?? "",
+        bankBranch: orgSettings?.bank_branch ?? "",
+        bankIfsc: orgSettings?.bank_ifsc ?? "",
+        supplierType: orgSettings?.supplier_type ?? "",
+        msmeUdyamNo: orgSettings?.msme_udyam_no ?? "",
+        pfNumber: orgSettings?.pf_number ?? "",
+        esicNumber: orgSettings?.esic_number ?? "",
+        declaration: orgSettings?.invoice_declaration ?? "",
+        note: orgSettings?.invoice_note ?? "",
+      },
+      party: {
+        name: [unit?.customer_name, unit?.name].filter(Boolean).join("_"),
+        addressLines: [
+          unit?.billing_address1 ?? unit?.customer?.billing_address1 ?? "",
+          unit?.billing_address2 ?? unit?.customer?.billing_address2 ?? "",
+          [
+            unit?.billing_city ?? unit?.customer?.billing_city,
+            unit?.billing_district ?? unit?.customer?.billing_district,
+            unit?.billing_pincode ?? unit?.customer?.billing_pincode,
+          ].filter(Boolean).join(", "),
+        ],
+        gstin: unit?.gstin ?? "",
+        stateName: unitState ?? "",
+        stateCode: gstinStateCode(unit?.gstin ?? "") || "",
+      },
+      lines: list.map((g, i) => ({
+        id: `${g.designation}-${i}`,
+        description: `${g.designation} @ Rs. ${g.perHour.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`,
+        hsnSac: hsn,
+        quantityLabel: `${g.hours.toFixed(2)} hrs`,
+        rate: g.perHour,
+        per: "hrs",
+        amount: g.amount,
+      })),
+      totalQuantityLabel: `${totalHours.toFixed(2)} hrs`,
+      taxableValue: r2(totals.actualTotal),
+      intraState: isIntraStateCurrent,
+      cgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
+      sgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
+      igstRate: isIntraStateCurrent ? 0 : GST_RATE,
+      cgst: cgstAmount,
+      sgst: sgstAmount,
+      igst: igstAmount,
+      roundingOff,
+      grandTotal: roundedGrandTotal,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, orgSettings, unit, unitState, totals.actualTotal, cgstAmount, sgstAmount, igstAmount, roundingOff, roundedGrandTotal, isIntraStateCurrent, start, end]);
+
 
   const exportCsv = () => {
     const headers = [
       "Emp ID", "Name", "Designation", "P Days", "PH Days", "ED Hrs", "ED Days", "Billed Days",
-      "Payroll Days", "Per Day Rate", "Per Hour Rate", "Contracted Invoice", "Actual Invoice", "Variance",
+      "Payroll Days", "Shift Hrs", "Billed Hrs", "Per Hour Rate", "Contracted Invoice", "Actual Invoice", "Variance",
     ];
     const columns = headers.map((h) => ({ key: h, header: h }));
     const dataRows = rows.map((r) => {
@@ -824,9 +932,11 @@ function PayrollUnitPage() {
         "ED Days": r.totals.otDays,
         "Billed Days": m.billedDays,
         "Payroll Days": m.payrollDays,
-        "Per Day Rate": m.perDay,
+        "Shift Hrs": m.shiftHours,
+        "Billed Hrs": m.billedHours,
         "Per Hour Rate": m.perHour,
         "Contracted Invoice": m.contracted,
+
         "Actual Invoice": r.wages ? m.actual : "",
         "Variance": r.wages ? m.variance : "",
       };
@@ -1038,9 +1148,6 @@ function PayrollUnitPage() {
           <ChevronLeft className="h-4 w-4" /> Back to invoice units
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-            <FileText className="mr-1.5 h-4 w-4" /> Preview invoice
-          </Button>
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 h-4 w-4" /> Export
           </Button>
@@ -1050,39 +1157,6 @@ function PayrollUnitPage() {
         </div>
       </div>
 
-      <InvoicePreviewDialog
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        data={{
-          invoiceNumber: `INV-${(unit?.code || "UNIT").toUpperCase()}-${start.replace(/-/g, "").slice(0, 6)}`,
-          invoiceDate: fmtPretty(end),
-          periodLabel: `${fmtPretty(start)} – ${fmtPretty(end)}`,
-          companyName: orgSettings?.company_name ?? "Radiant Guard Services",
-          companyGstin: orgSettings?.company_gstin ?? "",
-          companyState: COMPANY_STATE,
-          customerName: unit?.customer_name ?? "—",
-          customerGstin: unit?.gstin ?? "",
-          billingAddress: [
-            unit?.billing_address1 ?? "",
-            unit?.billing_address2 ?? "",
-            [unit?.billing_city, unit?.billing_state, unit?.billing_pincode].filter(Boolean).join(", "),
-          ],
-          unitLabel: unit?.name || unit?.code || "Unit",
-          lines: rows
-            .filter((r) => r.wages)
-            .map((r) => ({
-              id: r.id,
-              description: `${r.name} · ${r.designation}`,
-              qtyLabel: `${invoiceMathFor(r).billedDays} of ${invoiceMathFor(r).payrollDays} days × ${invoiceMathFor(r).shiftHours} hrs @ ₹${invoiceMathFor(r).perHour.toFixed(2)}/hr`,
-              amount: billableFor(r),
-            })),
-          subtotal: totals.actualTotal,
-          cgst: cgstAmount,
-          sgst: sgstAmount,
-          igst: igstAmount,
-          grandTotal,
-        }}
-      />
 
 
       <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
@@ -1157,8 +1231,9 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + extra duty days)">Days billed</th>
                 <th className="px-4 py-3 text-right font-medium" title="Payroll days for this contract in this period">Payroll days</th>
-                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days">Per day</th>
-                <th className="px-4 py-3 text-right font-medium" title="Per day rate ÷ contracted shift hours">Per hour</th>
+                <th className="px-4 py-3 text-right font-medium" title="Days billed × contracted shift hours">Hours billed</th>
+                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days ÷ contracted shift hours">Per hour</th>
+
                 <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
                 <th className="px-4 py-3 text-right font-medium" title="Contracted ÷ payroll days × days billed">Actual invoice</th>
                 <th className="px-4 py-3 text-right font-medium" title="Actual − Contracted">Variance</th>
@@ -1185,8 +1260,9 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-muted-foreground">{r.designation}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.billedDays}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.payrollDays}</td>
-                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? fmtINR(m.perDay) : "—"}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? `${m.billedHours} hrs` : "—"}</td>
                   <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? `₹${m.perHour.toFixed(2)}` : "—"}</td>
+
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{r.resource ? fmtINR(m.contracted) : <span className="text-xs text-amber-600">no contract</span>}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{r.wages ? fmtINR(m.actual) : "—"}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${m.variance > 0 ? "text-emerald-700" : m.variance < 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (m.variance === 0 ? fmtINR(0) : `${m.variance > 0 ? "+" : "−"} ${fmtINR(Math.abs(m.variance))}`) : "—"}</td>
@@ -1212,50 +1288,10 @@ function PayrollUnitPage() {
       </div>
 
 
+      {invoiceSheetData && <TaxInvoiceSheet data={invoiceSheetData} />}
+
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Invoice breakdown · projected vs actual
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            Projected column = full billable amount · Actual column = billable based on T Days
-          </span>
-        </div>
-        {rows.filter((r) => r.wages && r.resource).map((r) => {
-          const projBillable = contractBillableMonthly(r.resource as never);
 
-          return (
-          <SalaryBreakdownPreview
-            key={r.rowKey}
-            employeeName={r.name}
-            employeeCode={r.employeeCode}
-            designationName={r.designation}
-            tDays={r.totals.tDays}
-            otHours={r.totals.otHours}
-            baseDays={r.wages!.baseDays}
-            components={r.resource!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
-            benefits={(r.resource!.benefits ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
-            deductions={(r.resource!.deductions ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
-            employerContributions={(r.resource!.employerContributions ?? []).map((b) => ({
-              name: b.name,
-              amount: isStatutoryEsi(b as never)
-                ? contractEsiAmounts(r.resource as never).employer
-                : Number(b.amount) || 0,
-            }))}
-
-            earnedComponents={r.wages!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
-            earnedGross={r.wages!.earnedGross}
-            earnedEmployerContributions={r.wages!.employerContributions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
-            earnedDeductions={r.wages!.deductions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
-            totalEarnedDeductions={r.wages!.totalDeductions}
-            earnedNetPayable={r.wages!.netPay}
-            projectedBillable={projBillable}
-            actualBillable={billableFor(r)}
-            gstRate={GST_RATE}
-            intraState={isIntraStateCurrent}
-          />
-          );
-        })}
 
         {rows.filter((r) => !r.wages).length > 0 && (
           <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900">

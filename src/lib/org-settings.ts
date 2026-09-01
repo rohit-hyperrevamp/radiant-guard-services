@@ -7,6 +7,23 @@ export type OrgSettings = {
   company_gstin: string | null;
   company_state: string | null;
   company_state_code: string | null;
+  registered_address: string | null;
+  corporate_address: string | null;
+  cin: string | null;
+  pan: string | null;
+  email: string | null;
+  phone: string | null;
+  bank_name: string | null;
+  bank_account_no: string | null;
+  bank_branch: string | null;
+  bank_ifsc: string | null;
+  msme_udyam_no: string | null;
+  supplier_type: string | null;
+  pf_number: string | null;
+  esic_number: string | null;
+  default_hsn_sac: string | null;
+  invoice_declaration: string | null;
+  invoice_note: string | null;
 };
 
 export function useOrgSettings() {
@@ -16,7 +33,7 @@ export function useOrgSettings() {
     queryFn: async (): Promise<OrgSettings | null> => {
       const { data } = await supabase
         .from("org_settings" as never)
-        .select("id, company_name, company_gstin, company_state, company_state_code")
+        .select("*")
         .maybeSingle();
       return (data as unknown) as OrgSettings | null;
     },

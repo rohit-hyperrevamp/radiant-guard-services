@@ -3759,33 +3759,84 @@ export type Database = {
       }
       org_settings: {
         Row: {
+          bank_account_no: string | null
+          bank_branch: string | null
+          bank_ifsc: string | null
+          bank_name: string | null
+          cin: string | null
           company_gstin: string | null
           company_name: string | null
           company_state: string | null
           company_state_code: string | null
+          corporate_address: string | null
           created_at: string
+          default_hsn_sac: string | null
+          email: string | null
+          esic_number: string | null
           id: string
+          invoice_declaration: string | null
+          invoice_note: string | null
+          msme_udyam_no: string | null
+          pan: string | null
+          pf_number: string | null
+          phone: string | null
+          registered_address: string | null
           singleton: boolean
+          supplier_type: string | null
           updated_at: string
         }
         Insert: {
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          cin?: string | null
           company_gstin?: string | null
           company_name?: string | null
           company_state?: string | null
           company_state_code?: string | null
+          corporate_address?: string | null
           created_at?: string
+          default_hsn_sac?: string | null
+          email?: string | null
+          esic_number?: string | null
           id?: string
+          invoice_declaration?: string | null
+          invoice_note?: string | null
+          msme_udyam_no?: string | null
+          pan?: string | null
+          pf_number?: string | null
+          phone?: string | null
+          registered_address?: string | null
           singleton?: boolean
+          supplier_type?: string | null
           updated_at?: string
         }
         Update: {
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          cin?: string | null
           company_gstin?: string | null
           company_name?: string | null
           company_state?: string | null
           company_state_code?: string | null
+          corporate_address?: string | null
           created_at?: string
+          default_hsn_sac?: string | null
+          email?: string | null
+          esic_number?: string | null
           id?: string
+          invoice_declaration?: string | null
+          invoice_note?: string | null
+          msme_udyam_no?: string | null
+          pan?: string | null
+          pf_number?: string | null
+          phone?: string | null
+          registered_address?: string | null
           singleton?: boolean
+          supplier_type?: string | null
           updated_at?: string
         }
         Relationships: []
