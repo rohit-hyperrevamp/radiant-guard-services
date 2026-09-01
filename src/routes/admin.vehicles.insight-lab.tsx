@@ -642,6 +642,7 @@ function ChartView({
   seriesKeys: string[];
   xLabel: string;
 }) {
+  const pg = usePagination(rows);
   if (kind === "table") {
     return (
       <div className="overflow-auto">
@@ -655,7 +656,7 @@ function ChartView({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {pg.pageRows.map((r, i) => (
               <tr key={i} className={cn(i % 2 ? "bg-muted/20" : "")}>
                 <td className="px-3 py-2 font-medium">{String(r.x)}</td>
                 {seriesKeys.map((s) => (
@@ -667,6 +668,7 @@ function ChartView({
             ))}
           </tbody>
         </table>
+        <DataPagination {...pg} />
       </div>
     );
   }
