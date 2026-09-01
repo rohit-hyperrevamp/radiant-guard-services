@@ -143,6 +143,7 @@ function ReportsPage() {
   });
 
   const visits = visitQ.data?.visits ?? [];
+  const pg = usePagination(visits);
   const candMap = visitQ.data?.candMap ?? new Map<string, Candidate>();
   const unitMap = useMemo(() => new Map((unitQ.data ?? []).map((u) => [u.id, u])), [unitQ.data]);
   const customer = (custQ.data ?? []).find((c) => c.id === customerId) ?? null;

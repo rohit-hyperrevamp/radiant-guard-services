@@ -37,6 +37,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/vehicles/insight-lab")({
   component: InsightLabPage,
