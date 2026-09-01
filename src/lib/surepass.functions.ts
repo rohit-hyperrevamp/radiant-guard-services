@@ -84,6 +84,37 @@ async function surepass<T>(
 
 const s = (v: unknown) => String(v ?? "").trim();
 
+/** Persisted cache so a DigiLocker download (one-shot at Surepass) can be replayed into the form. */
+async function readCachedProfile(clientId: string): Promise<DigilockerProfile | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("digilocker_sessions")
+      .select("profile")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    const profile = (data as { profile?: unknown } | null)?.profile;
+    return profile ? (profile as DigilockerProfile) : null;
+  } catch (error) {
+    console.error("[surepass] cache read failed", error);
+    return null;
+  }
+}
+
+async function writeCachedProfile(clientId: string, profile: DigilockerProfile): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("digilocker_sessions")
+      .upsert(
+        { client_id: clientId, profile: profile as unknown as Record<string, unknown>, status: "completed", updated_at: new Date().toISOString() },
+        { onConflict: "client_id" },
+      );
+  } catch (error) {
+    console.error("[surepass] cache write failed", error);
+  }
+}
+
 export const validateAadhaarNumber = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
