@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { Coins, Download, Edit2, Plus, Search, Trash2, ChevronLeft, ChevronsUpDown, Check, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -445,6 +446,8 @@ function DeductionList() {
 
   const total = useMemo(() => filtered.reduce((s, r) => s + r.amount, 0), [filtered]);
 
+  const pg = usePagination(filtered);
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("deductions" as never).delete().eq("id", id);
@@ -595,7 +598,7 @@ function DeductionList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((r) => (
+              {pg.pageRows.map((r) => (
                 <tr key={r.key} className="hover:bg-secondary/30">
                   <td className="px-5 py-3">
                     <div className="font-medium">{r.employee}</div>
@@ -651,6 +654,7 @@ function DeductionList() {
               )}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

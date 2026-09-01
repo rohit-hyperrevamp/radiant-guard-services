@@ -14,6 +14,7 @@ import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-
 import { fetchUnitDesignations } from "@/lib/unit-designations";
 import { logActivity } from "@/lib/activity-log";
 import { extractMigrationSheet } from "@/lib/migration-sheet.functions";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/migration-utility")({
   component: MigrationUtilityPage,
@@ -169,6 +170,7 @@ function MigrationUtilityPage() {
   const [paste, setPaste] = useState("");
   const [parsing, setParsing] = useState(false);
   const [log, setLog] = useState<string[]>([]);
+  const pg = usePagination(rows);
 
   const [yStr, mStr] = ym.split("-");
   const year = Number(yStr);
@@ -664,7 +666,8 @@ function MigrationUtilityPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, idx) => {
+                {pg.pageRows.map((row) => {
+                  const idx = rows.indexOf(row);
                   const t = totalsFor(row);
                   const update = (patch: Partial<SheetRow>) =>
                     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -707,6 +710,7 @@ function MigrationUtilityPage() {
               </tbody>
             </table>
           </div>
+          <DataPagination {...pg} />
 
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={() => run.mutate()} disabled={run.isPending}>
