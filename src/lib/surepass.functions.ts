@@ -107,7 +107,7 @@ async function writeCachedProfile(clientId: string, profile: DigilockerProfile):
     await supabaseAdmin
       .from("digilocker_sessions")
       .upsert(
-        { client_id: clientId, profile: profile as unknown as Record<string, unknown>, status: "completed", updated_at: new Date().toISOString() },
+        { client_id: clientId, profile: JSON.parse(JSON.stringify(profile)), status: "completed", updated_at: new Date().toISOString() },
         { onConflict: "client_id" },
       );
   } catch (error) {
