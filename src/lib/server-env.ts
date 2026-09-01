@@ -1,10 +1,8 @@
-// Server-side backend binding for production deployments.
+// Server-side binding for the application's single production database.
 //
-// The platform-managed `.env` in this repo points at the Lovable preview
-// backend, and the deployment host may have no Supabase variables set at all.
-// To make production self-configuring (no host dashboard steps), the external
-// "Radiant" Supabase project is baked in here and applied to `process.env`
-// before any server code reads it.
+// Platform-managed preview variables can point at a separate empty database.
+// Apply the Radiant binding before server code reads the environment so preview
+// and deployed requests cannot diverge.
 //
 // Called from `src/server.ts` on every request entry, so it runs ahead of every
 // server function and SSR render. Never imported by browser code.
@@ -25,13 +23,11 @@ const PRODUCTION_SUPABASE: Record<string, string> = {
 let applied = false;
 
 /**
- * Pins server-side Supabase env vars to the external production project.
- * No-op in development, so the in-editor preview keeps its injected values.
+ * Pins server-side database env vars to the Radiant production project.
  */
 export function applyProductionServerEnv(): void {
   if (applied) return;
   applied = true;
-  if (!import.meta.env.PROD) return;
   if (typeof process === "undefined" || !process.env) return;
   for (const key of Object.keys(PRODUCTION_SUPABASE)) {
     process.env[key] = PRODUCTION_SUPABASE[key];
