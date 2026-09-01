@@ -210,13 +210,35 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       message: s(status.message) || (completed ? "DigiLocker completed" : "Waiting for the candidate to finish"),
     };
 
-    if (!completed) return empty;
+    if (!completed) {
+      // A cached profile means the download already succeeded earlier in this session.
+      const cached = await readCachedProfile(data.clientId);
+      return cached ?? empty;
+    }
 
-    const aadhaar = await surepass<Record<string, unknown>>(
-      `/api/v1/digilocker/download-aadhaar/${encodeURIComponent(data.clientId)}`,
-      { method: "GET" },
-    );
-    const a = (aadhaar.data ?? {}) as Record<string, unknown>;
+    // Surepass allows the Aadhaar download only once per client_id, so replay the cached copy.
+    const cached = await readCachedProfile(data.clientId);
+    if (cached && cached.full_name) return cached;
+
+    let a: Record<string, unknown>;
+    try {
+      const aadhaar = await surepass<Record<string, unknown>>(
+        `/api/v1/digilocker/download-aadhaar/${encodeURIComponent(data.clientId)}`,
+        { method: "GET" },
+      );
+      a = (aadhaar.data ?? {}) as Record<string, unknown>;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      if (/already\s*download/i.test(detail)) {
+        const replay = await readCachedProfile(data.clientId);
+        if (replay && replay.full_name) return replay;
+        throw new Error(
+          "DigiLocker already released this Aadhaar for the previous attempt. Start DigiLocker again to pull the details.",
+        );
+      }
+      throw error;
+    }
+
     const address = (a["address"] ?? {}) as Record<string, unknown>;
 
     const house = s(address["house"]);
@@ -224,7 +246,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
     const loc = s(address["loc"]);
     const vtc = s(address["vtc"]);
 
-    return {
+    const profile: DigilockerProfile = {
       ...empty,
       status: "completed",
       full_name: s(a["name"]) || s(a["full_name"]),
@@ -241,4 +263,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       country: s(address["country"]) || "India",
       message: "Verified via DigiLocker",
     };
+
+    await writeCachedProfile(data.clientId, profile);
+    return profile;
   });
