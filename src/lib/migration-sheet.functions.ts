@@ -11,12 +11,17 @@ import { generateText } from "ai";
  * sheet plus their day-wise attendance so the utility can create them.
  */
 
-const InputSchema = z.object({
-  imageDataUrl: z.string().min(20).max(20_000_000),
-  dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(40),
-  codes: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(40),
-  designations: z.array(z.object({ id: z.string(), name: z.string() })).max(50),
-});
+const InputSchema = z
+  .object({
+    imageDataUrl: z.string().min(20).max(20_000_000).optional(),
+    sheetText: z.string().min(5).max(400_000).optional(),
+    dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(40),
+    codes: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(40),
+    designations: z.array(z.object({ id: z.string(), name: z.string() })).max(50),
+  })
+  .refine((v) => Boolean(v.imageDataUrl || v.sheetText), {
+    message: "Provide either a sheet image or spreadsheet text",
+  });
 
 export type MigrationSheetDay = { entry_date: string; code: string; ot_hours: number };
 
@@ -104,26 +109,32 @@ export const extractMigrationSheet = createServerFn({ method: "POST" })
       `{"employees":[{"name":"","employee_code":"","mobile":"","designation_id":"","days":[{"entry_date":"YYYY-MM-DD","code":"P","ot_hours":0}]}],"notes":"visible_days=NN"}`,
     ].join("\n\n");
 
+    const imageDataUrl = data.imageDataUrl;
+    const content = imageDataUrl
+      ? [
+          { type: "text" as const, text: prompt },
+          {
+            type: "image" as const,
+            image: (() => {
+              const m = imageDataUrl.match(/^data:[^;]+;base64,(.+)$/);
+              if (!m) return new URL(imageDataUrl);
+              return Uint8Array.from(atob(m[1]!), (c) => c.charCodeAt(0));
+            })(),
+          },
+        ]
+      : [
+          { type: "text" as const, text: prompt },
+          {
+            type: "text" as const,
+            text: `Spreadsheet contents (tab-separated rows, exactly as in the uploaded file):\n\n${data.sheetText}`,
+          },
+        ];
+
     const { text } = await generateText({
       model,
       system: SYSTEM_PROMPT,
       temperature: 0,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text" as const, text: prompt },
-            {
-              type: "image" as const,
-              image: (() => {
-                const m = data.imageDataUrl.match(/^data:[^;]+;base64,(.+)$/);
-                if (!m) return new URL(data.imageDataUrl);
-                return Uint8Array.from(atob(m[1]!), (c) => c.charCodeAt(0));
-              })(),
-            },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content }],
     });
 
     const out = parseJson(text);
