@@ -5298,7 +5298,9 @@ function CandidateWizard({
       ...basePayload,
       status,
       designation_id: form.designation_id ?? editing?.designation_id ?? null,
-      role_key: (form.role_key ?? "").trim() || null,
+      // Never write a null role_key (NOT NULL in DB) — omit it when unset so the
+      // insert can fall back and updates keep the existing role.
+      ...((form.role_key ?? "").trim() ? { role_key: (form.role_key ?? "").trim() } : {}),
       emergency_contact_name: emergencyContact?.name ?? "",
       emergency_contact_relation: emergencyContact?.relation ?? "",
       emergency_contact_mobile: emergencyContact?.mobile ?? "",
@@ -5441,7 +5443,9 @@ function CandidateWizard({
         const roleFromContract = (cr as { role_key?: string | null } | null)?.role_key ?? "";
         if (roleFromContract) derivedRoleKey = roleFromContract;
       }
-      const insertPayload = { ...(payload as Record<string, unknown>), created_by: creatorId, role_key: derivedRoleKey || null };
+      // role_key is NOT NULL in the database. Drafts are saved before the role is
+      // picked, so fall back to "guard" — the user can still change it afterwards.
+      const insertPayload = { ...(payload as Record<string, unknown>), created_by: creatorId, role_key: derivedRoleKey || "guard" };
       const { data, error } = await supabase
         .from("candidates" as never)
         .insert(insertPayload as never)
@@ -5988,7 +5992,9 @@ function CandidateWizard({
                           full_name: keep(profile.full_name, f.full_name),
                           date_of_birth: profile.date_of_birth || f.date_of_birth,
                           gender: keep(profile.gender, f.gender),
-                          aadhaar_number: profile.aadhaar_number || f.aadhaar_number,
+                          aadhaar_number: /^\d{12}$/.test(profile.aadhaar_number ?? "")
+                            ? profile.aadhaar_number
+                            : f.aadhaar_number,
                           permanent_address1: keep(profile.address_line1, f.permanent_address1),
                           permanent_address2: keep(profile.address_line2, f.permanent_address2),
                           permanent_landmark: keep(profile.landmark, f.permanent_landmark),

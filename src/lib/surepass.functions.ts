@@ -118,7 +118,12 @@ function toDigilockerProfile(
     full_name: s(source["full_name"]) || s(source["name"]),
     date_of_birth: s(source["dob"]) || s(source["date_of_birth"]),
     gender: /^m/i.test(s(source["gender"])) ? "Male" : /^f/i.test(s(source["gender"])) ? "Female" : s(source["gender"]),
-    aadhaar_number: s(source["aadhaar_number"]).replace(/\D/g, "").slice(0, 12),
+    // DigiLocker usually returns a masked Aadhaar (XXXXXXXX1234) — never let a
+    // partial number overwrite the full number the user typed in the form.
+    aadhaar_number: (() => {
+      const digits = s(source["aadhaar_number"]).replace(/\D/g, "");
+      return digits.length === 12 ? digits : "";
+    })(),
     address_line1: [house, street].filter(Boolean).join(", "),
     address_line2: [loc, vtc].filter(Boolean).join(", "),
     landmark: s(address["landmark"]),
