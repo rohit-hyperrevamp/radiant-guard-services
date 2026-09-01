@@ -103,6 +103,7 @@ function ItemsPage() {
       return i.name.toLowerCase().includes(q) || i.item_code.toLowerCase().includes(q) || i.hsn_code.toLowerCase().includes(q);
     });
   }, [items, query, catFilter]);
+  const pg = usePagination(filtered);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: QK });
   const toRow = (p: Payload) => ({
@@ -200,7 +201,7 @@ function ItemsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => (
+              {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{i.item_code}</td>
                   <td className="px-5 py-3 font-medium"><span className="inline-flex items-center gap-2"><PackageOpen className="h-4 w-4 text-muted-foreground" />{i.name}</span>{i.hsn_code && <div className="text-[10px] text-muted-foreground">HSN {i.hsn_code}</div>}</td>
@@ -224,6 +225,7 @@ function ItemsPage() {
               {!filtered.length && <tr><td colSpan={10} className="px-5 py-12 text-center text-sm text-muted-foreground">No items yet. Click "Add Item" to begin.</td></tr>}
             </tbody>
           </table>
+          <DataPagination {...pg} />
         </div>
       </div>
 

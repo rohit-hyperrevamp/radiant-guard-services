@@ -54,6 +54,7 @@ import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAtt
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -976,6 +977,7 @@ function PayrollUnitPage() {
   // flicker, especially when an expanded pay sheet changes the table height.
   const rows = data ?? [];
   const isLoading = isPending && data === undefined;
+  const pg = usePagination(rows);
 
   // ---- Form XVI wage slips -------------------------------------------------
   const [slipBusy, setSlipBusy] = useState<string | null>(null);
@@ -2025,7 +2027,7 @@ function PayrollUnitPage() {
                 <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
                 <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
-              ) : rows.map((r) => {
+              ) : pg.pageRows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
                 const isExpanded = expandedRows.has(r.rowKey);
                 return (
@@ -2172,6 +2174,7 @@ function PayrollUnitPage() {
             )}
           </table>
         </div>
+        <DataPagination {...pg} />
       </div>
 
 

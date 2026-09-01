@@ -71,7 +71,7 @@ function ReportsPage() {
   const [customerId, setCustomerId] = useState<string>("");
   const [unitIds, setUnitIds] = useState<string[]>([]); // empty = all
   const [downloading, setDownloading] = useState(false);
-  const pg = usePagination(visits);
+
 
   const range = useMemo(
     () => resolveRange(preset, customStart || null, customEnd || null),
