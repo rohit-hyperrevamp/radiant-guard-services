@@ -196,6 +196,17 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 {polling && <Loader2 className="h-3 w-3 animate-spin" />} Waiting for the candidate to complete…
               </p>
+              {error && <p className="text-center text-[11px] text-destructive">{error}</p>}
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void pullDetails(session.client_id, false)}
+                >
+                  Fetch details now
+                </Button>
+              </div>
             </div>
           )}
         </div>
