@@ -52,7 +52,7 @@ async function surepass<T>(
   init: { method: "GET" | "POST"; body?: unknown },
 ): Promise<SurepassEnvelope<T>> {
   const token = process.env["SUREPASS_TOKEN"];
-  const baseUrl = process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.app";
+  const baseUrl = (process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.io").replace(/\/+$/, "");
   if (!token) throw new Error("SUREPASS_TOKEN is not configured");
 
   const res = await fetch(`${baseUrl}${path}`, {
@@ -125,7 +125,6 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
         data: {
           signup_flow: false,
           skip_main_screen: false,
-          logo_url: "",
           redirect_url: data.redirectUrl,
           expiry_minutes: 15,
           send_sms: data.sendSms && Boolean(data.mobile),
