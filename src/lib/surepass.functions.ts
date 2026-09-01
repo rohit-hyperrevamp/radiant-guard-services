@@ -122,7 +122,7 @@ function toDigilockerProfile(
     // partial number overwrite the full number the user typed in the form.
     aadhaar_number: (() => {
       const digits = s(source["aadhaar_number"]).replace(/\D/g, "");
-      return digits.length === 12 ? digits : "";
+      return digits.length === 12 ? digits : base.aadhaar_number;
     })(),
     address_line1: [house, street].filter(Boolean).join(", "),
     address_line2: [loc, vtc].filter(Boolean).join(", "),
@@ -197,6 +197,7 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
     z
       .object({
         redirectUrl: z.string().url(),
+        aadhaar: z.string().regex(/^\d{12}$/, "Aadhaar must be 12 digits"),
         mobile: z.string().regex(/^\d{10}$/).optional(),
         sendSms: z.boolean().default(true),
       })
@@ -225,8 +226,26 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
     if (!url || !clientId) throw new Error("DigiLocker did not return a consent link");
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const pendingProfile: DigilockerProfile = {
+        completed: false,
+        status: "pending",
+        full_name: "",
+        date_of_birth: "",
+        gender: "",
+        aadhaar_number: data.aadhaar,
+        address_line1: "",
+        address_line2: "",
+        landmark: "",
+        city: "",
+        district: "",
+        state: "",
+        pincode: "",
+        country: "India",
+        documents: [],
+        message: "Waiting for the candidate to finish",
+      };
       const { error } = await supabaseAdmin.from("digilocker_sessions").upsert(
-        { client_id: clientId, profile: null, status: "pending", updated_at: new Date().toISOString() },
+        { client_id: clientId, profile: pendingProfile, status: "pending", updated_at: new Date().toISOString() },
         { onConflict: "client_id" },
       );
       if (error) throw error;
@@ -245,6 +264,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ clientId: z.string().min(6).max(120) }).parse(input))
   .handler(async ({ data }): Promise<DigilockerProfile> => {
+    const registered = await readCachedProfile(data.clientId);
     const status = await surepass<Record<string, unknown>>(
       `/api/v1/digilocker/status/${encodeURIComponent(data.clientId)}`,
       { method: "GET" },
@@ -261,7 +281,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       full_name: "",
       date_of_birth: "",
       gender: "",
-      aadhaar_number: "",
+      aadhaar_number: /^\d{12}$/.test(registered?.aadhaar_number ?? "") ? registered?.aadhaar_number ?? "" : "",
       address_line1: "",
       address_line2: "",
       landmark: "",

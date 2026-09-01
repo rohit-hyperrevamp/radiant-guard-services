@@ -41,6 +41,7 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
   const [polling, setPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const verifiedAadhaarRef = useRef("");
 
   const clean = (aadhaar ?? "").replace(/\D/g, "");
   const ready = clean.length === 12;
@@ -62,6 +63,7 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
           : result.message,
       );
       if (!result.valid) toast.error(result.message || "Aadhaar could not be validated");
+      if (result.valid) verifiedAadhaarRef.current = clean;
       return result.valid;
     } catch (error) {
       setValidation(null);
@@ -83,7 +85,12 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
       setPolling(false);
       setOpen(false);
       setError(null);
-      onVerified(profile);
+      onVerified({
+        ...profile,
+        aadhaar_number: /^\d{12}$/.test(profile.aadhaar_number)
+          ? profile.aadhaar_number
+          : verifiedAadhaarRef.current,
+      });
       toast.success("DigiLocker verified — details filled in");
       return true;
     } catch (err) {
@@ -128,6 +135,7 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
       const created = await startSession({
         data: {
           redirectUrl: `${window.location.origin}/digilocker/callback`,
+          aadhaar: verifiedAadhaarRef.current,
           ...(digits.length === 10 ? { mobile: digits } : {}),
           sendSms: digits.length === 10,
         },
