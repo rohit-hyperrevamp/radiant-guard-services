@@ -1269,60 +1269,44 @@ function PayrollUnitPage() {
           <table className="ios-table min-w-full table-auto text-sm">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Emp ID</th>
-                <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
-                <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + extra duty days)">Days billed</th>
-                <th className="px-4 py-3 text-right font-medium" title="Payroll days for this contract in this period">Payroll days</th>
+                <th className="px-4 py-3 text-right font-medium" title="Number of resources billed under this designation">Count</th>
+                <th className="px-4 py-3 text-right font-medium" title="Total days billed across all resources of this designation">Days billed</th>
                 <th className="px-4 py-3 text-right font-medium" title="Days billed × contracted shift hours">Hours billed</th>
                 <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days ÷ contracted shift hours">Per hour</th>
-
                 <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
-                <th className="px-4 py-3 text-right font-medium" title="Contracted ÷ payroll days × days billed">Actual invoice</th>
-                <th className="px-4 py-3 text-right font-medium" title="Actual − Contracted">Variance</th>
+                <th className="px-4 py-3 text-right font-medium" title="Per hour × hours billed">Actual invoice</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">Computing invoice…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Computing invoice…</td></tr>
               ) : error ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
-              ) : rows.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
-              ) : rows.map((r) => {
-                const isHighlighted = highlightCandidate === r.id;
-                const m = invoiceMathFor(r);
-                return (
-                <tr
-                  key={r.rowKey}
-                  id={`invoice-row-${r.rowKey}`}
-                  className={`hover:bg-muted/40 ${isHighlighted ? "bg-emerald-50 ring-2 ring-emerald-400 dark:bg-emerald-950/40" : ""}`}
-                >
-                  <td className="px-4 py-3 font-mono text-xs">{r.employeeCode || "—"}</td>
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.designation}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.billedDays}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.payrollDays}</td>
-                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? `${m.billedHours} hrs` : "—"}</td>
-                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? `₹${m.perHour.toFixed(2)}` : "—"}</td>
-
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{r.resource ? fmtINR(m.contracted) : <span className="text-xs text-amber-600">no contract</span>}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{r.wages ? fmtINR(m.actual) : "—"}</td>
-                  <td className={`px-4 py-3 text-right tabular-nums ${m.variance > 0 ? "text-emerald-700" : m.variance < 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (m.variance === 0 ? fmtINR(0) : `${m.variance > 0 ? "+" : "−"} ${fmtINR(Math.abs(m.variance))}`) : "—"}</td>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
+              ) : designationRows.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No billable resources for this period.</td></tr>
+              ) : designationRows.map((g) => (
+                <tr key={g.key} className="hover:bg-muted/40">
+                  <td className="px-4 py-3 font-medium">{g.designation}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{g.headcount}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{g.billedDays}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">{g.billedHours} hrs</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">₹{g.perHour.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmtINR(g.contracted)}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(g.actual)}</td>
                 </tr>
-                );
-              })}
+              ))}
             </tbody>
-            {rows.length > 0 && (
+            {designationRows.length > 0 && (
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
-                  <td className="px-4 py-3" colSpan={7}>Totals</td>
+                  <td className="px-4 py-3">Totals</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{designationRows.reduce((s, g) => s + g.headcount, 0)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{Math.round(designationRows.reduce((s, g) => s + g.billedDays, 0) * 100) / 100}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{Math.round(designationRows.reduce((s, g) => s + g.billedHours, 0) * 100) / 100} hrs</td>
+                  <td className="px-4 py-3" />
                   <td className="px-4 py-3 text-right text-muted-foreground">{fmtINR(totals.projectedTotal)}</td>
                   <td className="px-4 py-3 text-right text-emerald-700">{fmtINR(totals.actualTotal)}</td>
-                  <td className={`px-4 py-3 text-right ${totals.actualTotal - totals.projectedTotal >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
-                    {totals.actualTotal - totals.projectedTotal >= 0 ? "+ " : "− "}
-                    {fmtINR(Math.abs(Math.round((totals.actualTotal - totals.projectedTotal) * 100) / 100))}
-                  </td>
                 </tr>
               </tfoot>
             )}
