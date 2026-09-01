@@ -125,7 +125,6 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
         data: {
           signup_flow: false,
           skip_main_screen: false,
-          logo_url: "",
           redirect_url: data.redirectUrl,
           expiry_minutes: 15,
           send_sms: data.sendSms && Boolean(data.mobile),
