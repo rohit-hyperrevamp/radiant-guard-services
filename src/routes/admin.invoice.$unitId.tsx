@@ -758,6 +758,9 @@ function PayrollUnitPage() {
       (r.wages?.baseDays || periodDates.length || 30);
     const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
     const perDay = payrollDays > 0 ? contracted / payrollDays : 0;
+    // Hourly rate = final billing rate / payroll days / contracted shift hours.
+    const shiftHours = shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
+    const perHour = shiftHours > 0 ? perDay / shiftHours : 0;
     const actual =
       !r.wages || !r.resource
         ? 0
@@ -769,6 +772,8 @@ function PayrollUnitPage() {
       payrollDays,
       billedDays,
       perDay: Math.round(perDay * 100) / 100,
+      shiftHours,
+      perHour: Math.round(perHour * 100) / 100,
       actual,
       variance: Math.round((actual - contracted) * 100) / 100,
     };
@@ -807,7 +812,7 @@ function PayrollUnitPage() {
   const exportCsv = () => {
     const headers = [
       "Emp ID", "Name", "Designation", "P Days", "PH Days", "ED Hrs", "ED Days", "Billed Days",
-      "Payroll Days", "Per Day Rate", "Contracted Invoice", "Actual Invoice", "Variance",
+      "Payroll Days", "Per Day Rate", "Per Hour Rate", "Contracted Invoice", "Actual Invoice", "Variance",
     ];
     const columns = headers.map((h) => ({ key: h, header: h }));
     const dataRows = rows.map((r) => {
@@ -823,6 +828,7 @@ function PayrollUnitPage() {
         "Billed Days": m.billedDays,
         "Payroll Days": m.payrollDays,
         "Per Day Rate": m.perDay,
+        "Per Hour Rate": m.perHour,
         "Contracted Invoice": m.contracted,
         "Actual Invoice": r.wages ? m.actual : "",
         "Variance": r.wages ? m.variance : "",
@@ -1070,7 +1076,7 @@ function PayrollUnitPage() {
             .map((r) => ({
               id: r.id,
               description: `${r.name} · ${r.designation}`,
-              qtyLabel: `${invoiceMathFor(r).billedDays} of ${invoiceMathFor(r).payrollDays} days`,
+              qtyLabel: `${invoiceMathFor(r).billedDays} of ${invoiceMathFor(r).payrollDays} days × ${invoiceMathFor(r).shiftHours} hrs @ ₹${invoiceMathFor(r).perHour.toFixed(2)}/hr`,
               amount: billableFor(r),
             })),
           subtotal: totals.actualTotal,
@@ -1155,6 +1161,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + extra duty days)">Days billed</th>
                 <th className="px-4 py-3 text-right font-medium" title="Payroll days for this contract in this period">Payroll days</th>
                 <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days">Per day</th>
+                <th className="px-4 py-3 text-right font-medium" title="Per day rate ÷ contracted shift hours">Per hour</th>
                 <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
                 <th className="px-4 py-3 text-right font-medium" title="Contracted ÷ payroll days × days billed">Actual invoice</th>
                 <th className="px-4 py-3 text-right font-medium" title="Actual − Contracted">Variance</th>
@@ -1162,11 +1169,11 @@ function PayrollUnitPage() {
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">Computing invoice…</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">Computing invoice…</td></tr>
               ) : error ? (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
               ) : rows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
                 const m = invoiceMathFor(r);
@@ -1182,6 +1189,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.billedDays}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.payrollDays}</td>
                   <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? fmtINR(m.perDay) : "—"}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? `₹${m.perHour.toFixed(2)}` : "—"}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{r.resource ? fmtINR(m.contracted) : <span className="text-xs text-amber-600">no contract</span>}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{r.wages ? fmtINR(m.actual) : "—"}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${m.variance > 0 ? "text-emerald-700" : m.variance < 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (m.variance === 0 ? fmtINR(0) : `${m.variance > 0 ? "+" : "−"} ${fmtINR(Math.abs(m.variance))}`) : "—"}</td>
@@ -1192,7 +1200,7 @@ function PayrollUnitPage() {
             {rows.length > 0 && (
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
-                  <td className="px-4 py-3" colSpan={6}>Totals</td>
+                  <td className="px-4 py-3" colSpan={7}>Totals</td>
                   <td className="px-4 py-3 text-right text-muted-foreground">{fmtINR(totals.projectedTotal)}</td>
                   <td className="px-4 py-3 text-right text-emerald-700">{fmtINR(totals.actualTotal)}</td>
                   <td className={`px-4 py-3 text-right ${totals.actualTotal - totals.projectedTotal >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
