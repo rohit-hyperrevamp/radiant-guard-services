@@ -1,53 +1,11 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import {
-  Building2,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  MapPin,
-  Network,
-  Search,
-  Users,
-  Warehouse,
-  X,
-} from "lucide-react";
-import { csvDate, csvJoin, csvMapLink, csvStatus, downloadCsv } from "@/lib/csv-export";
-import { PageHeader, PageStat } from "@/components/PageHeader";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  useBranches,
-  useCustomers,
-  useStates,
-  useUnits,
-  type Customer,
-  type CustomerStatus,
-  type Unit,
-} from "@/lib/admin-data";
-import { cn } from "@/lib/utils";
-import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
+import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/admin/customers")({
   component: CustomersLayout,
 });
 
 function CustomersLayout() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-  if (pathname !== "/admin/customers" && pathname !== "/admin/customers/") {
-    return <Outlet />;
-  }
-
-  return <CustomersDashboard />;
+  return <Navigate to="/admin/customers/customer-manager" replace />;
 }
 
 function CustomersDashboard() {
