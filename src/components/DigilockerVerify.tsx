@@ -157,17 +157,38 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
 
   return (
     <div className="mt-2 space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={!ready || validating} onClick={runValidation}>
-          {validating ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="mr-1 h-3.5 w-3.5" />}
-          Validate Aadhaar
-        </Button>
-        <Button type="button" size="sm" variant="secondary" disabled={starting} onClick={() => void startDigilocker()}>
-          {starting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="mr-1 h-3.5 w-3.5" />}
-          Verify via DigiLocker
-        </Button>
-        {validation && <span className="text-[11px] text-muted-foreground">{validation}</span>}
-      </div>
+      {verified ? (
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
+          <BadgeCheck className="mt-0.5 h-4 w-4 text-emerald-600" />
+          <div>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Aadhaar verified via DigiLocker</p>
+            <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+              {verifiedName ? `Identity confirmed for ${verifiedName}. ` : ""}Details were filled in from the UIDAI
+              record — no Aadhaar copy upload needed.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!ready || starting || validating}
+            onClick={() => void startDigilocker()}
+          >
+            {starting || validating ? (
+              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+            )}
+            Verify via DigiLocker
+          </Button>
+          <span className="text-[11px] text-muted-foreground">
+            {validation ?? (ready ? "Checks the number with UIDAI, then opens DigiLocker consent." : "Enter all 12 digits to verify.")}
+          </span>
+        </div>
+      )}
 
       {open && (
         <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
