@@ -40,6 +40,7 @@ import {
 } from "@/lib/formula-engine";
 
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
