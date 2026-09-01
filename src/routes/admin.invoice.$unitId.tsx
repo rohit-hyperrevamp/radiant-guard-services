@@ -727,12 +727,8 @@ function PayrollUnitPage() {
   // ---------------------------------------------------------------------
 
   const invoiceMathFor = (r: (typeof rows)[number]) => {
-    const contracted = r.resource
-      ? Math.round(
-          (r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-            r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0)) * 100,
-        ) / 100
-      : 0;
+    const contracted = r.resource ? contractBillableMonthly(r.resource as never) : 0;
+
     const payrollDays =
       resolvePayrollDayCount(r.resource?.payrollDayBase ?? null, periodDates) ??
       (r.wages?.baseDays || periodDates.length || 30);
