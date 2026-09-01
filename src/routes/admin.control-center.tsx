@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, DatabaseZap, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -167,11 +167,18 @@ const tiles: Tile[] = [
     icon: Workflow,
   },
   {
+    to: "/admin/migration-utility",
+    label: "Migration Utility",
+    description: "Back-fill a legacy attendance sheet into a contract month — creates employees, fills attendance, releases payroll and invoice.",
+    icon: DatabaseZap,
+  },
+  {
     to: "/admin/org-settings",
     label: "Company Settings",
     description: "Company name, GSTIN and home state — drives CGST/SGST vs IGST split on invoices.",
     icon: Building2,
   },
+
 
 ];
 
