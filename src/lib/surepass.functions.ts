@@ -191,6 +191,26 @@ export const validateAadhaarNumber = createServerFn({ method: "POST" })
     };
   });
 
+export const hasCompletedDigilockerVerification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ aadhaar: z.string().regex(/^\d{12}$/, "Aadhaar must be 12 digits") }).parse(input),
+  )
+  .handler(async ({ data }): Promise<boolean> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("digilocker_sessions")
+      .select("profile")
+      .eq("status", "completed")
+      .limit(100);
+    if (error) throw error;
+    return (rows ?? []).some((row) => {
+      const profile = (row as { profile?: unknown }).profile;
+      if (!profile || typeof profile !== "object" || Array.isArray(profile)) return false;
+      return s((profile as Record<string, unknown>)["aadhaar_number"]).replace(/\D/g, "") === data.aadhaar;
+    });
+  });
+
 export const startDigilockerSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>

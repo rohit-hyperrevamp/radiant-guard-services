@@ -17,7 +17,6 @@ type Props = {
   aadhaar: string;
   mobile?: string;
   verified?: boolean;
-  verifiedName?: string;
   onVerified: (profile: DigilockerProfile) => void;
 };
 
@@ -27,7 +26,7 @@ type Props = {
  * - "DigiLocker" creates a consent link (shown as QR + link, optionally SMSed)
  *   and polls until the candidate finishes, then autofills verified details.
  */
-export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedName, onVerified }: Props) {
+export function DigilockerVerify({ aadhaar, mobile, verified = false, onVerified }: Props) {
   const validate = useServerFn(validateAadhaarNumber);
   const startSession = useServerFn(startDigilockerSession);
   const fetchProfile = useServerFn(getDigilockerProfile);

@@ -77,6 +77,7 @@ import { findCandidateByAadhaar } from "@/lib/workflows";
 import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/RehireRequestDialog";
 
 import { DigilockerVerify } from "@/components/DigilockerVerify";
+import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
 import { RehireEnableDialog } from "@/components/RehireEnableDialog";
@@ -4792,6 +4793,7 @@ function CandidateWizard({
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [invalidField, setInvalidField] = useState<string | null>(null);
   const [digilockerVerified, setDigilockerVerified] = useState(false);
+  const checkSavedDigilockerVerification = useServerFn(hasCompletedDigilockerVerification);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
   // exists and must go through the configurable rehire approval chain.
@@ -4886,6 +4888,23 @@ function CandidateWizard({
         savedVerifiedAadhaar.length === 12 &&
         savedVerifiedAadhaar === String(rest.aadhaar_number ?? "").replace(/\D/g, ""),
       );
+      const currentAadhaar = String(rest.aadhaar_number ?? "").replace(/\D/g, "");
+      if (currentAadhaar.length === 12 && savedVerification.digilocker_verified !== true) {
+        void checkSavedDigilockerVerification({ data: { aadhaar: currentAadhaar } })
+          .then((verified) => {
+            if (!verified) return;
+            setDigilockerVerified(true);
+            setForm((current) => ({
+              ...current,
+              other_info: {
+                ...(current.other_info ?? {}),
+                digilocker_verified: true,
+                digilocker_verified_aadhaar: currentAadhaar,
+              },
+            }));
+          })
+          .catch((error: unknown) => console.error("DigiLocker verification restore failed", error));
+      }
       if (isEmployeeMode && rest.unit_id) setHomeUnitId(rest.unit_id);
       setInitialUnitIds(initialUnitIds);
       setForm({
@@ -6002,7 +6021,6 @@ function CandidateWizard({
                       aadhaar={form.aadhaar_number}
                       mobile={form.mobile}
                       verified={digilockerVerified}
-                      verifiedName={form.full_name}
                       onVerified={(profile) => {
                         const keep = (next: string, current: string) => (next ? next : current);
                         setForm((f) => ({
