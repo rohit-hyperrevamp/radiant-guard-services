@@ -167,11 +167,18 @@ const tiles: Tile[] = [
     icon: Workflow,
   },
   {
+    to: "/admin/migration-utility",
+    label: "Migration Utility",
+    description: "Back-fill a legacy attendance sheet into a contract month — creates employees, fills attendance, releases payroll and invoice.",
+    icon: DatabaseZap,
+  },
+  {
     to: "/admin/org-settings",
     label: "Company Settings",
     description: "Company name, GSTIN and home state — drives CGST/SGST vs IGST split on invoices.",
     icon: Building2,
   },
+
 
 ];
 
