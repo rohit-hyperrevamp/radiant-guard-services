@@ -11,12 +11,17 @@ import { generateText } from "ai";
  * sheet plus their day-wise attendance so the utility can create them.
  */
 
-const InputSchema = z.object({
-  imageDataUrl: z.string().min(20).max(20_000_000),
-  dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(40),
-  codes: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(40),
-  designations: z.array(z.object({ id: z.string(), name: z.string() })).max(50),
-});
+const InputSchema = z
+  .object({
+    imageDataUrl: z.string().min(20).max(20_000_000).optional(),
+    sheetText: z.string().min(5).max(400_000).optional(),
+    dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(40),
+    codes: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(40),
+    designations: z.array(z.object({ id: z.string(), name: z.string() })).max(50),
+  })
+  .refine((v) => Boolean(v.imageDataUrl || v.sheetText), {
+    message: "Provide either a sheet image or spreadsheet text",
+  });
 
 export type MigrationSheetDay = { entry_date: string; code: string; ot_hours: number };
 
