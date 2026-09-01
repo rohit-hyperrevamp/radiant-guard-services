@@ -5208,7 +5208,7 @@ function CandidateWizard({
   // ----- Profile completion meter ----- //
   const completionChecks: Array<{ key: string; ok: boolean }> = [
     { key: "Photograph", ok: !!form.photo_url },
-    { key: "Aadhaar upload", ok: !!form.aadhaar_image_url },
+    { key: "Aadhaar verified / uploaded", ok: digilockerVerified || !!form.aadhaar_image_url },
     { key: "PAN upload", ok: !!form.pan_image_url },
     { key: "Signature", ok: !!form.signature_url },
     { key: "Full name", ok: !!form.full_name.trim() },
@@ -5542,7 +5542,8 @@ function CandidateWizard({
     setSaveError(null);
     if (!isEditingEmployeeProfile) {
       if (!form.photo_url) return failValidation("Photograph is required");
-      if (!form.aadhaar_image_url) return failValidation("Aadhaar upload is required");
+      if (!digilockerVerified && !form.aadhaar_image_url)
+        return failValidation("Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy");
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
@@ -5996,9 +5997,10 @@ function CandidateWizard({
                           permanent_pincode: keep(profile.pincode, f.permanent_pincode),
                           permanent_country: keep(profile.country, f.permanent_country),
                         }));
+                        setDigilockerVerified(true);
                       }}
                     />
-                    
+
                     <RehireRequestDialog
                       open={rehireOpen}
                       match={rehireMatch}
