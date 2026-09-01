@@ -359,7 +359,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources")
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id",
+            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
         resources = r ?? [];
@@ -705,7 +705,16 @@ function PayrollUnitPage() {
         return a.designation.localeCompare(b.designation);
       });
 
-      return { rows, billingMode };
+      const shiftHoursByDesignation = new Map<string, number>();
+      for (const r of resources) {
+        const h = Number((r as { shift_hours?: unknown }).shift_hours);
+        shiftHoursByDesignation.set(
+          String(r.designation_id ?? "__none__"),
+          Number.isFinite(h) && h > 0 ? h : 8,
+        );
+      }
+
+      return { rows, billingMode, shiftHoursByDesignation };
     },
   });
 
@@ -713,6 +722,7 @@ function PayrollUnitPage() {
 
   const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
+  const shiftHoursByDesignation = data?.shiftHoursByDesignation ?? new Map<string, number>();
   const [previewOpen, setPreviewOpen] = useState(false);
 
 
