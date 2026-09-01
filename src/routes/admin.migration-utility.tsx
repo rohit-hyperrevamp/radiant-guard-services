@@ -209,15 +209,36 @@ function MigrationUtilityPage() {
     if (!file || !contract) return;
     setParsing(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("Could not read the file"));
-        reader.readAsDataURL(file);
-      });
+      const isSpreadsheet = /\.(xlsx|xlsm|xls|csv)$/i.test(file.name);
+      let payload: { imageDataUrl?: string; sheetText?: string };
+
+      if (isSpreadsheet) {
+        const XLSX = await import("xlsx");
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const parts: string[] = [];
+        for (const name of wb.SheetNames) {
+          const ws = wb.Sheets[name];
+          if (!ws) continue;
+          const tsv = XLSX.utils.sheet_to_csv(ws, { FS: "\t", blankrows: false });
+          if (tsv.trim()) parts.push(`--- Sheet: ${name} ---\n${tsv}`);
+        }
+        const sheetText = parts.join("\n\n").slice(0, 380_000);
+        if (!sheetText.trim()) throw new Error("That spreadsheet appears to be empty");
+        payload = { sheetText };
+      } else {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Could not read the file"));
+          reader.readAsDataURL(file);
+        });
+        payload = { imageDataUrl: dataUrl };
+      }
+
       const result = await extractMigrationSheet({
         data: {
-          imageDataUrl: dataUrl,
+          ...payload,
           dates,
           codes: codes.map((c) => ({ code: c.code, label: c.label })),
           designations: designations.map((d) => ({ id: d.id, name: d.name })),
