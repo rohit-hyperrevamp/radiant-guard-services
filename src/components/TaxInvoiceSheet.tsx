@@ -302,8 +302,29 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   {n2(data.cgst + data.sgst + data.igst)}
                 </td>
               </tr>
+              <tr className="font-semibold">
+                <td className="border border-border px-2 py-1">Total</td>
+                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.taxableValue)}</td>
+                {data.intraState ? (
+                  <>
+                    <td className="border border-border px-2 py-1" />
+                    <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.cgst)}</td>
+                    <td className="border border-border px-2 py-1" />
+                    <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.sgst)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="border border-border px-2 py-1" />
+                    <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.igst)}</td>
+                  </>
+                )}
+                <td className="border border-border px-2 py-1 text-right tabular-nums">
+                  {n2(data.cgst + data.sgst + data.igst)}
+                </td>
+              </tr>
             </tbody>
           </table>
+
 
           <div className="mt-2 border border-border p-2">
             <span className="text-muted-foreground">Tax Amount (in words) : </span>
@@ -319,8 +340,14 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   <div>Bill Period - {data.periodLabel}</div>
                   <div className="mt-2 font-semibold">Company&apos;s Bank Details</div>
                   {c.pan && <div>Company&apos;s PAN : {c.pan}</div>}
-                  {c.bankName && <div>Bank Name : {c.bankName}</div>}
+                  {c.bankName && (
+                    <div>
+                      Bank Name : {c.bankName}
+                      {c.bankAccountNo ? ` A/C NO. ${c.bankAccountNo}` : ""}
+                    </div>
+                  )}
                   {c.bankAccountNo && <div>A/c No. : {c.bankAccountNo}</div>}
+
                   {(c.bankBranch || c.bankIfsc) && (
                     <div>Branch &amp; IFS Code : {[c.bankBranch, c.bankIfsc].filter(Boolean).join(" & ")}</div>
                   )}
