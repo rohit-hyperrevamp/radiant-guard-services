@@ -78,6 +78,7 @@ function CustomerManagerPage() {
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
 
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState<Customer | null>(null);
