@@ -1193,9 +1193,8 @@ function PayrollUnitPage() {
           </span>
         </div>
         {rows.filter((r) => r.wages && r.resource).map((r) => {
-          const projBillable =
-            r.resource!.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-            r.resource!.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0);
+          const projBillable = contractBillableMonthly(r.resource as never);
+
           return (
           <SalaryBreakdownPreview
             key={r.rowKey}
