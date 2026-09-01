@@ -636,10 +636,20 @@ function MigrationUtilityPage() {
             <Link className="text-accent" to="/admin/attendance/$unitId" params={{ unitId: contract.unit_id }}>
               Open attendance
             </Link>
-            <Link className="text-accent" to="/admin/payroll/$unitId" params={{ unitId: contract.unit_id }}>
+            <Link
+              className="text-accent"
+              to="/admin/payroll/$unitId"
+              params={{ unitId: contract.unit_id }}
+              search={{ start: period.start, end: period.end }}
+            >
               Open payroll
             </Link>
-            <Link className="text-accent" to="/admin/invoice/$unitId" params={{ unitId: contract.unit_id }}>
+            <Link
+              className="text-accent"
+              to="/admin/invoice/$unitId"
+              params={{ unitId: contract.unit_id }}
+              search={{ start: period.start, end: period.end }}
+            >
               Open invoice
             </Link>
           </div>
