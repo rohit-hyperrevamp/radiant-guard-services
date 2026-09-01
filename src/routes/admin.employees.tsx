@@ -77,7 +77,6 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { findCandidateByAadhaar } from "@/lib/workflows";
 import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/RehireRequestDialog";
 
-import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { DigilockerVerify } from "@/components/DigilockerVerify";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
@@ -663,7 +662,6 @@ const MARITAL_STATUSES = ["Single", "Married", "Divorced", "Widowed", "Separated
 const GENDERS = ["Male", "Female", "Other"];
 const MOCK_OTP = "1111";
 
-const getAadhaarOcrClient = createClientOnlyFn(() => import("@/lib/aadhaar-ocr.client"));
 
 // ---------------- Types ---------------- //
 type AddressBlock = {
@@ -4803,14 +4801,13 @@ function CandidateWizard({
   const qc = useQueryClient();
   const rolesQuery = useRolesLite();
   const rolesList = rolesQuery.data ?? [];
-  const extractFn = useServerFn(extractAadhaar);
   const { branches } = useBranches();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [invalidField, setInvalidField] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [digilockerVerified, setDigilockerVerified] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
   // exists and must go through the configurable rehire approval chain.
@@ -5840,9 +5837,8 @@ function CandidateWizard({
                     url={form.aadhaar_image_url}
                     accept="image/*,application/pdf"
                     onPick={(f) => handleFile(f, "aadhaar")}
-                    uploading={uploading === "aadhaar" || scanning}
-                    badge={scanning ? "Scanning…" : undefined}
-                  />
+                    uploading={uploading === "aadhaar"}
+                                      />
                   <UploadTile
                     label="PAN Card"
                     required
@@ -6804,7 +6800,7 @@ function CandidateWizard({
               <>
                 <Button
                   onClick={() => onApprove?.()}
-                  disabled={isApproving || submitting || savingDraft || !!uploading || scanning}
+                  disabled={isApproving || submitting || savingDraft || !!uploading}
                   className="h-11 flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-10 sm:flex-none"
                   title="Approve & assign Employee ID"
                 >
@@ -6814,7 +6810,7 @@ function CandidateWizard({
                 <Button
                   variant="outline"
                   onClick={() => onReject?.()}
-                  disabled={submitting || savingDraft || !!uploading || scanning}
+                  disabled={submitting || savingDraft || !!uploading}
                   className="h-11 flex-1 border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-50 hover:text-rose-600 sm:h-10 sm:flex-none dark:border-rose-500/40 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
                 >
                   <X className="mr-1.5 h-4 w-4" />
@@ -6827,7 +6823,7 @@ function CandidateWizard({
             <Button
               variant="secondary"
               onClick={saveDraft}
-              disabled={savingDraft || submitting || !!uploading || scanning}
+              disabled={savingDraft || submitting || !!uploading}
               className="h-11 w-full sm:h-10 sm:w-auto"
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
@@ -6835,7 +6831,7 @@ function CandidateWizard({
             </Button>
             {(() => {
               const isExistingEmployee = !!editing;
-              const submitDisabled = submitting || savingDraft || !!uploading || scanning;
+              const submitDisabled = submitting || savingDraft || !!uploading;
               return (
                 <Button
                   onClick={submit}
