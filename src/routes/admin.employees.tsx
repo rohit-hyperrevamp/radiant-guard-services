@@ -5988,7 +5988,9 @@ function CandidateWizard({
                           full_name: keep(profile.full_name, f.full_name),
                           date_of_birth: profile.date_of_birth || f.date_of_birth,
                           gender: keep(profile.gender, f.gender),
-                          aadhaar_number: profile.aadhaar_number || f.aadhaar_number,
+                          aadhaar_number: /^\d{12}$/.test(profile.aadhaar_number ?? "")
+                            ? profile.aadhaar_number
+                            : f.aadhaar_number,
                           permanent_address1: keep(profile.address_line1, f.permanent_address1),
                           permanent_address2: keep(profile.address_line2, f.permanent_address2),
                           permanent_landmark: keep(profile.landmark, f.permanent_landmark),
