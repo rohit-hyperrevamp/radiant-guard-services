@@ -773,7 +773,7 @@ function StockLedgerPage() {
             )}
           </table>
           )}
-          <DataPagination {...(view === "movement" ? pgMovement : pgItem)} />
+          {view === "movement" ? <DataPagination {...pgMovement} /> : <DataPagination {...pgItem} />}
         </div>
       </div>
     </div>
