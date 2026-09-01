@@ -84,6 +84,53 @@ async function surepass<T>(
 
 const s = (v: unknown) => String(v ?? "").trim();
 
+function findAadhaarPayload(value: Record<string, unknown>): Record<string, unknown> | null {
+  const candidates = [
+    value["aadhaar_xml_data"],
+    value["aadhaar_data"],
+    value["user_details"],
+    value["profile"],
+    value,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) continue;
+    const record = candidate as Record<string, unknown>;
+    if (s(record["full_name"]) || s(record["name"]) || s(record["dob"]) || s(record["masked_aadhaar"])) {
+      return record;
+    }
+  }
+  return null;
+}
+
+function toDigilockerProfile(
+  source: Record<string, unknown>,
+  base: DigilockerProfile,
+): DigilockerProfile {
+  const address = (source["address"] ?? {}) as Record<string, unknown>;
+  const house = s(address["house"]);
+  const street = s(address["street"]);
+  const loc = s(address["loc"]);
+  const vtc = s(address["vtc"]);
+  return {
+    ...base,
+    completed: true,
+    status: "completed",
+    full_name: s(source["full_name"]) || s(source["name"]),
+    date_of_birth: s(source["dob"]) || s(source["date_of_birth"]),
+    gender: /^m/i.test(s(source["gender"])) ? "Male" : /^f/i.test(s(source["gender"])) ? "Female" : s(source["gender"]),
+    aadhaar_number: s(source["aadhaar_number"]).replace(/\D/g, "").slice(0, 12),
+    address_line1: [house, street].filter(Boolean).join(", "),
+    address_line2: [loc, vtc].filter(Boolean).join(", "),
+    landmark: s(address["landmark"]),
+    city: vtc || s(address["subdist"]),
+    district: s(address["dist"]),
+    state: s(address["state"]),
+    pincode: s(source["zip"]) || s(address["zip"]),
+    country: s(address["country"]) || "India",
+    message: "Verified via DigiLocker",
+  };
+}
+
 /** Persisted cache so a DigiLocker download (one-shot at Surepass) can be replayed into the form. */
 async function readCachedProfile(clientId: string): Promise<DigilockerProfile | null> {
   try {
@@ -222,6 +269,15 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       message: s(status.message) || (completed ? "DigiLocker completed" : "Waiting for the candidate to finish"),
     };
 
+    const statusPayload = findAadhaarPayload(st);
+    if (statusPayload) {
+      const profile = toDigilockerProfile(statusPayload, empty);
+      if (profile.full_name) {
+        await writeCachedProfile(data.clientId, profile);
+        return profile;
+      }
+    }
+
     if (!completed) {
       // A cached profile means the download already succeeded earlier in this session.
       const cached = await readCachedProfile(data.clientId);
@@ -261,7 +317,9 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
         { method: "GET" },
       );
       const responseData = (aadhaar.data ?? {}) as Record<string, unknown>;
-      a = (responseData["aadhaar_xml_data"] ?? responseData) as Record<string, unknown>;
+      const payload = findAadhaarPayload(responseData);
+      if (!payload) throw new Error("DigiLocker completed, but Surepass returned no identity details");
+      a = payload;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       if (/already\s*download/i.test(detail)) {
@@ -280,30 +338,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       throw error;
     }
 
-    const address = (a["address"] ?? {}) as Record<string, unknown>;
-
-    const house = s(address["house"]);
-    const street = s(address["street"]);
-    const loc = s(address["loc"]);
-    const vtc = s(address["vtc"]);
-
-    const profile: DigilockerProfile = {
-      ...empty,
-      status: "completed",
-      full_name: s(a["full_name"]) || s(a["name"]),
-      date_of_birth: s(a["dob"]) || s(a["date_of_birth"]),
-      gender: /^m/i.test(s(a["gender"])) ? "Male" : /^f/i.test(s(a["gender"])) ? "Female" : s(a["gender"]),
-      aadhaar_number: s(a["aadhaar_number"]).replace(/\D/g, "").slice(0, 12),
-      address_line1: [house, street].filter(Boolean).join(", "),
-      address_line2: [loc, vtc].filter(Boolean).join(", "),
-      landmark: s(address["landmark"]),
-      city: vtc || s(address["subdist"]),
-      district: s(address["dist"]),
-      state: s(address["state"]),
-      pincode: s(a["zip"]) || s(address["zip"]),
-      country: s(address["country"]) || "India",
-      message: "Verified via DigiLocker",
-    };
+    const profile = toDigilockerProfile(a, empty);
 
     if (!profile.full_name) {
       await supabaseAdmin
