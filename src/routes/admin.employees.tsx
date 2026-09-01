@@ -5210,79 +5210,12 @@ function CandidateWizard({
     }
     setUploading(slot);
     try {
-      const uploadPromise = uploadFile(file, slot);
-      if (slot === "photo" || slot === "signature" || slot === "pan") {
-        const url = await uploadPromise;
-        if (slot === "photo") set("photo_url", url);
-        else if (slot === "signature") set("signature_url", url);
-        else set("pan_image_url", url);
-        toast.success(`${slot[0].toUpperCase() + slot.slice(1)} uploaded`);
-        return;
-      }
-
-      if (slot === "aadhaar") {
-        const clientOcr = await getAadhaarOcrClient();
-        setScanning(true);
-        try {
-          // Read file as data URL. For PDFs we also rasterize pages so the AI
-          // gets actual image content (UIDAI PDFs use scrambled fonts).
-          const pageImageDataUrlsPromise = isPdf
-            ? clientOcr.renderPdfPagesAsDataUrls(file).catch(() => [])
-            : Promise.resolve<string[]>([]);
-
-          const [uploadedUrl, pageImageDataUrls] = await Promise.all([
-            uploadPromise,
-            pageImageDataUrlsPromise,
-          ]);
-          set("aadhaar_image_url", uploadedUrl);
-          toast.success("Aadhaar uploaded — scanning…");
-
-          let extraction: AadhaarExtraction;
-          try {
-            extraction = await withTimeout(
-              extractFn({
-                data: {
-                  fileUrl: uploadedUrl,
-                  mimeType: file.type || (isPdf ? "application/pdf" : "image/jpeg"),
-                  pageImageDataUrls,
-                },
-              }) as Promise<AadhaarExtraction>,
-              45_000,
-              "Aadhaar scan timed out — please try again or fill the form manually",
-            );
-          } catch (serverScanError) {
-            console.warn("Server Aadhaar scan failed, falling back to client OCR", serverScanError);
-            extraction = await withTimeout(
-              clientOcr.extractAadhaarClient(file),
-              45_000,
-              "Aadhaar scan timed out — please try again or fill the form manually",
-            );
-            toast.warning("Server scan unavailable — used local OCR fallback. Please review the extracted fields.");
-          }
-
-          // If the user already typed an Aadhaar number and the AI couldn't read one, keep theirs.
-          const finalExtraction: AadhaarExtraction =
-            form.aadhaar_number && !/^\d{12}$/.test(extraction.aadhaar_number)
-              ? { ...extraction, aadhaar_number: form.aadhaar_number }
-              : extraction;
-
-          applyExtraction(finalExtraction);
-          const extractedAadhaar = (finalExtraction.aadhaar_number || "").replace(/\D/g, "");
-          if (extractedAadhaar.length === 12) void checkAadhaarForRehire(extractedAadhaar);
-          const filled = clientOcr.countExtractedFields(finalExtraction);
-          if (filled === 0) {
-            toast.warning("Scan complete but no fields could be read. Please fill manually or upload a clearer scan.");
-          } else if (filled >= 8) {
-            toast.success(`Aadhaar scanned — ${filled} field(s) auto-filled. Please review.`);
-          } else {
-            toast.success(`Aadhaar scanned — ${filled} field(s) auto-filled. Please review and complete the rest.`);
-          }
-        } catch (e) {
-          toast.error(e instanceof Error ? e.message : "Aadhaar scan failed");
-        } finally {
-          setScanning(false);
-        }
-      }
+      const url = await uploadFile(file, slot);
+      if (slot === "photo") set("photo_url", url);
+      else if (slot === "signature") set("signature_url", url);
+      else if (slot === "pan") set("pan_image_url", url);
+      else set("aadhaar_image_url", url);
+      toast.success(`${slot[0].toUpperCase() + slot.slice(1)} uploaded`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
