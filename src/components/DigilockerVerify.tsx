@@ -110,7 +110,16 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
   };
 
   const startDigilocker = async () => {
+    if (!ready) {
+      toast.error("Enter a 12-digit Aadhaar number first");
+      return;
+    }
     setStarting(true);
+    const ok = await runValidation();
+    if (!ok) {
+      setStarting(false);
+      return;
+    }
     setSession(null);
     setQr("");
     setOpen(true);
