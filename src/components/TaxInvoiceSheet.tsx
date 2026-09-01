@@ -319,8 +319,14 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   <div>Bill Period - {data.periodLabel}</div>
                   <div className="mt-2 font-semibold">Company&apos;s Bank Details</div>
                   {c.pan && <div>Company&apos;s PAN : {c.pan}</div>}
-                  {c.bankName && <div>Bank Name : {c.bankName}</div>}
+                  {c.bankName && (
+                    <div>
+                      Bank Name : {c.bankName}
+                      {c.bankAccountNo ? ` A/C NO. ${c.bankAccountNo}` : ""}
+                    </div>
+                  )}
                   {c.bankAccountNo && <div>A/c No. : {c.bankAccountNo}</div>}
+
                   {(c.bankBranch || c.bankIfsc) && (
                     <div>Branch &amp; IFS Code : {[c.bankBranch, c.bankIfsc].filter(Boolean).join(" & ")}</div>
                   )}
