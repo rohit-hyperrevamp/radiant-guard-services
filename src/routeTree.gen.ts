@@ -70,6 +70,7 @@ import { Route as AdminAdditionTypeManagerRouteImport } from './routes/admin.add
 import { Route as AdminPayrollIndexRouteImport } from './routes/admin.payroll.index'
 import { Route as AdminInvoiceIndexRouteImport } from './routes/admin.invoice.index'
 import { Route as AdminFieldSenseIndexRouteImport } from './routes/admin.field-sense.index'
+import { Route as AdminCustomersIndexRouteImport } from './routes/admin.customers.index'
 import { Route as AdminAttendanceIndexRouteImport } from './routes/admin.attendance.index'
 import { Route as ApiPublicOtpHealthRouteImport } from './routes/api/public/otp-health'
 import { Route as AdminVehiclesServiceManagerRouteImport } from './routes/admin.vehicles.service-manager'
@@ -429,6 +430,11 @@ const AdminFieldSenseIndexRoute = AdminFieldSenseIndexRouteImport.update({
   path: '/field-sense/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCustomersIndexRoute = AdminCustomersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminCustomersRoute,
+} as any)
 const AdminAttendanceIndexRoute = AdminAttendanceIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -765,6 +771,7 @@ export interface FileRoutesByFullPath {
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
+  '/admin/customers/': typeof AdminCustomersIndexRoute
   '/admin/field-sense/': typeof AdminFieldSenseIndexRoute
   '/admin/invoice/': typeof AdminInvoiceIndexRoute
   '/admin/payroll/': typeof AdminPayrollIndexRoute
@@ -793,7 +800,6 @@ export interface FileRoutesByTo {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
-  '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
   '/admin/deductions': typeof AdminDeductionsRoute
@@ -869,6 +875,7 @@ export interface FileRoutesByTo {
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance': typeof AdminAttendanceIndexRoute
+  '/admin/customers': typeof AdminCustomersIndexRoute
   '/admin/field-sense': typeof AdminFieldSenseIndexRoute
   '/admin/invoice': typeof AdminInvoiceIndexRoute
   '/admin/payroll': typeof AdminPayrollIndexRoute
@@ -977,6 +984,7 @@ export interface FileRoutesById {
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
+  '/admin/customers/': typeof AdminCustomersIndexRoute
   '/admin/field-sense/': typeof AdminFieldSenseIndexRoute
   '/admin/invoice/': typeof AdminInvoiceIndexRoute
   '/admin/payroll/': typeof AdminPayrollIndexRoute
@@ -1086,6 +1094,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/service-manager'
     | '/api/public/otp-health'
     | '/admin/attendance/'
+    | '/admin/customers/'
     | '/admin/field-sense/'
     | '/admin/invoice/'
     | '/admin/payroll/'
@@ -1114,7 +1123,6 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
-    | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
     | '/admin/deductions'
@@ -1190,6 +1198,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/service-manager'
     | '/api/public/otp-health'
     | '/admin/attendance'
+    | '/admin/customers'
     | '/admin/field-sense'
     | '/admin/invoice'
     | '/admin/payroll'
@@ -1297,6 +1306,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/service-manager'
     | '/api/public/otp-health'
     | '/admin/attendance/'
+    | '/admin/customers/'
     | '/admin/field-sense/'
     | '/admin/invoice/'
     | '/admin/payroll/'
@@ -1746,6 +1756,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFieldSenseIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/customers/': {
+      id: '/admin/customers/'
+      path: '/'
+      fullPath: '/admin/customers/'
+      preLoaderRoute: typeof AdminCustomersIndexRouteImport
+      parentRoute: typeof AdminCustomersRoute
+    }
     '/admin/attendance/': {
       id: '/admin/attendance/'
       path: '/'
@@ -2094,6 +2111,7 @@ interface AdminCustomersRouteChildren {
   AdminCustomersCustomerManagerRoute: typeof AdminCustomersCustomerManagerRoute
   AdminCustomersStateManagerRoute: typeof AdminCustomersStateManagerRoute
   AdminCustomersUnitManagerRoute: typeof AdminCustomersUnitManagerRoute
+  AdminCustomersIndexRoute: typeof AdminCustomersIndexRoute
 }
 
 const AdminCustomersRouteChildren: AdminCustomersRouteChildren = {
@@ -2101,6 +2119,7 @@ const AdminCustomersRouteChildren: AdminCustomersRouteChildren = {
   AdminCustomersCustomerManagerRoute: AdminCustomersCustomerManagerRoute,
   AdminCustomersStateManagerRoute: AdminCustomersStateManagerRoute,
   AdminCustomersUnitManagerRoute: AdminCustomersUnitManagerRoute,
+  AdminCustomersIndexRoute: AdminCustomersIndexRoute,
 }
 
 const AdminCustomersRouteWithChildren = AdminCustomersRoute._addFileChildren(
