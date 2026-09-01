@@ -71,23 +71,40 @@ export function DigilockerVerify({ aadhaar, mobile, onVerified }: Props) {
     }
   };
 
+  const pullDetails = async (clientId: string, silent: boolean) => {
+    try {
+      const profile = await fetchProfile({ data: { clientId } });
+      if (!profile.completed || !profile.full_name) {
+        if (!silent) toast.info(profile.message || "Waiting for the candidate to finish DigiLocker");
+        return false;
+      }
+      if (pollRef.current) window.clearInterval(pollRef.current);
+      setPolling(false);
+      setOpen(false);
+      setError(null);
+      onVerified(profile);
+      toast.success("DigiLocker verified — details filled in");
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not read DigiLocker status";
+      setError(message);
+      if (!silent) toast.error(message);
+      return false;
+    }
+  };
+
   const beginPolling = (clientId: string) => {
     if (pollRef.current) window.clearInterval(pollRef.current);
     setPolling(true);
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const profile = await fetchProfile({ data: { clientId } });
-        if (!profile.completed) return;
+    let ticks = 0;
+    pollRef.current = window.setInterval(() => {
+      ticks += 1;
+      if (ticks > 75) {
         if (pollRef.current) window.clearInterval(pollRef.current);
         setPolling(false);
-        setOpen(false);
-        onVerified(profile);
-        toast.success("DigiLocker verified — details filled in");
-      } catch (error) {
-        if (pollRef.current) window.clearInterval(pollRef.current);
-        setPolling(false);
-        toast.error(error instanceof Error ? error.message : "Could not read DigiLocker status");
+        return;
       }
+      void pullDetails(clientId, true);
     }, 4000);
   };
 
