@@ -4860,7 +4860,6 @@ function CandidateWizard({
     if (!open) return;
     setSaveError(null);
     lastAadhaarLookupRef.current = "";
-    setDigilockerVerified(false);
     setRehireMatch(null);
     setRehireOpen(false);
     if (editing) {
@@ -4880,6 +4879,13 @@ function CandidateWizard({
       // Optimistically seed with the single mirrored unit_id so the picker isn't empty during fetch.
       const initialUnitIds = rest.unit_id ? [rest.unit_id] : [];
       const normalizedStatus = rest.status === "approved" ? "active" : rest.status;
+      const savedVerification = (rest.other_info ?? {}) as Record<string, unknown>;
+      const savedVerifiedAadhaar = String(savedVerification.digilocker_verified_aadhaar ?? "").replace(/\D/g, "");
+      setDigilockerVerified(
+        savedVerification.digilocker_verified === true &&
+        savedVerifiedAadhaar.length === 12 &&
+        savedVerifiedAadhaar === String(rest.aadhaar_number ?? "").replace(/\D/g, ""),
+      );
       if (isEmployeeMode && rest.unit_id) setHomeUnitId(rest.unit_id);
       setInitialUnitIds(initialUnitIds);
       setForm({
@@ -4916,6 +4922,7 @@ function CandidateWizard({
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
+      setDigilockerVerified(false);
       setHomeUnitId(RADIANT_BILLING_UNIT_ID);
     }
   }, [open, editing, isEmployeeMode]);
@@ -5968,7 +5975,16 @@ function CandidateWizard({
                       value={form.aadhaar_number}
                       onChange={(e) => {
                         const clean = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        const savedVerifiedAadhaar = String(form.other_info?.digilocker_verified_aadhaar ?? "").replace(/\D/g, "");
                         set("aadhaar_number", clean);
+                        if (digilockerVerified && clean !== savedVerifiedAadhaar) {
+                          setDigilockerVerified(false);
+                          set("other_info", {
+                            ...(form.other_info ?? {}),
+                            digilocker_verified: false,
+                            digilocker_verified_aadhaar: "",
+                          });
+                        }
                         if (clean.length < 12) {
                           lastAadhaarLookupRef.current = "";
                           setRehireMatch(null);
@@ -6005,6 +6021,14 @@ function CandidateWizard({
                           permanent_state: keep(profile.state, f.permanent_state),
                           permanent_pincode: keep(profile.pincode, f.permanent_pincode),
                           permanent_country: keep(profile.country, f.permanent_country),
+                          other_info: {
+                            ...(f.other_info ?? {}),
+                            digilocker_verified: true,
+                            digilocker_verified_aadhaar: /^\d{12}$/.test(profile.aadhaar_number ?? "")
+                              ? profile.aadhaar_number
+                              : f.aadhaar_number,
+                            digilocker_verified_at: new Date().toISOString(),
+                          },
                         }));
                         setDigilockerVerified(true);
                       }}

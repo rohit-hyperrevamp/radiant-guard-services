@@ -166,15 +166,9 @@ export function DigilockerVerify({ aadhaar, mobile, verified = false, verifiedNa
   return (
     <div className="mt-2 space-y-3">
       {verified ? (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
-          <BadgeCheck className="mt-0.5 h-4 w-4 text-emerald-600" />
-          <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Aadhaar verified via DigiLocker</p>
-            <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-              {verifiedName ? `Identity confirmed for ${verifiedName}. ` : ""}Details were filled in from the UIDAI
-              record — no Aadhaar copy upload needed.
-            </p>
-          </div>
+        <div className="inline-flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+          <BadgeCheck className="h-4 w-4 text-emerald-600" />
+          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Aadhaar verified via DigiLocker</p>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
