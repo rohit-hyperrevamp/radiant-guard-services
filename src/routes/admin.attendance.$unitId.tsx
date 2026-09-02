@@ -3279,19 +3279,21 @@ function MusterRollPage() {
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
                             title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark extra duty" : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
                           >
-                            <div
-                              className={cn(
-                                "h-full w-full flex items-center justify-center text-[10px] font-semibold leading-none",
-                                hrs > 0 ? "text-amber-700" : "text-slate-300",
-                              )}
-                            >
-                              {hrs > 0 ? hrs : ""}
-                            </div>
-                            {phEnabled && holidayByDate.has(date) && (entryMap.get(`${mr.key}|${date}`)?.code ? codeMap.get(entryMap.get(`${mr.key}|${date}`)!.code)?.counts_as_present : false) && (
-                              <div className="pointer-events-none -mt-[3px] text-center text-[8px] font-bold leading-none text-emerald-600">
-                                PH
-                              </div>
-                            )}
+                            {(() => {
+                              const showPh = phEnabled && holidayByDate.has(date) && Boolean(entry);
+                              return (
+                                <div className="flex h-full w-full flex-col items-center justify-center leading-none">
+                                  {hrs > 0 && (
+                                    <span className="text-[10px] font-semibold text-amber-700">{hrs}</span>
+                                  )}
+                                  {showPh && (
+                                    <span className="pointer-events-none text-[8px] font-bold text-emerald-600">
+                                      {phMultiplier > 1 ? `PH×${phMultiplier}` : "PH"}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                         );
                       })}
