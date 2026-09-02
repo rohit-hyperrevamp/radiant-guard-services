@@ -876,7 +876,7 @@ type CandidateListItem = Pick<
   | "unit_id"
   | "designation_id"
   | "status"
-> & { employee_code: string; role_key: string; is_enabled: boolean; reports_to: string | null; department_id: string | null; offboarding_reason_id: string | null; offboarded_at: string | null; assigned_asset_ids: string[]; no_hire: boolean; offboarding_details: OffboardingDetails; onboarding_details: OnboardingDetails; date_of_birth: string | null; preferred_joining_date: string | null; approved_at: string | null; created_by: string | null; created_at: string | null; updated_at: string | null };
+> & { employee_code: string; role_key: string; non_billable: boolean; is_enabled: boolean; reports_to: string | null; department_id: string | null; offboarding_reason_id: string | null; offboarded_at: string | null; assigned_asset_ids: string[]; no_hire: boolean; offboarding_details: OffboardingDetails; onboarding_details: OnboardingDetails; date_of_birth: string | null; preferred_joining_date: string | null; approved_at: string | null; created_by: string | null; created_at: string | null; updated_at: string | null };
 
 type ReactivationResult = {
   id: string;
@@ -1128,7 +1128,7 @@ function useCandidates() {
       const { data, error } = await runWithQueryTimeout("Employees", async (signal) =>
         await supabase
           .from("candidates" as never)
-          .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
+          .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
           .order("created_at", { ascending: false })
           .limit(250)
           .abortSignal(signal),
@@ -1538,13 +1538,8 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
-  /**
-   * Single source of truth for billability in this screen: a person is billable
-   * when they are deployed at a billable (client) unit. Internal Radiant staff
-   * sit on a non-billable unit — or on no unit at all — and are non-billable.
-   */
-  const isBillableCandidate = (c: { id: string; unit_id: string | null }) =>
-    unitOfCandidate(c)?.is_billable !== false && !!(c.unit_id || primaryUnitIdByCandidate.get(c.id));
+  /** The employee classification is authoritative; unit mappings are operational scope. */
+  const isBillableCandidate = (c: Pick<CandidateListItem, "non_billable">) => !c.non_billable;
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
 
   const scopedUnitsForWizard = useMemo(() => {
@@ -1606,9 +1601,8 @@ function EmployeesPage() {
     if (filterEnabled === "enabled" && !c.is_enabled) return false;
     if (filterEnabled === "disabled" && c.is_enabled) return false;
     if (filterBillable !== "all") {
-      // Billability is a property of the UNIT the person is deployed at, not of
-      // the designation: anyone posted at a client (billable) unit is billable,
-      // internal Radiant staff sitting on a non-billable unit are not.
+      // Use the employee's persisted classification. Non-billable staff can
+      // have operational unit mappings without becoming billable employees.
       const isBillable = isBillableCandidate(c);
       if (filterBillable === "billable" && !isBillable) return false;
       if (filterBillable === "nonbillable" && isBillable) return false;
