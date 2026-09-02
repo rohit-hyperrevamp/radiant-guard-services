@@ -116,7 +116,9 @@ export function computeAttendanceTotals(
     otDaysSum += Number(e.ot_hours) || 0;
     const c = codeMap.get(e.code);
     if (!c) continue;
-    if (phDatesSet.size > 0 && phUnitMultiplier > 0 && phDatesSet.has(date) && c.counts_as_present) {
+    // National/public holiday credit is granted for the day itself, whether the
+    // employee worked (P + PH) or not (A + PH). Only the multiplier matters.
+    if (phDatesSet.size > 0 && phUnitMultiplier > 0 && phDatesSet.has(date)) {
       unitPhDays += phUnitMultiplier;
     }
     if (e.code === "PH") {
