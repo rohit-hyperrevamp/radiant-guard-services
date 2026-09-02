@@ -3019,7 +3019,7 @@ function MusterRollPage() {
               ) : (
                 visibleMusterRows.flatMap((mr, idx) => {
                   const cellBase = "border border-slate-400 align-middle";
-                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever));
+                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
                   return [
                     <tr key={mr.key + "-att"}>
 
@@ -3322,7 +3322,7 @@ function MusterRollPage() {
               {!isLoading && !rosterError && visibleMusterRows.length > 0 && (() => {
                 const grand = visibleMusterRows.reduce(
                   (acc, mr) => {
-                    const t = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever));
+                    const t = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
                     acc.pDays += t.pDays;
                     acc.otHours += t.otHours;
                     acc.phDays += t.phDays;
