@@ -140,7 +140,7 @@ function describeMethod(item: PayrollDayBase): string {
     case "fixed_days":
       return `Salary ÷ ${item.fixedDays ?? "?"} (fixed) regardless of month length.`;
     case "fixed_annual_average":
-      return "Salary ÷ 30.41 (365 ÷ 12) for every month.";
+      return "Salary ÷ 30.4166 (365 ÷ 12) for every month.";
     case "actual_minus_weekly_off": {
       const day = WEEKDAYS[item.weeklyOffDay ?? 0] ?? "Sunday";
       return `Salary ÷ (actual days of month − ${day}s in that month).`;
@@ -671,7 +671,7 @@ function PayrollDayBaseFormDialog({
               <SelectContent>
                 <SelectItem value="actual_days">Actual days in month</SelectItem>
                 <SelectItem value="fixed_days">Fixed number of days</SelectItem>
-                <SelectItem value="fixed_annual_average">Fixed annual average (30.41 days)</SelectItem>
+                <SelectItem value="fixed_annual_average">Fixed annual average (30.4166 days)</SelectItem>
                 <SelectItem value="actual_minus_weekly_off">Actual days minus a weekly off</SelectItem>
                 <SelectItem value="custom_weekdays">Custom — pick weekdays</SelectItem>
               </SelectContent>

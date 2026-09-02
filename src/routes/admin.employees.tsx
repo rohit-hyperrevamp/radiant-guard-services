@@ -495,7 +495,7 @@ function InlineWageEditor({
             <SelectContent>
               {payrollDayBases.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                {p.name} · {p.method === "fixed_days" ? `Fixed ${p.fixedDays ?? 26} days` : p.method === "fixed_annual_average" ? "Fixed 30.41 days" : p.method === "actual_minus_weekly_off" ? "Actual − weekly off" : "Actual days in month"}
+                {p.name} · {p.method === "fixed_days" ? `Fixed ${p.fixedDays ?? 26} days` : p.method === "fixed_annual_average" ? "Fixed 30.4166 days" : p.method === "actual_minus_weekly_off" ? "Actual − weekly off" : "Actual days in month"}
                 </SelectItem>
               ))}
             </SelectContent>
