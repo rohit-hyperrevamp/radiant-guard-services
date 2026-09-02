@@ -1,4 +1,4 @@
-// Server-side binding for the application's single production database.
+// Server-side binding for the application's single populated production Supabase database.
 //
 // Platform-managed preview variables can point at a separate empty database.
 // Apply the Radiant binding before server code reads the environment so preview
@@ -7,10 +7,10 @@
 // Called from `src/server.ts` on every request entry, so it runs ahead of every
 // server function and SSR render. Never imported by browser code.
 const PRODUCTION_SUPABASE: Record<string, string> = {
-  SUPABASE_PROJECT_ID: "fglmoiuizgavuniffslm",
-  SUPABASE_URL: "https://fglmoiuizgavuniffslm.supabase.co",
+  SUPABASE_PROJECT_ID: "yimpxawqoarprhtxapie",
+  SUPABASE_URL: "https://yimpxawqoarprhtxapie.supabase.co",
   SUPABASE_PUBLISHABLE_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnbG1vaXVpemdhdnVuaWZmc2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDM2ODgsImV4cCI6MjA5Mzk3OTY4OH0.3foRI1Sla14hwE57ckwXQU_rT8B9rpPiGbH3BZGzV6Y",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTgyMzYsImV4cCI6MjEwMzMzNDIzNn0.6MaMS-my38sgzBhVkYJ0-GNT7SMIhy3C61gKNmFKq1o",
   // Note: SUPABASE_SERVICE_ROLE_KEY is not hard-coded here; it is supplied by the
   // Lovable Cloud runtime when a server function legitimately needs admin access.
   // Surepass (Aadhaar validation + DigiLocker). Sandbox token, valid to 01 Oct 2026.
