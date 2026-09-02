@@ -866,7 +866,7 @@ export function useUnits() {
     mutationFn: async (data: Omit<Unit, "id">): Promise<string> => {
       const { data: inserted, error } = await supabase
         .from("units")
-        .insert(unitToRow(data))
+        .insert(unitToRow(data) as never)
         .select("id")
         .single();
       if (error) throw error;
@@ -880,7 +880,7 @@ export function useUnits() {
     mutationFn: async ({ id, data }: { id: string; data: Omit<Unit, "id"> }) => {
       const { data: updated, error } = await supabase
         .from("units")
-        .update(unitToRow(data))
+        .update(unitToRow(data) as never)
         .eq("id", id)
         .select("id")
         .maybeSingle();

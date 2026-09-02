@@ -136,6 +136,8 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     recruitmentFeeAmount: 0,
     gpaipEnabled: false,
     gpaipAmount: 0,
+    phEnabled: false,
+    phMultiplier: 1,
     bonusEnabled: false,
     epfCapEnabled: true,
     bonusFrequency: null,
