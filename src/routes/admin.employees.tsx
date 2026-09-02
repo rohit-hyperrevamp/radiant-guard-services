@@ -4207,7 +4207,7 @@ function EmployeesPage() {
                   )}
                   <div className="min-w-0">
                     <div className="truncate font-display text-base font-semibold text-foreground">{c.full_name || "Unnamed"}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground">{c.candidate_code ?? "—"}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground">{c.employee_code || c.candidate_code || "—"}</div>
                   </div>
                 </div>
                 <div className="divide-y divide-border/50 rounded-xl border border-border/60 px-3">
