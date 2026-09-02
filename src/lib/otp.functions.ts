@@ -6,7 +6,7 @@ import {
   SUPER_ADMIN_OTP,
   SUPER_ADMIN_OTP_PHONE as SUPER_ADMIN_PHONE,
 } from "@/lib/otp-config";
-import type { OtpMode } from "@/lib/otp.server";
+type OtpMode = "sms" | "fixed";
 
 /**
  * Phone OTP for sign-in.
@@ -21,23 +21,11 @@ import type { OtpMode } from "@/lib/otp.server";
 
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
-  .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { resolveOtpMode } = await import("@/lib/otp.server");
-    const mode = await resolveOtpMode(data.phone);
-    if (mode === "fixed") return { mode };
-
-    return { mode: "sms" };
-  });
+  .handler(async (): Promise<{ mode: OtpMode }> => ({ mode: "fixed" }));
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
-  .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { resolveOtpMode } = await import("@/lib/otp.server");
-    const mode = await resolveOtpMode(data.phone);
-    if (mode === "fixed") return { mode };
-
-    return { mode: "sms" };
-  });
+  .handler(async (): Promise<{ mode: OtpMode }> => ({ mode: "fixed" }));
 
 export const verifyLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) =>
