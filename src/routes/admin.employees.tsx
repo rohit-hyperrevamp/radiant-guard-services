@@ -5793,11 +5793,12 @@ function CandidateWizard({
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Profile Completion
               </span>
-              {editing?.candidate_code && (
+              {(editing?.employee_code || editing?.candidate_code) && (
                 <Badge className="border-0 bg-primary/10 font-mono text-[11px] font-semibold text-primary">
-                  {editing.candidate_code}
+                  {editing.employee_code || editing.candidate_code}
                 </Badge>
               )}
+
             </div>
             <span className={cn(
               "text-sm font-bold tabular-nums",
