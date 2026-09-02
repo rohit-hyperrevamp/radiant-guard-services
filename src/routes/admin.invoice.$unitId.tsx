@@ -356,7 +356,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources")
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
+            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
         resources = r ?? [];
@@ -508,6 +508,34 @@ function PayrollUnitPage() {
           },
         ]),
       );
+      // Billing-days rules are configured separately from payroll days: the
+      // invoice prints payroll days, but the hourly rate divisor uses the
+      // billing-days basis when one is set on the contract resource.
+      const { data: bdbs } = await supabase
+        .from("billing_day_bases" as never)
+        .select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled");
+      const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
+        ((bdbs ?? []) as unknown as Record<string, unknown>[]).map((p) => [
+          String(p.id),
+          {
+            method: p.method as PdbMethod,
+            fixedDays: p.fixed_days == null ? null : Number(p.fixed_days),
+            weeklyOffDay: p.weekly_off_day == null ? null : Number(p.weekly_off_day),
+            includedWeekdays: Array.isArray(p.included_weekdays)
+              ? (p.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+              : null,
+          },
+        ]),
+      );
+      const billingDayBaseByDesignation = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        const bid = r.billing_day_base_id ? String(r.billing_day_base_id) : "";
+        if (!did || !bid) continue;
+        const base = bdbMap.get(bid);
+        if (base) billingDayBaseByDesignation.set(did, base);
+      }
+
       const dayBases = (pdbs ?? []).map((p) => ({
         id: String(p.id),
         method: p.method as PdbMethod,
