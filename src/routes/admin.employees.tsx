@@ -1538,6 +1538,13 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
+  /**
+   * Single source of truth for billability in this screen: a person is billable
+   * when they are deployed at a billable (client) unit. Internal Radiant staff
+   * sit on a non-billable unit — or on no unit at all — and are non-billable.
+   */
+  const isBillableCandidate = (c: { id: string; unit_id: string | null }) =>
+    unitOfCandidate(c)?.is_billable !== false && !!(c.unit_id || primaryUnitIdByCandidate.get(c.id));
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
 
   const scopedUnitsForWizard = useMemo(() => {
@@ -1599,8 +1606,10 @@ function EmployeesPage() {
     if (filterEnabled === "enabled" && !c.is_enabled) return false;
     if (filterEnabled === "disabled" && c.is_enabled) return false;
     if (filterBillable !== "all") {
-      const d = c.designation_id ? desigMap.get(c.designation_id) : undefined;
-      const isBillable = !!d?.billable;
+      // Billability is a property of the UNIT the person is deployed at, not of
+      // the designation: anyone posted at a client (billable) unit is billable,
+      // internal Radiant staff sitting on a non-billable unit are not.
+      const isBillable = isBillableCandidate(c);
       if (filterBillable === "billable" && !isBillable) return false;
       if (filterBillable === "nonbillable" && isBillable) return false;
     }
@@ -4184,7 +4193,7 @@ function EmployeesPage() {
             const unit = units.find((u) => u.id === c.unit_id);
             const unitLabel = unit ? `${unit.customer_name ? unit.customer_name + " — " : ""}${unit.name}${unit.code ? ` (${unit.code})` : ""}` : "—";
             const desig = designations.find((d) => d.id === c.designation_id);
-            const desigLabel = desig ? `${desig.name}${desig.billable ? "" : " · Non-billable"}` : "—";
+            const desigLabel = desig ? `${desig.name}${unit && unit.is_billable === false ? " · Non-billable" : ""}` : "—";
             const aad = c.aadhaar_number ? `•••• •••• ${String(c.aadhaar_number).slice(-4)}` : "—";
             const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
               <div className="flex items-start justify-between gap-3 py-1.5">
@@ -5735,16 +5744,19 @@ function CandidateWizard({
               {(() => {
                 const desigId = form.designation_id || editing.designation_id;
                 const desig = desigId ? designations.find((d) => d.id === desigId) : null;
+                const bUnitId = form.unit_id || editing.unit_id;
+                const bUnit = bUnitId ? units.find((u) => u.id === bUnitId) : null;
+                const billable = !!bUnit && bUnit.is_billable !== false;
                 return desig ? (
                   <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
                     {desig.name}
                     <span className={cn(
                       "ml-2 rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
-                      desig.billable
+                      billable
                         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-500/15 text-slate-600 dark:text-slate-300",
                     )}>
-                      {desig.billable ? "Billable" : "Non-billable"}
+                      {billable ? "Billable" : "Non-billable"}
                     </span>
                   </Badge>
                 ) : null;
