@@ -7,12 +7,12 @@
 // Called from `src/server.ts` on every request entry, so it runs ahead of every
 // server function and SSR render. Never imported by browser code.
 const PRODUCTION_SUPABASE: Record<string, string> = {
-  SUPABASE_PROJECT_ID: "yimpxawqoarprhtxapie",
-  SUPABASE_URL: "https://yimpxawqoarprhtxapie.supabase.co",
+  SUPABASE_PROJECT_ID: "fglmoiuizgavuniffslm",
+  SUPABASE_URL: "https://fglmoiuizgavuniffslm.supabase.co",
   SUPABASE_PUBLISHABLE_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTgyMzYsImV4cCI6MjEwMzMzNDIzNn0.6MaMS-my38sgzBhVkYJ0-GNT7SMIhy3C61gKNmFKq1o",
-  SUPABASE_SERVICE_ROLE_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzc1ODIzNiwiZXhwIjoyMTAzMzM0MjM2fQ.bKutUzXNVuFCZA2erF79oII_cwTzMvh3vrLwsne25Xw",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnbG1vaXVpemdhdnVuaWZmc2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDM2ODgsImV4cCI6MjA5Mzk3OTY4OH0.3foRI1Sla14hwE57ckwXQU_rT8B9rpPiGbH3BZGzV6Y",
+  // Note: SUPABASE_SERVICE_ROLE_KEY is not hard-coded here; it is supplied by the
+  // Lovable Cloud runtime when a server function legitimately needs admin access.
   // Surepass (Aadhaar validation + DigiLocker). Sandbox token, valid to 01 Oct 2026.
   SUREPASS_BASE_URL: "https://sandbox.surepass.io",
   SUREPASS_TOKEN:
