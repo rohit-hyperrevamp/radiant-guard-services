@@ -4193,7 +4193,7 @@ function EmployeesPage() {
             const unit = units.find((u) => u.id === c.unit_id);
             const unitLabel = unit ? `${unit.customer_name ? unit.customer_name + " — " : ""}${unit.name}${unit.code ? ` (${unit.code})` : ""}` : "—";
             const desig = designations.find((d) => d.id === c.designation_id);
-            const desigLabel = desig ? `${desig.name}${desig.billable ? "" : " · Non-billable"}` : "—";
+            const desigLabel = desig ? `${desig.name}${unit && unit.is_billable === false ? " · Non-billable" : ""}` : "—";
             const aad = c.aadhaar_number ? `•••• •••• ${String(c.aadhaar_number).slice(-4)}` : "—";
             const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
               <div className="flex items-start justify-between gap-3 py-1.5">
