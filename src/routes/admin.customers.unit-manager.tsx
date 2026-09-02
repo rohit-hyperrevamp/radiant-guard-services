@@ -136,6 +136,8 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     recruitmentFeeAmount: 0,
     gpaipEnabled: false,
     gpaipAmount: 0,
+    phEnabled: false,
+    phMultiplier: 1,
     bonusEnabled: false,
     epfCapEnabled: true,
     bonusFrequency: null,
@@ -1289,6 +1291,49 @@ function UnitFormDialog({
                 </div>
               )}
             </div>
+
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">Public Holiday (PH)</div>
+                    <Badge
+                      className={cn(
+                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                        form.phEnabled
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {form.phEnabled ? `+${form.phMultiplier || 1}` : "Off"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                    Credit extra duty when an employee is present on a public holiday. Absent on the holiday = no credit.
+                  </p>
+                </div>
+                <Switch checked={form.phEnabled} onCheckedChange={(v) => set("phEnabled", v)} />
+              </div>
+              {form.phEnabled && (
+                <div className="mt-3 max-w-xs">
+                  <Field label="PH multiplier">
+                    <Select
+                      value={String(form.phMultiplier || 1)}
+                      onValueChange={(v) => set("phMultiplier", Number(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">+1 duty</SelectItem>
+                        <SelectItem value="2">+2 duties</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              )}
+            </div>
+
 
             <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
               <div className="flex items-start justify-between gap-3">

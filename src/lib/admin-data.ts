@@ -584,6 +584,10 @@ export type Unit = {
   recruitmentFeeAmount: number;
   gpaipEnabled: boolean;
   gpaipAmount: number;
+  /** Public holiday (PH) credit for this unit. */
+  phEnabled: boolean;
+  /** Extra duty credit on a public holiday: 1 or 2. */
+  phMultiplier: number;
   bonusEnabled: boolean;
   bonusFrequency: BonusFrequency | null;
   /** true = EPF wage ceiling (₹15,000) applies AND attendance is capped to payroll days. */
@@ -672,6 +676,8 @@ type UnitRow = {
   recruitment_fee_amount?: number | string | null;
   gpaip_enabled?: boolean | null;
   gpaip_amount?: number | string | null;
+  ph_enabled?: boolean | null;
+  ph_multiplier?: number | string | null;
   bonus_enabled?: boolean | null;
   bonus_frequency?: string | null;
   epf_cap_enabled?: boolean | null;
@@ -744,6 +750,8 @@ function rowToUnit(r: UnitRow): Unit {
     recruitmentFeeAmount: Number(r.recruitment_fee_amount ?? 0),
     gpaipEnabled: Boolean(r.gpaip_enabled),
     gpaipAmount: Number(r.gpaip_amount ?? 0),
+    phEnabled: Boolean(r.ph_enabled),
+    phMultiplier: Number(r.ph_multiplier ?? 1) || 1,
     bonusEnabled: Boolean(r.bonus_enabled),
     bonusFrequency: (r.bonus_frequency as BonusFrequency | null) ?? null,
     epfCapEnabled: r.epf_cap_enabled == null ? true : Boolean(r.epf_cap_enabled),
@@ -815,6 +823,8 @@ function unitToRow(data: Omit<Unit, "id">) {
     recruitment_fee_amount: data.recruitmentFeeEnabled ? Number(data.recruitmentFeeAmount || 0) : 0,
     gpaip_enabled: data.gpaipEnabled,
     gpaip_amount: data.gpaipEnabled ? Number(data.gpaipAmount || 0) : 0,
+    ph_enabled: data.phEnabled,
+    ph_multiplier: data.phEnabled ? Number(data.phMultiplier || 1) : 1,
     bonus_enabled: data.bonusEnabled,
     bonus_frequency: data.bonusEnabled ? (data.bonusFrequency ?? "monthly") : null,
     epf_cap_enabled: data.epfCapEnabled,
@@ -856,7 +866,7 @@ export function useUnits() {
     mutationFn: async (data: Omit<Unit, "id">): Promise<string> => {
       const { data: inserted, error } = await supabase
         .from("units")
-        .insert(unitToRow(data))
+        .insert(unitToRow(data) as never)
         .select("id")
         .single();
       if (error) throw error;
@@ -870,7 +880,7 @@ export function useUnits() {
     mutationFn: async ({ id, data }: { id: string; data: Omit<Unit, "id"> }) => {
       const { data: updated, error } = await supabase
         .from("units")
-        .update(unitToRow(data))
+        .update(unitToRow(data) as never)
         .eq("id", id)
         .select("id")
         .maybeSingle();
