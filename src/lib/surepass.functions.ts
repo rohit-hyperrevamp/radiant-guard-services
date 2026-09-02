@@ -393,3 +393,83 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
     await writeCachedProfile(data.clientId, profile);
     return profile;
   });
+
+export type PanComprehensiveResult = {
+  verified: boolean;
+  pan_number: string;
+  pan_status: string;
+  pan_type: string;
+  full_name: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  father_name: string;
+  date_of_birth: string;
+  gender: string;
+  category: string;
+  email: string;
+  mobile: string;
+  aadhaar_linked: boolean;
+  masked_aadhaar: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  district: string;
+  state: string;
+  pincode: string;
+  country: string;
+  message: string;
+};
+
+/** PAN Comprehensive (Surepass) — verifies the PAN and returns IT-record identity details. */
+export const verifyPanComprehensive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        pan: z
+          .string()
+          .transform((v) => v.trim().toUpperCase())
+          .refine((v) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v), "PAN must look like ABCDE1234F"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<PanComprehensiveResult> => {
+    const json = await surepass<Record<string, unknown>>("/api/v1/pan/pan-comprehensive", {
+      method: "POST",
+      body: { id_number: data.pan },
+    });
+    const d = (json.data ?? {}) as Record<string, unknown>;
+    const address = (d["address"] ?? {}) as Record<string, unknown>;
+    const nameInfo = (d["name_information"] ?? d["full_name_split"] ?? {}) as Record<string, unknown>;
+    const contact = (d["contact_details"] ?? {}) as Record<string, unknown>;
+    const split = Array.isArray(d["full_name_split"]) ? (d["full_name_split"] as unknown[]).map(s) : [];
+
+    const gender = s(d["gender"]);
+    return {
+      verified: Boolean(s(d["pan_number"])) || json.success === true,
+      pan_number: s(d["pan_number"]) || data.pan,
+      pan_status: s(d["pan_status"]) || s(d["status"]),
+      pan_type: s(d["pan_type"]) || s(d["category"]),
+      full_name: s(d["full_name"]) || s(nameInfo["full_name"]),
+      first_name: s(nameInfo["first_name"]) || split[0] || "",
+      middle_name: s(nameInfo["middle_name"]) || split[1] || "",
+      last_name: s(nameInfo["last_name"]) || split[2] || "",
+      father_name: s(d["father_name"]) || s(nameInfo["father_name"]),
+      date_of_birth: s(d["dob"]) || s(d["date_of_birth"]),
+      gender: /^m/i.test(gender) ? "Male" : /^f/i.test(gender) ? "Female" : gender,
+      category: s(d["category"]),
+      email: s(d["email"]) || s(contact["email"]),
+      mobile: s(d["phone_number"]) || s(contact["mobile"]),
+      aadhaar_linked: Boolean(d["aadhaar_linked"]) || /y/i.test(s(d["aadhaar_seeding_status"])),
+      masked_aadhaar: s(d["masked_aadhaar"]) || s(d["aadhaar_number"]),
+      address_line1: [s(address["line_1"]), s(address["line_2"])].filter(Boolean).join(", "),
+      address_line2: s(address["street_name"]) || s(address["line_3"]),
+      city: s(address["city"]),
+      district: s(address["district"]) || s(address["city"]),
+      state: s(address["state"]),
+      pincode: s(address["zip"]) || s(address["pincode"]),
+      country: s(address["country"]) || "India",
+      message: s(json.message) || "PAN verified",
+    };
+  });
