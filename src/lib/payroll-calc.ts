@@ -91,7 +91,12 @@ export function computeAttendanceTotals(
   periodDates: string[],
   entries: AttendanceEntryLike[],
   codes: AttendanceCodeLike[],
+  /** Unit-level public holiday credit: present on one of these dates earns `multiplier` extra duties. */
+  ph?: { dates: Iterable<string>; multiplier: number } | null,
 ): AttendanceTotals {
+  const phDatesSet = new Set(ph?.dates ?? []);
+  const phUnitMultiplier = Number(ph?.multiplier ?? 0) || 0;
+  let unitPhDays = 0;
   const codeMap = new Map(codes.map((c) => [c.code, c]));
   const entryMap = new Map<string, AttendanceEntryLike>();
   for (const e of entries) {
@@ -111,6 +116,9 @@ export function computeAttendanceTotals(
     otDaysSum += Number(e.ot_hours) || 0;
     const c = codeMap.get(e.code);
     if (!c) continue;
+    if (phDatesSet.size > 0 && phUnitMultiplier > 0 && phDatesSet.has(date) && c.counts_as_present) {
+      unitPhDays += phUnitMultiplier;
+    }
     if (e.code === "PH") {
       phCount += 1;
       continue;
@@ -122,7 +130,7 @@ export function computeAttendanceTotals(
     else if (c.is_paid) otherPaidDays += dv;
   }
 
-  const phDays = phCount * 2;
+  const phDays = round2(phCount * 2 + unitPhDays);
   const otDays = Math.round(otDaysSum * 100) / 100;
   const otHours = otDays;
   // Total PAID days = present + paid holiday (double) + extra duty ONLY.
