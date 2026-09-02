@@ -764,13 +764,17 @@ function MusterRollPage() {
         submitted_by: uid,
         rejection_reason: null,
       };
-      if (payrollRun?.id) {
-        const { error } = await supabase.from("payroll_runs" as never).update(base as never).eq("id", payrollRun.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("payroll_runs" as never).insert(base as never);
-        if (error) throw error;
+      // Upsert on the (unit, period) unique key so a row that exists but is
+      // not visible to this user's read scope does not cause a duplicate-key
+      // failure on handoff.
+      const { error } = await supabase
+        .from("payroll_runs" as never)
+        .upsert(base as never, { onConflict: "unit_id,period_start,period_end" } as never);
+      if (error) {
+        const pg = error as { message?: string; details?: string; hint?: string };
+        throw new Error(pg.message || pg.details || pg.hint || "Failed to send to payroll");
       }
+
       void logActivity({
         module: "Attendance",
         action: "send_to_payroll",
