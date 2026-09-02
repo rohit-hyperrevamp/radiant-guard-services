@@ -5744,16 +5744,19 @@ function CandidateWizard({
               {(() => {
                 const desigId = form.designation_id || editing.designation_id;
                 const desig = desigId ? designations.find((d) => d.id === desigId) : null;
+                const bUnitId = form.unit_id || editing.unit_id;
+                const bUnit = bUnitId ? units.find((u) => u.id === bUnitId) : null;
+                const billable = !!bUnit && bUnit.is_billable !== false;
                 return desig ? (
                   <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
                     {desig.name}
                     <span className={cn(
                       "ml-2 rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
-                      desig.billable
+                      billable
                         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-500/15 text-slate-600 dark:text-slate-300",
                     )}>
-                      {desig.billable ? "Billable" : "Non-billable"}
+                      {billable ? "Billable" : "Non-billable"}
                     </span>
                   </Badge>
                 ) : null;
