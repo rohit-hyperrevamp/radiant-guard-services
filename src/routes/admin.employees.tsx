@@ -5709,13 +5709,9 @@ function CandidateWizard({
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                {nonBillableUnits.length <= 1 && (
-                  <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
-                    Billing Unit · {nonBillableUnits[0]?.name ?? "Radiant Guards - Pune Office"}
-                  </Badge>
-                )}
               </div>
-              {nonBillableUnits.length > 1 && (
+              {nonBillableUnits.length > 0 && (
+
                 <div className="grid gap-1.5">
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Unit</label>
                   <Select value={homeUnitId} onValueChange={setHomeUnitId}>
