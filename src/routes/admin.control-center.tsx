@@ -39,6 +39,13 @@ const tiles: Tile[] = [
     icon: CalendarCheck,
   },
   {
+    to: "/admin/public-holiday-manager",
+    label: "Public Holiday Manager",
+    description: "Maintain the public holiday (PH) calendar used by unit-level PH credit on attendance.",
+    icon: CalendarHeart,
+  },
+
+  {
     to: "/admin/service-type-manager",
     label: "Service Type Manager",
     description: "Define service types like Security, Manpower, Facility, Staff.",
