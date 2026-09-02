@@ -32,6 +32,7 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
+import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -175,6 +176,28 @@ function PayrollUnitPage() {
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
+  // Public holiday credit — must mirror the payroll page, otherwise billed days
+  // silently drop the PH duties that payroll pays out.
+  const publicHolidays = usePublicHolidays();
+  const { data: unitPh } = useQuery({
+    queryKey: ["invoice-unit-ph", unitId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("units")
+        .select("ph_enabled, ph_multiplier" as never)
+        .eq("id", unitId)
+        .maybeSingle();
+      const row = (data ?? null) as { ph_enabled?: boolean | null; ph_multiplier?: number | null } | null;
+      return { enabled: Boolean(row?.ph_enabled), multiplier: Number(row?.ph_multiplier ?? 1) || 1 };
+    },
+  });
+  const phConfig = useMemo(() => {
+    if (!unitPh?.enabled) return null;
+    const map = holidayMapForDates(periodDates, publicHolidays);
+    if (map.size === 0) return null;
+    return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
+  }, [unitPh, periodDates, publicHolidays]);
+
   const { data: unit } = useQuery({
     queryKey: ["payroll-unit", unitId],
     queryFn: async () => {
@@ -268,7 +291,7 @@ function PayrollUnitPage() {
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["invoice-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["invoice-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
     // first render is wrong/zero until a manual refresh.
     enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
@@ -278,7 +301,7 @@ function PayrollUnitPage() {
       const [primaryRes, linksRes] = await Promise.all([
         supabase
           .from("candidates")
-          .select("id, employee_code, full_name, designation_id, gender, is_disabled")
+          .select("id, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date")
           .eq("unit_id", unitId)
           .eq("is_enabled", true)
           .eq("status", "active"),
@@ -293,7 +316,7 @@ function PayrollUnitPage() {
       if (linkIds.length > 0) {
         const { data, error: secErr } = await supabase
           .from("candidates")
-          .select("id, employee_code, full_name, designation_id, gender, is_disabled")
+          .select("id, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date")
           .in("id", linkIds)
           .eq("is_enabled", true)
           .eq("status", "active");
@@ -616,13 +639,17 @@ function PayrollUnitPage() {
         const lineEntries = entries.filter(
           (e) => e.candidate_id === p.candidateId && (e.designation_id ?? null) === p.designationId,
         );
+        const isPrimary = (c.designation_id ?? null) === p.designationId;
+        // PH credit belongs to the employee's primary line only — reliever
+        // lines must not earn a second credit for the same holiday.
         const totals = computeAttendanceTotals(
           c.id,
           periodDates,
           lineEntries as AttendanceEntryLike[],
           (codes ?? []) as AttendanceCodeLike[],
+          isPrimary ? phConfig : null,
+          (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
         );
-        const isPrimary = (c.designation_id ?? null) === p.designationId;
         // Apply per-employee day adjustments — primary designation line only.
         if (isPrimary) {
           const adj = dayAdjustmentByCandidate.get(c.id);
