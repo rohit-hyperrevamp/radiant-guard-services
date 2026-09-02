@@ -219,7 +219,7 @@ function MusterRollPage() {
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
-      const data = (raw ?? null) as Record<string, string | number | boolean | null> | null;
+      const data = (raw ?? null) as AttendanceUnitRow | null;
       if (!data) return null;
       const { data: cust } = await supabase
         .from("customers")
@@ -227,6 +227,7 @@ function MusterRollPage() {
         .eq("id", String(data.customer_id ?? ""))
         .maybeSingle();
       return { ...data, customer_name: cust?.name ?? "" };
+
 
     },
   });
