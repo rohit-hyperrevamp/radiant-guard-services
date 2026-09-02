@@ -4844,22 +4844,25 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees: the "home unit" (a non-billable unit) they belong to.
+  // Non-billable employees: the "home unit" they belong to. Every unit under
+  // the own-company (Radiant) organization is selectable — Corporate Office
+  // (Pune - HO) is just the default.
   const [homeUnitId, setHomeUnitId] = useState<string>(RADIANT_BILLING_UNIT_ID);
-  const nonBillableUnits = useMemo(
-    () => units.filter((u) => u.is_billable === false),
-    [units],
-  );
+  const nonBillableUnits = useMemo(() => {
+    const own = units.filter(isOwnCompanyUnit);
+    return (own.length > 0 ? own : units)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
   // Keep the selection valid as units load / change.
   useEffect(() => {
     if (!isEmployeeMode) return;
     if (nonBillableUnits.length === 0) return;
     if (!nonBillableUnits.some((u) => u.id === homeUnitId)) {
-      setHomeUnitId(
-        nonBillableUnits.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ?? nonBillableUnits[0].id,
-      );
+      setHomeUnitId(pickDefaultHomeUnit(nonBillableUnits));
     }
   }, [isEmployeeMode, nonBillableUnits, homeUnitId]);
+
 
   // Home Unit is the actual unit assignment for an internal employee. Keep
   // the shared assignment model in sync so validation, candidate_units,
