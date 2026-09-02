@@ -815,6 +815,7 @@ function PayrollUnitPage() {
           lineEntries as AttendanceEntryLike[],
           (codes ?? []) as AttendanceCodeLike[],
           isPrimaryLine ? phConfig : null,
+          (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
         );
         // Apply per-employee day adjustments from additions/deductions that opted into
         // "Include in total days" — only on the candidate's primary designation line.

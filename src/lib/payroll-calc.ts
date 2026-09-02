@@ -93,6 +93,8 @@ export function computeAttendanceTotals(
   codes: AttendanceCodeLike[],
   /** Unit-level public holiday credit: present on one of these dates earns `multiplier` extra duties. */
   ph?: { dates: Iterable<string>; multiplier: number } | null,
+  /** Employee joining date (YYYY-MM-DD). Holidays before this date earn no PH credit. */
+  joiningDate?: string | null,
 ): AttendanceTotals {
   const phDatesSet = new Set(ph?.dates ?? []);
   const phUnitMultiplier = Number(ph?.multiplier ?? 0) || 0;
@@ -118,7 +120,9 @@ export function computeAttendanceTotals(
     if (!c) continue;
     // National/public holiday credit is granted for the day itself, whether the
     // employee worked (P + PH) or not (A + PH). Only the multiplier matters.
-    if (phDatesSet.size > 0 && phUnitMultiplier > 0 && phDatesSet.has(date)) {
+    // A holiday that falls before the employee joined earns no credit.
+    const joinedByThisDate = !joiningDate || date >= joiningDate;
+    if (joinedByThisDate && phDatesSet.size > 0 && phUnitMultiplier > 0 && phDatesSet.has(date)) {
       unitPhDays += phUnitMultiplier;
     }
     if (e.code === "PH") {
