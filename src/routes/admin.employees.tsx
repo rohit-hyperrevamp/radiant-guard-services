@@ -4746,6 +4746,15 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+/** Own-company (Radiant) units are valid home units for non-billable staff. */
+const isOwnCompanyUnit = (u: UnitLite) =>
+  u.is_billable === false || /radiant/i.test(u.customer_name ?? "");
+const pickDefaultHomeUnit = (options: UnitLite[]) =>
+  options.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ??
+  options.find((u) => (u.code ?? "").toUpperCase() === "UN1")?.id ??
+  options.find((u) => u.is_billable === false)?.id ??
+  options[0]?.id ??
+  "";
 
 function CandidateWizard({
   open,
