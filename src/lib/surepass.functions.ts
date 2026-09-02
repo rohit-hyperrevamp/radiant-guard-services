@@ -367,7 +367,7 @@ export const getDigilockerProfile = createServerFn({ method: "POST" })
       if (/already\s*download/i.test(detail)) {
         const replay = await readCachedProfile(db, data.clientId);
         if (replay && replay.full_name) return replay;
-        await supabaseAdmin
+        await db
           .from("digilocker_sessions")
           .update({ status: "consumed_without_profile", updated_at: new Date().toISOString() })
           .eq("client_id", data.clientId);
