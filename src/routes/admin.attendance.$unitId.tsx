@@ -213,19 +213,21 @@ function MusterRollPage() {
   const { data: unit } = useQuery({
     queryKey: ["attendance-unit", unitId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: raw, error } = await supabase
         .from("units")
-        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
+        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never)
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
+      const data = (raw ?? null) as Record<string, string | number | boolean | null> | null;
       if (!data) return null;
       const { data: cust } = await supabase
         .from("customers")
         .select("id, name")
-        .eq("id", data.customer_id ?? "")
+        .eq("id", String(data.customer_id ?? ""))
         .maybeSingle();
       return { ...data, customer_name: cust?.name ?? "" };
+
     },
   });
 
