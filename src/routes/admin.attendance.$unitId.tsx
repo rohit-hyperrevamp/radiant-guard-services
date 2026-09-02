@@ -2261,9 +2261,9 @@ function MusterRollPage() {
       otDaysSum += Number(e.ot_hours) || 0;
       const c = codeMap.get(e.code);
       if (!c) continue;
-      // Unit-level public holiday credit: present on a listed holiday earns
-      // the unit's PH multiplier as extra duty. Absent on the holiday earns nothing.
-      if (phEnabled && holidayByDate.has(cell.date) && c.counts_as_present) {
+      // Unit-level public holiday credit: granted on the listed holiday whether
+      // the employee worked (P + PH) or was absent (A + PH).
+      if (phEnabled && holidayByDate.has(cell.date)) {
         unitPhDays += phMultiplier;
       }
       if (e.code === "PH") { phCount += 1; continue; }
