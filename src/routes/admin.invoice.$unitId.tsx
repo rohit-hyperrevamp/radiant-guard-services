@@ -739,7 +739,7 @@ function PayrollUnitPage() {
         );
       }
 
-      return { rows, billingMode, shiftHoursByDesignation };
+      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation };
     },
   });
 
@@ -748,6 +748,8 @@ function PayrollUnitPage() {
   const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
   const shiftHoursByDesignation = data?.shiftHoursByDesignation ?? new Map<string, number>();
+  const billingDayBaseByDesignation =
+    data?.billingDayBaseByDesignation ?? new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
 
 
   useEffect(() => {
@@ -780,14 +782,21 @@ function PayrollUnitPage() {
     const payrollDays =
       resolvePayrollDayCount(r.resource?.payrollDayBase ?? null, periodDates) ??
       (r.wages?.baseDays || periodDates.length || 30);
+    // Days printed on the invoice always come from the payroll-days rule.
+    // The hourly-rate divisor uses the billing-days rule when configured.
+    const billingDays =
+      resolvePayrollDayCount(
+        billingDayBaseByDesignation.get(String(r.designationId ?? "")) ?? r.resource?.payrollDayBase ?? null,
+        periodDates,
+      ) ?? payrollDays;
     const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
     // Billing is HOURLY: hourly rate = final billing rate ÷ payroll days ÷ shift
     // hours, rounded to 2 dp (the rate that is actually printed on the invoice),
     // and the amount = that printed rate × billed hours.
     const shiftHours = shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
     const perHour =
-      payrollDays > 0 && shiftHours > 0
-        ? Math.round((contracted / payrollDays / shiftHours) * 100) / 100
+      billingDays > 0 && shiftHours > 0
+        ? Math.round((contracted / billingDays / shiftHours) * 100) / 100
         : 0;
     const billedHours = Math.round(billedDays * shiftHours * 100) / 100;
     const actual =
@@ -799,6 +808,7 @@ function PayrollUnitPage() {
     return {
       contracted,
       payrollDays,
+      billingDays,
       billedDays,
       shiftHours,
       billedHours,
