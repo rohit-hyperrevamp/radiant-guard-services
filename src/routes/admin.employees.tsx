@@ -1538,6 +1538,13 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
+  /**
+   * Single source of truth for billability in this screen: a person is billable
+   * when they are deployed at a billable (client) unit. Internal Radiant staff
+   * sit on a non-billable unit — or on no unit at all — and are non-billable.
+   */
+  const isBillableCandidate = (c: { id: string; unit_id: string | null }) =>
+    unitOfCandidate(c)?.is_billable !== false && !!(c.unit_id || primaryUnitIdByCandidate.get(c.id));
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
 
   const scopedUnitsForWizard = useMemo(() => {
