@@ -2251,7 +2251,7 @@ function MusterRollPage() {
 
   // edOnlyLine = reliever / extra-designation line: it earns extra duty only and
   // must not receive a second public-holiday credit for the same employee/unit.
-  const computeTotalsForRow = (rk: string, edOnlyLine = false) => {
+  const computeTotalsForRow = (rk: string, edOnlyLine = false, joiningDate?: string | null) => {
     let pDays = 0;
     let otDaysSum = 0;
     let phCount = 0;
@@ -2265,7 +2265,12 @@ function MusterRollPage() {
       if (!c) continue;
       // Unit-level public holiday credit: granted on the listed holiday whether
       // the employee worked (P + PH) or was absent (A + PH).
-      if (phEnabled && !edOnlyLine && holidayByDate.has(cell.date)) {
+      if (
+        phEnabled &&
+        !edOnlyLine &&
+        holidayByDate.has(cell.date) &&
+        (!joiningDate || cell.date >= joiningDate)
+      ) {
         unitPhDays += phMultiplier;
       }
       if (e.code === "PH") { phCount += 1; continue; }
@@ -3014,7 +3019,7 @@ function MusterRollPage() {
               ) : (
                 visibleMusterRows.flatMap((mr, idx) => {
                   const cellBase = "border border-slate-400 align-middle";
-                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever));
+                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
                   return [
                     <tr key={mr.key + "-att"}>
 
@@ -3282,7 +3287,12 @@ function MusterRollPage() {
                             title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark extra duty" : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
                           >
                             {(() => {
-                              const showPh = phEnabled && mr.isPrimary && holidayByDate.has(date) && Boolean(entry);
+                              const showPh =
+                                phEnabled &&
+                                mr.isPrimary &&
+                                holidayByDate.has(date) &&
+                                Boolean(entry) &&
+                                (!mr.emp.doj || date >= mr.emp.doj);
                               return (
                                 <div className="flex h-full w-full flex-col items-center justify-center leading-none">
                                   {hrs > 0 && (
@@ -3312,7 +3322,7 @@ function MusterRollPage() {
               {!isLoading && !rosterError && visibleMusterRows.length > 0 && (() => {
                 const grand = visibleMusterRows.reduce(
                   (acc, mr) => {
-                    const t = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever));
+                    const t = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
                     acc.pDays += t.pDays;
                     acc.otHours += t.otHours;
                     acc.phDays += t.phDays;
