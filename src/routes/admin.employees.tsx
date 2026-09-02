@@ -1599,8 +1599,10 @@ function EmployeesPage() {
     if (filterEnabled === "enabled" && !c.is_enabled) return false;
     if (filterEnabled === "disabled" && c.is_enabled) return false;
     if (filterBillable !== "all") {
-      const d = c.designation_id ? desigMap.get(c.designation_id) : undefined;
-      const isBillable = !!d?.billable;
+      // Billability is a property of the UNIT the person is deployed at, not of
+      // the designation: anyone posted at a client (billable) unit is billable,
+      // internal Radiant staff sitting on a non-billable unit are not.
+      const isBillable = isBillableCandidate(c);
       if (filterBillable === "billable" && !isBillable) return false;
       if (filterBillable === "nonbillable" && isBillable) return false;
     }
