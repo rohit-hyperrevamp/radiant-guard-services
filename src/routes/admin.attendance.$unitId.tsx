@@ -3282,7 +3282,7 @@ function MusterRollPage() {
                             title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark extra duty" : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
                           >
                             {(() => {
-                              const showPh = phEnabled && !(Boolean(mr.otOnly) || Boolean(mr.reliever)) && holidayByDate.has(date) && Boolean(entry);
+                              const showPh = phEnabled && mr.isPrimary && holidayByDate.has(date) && Boolean(entry);
                               return (
                                 <div className="flex h-full w-full flex-col items-center justify-center leading-none">
                                   {hrs > 0 && (
