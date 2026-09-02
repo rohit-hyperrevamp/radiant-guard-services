@@ -328,10 +328,12 @@ export type PayrollDayBase = {
   id: string;
   name: string;
   code: string;
-  method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays";
+  method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
   fixedDays: number | null;
   weeklyOffDay: number | null;
   includedWeekdays: number[] | null;
+  enabled: boolean;
+  sortOrder: number;
 };
 
 export type CostComponentOption = {
@@ -1073,6 +1075,8 @@ export function usePayrollDayBases() {
           includedWeekdays: Array.isArray(r.included_weekdays)
             ? (r.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
             : null,
+          enabled: Boolean(r.enabled ?? true),
+          sortOrder: Number(r.sort_order ?? 0),
         }));
     },
   });
@@ -1137,6 +1141,7 @@ function computePayableDays(base: PayrollDayBase | undefined, ref: Date = new Da
   const month = ref.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   if (base.method === "fixed_days") return Number(base.fixedDays) || 0;
+  if (base.method === "fixed_annual_average") return 365 / 12;
   if (base.method === "actual_days") return daysInMonth;
   if (base.method === "actual_minus_weekly_off") {
     const off = base.weeklyOffDay == null ? 0 : Number(base.weeklyOffDay); // 0=Sun..6=Sat
@@ -4544,6 +4549,7 @@ export function ResourceFormDialog({
     const base = payrollDayBases.find((p) => p.id === payrollDayBaseId);
     if (!base) return 0;
     if (base.method === "fixed_days") return base.fixedDays ?? 26;
+    if (base.method === "fixed_annual_average") return 365 / 12;
     const now = new Date();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     if (base.method === "actual_days") return daysInMonth;
@@ -5023,9 +5029,11 @@ export function ResourceFormDialog({
                       <span className="text-[11px] text-muted-foreground">
                         {p.method === "fixed_days"
                           ? `Fixed ${p.fixedDays ?? 26} days`
-                          : p.method === "actual_minus_weekly_off"
-                            ? `Actual − weekly off`
-                            : `Actual days in month`}
+                          : p.method === "fixed_annual_average"
+                            ? `Fixed 30.41 days`
+                            : p.method === "actual_minus_weekly_off"
+                              ? `Actual − weekly off`
+                              : `Actual days in month`}
                       </span>
                     </div>
                   </SelectItem>
@@ -5811,11 +5819,13 @@ export function SalaryBreakdownTable({
   const basisLabel = payrollDayBase
     ? payrollDayBase.method === "fixed_days"
       ? `${payrollDayBase.fixedDays ?? 0} Days`
-      : payrollDayBase.method === "actual_minus_weekly_off"
-        ? `${payableDays} Days (actual − weekly off)`
-        : payrollDayBase.method === "custom_weekdays"
-          ? `${payableDays} Days (custom weekdays)`
-          : `${payableDays} Days (actual)`
+      : payrollDayBase.method === "fixed_annual_average"
+        ? `30.41 Days (annual average)`
+        : payrollDayBase.method === "actual_minus_weekly_off"
+          ? `${payableDays} Days (actual − weekly off)`
+          : payrollDayBase.method === "custom_weekdays"
+            ? `${payableDays} Days (custom weekdays)`
+            : `${payableDays} Days (actual)`
     : "—";
 
   const earnedFor = (amount: number) =>

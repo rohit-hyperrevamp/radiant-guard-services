@@ -65,7 +65,7 @@ function periodDatesOf(start: string, end: string): string[] {
   return out;
 }
 
-type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays";
+type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
 
 /**
  * Compute the live contract + statutory deductions for one unit and period.
