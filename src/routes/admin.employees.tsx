@@ -1152,7 +1152,7 @@ function useUnits() {
           .from("units" as never)
           .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
           .order("name", { ascending: true })
-          .limit(2000)
+          .limit(5000)
           .abortSignal(signal),
       );
       if (error) throw error;
@@ -4746,6 +4746,15 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+/** Own-company (Radiant) units are valid home units for non-billable staff. */
+const isOwnCompanyUnit = (u: UnitLite) =>
+  u.is_billable === false || /radiant/i.test(u.customer_name ?? "");
+const pickDefaultHomeUnit = (options: UnitLite[]) =>
+  options.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ??
+  options.find((u) => (u.code ?? "").toUpperCase() === "UN1")?.id ??
+  options.find((u) => u.is_billable === false)?.id ??
+  options[0]?.id ??
+  "";
 
 function CandidateWizard({
   open,
@@ -4835,22 +4844,25 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees: the "home unit" (a non-billable unit) they belong to.
+  // Non-billable employees: the "home unit" they belong to. Every unit under
+  // the own-company (Radiant) organization is selectable — Corporate Office
+  // (Pune - HO) is just the default.
   const [homeUnitId, setHomeUnitId] = useState<string>(RADIANT_BILLING_UNIT_ID);
-  const nonBillableUnits = useMemo(
-    () => units.filter((u) => u.is_billable === false),
-    [units],
-  );
+  const nonBillableUnits = useMemo(() => {
+    const own = units.filter(isOwnCompanyUnit);
+    return (own.length > 0 ? own : units)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
   // Keep the selection valid as units load / change.
   useEffect(() => {
     if (!isEmployeeMode) return;
     if (nonBillableUnits.length === 0) return;
     if (!nonBillableUnits.some((u) => u.id === homeUnitId)) {
-      setHomeUnitId(
-        nonBillableUnits.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ?? nonBillableUnits[0].id,
-      );
+      setHomeUnitId(pickDefaultHomeUnit(nonBillableUnits));
     }
   }, [isEmployeeMode, nonBillableUnits, homeUnitId]);
+
 
   // Home Unit is the actual unit assignment for an internal employee. Keep
   // the shared assignment model in sync so validation, candidate_units,
@@ -5608,7 +5620,11 @@ function CandidateWizard({
         return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card", "blood_group");
 
       if (form.unit_ids.length === 0)
-        return failValidation("At least one unit must be mapped before saving (Deployment section)");
+        return failValidation(
+          isEmployeeMode
+            ? "Pick a Home Unit at the top of this form (e.g. Corporate Office (Pune - HO))"
+            : "At least one unit must be mapped before saving (Deployment section)",
+        );
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address", "permanent_district");
       if (!form.same_as_permanent && !form.present_district.trim())
         return failValidation("District is required in the present address", "present_district");
@@ -5690,20 +5706,16 @@ function CandidateWizard({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
-              ? "Non-billable internal hire. Billing unit is auto-set to Radiant; salary follows the Radiant contract for the chosen designation. Client unit mapping is optional."
+              ? "Non-billable internal hire. Pick the Radiant home unit (defaults to Corporate Office (Pune - HO)); client unit mapping is optional."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                {nonBillableUnits.length <= 1 && (
-                  <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
-                    Billing Unit · {nonBillableUnits[0]?.name ?? "Radiant Guards - Pune Office"}
-                  </Badge>
-                )}
               </div>
-              {nonBillableUnits.length > 1 && (
+              {nonBillableUnits.length > 0 && (
+
                 <div className="grid gap-1.5">
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Unit</label>
                   <Select value={homeUnitId} onValueChange={setHomeUnitId}>
@@ -5721,7 +5733,7 @@ function CandidateWizard({
                         ))}
                     </SelectContent>
                   </Select>
-                  <span className="text-[11px] text-muted-foreground">The non-billable unit this employee belongs to (payroll &amp; billing base).</span>
+                  <span className="text-[11px] text-muted-foreground">The Radiant unit this employee belongs to (payroll &amp; billing base). Defaults to Corporate Office (Pune - HO).</span>
                 </div>
               )}
             </div>
