@@ -1152,7 +1152,7 @@ function useUnits() {
           .from("units" as never)
           .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
           .order("name", { ascending: true })
-          .limit(2000)
+          .limit(5000)
           .abortSignal(signal),
       );
       if (error) throw error;
@@ -5706,7 +5706,7 @@ function CandidateWizard({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
-              ? "Non-billable internal hire. Billing unit is auto-set to Radiant; salary follows the Radiant contract for the chosen designation. Client unit mapping is optional."
+              ? "Non-billable internal hire. Pick the Radiant home unit (defaults to Corporate Office (Pune - HO)); client unit mapping is optional."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
