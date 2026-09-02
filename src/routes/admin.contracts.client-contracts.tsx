@@ -2182,6 +2182,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     quantity: Number(r.quantity ?? 1) || 1,
     shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
     payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
+    billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
     components: safeJsonArray(r.components_json) as ResourceComponent[],
     benefits: safeJsonArray(r.benefits_json) as BenefitItem[],
     deductions: safeJsonArray(r.deductions_json) as BenefitItem[],
