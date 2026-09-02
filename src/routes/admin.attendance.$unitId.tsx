@@ -210,7 +210,33 @@ function MusterRollPage() {
   const [monthIdx, setMonthIdx] = useState(search.month ?? now.getMonth());
   const [musterQuery, setMusterQuery] = useState("");
 
+  type AttendanceUnitRow = {
+    id: string;
+    code: string | null;
+    name: string | null;
+    location: string | null;
+    epf_cap_enabled: boolean | null;
+    branch_id: string | null;
+    customer_id: string | null;
+    billing_state: string | null;
+    ph_enabled: boolean | null;
+    ph_multiplier: number | null;
+    reporting_officers: unknown;
+    shipping_address1: string | null;
+    shipping_address2: string | null;
+    shipping_city: string | null;
+    shipping_district: string | null;
+    shipping_state: string | null;
+    shipping_pincode: string | null;
+    billing_address1: string | null;
+    billing_address2: string | null;
+    billing_city: string | null;
+    billing_district: string | null;
+    billing_pincode: string | null;
+  };
+
   const { data: unit } = useQuery({
+
     queryKey: ["attendance-unit", unitId],
     queryFn: async () => {
       const { data: raw, error } = await supabase
