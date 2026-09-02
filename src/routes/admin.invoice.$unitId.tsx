@@ -354,12 +354,12 @@ function PayrollUnitPage() {
       let resources: Record<string, unknown>[] = [];
       if (contractId) {
         const { data: r } = await supabase
-          .from("contract_resources")
+          .from("contract_resources" as never)
           .select(
             "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
-        resources = r ?? [];
+        resources = (r ?? []) as unknown as Record<string, unknown>[];
       }
 
       // 3b. Per-employee Additions & Deductions in the invoice window.
