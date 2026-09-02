@@ -5620,7 +5620,11 @@ function CandidateWizard({
         return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card", "blood_group");
 
       if (form.unit_ids.length === 0)
-        return failValidation("At least one unit must be mapped before saving (Deployment section)");
+        return failValidation(
+          isEmployeeMode
+            ? "Pick a Home Unit at the top of this form (e.g. Corporate Office (Pune - HO))"
+            : "At least one unit must be mapped before saving (Deployment section)",
+        );
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address", "permanent_district");
       if (!form.same_as_permanent && !form.present_district.trim())
         return failValidation("District is required in the present address", "present_district");
