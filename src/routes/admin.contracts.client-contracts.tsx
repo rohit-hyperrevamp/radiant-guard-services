@@ -4242,7 +4242,6 @@ export function ResourceFormDialog({
           shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
           components,
           payrollDayBaseId: payrollDayBaseId || null,
-      billingDayBaseId: billingDayBaseId || null,
           billingDayBaseId: billingDayBaseId || null,
           benefits,
           deductions,
