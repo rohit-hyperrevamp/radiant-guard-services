@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -214,7 +215,7 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
-        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
+        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
@@ -227,6 +228,10 @@ function MusterRollPage() {
       return { ...data, customer_name: cust?.name ?? "" };
     },
   });
+
+  const publicHolidays = usePublicHolidays();
+  const phEnabled = Boolean((unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled);
+  const phMultiplier = Number((unit as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
 
   const { data: employees, isLoading, error: rosterError } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
@@ -2213,6 +2218,7 @@ function MusterRollPage() {
     let pDays = 0;
     let otDaysSum = 0;
     let phCount = 0;
+    let unitPhDays = 0;
     let otherPaidDays = 0;
     for (const cell of periodCells) {
       const e = entryMap.get(`${rk}|${cell.date}`);
@@ -2220,6 +2226,11 @@ function MusterRollPage() {
       otDaysSum += Number(e.ot_hours) || 0;
       const c = codeMap.get(e.code);
       if (!c) continue;
+      // Unit-level public holiday credit: present on a listed holiday earns
+      // the unit's PH multiplier as extra duty. Absent on the holiday earns nothing.
+      if (phEnabled && holidayByDate.has(cell.date) && c.counts_as_present) {
+        unitPhDays += phMultiplier;
+      }
       if (e.code === "PH") { phCount += 1; continue; }
       // Weekly off is not a payable duty — it must never inflate the payable total.
       if (e.code === "WO" || e.code === "W") continue;
@@ -2227,7 +2238,7 @@ function MusterRollPage() {
       if (c.counts_as_present) pDays += dayValue;
       else if (c.is_paid) otherPaidDays += dayValue;
     }
-    const phDays = phCount * 2;
+    const phDays = Math.round((phCount * 2 + unitPhDays) * 100) / 100;
     const otDays = Math.round(otDaysSum * 100) / 100;
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
@@ -3241,6 +3252,11 @@ function MusterRollPage() {
                             >
                               {hrs > 0 ? hrs : ""}
                             </div>
+                            {phEnabled && holidayByDate.has(date) && (entryMap.get(`${mr.key}|${date}`)?.code ? codeMap.get(entryMap.get(`${mr.key}|${date}`)!.code)?.counts_as_present : false) && (
+                              <div className="pointer-events-none -mt-[3px] text-center text-[8px] font-bold leading-none text-emerald-600">
+                                PH
+                              </div>
+                            )}
                           </td>
                         );
                       })}
