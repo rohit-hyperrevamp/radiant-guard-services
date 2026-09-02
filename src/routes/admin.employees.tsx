@@ -5729,7 +5729,7 @@ function CandidateWizard({
                         ))}
                     </SelectContent>
                   </Select>
-                  <span className="text-[11px] text-muted-foreground">The non-billable unit this employee belongs to (payroll &amp; billing base).</span>
+                  <span className="text-[11px] text-muted-foreground">The Radiant unit this employee belongs to (payroll &amp; billing base). Defaults to Corporate Office (Pune - HO).</span>
                 </div>
               )}
             </div>
