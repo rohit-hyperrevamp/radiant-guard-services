@@ -2119,6 +2119,14 @@ function PayrollUnitPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {r.designation}
+                    {!r.isPrimary && (
+                      <span
+                        className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                        title="Duties performed in a role other than the employee's own designation — billed as reliever."
+                      >
+                        Reliever
+                      </span>
+                    )}
                     {!r.wages && (
                       <span
                         className="ml-2 text-xs text-amber-600"
