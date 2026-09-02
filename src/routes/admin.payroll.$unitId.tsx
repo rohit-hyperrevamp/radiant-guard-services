@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
@@ -164,6 +165,26 @@ function PayrollUnitPage() {
   const lastScrolledCandidateRef = useRef<string | null>(null);
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
+
+  const publicHolidays = usePublicHolidays();
+  const { data: unitPh } = useQuery({
+    queryKey: ["payroll-unit-ph", unitId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("units")
+        .select("ph_enabled, ph_multiplier" as never)
+        .eq("id", unitId)
+        .maybeSingle();
+      const row = (data ?? null) as { ph_enabled?: boolean | null; ph_multiplier?: number | null } | null;
+      return { enabled: Boolean(row?.ph_enabled), multiplier: Number(row?.ph_multiplier ?? 1) || 1 };
+    },
+  });
+  const phConfig = useMemo(() => {
+    if (!unitPh?.enabled) return null;
+    const map = holidayMapForDates(periodDates, publicHolidays);
+    if (map.size === 0) return null;
+    return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
+  }, [unitPh, periodDates, publicHolidays]);
 
   const { data: unit } = useQuery({
     queryKey: ["payroll-unit", unitId],
@@ -789,6 +810,7 @@ function PayrollUnitPage() {
           periodDates,
           lineEntries as AttendanceEntryLike[],
           (codes ?? []) as AttendanceCodeLike[],
+          phConfig,
         );
         // Apply per-employee day adjustments from additions/deductions that opted into
         // "Include in total days" — only on the candidate's primary designation line.
