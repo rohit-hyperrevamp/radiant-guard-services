@@ -5,10 +5,10 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 // configuration for both preview and production instead of allowing preview to
 // silently connect to a separate empty database.
 const PRODUCTION_SUPABASE_CLIENT = {
-  VITE_SUPABASE_PROJECT_ID: "yimpxawqoarprhtxapie",
-  VITE_SUPABASE_URL: "https://yimpxawqoarprhtxapie.supabase.co",
+  VITE_SUPABASE_PROJECT_ID: "fglmoiuizgavuniffslm",
+  VITE_SUPABASE_URL: "https://fglmoiuizgavuniffslm.supabase.co",
   VITE_SUPABASE_PUBLISHABLE_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTgyMzYsImV4cCI6MjEwMzMzNDIzNn0.6MaMS-my38sgzBhVkYJ0-GNT7SMIhy3C61gKNmFKq1o",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnbG1vaXVpemdhdnVuaWZmc2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDM2ODgsImV4cCI6MjA5Mzk3OTY4OH0.3foRI1Sla14hwE57ckwXQU_rT8B9rpPiGbH3BZGzV6Y",
 };
 
 const define = Object.fromEntries(

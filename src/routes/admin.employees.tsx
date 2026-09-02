@@ -191,9 +191,11 @@ function InlineWageEditor({
   const selectedPayrollBase = payrollDayBases.find((base) => base.id === value.payrollDayBaseId);
   const edDivisor = selectedPayrollBase?.method === "fixed_days"
     ? Number(selectedPayrollBase.fixedDays ?? 0)
-    : selectedPayrollBase
-      ? 30
-      : 0;
+    : selectedPayrollBase?.method === "fixed_annual_average"
+      ? 365 / 12
+      : selectedPayrollBase
+        ? 30
+        : 0;
   const patch = (p: Partial<ContractResource>) => onChange({ ...value, ...p });
 
   // Recompute percentage / formula-based amounts whenever wage components change.
@@ -492,7 +494,7 @@ function InlineWageEditor({
             <SelectContent>
               {payrollDayBases.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.name} · {p.method === "fixed_days" ? `Fixed ${p.fixedDays ?? 26} days` : p.method === "actual_minus_weekly_off" ? "Actual − weekly off" : "Actual days in month"}
+                {p.name} · {p.method === "fixed_days" ? `Fixed ${p.fixedDays ?? 26} days` : p.method === "fixed_annual_average" ? "Fixed 30.41 days" : p.method === "actual_minus_weekly_off" ? "Actual − weekly off" : "Actual days in month"}
                 </SelectItem>
               ))}
             </SelectContent>

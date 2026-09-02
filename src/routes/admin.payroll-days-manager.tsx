@@ -57,7 +57,7 @@ export const Route = createFileRoute("/admin/payroll-days-manager")({
   component: PayrollDaysManagerPage,
 });
 
-type Method = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays";
+type Method = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
 
 type PayrollDayBase = {
   id: string;
@@ -94,6 +94,11 @@ const METHOD_META: Record<Method, { label: string; icon: typeof CalendarDays; to
   },
   fixed_days: {
     label: "Fixed days",
+    icon: CalendarRange,
+    tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  },
+  fixed_annual_average: {
+    label: "Fixed annual average",
     icon: CalendarRange,
     tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   },
@@ -134,6 +139,8 @@ function describeMethod(item: PayrollDayBase): string {
       return "Salary ÷ actual calendar days of the payroll month (28/29/30/31).";
     case "fixed_days":
       return `Salary ÷ ${item.fixedDays ?? "?"} (fixed) regardless of month length.`;
+    case "fixed_annual_average":
+      return "Salary ÷ 30.41 (365 ÷ 12) for every month.";
     case "actual_minus_weekly_off": {
       const day = WEEKDAYS[item.weeklyOffDay ?? 0] ?? "Sunday";
       return `Salary ÷ (actual days of month − ${day}s in that month).`;
@@ -664,6 +671,7 @@ function PayrollDayBaseFormDialog({
               <SelectContent>
                 <SelectItem value="actual_days">Actual days in month</SelectItem>
                 <SelectItem value="fixed_days">Fixed number of days</SelectItem>
+                <SelectItem value="fixed_annual_average">Fixed annual average (30.41 days)</SelectItem>
                 <SelectItem value="actual_minus_weekly_off">Actual days minus a weekly off</SelectItem>
                 <SelectItem value="custom_weekdays">Custom — pick weekdays</SelectItem>
               </SelectContent>

@@ -3,11 +3,13 @@
 // resource — never hard-coded. Anything beyond this cap must be paid as OT.
 
 export type PayrollDayBaseLike = {
-  method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays";
+  method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
   fixedDays?: number | null;
   weeklyOffDay?: number | null;
   includedWeekdays?: number[] | null;
 };
+
+const ANNUAL_AVERAGE_DAYS = 365 / 12;
 
 /** Period dates as ISO strings (YYYY-MM-DD). */
 export function resolvePayrollDayCount(
@@ -26,6 +28,8 @@ export function resolvePayrollDayCount(
       if (n <= 0) return null;
       return Math.min(n, total);
     }
+    case "fixed_annual_average":
+      return ANNUAL_AVERAGE_DAYS;
     case "actual_days":
       return total;
     case "actual_minus_weekly_off": {

@@ -438,7 +438,7 @@ function MusterRollPage() {
             .in("id", pdbIds);
           for (const b of (bases ?? []) as Array<Record<string, unknown>>) {
             pdbById.set(String(b.id), {
-              method: String(b.method) as PayrollDayBaseLike["method"],
+              method: String(b.method) as PayrollDayBaseLike["method"] | "fixed_annual_average",
               fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
               weeklyOffDay: b.weekly_off_day == null ? null : Number(b.weekly_off_day),
               includedWeekdays: Array.isArray(b.included_weekdays)
@@ -488,9 +488,13 @@ function MusterRollPage() {
     const m = new Map<string, number>();
     for (const d of contractDesignations) {
       // "Actual Days in Month" already means every visible calendar date in
-      // this register is eligible for Present. Do not run it through the cap
-      // rejection path; the calendar itself is the only limit (July = 31).
-      if (d.payrollDayBase?.method === "actual_days") continue;
+      // this register is eligible for Present. The fixed annual average (30.41)
+      // is used for invoicing and should not cap attendance either.
+      if (
+        d.payrollDayBase?.method === "actual_days" ||
+        d.payrollDayBase?.method === "fixed_annual_average"
+      )
+        continue;
       const cap = resolvePayrollDayCount(d.payrollDayBase, dates);
       if (cap != null && cap > 0) m.set(d.designationId, cap);
     }
