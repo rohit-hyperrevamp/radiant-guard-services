@@ -482,6 +482,12 @@ function MusterRollPage() {
   const dayCount = periodCells.length;
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
+  const holidayByDate = useMemo(
+    () => holidayMapForDates(periodCells.map((c) => c.date), publicHolidays),
+    [periodCells, publicHolidays],
+  );
+
+
 
   // Max "P" days allowed per designation for this period, driven by the
   // contract resource's Payroll Days entry (26 fixed, actual days, actual
