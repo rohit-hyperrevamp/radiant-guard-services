@@ -354,12 +354,12 @@ function PayrollUnitPage() {
       let resources: Record<string, unknown>[] = [];
       if (contractId) {
         const { data: r } = await supabase
-          .from("contract_resources")
+          .from("contract_resources" as never)
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
+            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
-        resources = r ?? [];
+        resources = (r ?? []) as unknown as Record<string, unknown>[];
       }
 
       // 3b. Per-employee Additions & Deductions in the invoice window.
@@ -508,6 +508,34 @@ function PayrollUnitPage() {
           },
         ]),
       );
+      // Billing-days rules are configured separately from payroll days: the
+      // invoice prints payroll days, but the hourly rate divisor uses the
+      // billing-days basis when one is set on the contract resource.
+      const { data: bdbs } = await supabase
+        .from("billing_day_bases" as never)
+        .select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled");
+      const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
+        ((bdbs ?? []) as unknown as Record<string, unknown>[]).map((p) => [
+          String(p.id),
+          {
+            method: p.method as PdbMethod,
+            fixedDays: p.fixed_days == null ? null : Number(p.fixed_days),
+            weeklyOffDay: p.weekly_off_day == null ? null : Number(p.weekly_off_day),
+            includedWeekdays: Array.isArray(p.included_weekdays)
+              ? (p.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+              : null,
+          },
+        ]),
+      );
+      const billingDayBaseByDesignation = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        const bid = r.billing_day_base_id ? String(r.billing_day_base_id) : "";
+        if (!did || !bid) continue;
+        const base = bdbMap.get(bid);
+        if (base) billingDayBaseByDesignation.set(did, base);
+      }
+
       const dayBases = (pdbs ?? []).map((p) => ({
         id: String(p.id),
         method: p.method as PdbMethod,
@@ -711,7 +739,7 @@ function PayrollUnitPage() {
         );
       }
 
-      return { rows, billingMode, shiftHoursByDesignation };
+      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation };
     },
   });
 
@@ -720,6 +748,8 @@ function PayrollUnitPage() {
   const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
   const shiftHoursByDesignation = data?.shiftHoursByDesignation ?? new Map<string, number>();
+  const billingDayBaseByDesignation =
+    data?.billingDayBaseByDesignation ?? new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
 
 
   useEffect(() => {
@@ -752,14 +782,21 @@ function PayrollUnitPage() {
     const payrollDays =
       resolvePayrollDayCount(r.resource?.payrollDayBase ?? null, periodDates) ??
       (r.wages?.baseDays || periodDates.length || 30);
+    // Days printed on the invoice always come from the payroll-days rule.
+    // The hourly-rate divisor uses the billing-days rule when configured.
+    const billingDays =
+      resolvePayrollDayCount(
+        billingDayBaseByDesignation.get(String(r.designationId ?? "")) ?? r.resource?.payrollDayBase ?? null,
+        periodDates,
+      ) ?? payrollDays;
     const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
     // Billing is HOURLY: hourly rate = final billing rate ÷ payroll days ÷ shift
     // hours, rounded to 2 dp (the rate that is actually printed on the invoice),
     // and the amount = that printed rate × billed hours.
     const shiftHours = shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
     const perHour =
-      payrollDays > 0 && shiftHours > 0
-        ? Math.round((contracted / payrollDays / shiftHours) * 100) / 100
+      billingDays > 0 && shiftHours > 0
+        ? Math.round((contracted / billingDays / shiftHours) * 100) / 100
         : 0;
     const billedHours = Math.round(billedDays * shiftHours * 100) / 100;
     const actual =
@@ -771,6 +808,7 @@ function PayrollUnitPage() {
     return {
       contracted,
       payrollDays,
+      billingDays,
       billedDays,
       shiftHours,
       billedHours,

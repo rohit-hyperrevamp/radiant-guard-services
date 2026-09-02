@@ -157,6 +157,7 @@ const EMPTY_WAGE: ContractResource = {
   serviceTypeId: "",
   quantity: 1,
   shiftHours: 8,
+  billingDayBaseId: null,
   components: [],
   payrollDayBaseId: null,
   benefits: [],
@@ -192,7 +193,7 @@ function InlineWageEditor({
   const edDivisor = selectedPayrollBase?.method === "fixed_days"
     ? Number(selectedPayrollBase.fixedDays ?? 0)
     : selectedPayrollBase?.method === "fixed_annual_average"
-      ? 365 / 12
+      ? 30.41
       : selectedPayrollBase
         ? 30
         : 0;

@@ -285,6 +285,7 @@ export type ContractResource = {
   shiftHours: number;
   components: ResourceComponent[];
   payrollDayBaseId: string | null;
+  billingDayBaseId: string | null;
   benefits: BenefitItem[];
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
@@ -314,6 +315,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
       amount: Number(c.amount) || 0,
     })),
     payrollDayBaseId: resource.payrollDayBaseId ?? null,
+    billingDayBaseId: resource.billingDayBaseId ?? null,
     benefits: (resource.benefits ?? []).map(cloneBenefitItem),
     deductions: (resource.deductions ?? []).map(cloneBenefitItem),
     employerContributions: (resource.employerContributions ?? []).map(cloneBenefitItem),
@@ -367,6 +369,7 @@ const QK_BIL = ["admin", "billing-types", "enabled"] as const;
 const QK_DSG = ["admin", "designations", "enabled"] as const;
 const QK_ALW = ["admin", "allowance-types", "enabled"] as const;
 const QK_PDB = ["admin", "payroll-day-bases", "enabled"] as const;
+const QK_BDB = ["admin", "billing-day-bases", "enabled"] as const;
 const QK_CC = ["admin", "cost-components", "enabled"] as const;
 const QK_ESIC = ["admin", "esic-branches", "enabled"] as const;
 
@@ -1028,7 +1031,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1044,10 +1047,41 @@ function useContractResources(contractId: string | null) {
           ? (r.components as ResourceComponent[])
           : [],
         payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
+        billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
         benefits: Array.isArray(r.benefits) ? (r.benefits as BenefitItem[]) : [],
         deductions: Array.isArray(r.deductions) ? (r.deductions as BenefitItem[]) : [],
         employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
       }));
+    },
+  });
+  return data;
+}
+
+export function useBillingDayBases() {
+  const { data = [] } = useQuery({
+    queryKey: QK_BDB,
+    queryFn: async (): Promise<PayrollDayBase[]> => {
+      const { data, error } = await supabase
+        .from("billing_day_bases" as never)
+        .select("id,name,code,method,fixed_days,weekly_off_day,included_weekdays,enabled,sort_order")
+        .order("sort_order")
+        .order("name");
+      if (error) throw error;
+      return (data as unknown as Record<string, unknown>[])
+        .filter((r) => r.enabled !== false)
+        .map((r) => ({
+          id: String(r.id),
+          name: String(r.name),
+          code: String(r.code),
+          method: r.method as PayrollDayBase["method"],
+          fixedDays: r.fixed_days == null ? null : Number(r.fixed_days),
+          weeklyOffDay: r.weekly_off_day == null ? null : Number(r.weekly_off_day),
+          includedWeekdays: Array.isArray(r.included_weekdays)
+            ? (r.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+            : null,
+          enabled: Boolean(r.enabled ?? true),
+          sortOrder: Number(r.sort_order ?? 0),
+        }));
     },
   });
   return data;
@@ -1141,7 +1175,7 @@ function computePayableDays(base: PayrollDayBase | undefined, ref: Date = new Da
   const month = ref.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   if (base.method === "fixed_days") return Number(base.fixedDays) || 0;
-  if (base.method === "fixed_annual_average") return 365 / 12;
+  if (base.method === "fixed_annual_average") return 30.41;
   if (base.method === "actual_days") return daysInMonth;
   if (base.method === "actual_minus_weekly_off") {
     const off = base.weeklyOffDay == null ? 0 : Number(base.weeklyOffDay); // 0=Sun..6=Sat
@@ -1590,7 +1624,7 @@ async function persistResources(contractId: string, resources: ContractResource[
   const normalizedResources = resources.map(cloneContractResource);
   const prev = await supabase
     .from("contract_resources" as never)
-    .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+    .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
     .eq("contract_id", contractId)
     .order("sort_order");
   if (prev.error) throw prev.error;
@@ -1612,6 +1646,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     gross: r.components.reduce((s, c) => s + (Number(c.amount) || 0), 0),
     sort_order: idx,
     payroll_day_base_id: r.payrollDayBaseId || null,
+    billing_day_base_id: r.billingDayBaseId || null,
     benefits: r.benefits,
     deductions: r.deductions,
     employer_contributions: r.employerContributions,
@@ -1629,12 +1664,12 @@ async function persistResources(contractId: string, resources: ContractResource[
           .update(row as never)
           .eq("id", resource.id)
           .eq("contract_id", contractId)
-          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
           .single()
       : await supabase
           .from("contract_resources" as never)
           .insert(row as never)
-          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
           .single();
     if (write.error) throw write.error;
     savedRows.push(write.data as unknown as Record<string, unknown>);
@@ -2147,6 +2182,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     quantity: Number(r.quantity ?? 1) || 1,
     shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
     payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
+    billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
     components: safeJsonArray(r.components_json) as ResourceComponent[],
     benefits: safeJsonArray(r.benefits_json) as BenefitItem[],
     deductions: safeJsonArray(r.deductions_json) as BenefitItem[],
@@ -4098,6 +4134,7 @@ export function ResourceFormDialog({
   const serviceTypes = useServiceTypes();
   const allowanceTypes = useAllowanceTypes();
   const payrollDayBases = usePayrollDayBases();
+  const billingDayBases = useBillingDayBases();
   const costComponents = useCostComponentOptions();
   const rolesList = useRolesList();
 
@@ -4108,6 +4145,7 @@ export function ResourceFormDialog({
   const [shiftHours, setShiftHours] = useState("8");
   const [components, setComponents] = useState<ResourceComponent[]>([]);
   const [payrollDayBaseId, setPayrollDayBaseId] = useState<string>("");
+  const [billingDayBaseId, setBillingDayBaseId] = useState<string>("");
   const [benefits, setBenefits] = useState<BenefitItem[]>([]);
   const [deductions, setDeductions] = useState<BenefitItem[]>([]);
   const [employerContributions, setEmployerContributions] = useState<BenefitItem[]>([]);
@@ -4156,6 +4194,7 @@ export function ResourceFormDialog({
       setShiftHours(String(initial.shiftHours ?? 8));
       setComponents(nextComponents);
       setPayrollDayBaseId(initial.payrollDayBaseId ?? "");
+      setBillingDayBaseId(initial.billingDayBaseId ?? "");
       setBenefits(nextBenefits);
       setDeductions(nextDeductions);
       setEmployerContributions(nextEmployerContributions);
@@ -4183,10 +4222,11 @@ export function ResourceFormDialog({
       // Pre-load defaults from allowance types
       setComponents(nextComponents);
       setPayrollDayBaseId("");
+      setBillingDayBaseId("");
       setBenefits([]);
       setDeductions([]);
       setEmployerContributions([]);
-      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, benefits: [], deductions: [], employerContributions: [] }]));
+      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [] }]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, allowanceTypes.length]);
@@ -4203,12 +4243,13 @@ export function ResourceFormDialog({
           shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
           components,
           payrollDayBaseId: payrollDayBaseId || null,
+          billingDayBaseId: billingDayBaseId || null,
           benefits,
           deductions,
           employerContributions,
         },
       ]),
-    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -4549,7 +4590,7 @@ export function ResourceFormDialog({
     const base = payrollDayBases.find((p) => p.id === payrollDayBaseId);
     if (!base) return 0;
     if (base.method === "fixed_days") return base.fixedDays ?? 26;
-    if (base.method === "fixed_annual_average") return 365 / 12;
+    if (base.method === "fixed_annual_average") return 30.41;
     const now = new Date();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     if (base.method === "actual_days") return daysInMonth;
@@ -4816,6 +4857,7 @@ export function ResourceFormDialog({
       shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
       components,
       payrollDayBaseId: payrollDayBaseId || null,
+      billingDayBaseId: billingDayBaseId || null,
       benefits,
       deductions,
       employerContributions,
@@ -4837,6 +4879,7 @@ export function ResourceFormDialog({
       shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
       components,
       payrollDayBaseId: payrollDayBaseId || null,
+      billingDayBaseId: billingDayBaseId || null,
       benefits,
       deductions,
       employerContributions,
@@ -5023,6 +5066,32 @@ export function ResourceFormDialog({
               </SelectTrigger>
               <SelectContent>
                 {payrollDayBases.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex flex-col">
+                      <span>{p.name}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {p.method === "fixed_days"
+                          ? `Fixed ${p.fixedDays ?? 26} days`
+                          : p.method === "fixed_annual_average"
+                            ? `Fixed 30.41 days`
+                            : p.method === "actual_minus_weekly_off"
+                              ? `Actual − weekly off`
+                              : `Actual days in month`}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Billing Days">
+            <Select value={billingDayBaseId} onValueChange={setBillingDayBaseId}>
+              <SelectTrigger className="h-10 rounded-lg">
+                <SelectValue placeholder="Same as payroll days" />
+              </SelectTrigger>
+              <SelectContent>
+                {billingDayBases.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     <div className="flex flex-col">
                       <span>{p.name}</span>
