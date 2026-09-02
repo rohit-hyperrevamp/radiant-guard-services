@@ -78,6 +78,7 @@ import { findCandidateByAadhaar } from "@/lib/workflows";
 import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/RehireRequestDialog";
 
 import { DigilockerVerify } from "@/components/DigilockerVerify";
+import { PanVerify } from "@/components/PanVerify";
 import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
@@ -4800,6 +4801,7 @@ function CandidateWizard({
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [invalidField, setInvalidField] = useState<string | null>(null);
   const [digilockerVerified, setDigilockerVerified] = useState(false);
+  const [panVerified, setPanVerified] = useState(false);
   const checkSavedDigilockerVerification = useServerFn(hasCompletedDigilockerVerification);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
@@ -4890,6 +4892,12 @@ function CandidateWizard({
       const normalizedStatus = rest.status === "approved" ? "active" : rest.status;
       const savedVerification = (rest.other_info ?? {}) as Record<string, unknown>;
       const savedVerifiedAadhaar = String(savedVerification.digilocker_verified_aadhaar ?? "").replace(/\D/g, "");
+      const savedVerifiedPan = String(savedVerification.pan_verified_number ?? "").trim().toUpperCase();
+      setPanVerified(
+        savedVerification.pan_verified === true &&
+        savedVerifiedPan.length === 10 &&
+        savedVerifiedPan === String(rest.pan_number ?? "").trim().toUpperCase(),
+      );
       setDigilockerVerified(
         savedVerification.digilocker_verified === true &&
         savedVerifiedAadhaar.length === 12 &&
@@ -5289,6 +5297,7 @@ function CandidateWizard({
 
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
+    { key: "PAN verified", ok: panVerified },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
@@ -6375,7 +6384,63 @@ function CandidateWizard({
                     <Input
                       format="pan"
                       value={form.pan_number}
-                      onChange={(e) => set("pan_number", e.target.value)}
+                      onChange={(e) => {
+                        const next = e.target.value.toUpperCase();
+                        set("pan_number", next);
+                        const savedPan = String(form.other_info?.pan_verified_number ?? "").toUpperCase();
+                        if (panVerified && next.replace(/[^A-Z0-9]/g, "") !== savedPan) {
+                          setPanVerified(false);
+                          set("other_info", {
+                            ...(form.other_info ?? {}),
+                            pan_verified: false,
+                            pan_verified_number: "",
+                          });
+                        }
+                      }}
+                    />
+                    <PanVerify
+                      pan={form.pan_number}
+                      aadhaar={form.aadhaar_number}
+                      name={form.full_name}
+                      verified={panVerified}
+                      onVerified={(result) => {
+                        const keep = (next: string, current: string) => (next ? next : current);
+                        setForm((f) => ({
+                          ...f,
+                          pan_number: result.pan_number || f.pan_number,
+                          full_name: keep(f.full_name, result.full_name),
+                          date_of_birth: f.date_of_birth || result.date_of_birth,
+                          gender: keep(f.gender, result.gender),
+                          email: keep(f.email, result.email),
+                          other_info: {
+                            ...(f.other_info ?? {}),
+                            pan_verified: true,
+                            pan_verified_number: result.pan_number,
+                            pan_verified_at: new Date().toISOString(),
+                            pan_status: result.pan_status,
+                            pan_type: result.pan_type,
+                            pan_name: result.full_name,
+                            pan_first_name: result.first_name,
+                            pan_middle_name: result.middle_name,
+                            pan_last_name: result.last_name,
+                            father_name: result.father_name || (f.other_info ?? {}).father_name || "",
+                            pan_email: result.email,
+                            pan_mobile: result.mobile,
+                            pan_aadhaar_linked: result.aadhaar_linked,
+                            pan_masked_aadhaar: result.masked_aadhaar,
+                            pan_address: {
+                              address_line1: result.address_line1,
+                              address_line2: result.address_line2,
+                              city: result.city,
+                              district: result.district,
+                              state: result.state,
+                              pincode: result.pincode,
+                              country: result.country,
+                            },
+                          },
+                        }));
+                        setPanVerified(true);
+                      }}
                     />
                   </Field>
                 </div>
