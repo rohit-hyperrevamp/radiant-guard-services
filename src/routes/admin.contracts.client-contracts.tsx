@@ -1175,7 +1175,7 @@ function computePayableDays(base: PayrollDayBase | undefined, ref: Date = new Da
   const month = ref.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   if (base.method === "fixed_days") return Number(base.fixedDays) || 0;
-  if (base.method === "fixed_annual_average") return 30.41;
+  if (base.method === "fixed_annual_average") return 30.4166;
   if (base.method === "actual_days") return daysInMonth;
   if (base.method === "actual_minus_weekly_off") {
     const off = base.weeklyOffDay == null ? 0 : Number(base.weeklyOffDay); // 0=Sun..6=Sat
@@ -4590,7 +4590,7 @@ export function ResourceFormDialog({
     const base = payrollDayBases.find((p) => p.id === payrollDayBaseId);
     if (!base) return 0;
     if (base.method === "fixed_days") return base.fixedDays ?? 26;
-    if (base.method === "fixed_annual_average") return 30.41;
+    if (base.method === "fixed_annual_average") return 30.4166;
     const now = new Date();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     if (base.method === "actual_days") return daysInMonth;
@@ -5073,7 +5073,7 @@ export function ResourceFormDialog({
                         {p.method === "fixed_days"
                           ? `Fixed ${p.fixedDays ?? 26} days`
                           : p.method === "fixed_annual_average"
-                            ? `Fixed 30.41 days`
+                            ? `Fixed 30.4166 days`
                             : p.method === "actual_minus_weekly_off"
                               ? `Actual − weekly off`
                               : `Actual days in month`}
@@ -5099,7 +5099,7 @@ export function ResourceFormDialog({
                         {p.method === "fixed_days"
                           ? `Fixed ${p.fixedDays ?? 26} days`
                           : p.method === "fixed_annual_average"
-                            ? `Fixed 30.41 days`
+                            ? `Fixed 30.4166 days`
                             : p.method === "actual_minus_weekly_off"
                               ? `Actual − weekly off`
                               : `Actual days in month`}
@@ -5889,7 +5889,7 @@ export function SalaryBreakdownTable({
     ? payrollDayBase.method === "fixed_days"
       ? `${payrollDayBase.fixedDays ?? 0} Days`
       : payrollDayBase.method === "fixed_annual_average"
-        ? `30.41 Days (annual average)`
+        ? `30.4166 Days (annual average)`
         : payrollDayBase.method === "actual_minus_weekly_off"
           ? `${payableDays} Days (actual − weekly off)`
           : payrollDayBase.method === "custom_weekdays"

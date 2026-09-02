@@ -685,7 +685,7 @@ export function computeWages(
     if (pdb.method === "fixed_days" && pdb.fixedDays && pdb.fixedDays > 0) {
       baseDays = pdb.fixedDays;
     } else if (pdb.method === "fixed_annual_average") {
-      baseDays = 30.41;
+      baseDays = 30.4166;
     } else if (pdb.method === "actual_minus_weekly_off") {
       // Rough approximation: assume ~4 weekly offs in the period.
       baseDays = Math.max(periodDayCount - 4, 1);
@@ -748,7 +748,7 @@ export function computeWages(
       case "fixed_days":
         return Number(base.fixedDays) > 0 ? Number(base.fixedDays) : baseDays;
       case "fixed_annual_average":
-        return 30.41;
+        return 30.4166;
       case "actual_days":
         return periodDayCount;
       case "actual_minus_weekly_off": {

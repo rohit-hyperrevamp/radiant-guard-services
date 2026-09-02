@@ -71,7 +71,7 @@ type PayrollDayBaseOpt = { id: string; name: string; methodLabel: string };
 const METHOD_LABEL: Record<string, string> = {
   actual_days: "Calendar days",
   fixed_days: "Fixed days",
-  fixed_annual_average: "Fixed 30.41 days",
+  fixed_annual_average: "Fixed 30.4166 days",
   actual_minus_weekly_off: "Calendar − weekly off",
   custom_weekdays: "Custom weekdays",
 };
