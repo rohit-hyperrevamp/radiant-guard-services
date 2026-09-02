@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ export function PanVerify({ pan, aadhaar, name, verified = false, onVerified }: 
 
   const clean = (pan ?? "").trim().toUpperCase();
   const ready = /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(clean);
+  const attemptedRef = useRef("");
 
   const run = async () => {
     setBusy(true);
@@ -77,6 +78,19 @@ export function PanVerify({ pan, aadhaar, name, verified = false, onVerified }: 
     }
   };
 
+  // Zero-click UX: as soon as a complete, well-formed PAN is typed, verify it
+  // automatically. The button below is only a retry affordance.
+  useEffect(() => {
+    if (!ready || verified || busy) return;
+    if (attemptedRef.current === clean) return;
+    const timer = window.setTimeout(() => {
+      attemptedRef.current = clean;
+      void run();
+    }, 600);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clean, ready, verified, busy]);
+
   return (
     <div className="mt-2 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -88,11 +102,16 @@ export function PanVerify({ pan, aadhaar, name, verified = false, onVerified }: 
         ) : (
           <Button type="button" size="sm" variant="secondary" disabled={!ready || busy} onClick={() => void run()}>
             {busy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="mr-1 h-3.5 w-3.5" />}
-            Verify PAN
+            {busy ? "Verifying PAN…" : attemptedRef.current === clean ? "Retry PAN check" : "Verify PAN"}
           </Button>
         )}
         <span className="text-[11px] text-muted-foreground">
-          {summary ?? (ready ? "Checks PAN status, name, father's name and Aadhaar linking." : "Enter a valid PAN to verify.")}
+          {summary ??
+            (busy
+              ? "Checking PAN with Income Tax records…"
+              : ready
+                ? "Verifies automatically — checks PAN status, name, father's name and Aadhaar linking."
+                : "Enter a valid PAN — it verifies itself automatically.")}
         </span>
       </div>
 
