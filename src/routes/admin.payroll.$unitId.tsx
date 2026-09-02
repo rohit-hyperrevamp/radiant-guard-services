@@ -805,12 +805,16 @@ function PayrollUnitPage() {
         const lineEntries = entries.filter(
           (e) => e.candidate_id === p.candidateId && (e.designation_id ?? null) === p.designationId,
         );
+        // Public holiday credit belongs to the employee, not to each line they
+        // appear on: a reliever line (designation other than their own) must not
+        // earn a second PH credit in the same unit.
+        const isPrimaryLine = (c.designation_id ?? null) === p.designationId;
         const totals = computeAttendanceTotals(
           c.id,
           periodDates,
           lineEntries as AttendanceEntryLike[],
           (codes ?? []) as AttendanceCodeLike[],
-          phConfig,
+          isPrimaryLine ? phConfig : null,
         );
         // Apply per-employee day adjustments from additions/deductions that opted into
         // "Include in total days" — only on the candidate's primary designation line.
