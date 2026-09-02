@@ -4207,7 +4207,7 @@ function EmployeesPage() {
                   )}
                   <div className="min-w-0">
                     <div className="truncate font-display text-base font-semibold text-foreground">{c.full_name || "Unnamed"}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground">{c.candidate_code ?? "—"}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground">{c.employee_code || c.candidate_code || "—"}</div>
                   </div>
                 </div>
                 <div className="divide-y divide-border/50 rounded-xl border border-border/60 px-3">
@@ -5793,11 +5793,12 @@ function CandidateWizard({
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Profile Completion
               </span>
-              {editing?.candidate_code && (
+              {(editing?.employee_code || editing?.candidate_code) && (
                 <Badge className="border-0 bg-primary/10 font-mono text-[11px] font-semibold text-primary">
-                  {editing.candidate_code}
+                  {editing.employee_code || editing.candidate_code}
                 </Badge>
               )}
+
             </div>
             <span className={cn(
               "text-sm font-bold tabular-nums",
