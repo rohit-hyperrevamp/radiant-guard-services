@@ -146,7 +146,11 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      const accessToken = otpMode === "sms" ? await verifyWidgetOtp(code, otpRequestId) : undefined;
+      // Staff can always sign in with the last four digits of their own mobile,
+      // so skip the SMS widget check for that code.
+      const isSelfCode = code === phone.slice(-4);
+      const accessToken =
+        otpMode === "sms" && !isSelfCode ? await verifyWidgetOtp(code, otpRequestId) : undefined;
       await checkOtp({ data: { phone, otp: code, accessToken } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
