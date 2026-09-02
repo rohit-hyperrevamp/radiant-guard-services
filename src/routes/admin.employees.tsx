@@ -193,7 +193,7 @@ function InlineWageEditor({
   const edDivisor = selectedPayrollBase?.method === "fixed_days"
     ? Number(selectedPayrollBase.fixedDays ?? 0)
     : selectedPayrollBase?.method === "fixed_annual_average"
-      ? 30.41
+      ? 30.4166
       : selectedPayrollBase
         ? 30
         : 0;

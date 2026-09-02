@@ -9,7 +9,7 @@ export type PayrollDayBaseLike = {
   includedWeekdays?: number[] | null;
 };
 
-const ANNUAL_AVERAGE_DAYS = 30.41;
+const ANNUAL_AVERAGE_DAYS = 30.4166;
 
 /** Period dates as ISO strings (YYYY-MM-DD). */
 export function resolvePayrollDayCount(
