@@ -647,20 +647,27 @@ function MigrationUtilityPage() {
             <div>
               <div className="font-display text-base font-bold">Attendance sheet</div>
               <p className="text-sm text-muted-foreground">
-                Upload the sheet as an image or an Excel/CSV file and it is read automatically, or paste rows below.
+                Upload the sheet as images (select several pages at once), a PDF, or an Excel/CSV file and it is read
+                automatically, or paste rows below.
               </p>
             </div>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10">
               {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {parsing ? "Reading sheet…" : "Upload sheet (image or Excel)"}
+              {parsing ? "Reading sheet…" : "Upload sheet (images, PDF or Excel)"}
               <input
                 type="file"
-                accept="image/*,.xlsx,.xlsm,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                multiple
+                accept="image/*,.pdf,application/pdf,.xlsx,.xlsm,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                 className="hidden"
                 disabled={parsing}
-                onChange={(e) => void onUpload(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  void onUpload(files);
+                }}
               />
             </label>
+
           </div>
 
           <div>
