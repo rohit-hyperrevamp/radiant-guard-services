@@ -110,18 +110,26 @@ export const extractMigrationSheet = createServerFn({ method: "POST" })
       `{"employees":[{"name":"","employee_code":"","mobile":"","designation_id":"","days":[{"entry_date":"YYYY-MM-DD","code":"P","ot_hours":0}]}],"notes":"visible_days=NN"}`,
     ].join("\n\n");
 
-    const imageDataUrl = data.imageDataUrl;
-    const content = imageDataUrl
+    const images = data.imageDataUrls?.length
+      ? data.imageDataUrls
+      : data.imageDataUrl
+        ? [data.imageDataUrl]
+        : [];
+    const toImage = (url: string) => {
+      const m = url.match(/^data:[^;]+;base64,(.+)$/);
+      if (!m) return new URL(url);
+      return Uint8Array.from(atob(m[1]!), (c) => c.charCodeAt(0));
+    };
+    const content = images.length
       ? [
-          { type: "text" as const, text: prompt },
           {
-            type: "image" as const,
-            image: (() => {
-              const m = imageDataUrl.match(/^data:[^;]+;base64,(.+)$/);
-              if (!m) return new URL(imageDataUrl);
-              return Uint8Array.from(atob(m[1]!), (c) => c.charCodeAt(0));
-            })(),
+            type: "text" as const,
+            text:
+              images.length > 1
+                ? `${prompt}\n\nThere are ${images.length} page images of the SAME sheet. Read them all and merge into one employee list; if a row continues across pages, merge its day cells.`
+                : prompt,
           },
+          ...images.map((url) => ({ type: "image" as const, image: toImage(url) })),
         ]
       : [
           { type: "text" as const, text: prompt },
