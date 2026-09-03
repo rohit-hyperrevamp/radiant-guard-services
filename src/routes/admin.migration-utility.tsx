@@ -280,26 +280,65 @@ function MigrationUtilityPage() {
     applyRows(next);
   };
 
-  const onUpload = async (file: File | null) => {
-    if (!file || !contract) return;
+  const fileToDataUrl = (file: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Could not read the file"));
+      reader.readAsDataURL(file);
+    });
+
+  const pdfToImageDataUrls = async (file: File) => {
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/legacy/build/pdf.worker.mjs",
+      import.meta.url,
+    ).toString();
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const urls: string[] = [];
+    const pageCount = Math.min(doc.numPages, 12);
+    for (let p = 1; p <= pageCount; p += 1) {
+      const page = await doc.getPage(p);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      if (!context) continue;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: context, viewport, canvas }).promise;
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+      if (blob) urls.push(await fileToDataUrl(blob));
+    }
+    await doc.destroy();
+    if (!urls.length) throw new Error("That PDF could not be rendered");
+    return urls;
+  };
+
+  const onUpload = async (fileList: File[]) => {
+    const files = fileList.filter(Boolean);
+    if (!files.length || !contract) return;
     setParsing(true);
     try {
-      const isSpreadsheet = /\.(xlsx|xlsm|xls|csv)$/i.test(file.name);
-      let payload: { imageDataUrl?: string; sheetText?: string };
+      const spreadsheets = files.filter((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+      const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+      const imageFiles = files.filter((f) => !spreadsheets.includes(f) && !pdfs.includes(f));
+      let payload: { imageDataUrls?: string[]; sheetText?: string };
 
-      if (isSpreadsheet) {
+      if (spreadsheets.length) {
         const XLSX = await import("xlsx");
-        const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array", cellDates: true });
         const parts: string[] = [];
         const directRows: SheetRow[] = [];
-        for (const name of wb.SheetNames) {
-          const ws = wb.Sheets[name];
-          if (!ws) continue;
-          const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });
-          directRows.push(...parseSpreadsheetRows(matrix, dates, allowedCodes, designations));
-          const tsv = XLSX.utils.sheet_to_csv(ws, { FS: "\t", blankrows: false });
-          if (tsv.trim()) parts.push(`--- Sheet: ${name} ---\n${tsv}`);
+        for (const file of spreadsheets) {
+          const buf = await file.arrayBuffer();
+          const wb = XLSX.read(buf, { type: "array", cellDates: true });
+          for (const name of wb.SheetNames) {
+            const ws = wb.Sheets[name];
+            if (!ws) continue;
+            const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });
+            directRows.push(...parseSpreadsheetRows(matrix, dates, allowedCodes, designations));
+            const tsv = XLSX.utils.sheet_to_csv(ws, { FS: "\t", blankrows: false });
+            if (tsv.trim()) parts.push(`--- ${file.name} / Sheet: ${name} ---\n${tsv}`);
+          }
         }
         if (directRows.length) {
           applyRows(directRows);
@@ -309,13 +348,11 @@ function MigrationUtilityPage() {
         if (!sheetText.trim()) throw new Error("That spreadsheet appears to be empty");
         payload = { sheetText };
       } else {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(new Error("Could not read the file"));
-          reader.readAsDataURL(file);
-        });
-        payload = { imageDataUrl: dataUrl };
+        const imageDataUrls: string[] = [];
+        for (const file of pdfs) imageDataUrls.push(...(await pdfToImageDataUrls(file)));
+        for (const file of imageFiles) imageDataUrls.push(await fileToDataUrl(file));
+        if (!imageDataUrls.length) throw new Error("Unsupported file type");
+        payload = { imageDataUrls: imageDataUrls.slice(0, 12) };
       }
 
       const result = await extractMigrationSheet({
@@ -610,20 +647,27 @@ function MigrationUtilityPage() {
             <div>
               <div className="font-display text-base font-bold">Attendance sheet</div>
               <p className="text-sm text-muted-foreground">
-                Upload the sheet as an image or an Excel/CSV file and it is read automatically, or paste rows below.
+                Upload the sheet as images (select several pages at once), a PDF, or an Excel/CSV file and it is read
+                automatically, or paste rows below.
               </p>
             </div>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10">
               {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {parsing ? "Reading sheet…" : "Upload sheet (image or Excel)"}
+              {parsing ? "Reading sheet…" : "Upload sheet (images, PDF or Excel)"}
               <input
                 type="file"
-                accept="image/*,.xlsx,.xlsm,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                multiple
+                accept="image/*,.pdf,application/pdf,.xlsx,.xlsm,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                 className="hidden"
                 disabled={parsing}
-                onChange={(e) => void onUpload(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  void onUpload(files);
+                }}
               />
             </label>
+
           </div>
 
           <div>
