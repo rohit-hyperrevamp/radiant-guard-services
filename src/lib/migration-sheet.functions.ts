@@ -14,12 +14,13 @@ import { generateText } from "ai";
 const InputSchema = z
   .object({
     imageDataUrl: z.string().min(20).max(20_000_000).optional(),
+    imageDataUrls: z.array(z.string().min(20).max(20_000_000)).min(1).max(12).optional(),
     sheetText: z.string().min(5).max(400_000).optional(),
     dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(40),
     codes: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(40),
     designations: z.array(z.object({ id: z.string(), name: z.string() })).max(50),
   })
-  .refine((v) => Boolean(v.imageDataUrl || v.sheetText), {
+  .refine((v) => Boolean(v.imageDataUrl || v.imageDataUrls?.length || v.sheetText), {
     message: "Provide either a sheet image or spreadsheet text",
   });
 
