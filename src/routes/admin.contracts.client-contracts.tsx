@@ -5664,18 +5664,21 @@ export function ResourceFormDialog({
                             {c.name}
                           </SelectItem>
                         ))}
-                        {cfg.kind === "mgmt" && (
-                          <SelectItem value={CUSTOM_MANAGEMENT_FEE_ID}>Custom amount</SelectItem>
-                        )}
+                        <SelectItem
+                          value={cfg.kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID}
+                        >
+                          Custom amount
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    {cfg.kind === "mgmt" && item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID && (
+                    {(item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID ||
+                      item?.costComponentId === CUSTOM_RELIEVER_ID) && (
                       <div className="mt-2">
-                        <Label className="sr-only" htmlFor="custom-management-fee">
-                          Custom management fee amount
+                        <Label className="sr-only" htmlFor={`custom-${cfg.kind}-amount`}>
+                          Custom {cfg.label.toLowerCase()} amount
                         </Label>
                         <Input
-                          id="custom-management-fee"
+                          id={`custom-${cfg.kind}-amount`}
                           type="number"
                           min="0"
                           step="0.01"
@@ -5683,7 +5686,7 @@ export function ResourceFormDialog({
                           placeholder="Enter custom amount"
                           onChange={(event) =>
                             updateEmployerAmount(
-                              CUSTOM_MANAGEMENT_FEE_ID,
+                              item.costComponentId,
                               Math.max(0, Number(event.target.value) || 0),
                             )
                           }
