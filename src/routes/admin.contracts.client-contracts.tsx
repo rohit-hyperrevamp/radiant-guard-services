@@ -5726,7 +5726,7 @@ export function ResourceFormDialog({
                       </span>
                       {item && (
                         <span className="text-sm font-semibold text-foreground">
-                          {Number(item.amount).toFixed(2)}
+                          {liveAddOnAmount(cfg.kind, item).toFixed(2)}
                         </span>
                       )}
                     </div>
