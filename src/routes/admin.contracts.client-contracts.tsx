@@ -6098,7 +6098,7 @@ export function SalaryBreakdownTable({
               <td className="text-right text-base tabular-nums">{earnedCTC.toFixed(2)}</td>
             </tr>
             {relieverItems.map((b) => {
-              const liveAmount = computeBenefitAmount(b, components, coreBenefits, [], coreEmployer);
+              const liveAmount = relieverAmountFor(b);
               return (
               <tr key={`r-${b.costComponentId}`}>
                 <td>
