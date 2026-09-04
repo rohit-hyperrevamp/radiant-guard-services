@@ -4801,7 +4801,7 @@ export function ResourceFormDialog({
   // uses: a custom or plain-fixed add-on keeps its entered amount, anything
   // formula-driven is recomputed live against the current Total CTC instead of
   // showing a stale saved figure.
-  const liveAddOnAmount = (kind: "reliever" | "mgmt", item: BenefitItem) => {
+  const liveAddOnAmount = (kind: "reliever" | "mgmt", item: BenefitItem): number => {
     const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
     if (item.costComponentId === customId || (item.calcType === "fixed" && !hasConfiguredFormula(item))) {
       return Number(item.amount) || 0;
