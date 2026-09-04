@@ -4797,6 +4797,33 @@ export function ResourceFormDialog({
   const selectedMgmtFeeId =
     employerContributions.find((b) => isMgmtFeeLine(b))?.costComponentId ?? "";
 
+  // The card must display exactly what the Salary Breakdown row / Billing Rate
+  // uses: a custom or plain-fixed add-on keeps its entered amount, anything
+  // formula-driven is recomputed live against the current Total CTC instead of
+  // showing a stale saved figure.
+  const liveAddOnAmount = (kind: "reliever" | "mgmt", item: BenefitItem): number => {
+    const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
+    if (item.costComponentId === customId || (item.calcType === "fixed" && !hasConfiguredFormula(item))) {
+      return Number(item.amount) || 0;
+    }
+    const coreBenefits = benefits.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b));
+    const coreEmployer = employerContributions.filter(
+      (b) => !isRelieverLine(b) && !isMgmtFeeLine(b),
+    );
+    if (kind === "reliever") {
+      return computeBenefitAmount(item, components, coreBenefits, [], coreEmployer);
+    }
+    const relieverBase = employerContributions
+      .filter(isRelieverLine)
+      .slice(0, 1)
+      .map((r) => ({ ...r, amount: liveAddOnAmount("reliever", r) }));
+    return computeBenefitAmount(item, components, coreBenefits, [], [
+      ...coreEmployer,
+      ...relieverBase,
+    ]);
+  };
+
+
   const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
     const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
     preserveDialogScroll(() => {
@@ -5699,7 +5726,7 @@ export function ResourceFormDialog({
                       </span>
                       {item && (
                         <span className="text-sm font-semibold text-foreground">
-                          {Number(item.amount).toFixed(2)}
+                          {liveAddOnAmount(cfg.kind, item).toFixed(2)}
                         </span>
                       )}
                     </div>
@@ -5873,15 +5900,19 @@ export function SalaryBreakdownTable({
   );
   // Always evaluate reliever against the live Total CTC. Saved contract rows
   // may contain an amount from an older master formula and must not win here.
+  // Exception: a custom / plain-fixed reliever keeps the entered amount — the
+  // breakdown row must use this same helper so it never disagrees with the
+  // Reliever & Management Fee card or the Billing Rate total.
+  const relieverAmountFor = (item: BenefitItem) =>
+    item.costComponentId === CUSTOM_RELIEVER_ID ||
+    (item.calcType === "fixed" && !hasConfiguredFormula(item))
+      ? Number(item.amount) || 0
+      : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer);
   const relieverTotal = relieverItems.reduce(
-    (sum, item) =>
-      sum +
-      (item.costComponentId === CUSTOM_RELIEVER_ID ||
-      (item.calcType === "fixed" && !hasConfiguredFormula(item))
-        ? Number(item.amount) || 0
-        : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer)),
+    (sum, item) => sum + relieverAmountFor(item),
     0,
   );
+
   const totalCTC = gross + coreEmployerTotal;
   const totalRate = totalCTC + relieverTotal;
   const managementAmountFor = (item: BenefitItem) =>
@@ -5892,8 +5923,9 @@ export function SalaryBreakdownTable({
           ...coreEmployer,
           ...relieverItems.map((reliever) => ({
             ...reliever,
-            amount: computeBenefitAmount(reliever, components, coreBenefits, [], coreEmployer),
+            amount: relieverAmountFor(reliever),
           })),
+
         ]);
   const mgmtFeeTotal = mgmtFeeItems.reduce((sum, item) => sum + managementAmountFor(item), 0);
   const grandTotal = totalRate + mgmtFeeTotal;
@@ -6093,7 +6125,7 @@ export function SalaryBreakdownTable({
               <td className="text-right text-base tabular-nums">{earnedCTC.toFixed(2)}</td>
             </tr>
             {relieverItems.map((b) => {
-              const liveAmount = computeBenefitAmount(b, components, coreBenefits, [], coreEmployer);
+              const liveAmount = relieverAmountFor(b);
               return (
               <tr key={`r-${b.costComponentId}`}>
                 <td>
