@@ -4797,6 +4797,33 @@ export function ResourceFormDialog({
   const selectedMgmtFeeId =
     employerContributions.find((b) => isMgmtFeeLine(b))?.costComponentId ?? "";
 
+  // The card must display exactly what the Salary Breakdown row / Billing Rate
+  // uses: a custom or plain-fixed add-on keeps its entered amount, anything
+  // formula-driven is recomputed live against the current Total CTC instead of
+  // showing a stale saved figure.
+  const liveAddOnAmount = (kind: "reliever" | "mgmt", item: BenefitItem) => {
+    const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
+    if (item.costComponentId === customId || (item.calcType === "fixed" && !hasConfiguredFormula(item))) {
+      return Number(item.amount) || 0;
+    }
+    const coreBenefits = benefits.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b));
+    const coreEmployer = employerContributions.filter(
+      (b) => !isRelieverLine(b) && !isMgmtFeeLine(b),
+    );
+    if (kind === "reliever") {
+      return computeBenefitAmount(item, components, coreBenefits, [], coreEmployer);
+    }
+    const relieverBase = employerContributions
+      .filter(isRelieverLine)
+      .slice(0, 1)
+      .map((r) => ({ ...r, amount: liveAddOnAmount("reliever", r) }));
+    return computeBenefitAmount(item, components, coreBenefits, [], [
+      ...coreEmployer,
+      ...relieverBase,
+    ]);
+  };
+
+
   const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
     const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
     preserveDialogScroll(() => {
