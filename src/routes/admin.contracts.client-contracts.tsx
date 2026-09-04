@@ -4804,8 +4804,13 @@ export function ResourceFormDialog({
       setEmployerContributions((prev) => {
         const rest = prev.filter((b) => !match(b));
         if (componentId === "__none__") return rest;
-        if (componentId === CUSTOM_MANAGEMENT_FEE_ID && kind === "mgmt") {
-          const previousAmount = prev.find(isMgmtFeeLine)?.amount ?? 0;
+        if (
+          (componentId === CUSTOM_MANAGEMENT_FEE_ID && kind === "mgmt") ||
+          (componentId === CUSTOM_RELIEVER_ID && kind === "reliever")
+        ) {
+          const isCustomMgmt = kind === "mgmt";
+          const previousAmount =
+            prev.find(isCustomMgmt ? isMgmtFeeLine : isRelieverLine)?.amount ?? 0;
           return [
             ...rest,
             {
