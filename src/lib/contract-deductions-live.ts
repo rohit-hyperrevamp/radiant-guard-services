@@ -128,7 +128,7 @@ export async function fetchLiveContractDeductions(args: {
       fetchAttendanceEntriesForPeriod({ unitId, start, end }) as Promise<
         Array<{ candidate_id: string; designation_id: string | null; entry_date: string; code: string; ot_hours: number | string | null }>
       >,
-      supabase.from("attendance_codes").select("code, counts_as_present, is_paid").eq("enabled", true),
+      supabase.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true),
       supabase
         .from("client_contracts")
         .select("id, contract_code")

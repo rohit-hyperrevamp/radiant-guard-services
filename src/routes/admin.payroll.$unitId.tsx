@@ -456,7 +456,7 @@ function PayrollUnitPage() {
 
       const { data: codes } = await supabase
         .from("attendance_codes")
-        .select("code, counts_as_present, is_paid")
+        .select("code, counts_as_present, is_paid, day_value")
         .eq("enabled", true);
 
       // 3. Contract resources for this unit's active contract.
