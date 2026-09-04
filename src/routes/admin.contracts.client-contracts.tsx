@@ -5896,8 +5896,9 @@ export function SalaryBreakdownTable({
           ...coreEmployer,
           ...relieverItems.map((reliever) => ({
             ...reliever,
-            amount: computeBenefitAmount(reliever, components, coreBenefits, [], coreEmployer),
+            amount: relieverAmountFor(reliever),
           })),
+
         ]);
   const mgmtFeeTotal = mgmtFeeItems.reduce((sum, item) => sum + managementAmountFor(item), 0);
   const grandTotal = totalRate + mgmtFeeTotal;
