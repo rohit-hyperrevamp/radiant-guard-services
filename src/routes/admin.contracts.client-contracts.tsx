@@ -1360,6 +1360,7 @@ export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
 const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
+const CUSTOM_RELIEVER_ID = "__custom_reliever_charges__";
 
 function normalizeBillingAddOns(
   benefits: BenefitItem[],
