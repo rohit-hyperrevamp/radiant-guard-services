@@ -912,14 +912,14 @@ function PayrollUnitPage() {
           headcount: 0,
           billedDays: 0,
           billedHours: 0,
-          perHour: m.perHour,
+          perHour: m.unitRate,
           contracted: 0,
           actual: 0,
         };
       existing.headcount += 1;
       existing.billedDays = Math.round((existing.billedDays + m.billedDays) * 100) / 100;
       existing.billedHours = Math.round((existing.billedHours + m.billedHours) * 100) / 100;
-      existing.perHour = m.perHour || existing.perHour;
+      existing.perHour = m.unitRate || existing.perHour;
       existing.contracted = Math.round((existing.contracted + m.contracted) * 100) / 100;
       existing.actual = Math.round((existing.actual + m.actual) * 100) / 100;
       map.set(key, existing);
@@ -1390,7 +1390,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 text-right font-medium" title="Number of resources billed under this designation">Count</th>
                 <th className="px-4 py-3 text-right font-medium" title="Total days billed across all resources of this designation">Days billed</th>
                 <th className="px-4 py-3 text-right font-medium" title="Days billed × contracted shift hours">Hours billed</th>
-                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days ÷ contracted shift hours">Per hour</th>
+                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ billing days (÷ shift hours when the contract bills man hours)">{billingMode === "man_hours" ? "Per hour" : "Per duty"}</th>
                 <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
                 <th className="px-4 py-3 text-right font-medium" title="Per hour × hours billed">Actual invoice</th>
               </tr>
