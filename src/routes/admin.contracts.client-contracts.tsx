@@ -1360,6 +1360,7 @@ export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
 const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
+const CUSTOM_RELIEVER_ID = "__custom_reliever_charges__";
 
 function normalizeBillingAddOns(
   benefits: BenefitItem[],
@@ -4803,13 +4804,18 @@ export function ResourceFormDialog({
       setEmployerContributions((prev) => {
         const rest = prev.filter((b) => !match(b));
         if (componentId === "__none__") return rest;
-        if (componentId === CUSTOM_MANAGEMENT_FEE_ID && kind === "mgmt") {
-          const previousAmount = prev.find(isMgmtFeeLine)?.amount ?? 0;
+        if (
+          (componentId === CUSTOM_MANAGEMENT_FEE_ID && kind === "mgmt") ||
+          (componentId === CUSTOM_RELIEVER_ID && kind === "reliever")
+        ) {
+          const isCustomMgmt = kind === "mgmt";
+          const previousAmount =
+            prev.find(isCustomMgmt ? isMgmtFeeLine : isRelieverLine)?.amount ?? 0;
           return [
             ...rest,
             {
-              costComponentId: CUSTOM_MANAGEMENT_FEE_ID,
-              name: "Custom Management Fee",
+              costComponentId: isCustomMgmt ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID,
+              name: isCustomMgmt ? "Custom Management Fee" : "Custom Reliever Charges",
               calcType: "fixed",
               percentage: 0,
               baseComponents: [],
@@ -5658,18 +5664,21 @@ export function ResourceFormDialog({
                             {c.name}
                           </SelectItem>
                         ))}
-                        {cfg.kind === "mgmt" && (
-                          <SelectItem value={CUSTOM_MANAGEMENT_FEE_ID}>Custom amount</SelectItem>
-                        )}
+                        <SelectItem
+                          value={cfg.kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID}
+                        >
+                          Custom amount
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    {cfg.kind === "mgmt" && item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID && (
+                    {(item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID ||
+                      item?.costComponentId === CUSTOM_RELIEVER_ID) && (
                       <div className="mt-2">
-                        <Label className="sr-only" htmlFor="custom-management-fee">
-                          Custom management fee amount
+                        <Label className="sr-only" htmlFor={`custom-${cfg.kind}-amount`}>
+                          Custom {cfg.label.toLowerCase()} amount
                         </Label>
                         <Input
-                          id="custom-management-fee"
+                          id={`custom-${cfg.kind}-amount`}
                           type="number"
                           min="0"
                           step="0.01"
@@ -5677,7 +5686,7 @@ export function ResourceFormDialog({
                           placeholder="Enter custom amount"
                           onChange={(event) =>
                             updateEmployerAmount(
-                              CUSTOM_MANAGEMENT_FEE_ID,
+                              item.costComponentId,
                               Math.max(0, Number(event.target.value) || 0),
                             )
                           }
@@ -5866,7 +5875,11 @@ export function SalaryBreakdownTable({
   // may contain an amount from an older master formula and must not win here.
   const relieverTotal = relieverItems.reduce(
     (sum, item) =>
-      sum + computeBenefitAmount(item, components, coreBenefits, [], coreEmployer),
+      sum +
+      (item.costComponentId === CUSTOM_RELIEVER_ID ||
+      (item.calcType === "fixed" && !hasConfiguredFormula(item))
+        ? Number(item.amount) || 0
+        : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer)),
     0,
   );
   const totalCTC = gross + coreEmployerTotal;
