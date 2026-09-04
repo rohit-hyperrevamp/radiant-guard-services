@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { TaxInvoiceSheet, type TaxInvoiceData } from "@/components/TaxInvoiceSheet";
+import { InvoiceExtraChargesCard, useInvoiceExtraCharges } from "@/components/InvoiceExtraCharges";
 
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
@@ -766,7 +767,7 @@ function PayrollUnitPage() {
         );
       }
 
-      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation };
+      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation, contractId: contractId ?? null };
     },
   });
 
@@ -774,6 +775,7 @@ function PayrollUnitPage() {
 
   const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
+  const contractId = data?.contractId ?? null;
   const shiftHoursByDesignation = data?.shiftHoursByDesignation ?? new Map<string, number>();
   const billingDayBaseByDesignation =
     data?.billingDayBaseByDesignation ?? new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
@@ -815,23 +817,35 @@ function PayrollUnitPage() {
       resolvePayrollDayCount(
         billingDayBaseByDesignation.get(String(r.designationId ?? "")) ?? r.resource?.payrollDayBase ?? null,
         periodDates,
+        // A billing divisor is a contractual constant (e.g. 30.40), so it is
+        // never clamped down to the number of days in the cycle.
+        { clampToPeriod: false },
       ) ?? payrollDays;
+
     const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
-    // Billing is HOURLY: hourly rate = final billing rate ÷ payroll days ÷ shift
-    // hours, rounded to 2 dp (the rate that is actually printed on the invoice),
-    // and the amount = that printed rate × billed hours.
+    // The billing UNIT comes from the contract's billing type — never assumed.
+    //   man_days   → rate per duty  = contracted ÷ billing days (2 dp), × duties
+    //   man_hours  → rate per hour  = contracted ÷ billing days ÷ shift hrs, × hrs
+    //   man_months / lumpsum → the full contracted value
+    // The 2 dp rounding happens on the rate that is actually printed, so the
+    // printed rate × printed quantity always reconciles with the amount.
     const shiftHours = shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
     const perHour =
       billingDays > 0 && shiftHours > 0
         ? Math.round((contracted / billingDays / shiftHours) * 100) / 100
         : 0;
+    const perDay = billingDays > 0 ? Math.round((contracted / billingDays) * 100) / 100 : 0;
     const billedHours = Math.round(billedDays * shiftHours * 100) / 100;
+    const billsHourly = billingMode === "man_hours";
+    const unitRate = billsHourly ? perHour : perDay;
+    const unitQuantity = billsHourly ? billedHours : billedDays;
+    const unitLabel = billsHourly ? "hrs" : "Duty";
     const actual =
       !r.wages || !r.resource
         ? 0
-        : billingMode === "lumpsum"
+        : billingMode === "lumpsum" || billingMode === "man_months"
           ? contracted
-          : Math.round(perHour * billedHours * 100) / 100;
+          : Math.round(unitRate * unitQuantity * 100) / 100;
     return {
       contracted,
       payrollDays,
@@ -840,10 +854,15 @@ function PayrollUnitPage() {
       shiftHours,
       billedHours,
       perHour,
+      perDay,
+      unitRate,
+      unitQuantity,
+      unitLabel,
       actual,
       variance: Math.round((actual - contracted) * 100) / 100,
     };
   };
+
 
 
   const billableFor = (r: (typeof rows)[number]): number => invoiceMathFor(r).actual;
@@ -915,11 +934,16 @@ function PayrollUnitPage() {
     (unitState ?? "").trim().toLowerCase() === COMPANY_STATE.toLowerCase();
   const GST_RATE = 18;
   const r2 = (v: number) => Math.round(v * 100) / 100;
-  const cgstAmount = isIntraStateCurrent ? r2(totals.actualTotal * (GST_RATE / 2 / 100)) : 0;
-  const sgstAmount = isIntraStateCurrent ? r2(totals.actualTotal * (GST_RATE / 2 / 100)) : 0;
-  const igstAmount = isIntraStateCurrent ? 0 : r2(totals.actualTotal * (GST_RATE / 100));
+  // Configured extra charges for this unit + period (e.g. Technical Allowance).
+  const { data: extraCharges = [] } = useInvoiceExtraCharges(unitId, start, end);
+  const activeExtras = extraCharges.filter((c) => c.enabled);
+  const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
+  const taxableValue = r2(totals.actualTotal + extrasTotal);
+  const cgstAmount = isIntraStateCurrent ? r2(taxableValue * (GST_RATE / 2 / 100)) : 0;
+  const sgstAmount = isIntraStateCurrent ? r2(taxableValue * (GST_RATE / 2 / 100)) : 0;
+  const igstAmount = isIntraStateCurrent ? 0 : r2(taxableValue * (GST_RATE / 100));
   const gstAmount = r2(cgstAmount + sgstAmount + igstAmount);
-  const grandTotal = r2(totals.actualTotal + gstAmount);
+  const grandTotal = r2(taxableValue + gstAmount);
   const roundedGrandTotal = Math.round(grandTotal);
   const roundingOff = r2(roundedGrandTotal - grandTotal);
 
@@ -997,17 +1021,29 @@ function PayrollUnitPage() {
         stateName: unitState ?? "",
         stateCode: gstinStateCode(unit?.gstin ?? "") || "",
       },
-      lines: list.map((g, i) => ({
-        id: `${g.designation}-${i}`,
-        description: `${g.designation} @ Rs. ${g.perHour.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`,
-        hsnSac: hsn,
-        quantityLabel: `${g.hours.toFixed(2)} hrs`,
-        rate: g.perHour,
-        per: "hrs",
-        amount: g.amount,
-      })),
+      lines: [
+        ...list.map((g, i) => ({
+          id: `${g.designation}-${i}`,
+          description: `${g.designation} @ Rs. ${g.perHour.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`,
+          hsnSac: hsn,
+          quantityLabel: `${g.hours.toFixed(2)} hrs`,
+          rate: g.perHour,
+          per: "hrs",
+          amount: g.amount,
+        })),
+        // Configured additional charges print as their own invoice lines.
+        ...activeExtras.map((c) => ({
+          id: c.id,
+          description: c.description,
+          hsnSac: c.hsnSac || hsn,
+          quantityLabel: `${c.quantity}`,
+          rate: c.rate,
+          per: c.perLabel,
+          amount: c.amount,
+        })),
+      ],
       totalQuantityLabel: `${totalHours.toFixed(2)} hrs`,
-      taxableValue: r2(totals.actualTotal),
+      taxableValue,
       intraState: isIntraStateCurrent,
       cgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
       sgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
@@ -1019,7 +1055,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, unit, unitState, totals.actualTotal, cgstAmount, sgstAmount, igstAmount, roundingOff, roundedGrandTotal, isIntraStateCurrent, start, end]);
+  }, [rows, orgSettings, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, roundingOff, roundedGrandTotal, isIntraStateCurrent, start, end]);
 
 
   const exportCsv = () => {
@@ -1313,6 +1349,11 @@ function PayrollUnitPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="Additional charges" value={fmtINR(extrasTotal)} />
+          <Stat label="Taxable value" value={fmtINR(taxableValue)} tone="emerald" />
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           {isIntraStateCurrent ? (
             <>
               <Stat label={`CGST @ ${GST_RATE / 2}%`} value={fmtINR(cgstAmount)} />
@@ -1379,6 +1420,14 @@ function PayrollUnitPage() {
         </div>
       </div>
 
+
+      <InvoiceExtraChargesCard
+        unitId={unitId}
+        contractId={contractId}
+        start={start}
+        end={end}
+        charges={extraCharges}
+      />
 
       {invoiceSheetData && <TaxInvoiceSheet data={invoiceSheetData} />}
 
