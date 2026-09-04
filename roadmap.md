@@ -2,3 +2,4 @@
 - [x] Fix the underlying route or data-loading issue
 - [x] Verify affected navigation in a signed-in browser
 - [x] Record the production cloud database as the only source of truth
+- [ ] Reconcile CON14897 August attendance row-by-row, correct L/weekly-off handling, and verify totals
