@@ -4814,8 +4814,8 @@ export function ResourceFormDialog({
           return [
             ...rest,
             {
-              costComponentId: CUSTOM_MANAGEMENT_FEE_ID,
-              name: "Custom Management Fee",
+              costComponentId: isCustomMgmt ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID,
+              name: isCustomMgmt ? "Custom Management Fee" : "Custom Reliever Charges",
               calcType: "fixed",
               percentage: 0,
               baseComponents: [],
