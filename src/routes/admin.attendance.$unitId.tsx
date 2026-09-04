@@ -1375,8 +1375,9 @@ function MusterRollPage() {
     }
 
     // ---- Payroll-days cap: max present days = contract's Payroll Days base.
-    // Present marks beyond the cap are rejected — the user must record those
-    // extra days as overtime hours on the OT row instead.
+    // Days beyond the cap are NOT discarded — they are converted to Extra Duty
+    // (code blanked, day value moved into ot_hours, which stores ED DAYS), the
+    // same conversion the database trigger performs as the final invariant.
     const dayValueOf = (code: string) => {
       const c = codeMap.get(code);
       if (!c || !c.counts_as_present) return 0;
@@ -1398,7 +1399,7 @@ function MusterRollPage() {
       ? desigCap ?? null
       : unitMaxPDays;
     let capped = filtered;
-    let rejectedDays = 0;
+    let convertedDays = 0;
     if (cap != null) {
       const rk = rowKey(candidate_id, designation_id);
       const touched = new Set(filtered.map((r) => r.entry_date));
@@ -1411,24 +1412,19 @@ function MusterRollPage() {
       }
       capped = [...filtered]
         .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
-        .filter((r) => {
+        .map((r) => {
           const dv = dayValueOf(r.code);
-          if (dv <= 0) return true;
+          if (dv <= 0) return r;
           if (used + dv <= cap) {
             used += dv;
-            return true;
+            return r;
           }
-          rejectedDays += dv;
-          return false;
+          convertedDays += dv;
+          return { ...r, code: "", ot_hours: (Number(r.ot_hours) || 0) + dv };
         });
     }
 
-    if (capped.length === 0) {
-      toast.error(
-        `Payroll days limit (${cap}) reached — mark the extra ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} as ED hours instead`,
-      );
-      return 0;
-    }
+    if (capped.length === 0) return 0;
 
     const payload = capped.map((r) => ({
       unit_id: unitId,
@@ -1452,12 +1448,13 @@ function MusterRollPage() {
     if (mismatched.length > 0) {
       throw new Error(`Attendance was not saved for ${mismatched.length} selected cell${mismatched.length === 1 ? "" : "s"}`);
     }
-    if (rejectedDays > 0) {
-      toast.warning(
-        `Payroll days limit (${cap}) reached — ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} not marked; record them as ED hours`,
+    if (convertedDays > 0) {
+      toast.info(
+        `Payroll days limit (${cap}) reached — ${convertedDays} day${convertedDays === 1 ? "" : "s"} recorded as Extra Duty`,
       );
     }
     return capped.length;
+
   };
 
 
