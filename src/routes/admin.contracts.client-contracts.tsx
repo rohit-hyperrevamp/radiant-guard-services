@@ -5875,7 +5875,11 @@ export function SalaryBreakdownTable({
   // may contain an amount from an older master formula and must not win here.
   const relieverTotal = relieverItems.reduce(
     (sum, item) =>
-      sum + computeBenefitAmount(item, components, coreBenefits, [], coreEmployer),
+      sum +
+      (item.costComponentId === CUSTOM_RELIEVER_ID ||
+      (item.calcType === "fixed" && !hasConfiguredFormula(item))
+        ? Number(item.amount) || 0
+        : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer)),
     0,
   );
   const totalCTC = gross + coreEmployerTotal;
