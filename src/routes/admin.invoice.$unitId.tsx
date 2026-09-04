@@ -954,30 +954,35 @@ function PayrollUnitPage() {
     const hsn = orgSettings?.default_hsn_sac ?? "";
     type Group = {
       designation: string;
+      monthly: number;
       payrollDays: number;
       shiftHours: number;
-      perHour: number;
-      hours: number;
+      unitRate: number;
+      unitLabel: string;
+      quantity: number;
       amount: number;
     };
     const groups = new Map<string, Group>();
     for (const r of billable) {
       const m = invoiceMathFor(r);
-      const key = `${r.designation}|${m.perHour}|${m.shiftHours}|${m.payrollDays}`;
+      const key = `${r.designation}|${m.unitRate}|${m.shiftHours}|${m.payrollDays}`;
       const g = groups.get(key) ?? {
         designation: r.designation,
+        monthly: m.contracted,
         payrollDays: m.payrollDays,
         shiftHours: m.shiftHours,
-        perHour: m.perHour,
-        hours: 0,
+        unitRate: m.unitRate,
+        unitLabel: m.unitLabel,
+        quantity: 0,
         amount: 0,
       };
-      g.hours = r2(g.hours + m.billedHours);
+      g.quantity = r2(g.quantity + m.unitQuantity);
       g.amount = r2(g.amount + m.actual);
       groups.set(key, g);
     }
     const list = Array.from(groups.values());
-    const totalHours = r2(list.reduce((s, g) => s + g.hours, 0));
+    const totalQuantity = r2(list.reduce((s, g) => s + g.quantity, 0));
+    const quantityUnit = list[0]?.unitLabel ?? "Duty";
     const monthIdx = Number(start.split("-")[1]) - 1;
     const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][monthIdx] ?? "";
     return {
@@ -1024,11 +1029,14 @@ function PayrollUnitPage() {
       lines: [
         ...list.map((g, i) => ({
           id: `${g.designation}-${i}`,
-          description: `${g.designation} @ Rs. ${g.perHour.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`,
+          description:
+            g.unitLabel === "hrs"
+              ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`
+              : `${g.designation} @ Rs ${Math.round(g.monthly)}/-`,
           hsnSac: hsn,
-          quantityLabel: `${g.hours.toFixed(2)} hrs`,
-          rate: g.perHour,
-          per: "hrs",
+          quantityLabel: g.unitLabel === "hrs" ? `${g.quantity.toFixed(2)} hrs` : g.quantity.toFixed(2),
+          rate: g.unitRate,
+          per: g.unitLabel === "hrs" ? "hrs" : "Duty",
           amount: g.amount,
         })),
         // Configured additional charges print as their own invoice lines.
@@ -1042,7 +1050,10 @@ function PayrollUnitPage() {
           amount: c.amount,
         })),
       ],
-      totalQuantityLabel: `${totalHours.toFixed(2)} hrs`,
+      totalQuantityLabel:
+        quantityUnit === "hrs"
+          ? `${r2(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0)).toFixed(2)} hrs`
+          : `${r2(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0)).toFixed(2)} Duty`,
       taxableValue,
       intraState: isIntraStateCurrent,
       cgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
