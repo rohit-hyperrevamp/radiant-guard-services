@@ -9,13 +9,27 @@ export type PayrollDayBaseLike = {
   includedWeekdays?: number[] | null;
 };
 
+/** Fallback only: used when a `fixed_annual_average` base carries no explicit
+ *  day count. Any base can override it by storing its own `fixed_days`. */
 const ANNUAL_AVERAGE_DAYS = 30.4166;
+
+export type DayCountOptions = {
+  /**
+   * Clamp the result to the number of days in the period.
+   * TRUE for payroll (you cannot be present more days than the month has),
+   * FALSE for a billing divisor (a 30.40-day divisor stays 30.40 even in a
+   * 28-day billing cycle).
+   */
+  clampToPeriod?: boolean;
+};
 
 /** Period dates as ISO strings (YYYY-MM-DD). */
 export function resolvePayrollDayCount(
   base: PayrollDayBaseLike | null | undefined,
   periodDates: string[],
+  options: DayCountOptions = {},
 ): number | null {
+  const clamp = options.clampToPeriod !== false;
   const total = periodDates.length;
   if (!base || total === 0) return null;
   const weekday = (iso: string) => {
@@ -26,10 +40,13 @@ export function resolvePayrollDayCount(
     case "fixed_days": {
       const n = Number(base.fixedDays) || 0;
       if (n <= 0) return null;
-      return Math.min(n, total);
+      return clamp ? Math.min(n, total) : n;
     }
-    case "fixed_annual_average":
-      return ANNUAL_AVERAGE_DAYS;
+    case "fixed_annual_average": {
+      const configured = Number(base.fixedDays);
+      return Number.isFinite(configured) && configured > 0 ? configured : ANNUAL_AVERAGE_DAYS;
+    }
+
     case "actual_days":
       return total;
     case "actual_minus_weekly_off": {
