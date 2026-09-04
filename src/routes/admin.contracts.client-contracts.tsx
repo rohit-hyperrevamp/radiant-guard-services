@@ -5873,15 +5873,19 @@ export function SalaryBreakdownTable({
   );
   // Always evaluate reliever against the live Total CTC. Saved contract rows
   // may contain an amount from an older master formula and must not win here.
+  // Exception: a custom / plain-fixed reliever keeps the entered amount — the
+  // breakdown row must use this same helper so it never disagrees with the
+  // Reliever & Management Fee card or the Billing Rate total.
+  const relieverAmountFor = (item: BenefitItem) =>
+    item.costComponentId === CUSTOM_RELIEVER_ID ||
+    (item.calcType === "fixed" && !hasConfiguredFormula(item))
+      ? Number(item.amount) || 0
+      : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer);
   const relieverTotal = relieverItems.reduce(
-    (sum, item) =>
-      sum +
-      (item.costComponentId === CUSTOM_RELIEVER_ID ||
-      (item.calcType === "fixed" && !hasConfiguredFormula(item))
-        ? Number(item.amount) || 0
-        : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer)),
+    (sum, item) => sum + relieverAmountFor(item),
     0,
   );
+
   const totalCTC = gross + coreEmployerTotal;
   const totalRate = totalCTC + relieverTotal;
   const managementAmountFor = (item: BenefitItem) =>
