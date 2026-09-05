@@ -132,51 +132,24 @@ function Dial({ value }: { value: number }) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: typeof Users;
-  tone?: "accent" | "warning" | "destructive";
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/80 to-muted/40 p-3 backdrop-blur">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-        <Icon
-          className={cn(
-            "h-3.5 w-3.5 text-muted-foreground",
-            tone === "accent" && "text-primary",
-            tone === "warning" && "text-amber-500",
-            tone === "destructive" && "text-destructive",
-          )}
-        />
-      </div>
-      <div className="mt-1.5 text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
-
 export function AttendanceCharter({
   units,
   monthIdx,
   year,
   query,
   onQueryChange,
+  organizationCount,
+  activeEmployees,
 }: {
   units: CharterUnit[];
   monthIdx: number;
   year: number;
   query: string;
   onQueryChange: (v: string) => void;
+  organizationCount?: number;
+  activeEmployees?: number;
 }) {
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
 
