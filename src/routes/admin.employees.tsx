@@ -4746,20 +4746,13 @@ function emptyForm(): CandidateForm {
   };
 }
 
-const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
-/** Own-company (Radiant) units are valid home units for non-billable staff. */
-const isOwnCompanyUnit = (u: UnitLite) =>
-  u.is_billable === false || /radiant/i.test(u.customer_name ?? "");
-/**
- * A non-billable internal hire always sits on a Radiant (own-company) unit.
- * Prefer the genuinely non-billable Radiant units — client sites that happen to
- * be filed under the Radiant organization must never be the default.
- */
+const RADIANT_HOME_UNIT_CODES = new Set(["UN1", "CLI4", "CLI1472", "CLI3154"]);
+/** Non-billable staff can only be posted to these four Radiant units. */
+const isRadiantHomeUnit = (u: UnitLite) =>
+  RADIANT_HOME_UNIT_CODES.has((u.code ?? "").trim().toUpperCase());
+
 const pickDefaultHomeUnit = (options: UnitLite[]) =>
-  options.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ??
-  options.find((u) => u.is_billable === false && (u.code ?? "").toUpperCase() === "UN1")?.id ??
-  options.find((u) => u.is_billable === false && /corporate|head\s*office|\bho\b/i.test(u.name))?.id ??
-  options.find((u) => u.is_billable === false)?.id ??
+  options.find((u) => (u.code ?? "").trim().toUpperCase() === "UN1")?.id ??
   options[0]?.id ??
   "";
 
@@ -4852,21 +4845,12 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees always belong to a Radiant Guard Services unit.
-  // Radiant's own (non-billable) units come first and one of them is always
-  // the default; client sites filed under Radiant stay selectable but last.
+  // Non-billable employees can only belong to the approved Radiant home units.
   const [homeUnitId, setHomeUnitId] = useState<string>("");
-  const nonBillableUnits = useMemo(() => {
-    const own = units.filter(isOwnCompanyUnit);
-    return (own.length > 0 ? own : units)
-      .slice()
-      .sort((a, b) => {
-        const aOwn = a.is_billable === false ? 0 : 1;
-        const bOwn = b.is_billable === false ? 0 : 1;
-        if (aOwn !== bOwn) return aOwn - bOwn;
-        return a.name.localeCompare(b.name);
-      });
-  }, [units]);
+  const nonBillableUnits = useMemo(
+    () => units.filter(isRadiantHomeUnit).sort((a, b) => a.name.localeCompare(b.name)),
+    [units],
+  );
   // Keep the selection valid as units load / change.
   useEffect(() => {
     if (!isEmployeeMode) return;
@@ -5018,7 +5002,7 @@ function CandidateWizard({
   // define the valid designations for that unit.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
-    if (isEmployeeMode) ids.add(homeUnitId || RADIANT_BILLING_UNIT_ID);
+    if (isEmployeeMode && homeUnitId) ids.add(homeUnitId);
     return Array.from(ids);
   }, [form.unit_ids, isEmployeeMode, homeUnitId]);
   const selectedUnitIdsKey = desigLookupUnitIds.slice().sort().join(",");
