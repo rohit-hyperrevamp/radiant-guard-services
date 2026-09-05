@@ -621,6 +621,28 @@ function UnitFormDialog({
       return (data ?? []).filter((b) => b.enabled !== false);
     },
   });
+  // Paid-holiday duty values offered to this unit come straight from
+  // Control Center → Attendance Code Manager (every enabled PH-family code).
+  // Add a code there and it appears in this dropdown automatically.
+  const { data: phCodeOptions = [] } = useQuery({
+    queryKey: ["admin", "attendance-codes", "ph-family"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance_codes")
+        .select("code, label, day_value, enabled")
+        .order("sort_order");
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ code: string; label: string; day_value: number | string | null; enabled: boolean | null }>;
+      return rows
+        .filter((r) => r.enabled !== false && String(r.code).toUpperCase().startsWith("PH"))
+        .map((r) => ({
+          code: String(r.code),
+          label: String(r.label ?? r.code),
+          value: r.day_value == null || Number.isNaN(Number(r.day_value)) ? 1 : Number(r.day_value),
+        }));
+    },
+  });
+
 
 
   const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(units)));
