@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, Receipt, Search, Wallet } from "lucide-react";
+import { Building2, ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
+import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
