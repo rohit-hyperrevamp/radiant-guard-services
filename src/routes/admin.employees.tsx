@@ -5869,44 +5869,152 @@ function CandidateWizard({
           {/* ----- Full form (single page) ----- */}
           {true && (
             <div className="space-y-4 sm:space-y-6">
-              {/* Uploads strip */}
-              <Section title={`Uploads — all required${uploadsComplete ? "" : " (incomplete)"}`}>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <UploadTile
-                    label="Photograph"
-                    required
-                    url={form.photo_url}
-                    accept="image/*"
-                    allowCamera
-                    onPick={(f) => handleFile(f, "photo")}
-                    uploading={uploading === "photo"}
-                  />
-                  <UploadTile
-                    label="Aadhaar Card"
-                    required={!digilockerVerified}
-                    url={form.aadhaar_image_url}
-                    accept="image/*,application/pdf"
-                    onPick={(f) => handleFile(f, "aadhaar")}
-                    uploading={uploading === "aadhaar"}
-                  />
-                  <UploadTile
-                    label="PAN Card"
-                    required
-                    url={form.pan_image_url}
-                    accept="image/*,application/pdf"
-                    onPick={(f) => handleFile(f, "pan")}
-                    uploading={uploading === "pan"}
-                  />
-                  <UploadTile
-                    label="Signature"
-                    required
-                    url={form.signature_url}
-                    accept="image/*,application/pdf"
-                    onPick={(f) => handleFile(f, "signature")}
-                    uploading={uploading === "signature"}
-                  />
+              {/* Identity first — Aadhaar & PAN drive the rest of the profile */}
+              <Section title="Identity — Aadhaar &amp; PAN (start here)">
+                <p className="mb-3 text-[11px] text-muted-foreground">
+                  Enter and verify the Aadhaar number first, then the PAN number. Most of the profile below is filled in automatically from these two.
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Aadhaar Number">
+                    <Input
+                      format="aadhaar"
+                      value={form.aadhaar_number}
+                      onChange={(e) => {
+                        const clean = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        const savedVerifiedAadhaar = String(form.other_info?.digilocker_verified_aadhaar ?? "").replace(/\D/g, "");
+                        set("aadhaar_number", clean);
+                        if (digilockerVerified && clean !== savedVerifiedAadhaar) {
+                          setDigilockerVerified(false);
+                          set("other_info", {
+                            ...(form.other_info ?? {}),
+                            digilocker_verified: false,
+                            digilocker_verified_aadhaar: "",
+                          });
+                        }
+                        if (clean.length < 12) {
+                          lastAadhaarLookupRef.current = "";
+                          setRehireMatch(null);
+                          setRehireOpen(false);
+                        } else {
+                          void checkAadhaarForRehire(clean);
+                        }
+                      }}
+                      onBlur={() => void checkAadhaarForRehire(form.aadhaar_number)}
+                    />
+                    {aadhaarChecking && (
+                      <div className="mt-1 text-[11px] text-muted-foreground">Checking existing records…</div>
+                    )}
+                    <DigilockerVerify
+                      aadhaar={form.aadhaar_number}
+                      mobile={form.mobile}
+                      verified={digilockerVerified}
+                      onVerified={(profile) => {
+                        const keep = (next: string, current: string) => (next ? next : current);
+                        setForm((f) => ({
+                          ...f,
+                          full_name: keep(profile.full_name, f.full_name),
+                          date_of_birth: profile.date_of_birth || f.date_of_birth,
+                          gender: keep(profile.gender, f.gender),
+                          aadhaar_number: /^\d{12}$/.test(profile.aadhaar_number ?? "")
+                            ? profile.aadhaar_number
+                            : f.aadhaar_number,
+                          permanent_address1: keep(profile.address_line1, f.permanent_address1),
+                          permanent_address2: keep(profile.address_line2, f.permanent_address2),
+                          permanent_landmark: keep(profile.landmark, f.permanent_landmark),
+                          permanent_city: keep(profile.city, f.permanent_city),
+                          permanent_district: keep(profile.district, f.permanent_district),
+                          permanent_state: keep(profile.state, f.permanent_state),
+                          permanent_pincode: keep(profile.pincode, f.permanent_pincode),
+                          permanent_country: keep(profile.country, f.permanent_country),
+                          other_info: {
+                            ...(f.other_info ?? {}),
+                            digilocker_verified: true,
+                            digilocker_verified_aadhaar: /^\d{12}$/.test(profile.aadhaar_number ?? "")
+                              ? profile.aadhaar_number
+                              : f.aadhaar_number,
+                            digilocker_verified_at: new Date().toISOString(),
+                          },
+                        }));
+                        setDigilockerVerified(true);
+                      }}
+                    />
+
+                    <RehireRequestDialog
+                      open={rehireOpen}
+                      match={rehireMatch}
+                      onOpenChange={(nextOpen) => {
+                        if (!nextOpen) lastAadhaarLookupRef.current = "";
+                        setRehireOpen(nextOpen);
+                      }}
+                      onSubmitted={() => onOpenChange(false)}
+                    />
+                  </Field>
+                  <Field label="PAN Number" anchor="pan_number">
+                    <Input
+                      format="pan"
+                      value={form.pan_number}
+                      onChange={(e) => {
+                        const next = e.target.value.toUpperCase();
+                        set("pan_number", next);
+                        const savedPan = String(form.other_info?.pan_verified_number ?? "").toUpperCase();
+                        if (panVerified && next.replace(/[^A-Z0-9]/g, "") !== savedPan) {
+                          setPanVerified(false);
+                          set("other_info", {
+                            ...(form.other_info ?? {}),
+                            pan_verified: false,
+                            pan_verified_number: "",
+                          });
+                        }
+                      }}
+                    />
+                    <PanVerify
+                      pan={form.pan_number}
+                      aadhaar={form.aadhaar_number}
+                      name={form.full_name}
+                      verified={panVerified}
+                      onVerified={(result) => {
+                        const keep = (next: string, current: string) => (next ? next : current);
+                        setForm((f) => ({
+                          ...f,
+                          pan_number: result.pan_number || f.pan_number,
+                          full_name: keep(f.full_name, result.full_name),
+                          date_of_birth: f.date_of_birth || result.date_of_birth,
+                          gender: keep(f.gender, result.gender),
+                          email: keep(f.email, result.email),
+                          other_info: {
+                            ...(f.other_info ?? {}),
+                            pan_verified: true,
+                            pan_verified_number: result.pan_number,
+                            pan_verified_at: new Date().toISOString(),
+                            pan_status: result.pan_status,
+                            pan_type: result.pan_type,
+                            pan_name: result.full_name,
+                            pan_first_name: result.first_name,
+                            pan_middle_name: result.middle_name,
+                            pan_last_name: result.last_name,
+                            father_name: result.father_name || (f.other_info ?? {}).father_name || "",
+                            pan_email: result.email,
+                            pan_mobile: result.mobile,
+                            pan_aadhaar_linked: result.aadhaar_linked,
+                            pan_masked_aadhaar: result.masked_aadhaar,
+                            pan_address: {
+                              address_line1: result.address_line1,
+                              address_line2: result.address_line2,
+                              city: result.city,
+                              district: result.district,
+                              state: result.state,
+                              pincode: result.pincode,
+                              country: result.country,
+                            },
+                          },
+                        }));
+                        setPanVerified(true);
+                      }}
+                    />
+                  </Field>
                 </div>
               </Section>
+
 
               {(unitsLoading || unitsError || designationsLoading || designationsError) && (
                 <div className="rounded-lg border border-border bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
@@ -6021,80 +6129,6 @@ function CandidateWizard({
                   </Field>
                   <Field label="Birthplace">
                     <Input value={form.birthplace} onChange={(e) => set("birthplace", e.target.value)} />
-                  </Field>
-                  <Field label="Aadhaar Number">
-                    <Input
-                      format="aadhaar"
-                      value={form.aadhaar_number}
-                      onChange={(e) => {
-                        const clean = e.target.value.replace(/\D/g, "").slice(0, 12);
-                        const savedVerifiedAadhaar = String(form.other_info?.digilocker_verified_aadhaar ?? "").replace(/\D/g, "");
-                        set("aadhaar_number", clean);
-                        if (digilockerVerified && clean !== savedVerifiedAadhaar) {
-                          setDigilockerVerified(false);
-                          set("other_info", {
-                            ...(form.other_info ?? {}),
-                            digilocker_verified: false,
-                            digilocker_verified_aadhaar: "",
-                          });
-                        }
-                        if (clean.length < 12) {
-                          lastAadhaarLookupRef.current = "";
-                          setRehireMatch(null);
-                          setRehireOpen(false);
-                        } else {
-                          void checkAadhaarForRehire(clean);
-                        }
-                      }}
-                      onBlur={() => void checkAadhaarForRehire(form.aadhaar_number)}
-                    />
-                    {aadhaarChecking && (
-                      <div className="mt-1 text-[11px] text-muted-foreground">Checking existing records…</div>
-                    )}
-                    <DigilockerVerify
-                      aadhaar={form.aadhaar_number}
-                      mobile={form.mobile}
-                      verified={digilockerVerified}
-                      onVerified={(profile) => {
-                        const keep = (next: string, current: string) => (next ? next : current);
-                        setForm((f) => ({
-                          ...f,
-                          full_name: keep(profile.full_name, f.full_name),
-                          date_of_birth: profile.date_of_birth || f.date_of_birth,
-                          gender: keep(profile.gender, f.gender),
-                          aadhaar_number: /^\d{12}$/.test(profile.aadhaar_number ?? "")
-                            ? profile.aadhaar_number
-                            : f.aadhaar_number,
-                          permanent_address1: keep(profile.address_line1, f.permanent_address1),
-                          permanent_address2: keep(profile.address_line2, f.permanent_address2),
-                          permanent_landmark: keep(profile.landmark, f.permanent_landmark),
-                          permanent_city: keep(profile.city, f.permanent_city),
-                          permanent_district: keep(profile.district, f.permanent_district),
-                          permanent_state: keep(profile.state, f.permanent_state),
-                          permanent_pincode: keep(profile.pincode, f.permanent_pincode),
-                          permanent_country: keep(profile.country, f.permanent_country),
-                          other_info: {
-                            ...(f.other_info ?? {}),
-                            digilocker_verified: true,
-                            digilocker_verified_aadhaar: /^\d{12}$/.test(profile.aadhaar_number ?? "")
-                              ? profile.aadhaar_number
-                              : f.aadhaar_number,
-                            digilocker_verified_at: new Date().toISOString(),
-                          },
-                        }));
-                        setDigilockerVerified(true);
-                      }}
-                    />
-
-                    <RehireRequestDialog
-                      open={rehireOpen}
-                      match={rehireMatch}
-                      onOpenChange={(nextOpen) => {
-                        if (!nextOpen) lastAadhaarLookupRef.current = "";
-                        setRehireOpen(nextOpen);
-                      }}
-                      onSubmitted={() => onOpenChange(false)}
-                    />
                   </Field>
 
                   <Field label={isEmployeeMode ? "Employee Code" : "Candidate Number"}>
@@ -6425,69 +6459,6 @@ function CandidateWizard({
                       }}
                     />
                   </div>
-                  <Field label="PAN Number" anchor="pan_number">
-                    <Input
-                      format="pan"
-                      value={form.pan_number}
-                      onChange={(e) => {
-                        const next = e.target.value.toUpperCase();
-                        set("pan_number", next);
-                        const savedPan = String(form.other_info?.pan_verified_number ?? "").toUpperCase();
-                        if (panVerified && next.replace(/[^A-Z0-9]/g, "") !== savedPan) {
-                          setPanVerified(false);
-                          set("other_info", {
-                            ...(form.other_info ?? {}),
-                            pan_verified: false,
-                            pan_verified_number: "",
-                          });
-                        }
-                      }}
-                    />
-                    <PanVerify
-                      pan={form.pan_number}
-                      aadhaar={form.aadhaar_number}
-                      name={form.full_name}
-                      verified={panVerified}
-                      onVerified={(result) => {
-                        const keep = (next: string, current: string) => (next ? next : current);
-                        setForm((f) => ({
-                          ...f,
-                          pan_number: result.pan_number || f.pan_number,
-                          full_name: keep(f.full_name, result.full_name),
-                          date_of_birth: f.date_of_birth || result.date_of_birth,
-                          gender: keep(f.gender, result.gender),
-                          email: keep(f.email, result.email),
-                          other_info: {
-                            ...(f.other_info ?? {}),
-                            pan_verified: true,
-                            pan_verified_number: result.pan_number,
-                            pan_verified_at: new Date().toISOString(),
-                            pan_status: result.pan_status,
-                            pan_type: result.pan_type,
-                            pan_name: result.full_name,
-                            pan_first_name: result.first_name,
-                            pan_middle_name: result.middle_name,
-                            pan_last_name: result.last_name,
-                            father_name: result.father_name || (f.other_info ?? {}).father_name || "",
-                            pan_email: result.email,
-                            pan_mobile: result.mobile,
-                            pan_aadhaar_linked: result.aadhaar_linked,
-                            pan_masked_aadhaar: result.masked_aadhaar,
-                            pan_address: {
-                              address_line1: result.address_line1,
-                              address_line2: result.address_line2,
-                              city: result.city,
-                              district: result.district,
-                              state: result.state,
-                              pincode: result.pincode,
-                              country: result.country,
-                            },
-                          },
-                        }));
-                        setPanVerified(true);
-                      }}
-                    />
-                  </Field>
                 </div>
               </Section>
 
@@ -6916,6 +6887,45 @@ function CandidateWizard({
                     )}
                   </div>
                 )}
+              </Section>
+
+              {/* Uploads strip */}
+              <Section title={`Uploads — all required${uploadsComplete ? "" : " (incomplete)"}`}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <UploadTile
+                    label="Photograph"
+                    required
+                    url={form.photo_url}
+                    accept="image/*"
+                    allowCamera
+                    onPick={(f) => handleFile(f, "photo")}
+                    uploading={uploading === "photo"}
+                  />
+                  <UploadTile
+                    label="Aadhaar Card"
+                    required={!digilockerVerified}
+                    url={form.aadhaar_image_url}
+                    accept="image/*,application/pdf"
+                    onPick={(f) => handleFile(f, "aadhaar")}
+                    uploading={uploading === "aadhaar"}
+                  />
+                  <UploadTile
+                    label="PAN Card"
+                    required
+                    url={form.pan_image_url}
+                    accept="image/*,application/pdf"
+                    onPick={(f) => handleFile(f, "pan")}
+                    uploading={uploading === "pan"}
+                  />
+                  <UploadTile
+                    label="Signature"
+                    required
+                    url={form.signature_url}
+                    accept="image/*,application/pdf"
+                    onPick={(f) => handleFile(f, "signature")}
+                    uploading={uploading === "signature"}
+                  />
+                </div>
               </Section>
 
 
