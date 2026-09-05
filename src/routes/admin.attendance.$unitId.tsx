@@ -2274,14 +2274,19 @@ function MusterRollPage() {
       ) {
         unitPhDays += phMultiplier;
       }
-      if (e.code === "PH") { phCount += 1; continue; }
+      if (e.code === "PH") {
+        // Use the PH day value configured in Attendance Code settings — never hard-code.
+        const phValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+        phCount += phValue;
+        continue;
+      }
       // Weekly off is not a payable duty — it must never inflate the payable total.
       if (e.code === "WO" || e.code === "W") continue;
       const dayValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       if (c.counts_as_present) pDays += dayValue;
       else if (c.is_paid) otherPaidDays += dayValue;
     }
-    const phDays = Math.round((phCount * 2 + unitPhDays) * 100) / 100;
+    const phDays = Math.round((phCount + unitPhDays) * 100) / 100;
     const otDays = Math.round(otDaysSum * 100) / 100;
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
