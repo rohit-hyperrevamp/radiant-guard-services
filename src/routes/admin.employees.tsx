@@ -79,6 +79,7 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 
 import { DigilockerVerify } from "@/components/DigilockerVerify";
 import { PanVerify } from "@/components/PanVerify";
+import { BankVerify } from "@/components/BankVerify";
 import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
