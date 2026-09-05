@@ -4734,11 +4734,10 @@ function emptyForm(): CandidateForm {
   };
 }
 
-const RADIANT_HOME_UNIT_CODES = new Set(["UN1", "CLI4", "CLI1472", "CLI3154"]);
 const RADIANT_PUNE_HOME_UNIT_CODE = "UN1";
-/** Internal staff can only be posted to Radiant's own units. */
+/** Non-billable staff are currently posted to Radiant's Pune head office. */
 const isRadiantHomeUnit = (u: UnitLite) =>
-  RADIANT_HOME_UNIT_CODES.has((u.code ?? "").trim().toUpperCase());
+  (u.code ?? "").trim().toUpperCase() === RADIANT_PUNE_HOME_UNIT_CODE;
 
 const pickDefaultHomeUnit = (options: UnitLite[]) =>
   options.find((u) => (u.code ?? "").trim().toUpperCase() === RADIANT_PUNE_HOME_UNIT_CODE)?.id ??
@@ -5694,8 +5693,8 @@ function CandidateWizard({
               : isEmployeeMode ? "Add Employee" : "Add Candidate"}</span>
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            {isEmployeeMode
-              ? "Non-billable internal hire under Radiant Guard Services. Start with Aadhaar and PAN — most details fill in automatically; photograph and documents come last."
+                       {isEmployeeMode
+                         ? "Non-billable internal hire posted to Corporate Office (Pune - HO). Start with Aadhaar and PAN — most details fill in automatically; photograph and documents come last."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
@@ -5722,7 +5721,7 @@ function CandidateWizard({
                         ))}
                     </SelectContent>
                   </Select>
-                  <span className="text-[11px] text-muted-foreground">Which Radiant Guard Services unit this internal employee sits in for payroll. Defaults to Corporate Office (Pune - HO).</span>
+                   <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO).</span>
                 </div>
               )}
             </div>
