@@ -588,6 +588,8 @@ export type Unit = {
   phEnabled: boolean;
   /** Extra duty credit on a public holiday: 1 or 2. */
   phMultiplier: number;
+  /** Duty value of one PH-marked day for this unit. null = use the PH attendance code's day value. */
+  phDayValue: number | null;
   bonusEnabled: boolean;
   bonusFrequency: BonusFrequency | null;
   /** true = EPF wage ceiling (₹15,000) applies AND attendance is capped to payroll days. */
@@ -678,6 +680,7 @@ type UnitRow = {
   gpaip_amount?: number | string | null;
   ph_enabled?: boolean | null;
   ph_multiplier?: number | string | null;
+  ph_day_value?: number | string | null;
   bonus_enabled?: boolean | null;
   bonus_frequency?: string | null;
   epf_cap_enabled?: boolean | null;
@@ -752,6 +755,8 @@ function rowToUnit(r: UnitRow): Unit {
     gpaipAmount: Number(r.gpaip_amount ?? 0),
     phEnabled: Boolean(r.ph_enabled),
     phMultiplier: Number(r.ph_multiplier ?? 1) || 1,
+    phDayValue:
+      r.ph_day_value == null || Number.isNaN(Number(r.ph_day_value)) ? null : Number(r.ph_day_value),
     bonusEnabled: Boolean(r.bonus_enabled),
     bonusFrequency: (r.bonus_frequency as BonusFrequency | null) ?? null,
     epfCapEnabled: r.epf_cap_enabled == null ? true : Boolean(r.epf_cap_enabled),
@@ -825,6 +830,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     gpaip_amount: data.gpaipEnabled ? Number(data.gpaipAmount || 0) : 0,
     ph_enabled: data.phEnabled,
     ph_multiplier: data.phEnabled ? Number(data.phMultiplier || 1) : 1,
+    ph_day_value: data.phDayValue == null ? null : Number(data.phDayValue),
     bonus_enabled: data.bonusEnabled,
     bonus_frequency: data.bonusEnabled ? (data.bonusFrequency ?? "monthly") : null,
     epf_cap_enabled: data.epfCapEnabled,

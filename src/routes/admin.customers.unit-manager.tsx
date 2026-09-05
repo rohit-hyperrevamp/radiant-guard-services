@@ -138,6 +138,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     gpaipAmount: 0,
     phEnabled: false,
     phMultiplier: 1,
+    phDayValue: null,
     bonusEnabled: false,
     epfCapEnabled: true,
     bonusFrequency: null,
