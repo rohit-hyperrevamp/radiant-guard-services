@@ -1689,7 +1689,7 @@ function MusterRollPage() {
           const meta = codeMap.get(row.code);
           if (!meta) continue;
           if (row.code === "PH") {
-            phCount += 1;
+            phCount += meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
             continue;
           }
           if (row.code === "WO" || row.code === "W") continue;
@@ -1698,8 +1698,9 @@ function MusterRollPage() {
           else if (meta.is_paid) otherPaidDays += dayValue;
         }
         const otDays = roundHalf(otHours);
-        // Paid days = P + PH (double) + ED only. Other paid codes never add days.
-        const tDays = roundHalf(pDays + phCount * 2 + otDays);
+        // Paid days = P + PH (as configured) + ED only. Other paid codes never add days.
+        const tDays = roundHalf(pDays + phCount + otDays);
+
         return {
           candidate_id: "",
           p_days: roundHalf(pDays),
@@ -2269,11 +2270,13 @@ function MusterRollPage() {
       if (
         phEnabled &&
         !edOnlyLine &&
+        e.code !== "PH" &&
         holidayByDate.has(cell.date) &&
         (!joiningDate || cell.date >= joiningDate)
       ) {
         unitPhDays += phMultiplier;
       }
+
       if (e.code === "PH") {
         // Use the PH day value configured in Attendance Code settings — never hard-code.
         const phValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
