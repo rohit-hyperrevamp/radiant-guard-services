@@ -1404,6 +1404,8 @@ function MusterRollPage() {
       : unitMaxPDays;
     let capped = filtered;
     let convertedDays = 0;
+    let movedDays = 0;
+    const extraRows: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
     if (cap != null) {
       const rk = rowKey(candidate_id, designation_id);
       const touched = new Set(filtered.map((r) => r.entry_date));
@@ -1414,6 +1416,10 @@ function MusterRollPage() {
         if (!e) continue;
         used += dayValueOf(e.code);
       }
+      // A converted duty must not stack on a date that already carries extra
+      // duty (that produced "24h" cells). It is parked on the next free date
+      // of the same period instead.
+      const overflow: Array<{ afterDate: string; days: number }> = [];
       capped = [...filtered]
         .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
         .map((r) => {
@@ -1424,13 +1430,38 @@ function MusterRollPage() {
             return r;
           }
           convertedDays += dv;
-          return { ...r, code: "", ot_hours: (Number(r.ot_hours) || 0) + dv };
+          if ((Number(r.ot_hours) || 0) > 0) {
+            overflow.push({ afterDate: r.entry_date, days: dv });
+            return { ...r, code: "" };
+          }
+          return { ...r, code: "", ot_hours: dv };
         });
+
+      if (overflow.length > 0) {
+        const taken = new Set(capped.map((r) => r.entry_date));
+        const isFree = (date: string) => {
+          if (taken.has(date) || date > todayStr) return false;
+          const e = entryMap.get(`${rk}|${date}`);
+          if (!e) return true;
+          return (e.code ?? "") === "" && (Number(e.ot_hours) || 0) === 0;
+        };
+        for (const o of overflow) {
+          const free = periodCells.find((cell) => cell.date > o.afterDate && isFree(cell.date));
+          if (free) {
+            taken.add(free.date);
+            extraRows.push({ entry_date: free.date, code: "", ot_hours: o.days });
+            movedDays += o.days;
+          } else {
+            const target = capped.find((r) => r.entry_date === o.afterDate);
+            if (target) target.ot_hours = (Number(target.ot_hours) || 0) + o.days;
+          }
+        }
+      }
     }
 
-    if (capped.length === 0) return 0;
+    if (capped.length === 0 && extraRows.length === 0) return 0;
 
-    const payload = capped.map((r) => ({
+    const payload = [...capped, ...extraRows].map((r) => ({
       unit_id: unitId,
       candidate_id,
       designation_id,
@@ -1454,7 +1485,8 @@ function MusterRollPage() {
     }
     if (convertedDays > 0) {
       toast.info(
-        `Payroll days limit (${cap}) reached — ${convertedDays} day${convertedDays === 1 ? "" : "s"} recorded as Extra Duty`,
+        `Payroll days limit (${cap}) reached — ${convertedDays} day${convertedDays === 1 ? "" : "s"} recorded as Extra Duty` +
+          (movedDays > 0 ? ` (${movedDays} moved to the next free date)` : ""),
       );
     }
     return capped.length;
