@@ -135,11 +135,13 @@ export function computeAttendanceTotals(
       unitPhDays += phUnitMultiplier;
     }
     if (e.code === "PH") {
-      // Value of one Paid Holiday duty is whatever the Attendance Code
-      // settings say (day_value). Never hard-code a multiplier here.
-      phCount += c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      // Value of one Paid Holiday duty: the unit's own setting when present,
+      // else the PH code's day_value from Attendance Code settings.
+      const codeValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      phCount += phOverride != null ? phOverride : codeValue;
       continue;
     }
+
     // Fractional day contribution: HD = 0.5, full-day codes = 1, WO/A/etc = 0.
     // Default to 1 for legacy rows that don't have day_value populated.
     const dv = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
