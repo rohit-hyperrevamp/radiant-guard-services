@@ -2274,7 +2274,12 @@ function MusterRollPage() {
       ) {
         unitPhDays += phMultiplier;
       }
-      if (e.code === "PH") { phCount += 1; continue; }
+      if (e.code === "PH") {
+        // Use the PH day value configured in Attendance Code settings — never hard-code.
+        const phValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+        phCount += phValue;
+        continue;
+      }
       // Weekly off is not a payable duty — it must never inflate the payable total.
       if (e.code === "WO" || e.code === "W") continue;
       const dayValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
