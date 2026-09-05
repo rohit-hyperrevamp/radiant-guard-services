@@ -739,7 +739,10 @@ export function computeWages(
   // 26076/26 = 21,061.85 base + 1 PH × 1003.31 + 8 OT × (Basic+DA 12,888 /
   // 208) × 2 = 991.38  →  Gross 23,056).
   const perDayRate = contractGross / baseDays;
-  const phCount = Math.round(totals.phDays / 2);
+  // phDays is already expressed in duty-days (PH count × the PH day_value
+  // configured in Attendance Code settings, plus unit holiday credit).
+  const phCount = totals.phDays;
+
   // Earnings prorate on PRESENT days only. Non-present "paid" codes do not
   // add payable days; PH and ED are paid through their own separate lines.
   const basePaidDays = totals.pDays;
