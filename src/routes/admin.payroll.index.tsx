@@ -84,7 +84,7 @@ function PayrollUnitsPage() {
         eyebrow="Payroll month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Month-till-date payroll gross earned from actual attendance, next to the contracted client value and the invoice it supports."
+        description="Month-till-date payroll gross earned from actual attendance across all units."
         right={
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
@@ -119,7 +119,7 @@ function PayrollUnitsPage() {
               Payroll charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Contracted value vs month-till-date invoice and payroll. Open any unit for the full payroll register.
+              Month-till-date payroll by unit. Open any unit for the full payroll register.
             </p>
           </div>
 

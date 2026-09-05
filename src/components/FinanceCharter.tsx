@@ -374,24 +374,34 @@ export function FinanceCharter({
 
 
   const exportCsv = () => {
-    downloadCsv(
-      mode === "invoice" ? "invoice-charter" : "payroll-charter",
-      rows.map((r) => ({
+    const rowsForCsv = rows.map((r) => {
+      const base = {
         Contract: r.contractCode,
         Organisation: r.unit.customer_name,
         Unit: r.unit.name || r.unit.code,
         Committed: r.committed,
         Deployed: r.actual,
-        "Contracted value (month)": Math.round(r.monthlyContracted),
-        "Contracted value (MTD)": Math.round(r.contractedMtd),
-        "Invoice value (MTD)": Math.round(r.invoiceAmount),
         "Payroll gross (MTD)": Math.round(r.payrollAmount),
+      };
+      if (mode === "invoice") {
+        return {
+          ...base,
+          "Contracted value (month)": Math.round(r.monthlyContracted),
+          "Contracted value (MTD)": Math.round(r.contractedMtd),
+          "Invoice value (MTD)": Math.round(r.invoiceAmount),
+          "Deductions (MTD)": Math.round(r.deductionAmount),
+          "Net payable (MTD)": Math.round(r.netPayrollAmount),
+          Margin: Math.round(r.margin),
+          "Margin %": r.marginPct,
+        };
+      }
+      return {
+        ...base,
         "Deductions (MTD)": Math.round(r.deductionAmount),
         "Net payable (MTD)": Math.round(r.netPayrollAmount),
-        Margin: Math.round(r.margin),
-        "Margin %": r.marginPct,
-      })),
-    );
+      };
+    });
+    downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
   const loading = entriesQ.isLoading || financeQ.isLoading || windowsQ.isLoading;
@@ -403,7 +413,7 @@ export function FinanceCharter({
       <CharterTileGrid>
         <CharterTile
           label="Organizations"
-          sub="clients billed this month"
+          sub={mode === "invoice" ? "clients billed this month" : "clients with payroll this month"}
           countTo={organizationCount ?? new Set(units.map((u) => u.customer_id || u.customer_name)).size}
           icon={Building2}
           accent="violet"
@@ -434,42 +444,45 @@ export function FinanceCharter({
             { label: "Processed", value: registers.processed, tone: "done" },
           ]}
         />
-        <CharterTile
-          label="Contracted value"
-          sub={`${fmtMoneyCompact(totals.contractedMtd)} till date`}
-          value={fmtMoneyCompact(totals.monthlyContracted)}
-          icon={IndianRupee}
-          accent="indigo"
-        />
-        <CharterTile
-          label="Invoice value (MTD)"
-          sub={`${totals.realisationPct}% of contracted till date`}
-          value={fmtMoneyCompact(totals.invoiceAmount)}
-          icon={Receipt}
-          accent="emerald"
-        />
-        <CharterTile
-          label="Payroll gross (MTD)"
-          sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
-          value={fmtMoneyCompact(totals.payrollAmount)}
-          icon={Wallet}
-          accent="amber"
-        />
-        {mode === "payroll" ? (
+        {mode === "invoice" && (
+          <>
+            <CharterTile
+              label="Contracted value"
+              sub={`${fmtMoneyCompact(totals.contractedMtd)} till date`}
+              value={fmtMoneyCompact(totals.monthlyContracted)}
+              icon={IndianRupee}
+              accent="indigo"
+            />
+            <CharterTile
+              label="Invoice value (MTD)"
+              sub={`${totals.realisationPct}% of contracted till date`}
+              value={fmtMoneyCompact(totals.invoiceAmount)}
+              icon={Receipt}
+              accent="emerald"
+            />
+            <CharterTile
+              label="Payroll gross (MTD)"
+              sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
+              value={fmtMoneyCompact(totals.payrollAmount)}
+              icon={Wallet}
+              accent="amber"
+            />
+            <CharterTile
+              label="Margin"
+              sub={`${totals.marginPct}% · current payroll periods`}
+              value={fmtMoneyCompact(totals.margin)}
+              icon={Gauge}
+              accent="rose"
+            />
+          </>
+        )}
+        {mode === "payroll" && (
           <CharterTile
-            label="Net payable (MTD)"
-            sub="gross − deductions"
-            value={fmtMoneyCompact(totals.netPayrollAmount)}
-            icon={Gauge}
-            accent="rose"
-          />
-        ) : (
-          <CharterTile
-            label="Margin"
-            sub={`${totals.marginPct}% · current payroll periods`}
-            value={fmtMoneyCompact(totals.margin)}
-            icon={Gauge}
-            accent="rose"
+            label="Payroll gross (MTD)"
+            sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
+            value={fmtMoneyCompact(totals.payrollAmount)}
+            icon={Wallet}
+            accent="amber"
           />
         )}
       </CharterTileGrid>
@@ -519,7 +532,7 @@ export function FinanceCharter({
                     search={{ start: r.period.start, end: r.period.end }}
                     className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
                   >
-                    <Dial value={r.realisationPct} />
+                    {mode === "invoice" && <Dial value={r.realisationPct} />}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="truncate text-sm font-semibold group-hover:text-primary">
@@ -536,28 +549,38 @@ export function FinanceCharter({
                       </div>
 
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
-                        <span className="whitespace-nowrap">Inv {fmtMoneyCompact(r.invoiceAmount)}</span>
-                        <span>·</span>
-                        <span className="whitespace-nowrap">Pay {fmtMoneyCompact(r.payrollAmount)}</span>
-                        <span>·</span>
-                        <span className="whitespace-nowrap">{r.marginPct}% margin</span>
+                        {mode === "invoice" ? (
+                          <>
+                            <span className="whitespace-nowrap">Inv {fmtMoneyCompact(r.invoiceAmount)}</span>
+                            <span>·</span>
+                            <span className="whitespace-nowrap">Pay {fmtMoneyCompact(r.payrollAmount)}</span>
+                            <span>·</span>
+                            <span className="whitespace-nowrap">{r.marginPct}% margin</span>
+                          </>
+                        ) : (
+                          <span className="whitespace-nowrap">Payroll MTD {fmtMoneyCompact(r.payrollAmount)}</span>
+                        )}
                       </div>
                     </div>
 
                     <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Contracted</div>
-                        <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.monthlyContracted)}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice MTD</div>
-                        <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.invoiceAmount)}</div>
-                      </div>
+                      {mode === "invoice" && (
+                        <>
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Contracted</div>
+                            <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.monthlyContracted)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice MTD</div>
+                            <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.invoiceAmount)}</div>
+                          </div>
+                        </>
+                      )}
                       <div className="text-right">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll MTD</div>
                         <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.payrollAmount)}</div>
                       </div>
-                      <MarginChip value={r.marginPct} />
+                      {mode === "invoice" && <MarginChip value={r.marginPct} />}
                     </div>
                   </Link>
 
