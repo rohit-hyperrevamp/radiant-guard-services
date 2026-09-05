@@ -112,9 +112,6 @@ const customersChildren: LeafItem[] = [
   { to: "/admin/customers/unit-manager", label: "Unit Manager", icon: Warehouse, sub: "unit_manager" },
 ];
 
-const contractsChildren: LeafItem[] = [
-  { to: "/admin/contracts/client-contracts", label: "Client Contracts", icon: FileText, sub: "client_contracts" },
-];
 
 const vehiclesChildren: LeafItem[] = [
   { to: "/admin/vehicles/inventory", label: "Vehicle Inventory", icon: Car, sub: "vehicle_inventory" },
