@@ -95,9 +95,18 @@ export function computeAttendanceTotals(
   ph?: { dates: Iterable<string>; multiplier: number } | null,
   /** Employee joining date (YYYY-MM-DD). Holidays before this date earn no PH credit. */
   joiningDate?: string | null,
+  /**
+   * Per-unit override for the duty value of one PH-marked day (units.ph_day_value).
+   * Null/undefined falls back to the PH code's day_value in Attendance Code settings.
+   * Nothing about the holiday value is hard-coded anywhere in this file.
+   */
+  phDayValueOverride?: number | null,
 ): AttendanceTotals {
   const phDatesSet = new Set(ph?.dates ?? []);
   const phUnitMultiplier = Number(ph?.multiplier ?? 0) || 0;
+  const phOverride =
+    phDayValueOverride == null || Number.isNaN(Number(phDayValueOverride)) ? null : Number(phDayValueOverride);
+
   let unitPhDays = 0;
   const codeMap = new Map(codes.map((c) => [c.code, c]));
   const entryMap = new Map<string, AttendanceEntryLike>();
@@ -126,11 +135,13 @@ export function computeAttendanceTotals(
       unitPhDays += phUnitMultiplier;
     }
     if (e.code === "PH") {
-      // Value of one Paid Holiday duty is whatever the Attendance Code
-      // settings say (day_value). Never hard-code a multiplier here.
-      phCount += c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      // Value of one Paid Holiday duty: the unit's own setting when present,
+      // else the PH code's day_value from Attendance Code settings.
+      const codeValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      phCount += phOverride != null ? phOverride : codeValue;
       continue;
     }
+
     // Fractional day contribution: HD = 0.5, full-day codes = 1, WO/A/etc = 0.
     // Default to 1 for legacy rows that don't have day_value populated.
     const dv = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);

@@ -241,7 +241,7 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data: raw, error } = await supabase
         .from("units")
-        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never)
+        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never)
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
@@ -261,6 +261,10 @@ function MusterRollPage() {
   const publicHolidays = usePublicHolidays();
   const phEnabled = Boolean((unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled);
   const phMultiplier = Number((unit as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
+  // Per-unit duty value of one PH-marked day. NULL = use the PH code's day_value.
+  const unitPhDayValueRaw = (unit as { ph_day_value?: number | string | null } | null | undefined)?.ph_day_value;
+  const unitPhDayValue =
+    unitPhDayValueRaw == null || Number.isNaN(Number(unitPhDayValueRaw)) ? null : Number(unitPhDayValueRaw);
 
   const { data: employees, isLoading, error: rosterError } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
@@ -1689,7 +1693,12 @@ function MusterRollPage() {
           const meta = codeMap.get(row.code);
           if (!meta) continue;
           if (row.code === "PH") {
-            phCount += meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
+            phCount +=
+              unitPhDayValue != null
+                ? unitPhDayValue
+                : meta.day_value == null || Number.isNaN(Number(meta.day_value))
+                  ? 1
+                  : Number(meta.day_value);
             continue;
           }
           if (row.code === "WO" || row.code === "W") continue;
@@ -2278,8 +2287,13 @@ function MusterRollPage() {
       }
 
       if (e.code === "PH") {
-        // Use the PH day value configured in Attendance Code settings — never hard-code.
-        const phValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+        // Unit setting first, else the PH day value from Attendance Code settings.
+        const phValue =
+          unitPhDayValue != null
+            ? unitPhDayValue
+            : c.day_value == null || Number.isNaN(Number(c.day_value))
+              ? 1
+              : Number(c.day_value);
         phCount += phValue;
         continue;
       }

@@ -138,6 +138,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     gpaipAmount: 0,
     phEnabled: false,
     phMultiplier: 1,
+    phDayValue: null,
     bonusEnabled: false,
     epfCapEnabled: true,
     bonusFrequency: null,
@@ -620,6 +621,28 @@ function UnitFormDialog({
       return (data ?? []).filter((b) => b.enabled !== false);
     },
   });
+  // Paid-holiday duty values offered to this unit come straight from
+  // Control Center → Attendance Code Manager (every enabled PH-family code).
+  // Add a code there and it appears in this dropdown automatically.
+  const { data: phCodeOptions = [] } = useQuery({
+    queryKey: ["admin", "attendance-codes", "ph-family"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance_codes")
+        .select("code, label, day_value, enabled")
+        .order("sort_order");
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ code: string; label: string; day_value: number | string | null; enabled: boolean | null }>;
+      return rows
+        .filter((r) => r.enabled !== false && String(r.code).toUpperCase().startsWith("PH"))
+        .map((r) => ({
+          code: String(r.code),
+          label: String(r.label ?? r.code),
+          value: r.day_value == null || Number.isNaN(Number(r.day_value)) ? 1 : Number(r.day_value),
+        }));
+    },
+  });
+
 
 
   const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(units)));
@@ -1314,8 +1337,8 @@ function UnitFormDialog({
                 </div>
                 <Switch checked={form.phEnabled} onCheckedChange={(v) => set("phEnabled", v)} />
               </div>
-              {form.phEnabled && (
-                <div className="mt-3 max-w-xs">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {form.phEnabled && (
                   <Field label="PH multiplier">
                     <Select
                       value={String(form.phMultiplier || 1)}
@@ -1325,13 +1348,42 @@ function UnitFormDialog({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">+1 duty</SelectItem>
-                        <SelectItem value="2">+2 duties</SelectItem>
+                        {(phCodeOptions.length
+                          ? Array.from(new Set(phCodeOptions.map((o) => o.value))).sort((a, b) => a - b)
+                          : [1, 2]
+                        ).map((v) => (
+                          <SelectItem key={v} value={String(v)}>
+                            +{v} {v === 1 ? "duty" : "duties"}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </Field>
-                </div>
-              )}
+                )}
+                <Field label="Value of one PH day (this unit)">
+                  <Select
+                    value={form.phDayValue == null ? "default" : String(form.phDayValue)}
+                    onValueChange={(v) => set("phDayValue", v === "default" ? null : Number(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Use Attendance Code setting</SelectItem>
+                      {phCodeOptions.map((o) => (
+                        <SelectItem key={o.code} value={String(o.value)}>
+                          {o.label} ({o.code}) — {o.value} {o.value === 1 ? "duty" : "duties"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                    Options come from Control Center → Attendance Code Manager. Add a PH-type code there
+                    (e.g. PH15 with day value 1.5) and it appears here for every unit to pick from.
+                  </p>
+                </Field>
+              </div>
+
             </div>
 
 
