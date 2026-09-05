@@ -4349,6 +4349,7 @@ export function ResourceFormDialog({
     );
     setEmployerContributions((prev) => {
       const refsCtc = (b: BenefitItem) =>
+        /\bctc\b/i.test(b.formulaExpression ?? "") ||
         b.baseComponents.some((x) => {
           const l = x.label.trim().toLowerCase();
           return l === "ctc" || l === "total ctc";
