@@ -1319,70 +1319,72 @@ function UnitFormDialog({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-semibold">Public Holiday (PH)</div>
-                    <Badge
-                      className={cn(
-                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
-                        form.phEnabled
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {form.phEnabled ? `+${form.phMultiplier || 1}` : "Off"}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                    Credit extra duty when an employee is present on a public holiday. Absent on the holiday = no credit.
-                  </p>
+                  <div className="text-sm font-semibold">Public Holiday (PH)</div>
+                  <Badge
+                    className={cn(
+                      "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                      form.phEnabled
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {form.phEnabled ? `+${form.phMultiplier || 1}` : "Off"}
+                  </Badge>
                 </div>
-                <Switch checked={form.phEnabled} onCheckedChange={(v) => set("phEnabled", v)} />
+                <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                  Credit extra duty when an employee is present on a public holiday. Absent on the holiday = no credit.
+                </p>
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {form.phEnabled && (
-                  <Field label="PH multiplier">
-                    <Select
-                      value={String(form.phMultiplier || 1)}
-                      onValueChange={(v) => set("phMultiplier", Number(v))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(phCodeOptions.length
-                          ? Array.from(new Set(phCodeOptions.map((o) => o.value))).sort((a, b) => a - b)
-                          : [1, 2]
-                        ).map((v) => (
-                          <SelectItem key={v} value={String(v)}>
-                            +{v} {v === 1 ? "duty" : "duties"}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
-                <Field label="Value of one PH day (this unit)">
+              <Switch checked={form.phEnabled} onCheckedChange={(v) => set("phEnabled", v)} />
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {form.phEnabled && (
+                <Field label="Extra duty credit on PH">
                   <Select
-                    value={form.phDayValue == null ? "default" : String(form.phDayValue)}
-                    onValueChange={(v) => set("phDayValue", v === "default" ? null : Number(v))}
+                    value={String(form.phMultiplier || 1)}
+                    onValueChange={(v) => set("phMultiplier", Number(v))}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">Use Attendance Code setting</SelectItem>
-                      {phCodeOptions.map((o) => (
-                        <SelectItem key={o.code} value={String(o.value)}>
-                          {o.label} ({o.code}) — {o.value} {o.value === 1 ? "duty" : "duties"}
+                      {(phCodeOptions.length
+                        ? Array.from(new Set(phCodeOptions.map((o) => o.value))).sort((a, b) => a - b)
+                        : [1, 2]
+                      ).map((v) => (
+                        <SelectItem key={v} value={String(v)}>
+                          +{v} {v === 1 ? "duty" : "duties"}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                    Options come from Control Center → Attendance Code Manager. Add a PH-type code there
-                    (e.g. PH15 with day value 1.5) and it appears here for every unit to pick from.
+                    How many extra duties an employee earns for being present on a public holiday.
                   </p>
                 </Field>
-              </div>
+              )}
+              <Field label="Value of one PH day for attendance/payroll">
+                <Select
+                  value={form.phDayValue == null ? "default" : String(form.phDayValue)}
+                  onValueChange={(v) => set("phDayValue", v === "default" ? null : Number(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Use Attendance Code setting</SelectItem>
+                    {phCodeOptions.map((o) => (
+                      <SelectItem key={o.code} value={String(o.value)}>
+                        {o.label} ({o.code}) — {o.value} {o.value === 1 ? "duty" : "duties"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                  How much each public holiday itself counts toward payable/billable duties. This is separate from the extra-duty credit above. Options come from Control Center → Attendance Code Manager.
+                </p>
+              </Field>
+            </div>
 
             </div>
 
