@@ -3578,6 +3578,7 @@ function EmployeesPage() {
               { label: "Inactive", value: stats.empInactive, accent: false as const, dot: "bg-slate-400", tone: "neutral" as const },
               { label: "Billable", value: stats.empBillable, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
               { label: "Non-billable", value: stats.empNonBillable, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
+            ]
 
           : [
               { label: "Total", value: stats.candTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
