@@ -126,7 +126,9 @@ export function computeAttendanceTotals(
       unitPhDays += phUnitMultiplier;
     }
     if (e.code === "PH") {
-      phCount += 1;
+      // Value of one Paid Holiday duty is whatever the Attendance Code
+      // settings say (day_value). Never hard-code a multiplier here.
+      phCount += c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       continue;
     }
     // Fractional day contribution: HD = 0.5, full-day codes = 1, WO/A/etc = 0.
@@ -136,7 +138,8 @@ export function computeAttendanceTotals(
     else if (c.is_paid) otherPaidDays += dv;
   }
 
-  const phDays = round2(phCount * 2 + unitPhDays);
+  const phDays = round2(phCount + unitPhDays);
+
   const otDays = Math.round(otDaysSum * 100) / 100;
   const otHours = otDays;
   // Total PAID days = present + paid holiday (double) + extra duty ONLY.
@@ -736,7 +739,10 @@ export function computeWages(
   // 26076/26 = 21,061.85 base + 1 PH × 1003.31 + 8 OT × (Basic+DA 12,888 /
   // 208) × 2 = 991.38  →  Gross 23,056).
   const perDayRate = contractGross / baseDays;
-  const phCount = Math.round(totals.phDays / 2);
+  // phDays is already expressed in duty-days (PH count × the PH day_value
+  // configured in Attendance Code settings, plus unit holiday credit).
+  const phCount = totals.phDays;
+
   // Earnings prorate on PRESENT days only. Non-present "paid" codes do not
   // add payable days; PH and ED are paid through their own separate lines.
   const basePaidDays = totals.pDays;
