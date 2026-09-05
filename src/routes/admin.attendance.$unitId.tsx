@@ -2286,7 +2286,7 @@ function MusterRollPage() {
       if (c.counts_as_present) pDays += dayValue;
       else if (c.is_paid) otherPaidDays += dayValue;
     }
-    const phDays = Math.round((phCount * 2 + unitPhDays) * 100) / 100;
+    const phDays = Math.round((phCount + unitPhDays) * 100) / 100;
     const otDays = Math.round(otDaysSum * 100) / 100;
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
