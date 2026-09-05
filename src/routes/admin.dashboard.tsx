@@ -29,6 +29,7 @@ import {
 } from "@/lib/payroll-calc";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
@@ -367,7 +368,7 @@ function DashboardPage() {
         payrollDayBase: r.payroll_day_base_id ? pdbMap.get(r.payroll_day_base_id) ?? null : null,
       });
 
-      const hydratedResources = await hydrateFormulasFromMaster(resources.map(toResource));
+      const hydratedResources = (await hydrateFormulasFromMaster(resources.map(toResource))).map(refreshBillingAddOns);
       const hydratedByContractDesignation = new Map(
         resources.map((row, index) => [
           `${row.contract_id}|${row.designation_id ?? ""}`,

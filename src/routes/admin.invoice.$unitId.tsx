@@ -31,6 +31,7 @@ import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
@@ -619,7 +620,9 @@ function PayrollUnitPage() {
       // Overlay latest formula_mode/expression/version from Control Center
       // masters so paysheets/invoices reflect master-formula edits without
       // requiring contracts to be re-saved.
-      const hydratedList = await hydrateFormulasFromMaster(Array.from(resourceByDesignation.values()));
+      const hydratedList = (
+        await hydrateFormulasFromMaster(Array.from(resourceByDesignation.values()))
+      ).map(refreshBillingAddOns);
       for (const r of hydratedList) {
         resourceByDesignation.set(r.designationId, r);
       }
