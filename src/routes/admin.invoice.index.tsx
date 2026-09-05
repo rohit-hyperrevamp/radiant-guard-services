@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { type ComponentType, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, MapPinned, Users, X } from "lucide-react";
+import { X } from "lucide-react";
 
-import { PageHeader } from "@/components/PageHeader";
 import { HeroTile } from "@/components/HeroTile";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,12 +77,6 @@ function InvoiceUnitsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader
-        title="Invoice"
-        description="Contracted value against month-till-date billing, unit by unit."
-        crumbs={[{ label: "Invoice" }]}
-      />
-
       <HeroTile
         eyebrow="Invoice month"
         title={MONTH_NAMES[monthIdx]}
@@ -115,12 +108,6 @@ function InvoiceUnitsPage() {
           </div>
         }
       />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
-        <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
-        <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
-      </div>
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
         <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
@@ -192,6 +179,8 @@ function InvoiceUnitsPage() {
               year={year}
               query={q}
               onQueryChange={setQ}
+              organizationCount={summary.organizations}
+              activeEmployees={summary.activeEmployees}
             />
           )}
         </div>
