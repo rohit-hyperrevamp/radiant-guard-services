@@ -57,7 +57,11 @@ export function CharterTile({
           <div className="truncate font-display text-[12.5px] font-semibold leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
-          {sub && <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-[11px]">{sub}</div>}
+          {sub && (
+            <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-[11px]">
+              {sub}
+            </div>
+          )}
         </div>
         {Icon && (
           <span
