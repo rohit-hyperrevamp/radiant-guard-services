@@ -1897,11 +1897,14 @@ function EmployeesPage() {
     const empInactive = empTotal - empActive;
     const empNdaSigned = employeeOnly.filter((c) => signedByCandidate.get(c.id)?.has("nda")).length;
     const empAlSigned = employeeOnly.filter((c) => signedByCandidate.get(c.id)?.has("appointment_letter")).length;
+    const empBillable = employeeOnly.filter((c) => !c.non_billable).length;
+    const empNonBillable = empTotal - empBillable;
 
     return {
       candTotal, candDrafts, candPending, candRejected,
-      empTotal, empActive, empInactive, empNdaSigned, empAlSigned,
+      empTotal, empActive, empInactive, empNdaSigned, empAlSigned, empBillable, empNonBillable,
     };
+
   }, [candidates, signedByCandidate, supersededEmployeeIds, rehireByCandidate]);
 
   const deleteMut = useMutation({
@@ -3573,23 +3576,10 @@ function EmployeesPage() {
               { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
               { label: "Active", value: stats.empActive, accent: false as const, dot: "bg-emerald-500", tone: "neutral" as const },
               { label: "Inactive", value: stats.empInactive, accent: false as const, dot: "bg-slate-400", tone: "neutral" as const },
-              {
-                label: "NDA Signed",
-                value: stats.empNdaSigned,
-                accent: stats.empTotal > 0 && stats.empNdaSigned < stats.empTotal,
-                dot: "bg-rose-500",
-                tone: (stats.empTotal > 0 && stats.empNdaSigned < stats.empTotal ? "alert" : "neutral") as "alert" | "neutral",
-                suffix: `/ ${stats.empTotal}`,
-              },
-              {
-                label: "Appt. Letter Signed",
-                value: stats.empAlSigned,
-                accent: stats.empTotal > 0 && stats.empAlSigned < stats.empTotal,
-                dot: "bg-rose-500",
-                tone: (stats.empTotal > 0 && stats.empAlSigned < stats.empTotal ? "alert" : "neutral") as "alert" | "neutral",
-                suffix: `/ ${stats.empTotal}`,
-              },
+              { label: "Billable", value: stats.empBillable, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
+              { label: "Non-billable", value: stats.empNonBillable, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
             ]
+
           : [
               { label: "Total", value: stats.candTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
               { label: "Drafts", value: stats.candDrafts, accent: false as const, dot: "bg-slate-400", tone: "neutral" as const },
