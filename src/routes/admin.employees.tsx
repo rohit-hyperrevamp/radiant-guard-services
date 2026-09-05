@@ -4852,15 +4852,20 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees: the "home unit" they belong to. Every unit under
-  // the own-company (Radiant) organization is selectable — Corporate Office
-  // (Pune - HO) is just the default.
-  const [homeUnitId, setHomeUnitId] = useState<string>(RADIANT_BILLING_UNIT_ID);
+  // Non-billable employees always belong to a Radiant Guard Services unit.
+  // Radiant's own (non-billable) units come first and one of them is always
+  // the default; client sites filed under Radiant stay selectable but last.
+  const [homeUnitId, setHomeUnitId] = useState<string>("");
   const nonBillableUnits = useMemo(() => {
     const own = units.filter(isOwnCompanyUnit);
     return (own.length > 0 ? own : units)
       .slice()
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        const aOwn = a.is_billable === false ? 0 : 1;
+        const bOwn = b.is_billable === false ? 0 : 1;
+        if (aOwn !== bOwn) return aOwn - bOwn;
+        return a.name.localeCompare(b.name);
+      });
   }, [units]);
   // Keep the selection valid as units load / change.
   useEffect(() => {
