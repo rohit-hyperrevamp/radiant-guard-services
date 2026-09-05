@@ -416,8 +416,9 @@ function AdminLayout() {
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
       { key: "organizations", label: "Organizations", module: "organizations", icon: Building2, to: "/admin/customers/customer-manager", children: customersChildren, activePrefixes: ["/admin/customers"] },
-      { key: "contracts", label: "Contracts", module: "contracts", icon: Files, children: contractsChildren, activePrefixes: ["/admin/contracts"] },
+      { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
+
       { key: "attendance", label: "Attendance", module: "attendance", icon: ClipboardList, to: "/admin/attendance", activePrefixes: ["/admin/attendance"] },
       { key: "payroll", label: "Payroll", module: "payroll", icon: Wallet, to: "/admin/payroll", activePrefixes: ["/admin/payroll", "/admin/additions", "/admin/deductions"] },
       { key: "invoice", label: "Invoice", module: "invoice", icon: CreditCard, to: "/admin/invoice", activePrefixes: ["/admin/invoice"] },
