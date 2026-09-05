@@ -1897,11 +1897,14 @@ function EmployeesPage() {
     const empInactive = empTotal - empActive;
     const empNdaSigned = employeeOnly.filter((c) => signedByCandidate.get(c.id)?.has("nda")).length;
     const empAlSigned = employeeOnly.filter((c) => signedByCandidate.get(c.id)?.has("appointment_letter")).length;
+    const empBillable = employeeOnly.filter((c) => !c.non_billable).length;
+    const empNonBillable = empTotal - empBillable;
 
     return {
       candTotal, candDrafts, candPending, candRejected,
-      empTotal, empActive, empInactive, empNdaSigned, empAlSigned,
+      empTotal, empActive, empInactive, empNdaSigned, empAlSigned, empBillable, empNonBillable,
     };
+
   }, [candidates, signedByCandidate, supersededEmployeeIds, rehireByCandidate]);
 
   const deleteMut = useMutation({
