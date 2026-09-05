@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Download, Gauge, Search, TrendingDown, UserCheck, Users } from "lucide-react";
+import { Building2, ChevronDown, ClipboardList, Download, Gauge, MapPinned, Search, TrendingDown, UserCheck, Users } from "lucide-react";
+import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
