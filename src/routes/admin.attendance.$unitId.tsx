@@ -1485,7 +1485,8 @@ function MusterRollPage() {
     }
     if (convertedDays > 0) {
       toast.info(
-        `Payroll days limit (${cap}) reached — ${convertedDays} day${convertedDays === 1 ? "" : "s"} recorded as Extra Duty`,
+        `Payroll days limit (${cap}) reached — ${convertedDays} day${convertedDays === 1 ? "" : "s"} recorded as Extra Duty` +
+          (movedDays > 0 ? ` (${movedDays} moved to the next free date)` : ""),
       );
     }
     return capped.length;
