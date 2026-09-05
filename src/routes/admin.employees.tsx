@@ -5635,7 +5635,7 @@ function CandidateWizard({
       if (form.unit_ids.length === 0)
         return failValidation(
           isEmployeeMode
-            ? "Pick a Home Unit at the top of this form (e.g. Corporate Office (Pune - HO))"
+            ? "Pick a Radiant Guard Services unit at the top of this form (e.g. Corporate Office (Pune - HO))"
             : "At least one unit must be mapped before saving (Deployment section)",
         );
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address", "permanent_district");
@@ -5719,7 +5719,7 @@ function CandidateWizard({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
-              ? "Non-billable internal hire. Pick the Radiant home unit (defaults to Corporate Office (Pune - HO)); client unit mapping is optional."
+              ? "Non-billable internal hire under Radiant Guard Services. Start with Aadhaar and PAN — most details fill in automatically; photograph and documents come last."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
@@ -5730,10 +5730,10 @@ function CandidateWizard({
               {nonBillableUnits.length > 0 && (
 
                 <div className="grid gap-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Unit</label>
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
                   <Select value={homeUnitId} onValueChange={setHomeUnitId}>
                     <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
-                      <SelectValue placeholder="Select home unit" />
+                      <SelectValue placeholder="Select a Radiant unit" />
                     </SelectTrigger>
                     <SelectContent>
                       {nonBillableUnits
@@ -5746,7 +5746,7 @@ function CandidateWizard({
                         ))}
                     </SelectContent>
                   </Select>
-                  <span className="text-[11px] text-muted-foreground">The Radiant unit this employee belongs to (payroll &amp; billing base). Defaults to Corporate Office (Pune - HO).</span>
+                  <span className="text-[11px] text-muted-foreground">Which Radiant Guard Services unit this internal employee sits in for payroll. Defaults to Corporate Office (Pune - HO).</span>
                 </div>
               )}
             </div>
