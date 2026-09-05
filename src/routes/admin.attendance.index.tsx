@@ -42,7 +42,6 @@ function currentMonthRange() {
   return { start, end };
 }
 
-import { PageHeader } from "@/components/PageHeader";
 import { HeroTile } from "@/components/HeroTile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -528,11 +527,8 @@ function AttendanceUnitsPage() {
       />
 
 
-      <div className="flex flex-wrap items-center gap-2">
-        <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
-        <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
-        <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
-        <Button asChild size="sm" variant="outline" className="ml-auto h-8 gap-1.5 rounded-full text-xs">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 rounded-full text-xs">
           <Link to="/admin/attendance/employee">
             <Search className="h-3.5 w-3.5" /> Employee lookup
           </Link>
@@ -617,6 +613,8 @@ function AttendanceUnitsPage() {
               year={year}
               query={q}
               onQueryChange={setQ}
+              organizationCount={summary.organizations}
+              activeEmployees={summary.activeEmployees}
             />
           )}
         </div>
@@ -659,22 +657,3 @@ function FilterSelect({
     </div>
   );
 }
-
-function SummaryPill({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 shadow-sm">
-      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-sm font-semibold tabular-nums text-foreground">{value}</span>
-      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-    </div>
-  );
-}
-

@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, Receipt, Search, Wallet } from "lucide-react";
+import { Building2, ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
+import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,40 +115,6 @@ function MarginChip({ value }: { value: number }) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: typeof Wallet;
-  tone?: "accent" | "warning" | "destructive";
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/80 to-muted/40 p-3 backdrop-blur">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-        <Icon
-          className={cn(
-            "h-3.5 w-3.5 text-muted-foreground",
-            tone === "accent" && "text-primary",
-            tone === "warning" && "text-amber-500",
-            tone === "destructive" && "text-destructive",
-          )}
-        />
-      </div>
-      <div className="mt-1.5 whitespace-nowrap text-[22px] font-semibold leading-none tracking-tight tabular-nums">
-        {value}
-      </div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
-
 export function FinanceCharter({
   mode,
   units,
@@ -154,6 +122,8 @@ export function FinanceCharter({
   year,
   query,
   onQueryChange,
+  organizationCount,
+  activeEmployees,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -161,7 +131,10 @@ export function FinanceCharter({
   year: number;
   query: string;
   onQueryChange: (v: string) => void;
+  organizationCount?: number;
+  activeEmployees?: number;
 }) {
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
   const qc = useQueryClient();
@@ -384,6 +357,21 @@ export function FinanceCharter({
     };
   }, [rows]);
 
+  // Register counts for the selected month: how many unit registers exist and
+  // where each one sits in the open → ready → processed lifecycle.
+  const registers = useMemo(() => {
+    let open = 0;
+    let ready = 0;
+    let processed = 0;
+    for (const r of rows) {
+      const st = mode === "invoice" ? r.status.invoice : r.status.payroll;
+      if (st === "processed") processed += 1;
+      else if (st === "ready") ready += 1;
+      else open += 1;
+    }
+    return { total: rows.length, open, ready, processed };
+  }, [rows, mode]);
+
 
   const exportCsv = () => {
     downloadCsv(
@@ -408,47 +396,84 @@ export function FinanceCharter({
 
   const loading = entriesQ.isLoading || financeQ.isLoading || windowsQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
+  const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Stat
+      <CharterTileGrid>
+        <CharterTile
+          label="Organizations"
+          sub="clients billed this month"
+          countTo={organizationCount ?? new Set(units.map((u) => u.customer_id || u.customer_name)).size}
+          icon={Building2}
+          accent="violet"
+        />
+        <CharterTile
+          label="Units"
+          sub="sites in this charter"
+          countTo={units.length}
+          icon={MapPinned}
+          accent="cyan"
+        />
+        <CharterTile
+          label="Active employees"
+          sub="deployed across units"
+          countTo={activeEmployees ?? units.reduce((s, u) => s + u.active_employee_count, 0)}
+          icon={Users}
+          accent="sky"
+        />
+        <CharterTile
+          label={registerLabel}
+          sub="this month, by stage"
+          countTo={registers.total}
+          icon={mode === "invoice" ? Receipt : Wallet}
+          accent="lime"
+          segments={[
+            { label: "Open", value: registers.open, tone: "open" },
+            { label: "Ready", value: registers.ready, tone: "ready" },
+            { label: "Processed", value: registers.processed, tone: "done" },
+          ]}
+        />
+        <CharterTile
           label="Contracted value"
-          value={fmtMoneyCompact(totals.monthlyContracted)}
           sub={`${fmtMoneyCompact(totals.contractedMtd)} till date`}
+          value={fmtMoneyCompact(totals.monthlyContracted)}
           icon={IndianRupee}
-          tone="accent"
+          accent="indigo"
         />
-        <Stat
+        <CharterTile
           label="Invoice value (MTD)"
-          value={fmtMoneyCompact(totals.invoiceAmount)}
           sub={`${totals.realisationPct}% of contracted till date`}
+          value={fmtMoneyCompact(totals.invoiceAmount)}
           icon={Receipt}
+          accent="emerald"
         />
-        <Stat
+        <CharterTile
           label="Payroll gross (MTD)"
-          value={fmtMoneyCompact(totals.payrollAmount)}
           sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
+          value={fmtMoneyCompact(totals.payrollAmount)}
           icon={Wallet}
-          tone="warning"
+          accent="amber"
         />
         {mode === "payroll" ? (
-          <Stat
+          <CharterTile
             label="Net payable (MTD)"
-            value={fmtMoneyCompact(totals.netPayrollAmount)}
             sub="gross − deductions"
+            value={fmtMoneyCompact(totals.netPayrollAmount)}
             icon={Gauge}
+            accent="rose"
           />
         ) : (
-          <Stat
+          <CharterTile
             label="Margin"
-            value={fmtMoneyCompact(totals.margin)}
             sub={`${totals.marginPct}% · current payroll periods`}
+            value={fmtMoneyCompact(totals.margin)}
             icon={Gauge}
-            tone={totals.margin < 0 ? "destructive" : undefined}
+            accent="rose"
           />
         )}
-      </div>
+      </CharterTileGrid>
+
 
 
       <div className="flex flex-wrap items-center gap-2">

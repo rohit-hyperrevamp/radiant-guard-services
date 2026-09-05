@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Download, Gauge, Search, TrendingDown, UserCheck, Users } from "lucide-react";
+import { Building2, ChevronDown, ClipboardList, Download, Gauge, MapPinned, Search, TrendingDown, UserCheck, Users } from "lucide-react";
+import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,51 +132,24 @@ function Dial({ value }: { value: number }) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: typeof Users;
-  tone?: "accent" | "warning" | "destructive";
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/80 to-muted/40 p-3 backdrop-blur">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-        <Icon
-          className={cn(
-            "h-3.5 w-3.5 text-muted-foreground",
-            tone === "accent" && "text-primary",
-            tone === "warning" && "text-amber-500",
-            tone === "destructive" && "text-destructive",
-          )}
-        />
-      </div>
-      <div className="mt-1.5 text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
-
 export function AttendanceCharter({
   units,
   monthIdx,
   year,
   query,
   onQueryChange,
+  organizationCount,
+  activeEmployees,
 }: {
   units: CharterUnit[];
   monthIdx: number;
   year: number;
   query: string;
   onQueryChange: (v: string) => void;
+  organizationCount?: number;
+  activeEmployees?: number;
 }) {
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
 
@@ -383,31 +358,79 @@ export function AttendanceCharter({
 
   const loading = entriesQ.isLoading || shiftQ.isLoading || windowsQ.isLoading;
 
+  // Attendance sheets for the selected month, by lifecycle stage.
+  const sheets = useMemo(() => {
+    let open = 0;
+    let submitted = 0;
+    let approved = 0;
+    for (const r of rows) {
+      if (r.status.attendance === "approved") approved += 1;
+      else if (r.status.attendance === "submitted") submitted += 1;
+      else open += 1;
+    }
+    return { total: rows.length, open, submitted, approved };
+  }, [rows]);
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Stat
-          label="Deployment"
-          value={`${totals.actual}/${totals.committed}`}
-          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+      <CharterTileGrid>
+        <CharterTile
+          label="Organizations"
+          sub="clients on this charter"
+          countTo={organizationCount ?? new Set(units.map((u) => u.customer_name)).size}
+          icon={Building2}
+          accent="violet"
+        />
+        <CharterTile label="Units" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
+        <CharterTile
+          label="Active employees"
+          sub="on the muster roll"
+          countTo={activeEmployees ?? units.reduce((s, u) => s + u.security_guards.length, 0)}
           icon={Users}
-          tone="accent"
+          accent="sky"
         />
-        <Stat
+        <CharterTile
+          label="Attendance sheets"
+          sub="this month, by stage"
+          countTo={sheets.total}
+          icon={ClipboardList}
+          accent="lime"
+          segments={[
+            { label: "Open", value: sheets.open, tone: "open" },
+            { label: "Submitted", value: sheets.submitted, tone: "ready" },
+            { label: "Approved", value: sheets.approved, tone: "done" },
+          ]}
+        />
+        <CharterTile
+          label="Deployment"
+          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+          value={`${totals.actual}/${totals.committed}`}
+          icon={Users}
+          accent="indigo"
+        />
+        <CharterTile
           label="Actual man-hours"
-          value={fmtHours(totals.actualHours)}
           sub={`of ${fmtHours(totals.projectedHours)} projected`}
+          value={fmtHours(totals.actualHours)}
           icon={UserCheck}
+          accent="emerald"
         />
-        <Stat label="Extra duty" value={fmtHours(totals.otHours)} sub="month till date" icon={TrendingDown} tone="warning" />
-        <Stat
+        <CharterTile
+          label="Extra duty"
+          sub="month till date"
+          value={fmtHours(totals.otHours)}
+          icon={TrendingDown}
+          accent="amber"
+        />
+        <CharterTile
           label="MTD attendance"
-          value={`${totals.mtdPct}%`}
           sub="current payroll periods"
+          value={`${totals.mtdPct}%`}
           icon={Gauge}
-          tone={totals.mtdPct < 85 ? "destructive" : undefined}
+          accent="rose"
         />
-      </div>
+      </CharterTileGrid>
+
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
