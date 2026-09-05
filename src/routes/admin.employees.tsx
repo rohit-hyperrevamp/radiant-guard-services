@@ -4750,9 +4750,15 @@ const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
 /** Own-company (Radiant) units are valid home units for non-billable staff. */
 const isOwnCompanyUnit = (u: UnitLite) =>
   u.is_billable === false || /radiant/i.test(u.customer_name ?? "");
+/**
+ * A non-billable internal hire always sits on a Radiant (own-company) unit.
+ * Prefer the genuinely non-billable Radiant units — client sites that happen to
+ * be filed under the Radiant organization must never be the default.
+ */
 const pickDefaultHomeUnit = (options: UnitLite[]) =>
   options.find((u) => u.id === RADIANT_BILLING_UNIT_ID)?.id ??
-  options.find((u) => (u.code ?? "").toUpperCase() === "UN1")?.id ??
+  options.find((u) => u.is_billable === false && (u.code ?? "").toUpperCase() === "UN1")?.id ??
+  options.find((u) => u.is_billable === false && /corporate|head\s*office|\bho\b/i.test(u.name))?.id ??
   options.find((u) => u.is_billable === false)?.id ??
   options[0]?.id ??
   "";
