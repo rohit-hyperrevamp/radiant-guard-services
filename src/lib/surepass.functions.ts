@@ -472,3 +472,54 @@ export const verifyPanComprehensive = createServerFn({ method: "POST" })
       message: s(json.message) || "PAN verified",
     };
   });
+
+export type BankVerificationResult = {
+  verified: boolean;
+  account_exists: boolean;
+  account_number: string;
+  ifsc: string;
+  full_name: string;
+  bank_name: string;
+  branch: string;
+  city: string;
+  micr: string;
+  upi_handle: string;
+  message: string;
+};
+
+/** Bank Account Verification (Surepass) — penny-drop style check of account + IFSC. */
+export const verifyBankAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        accountNumber: z.string().regex(/^\d{6,18}$/, "Account number must be 6–18 digits"),
+        ifsc: z
+          .string()
+          .transform((v) => v.trim().toUpperCase())
+          .refine((v) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v), "IFSC must look like SBIN0001234"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<BankVerificationResult> => {
+    const json = await surepass<Record<string, unknown>>("/api/v1/bank-verification/", {
+      method: "POST",
+      body: { id_number: data.accountNumber, ifsc: data.ifsc, ifsc_details: true },
+    });
+    const d = (json.data ?? {}) as Record<string, unknown>;
+    const ifscDetails = (d["ifsc_details"] ?? {}) as Record<string, unknown>;
+    const exists = d["account_exists"] === undefined ? json.success === true : Boolean(d["account_exists"]);
+    return {
+      verified: exists,
+      account_exists: exists,
+      account_number: s(d["account_number"]) || data.accountNumber,
+      ifsc: s(d["ifsc"]) || s(ifscDetails["ifsc"]) || data.ifsc,
+      full_name: s(d["full_name"]) || s(d["name"]) || s(d["account_name"]),
+      bank_name: s(ifscDetails["bank_name"]) || s(ifscDetails["bank"]) || s(d["bank_name"]),
+      branch: s(ifscDetails["branch"]) || s(d["branch"]),
+      city: s(ifscDetails["city"]) || s(ifscDetails["district"]),
+      micr: s(ifscDetails["micr"]),
+      upi_handle: s(d["upi_handle"]),
+      message: s(json.message) || (exists ? "Bank account verified" : "Bank account could not be verified"),
+    };
+  });
