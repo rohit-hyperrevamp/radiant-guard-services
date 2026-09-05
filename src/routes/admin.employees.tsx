@@ -79,6 +79,7 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 
 import { DigilockerVerify } from "@/components/DigilockerVerify";
 import { PanVerify } from "@/components/PanVerify";
+import { BankVerify } from "@/components/BankVerify";
 import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
@@ -4811,6 +4812,7 @@ function CandidateWizard({
   const [invalidField, setInvalidField] = useState<string | null>(null);
   const [digilockerVerified, setDigilockerVerified] = useState(false);
   const [panVerified, setPanVerified] = useState(false);
+  const [bankVerified, setBankVerified] = useState(false);
   const checkSavedDigilockerVerification = useServerFn(hasCompletedDigilockerVerification);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
@@ -6361,16 +6363,20 @@ function CandidateWizard({
                     <Input
                       value={form.bank_account_number}
                       inputMode="numeric"
-                      onChange={(e) =>
-                        set("bank_account_number", e.target.value.replace(/\D/g, "").slice(0, 18))
-                      }
+                      onChange={(e) => {
+                        setBankVerified(false);
+                        set("bank_account_number", e.target.value.replace(/\D/g, "").slice(0, 18));
+                      }}
                       className="font-mono"
                     />
                   </Field>
                   <Field label="IFSC Code" anchor="bank_ifsc">
                     <Input
                       value={form.bank_ifsc}
-                      onChange={(e) => set("bank_ifsc", e.target.value.toUpperCase().slice(0, 11))}
+                      onChange={(e) => {
+                        setBankVerified(false);
+                        set("bank_ifsc", e.target.value.toUpperCase().slice(0, 11));
+                      }}
                       placeholder="e.g. SBIN0001234"
                       className="font-mono uppercase"
                     />
@@ -6392,6 +6398,33 @@ function CandidateWizard({
                       </SelectContent>
                     </Select>
                   </Field>
+                  <div className="sm:col-span-2">
+                    <BankVerify
+                      accountNumber={form.bank_account_number}
+                      ifsc={form.bank_ifsc}
+                      name={form.bank_account_holder || form.full_name}
+                      verified={bankVerified}
+                      onVerified={(result) => {
+                        setBankVerified(true);
+                        setForm((f) => ({
+                          ...f,
+                          bank_account_holder: f.bank_account_holder || result.full_name,
+                          bank_name: result.bank_name || f.bank_name,
+                          bank_branch: result.branch || f.bank_branch,
+                          other_info: {
+                            ...(f.other_info ?? {}),
+                            bank_verified: true,
+                            bank_verified_at: new Date().toISOString(),
+                            bank_verified_account: result.account_number,
+                            bank_verified_ifsc: result.ifsc,
+                            bank_verified_name: result.full_name,
+                            bank_micr: result.micr,
+                            bank_city: result.city,
+                          },
+                        }));
+                      }}
+                    />
+                  </div>
                   <Field label="PAN Number" anchor="pan_number">
                     <Input
                       format="pan"
