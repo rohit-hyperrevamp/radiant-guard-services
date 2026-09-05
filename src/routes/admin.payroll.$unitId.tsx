@@ -172,11 +172,20 @@ function PayrollUnitPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units")
-        .select("ph_enabled, ph_multiplier" as never)
+        .select("ph_enabled, ph_multiplier, ph_day_value" as never)
         .eq("id", unitId)
         .maybeSingle();
-      const row = (data ?? null) as { ph_enabled?: boolean | null; ph_multiplier?: number | null } | null;
-      return { enabled: Boolean(row?.ph_enabled), multiplier: Number(row?.ph_multiplier ?? 1) || 1 };
+      const row = (data ?? null) as {
+        ph_enabled?: boolean | null;
+        ph_multiplier?: number | null;
+        ph_day_value?: number | string | null;
+      } | null;
+      const dv = row?.ph_day_value;
+      return {
+        enabled: Boolean(row?.ph_enabled),
+        multiplier: Number(row?.ph_multiplier ?? 1) || 1,
+        dayValue: dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
+      };
     },
   });
   const phConfig = useMemo(() => {
@@ -816,6 +825,7 @@ function PayrollUnitPage() {
           (codes ?? []) as AttendanceCodeLike[],
           isPrimaryLine ? phConfig : null,
           (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
+          unitPh?.dayValue ?? null,
         );
         // Apply per-employee day adjustments from additions/deductions that opted into
         // "Include in total days" — only on the candidate's primary designation line.
