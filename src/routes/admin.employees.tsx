@@ -4982,7 +4982,7 @@ function CandidateWizard({
       setInitialUnitIds([]);
       setForm(emptyForm());
       setDigilockerVerified(false);
-      setHomeUnitId(RADIANT_BILLING_UNIT_ID);
+      setHomeUnitId(pickDefaultHomeUnit(nonBillableUnits));
     }
   }, [open, editing, isEmployeeMode]);
 
