@@ -2700,7 +2700,7 @@ function EmployeesPage() {
       }
       // Editing must reopen in the same billable/non-billable onboarding flow
       // recorded on the employee, independently of later unit assignments.
-      setWizardMode(record?.non_billable ? "employee" : "candidate");
+      setWizardMode((record as Candidate & { non_billable?: boolean } | null)?.non_billable ? "employee" : "candidate");
       setEditing(record);
       setOpenWizard(true);
 
