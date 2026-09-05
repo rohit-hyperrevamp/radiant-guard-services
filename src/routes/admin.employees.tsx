@@ -1540,7 +1540,7 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
-  /** The employee classification is authoritative; unit mappings are operational scope. */
+  /** The saved employee classification is authoritative; unit mappings are operational scope. */
   const isBillableCandidate = (c: Pick<CandidateListItem, "non_billable">) => !c.non_billable;
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
 
@@ -2702,7 +2702,7 @@ function EmployeesPage() {
       // a non-billable (internal) employee sits on a non-billable unit.
       const recUnitId = record?.unit_id || primaryUnitIdByCandidate.get(record?.id ?? "") || null;
       const recUnit = recUnitId ? unitMap.get(recUnitId) : undefined;
-      setWizardMode((recUnit as { is_billable?: boolean } | undefined)?.is_billable === false ? "employee" : "candidate");
+      setWizardMode(c.non_billable ? "employee" : "candidate");
       setEditing(record);
       setOpenWizard(true);
 
@@ -4737,12 +4737,13 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_HOME_UNIT_CODES = new Set(["UN1", "CLI4", "CLI1472", "CLI3154"]);
-/** Non-billable staff can only be posted to these four Radiant units. */
+const RADIANT_PUNE_HOME_UNIT_CODE = "UN1";
+/** Internal staff can only be posted to Radiant's own units. */
 const isRadiantHomeUnit = (u: UnitLite) =>
   RADIANT_HOME_UNIT_CODES.has((u.code ?? "").trim().toUpperCase());
 
 const pickDefaultHomeUnit = (options: UnitLite[]) =>
-  options.find((u) => (u.code ?? "").trim().toUpperCase() === "UN1")?.id ??
+  options.find((u) => (u.code ?? "").trim().toUpperCase() === RADIANT_PUNE_HOME_UNIT_CODE)?.id ??
   options[0]?.id ??
   "";
 
@@ -5030,9 +5031,9 @@ function CandidateWizard({
     // Non-billable employees are NOT deployed against a client contract, so
     // their designation comes straight from the Designation master.
     if (isEmployeeMode) {
-      // The master designation remains valid for an internal employee even
-      // if its historical billable flag was configured differently.
-      return base;
+      // The designation master owns billable/non-billable classification.
+      // Internal onboarding must never offer a client-billable designation.
+      return base.filter((designation) => !designation.billable);
     }
     if (desigLookupUnitIds.length === 0) return base;
     if (contractDesigQuery.isLoading) return base;
@@ -5339,6 +5340,9 @@ function CandidateWizard({
       ...basePayload,
       status,
       designation_id: form.designation_id ?? editing?.designation_id ?? null,
+      // Persist the onboarding classification independently of unit mappings.
+      // A non-billable employee may still receive operational unit scope later.
+      non_billable: isEmployeeMode,
       // Never write a null role_key (NOT NULL in DB) — omit it when unset so the
       // insert can fall back and updates keep the existing role.
       ...((form.role_key ?? "").trim() ? { role_key: (form.role_key ?? "").trim() } : {}),
