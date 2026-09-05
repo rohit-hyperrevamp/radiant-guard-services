@@ -6544,15 +6544,32 @@ function CandidateWizard({
                     />
                   </Field>
                   <div className="sm:col-span-2">
-                    <Field label={`Units (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
-                      <MultiUnitPicker
-                        units={units}
-                        value={form.unit_ids}
-                        onChange={(ids) => setForm((f) => ({ ...f, unit_ids: ids }))}
-                        disabled={unitsLoading || !!unitsError}
-                        emptyMessage={unitsError ? `Could not load units: ${unitsError}` : "No units found."}
-                      />
-                    </Field>
+                    {isEmployeeMode ? (
+                      <Field label="Radiant Guard Services unit">
+                        <Select value={homeUnitId} onValueChange={setHomeUnitId} disabled={unitsLoading || !!unitsError}>
+                          <SelectTrigger className="h-11 w-full">
+                            <SelectValue placeholder="Select a Radiant unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {nonBillableUnits.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.name} {u.code ? `· ${u.code}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    ) : (
+                      <Field label={`Units (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
+                        <MultiUnitPicker
+                          units={units}
+                          value={form.unit_ids}
+                          onChange={(ids) => setForm((f) => ({ ...f, unit_ids: ids }))}
+                          disabled={unitsLoading || !!unitsError}
+                          emptyMessage={unitsError ? `Could not load units: ${unitsError}` : "No units found."}
+                        />
+                      </Field>
+                    )}
                   </div>
                   {!isEmployeeMode && form.unit_ids.length > 0 && (
                     <div className="sm:col-span-2">
