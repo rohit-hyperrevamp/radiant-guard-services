@@ -377,7 +377,7 @@ export function AttendanceCharter({
         <CharterTile
           label="Organizations"
           sub="clients on this charter"
-          countTo={organizationCount ?? new Set(units.map((u) => u.customer_id || u.customer_name)).size}
+          countTo={organizationCount ?? new Set(units.map((u) => u.customer_name)).size}
           icon={Building2}
           accent="violet"
         />
@@ -385,7 +385,7 @@ export function AttendanceCharter({
         <CharterTile
           label="Active employees"
           sub="on the muster roll"
-          countTo={activeEmployees ?? units.reduce((s, u) => s + (u.active_employee_count ?? 0), 0)}
+          countTo={activeEmployees ?? units.reduce((s, u) => s + u.security_guards.length, 0)}
           icon={Users}
           accent="sky"
         />
