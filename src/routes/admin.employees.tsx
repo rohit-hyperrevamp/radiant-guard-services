@@ -2698,11 +2698,9 @@ function EmployeesPage() {
         toast.error("Only leadership or super admin can edit an inactive employee's profile.");
         return;
       }
-      // Editing must reopen in the same flavour the record was created in:
-      // a non-billable (internal) employee sits on a non-billable unit.
-      const recUnitId = record?.unit_id || primaryUnitIdByCandidate.get(record?.id ?? "") || null;
-      const recUnit = recUnitId ? unitMap.get(recUnitId) : undefined;
-      setWizardMode(c.non_billable ? "employee" : "candidate");
+      // Editing must reopen in the same billable/non-billable onboarding flow
+      // recorded on the employee, independently of later unit assignments.
+      setWizardMode(record?.non_billable ? "employee" : "candidate");
       setEditing(record);
       setOpenWizard(true);
 
