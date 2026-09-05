@@ -4811,6 +4811,7 @@ function CandidateWizard({
   const [invalidField, setInvalidField] = useState<string | null>(null);
   const [digilockerVerified, setDigilockerVerified] = useState(false);
   const [panVerified, setPanVerified] = useState(false);
+  const [bankVerified, setBankVerified] = useState(false);
   const checkSavedDigilockerVerification = useServerFn(hasCompletedDigilockerVerification);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
