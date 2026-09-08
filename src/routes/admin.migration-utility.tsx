@@ -652,32 +652,58 @@ function MigrationUtilityPage() {
       {/* Step 2 — sheet input */}
       {contract && (
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="font-display text-base font-bold">Attendance sheet</div>
               <p className="text-sm text-muted-foreground">
-                Upload the sheet as images (select several pages at once), a PDF, or an Excel/CSV file and it is read
-                automatically, or paste rows below.
+                Choose photos (pick several pages at once), a PDF, or an Excel/CSV file — the sheet is read
+                automatically. You can also paste rows below.
               </p>
             </div>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10">
-              {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {parsing ? "Reading sheet…" : "Upload sheet (images, PDF or Excel)"}
-              <input
-                type="file"
-                multiple
-                accept="image/*,.pdf,application/pdf,.xlsx,.xlsm,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                className="hidden"
-                disabled={parsing}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  e.target.value = "";
-                  void onUpload(files);
-                }}
-              />
-            </label>
-
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                {
+                  key: "images",
+                  label: "Upload photos",
+                  icon: ImageIcon,
+                  accept: "image/*",
+                  multiple: true,
+                },
+                { key: "pdf", label: "Upload PDF", icon: FileText, accept: ".pdf,application/pdf", multiple: true },
+                {
+                  key: "excel",
+                  label: "Upload Excel / CSV",
+                  icon: FileSpreadsheet,
+                  accept:
+                    ".xlsx,.xlsm,.xlsb,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv",
+                  multiple: true,
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.key}
+                  className={`inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10 ${
+                    parsing ? "pointer-events-none opacity-60" : "cursor-pointer"
+                  }`}
+                >
+                  {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <opt.icon className="h-4 w-4" />}
+                  {parsing ? "Reading sheet…" : opt.label}
+                  <input
+                    type="file"
+                    multiple={opt.multiple}
+                    accept={opt.accept}
+                    className="hidden"
+                    disabled={parsing}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      e.target.value = "";
+                      void onUpload(files);
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
+
 
           <div>
             <Label htmlFor="paste">Paste rows</Label>
