@@ -417,6 +417,7 @@ function MigrationUtilityPage() {
             .from("candidates" as never)
             .select("id")
             .eq("employee_code", row.employee_code)
+            .limit(1)
             .maybeSingle();
           candidateId = (data as { id?: string } | null)?.id ?? null;
         }
@@ -425,6 +426,7 @@ function MigrationUtilityPage() {
             .from("candidates" as never)
             .select("id")
             .eq("mobile", row.mobile)
+            .limit(1)
             .maybeSingle();
           candidateId = (data as { id?: string } | null)?.id ?? null;
         }
@@ -434,6 +436,7 @@ function MigrationUtilityPage() {
             .select("id")
             .ilike("full_name", row.name)
             .eq("unit_id", contract.unit_id)
+            .limit(1)
             .maybeSingle();
           candidateId = (data as { id?: string } | null)?.id ?? null;
         }
