@@ -290,10 +290,8 @@ function MigrationUtilityPage() {
 
   const pdfToImageDataUrls = async (file: File) => {
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/legacy/build/pdf.worker.mjs",
-      import.meta.url,
-    ).toString();
+    const workerUrl = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
     const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
     const urls: string[] = [];
     const pageCount = Math.min(doc.numPages, 12);
@@ -319,10 +317,18 @@ function MigrationUtilityPage() {
     if (!files.length || !contract) return;
     setParsing(true);
     try {
-      const spreadsheets = files.filter((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+      const spreadsheets = files.filter((f) => /\.(xlsx|xlsm|xlsb|xls|csv)$/i.test(f.name));
       const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
-      const imageFiles = files.filter((f) => !spreadsheets.includes(f) && !pdfs.includes(f));
-      let payload: { imageDataUrls?: string[]; sheetText?: string };
+      const imageFiles = files.filter(
+        (f) => !spreadsheets.includes(f) && !pdfs.includes(f) && /^image\//i.test(f.type),
+      );
+      const unsupported = files.filter(
+        (f) => !spreadsheets.includes(f) && !pdfs.includes(f) && !imageFiles.includes(f),
+      );
+      if (unsupported.length && !spreadsheets.length && !pdfs.length && !imageFiles.length) {
+        throw new Error(`Unsupported file type: ${unsupported[0]!.name}`);
+      }
+      let payload: { imageDataUrls?: string[]; sheetText?: string } | null = null;
 
       if (spreadsheets.length) {
         const XLSX = await import("xlsx");
@@ -345,15 +351,18 @@ function MigrationUtilityPage() {
           return;
         }
         const sheetText = parts.join("\n\n").slice(0, 380_000);
-        if (!sheetText.trim()) throw new Error("That spreadsheet appears to be empty");
-        payload = { sheetText };
-      } else {
+        if (sheetText.trim()) payload = { sheetText };
+        else if (!pdfs.length && !imageFiles.length) throw new Error("That spreadsheet appears to be empty");
+      }
+
+      if (!payload) {
         const imageDataUrls: string[] = [];
         for (const file of pdfs) imageDataUrls.push(...(await pdfToImageDataUrls(file)));
         for (const file of imageFiles) imageDataUrls.push(await fileToDataUrl(file));
         if (!imageDataUrls.length) throw new Error("Unsupported file type");
         payload = { imageDataUrls: imageDataUrls.slice(0, 12) };
       }
+
 
       const result = await extractMigrationSheet({
         data: {
