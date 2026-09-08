@@ -2,7 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { DatabaseZap, Loader2, Search, Upload, Wand2 } from "lucide-react";
+import {
+  DatabaseZap,
+  FileSpreadsheet,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Search,
+  Wand2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -290,10 +298,8 @@ function MigrationUtilityPage() {
 
   const pdfToImageDataUrls = async (file: File) => {
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/legacy/build/pdf.worker.mjs",
-      import.meta.url,
-    ).toString();
+    const workerUrl = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
     const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
     const urls: string[] = [];
     const pageCount = Math.min(doc.numPages, 12);
@@ -319,10 +325,18 @@ function MigrationUtilityPage() {
     if (!files.length || !contract) return;
     setParsing(true);
     try {
-      const spreadsheets = files.filter((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+      const spreadsheets = files.filter((f) => /\.(xlsx|xlsm|xlsb|xls|csv)$/i.test(f.name));
       const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
-      const imageFiles = files.filter((f) => !spreadsheets.includes(f) && !pdfs.includes(f));
-      let payload: { imageDataUrls?: string[]; sheetText?: string };
+      const imageFiles = files.filter(
+        (f) => !spreadsheets.includes(f) && !pdfs.includes(f) && /^image\//i.test(f.type),
+      );
+      const unsupported = files.filter(
+        (f) => !spreadsheets.includes(f) && !pdfs.includes(f) && !imageFiles.includes(f),
+      );
+      if (unsupported.length && !spreadsheets.length && !pdfs.length && !imageFiles.length) {
+        throw new Error(`Unsupported file type: ${unsupported[0]!.name}`);
+      }
+      let payload: { imageDataUrls?: string[]; sheetText?: string } | null = null;
 
       if (spreadsheets.length) {
         const XLSX = await import("xlsx");
@@ -345,15 +359,18 @@ function MigrationUtilityPage() {
           return;
         }
         const sheetText = parts.join("\n\n").slice(0, 380_000);
-        if (!sheetText.trim()) throw new Error("That spreadsheet appears to be empty");
-        payload = { sheetText };
-      } else {
+        if (sheetText.trim()) payload = { sheetText };
+        else if (!pdfs.length && !imageFiles.length) throw new Error("That spreadsheet appears to be empty");
+      }
+
+      if (!payload) {
         const imageDataUrls: string[] = [];
         for (const file of pdfs) imageDataUrls.push(...(await pdfToImageDataUrls(file)));
         for (const file of imageFiles) imageDataUrls.push(await fileToDataUrl(file));
         if (!imageDataUrls.length) throw new Error("Unsupported file type");
         payload = { imageDataUrls: imageDataUrls.slice(0, 12) };
       }
+
 
       const result = await extractMigrationSheet({
         data: {
@@ -400,6 +417,7 @@ function MigrationUtilityPage() {
             .from("candidates" as never)
             .select("id")
             .eq("employee_code", row.employee_code)
+            .limit(1)
             .maybeSingle();
           candidateId = (data as { id?: string } | null)?.id ?? null;
         }
@@ -408,6 +426,7 @@ function MigrationUtilityPage() {
             .from("candidates" as never)
             .select("id")
             .eq("mobile", row.mobile)
+            .limit(1)
             .maybeSingle();
           candidateId = (data as { id?: string } | null)?.id ?? null;
         }
@@ -417,6 +436,7 @@ function MigrationUtilityPage() {
             .select("id")
             .ilike("full_name", row.name)
             .eq("unit_id", contract.unit_id)
+            .limit(1)
             .maybeSingle();
           candidateId = (data as { id?: string } | null)?.id ?? null;
         }
@@ -462,6 +482,7 @@ function MigrationUtilityPage() {
           .select("id")
           .eq("candidate_id", candidateId)
           .eq("unit_id", contract.unit_id)
+          .limit(1)
           .maybeSingle();
         if (!mapping) {
           const { error: mapErr } = await supabase.from("candidate_units" as never).insert({
@@ -643,32 +664,58 @@ function MigrationUtilityPage() {
       {/* Step 2 — sheet input */}
       {contract && (
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="font-display text-base font-bold">Attendance sheet</div>
               <p className="text-sm text-muted-foreground">
-                Upload the sheet as images (select several pages at once), a PDF, or an Excel/CSV file and it is read
-                automatically, or paste rows below.
+                Choose photos (pick several pages at once), a PDF, or an Excel/CSV file — the sheet is read
+                automatically. You can also paste rows below.
               </p>
             </div>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10">
-              {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {parsing ? "Reading sheet…" : "Upload sheet (images, PDF or Excel)"}
-              <input
-                type="file"
-                multiple
-                accept="image/*,.pdf,application/pdf,.xlsx,.xlsm,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                className="hidden"
-                disabled={parsing}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  e.target.value = "";
-                  void onUpload(files);
-                }}
-              />
-            </label>
-
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                {
+                  key: "images",
+                  label: "Upload photos",
+                  icon: ImageIcon,
+                  accept: "image/*",
+                  multiple: true,
+                },
+                { key: "pdf", label: "Upload PDF", icon: FileText, accept: ".pdf,application/pdf", multiple: true },
+                {
+                  key: "excel",
+                  label: "Upload Excel / CSV",
+                  icon: FileSpreadsheet,
+                  accept:
+                    ".xlsx,.xlsm,.xlsb,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv",
+                  multiple: true,
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.key}
+                  className={`inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/10 ${
+                    parsing ? "pointer-events-none opacity-60" : "cursor-pointer"
+                  }`}
+                >
+                  {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <opt.icon className="h-4 w-4" />}
+                  {parsing ? "Reading sheet…" : opt.label}
+                  <input
+                    type="file"
+                    multiple={opt.multiple}
+                    accept={opt.accept}
+                    className="hidden"
+                    disabled={parsing}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      e.target.value = "";
+                      void onUpload(files);
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
+
 
           <div>
             <Label htmlFor="paste">Paste rows</Label>
