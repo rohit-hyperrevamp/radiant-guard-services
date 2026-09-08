@@ -482,6 +482,7 @@ function MigrationUtilityPage() {
           .select("id")
           .eq("candidate_id", candidateId)
           .eq("unit_id", contract.unit_id)
+          .limit(1)
           .maybeSingle();
         if (!mapping) {
           const { error: mapErr } = await supabase.from("candidate_units" as never).insert({
