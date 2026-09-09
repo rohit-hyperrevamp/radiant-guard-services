@@ -138,8 +138,6 @@ function DashboardPage() {
         { count: itemsCount },
         { data: sheetsMonth },
         { data: runsMonth },
-        { data: contractsForPnl },
-        { data: unitsForPnl },
       ] = await Promise.all([
         supabase.from("customers").select("id", { count: "exact", head: true }),
         supabase.from("units").select("id", { count: "exact", head: true }),
@@ -157,13 +155,27 @@ function DashboardPage() {
         supabase.from("inv_items").select("id", { count: "exact", head: true }),
         supabase.from("attendance_sheets" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
         supabase.from("payroll_runs" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
-        supabase.from("client_contracts")
-          .select("id, unit_id, status, start_date, end_date, is_internal")
+      ]);
 
-          .eq("status", "active")
-          .lte("start_date", monthEnd)
-          .or(`end_date.is.null,end_date.gte.${monthStart}`),
-        supabase.from("units").select("id, code, name, customer_id, epf_cap_enabled"),
+      const [contractsForPnl, unitsForPnl] = await Promise.all([
+        fetchAllPages<Record<string, unknown>>((from, to) =>
+          supabase
+            .from("client_contracts")
+            .select("id, unit_id, status, start_date, end_date, is_internal")
+            .eq("status", "active")
+            .lte("start_date", monthEnd)
+            .or(`end_date.is.null,end_date.gte.${monthStart}`)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        fetchAllPages<{ id: string; code: string; name: string; customer_id: string | null; epf_cap_enabled: boolean | null }>(
+          (from, to) =>
+            supabase
+              .from("units")
+              .select("id, code, name, customer_id, epf_cap_enabled")
+              .order("id", { ascending: true })
+              .range(from, to),
+        ),
       ]);
 
       const sheets = (sheetsMonth ?? []) as Array<{ status: string | null }>;
@@ -195,7 +207,7 @@ function DashboardPage() {
       // Internal contracts (own offices / non-billable staff) are a pure cost
       // centre: they contribute payroll cost but never contract value or
       // invoice revenue, otherwise the P&L overstates both.
-      const activeContracts = (contractsForPnl ?? []) as Array<{
+      const activeContracts = (contractsForPnl) as unknown as Array<{
         id: string;
         unit_id: string | null;
         is_internal: boolean | null;
