@@ -28,7 +28,7 @@ import {
   type ContractResourceLike,
 } from "@/lib/payroll-calc";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -240,21 +240,24 @@ function DashboardPage() {
             .filter((v): v is string => !!v),
         ),
       );
-      const customers = await fetchInChunks<{ id: string; name: string }>(customerIds, (chunk, from, to) =>
-        supabase.from("customers").select("id, name").in("id", chunk).range(from, to),
-      );
-      const custNameById = new Map(customers.map((c) => [c.id, c.name as string]));
+      const contractIdSet = new Set(contractIds);
+      const unitScopeSet = new Set(unitIdsInScope);
 
-      // Bulk fetch resources, attendance, codes, day bases, roster.
+      // Bulk fetch customers, resources, attendance codes, roster — one
+      // paginated read per table in parallel instead of many id-filtered
+      // round trips (that chunking is what made the dashboard slow).
       const emptyUuid = "00000000-0000-0000-0000-000000000000";
-      const [resourcesRaw, codesRaw, primaryRoster, roleLinks] = await Promise.all([
-        fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
+      const [allCustomers, allResources, codesRaw, allRoster, allRoleLinks] = await Promise.all([
+        fetchAllPages<{ id: string; name: string }>((from, to) =>
+          supabase.from("customers").select("id, name").order("id", { ascending: true }).range(from, to),
+        ),
+        fetchAllPages<Record<string, unknown>>((from, to) =>
           supabase
             .from("contract_resources")
             .select(
               "contract_id, designation_id, quantity, components, benefits, deductions, employer_contributions, payroll_day_base_id",
             )
-            .in("contract_id", chunk)
+            .order("contract_id", { ascending: true })
             .range(from, to),
         ),
         fetchAllPages<AttendanceCodeLike>((from, to) =>
@@ -264,23 +267,31 @@ function DashboardPage() {
             .eq("enabled", true)
             .range(from, to),
         ),
-        fetchInChunks<Record<string, unknown>>(unitIdsInScope, (chunk, from, to) =>
+        fetchAllPages<Record<string, unknown>>((from, to) =>
           supabase
             .from("candidates")
             .select("id, full_name, designation_id, unit_id")
-            .in("unit_id", chunk)
             .eq("is_enabled", true)
             .in("status", ["active", "approved"])
+            .order("id", { ascending: true })
             .range(from, to),
         ),
-        fetchInChunks<Record<string, unknown>>(unitIdsInScope, (chunk, from, to) =>
+        fetchAllPages<Record<string, unknown>>((from, to) =>
           supabase
             .from("candidate_units")
             .select("candidate_id, unit_id")
-            .in("unit_id", chunk)
+            .order("candidate_id", { ascending: true })
             .range(from, to),
         ),
       ]);
+
+      const custNameById = new Map(
+        allCustomers.filter((c) => customerIds.includes(c.id)).map((c) => [c.id, c.name as string]),
+      );
+      const resourcesRaw = allResources.filter((r) => contractIdSet.has(String(r.contract_id)));
+      const primaryRoster = allRoster.filter((c) => unitScopeSet.has(String(c.unit_id)));
+      const roleLinks = allRoleLinks.filter((l) => unitScopeSet.has(String(l.unit_id)));
+
 
       type ResourceRow = {
         contract_id: string;
