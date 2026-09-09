@@ -110,7 +110,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
     const employerTotal = sumAmounts((r as { employer_contributions?: unknown }).employer_contributions);
     const rate: ResourceRate = {
       designationId: (r.designation_id as string) ?? null,
-      designationName: (r.designation_id && desigMap.get(r.designation_id as string)) || "Resource",
+      designationName: (r.designation_id ? desigMap.get(r.designation_id as string) : undefined) || "Resource",
       quantity: Number(r.quantity) || 0,
       shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
       grossRate: Math.round(grossRate * 100) / 100,
