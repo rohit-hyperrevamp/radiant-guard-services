@@ -217,12 +217,13 @@ function AdminLayout() {
   // Warm the shared Attendance / Invoice / Payroll roster in the background as
   // soon as the admin shell mounts, so those pages render from cache instead of
   // waiting on a cold fetch each time they are opened.
+  const prefetchClient = useQueryClient();
   useEffect(() => {
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       void import("@/lib/charter-units").then(({ CHARTER_UNITS_QK, fetchCharterUnits }) =>
-        queryClient.prefetchQuery({
+        prefetchClient.prefetchQuery({
           queryKey: CHARTER_UNITS_QK,
           queryFn: fetchCharterUnits,
           staleTime: 5 * 60 * 1000,
@@ -233,7 +234,8 @@ function AdminLayout() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [queryClient]);
+  }, [prefetchClient]);
+
 
 
 
