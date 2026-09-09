@@ -214,6 +214,28 @@ function AdminLayout() {
     setNativeShell(isNativePlatform());
   }, []);
 
+  // Warm the shared Attendance / Invoice / Payroll roster in the background as
+  // soon as the admin shell mounts, so those pages render from cache instead of
+  // waiting on a cold fetch each time they are opened.
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      void import("@/lib/charter-units").then(({ CHARTER_UNITS_QK, fetchCharterUnits }) =>
+        queryClient.prefetchQuery({
+          queryKey: CHARTER_UNITS_QK,
+          queryFn: fetchCharterUnits,
+          staleTime: 5 * 60 * 1000,
+        }),
+      );
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [queryClient]);
+
+
 
   // One-time backfill of stored public URLs → signed URLs after buckets were privatized.
   useEffect(() => {
