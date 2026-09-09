@@ -53,18 +53,81 @@ const ACTIVE_EMPLOYEE_STATUSES = ["active"] as const;
 export const CHARTER_UNITS_QK = ["charter-units-v1"] as const;
 
 export async function fetchCharterUnits(): Promise<CharterPageData> {
-  const contracts = await fetchAllPages<{
+  type UnitRow = {
+    id: string;
+    code: string;
+    name: string;
+    location: string | null;
+    branch_id: string | null;
+    customer_id: string | null;
+    billing_state: string | null;
+  };
+  type CandidateRow = {
+    id: string;
+    full_name: string;
+    designation_id: string | null;
+    role_key: string | null;
     unit_id: string | null;
-    contract_code: string | null;
-    end_date: string | null;
-  }>((from, to) =>
-    supabase
-      .from("client_contracts")
-      .select("unit_id, contract_code, end_date, status")
-      .eq("status", "active")
-      .order("unit_id", { ascending: true })
-      .range(from, to),
-  );
+  };
+
+  // One paginated read per table, all in parallel. Filtering by big id lists
+  // (`.in(...)` with hundreds of uuids) meant dozens of sequential round
+  // trips; the tables involved are small enough to pull once and join in
+  // memory, which is what made every charter page slow to appear.
+  const [
+    contracts,
+    allUnits,
+    allCandidates,
+    candidateLinks,
+    scopeAssignments,
+    allDesignations,
+    allCustomers,
+  ] = await Promise.all([
+    fetchAllPages<{ unit_id: string | null; contract_code: string | null; end_date: string | null }>(
+      (from, to) =>
+        supabase
+          .from("client_contracts")
+          .select("unit_id, contract_code, end_date")
+          .eq("status", "active")
+          .order("unit_id", { ascending: true })
+          .range(from, to),
+    ),
+    fetchAllPages<UnitRow>((from, to) =>
+      supabase
+        .from("units")
+        .select("id, code, name, location, branch_id, customer_id, billing_state")
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPages<CandidateRow & { non_billable: boolean | null }>((from, to) =>
+      supabase
+        .from("candidates")
+        .select("id, full_name, designation_id, role_key, unit_id, non_billable")
+        .eq("is_enabled", true)
+        .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPages<{ candidate_id: string; unit_id: string }>((from, to) =>
+      supabase
+        .from("candidate_units")
+        .select("candidate_id, unit_id")
+        .order("candidate_id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPages<AttendanceScopeAssignment>((from, to) =>
+      supabase
+        .from("employee_scope_assignments")
+        .select("candidate_id, scope_type, scope_id")
+        .range(from, to),
+    ),
+    fetchAllPages<{ id: string; name: string }>((from, to) =>
+      supabase.from("designations").select("id, name").order("id", { ascending: true }).range(from, to),
+    ),
+    fetchAllPages<{ id: string; name: string; code: string | null }>((from, to) =>
+      supabase.from("customers").select("id, name, code").order("id", { ascending: true }).range(from, to),
+    ),
+  ]);
 
   const contractsByUnit = new Map<string, { codes: string[]; end: string | null }>();
   for (const c of contracts) {
@@ -75,20 +138,8 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
     contractsByUnit.set(c.unit_id, cur);
   }
 
-  const activeMapped = await fetchAllPages<{ unit_id: string | null }>((from, to) =>
-    supabase
-      .from("candidates")
-      .select("unit_id")
-      .eq("is_enabled", true)
-      .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
-      .not("unit_id", "is", null)
-      .order("unit_id", { ascending: true })
-      .range(from, to),
-  );
-
-
   const unitIdSet = new Set<string>(contractsByUnit.keys());
-  for (const row of activeMapped ?? []) {
+  for (const row of allCandidates) {
     if (row.unit_id) unitIdSet.add(row.unit_id);
   }
 
@@ -102,128 +153,37 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
     };
   }
 
-  type UnitRow = {
-    id: string;
-    code: string;
-    name: string;
-    location: string | null;
-    branch_id: string | null;
-    customer_id: string | null;
-    billing_state: string | null;
-  };
-  type PrimaryCandidateRow = {
-    id: string;
-    full_name: string;
-    designation_id: string | null;
-    role_key: string | null;
-    unit_id: string | null;
-  };
+  const units = allUnits.filter((u) => unitIdSet.has(u.id));
+  const unitsById = new Map(units.map((unit) => [unit.id, unit]));
 
-  const [units, primaryCandidates, candidateLinks, scopeAssignments] = await Promise.all([
-    fetchInChunks<UnitRow>(unitIds, (chunk, from, to) =>
-      supabase
-        .from("units")
-        .select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers")
-        .in("id", chunk)
-        .range(from, to),
-    ),
-    fetchInChunks<PrimaryCandidateRow>(unitIds, (chunk, from, to) =>
-      supabase
-        .from("candidates")
-        .select("id, full_name, designation_id, role_key, unit_id, non_billable")
-        .eq("non_billable", false)
-        .in("unit_id", chunk)
-        .eq("is_enabled", true)
-        .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
-        .range(from, to),
-    ),
-    fetchInChunks<{ candidate_id: string; unit_id: string }>(unitIds, (chunk, from, to) =>
-      supabase.from("candidate_units").select("candidate_id, unit_id").in("unit_id", chunk).range(from, to),
-    ),
-    fetchAllPages<AttendanceScopeAssignment>((from, to) =>
-      supabase
-        .from("employee_scope_assignments")
-        .select("candidate_id, scope_type, scope_id")
-        .range(from, to),
-    ),
-  ]);
+  const billableCandidates = allCandidates.filter((c) => c.non_billable !== true);
+  const candidatesById = new Map(billableCandidates.map((c) => [c.id, c]));
+  const primaryCandidates = billableCandidates.filter((c) => c.unit_id && unitIdSet.has(c.unit_id));
 
-
-  const linkCandidateIds = Array.from(new Set((candidateLinks ?? []).map((l) => l.candidate_id)));
   const scopeAssignmentRows = (scopeAssignments ?? []) as AttendanceScopeAssignment[];
-  const unitsById = new Map(
-    ((units ?? []) as Array<{
-      id: string;
-      code: string;
-      name: string;
-      location: string | null;
-      branch_id: string | null;
-      customer_id: string | null;
-      billing_state: string | null;
-    }>).map((unit) => [unit.id, unit]),
-  );
+  const secondaryMap = candidatesById;
 
-  const scopedCandidateIds = new Set<string>();
+  // Resolve each scope assignment to the units it covers, once.
+  const unitContexts: AttendanceUnitContext[] = units.map((unit) => ({
+    id: unit.id,
+    branch_id: unit.branch_id,
+    customer_id: unit.customer_id,
+    billing_state: unit.billing_state,
+  }));
+  const scopeUnitsByAssignment = new Map<AttendanceScopeAssignment, string[]>();
   for (const assignment of scopeAssignmentRows) {
-    const matchesAnyUnit = unitIds.some((unitId) => {
-      const unit = unitsById.get(unitId);
-      if (!unit) return false;
-      const context: AttendanceUnitContext = {
-        id: unit.id,
-        branch_id: unit.branch_id,
-        customer_id: unit.customer_id,
-        billing_state: unit.billing_state,
-      };
-      return matchesAttendanceScope(context, assignment);
-    });
-    if (matchesAnyUnit) scopedCandidateIds.add(assignment.candidate_id);
+    if (!candidatesById.has(assignment.candidate_id)) continue;
+    const matched = unitContexts
+      .filter((context) => matchesAttendanceScope(context, assignment))
+      .map((context) => context.id);
+    if (matched.length) scopeUnitsByAssignment.set(assignment, matched);
   }
 
-  const secondaryCandidateIds = Array.from(new Set([...linkCandidateIds, ...scopedCandidateIds]));
-  type SecondaryCandidateRow = {
-    id: string;
-    full_name: string;
-    designation_id: string | null;
-    role_key: string | null;
-  };
-  const secondaryCandidates = await fetchInChunks<SecondaryCandidateRow>(
-    secondaryCandidateIds,
-    (chunk, from, to) =>
-      supabase
-        .from("candidates")
-        .select("id, full_name, designation_id, role_key, non_billable")
-        .eq("non_billable", false)
-        .in("id", chunk)
-        .eq("is_enabled", true)
-        .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
-        .range(from, to),
-  );
-  const secondaryMap = new Map(secondaryCandidates.map((c) => [c.id, c]));
-
-  const designationIds = Array.from(
-    new Set(
-      [
-        ...primaryCandidates.map((c) => c.designation_id),
-        ...secondaryCandidates.map((c) => c.designation_id),
-      ].filter(Boolean) as string[],
-    ),
-  );
-  const designations = await fetchInChunks<{ id: string; name: string }>(
-    designationIds,
-    (chunk, from, to) => supabase.from("designations").select("id, name").in("id", chunk).range(from, to),
-  );
-  const dMap = new Map(designations.map((d) => [d.id, d.name as string]));
-
-  const customerIds = Array.from(
-    new Set(units.map((u) => u.customer_id).filter(Boolean)),
-  ) as string[];
-  const customers = await fetchInChunks<{ id: string; name: string; code: string | null }>(
-    customerIds,
-    (chunk, from, to) => supabase.from("customers").select("id, name, code").in("id", chunk).range(from, to),
-  );
+  const dMap = new Map(allDesignations.map((d) => [d.id, d.name as string]));
   const customerMap = new Map(
-    customers.map((c) => [c.id, { name: c.name as string, code: (c.code as string) || "" }]),
+    allCustomers.map((c) => [c.id, { name: c.name as string, code: (c.code as string) || "" }]),
   );
+
 
 
   type UnitAcc = {
