@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useCurrentPermissions } from "@/lib/rbac";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { logActivity } from "@/lib/activity-log";
 
 const MONTH_NAMES = [

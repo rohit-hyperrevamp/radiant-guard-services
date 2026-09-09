@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import { fetchAllPages } from "@/lib/supabase-batch";
 
 import {
   isNonBillableRoleKey,

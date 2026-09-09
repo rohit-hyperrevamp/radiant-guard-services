@@ -28,7 +28,7 @@ import {
   type ContractResourceLike,
 } from "@/lib/payroll-calc";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";

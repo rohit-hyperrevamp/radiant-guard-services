@@ -13,8 +13,8 @@
  */
 
 const PAGE_SIZE = 1000;
-const ID_CHUNK_SIZE = 100;
-const CONCURRENCY = 4;
+const ID_CHUNK_SIZE = 150;
+const CONCURRENCY = 8;
 
 type QueryResult = { data: unknown; error: { message: string } | null };
 
