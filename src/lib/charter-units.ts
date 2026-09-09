@@ -167,51 +167,51 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
   }
 
   const secondaryCandidateIds = Array.from(new Set([...linkCandidateIds, ...scopedCandidateIds]));
-  let secondaryCandidates: Array<{
+  type SecondaryCandidateRow = {
     id: string;
     full_name: string;
     designation_id: string | null;
     role_key: string | null;
-  }> = [];
-  if (secondaryCandidateIds.length > 0) {
-    const { data: linkedRows, error: linkedError } = await supabase
-      .from("candidates")
-      .select("id, full_name, designation_id, role_key, non_billable")
-      .eq("non_billable", false)
-      .in("id", secondaryCandidateIds)
-      .eq("is_enabled", true)
-      .in("status", [...ACTIVE_EMPLOYEE_STATUSES]);
-    if (linkedError) throw linkedError;
-    secondaryCandidates = linkedRows ?? [];
-  }
+  };
+  const secondaryCandidates = await fetchInChunks<SecondaryCandidateRow>(
+    secondaryCandidateIds,
+    (chunk, from, to) =>
+      supabase
+        .from("candidates")
+        .select("id, full_name, designation_id, role_key, non_billable")
+        .eq("non_billable", false)
+        .in("id", chunk)
+        .eq("is_enabled", true)
+        .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+        .range(from, to),
+  );
   const secondaryMap = new Map(secondaryCandidates.map((c) => [c.id, c]));
 
   const designationIds = Array.from(
     new Set(
       [
-        ...(primaryCandidates ?? []).map((c) => c.designation_id),
+        ...primaryCandidates.map((c) => c.designation_id),
         ...secondaryCandidates.map((c) => c.designation_id),
       ].filter(Boolean) as string[],
     ),
   );
-  const { data: designations, error: dErr } = await supabase
-    .from("designations")
-    .select("id, name")
-    .in("id", designationIds.length ? designationIds : ["00000000-0000-0000-0000-000000000000"]);
-  if (dErr) throw dErr;
-  const dMap = new Map((designations ?? []).map((d) => [d.id, d.name as string]));
+  const designations = await fetchInChunks<{ id: string; name: string }>(
+    designationIds,
+    (chunk, from, to) => supabase.from("designations").select("id, name").in("id", chunk).range(from, to),
+  );
+  const dMap = new Map(designations.map((d) => [d.id, d.name as string]));
 
   const customerIds = Array.from(
-    new Set((units ?? []).map((u) => u.customer_id).filter(Boolean)),
+    new Set(units.map((u) => u.customer_id).filter(Boolean)),
   ) as string[];
-  const { data: customers, error: cErr } = await supabase
-    .from("customers")
-    .select("id, name, code")
-    .in("id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
-  if (cErr) throw cErr;
-  const customerMap = new Map(
-    (customers ?? []).map((c) => [c.id, { name: c.name as string, code: (c.code as string) || "" }]),
+  const customers = await fetchInChunks<{ id: string; name: string; code: string | null }>(
+    customerIds,
+    (chunk, from, to) => supabase.from("customers").select("id, name, code").in("id", chunk).range(from, to),
   );
+  const customerMap = new Map(
+    customers.map((c) => [c.id, { name: c.name as string, code: (c.code as string) || "" }]),
+  );
+
 
   type UnitAcc = {
     employees: Map<string, { name: string; designation: string; roleKey: string | null }>;
