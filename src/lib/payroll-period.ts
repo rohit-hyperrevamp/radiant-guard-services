@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchInChunks } from "@/lib/supabase-batch";
 
 export type PayrollWindow = {
   windowStartDay: number;
@@ -79,17 +80,21 @@ export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<
   const out = new Map<string, PayrollWindow>();
   if (!ids.length) return out;
 
-  const { data: contracts, error } = await supabase
-    .from("client_contracts")
-    .select("unit_id, payroll_window_id, start_date")
-    .in("unit_id", ids)
-    .eq("record_type", "client")
-    .eq("status", "active")
-    .order("start_date", { ascending: true });
-  if (error) throw error;
+  const contracts = await fetchInChunks<{ unit_id: string | null; payroll_window_id: string | null }>(
+    ids,
+    (chunk, from, to) =>
+      supabase
+        .from("client_contracts")
+        .select("unit_id, payroll_window_id, start_date")
+        .in("unit_id", chunk)
+        .eq("record_type", "client")
+        .eq("status", "active")
+        .order("start_date", { ascending: true })
+        .range(from, to),
+  );
 
   const windowIdByUnit = new Map<string, string>();
-  for (const contract of contracts ?? []) {
+  for (const contract of contracts) {
     if (contract.unit_id && contract.payroll_window_id && !windowIdByUnit.has(contract.unit_id)) {
       windowIdByUnit.set(contract.unit_id, contract.payroll_window_id);
     }
@@ -97,13 +102,13 @@ export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<
   const windowIds = Array.from(new Set(windowIdByUnit.values()));
   if (!windowIds.length) return out;
 
-  const { data: windows, error: windowError } = await supabase
-    .from("payroll_windows")
-    .select("id, window_start_day, window_end_day")
-    .in("id", windowIds);
-  if (windowError) throw windowError;
+  const windows = await fetchInChunks<{ id: string; window_start_day: number; window_end_day: number }>(
+    windowIds,
+    (chunk, from, to) =>
+      supabase.from("payroll_windows").select("id, window_start_day, window_end_day").in("id", chunk).range(from, to),
+  );
   const byId = new Map(
-    (windows ?? []).map((row) => [
+    windows.map((row) => [
       row.id,
       { windowStartDay: row.window_start_day, windowEndDay: row.window_end_day },
     ]),

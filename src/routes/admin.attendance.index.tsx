@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { logActivity } from "@/lib/activity-log";
 
 const MONTH_NAMES = [
@@ -115,14 +116,18 @@ function AttendanceUnitsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["attendance-dashboard-v10"],
     queryFn: async (): Promise<AttendancePageData> => {
-      const { data: contracts, error: contractsError } = await supabase
-        .from("client_contracts")
-        .select("unit_id, contract_code, end_date, status")
-        .eq("status", "active");
-      if (contractsError) throw contractsError;
+      const contracts = await fetchAllPages<{ unit_id: string | null; contract_code: string | null; end_date: string | null }>(
+        (from, to) =>
+          supabase
+            .from("client_contracts")
+            .select("unit_id, contract_code, end_date, status")
+            .eq("status", "active")
+            .order("unit_id", { ascending: true })
+            .range(from, to),
+      );
 
       const contractsByUnit = new Map<string, { codes: string[]; end: string | null }>();
-      for (const c of contracts ?? []) {
+      for (const c of contracts) {
         if (!c.unit_id) continue;
         const cur = contractsByUnit.get(c.unit_id) ?? { codes: [], end: null };
         if (c.contract_code) cur.codes.push(c.contract_code);
@@ -132,27 +137,33 @@ function AttendanceUnitsPage() {
 
       // Also include units that have at least one active employee mapped, even
       // when no active contract exists yet — so the unit shows up on attendance.
-      const { data: activeMapped, error: activeMappedError } = await supabase
-        .from("candidates")
-        .select("unit_id")
-        .eq("is_enabled", true)
-        .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
-        .not("unit_id", "is", null);
-      if (activeMappedError) throw activeMappedError;
+      const activeMapped = await fetchAllPages<{ unit_id: string | null }>((from, to) =>
+        supabase
+          .from("candidates")
+          .select("unit_id")
+          .eq("is_enabled", true)
+          .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+          .not("unit_id", "is", null)
+          .order("unit_id", { ascending: true })
+          .range(from, to),
+      );
 
       // Secondary/reliever placements live in candidate_units. Those units must
       // also appear on attendance — a guard can be a reliever in a unit where no
       // one is primary, and field officers still mark ED there.
-      const { data: mappedUnits, error: mappedUnitsError } = await supabase
-        .from("candidate_units")
-        .select("unit_id");
-      if (mappedUnitsError) throw mappedUnitsError;
+      const mappedUnits = await fetchAllPages<{ unit_id: string | null }>((from, to) =>
+        supabase
+          .from("candidate_units")
+          .select("unit_id")
+          .order("unit_id", { ascending: true })
+          .range(from, to),
+      );
 
       const unitIdSet = new Set<string>(contractsByUnit.keys());
-      for (const row of activeMapped ?? []) {
+      for (const row of activeMapped) {
         if (row.unit_id) unitIdSet.add(row.unit_id);
       }
-      for (const row of (mappedUnits ?? []) as Array<{ unit_id: string | null }>) {
+      for (const row of mappedUnits) {
         if (row.unit_id) unitIdSet.add(row.unit_id);
       }
 
@@ -168,30 +179,54 @@ function AttendanceUnitsPage() {
       }
 
 
-      const [
-        { data: units, error: unitsError },
-        { data: primaryCandidates, error: primaryError },
-        { data: candidateLinks, error: linksError },
-        { data: scopeAssignments, error: scopeAssignmentsError },
-      ] = await Promise.all([
-        supabase.from("units").select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers").in("id", unitIds),
-        supabase
-          .from("candidates")
-          .select("id, full_name, designation_id, role_key, unit_id, non_billable")
-          .eq("non_billable", false)
-          .in("unit_id", unitIds)
-          .eq("is_enabled", true)
-          .in("status", [...ACTIVE_EMPLOYEE_STATUSES]),
-        supabase.from("candidate_units").select("candidate_id, unit_id").in("unit_id", unitIds),
-        supabase.from("employee_scope_assignments").select("candidate_id, scope_type, scope_id").limit(5000),
-      ]);
-      if (unitsError) throw unitsError;
-      if (primaryError) throw primaryError;
-      if (linksError) throw linksError;
-      if (scopeAssignmentsError) throw scopeAssignmentsError;
+      type RawUnitRow = {
+        id: string;
+        code: string;
+        name: string;
+        location: string | null;
+        branch_id: string | null;
+        customer_id: string | null;
+        billing_state: string | null;
+      };
+      type PrimaryCandidateRow = {
+        id: string;
+        full_name: string;
+        designation_id: string | null;
+        role_key: string | null;
+        unit_id: string | null;
+      };
 
-      const linkCandidateIds = Array.from(new Set((candidateLinks ?? []).map((l) => l.candidate_id)));
-      const scopeAssignmentRows = (scopeAssignments ?? []) as AttendanceScopeAssignment[];
+      const [units, primaryCandidates, candidateLinks, scopeAssignments] = await Promise.all([
+        fetchInChunks<RawUnitRow>(unitIds, (chunk, from, to) =>
+          supabase
+            .from("units")
+            .select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers")
+            .in("id", chunk)
+            .range(from, to),
+        ),
+        fetchInChunks<PrimaryCandidateRow>(unitIds, (chunk, from, to) =>
+          supabase
+            .from("candidates")
+            .select("id, full_name, designation_id, role_key, unit_id, non_billable")
+            .eq("non_billable", false)
+            .in("unit_id", chunk)
+            .eq("is_enabled", true)
+            .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+            .range(from, to),
+        ),
+        fetchInChunks<{ candidate_id: string; unit_id: string }>(unitIds, (chunk, from, to) =>
+          supabase.from("candidate_units").select("candidate_id, unit_id").in("unit_id", chunk).range(from, to),
+        ),
+        fetchAllPages<AttendanceScopeAssignment>((from, to) =>
+          supabase
+            .from("employee_scope_assignments")
+            .select("candidate_id, scope_type, scope_id")
+            .range(from, to),
+        ),
+      ]);
+
+      const linkCandidateIds = Array.from(new Set(candidateLinks.map((l) => l.candidate_id)));
+      const scopeAssignmentRows = scopeAssignments;
       const unitsById = new Map(
         ((units ?? []) as Array<{
           id: string;
@@ -221,44 +256,44 @@ function AttendanceUnitsPage() {
       }
 
       const secondaryCandidateIds = Array.from(new Set([...linkCandidateIds, ...scopedCandidateIds]));
-      let secondaryCandidates: Array<{ id: string; full_name: string; designation_id: string | null; role_key: string | null }> = [];
-      if (secondaryCandidateIds.length > 0) {
-        const { data: linkedRows, error: linkedError } = await supabase
+      const secondaryCandidates = await fetchInChunks<{
+        id: string;
+        full_name: string;
+        designation_id: string | null;
+        role_key: string | null;
+      }>(secondaryCandidateIds, (chunk, from, to) =>
+        supabase
           .from("candidates")
           .select("id, full_name, designation_id, role_key, non_billable")
           .eq("non_billable", false)
-          .in("id", secondaryCandidateIds)
+          .in("id", chunk)
           .eq("is_enabled", true)
-          .in("status", [...ACTIVE_EMPLOYEE_STATUSES]);
-        if (linkedError) throw linkedError;
-        secondaryCandidates = linkedRows ?? [];
-      }
+          .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+          .range(from, to),
+      );
       const secondaryMap = new Map(secondaryCandidates.map((c) => [c.id, c]));
 
       const designationIds = Array.from(
         new Set(
           [
-            ...(primaryCandidates ?? []).map((c) => c.designation_id),
+            ...primaryCandidates.map((c) => c.designation_id),
             ...secondaryCandidates.map((c) => c.designation_id),
           ].filter(Boolean) as string[],
         ),
       );
-      const { data: designations, error: dErr } = await supabase
-        .from("designations")
-        .select("id, name")
-        .in("id", designationIds.length ? designationIds : ["00000000-0000-0000-0000-000000000000"]);
-      if (dErr) throw dErr;
-      const dMap = new Map((designations ?? []).map((d) => [d.id, d.name as string]));
+      const designations = await fetchInChunks<{ id: string; name: string }>(designationIds, (chunk, from, to) =>
+        supabase.from("designations").select("id, name").in("id", chunk).range(from, to),
+      );
+      const dMap = new Map(designations.map((d) => [d.id, d.name as string]));
 
       const customerIds = Array.from(
-        new Set((units ?? []).map((u) => u.customer_id).filter(Boolean)),
+        new Set(units.map((u) => u.customer_id).filter(Boolean)),
       ) as string[];
-      const { data: customers, error: cErr } = await supabase
-        .from("customers")
-        .select("id, name, code")
-        .in("id", customerIds.length ? customerIds : ["00000000-0000-0000-0000-000000000000"]);
-      if (cErr) throw cErr;
-      const customerMap = new Map((customers ?? []).map((c) => [c.id, { name: c.name as string, code: (c.code as string) || "" }]));
+      const customers = await fetchInChunks<{ id: string; name: string; code: string | null }>(
+        customerIds,
+        (chunk, from, to) => supabase.from("customers").select("id, name, code").in("id", chunk).range(from, to),
+      );
+      const customerMap = new Map(customers.map((c) => [c.id, { name: c.name as string, code: (c.code as string) || "" }]));
 
       type UnitAcc = {
         employees: Map<string, { name: string; designation: string; roleKey: string | null }>;
@@ -269,7 +304,7 @@ function AttendanceUnitsPage() {
         return acc.get(unitId)!;
       };
 
-      for (const c of primaryCandidates ?? []) {
+      for (const c of primaryCandidates) {
         if (!c.unit_id) continue;
         ensure(c.unit_id).employees.set(c.id, {
           name: c.full_name || "—",
@@ -277,7 +312,7 @@ function AttendanceUnitsPage() {
           roleKey: c.role_key || null,
         });
       }
-      for (const link of candidateLinks ?? []) {
+      for (const link of candidateLinks) {
         const cand = secondaryMap.get(link.candidate_id);
         if (!cand) continue;
         ensure(link.unit_id).employees.set(cand.id, {
