@@ -89,30 +89,52 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
     };
   }
 
-  const [
-    { data: units, error: unitsError },
-    { data: primaryCandidates, error: primaryError },
-    { data: candidateLinks, error: linksError },
-    { data: scopeAssignments, error: scopeAssignmentsError },
-  ] = await Promise.all([
-    supabase
-      .from("units")
-      .select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers")
-      .in("id", unitIds),
-    supabase
-      .from("candidates")
-      .select("id, full_name, designation_id, role_key, unit_id, non_billable")
-      .eq("non_billable", false)
-      .in("unit_id", unitIds)
-      .eq("is_enabled", true)
-      .in("status", [...ACTIVE_EMPLOYEE_STATUSES]),
-    supabase.from("candidate_units").select("candidate_id, unit_id").in("unit_id", unitIds),
-    supabase.from("employee_scope_assignments").select("candidate_id, scope_type, scope_id").limit(5000),
+  type UnitRow = {
+    id: string;
+    code: string;
+    name: string;
+    location: string | null;
+    branch_id: string | null;
+    customer_id: string | null;
+    billing_state: string | null;
+  };
+  type PrimaryCandidateRow = {
+    id: string;
+    full_name: string;
+    designation_id: string | null;
+    role_key: string | null;
+    unit_id: string | null;
+  };
+
+  const [units, primaryCandidates, candidateLinks, scopeAssignments] = await Promise.all([
+    fetchInChunks<UnitRow>(unitIds, (chunk, from, to) =>
+      supabase
+        .from("units")
+        .select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers")
+        .in("id", chunk)
+        .range(from, to),
+    ),
+    fetchInChunks<PrimaryCandidateRow>(unitIds, (chunk, from, to) =>
+      supabase
+        .from("candidates")
+        .select("id, full_name, designation_id, role_key, unit_id, non_billable")
+        .eq("non_billable", false)
+        .in("unit_id", chunk)
+        .eq("is_enabled", true)
+        .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+        .range(from, to),
+    ),
+    fetchInChunks<{ candidate_id: string; unit_id: string }>(unitIds, (chunk, from, to) =>
+      supabase.from("candidate_units").select("candidate_id, unit_id").in("unit_id", chunk).range(from, to),
+    ),
+    fetchAllPages<AttendanceScopeAssignment>((from, to) =>
+      supabase
+        .from("employee_scope_assignments")
+        .select("candidate_id, scope_type, scope_id")
+        .range(from, to),
+    ),
   ]);
-  if (unitsError) throw unitsError;
-  if (primaryError) throw primaryError;
-  if (linksError) throw linksError;
-  if (scopeAssignmentsError) throw scopeAssignmentsError;
+
 
   const linkCandidateIds = Array.from(new Set((candidateLinks ?? []).map((l) => l.candidate_id)));
   const scopeAssignmentRows = (scopeAssignments ?? []) as AttendanceScopeAssignment[];
