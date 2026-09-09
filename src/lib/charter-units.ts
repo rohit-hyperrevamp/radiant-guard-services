@@ -53,14 +53,21 @@ const ACTIVE_EMPLOYEE_STATUSES = ["active"] as const;
 export const CHARTER_UNITS_QK = ["charter-units-v1"] as const;
 
 export async function fetchCharterUnits(): Promise<CharterPageData> {
-  const { data: contracts, error: contractsError } = await supabase
-    .from("client_contracts")
-    .select("unit_id, contract_code, end_date, status")
-    .eq("status", "active");
-  if (contractsError) throw contractsError;
+  const contracts = await fetchAllPages<{
+    unit_id: string | null;
+    contract_code: string | null;
+    end_date: string | null;
+  }>((from, to) =>
+    supabase
+      .from("client_contracts")
+      .select("unit_id, contract_code, end_date, status")
+      .eq("status", "active")
+      .order("unit_id", { ascending: true })
+      .range(from, to),
+  );
 
   const contractsByUnit = new Map<string, { codes: string[]; end: string | null }>();
-  for (const c of contracts ?? []) {
+  for (const c of contracts) {
     if (!c.unit_id) continue;
     const cur = contractsByUnit.get(c.unit_id) ?? { codes: [], end: null };
     if (c.contract_code) cur.codes.push(c.contract_code);
@@ -68,13 +75,17 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
     contractsByUnit.set(c.unit_id, cur);
   }
 
-  const { data: activeMapped, error: activeMappedError } = await supabase
-    .from("candidates")
-    .select("unit_id")
-    .eq("is_enabled", true)
-    .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
-    .not("unit_id", "is", null);
-  if (activeMappedError) throw activeMappedError;
+  const activeMapped = await fetchAllPages<{ unit_id: string | null }>((from, to) =>
+    supabase
+      .from("candidates")
+      .select("unit_id")
+      .eq("is_enabled", true)
+      .in("status", [...ACTIVE_EMPLOYEE_STATUSES])
+      .not("unit_id", "is", null)
+      .order("unit_id", { ascending: true })
+      .range(from, to),
+  );
+
 
   const unitIdSet = new Set<string>(contractsByUnit.keys());
   for (const row of activeMapped ?? []) {
