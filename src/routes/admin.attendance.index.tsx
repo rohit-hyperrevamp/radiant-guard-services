@@ -179,7 +179,7 @@ function AttendanceUnitsPage() {
       }
 
 
-      type UnitRow = {
+      type RawUnitRow = {
         id: string;
         code: string;
         name: string;
@@ -197,7 +197,7 @@ function AttendanceUnitsPage() {
       };
 
       const [units, primaryCandidates, candidateLinks, scopeAssignments] = await Promise.all([
-        fetchInChunks<UnitRow>(unitIds, (chunk, from, to) =>
+        fetchInChunks<RawUnitRow>(unitIds, (chunk, from, to) =>
           supabase
             .from("units")
             .select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers")
