@@ -212,19 +212,10 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
       roleKey: cand.role_key || null,
     });
   }
-  for (const assignment of scopeAssignmentRows) {
+  for (const [assignment, matchedUnitIds] of scopeUnitsByAssignment) {
     const cand = secondaryMap.get(assignment.candidate_id);
     if (!cand) continue;
-    for (const unitId of unitIds) {
-      const unit = unitsById.get(unitId);
-      if (!unit) continue;
-      const context: AttendanceUnitContext = {
-        id: unit.id,
-        branch_id: unit.branch_id,
-        customer_id: unit.customer_id,
-        billing_state: unit.billing_state,
-      };
-      if (!matchesAttendanceScope(context, assignment)) continue;
+    for (const unitId of matchedUnitIds) {
       ensure(unitId).employees.set(cand.id, {
         name: cand.full_name || "—",
         designation: (cand.designation_id && dMap.get(cand.designation_id)) || "",
@@ -232,6 +223,7 @@ export async function fetchCharterUnits(): Promise<CharterPageData> {
       });
     }
   }
+
 
   const rows: CharterUnitRow[] = (units ?? [])
     .map((u) => {
