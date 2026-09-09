@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -59,15 +60,19 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   const out: UnitFinanceMap = new Map();
   if (!ids.length) return out;
 
-  const { data: contracts, error: cErr } = await supabase
-    .from("client_contracts")
-    .select("id, unit_id, contract_code, status, start_date")
-    .in("unit_id", ids)
-    .eq("status", "active");
-  if (cErr) throw cErr;
+  const contracts = await fetchInChunks<{ id: string; unit_id: string | null; contract_code: string | null }>(
+    ids,
+    (chunk, from, to) =>
+      supabase
+        .from("client_contracts")
+        .select("id, unit_id, contract_code, status, start_date")
+        .in("unit_id", chunk)
+        .eq("status", "active")
+        .range(from, to),
+  );
 
   const contractByUnit = new Map<string, { id: string; code: string }>();
-  for (const c of contracts ?? []) {
+  for (const c of contracts) {
     if (!c.unit_id) continue;
     if (!contractByUnit.has(c.unit_id)) {
       contractByUnit.set(c.unit_id, { id: c.id as string, code: (c.contract_code as string) || "—" });
@@ -76,21 +81,25 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   if (!contractByUnit.size) return out;
 
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
-  const [{ data: resources, error: rErr }, { data: designations }] = await Promise.all([
-    supabase
-      .from("contract_resources")
-      .select("contract_id, designation_id, quantity, shift_hours, components, deductions, employer_contributions")
-      .in("contract_id", contractIds),
-    supabase.from("designations").select("id, name"),
+  const [resources, designations] = await Promise.all([
+    fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
+      supabase
+        .from("contract_resources")
+        .select("contract_id, designation_id, quantity, shift_hours, components, deductions, employer_contributions")
+        .in("contract_id", chunk)
+        .range(from, to),
+    ),
+    fetchAllPages<{ id: string; name: string }>((from, to) =>
+      supabase.from("designations").select("id, name").range(from, to),
+    ),
   ]);
-  if (rErr) throw rErr;
-  const desigMap = new Map((designations ?? []).map((d) => [d.id as string, d.name as string]));
+  const desigMap = new Map(designations.map((d) => [d.id as string, d.name as string]));
 
   const unitByContract = new Map<string, string>();
   for (const [unitId, c] of contractByUnit) unitByContract.set(c.id, unitId);
 
   const grouped = new Map<string, ResourceRate[]>();
-  for (const r of resources ?? []) {
+  for (const r of resources) {
     const unitId = unitByContract.get(r.contract_id as string);
     if (!unitId) continue;
     // Wage components are the single source of truth for gross. A stored
