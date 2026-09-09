@@ -28,6 +28,7 @@ import {
   type ContractResourceLike,
 } from "@/lib/payroll-calc";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -227,45 +228,46 @@ function DashboardPage() {
             .filter((v): v is string => !!v),
         ),
       );
-      const { data: customers } = customerIds.length
-        ? await supabase.from("customers").select("id, name").in("id", customerIds)
-        : { data: [] as { id: string; name: string }[] };
-      const custNameById = new Map((customers ?? []).map((c) => [c.id, c.name as string]));
+      const customers = await fetchInChunks<{ id: string; name: string }>(customerIds, (chunk, from, to) =>
+        supabase.from("customers").select("id, name").in("id", chunk).range(from, to),
+      );
+      const custNameById = new Map(customers.map((c) => [c.id, c.name as string]));
 
       // Bulk fetch resources, attendance, codes, day bases, roster.
       const emptyUuid = "00000000-0000-0000-0000-000000000000";
-      const [
-        { data: resourcesRaw },
-        { data: codesRaw },
-        { data: primaryRoster },
-        { data: roleLinks },
-      ] = await Promise.all([
-        contractIds.length
-          ? supabase
-              .from("contract_resources")
-              .select(
-                "contract_id, designation_id, quantity, components, benefits, deductions, employer_contributions, payroll_day_base_id",
-              )
-              .in("contract_id", contractIds)
-          : Promise.resolve({ data: [] as Record<string, unknown>[] }),
-        supabase
-          .from("attendance_codes")
-          .select("code, counts_as_present, is_paid")
-          .eq("enabled", true),
-        unitIdsInScope.length
-          ? supabase
-              .from("candidates")
-              .select("id, full_name, designation_id, unit_id")
-              .in("unit_id", unitIdsInScope)
-              .eq("is_enabled", true)
-              .in("status", ["active", "approved"])
-          : Promise.resolve({ data: [] as Record<string, unknown>[] }),
-        unitIdsInScope.length
-          ? supabase
-              .from("candidate_units")
-              .select("candidate_id, unit_id")
-              .in("unit_id", unitIdsInScope)
-          : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+      const [resourcesRaw, codesRaw, primaryRoster, roleLinks] = await Promise.all([
+        fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
+          supabase
+            .from("contract_resources")
+            .select(
+              "contract_id, designation_id, quantity, components, benefits, deductions, employer_contributions, payroll_day_base_id",
+            )
+            .in("contract_id", chunk)
+            .range(from, to),
+        ),
+        fetchAllPages<AttendanceCodeLike>((from, to) =>
+          supabase
+            .from("attendance_codes")
+            .select("code, counts_as_present, is_paid")
+            .eq("enabled", true)
+            .range(from, to),
+        ),
+        fetchInChunks<Record<string, unknown>>(unitIdsInScope, (chunk, from, to) =>
+          supabase
+            .from("candidates")
+            .select("id, full_name, designation_id, unit_id")
+            .in("unit_id", chunk)
+            .eq("is_enabled", true)
+            .in("status", ["active", "approved"])
+            .range(from, to),
+        ),
+        fetchInChunks<Record<string, unknown>>(unitIdsInScope, (chunk, from, to) =>
+          supabase
+            .from("candidate_units")
+            .select("candidate_id, unit_id")
+            .in("unit_id", chunk)
+            .range(from, to),
+        ),
       ]);
 
       type ResourceRow = {
