@@ -1235,9 +1235,12 @@ function isEmployerStatutoryRow(item: { name?: unknown }): boolean {
  * the row is already correctly configured (capped EPF, or ESI with a formula).
  */
 function canonicalStatutoryMaster(
-  item: { name?: unknown; capAmount?: number | null; formulaExpression?: string | null },
+  item: { name?: unknown; calcType?: string | null; capAmount?: number | null; formulaExpression?: string | null },
   masters: CostComponentOption[],
 ): CostComponentOption | undefined {
+  // Exact source-card amounts are intentionally fixed. Keep their master link
+  // for auditability without replacing the saved amount with a generic rule.
+  if (item.calcType === "fixed" && !hasConfiguredFormula(item)) return undefined;
   const party = isEmployerStatutoryRow(item) ? "employer" : "employee";
   const byCode = (code: string) => masters.find((m) => (m.code ?? "").toUpperCase() === code);
   if (isEpfItem(item)) {
@@ -1255,8 +1258,8 @@ function canonicalStatutoryMaster(
 // ESI rows fall back to the statutory calc only when no custom formula is set
 // in Cost Component Manager. When a formula IS configured the row uses its own
 // evaluated amount instead of the statutory 0.75% / 3.25% override.
-function isStatutoryEsi(item: { name?: unknown; formulaExpression?: string | null } | null | undefined): boolean {
-  return isEsiItem(item) && !hasConfiguredFormula(item ?? {});
+function isStatutoryEsi(item: { name?: unknown; calcType?: string | null; formulaExpression?: string | null } | null | undefined): boolean {
+  return isEsiItem(item) && item?.calcType !== "fixed" && !hasConfiguredFormula(item ?? {});
 }
 
 function contractTotalAmount(item: { name?: unknown; amount?: unknown; formulaExpression?: string | null }): number {
@@ -4377,6 +4380,8 @@ export function ResourceFormDialog({
     const byId = new Map(costComponents.map((c) => [c.id, c]));
     const componentNameKey = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
     const findMaster = (b: BenefitItem) => {
+      // Do not hydrate source-locked fixed rows from a generic master formula.
+      if (b.calcType === "fixed" && !hasConfiguredFormula(b)) return undefined;
       // Custom (manually entered) billing add-ons have synthetic ids and must
       // never be re-linked to a master formula.
       if (String(b.costComponentId).startsWith("__")) return undefined;

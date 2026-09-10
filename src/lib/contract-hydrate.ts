@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 type LineWithIds = {
   name: string;
   amount: number | string | null;
+  calcType?: string | null;
   allowanceId?: string | null;
   costComponentId?: string | null;
   formulaMode?: string | null;
@@ -97,6 +98,10 @@ export async function hydrateFormulasFromMaster<T extends ResourceShape>(
   }
 
   const overlay = (line: LineWithIds): LineWithIds => {
+    // Source-card contracts deliberately keep exact fixed amounts. A linked
+    // master ID is retained for traceability, but must not turn that fixed
+    // snapshot back into a live formula during payroll or invoicing.
+    if (line.calcType === "fixed" && !String(line.formulaExpression ?? "").trim()) return line;
     const id = line.allowanceId ?? line.costComponentId;
     if (!id) return line;
     const m = masterById.get(String(id));
