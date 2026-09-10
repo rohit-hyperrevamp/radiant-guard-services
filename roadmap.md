@@ -3,3 +3,4 @@
 - [x] Verify affected navigation in a signed-in browser
 - [x] Record the production cloud database as the only source of truth
 - [ ] Reconcile CON14897 August attendance row-by-row, correct L/weekly-off handling, and verify totals
+- [ ] Fix and re-audit CON15246 against the original Pune contract sheet
