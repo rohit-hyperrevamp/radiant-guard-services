@@ -243,6 +243,7 @@ export type ResourceComponent = {
   allowanceId: string;
   name: string;
   amount: number;
+  calcType?: "fixed" | "percentage";
   includeInOt?: boolean;
   formulaMode?: string | null;
   formulaExpression?: string | null;
@@ -1340,6 +1341,12 @@ function syncResourceComponentMasterFields(
 ): ResourceComponent {
   const at = findAllowanceForResourceComponent(component, allowanceTypes);
   if (!at) return { ...component };
+  // Imported source-card rows can retain a master ID for traceability while
+  // deliberately locking the exact printed amount. Do not put the generic
+  // master formula back onto those rows when the contract editor opens.
+  if (component.calcType === "fixed" && !hasConfiguredFormula(component)) {
+    return { ...component };
+  }
   return {
     ...component,
     allowanceId: at.id,
@@ -4285,6 +4292,10 @@ export function ResourceFormDialog({
     setComponents((prev) => {
       let changed = false;
       const next = prev.map((c) => {
+        // A source-card amount marked fixed is authoritative. The allowance
+        // master may use a generic formula that is valid for new contracts but
+        // must not recalculate this imported contract line.
+        if (c.calcType === "fixed" && !hasConfiguredFormula(c)) return c;
         const at = findAllowanceForResourceComponent(c, allowanceTypes);
         if (!at) return c;
         const hasFormula = hasConfiguredFormula(at);
