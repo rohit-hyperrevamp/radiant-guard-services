@@ -1,2 +1,2 @@
-build: 2026-08-29T07:22:00Z
-reason: deploy production-backed OTP fallback toggle fix
+build: 2026-09-10T17:17:00Z
+reason: preserve source-locked contract wage components in editor calculations
