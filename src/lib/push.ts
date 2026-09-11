@@ -171,7 +171,6 @@ async function preparePushNotificationsOnce(): Promise<void> {
           importance: 5,
           visibility: 1,
           vibration: true,
-          sound: "radiant_chime.wav",
         });
       } catch (err) {
         logNativeEvent("push", "android channel setup failed", {
