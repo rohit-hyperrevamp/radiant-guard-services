@@ -303,12 +303,21 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="max-w-xl py-10 lg:py-0">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-lg ring-1 ring-white/50">
-                  <img src={logo} alt="Radiant Guard Services logo" className="h-7 w-7 object-contain" />
+              <div className="mb-9 flex items-center gap-4">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white shadow-xl ring-1 ring-white/50 sm:h-[72px] sm:w-[72px]">
+                  <img
+                    src={logo}
+                    alt="Radiant Guard Services logo"
+                    className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+                  />
                 </div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/80">
-                  Radiant Guard Services
+                <div>
+                  <div className="font-display text-2xl font-semibold leading-none tracking-tight text-white sm:text-[26px]">
+                    Radiant Guard
+                  </div>
+                  <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.2em] text-white/65">
+                    Services Private Limited
+                  </div>
                 </div>
               </div>
               <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
