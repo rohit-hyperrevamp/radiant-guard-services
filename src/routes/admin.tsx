@@ -442,7 +442,7 @@ function AdminLayout() {
   const groups: GroupItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
-      { key: "organizations", label: "Organizations", module: "organizations", icon: Building2, to: "/admin/customers/customer-manager", children: customersChildren, activePrefixes: ["/admin/customers"] },
+      { key: "organizations", label: "Organizations", module: "organizations", icon: Building2, to: "/admin/customers/customer-manager", children: customersChildren, activePrefixes: ["/admin/customers/customer-manager", "/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 
@@ -619,7 +619,7 @@ function AdminLayout() {
                   items.forEach((g) => used.add(g.key));
                   return (
                     <div key={s.label} className="space-y-[3px]">
-                      {!collapsed && (
+                      {!collapsed && s.label && (
                         <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">
                           {s.label}
                         </div>
