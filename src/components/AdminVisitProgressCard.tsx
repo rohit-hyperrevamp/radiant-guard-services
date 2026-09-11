@@ -56,7 +56,7 @@ export function AdminVisitProgressCard() {
         .select(
           "id, candidate_id, unit_id, visit_date, check_in_at, check_out_at, customer_rating, " +
             "candidate:candidates!inner(full_name, employee_code), " +
-            "client:clients!inner(name, code, customer:customers(name))",
+            "unit:units!inner(name, code, customer:customers(name))",
         )
         .gte("visit_date", range.start)
         .lte("visit_date", range.end)
