@@ -198,7 +198,8 @@ export const validateAadhaarNumber = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ aadhaar: z.string().regex(/^\d{12}$/, "Aadhaar must be 12 digits") }).parse(input),
   )
-  .handler(async ({ data }): Promise<AadhaarValidationResult> => {
+  .handler(async ({ data, context }): Promise<AadhaarValidationResult> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>(
       "/api/v1/aadhaar-validation/aadhaar-validation",
       { method: "POST", body: { id_number: data.aadhaar } },
@@ -246,6 +247,7 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<DigilockerSession> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>("/api/v1/digilocker/initialize", {
       method: "POST",
       body: {
@@ -457,7 +459,8 @@ export const verifyPanComprehensive = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<PanComprehensiveResult> => {
+  .handler(async ({ data, context }): Promise<PanComprehensiveResult> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>("/api/v1/pan/pan-comprehensive", {
       method: "POST",
       body: { id_number: data.pan },
@@ -525,7 +528,8 @@ export const verifyBankAccount = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<BankVerificationResult> => {
+  .handler(async ({ data, context }): Promise<BankVerificationResult> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>("/api/v1/bank-verification/", {
       method: "POST",
       body: { id_number: data.accountNumber, ifsc: data.ifsc, ifsc_details: true },
