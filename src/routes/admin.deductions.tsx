@@ -404,7 +404,7 @@ function DeductionList() {
         source: "recorded",
         sourceLabel:
           d.source_kind === "issuance" ? "Auto · Uniform issued"
-          : d.source_kind === "unit_fee" ? "Auto · Client fee"
+          : d.source_kind === "unit_fee" ? "Auto · Unit fee"
           : d.source_kind === "payroll_run" ? "Payroll processed"
           : d.source_kind === "payroll_amendment" ? "Payroll amendment"
           : "Recorded",
@@ -471,11 +471,11 @@ function DeductionList() {
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:max-w-4xl">
           <div className="grid gap-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Client</Label>
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unit</Label>
             <Select value={effectiveUnitId} onValueChange={setUnitId}>
-              <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select client" /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select unit" /></SelectTrigger>
               <SelectContent className="max-h-[320px]">
-                {clients.map((u) => (
+                {units.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.name || u.code}{u.customer_name ? ` · ${u.customer_name}` : ""}
                   </SelectItem>
@@ -519,7 +519,7 @@ function DeductionList() {
               filtered.map((r) => ({
                 employee_code: r.employeeCode,
                 employee: r.employee,
-                client: r.unitName,
+                unit: r.unitName,
                 designation: r.designation,
                 head: r.head,
                 source: r.sourceLabel,
@@ -530,7 +530,7 @@ function DeductionList() {
               [
                 { key: "employee_code", header: "Emp Code" },
                 { key: "employee", header: "Employee" },
-                { key: "client", header: "Client" },
+                { key: "unit", header: "Unit" },
                 { key: "designation", header: "Designation" },
                 { key: "head", header: "Deduction Head" },
                 { key: "source", header: "Source" },
@@ -648,7 +648,7 @@ function DeductionList() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
-                    {liveQ.isLoading || recordedQ.isLoading ? "Computing deductions…" : "No deductions for this client and period."}
+                    {liveQ.isLoading || recordedQ.isLoading ? "Computing deductions…" : "No deductions for this unit and period."}
                   </td>
                 </tr>
               )}

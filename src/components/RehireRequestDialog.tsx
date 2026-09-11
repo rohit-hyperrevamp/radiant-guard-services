@@ -203,10 +203,10 @@ export function RehireRequestDialog({
   const mut = useMutation({
     mutationFn: async () => {
       if (!match) throw new Error("No matching employee");
-      if (!unitId) throw new Error("Select the client for this rehire");
+      if (!unitId) throw new Error("Select the unit for this rehire");
       if (!roleKey) throw new Error("Select the role for this rehire");
       if (!designationId && designationOptions.length > 0)
-        throw new Error("Select the designation from this client's contract");
+        throw new Error("Select the designation from this unit's contract");
       if (!existingResignation && !resignation) throw new Error("Resignation copy is required");
       if (!existingIdCard && !idCard) throw new Error("ID card copy is required");
       const aadhaar = (match.aadhaar_number ?? "").replace(/\D/g, "");
@@ -269,7 +269,7 @@ export function RehireRequestDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>
-                  Client<span className="text-rose-500"> *</span>
+                  Unit<span className="text-rose-500"> *</span>
                 </Label>
                 <Select value={unitId} onValueChange={setUnitId}>
                   <SelectTrigger className="mt-1">
@@ -307,7 +307,7 @@ export function RehireRequestDialog({
               <div className="sm:col-span-2">
                 <Label>
                   Designation
-                  {unitId ? ` — ${designationOptions.length} in this client's contract` : ""}
+                  {unitId ? ` — ${designationOptions.length} in this unit's contract` : ""}
                 </Label>
                 <Select value={designationId} onValueChange={setDesignationId} disabled={!unitId}>
                   <SelectTrigger className="mt-1">
@@ -325,7 +325,7 @@ export function RehireRequestDialog({
                 </Select>
                 {unitId && !contractDesigQ.isLoading && designationOptions.length === 0 && (
                   <p className="mt-1 text-xs text-amber-600">
-                    This client has no active contract designations — HR can set one at enablement.
+                    This unit has no active contract designations — HR can set one at enablement.
                   </p>
                 )}
               </div>

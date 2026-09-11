@@ -114,7 +114,7 @@ export async function checkIn(candidateId: string, geo: Geo | null, faceVerified
       .maybeSingle();
     if (assignmentError) throw assignmentError;
     if (assignment?.is_reliever === true || assignment?.is_primary !== true) {
-      throw new Error("Reliever clients are Extra Duty only. Present attendance cannot be punched here.");
+      throw new Error("Reliever units are Extra Duty only. Present attendance cannot be punched here.");
     }
   }
   const row: Record<string, unknown> = {

@@ -333,7 +333,7 @@ export async function writePdf(payload: ExportRequestPayload) {
       ? (LANDSCAPE_FORMATS.find((f) => f.w >= neededW)?.name ?? "a0")
       : "a4";
 
-  const doc = new jsPDF({ orientation, client: "pt", format });
+  const doc = new jsPDF({ orientation, unit: "pt", format });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const usableW = pageW - margin * 2;

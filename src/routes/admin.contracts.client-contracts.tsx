@@ -478,7 +478,7 @@ async function assertSingleActiveContract(unitId: string, excludeId?: string | n
   const dup = ((data as unknown as Record<string, unknown>[]) ?? [])[0];
   if (dup) {
     throw new Error(
-      `Client already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before activating another one.`,
+      `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before activating another one.`,
     );
   }
 }
@@ -552,7 +552,7 @@ function useContracts() {
       .from("units" as never)
       .update(patch as never)
       .eq("id", unitId);
-    if (error) console.warn("Failed to sync client contract dates:", error.message);
+    if (error) console.warn("Failed to sync unit contract dates:", error.message);
   };
 
   type Payload = Omit<ClientContract, "id">;
@@ -584,7 +584,7 @@ function useContracts() {
 
   const addMut = useMutation({
     mutationFn: async (p: Payload): Promise<string> => {
-      if (!p.unitId) throw new Error("Client is required");
+      if (!p.unitId) throw new Error("Unit is required");
       const uidRes = await supabase.auth.getUser();
       const insertRow = { ...toRow(p, { isNew: true }), created_by: uidRes.data.user?.id ?? null };
       const { data, error } = await supabase
@@ -1766,7 +1766,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
 
   // Resolve lookup labels in parallel
   const [unitsRes, desigRes, svcRes, pwRes, btRes, pdbRes, esicRes] = await Promise.all([
-    supabase.from("clients" as never).select("id,code,name").eq("id", contract.unitId).maybeSingle(),
+    supabase.from("units" as never).select("id,code,name").eq("id", contract.unitId).maybeSingle(),
     supabase.from("designations" as never).select("id,name,code"),
     supabase.from("service_types" as never).select("id,name"),
     supabase.from("payroll_windows" as never).select("id,label"),
@@ -1801,7 +1801,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
   const summaryRows: Array<[string, string | number]> = [];
   summaryRows.push(["Contract Code", contract.contractCode]);
   summaryRows.push([
-    "Client",
+    "Unit",
     unitRow ? `${String(unitRow.code ?? "")} — ${String(unitRow.name ?? "")}` : contract.unitId,
   ]);
   summaryRows.push(["Start Date", contract.startDate]);
@@ -2381,7 +2381,7 @@ function ClientContractsPage() {
       <PageHeader
         title="Client Contracts"
         eyebrow="Contracts"
-        description="Manage client contracts across organisations and clients."
+        description="Manage client contracts across organisations and units."
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         kpis={
           <>
@@ -2558,7 +2558,7 @@ function ClientContractsPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by contract ID, client, organisation…"
+              placeholder="Search by contract ID, unit, organisation…"
               className="h-10 rounded-lg pl-9"
             />
           </div>
@@ -2586,7 +2586,7 @@ function ClientContractsPage() {
               <SelectValue placeholder="Unit" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All clients</SelectItem>
+              <SelectItem value="all">All units</SelectItem>
               {units
                 .filter((u) => orgFilter === "all" || u.customerId === orgFilter)
                 .map((u) => (
@@ -2642,7 +2642,7 @@ function ClientContractsPage() {
               <tr>
                 <th className="px-5 py-3" data-col="code">{tab === "client" ? "Contract ID" : "Prospect ID"}</th>
                 <th className="px-5 py-3">Organization</th>
-                <th className="px-5 py-3">Client</th>
+                <th className="px-5 py-3">Unit</th>
                 {tab === "client" ? (
                   <>
                     <th className="px-5 py-3" data-col="date">Start</th>
@@ -3354,15 +3354,15 @@ function ContractFormDialog({
   }, [selectedUnit?.id]);
   const filteredUnits = useMemo(() => {
     const query = unitQuery.trim().toLowerCase();
-    if (!query) return clients;
-    return clients.filter((u) => {
+    if (!query) return units;
+    return units.filter((u) => {
       const org = u.customerId ? customerById.get(u.customerId) : null;
       return [u.code, u.name, org?.name ?? "", u.id]
         .join(" ")
         .toLowerCase()
         .includes(query);
     });
-  }, [customerById, unitQuery, clients]);
+  }, [customerById, unitQuery, units]);
 
   const selectedWindow = payrollWindows.find((w) => w.id === payrollWindowId);
   const payDate = selectedWindow ? `Day ${selectedWindow.processingDay}` : "—";
@@ -3401,7 +3401,7 @@ function ContractFormDialog({
                   className="font-mono"
                 />
               </Field>
-              <Field label="Client ID *">
+              <Field label="Unit ID *">
                 <Popover open={unitPickerOpen} onOpenChange={setUnitPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -3415,7 +3415,7 @@ function ContractFormDialog({
                           {selectedUnit.code}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">Search client ID…</span>
+                        <span className="text-muted-foreground">Search unit ID…</span>
                       )}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -3423,12 +3423,12 @@ function ContractFormDialog({
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                       <Command shouldFilter={false}>
                       <CommandInput
-                        placeholder="Search by client ID or name…"
+                        placeholder="Search by unit ID or name…"
                         value={unitQuery}
                         onValueChange={setUnitQuery}
                       />
                       <CommandList className="max-h-64 overflow-y-auto overscroll-contain" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
-                        <CommandEmpty>No clients found.</CommandEmpty>
+                        <CommandEmpty>No units found.</CommandEmpty>
                         <CommandGroup>
                           {filteredUnits.map((u) => {
                             const org = u.customerId ? customerById.get(u.customerId) : null;
@@ -3468,7 +3468,7 @@ function ContractFormDialog({
                   </PopoverContent>
                 </Popover>
               </Field>
-              <Field label="Client Name">
+              <Field label="Unit Name">
                 <Input value={selectedUnit?.name ?? ""} readOnly placeholder="Auto-filled" />
               </Field>
               <Field label="Organization Name">
@@ -3720,12 +3720,12 @@ function ContractFormDialog({
                   </div>
                 </div>
                 <div className="sm:col-span-3 text-[11px] text-muted-foreground">
-                  Manage these in Clients.
+                  Manage these in Unit Manager.
                 </div>
               </div>
             ) : (
               <div className="mb-4 text-sm italic text-muted-foreground">
-                Select a client to view its GST information.
+                Select a unit to view its GST information.
               </div>
             )}
             <div className="grid gap-3 sm:grid-cols-3">
@@ -3795,7 +3795,7 @@ function ContractFormDialog({
             data-force-enabled={resourceSaveBypassEnabled ? "true" : undefined}
             onClick={async () => {
               if (!unitId) {
-                toast.error("Please select a client");
+                toast.error("Please select a unit");
                 return;
               }
               const payload = applyApprovalPickerToPayload({
@@ -4495,7 +4495,7 @@ export function ResourceFormDialog({
     capAmount: null,
     capFlatAmount: null,
     amount: 0,
-    state: "Per state slab (resolved at payroll from client state, employee gender, earned gross)",
+    state: "Per state slab (resolved at payroll from unit state, employee gender, earned gross)",
     description: "",
     party: "employee",
     deductionCalcType: "fixed_amount",

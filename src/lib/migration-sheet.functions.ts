@@ -41,7 +41,7 @@ export type MigrationSheetResult = {
 };
 
 const SYSTEM_PROMPT = `You read printed or hand-written monthly attendance / muster-roll sheets from an Indian security-services company.
-You are given the exact period dates, the allowed attendance codes and the allowed designations for the client.
+You are given the exact period dates, the allowed attendance codes and the allowed designations for the unit.
 
 RULES:
 1. Emit one entry per EMPLOYEE ROW visible on the sheet. Read the printed name, employee code (if any) and mobile number (if any).

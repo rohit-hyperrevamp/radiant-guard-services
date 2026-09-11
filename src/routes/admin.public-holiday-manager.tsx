@@ -381,7 +381,7 @@ function HolidayFormDialog({
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <div>
               <div className="text-sm font-medium">Enabled</div>
-              <div className="text-xs text-muted-foreground">Apply on attendance for PH-enabled clients</div>
+              <div className="text-xs text-muted-foreground">Apply on attendance for PH-enabled units</div>
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>

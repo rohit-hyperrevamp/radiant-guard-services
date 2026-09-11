@@ -437,7 +437,7 @@ function AdminLayout() {
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
       { key: "org-manager", label: "Organization Manager", module: "organizations", sub: "organization_manager", icon: Users, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
-      { key: "unit-manager", label: "Clients", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
+      { key: "unit-manager", label: "Unit Manager", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 

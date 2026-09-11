@@ -7,7 +7,7 @@
 // computes them from the contract every time it renders.
 //
 // This module runs exactly the same engine the payroll register runs
-// (computeWages + the statutory appliers) for a client and period, and returns
+// (computeWages + the statutory appliers) for a unit and period, and returns
 // the per-employee deduction lines so the Deductions workspace can show them
 // live alongside the manually-recorded / auto-generated (uniform, GPAIP,
 // recruitment fee) rows.
@@ -68,7 +68,7 @@ function periodDatesOf(start: string, end: string): string[] {
 type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
 
 /**
- * Compute the live contract + statutory deductions for one client and period.
+ * Compute the live contract + statutory deductions for one unit and period.
  * Mirrors the payroll register pipeline so numbers always agree.
  */
 export async function fetchLiveContractDeductions(args: {
@@ -96,16 +96,16 @@ export async function fetchLiveContractDeductions(args: {
 
   const candidateCols = "id, employee_code, full_name, designation_id, gender, is_disabled";
 
-  const [{ data: client }, { data: primary }, { data: links }] = await Promise.all([
-    supabase.from("clients").select("id, name, code, billing_state, billing_pincode, epf_cap_enabled").eq("id", unitId).maybeSingle(),
+  const [{ data: unit }, { data: primary }, { data: links }] = await Promise.all([
+    supabase.from("units").select("id, name, code, billing_state, billing_pincode, epf_cap_enabled").eq("id", unitId).maybeSingle(),
     supabase.from("candidates").select(candidateCols).eq("unit_id", unitId).eq("is_enabled", true).eq("status", "active"),
     supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
   ]);
 
-  const unitName = args.unitName || (client?.name as string) || (client?.code as string) || "—";
-  const unitState = (client as { billing_state?: string | null } | null)?.billing_state ?? null;
-  const unitPincode = (client as { billing_pincode?: string | null } | null)?.billing_pincode ?? null;
-  const epfCapEnabled = (client as { epf_cap_enabled?: boolean | null } | null)?.epf_cap_enabled ?? true;
+  const unitName = args.unitName || (unit?.name as string) || (unit?.code as string) || "—";
+  const unitState = (unit as { billing_state?: string | null } | null)?.billing_state ?? null;
+  const unitPincode = (unit as { billing_pincode?: string | null } | null)?.billing_pincode ?? null;
+  const epfCapEnabled = (unit as { epf_cap_enabled?: boolean | null } | null)?.epf_cap_enabled ?? true;
 
   const linkIds = (links ?? []).map((l) => l.candidate_id);
   let secondary: typeof primary = [];

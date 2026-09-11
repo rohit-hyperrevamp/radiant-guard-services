@@ -47,7 +47,7 @@ function StockPage() {
   const { data: items = [] } = useQuery({
     queryKey: ["inv", "items-list-full"],
     queryFn: async () => {
-      const { data } = await supabase.from("inv_items" as never).select("id,name,item_code,client,default_reorder_level");
+      const { data } = await supabase.from("inv_items" as never).select("id,name,item_code,unit,default_reorder_level");
       return (data as unknown as Item[]) ?? [];
     },
   });
@@ -417,7 +417,7 @@ function StockPage() {
                 <th className="px-5 py-3">Item</th>
                 <th className="px-5 py-3">Size</th>
                 <th className="px-5 py-3 text-right">Qty</th>
-                <th className="px-5 py-3">Client</th>
+                <th className="px-5 py-3">Unit</th>
                 <th className="px-5 py-3 text-right">Reorder</th>
               </tr>
             </thead>

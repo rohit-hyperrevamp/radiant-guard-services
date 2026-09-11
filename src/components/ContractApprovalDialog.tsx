@@ -113,7 +113,7 @@ export function ContractApprovalDialog({
         const dup = ((dupRows as unknown as Record<string, unknown>[]) ?? [])[0];
         if (dup) {
           toast.error(
-            `Client already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before approving a new one.`,
+            `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before approving a new one.`,
           );
           setSaving(false);
           return;

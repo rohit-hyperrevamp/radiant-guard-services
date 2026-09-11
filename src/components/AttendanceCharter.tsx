@@ -343,7 +343,7 @@ export function AttendanceCharter({
       rows.map((r) => ({
         Contract: r.contractCode,
         Organisation: r.unit.customer_name,
-        Client: r.unit.name || r.unit.code,
+        Unit: r.unit.name || r.unit.code,
         "Shift hours": r.unitShift,
         Committed: r.committed,
         Actual: r.actual,
@@ -438,7 +438,7 @@ export function AttendanceCharter({
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search by client, client or contract…"
+            placeholder="Search by unit, client or contract…"
             className="h-9 rounded-xl pl-9"
           />
         </div>
@@ -453,7 +453,7 @@ export function AttendanceCharter({
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          No clients match this search.
+          No units match this search.
         </div>
       ) : (
         <div className="space-y-2">
@@ -569,7 +569,7 @@ export function AttendanceCharter({
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                          No attendance marked for this client yet this month.
+                          No attendance marked for this unit yet this month.
                         </p>
                       ) : (
                         <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">

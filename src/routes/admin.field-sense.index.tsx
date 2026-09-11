@@ -454,7 +454,7 @@ function FieldSenseLeaderboards() {
         lat: number | string;
         lng: number | string;
       }>;
-      const clients = ((unitsRes.data ?? []) as unknown) as Array<{
+      const units = ((unitsRes.data ?? []) as unknown) as Array<{
         id: string;
         name: string;
         customer_id: string | null;
@@ -703,7 +703,7 @@ function FieldSenseLeaderboards() {
           {/* Units + Customers */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <Leaderboard
-              title="Clients · Most visited"
+              title="Units · Most visited"
               tone="sky"
               rows={unitsDesc}
               render={(r) => ({
@@ -713,10 +713,10 @@ function FieldSenseLeaderboards() {
                 metric: `${r.visits}`,
                 metricLabel: r.visits === 1 ? "visit" : "visits",
               })}
-              emptyLabel="No clients visited in range."
+              emptyLabel="No units visited in range."
             />
             <Leaderboard
-              title="Clients · Least visited"
+              title="Units · Least visited"
               tone="rose"
               rows={unitsAsc}
               render={(r) => ({
@@ -726,7 +726,7 @@ function FieldSenseLeaderboards() {
                 metric: `${r.visits}`,
                 metricLabel: r.visits === 1 ? "visit" : "visits",
               })}
-              emptyLabel="No clients visited in range."
+              emptyLabel="No units visited in range."
             />
           </div>
         </>

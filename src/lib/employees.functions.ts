@@ -51,7 +51,7 @@ export const getEmployeesPageData = createServerFn({ method: "GET" })
     if (designationsError) throw designationsError;
 
     const unitRows = ((units as unknown) as UnitLite[]) ?? [];
-    const customerIds = Array.from(new Set(unitRows.map((unit) => client.customer_id).filter(Boolean))) as string[];
+    const customerIds = Array.from(new Set(unitRows.map((unit) => unit.customer_id).filter(Boolean))) as string[];
 
     let customerNameById = new Map<string, string>();
     if (customerIds.length) {

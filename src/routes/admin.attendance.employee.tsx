@@ -211,7 +211,7 @@ function EmployeeAttendanceLookupPage() {
         }
         return {
           id,
-          name: unit?.name || unit?.code || "Unknown client",
+          name: unit?.name || unit?.code || "Unknown unit",
           code: unit?.code || "",
           designation: d.designationByUnit[id] || "",
           isPrimary: !!link?.is_primary,
@@ -247,12 +247,12 @@ function EmployeeAttendanceLookupPage() {
         title="Employee attendance lookup"
         eyebrow="Attendance"
         icon={UserRound}
-        description="Search any employee and review their marked attendance across every client they work at."
+        description="Search any employee and review their marked attendance across every unit they work at."
         crumbs={[{ label: "Attendance", to: "/admin/attendance" }, { label: "Employee lookup" }]}
         actions={
           <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
             <Link to="/admin/attendance">
-              <MapPinned className="h-3.5 w-3.5" /> Client view
+              <MapPinned className="h-3.5 w-3.5" /> Unit view
             </Link>
           </Button>
         }
@@ -342,7 +342,7 @@ function EmployeeAttendanceLookupPage() {
           <UserRound className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
           <p className="text-sm font-semibold text-foreground">Search for an employee</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Type at least two characters. Attendance is shown per client, including reliever (extra duty) clients.
+            Type at least two characters. Attendance is shown per unit, including reliever (extra duty) units.
           </p>
         </div>
       ) : (

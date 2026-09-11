@@ -206,7 +206,7 @@ export async function autoIssuePostingOrder(opts: {
 
     void logActivity({
       module: MODULE,
-      action: "Auto-dispatch posting order on client mapping",
+      action: "Auto-dispatch posting order on unit mapping",
       entityType: "candidates",
       entityId: candidateId,
       entityLabel: candidate.full_name ?? "",

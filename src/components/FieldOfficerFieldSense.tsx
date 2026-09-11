@@ -938,8 +938,8 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
         </div>
         {unitsQ.isLoading ? (
           <div className="py-4 text-center text-[11px] italic text-muted-foreground">Loading…</div>
-        ) : clients.length === 0 ? (
-          <div className="py-4 text-center text-[11px] italic text-muted-foreground">No clients mapped to you yet.</div>
+        ) : units.length === 0 ? (
+          <div className="py-4 text-center text-[11px] italic text-muted-foreground">No units mapped to you yet.</div>
         ) : (
           <ul className="space-y-2">
             {units.map((u) => {
@@ -1070,7 +1070,7 @@ function CheckInDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const nearest = useMemo(() => (pos ? findNearestUnit(clients, pos, NEAREST_MAX_METERS) : null), [pos, clients]);
+  const nearest = useMemo(() => (pos ? findNearestUnit(units, pos, NEAREST_MAX_METERS) : null), [pos, units]);
   const [selectedId, setSelectedId] = useState<string>(
     preselectUnitId ?? nearest?.unit.unit_id ?? units[0]?.unit_id ?? "",
   );
@@ -1130,14 +1130,14 @@ function CheckInDialog({
         <div className="space-y-3 py-2">
           {nearest && nearest.distance <= NEAREST_MAX_METERS ? (
             <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
-              Nearest client: <span className="font-bold">{nearest.unit.unit_name}</span> ({formatDistance(nearest.distance)} away).
+              Nearest unit: <span className="font-bold">{nearest.unit.unit_name}</span> ({formatDistance(nearest.distance)} away).
             </div>
           ) : (
             <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
               No unit within {NEAREST_MAX_METERS}m of your location. Pick manually.
             </div>
           )}
-          <label className="block text-[11px] font-semibold text-muted-foreground">Client</label>
+          <label className="block text-[11px] font-semibold text-muted-foreground">Unit</label>
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
@@ -1446,7 +1446,7 @@ function FieldSenseTimeline(props: {
               key={v.id}
               color="sky"
               icon={<Flag className="h-3.5 w-3.5" />}
-              title={`Visit #${v.visit_seq} · ${u?.unit_name ?? "Client"}`}
+              title={`Visit #${v.visit_seq} · ${u?.unit_name ?? "Unit"}`}
               time={`${fmtTime(v.check_in_at)} → ${fmtTime(v.check_out_at)}`}
               subtitle={u?.address ?? u?.customer_name ?? ""}
               chip={v.customer_rating != null ? `★ ${v.customer_rating}` : undefined}
@@ -1460,7 +1460,7 @@ function FieldSenseTimeline(props: {
             color="amber"
             pulsing
             icon={<Navigation className="h-3.5 w-3.5" />}
-            title={`In meeting · ${openVisitUnit?.unit_name ?? "Client"}`}
+            title={`In meeting · ${openVisitUnit?.unit_name ?? "Unit"}`}
             time={`${fmtTime(openVisit.check_in_at)} · now`}
             subtitle={
               openVisitUnit?.address ??
@@ -1689,7 +1689,7 @@ function RangeInsightsPanel({
       <div className="mt-3">
         <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
           {highlight === "unvisited"
-            ? `Clients not visited in ${rangeInfo.label.toLowerCase()} (${unvisited.length})`
+            ? `Units not visited in ${rangeInfo.label.toLowerCase()} (${unvisited.length})`
             : `Visits — ${rangeInfo.label} (${displayed.length})`}
         </div>
         {loading ? (
@@ -1697,7 +1697,7 @@ function RangeInsightsPanel({
         ) : highlight === "unvisited" ? (
           unvisited.length === 0 ? (
             <div className="py-4 text-center text-[11px] italic text-muted-foreground">
-              All clients visited in this range. 🎉
+              All units visited in this range. 🎉
             </div>
           ) : (
             <ul className="space-y-1.5">

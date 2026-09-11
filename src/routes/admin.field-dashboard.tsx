@@ -149,11 +149,11 @@ function FieldOfficerDashboard() {
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
       const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
-      // "My clients" = units actually ASSIGNED to me: candidates.unit_id (home) +
+      // "My units" = units actually ASSIGNED to me: candidates.unit_id (home) +
       // candidate_units + unit-level scope assignments. Branch/customer scope rows
       // are visibility scopes (RLS), NOT assignments — expanding them here dumped
       // every unit of the branch into the FO's dashboard and inflated team size.
-      // Radiant Pune home client is excluded (payroll marker, not a client site).
+      // Radiant Pune home unit is excluded (payroll marker, not a client site).
       const unitIdSet = new Set<string>();
       const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
       if (meUnitId) unitIdSet.add(meUnitId);
@@ -163,7 +163,7 @@ function FieldOfficerDashboard() {
       const unitIds = Array.from(unitIdSet);
 
 
-      // Guards mapped to any of my clients via candidate_units (multi-unit coverage)
+      // Guards mapped to any of my units via candidate_units (multi-unit coverage)
       // must be included even when their primary candidates.unit_id points elsewhere.
       const guardExtraUnits = new Map<string, Set<string>>();
       if (unitIds.length) {
@@ -199,7 +199,7 @@ function FieldOfficerDashboard() {
       const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; employee_code: string | null; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
 
       // Co-field-officers: other FOs mapped to any of our unitIds via candidate_units,
-      // esa client, esa branch, or esa customer. Used to show peer coverage on each client.
+      // esa unit, esa branch, or esa customer. Used to show peer coverage on each unit.
       const coFoByUnit = new Map<string, CoFo[]>();
       if (unitIds.length) {
         const [foRes, foCuRes, foEsaRes] = await Promise.all([
@@ -357,7 +357,7 @@ function FieldOfficerDashboard() {
       const orphPending = pendingByUnit.get(UNASSIGNED) ?? 0;
       if (orphaned.length || orphPending) {
         units.push({
-          id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a client",
+          id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a unit",
           is_primary: false, guards: orphaned, co_field_officers: [], pending_onboarding: orphPending,
           open_demands: demandsByUnit.get(UNASSIGNED) ?? 0, inventory_items: inventoryByUnit.get(UNASSIGNED) ?? 0,
         });
@@ -411,7 +411,7 @@ function FieldOfficerDashboard() {
     ? rehireHolderLabel(rehirePending[0], rehireQ.data?.steps ?? [], rehireQ.data?.roleName ?? new Map())
     : `${rehireQ.data?.completedCount ?? 0} completed`;
 
-  const primaryUnit = units.find((u) => u.is_primary) ?? clients[0];
+  const primaryUnit = units.find((u) => u.is_primary) ?? units[0];
   const teamDelta = (data?.joinedThisWeek ?? 0) - (data?.joinedLastWeek ?? 0);
   const attnDelta = (data?.attendanceRateToday ?? 0) - (data?.attendanceRateYesterday ?? 0);
   const onbDelta = (data?.pendingOnboardingTotal ?? 0) - (data?.pendingOnboardingLastWeek ?? 0);
@@ -588,7 +588,7 @@ function FieldOfficerDashboard() {
       <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
         <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3">
           <div className="min-w-0">
-            <h2 className="font-display text-sm font-bold text-foreground sm:text-base">My clients</h2>
+            <h2 className="font-display text-sm font-bold text-foreground sm:text-base">My units</h2>
             <p className="mt-0.5 text-[11px] text-muted-foreground">Tap a row to see the team.</p>
           </div>
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
@@ -600,11 +600,11 @@ function FieldOfficerDashboard() {
           {isLoading ? (
             <ListSkeleton rows={3} />
 
-          ) : clients.length === 0 ? (
+          ) : units.length === 0 ? (
             <div className="flex flex-col items-center gap-2 p-12 text-center">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Sparkles className="h-5 w-5" /></div>
-              <div className="text-sm font-semibold text-foreground">No clients yet</div>
-              <div className="text-xs text-muted-foreground">Ask HR to map you to your client(s).</div>
+              <div className="text-sm font-semibold text-foreground">No units yet</div>
+              <div className="text-xs text-muted-foreground">Ask HR to map you to your unit(s).</div>
             </div>
           ) : (
             units.map((u) => <UnitRow key={u.id} unit={u} allUnits={units} />)
@@ -999,7 +999,7 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
             </div>
           )}
           {unit.guards.length === 0 ? (
-            <div className="py-1 text-[12px] text-muted-foreground">No active employees on this client yet.</div>
+            <div className="py-1 text-[12px] text-muted-foreground">No active employees on this unit yet.</div>
           ) : (
             <ul className="divide-y divide-border/40 overflow-hidden rounded-lg border border-border/50 bg-card">
               {unit.guards.map((g) => (
@@ -1072,7 +1072,7 @@ function ManageGuardUnitsDialog({
       ]);
       if (cancel) return;
       if (error) {
-        toast.error(error.message || "Failed to load client mappings");
+        toast.error(error.message || "Failed to load unit mappings");
       }
       const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null; designation_id: string | null }>;
       const ids = new Set<string>(rows.map((r) => r.unit_id));
@@ -1118,7 +1118,7 @@ function ManageGuardUnitsDialog({
   const removeFromAllUnits = async () => {
     if (!guard) return;
     const ok = window.confirm(
-      `Remove ${guard.full_name} from every client? They will no longer appear on any roster or attendance sheet until they are mapped again.`,
+      `Remove ${guard.full_name} from every unit? They will no longer appear on any roster or attendance sheet until they are mapped again.`,
     );
     if (!ok) return;
     setSaving(true);
@@ -1133,13 +1133,13 @@ function ManageGuardUnitsDialog({
         .update({ unit_id: null, designation_id: null, reports_to: null })
         .eq("id", guard.id);
       if (homeErr && !homeErr.message.toLowerCase().includes("row-level security")) throw homeErr;
-      toast.success(`${guard.full_name} removed from all clients`);
+      toast.success(`${guard.full_name} removed from all units`);
       await qc.invalidateQueries({ queryKey: ["field-officer-dashboard-v4"] });
       await qc.invalidateQueries({ queryKey: ["my-reportees"] });
       await qc.invalidateQueries({ queryKey: ["admin", "unmapped-guards"] });
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to remove the guard from their clients";
+      const msg = e instanceof Error ? e.message : "Failed to remove the guard from their units";
       toast.error(msg.includes("row-level security") ? "You don't have permission to remove this guard." : msg);
     } finally {
       setSaving(false);
@@ -1149,16 +1149,16 @@ function ManageGuardUnitsDialog({
   const save = async () => {
     if (!guard) return;
     if (selected.size === 0) {
-      toast.error('No client ticked — use "Remove from all clients" if this guard should be unmapped.');
+      toast.error('No unit ticked — use "Remove from all units" if this guard should be unmapped.');
       return;
     }
     if (!primaryId || !selected.has(primaryId)) {
-      toast.error("Pick a primary client — that is where attendance and the work order are issued.");
+      toast.error("Pick a primary unit — that is where attendance and the work order are issued.");
       return;
     }
     const missingDesig = [...selected].filter((u) => !desigByUnit[u]);
     if (missingDesig.length) {
-      toast.error("Pick the designation this guard fills at every ticked client — attendance and salary follow that designation.");
+      toast.error("Pick the designation this guard fills at every ticked unit — attendance and salary follow that designation.");
       return;
     }
     const toAdd = [...selected].filter((u) => !initial.has(u));
@@ -1186,7 +1186,7 @@ function ManageGuardUnitsDialog({
           .select("unit_id");
         if (error) throw error;
         if ((inserted ?? []).length !== rows.length) {
-          throw new Error("You don't have permission to map this guard to one of those clients.");
+          throw new Error("You don't have permission to map this guard to one of those units.");
 
         }
       }
@@ -1199,7 +1199,7 @@ function ManageGuardUnitsDialog({
           .select("unit_id");
         if (error) throw error;
         if ((removed ?? []).length === 0) {
-          throw new Error("Could not remove the unticked client(s) — you may not have permission.");
+          throw new Error("Could not remove the unticked unit(s) — you may not have permission.");
         }
       }
       if (primaryChanged) {
@@ -1213,7 +1213,7 @@ function ManageGuardUnitsDialog({
           .select("unit_id");
         if (setErr) throw setErr;
         if ((promoted ?? []).length === 0) {
-          throw new Error("Could not set the primary client — you may not have permission.");
+          throw new Error("Could not set the primary unit — you may not have permission.");
         }
         const { error: clearErr } = await supabase
           .from("candidate_units")
@@ -1234,7 +1234,7 @@ function ManageGuardUnitsDialog({
 
       // Keep the legacy home unit in sync so rosters, attendance and dashboards
       // follow the primary unit. The candidate's master designation mirrors the
-      // designation they fill at the primary client (salary + payroll-day cap).
+      // designation they fill at the primary unit (salary + payroll-day cap).
       const { error: homeErr } = await supabase
         .from("candidates")
         .update({ unit_id: primaryId, designation_id: desigByUnit[primaryId] ?? null })
@@ -1253,8 +1253,8 @@ function ManageGuardUnitsDialog({
       await qc.invalidateQueries({ queryKey: ["admin", "unmapped-guards"] });
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to update client mapping";
-      toast.error(msg.includes("row-level security") ? "You don't have permission to change this guard's clients." : msg);
+      const msg = e instanceof Error ? e.message : "Failed to update unit mapping";
+      toast.error(msg.includes("row-level security") ? "You don't have permission to change this guard's units." : msg);
     } finally {
       setSaving(false);
     }
@@ -1266,10 +1266,10 @@ function ManageGuardUnitsDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Manage clients</DialogTitle>
+          <DialogTitle>Manage units</DialogTitle>
           <DialogDescription>
             {guard ? (
-              <>Tick every client <span className="font-semibold text-foreground">{guard.full_name}{guard.employee_code ? ` (${guard.employee_code})` : ""}</span> should cover, then mark one as <span className="font-semibold text-foreground">Primary</span>. Attendance and the work order go to the primary client; every other client is a reliever client for extra duty (ED) only.</>
+              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}{guard.employee_code ? ` (${guard.employee_code})` : ""}</span> should cover, then mark one as <span className="font-semibold text-foreground">Primary</span>. Attendance and the work order go to the primary unit; every other unit is a reliever unit for extra duty (ED) only.</>
             ) : null}
           </DialogDescription>
         </DialogHeader>
@@ -1281,7 +1281,7 @@ function ManageGuardUnitsDialog({
           <>
             {selected.size > 0 && !primaryId && (
               <div className="rounded-xl bg-amber-500/10 px-3 py-2 text-[12px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
-                No primary client selected — pick one before saving.
+                No primary unit selected — pick one before saving.
               </div>
             )}
           <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
@@ -1318,7 +1318,7 @@ function ManageGuardUnitsDialog({
                               : "bg-secondary text-muted-foreground ring-1 ring-border hover:bg-secondary/70"
                           }`}
                         >
-                          {isPrimary ? "Primary client" : "Set as primary"}
+                          {isPrimary ? "Primary unit" : "Set as primary"}
                         </button>
                         {!isPrimary && (
                           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300">
@@ -1328,7 +1328,7 @@ function ManageGuardUnitsDialog({
                       </div>
                       <div>
                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                          Designation at this client {isPrimary ? "(drives salary & attendance)" : "(ED billing rate)"}
+                          Designation at this unit {isPrimary ? "(drives salary & attendance)" : "(ED billing rate)"}
                         </p>
                         <UnitDesignationSelect
                           unitId={u.id}
@@ -1354,7 +1354,7 @@ function ManageGuardUnitsDialog({
             data-force-enabled="true"
             className="border-destructive/40 text-destructive hover:bg-destructive/10"
           >
-            Remove from all clients
+            Remove from all units
           </Button>
           <div className="flex gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>

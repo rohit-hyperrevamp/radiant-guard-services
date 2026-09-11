@@ -66,7 +66,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "state_manager",        label: "State Manager",        path: "/admin/customers/state-manager",    icon: MapPin },
       { key: "branch_manager",       label: "Branch Manager",       path: "/admin/customers/branch-manager",   icon: Building2 },
       { key: "organization_manager", label: "Organization Manager", path: "/admin/customers/customer-manager", icon: Users },
-      { key: "unit_manager",         label: "Clients",         path: "/admin/customers/unit-manager",     icon: Warehouse },
+      { key: "unit_manager",         label: "Unit Manager",         path: "/admin/customers/unit-manager",     icon: Warehouse },
     ],
   },
   {

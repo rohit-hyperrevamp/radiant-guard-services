@@ -386,7 +386,7 @@ function ProfilePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inv_stock_balances" as never)
-        .select("item_id,size_value,qty,inv_items(id,name,item_code,client)")
+        .select("item_id,size_value,qty,inv_items(id,name,item_code,unit)")
         .eq("location_id", profile!.id)
         .in("location_type", ["guard", "security_guard", "field_officer", "candidate", "employee"]);
       if (error) throw error;
@@ -915,8 +915,8 @@ function ProfilePage() {
             </h1>
             <p className="mt-1 break-words text-[13px] font-medium text-muted-foreground sm:text-sm">
               {lookups?.designation?.name || "—"}
-              {lookups?.unit ? ` · ${lookups.client.name}` : ""}
-              {lookups?.unit?.city ? ` (${lookups.client.city})` : ""}
+              {lookups?.unit ? ` · ${lookups.unit.name}` : ""}
+              {lookups?.unit?.city ? ` (${lookups.unit.city})` : ""}
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
               <Badge variant="outline" className="rounded-full px-2.5 py-0.5 capitalize">
@@ -1000,7 +1000,7 @@ function ProfilePage() {
                         </div>
                         {officers.length === 0 ? (
                           <div className="mt-1 text-xs text-muted-foreground">
-                            None listed for this client.
+                            None listed for this unit.
                           </div>
                         ) : (
                           <ul className="mt-1 space-y-1">
@@ -1479,7 +1479,7 @@ function ProfilePage() {
                       <div className="text-xs text-muted-foreground">
                         {it.item_code}
                         {it.size_value ? ` · Size ${it.size_value}` : ""}
-                        {it.unit ? ` · ${it.client}` : ""}
+                        {it.unit ? ` · ${it.unit}` : ""}
                       </div>
                     </div>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
@@ -1547,7 +1547,7 @@ function ProfilePage() {
           </p>
         ) : !salaryQ.data.resource || !salaryQ.data.wages ? (
           <p className="text-sm text-muted-foreground">
-            Contract <span className="font-mono">{salaryQ.data.contract.contract_code}</span> exists for your client but no salary resource is mapped for your designation yet.
+            Contract <span className="font-mono">{salaryQ.data.contract.contract_code}</span> exists for your unit but no salary resource is mapped for your designation yet.
           </p>
         ) : (
           (() => {

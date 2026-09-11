@@ -253,8 +253,8 @@ function CustomerManagerPage() {
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
                         onClick={() => setViewingUnits(c)}
-                        aria-label="View clients"
-                        title="View mapped clients"
+                        aria-label="View units"
+                        title="View mapped units"
                       >
                         <Network className="h-4 w-4" />
                       </Button>
@@ -455,14 +455,14 @@ function CustomerUnitsDialog({
         {orgUnits.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
             <Warehouse className="mx-auto mb-2 h-6 w-6 opacity-50" />
-            No clients mapped to this organisation yet.
+            No units mapped to this organisation yet.
           </div>
         ) : view === "list" ? (
           <div className="overflow-hidden rounded-xl border border-border">
             <table className="ios-table w-full text-sm">
               <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2.5">Client</th>
+                  <th className="px-4 py-2.5">Unit</th>
                   <th className="px-4 py-2.5">Branch</th>
                   <th className="px-4 py-2.5">Location</th>
                   <th className="px-4 py-2.5">Active</th>

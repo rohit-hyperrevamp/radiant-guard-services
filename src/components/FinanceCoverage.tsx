@@ -305,7 +305,7 @@ function CharterDialog({
     downloadCsv(
       title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       filtered.map((r) => ({
-        Client: r.unit_name,
+        Unit: r.unit_name,
         Code: r.unit_code,
         Organisation: r.customer_name,
         [labels.committed]: Math.round(pick(r).committed),
@@ -329,7 +329,7 @@ function CharterDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by client or organisation…"
+              placeholder="Search by unit or organisation…"
               className="h-9 rounded-lg pl-9"
             />
           </div>
@@ -352,7 +352,7 @@ function CharterDialog({
         <div className="max-h-[60vh] overflow-y-auto px-5 pb-5 pt-3">
           {filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              No clients match this search.
+              No units match this search.
             </div>
           ) : (
             <div className="space-y-2">
@@ -531,7 +531,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     downloadCsv(
       "unit-profitability",
       filtered.map((r) => ({
-        Client: r.unit_name,
+        Unit: r.unit_name,
         Organisation: r.customer_name,
         "Contracted MTD": Math.round(r.committed_invoice),
         "Actual invoice MTD": Math.round(r.actual_invoice),
@@ -547,9 +547,9 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             P&amp;L
           </div>
-          <h2 className="text-base font-semibold">Client Profitability — Committed vs Actual</h2>
+          <h2 className="text-base font-semibold">Unit Profitability — Committed vs Actual</h2>
           <p className="text-xs text-muted-foreground">
-            Contracted value against invoice earned and payroll spent month-till-date, per client.
+            Contracted value against invoice earned and payroll spent month-till-date, per unit.
           </p>
         </div>
         <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
@@ -595,7 +595,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search client or organisation…"
+          placeholder="Search unit or organisation…"
           className="h-9 rounded-lg pl-9"
         />
       </div>
@@ -604,7 +604,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold">Client</th>
+              <th className="px-3 py-2 text-left font-semibold">Unit</th>
               <th className="px-3 py-2 text-right font-semibold">Contracted</th>
               <th className="px-3 py-2 text-right font-semibold">Invoice MTD</th>
               <th className="px-3 py-2 text-right font-semibold">Payroll MTD</th>
@@ -616,7 +616,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
-                  No clients to report for this cycle.
+                  No units to report for this cycle.
                 </td>
               </tr>
             )}

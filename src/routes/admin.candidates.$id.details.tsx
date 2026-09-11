@@ -69,7 +69,7 @@ const MODULE = "Candidate Details";
 
 const SECTIONS = [
   { id: "basic", label: "Basic Info", icon: Activity },
-  { id: "units", label: "Client Mapping", icon: Building2 },
+  { id: "units", label: "Unit Mapping", icon: Building2 },
   { id: "compliance", label: "Compliance", icon: ShieldCheck },
   { id: "knowledge", label: "Knowledge & Experience", icon: GraduationCap },
   { id: "physical", label: "Physical & Health", icon: Heart },
@@ -579,7 +579,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
   const addMapping = async () => {
     if (!addUnitId) return;
     if (!addDesignationId) {
-      toast.error("Pick the designation this employee fills at that client — attendance and salary follow the designation.");
+      toast.error("Pick the designation this employee fills at that unit — attendance and salary follow the designation.");
       return;
     }
     const isFirstMapping = mappings.length === 0;
@@ -606,7 +606,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         details: { unit_id: addUnitId, designation_id: addDesignationId },
       });
       const unitLabel = unitMap.get(addUnitId)?.name ?? "the site";
-      toast.success(isFirstMapping ? "Primary client mapped" : `Mapped as reliever at ${unitLabel} (extra duty only)`);
+      toast.success(isFirstMapping ? "Primary unit mapped" : `Mapped as reliever at ${unitLabel} (extra duty only)`);
       if (isFirstMapping) {
         // Work orders are only dispatched for the primary unit.
         await supabase
@@ -624,14 +624,14 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
       refresh();
 
     } catch (e: any) {
-      toast.error(e.message || "Failed to map client");
+      toast.error(e.message || "Failed to map unit");
     } finally {
       setBusy(false);
     }
   };
 
   const removeMapping = async (row: CandidateUnitRow) => {
-    if (!(await confirmAction({ title: "Remove client mapping?", description: "This will unmap the employee from this client.", confirmText: "Remove" }))) return;
+    if (!(await confirmAction({ title: "Remove unit mapping?", description: "This will unmap the employee from this unit.", confirmText: "Remove" }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.from("candidate_units" as never).delete().eq("id", row.id);
@@ -654,7 +654,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
 
   const setPrimary = async (row: CandidateUnitRow) => {
     if (!row.designation_id) {
-      toast.error("Set the designation for this client before making it primary — attendance and salary follow the designation.");
+      toast.error("Set the designation for this unit before making it primary — attendance and salary follow the designation.");
       return;
     }
     setBusy(true);
@@ -683,7 +683,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         entityId: candidateId,
         details: { unit_id: row.unit_id },
       });
-      toast.success("Primary client updated — all other clients are reliever (extra duty) postings");
+      toast.success("Primary unit updated — all other units are reliever (extra duty) postings");
       const label = unitMap.get(row.unit_id)?.name ?? "the site";
       void autoIssuePostingOrder({ candidateId, unitId: row.unit_id }).then((r) => {
         if (r.sent) toast.success(`Posting order for ${label} emailed to ${r.to}`);
@@ -716,7 +716,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         entityId: candidateId,
         details: { unit_id: row.unit_id, designation_id: designationId },
       });
-      toast.success("Designation updated for this client");
+      toast.success("Designation updated for this unit");
       refresh();
     } catch (e: any) {
       toast.error(e.message || "Failed to update designation");
@@ -731,8 +731,8 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
   return (
     <div>
       <SectionHeader
-        title="Client Mapping"
-        desc="One primary client only — that is where the posting order is dispatched. Every other client is a reliever posting: the employee appears as (R) and can only be marked for extra duty (ED)."
+        title="Unit Mapping"
+        desc="One primary unit only — that is where the posting order is dispatched. Every other unit is a reliever posting: the employee appears as (R) and can only be marked for extra duty (ED)."
       />
 
       {primaryUnitId && !mappings.some((m) => m.unit_id === primaryUnitId) && (
@@ -751,7 +751,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[240px]">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Add client</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Add unit</label>
           <select
             value={addUnitId}
             onChange={(e) => {
@@ -761,7 +761,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             disabled={busy || loading}
           >
-            <option value="">Select a client…</option>
+            <option value="">Select a unit…</option>
             {available.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.code} — {u.name} {u.location ? `(${u.location})` : ""}
@@ -771,7 +771,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         </div>
         <div className="flex-1 min-w-[240px]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Designation at this client (from contract)
+            Designation at this unit (from contract)
           </label>
           {addUnitId ? (
             <UnitDesignationSelect
@@ -782,7 +782,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             />
           ) : (
             <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              Select a client first
+              Select a unit first
             </div>
           )}
         </div>
@@ -798,7 +798,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         </div>
       ) : mappings.length === 0 ? (
         <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No clients mapped yet.
+          No units mapped yet.
         </div>
       ) : (
         <div className="overflow-hidden rounded-md border">
@@ -806,7 +806,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">Code</th>
-                <th className="px-3 py-2 text-left">Client</th>
+                <th className="px-3 py-2 text-left">Unit</th>
                 <th className="px-3 py-2 text-left">Designation</th>
                 <th className="px-3 py-2 text-left">Primary</th>
                 <th className="px-3 py-2 text-right" data-col="actions">Actions</th>

@@ -116,7 +116,7 @@ function InvoiceUnitsPage() {
               Invoice charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Contracted value vs month-till-date invoice and payroll. Open any client for the full invoice register.
+              Contracted value vs month-till-date invoice and payroll. Open any unit for the full invoice register.
             </p>
           </div>
 
@@ -139,7 +139,7 @@ function InvoiceUnitsPage() {
                 value: u.id,
                 label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
               }))}
-              allLabel={`All clients (${clients.length})`}
+              allLabel={`All units (${units.length})`}
             />
           </div>
 
@@ -169,7 +169,7 @@ function InvoiceUnitsPage() {
             <ListSkeleton rows={5} />
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load invoice clients right now."}
+              {error instanceof Error ? error.message : "Could not load invoice units right now."}
             </div>
           ) : (
             <FinanceCharter

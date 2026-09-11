@@ -466,7 +466,7 @@ function AttendanceCharterDialog({
     const data = filtered.flatMap((r) =>
       r.people.map((p) => ({
         Organisation: r.orgName,
-        Client: r.unitName,
+        Unit: r.unitName,
         Contract: r.contractCode,
         Employee: p.name,
         Designation: p.designation,
@@ -484,7 +484,7 @@ function AttendanceCharterDialog({
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>Attendance charter · {dayLabel}</DialogTitle>
           <DialogDescription>
-            Client-wise view of who is present, absent or still unmarked today.
+            Unit-wise view of who is present, absent or still unmarked today.
           </DialogDescription>
         </DialogHeader>
 
@@ -494,7 +494,7 @@ function AttendanceCharterDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search client, organisation or employee…"
+              placeholder="Search unit, organisation or employee…"
               className="h-9 rounded-lg pl-9"
             />
           </div>
@@ -609,7 +609,7 @@ function AttendanceCharterDialog({
                       <div className="border-t border-border bg-muted/30 px-3 py-2">
                         {r.people.length === 0 ? (
                           <p className="py-2 text-xs text-muted-foreground">
-                            No employees mapped to this client.
+                            No employees mapped to this unit.
                           </p>
                         ) : (
                           <table className="w-full text-sm">

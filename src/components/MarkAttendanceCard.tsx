@@ -231,10 +231,10 @@ export function MarkAttendanceCard({
       }
 
       if (gated) {
-        if (!geo) throw new Error("Location is required to check in at your assigned client.");
+        if (!geo) throw new Error("Location is required to check in at your assigned unit.");
         const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
         if (units.length === 0) {
-          throw new Error("No client locations are configured for you. Ask your admin to set client coordinates.");
+          throw new Error("No unit locations are configured for you. Ask your admin to set unit coordinates.");
         }
         const withDist = units
           .map((u) => ({
@@ -246,7 +246,7 @@ export function MarkAttendanceCard({
         if (within.length === 0) {
           const nearest = withDist[0];
           throw new Error(
-            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.client.name}. Please reach one of your assigned clients.`,
+            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Please reach one of your assigned units.`,
           );
         }
         if (within.length === 1) {
@@ -524,9 +524,9 @@ export function MarkAttendanceCard({
             className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Confirm client</div>
-            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">You are near multiple clients</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Select the client you are checking in at.</p>
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Confirm unit</div>
+            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">You are near multiple units</h4>
+            <p className="mt-1 text-xs text-muted-foreground">Select the unit you are checking in at.</p>
             <div className="mt-3 space-y-2">
               {nearby.map((n) => (
                 <button

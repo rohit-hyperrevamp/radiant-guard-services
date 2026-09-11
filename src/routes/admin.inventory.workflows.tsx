@@ -79,7 +79,7 @@ const WORKFLOWS: Workflow[] = [
       { icon: Inbox, title: "HQ Review", who: "Inventory Manager", action: "Approves demand. Decides: ship from stock (transfer) OR raise a fresh PO.", tone: "indigo" },
       { icon: Truck, title: "Transfer / Procurement", who: "HQ Warehouse", action: "If stock available → Stock Transfer to branch.  If not → Purchase Order → GRN → Transfer.", doc: "Transfer / PO", tone: "amber" },
       { icon: PackageCheck, title: "Branch GRN", who: "Branch Manager", action: "Confirms receipt at branch. Stock booked into branch ledger.", doc: "Branch GRN", tone: "emerald" },
-      { icon: Warehouse, title: "Branch Warehouse", who: "Branch", action: "Stock now sits with the branch — ready to issue to FOs / clients.", tone: "sky" },
+      { icon: Warehouse, title: "Branch Warehouse", who: "Branch", action: "Stock now sits with the branch — ready to issue to FOs / units.", tone: "sky" },
     ],
   },
   {
@@ -87,7 +87,7 @@ const WORKFLOWS: Workflow[] = [
     code: "WF-03",
     title: "Field Officer → Branch Demand",
     subtitle: "FO requests stock from their parent Branch.",
-    trigger: "FO needs inventory for a guard, post or client under their charge.",
+    trigger: "FO needs inventory for a guard, post or unit under their charge.",
     outcome: "FO receives stock from branch and can issue to security guard.",
     accent: "from-amber-500/20 via-amber-500/5 to-transparent",
     badge: "bg-amber-500/10 text-amber-600 border-amber-500/20",

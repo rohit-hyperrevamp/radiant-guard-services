@@ -235,12 +235,12 @@ function MusterRollPage() {
     billing_pincode: string | null;
   };
 
-  const { data: client } = useQuery({
+  const { data: unit } = useQuery({
 
     queryKey: ["attendance-unit", unitId],
     queryFn: async () => {
       const { data: raw, error } = await supabase
-        .from("clients")
+        .from("units")
         .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never)
         .eq("id", unitId)
         .maybeSingle();
@@ -259,8 +259,8 @@ function MusterRollPage() {
   });
 
   const publicHolidays = usePublicHolidays();
-  const phEnabled = Boolean((client as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled);
-  const phMultiplier = Number((client as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
+  const phEnabled = Boolean((unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled);
+  const phMultiplier = Number((unit as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
   // Per-unit duty value of one PH-marked day. NULL = use the PH code's day_value.
   const unitPhDayValueRaw = (unit as { ph_day_value?: number | string | null } | null | undefined)?.ph_day_value;
   const unitPhDayValue =
@@ -306,7 +306,7 @@ function MusterRollPage() {
         // Only include people explicitly scoped to THIS unit. Branch / customer /
         // state scopes on field officers are oversight markers — they must not
         // pull unrelated people into another unit's muster roll.
-        if (assignment.scope_type === "client" && context && assignment.scope_id === context.id) {
+        if (assignment.scope_type === "unit" && context && assignment.scope_id === context.id) {
           scopeIds.add(assignment.candidate_id);
         }
       }
@@ -326,9 +326,9 @@ function MusterRollPage() {
       }
       const all = [...(prim ?? []), ...(extra ?? [])];
       const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
-      // A guard can be deployed at several clients at once — there is no "home client".
-      // Anyone assigned to this client (own unit_id, a regular candidate_units link, or
-      // a client scope) is a regular deployed line. Only people HR added ad-hoc from the
+      // A guard can be deployed at several units at once — there is no "home unit".
+      // Anyone assigned to this unit (own unit_id, a regular candidate_units link, or
+      // a unit scope) is a regular deployed line. Only people HR added ad-hoc from the
       // muster search carry is_reliever = true on the link: those are (R) lines and are
       // tracked as overtime only.
       const relieverLinks = new Set(
@@ -347,7 +347,7 @@ function MusterRollPage() {
 
 
 
-      // The designation a person fills AT THIS UNIT comes from the client mapping
+      // The designation a person fills AT THIS UNIT comes from the unit mapping
       // (contracted role slot), not from their master record. "Security guard" is
       // a role; the designation drives salary and the payroll-day cap.
       const unitDesigByCandidate = new Map<string, string>();
@@ -392,7 +392,7 @@ function MusterRollPage() {
           };
         })
 
-        // Muster rolls are billable-only for client clients. Non-billable staff
+        // Muster rolls are billable-only for client units. Non-billable staff
         // (field officers, branch managers, HR, etc.) only appear on the
         // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
         .filter((c) => !c.is_non_billable || unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1")
@@ -403,11 +403,11 @@ function MusterRollPage() {
 
       return mappedEmployees;
     },
-    enabled: Boolean(client),
+    enabled: Boolean(unit),
   });
 
   // Contract effective for the viewed month: payroll window + designations
-  // available on this client. Prefer the latest contract that overlaps the
+  // available on this unit. Prefer the latest contract that overlaps the
   // register period; an older still-active record must not override a renewal.
   const { data: contractInfo } = useQuery({
     queryKey: ["attendance-contract", unitId, year, monthIdx],
@@ -545,9 +545,9 @@ function MusterRollPage() {
     return m;
   }, [contractDesignations, periodCells]);
 
-  // Client-level fallback cap. Reliever / extra-designation lines are often on a
-  // designation that is not on the contract (e.g. "Admin Executive" on a client
-  // contracted only for "Security Guard"). A capped client must still limit those
+  // Unit-level fallback cap. Reliever / extra-designation lines are often on a
+  // designation that is not on the contract (e.g. "Admin Executive" on a unit
+  // contracted only for "Security Guard"). A capped unit must still limit those
   // lines, so fall back to the strictest payroll-day base on the contract.
   const unitMaxPDays = useMemo(() => {
     const values = Array.from(maxPDaysByDesignation.values());
@@ -704,9 +704,9 @@ function MusterRollPage() {
       });
       // Fan out notifications.
       const link = `/admin/attendance/${unitId}?month=${new Date(periodStart).getMonth()}&year=${new Date(periodStart).getFullYear()}`;
-      const unitLabel = ((client as { customer_name?: string; name?: string } | null | undefined)?.customer_name
-        ? `${(client as { customer_name?: string }).customer_name} — ${(client as { name?: string }).name ?? ""}`
-        : (client as { name?: string } | null | undefined)?.name ?? "client").trim();
+      const unitLabel = ((unit as { customer_name?: string; name?: string } | null | undefined)?.customer_name
+        ? `${(unit as { customer_name?: string }).customer_name} — ${(unit as { name?: string }).name ?? ""}`
+        : (unit as { name?: string } | null | undefined)?.name ?? "unit").trim();
       const periodLabel = `${MONTH_NAMES[monthIdx]} ${year}`;
       if (next.status === "submitted") {
         // Look up the field officer's display name for a richer approver message.
@@ -786,9 +786,9 @@ function MusterRollPage() {
         entityLabel: `${unitId} ${periodStart} → ${periodEnd}`,
         details: { unit_id: unitId, period_start: periodStart, period_end: periodEnd },
       });
-      const unitLabel = ((client as { customer_name?: string; name?: string } | null | undefined)?.customer_name
-        ? `${(client as { customer_name?: string }).customer_name} — ${(client as { name?: string }).name ?? ""}`
-        : (client as { name?: string } | null | undefined)?.name ?? "client").trim();
+      const unitLabel = ((unit as { customer_name?: string; name?: string } | null | undefined)?.customer_name
+        ? `${(unit as { customer_name?: string }).customer_name} — ${(unit as { name?: string }).name ?? ""}`
+        : (unit as { name?: string } | null | undefined)?.name ?? "unit").trim();
       const periodLabel = `${MONTH_NAMES[monthIdx]} ${year}`;
       let actorName = "An approver";
       if (uid) {
@@ -975,11 +975,11 @@ function MusterRollPage() {
   });
 
   // --- Self-attendance punches (guards + non-billable employees) ---
-  // Employees mapped to this client can record attendance through the self-punch
+  // Employees mapped to this unit can record attendance through the self-punch
   // flow. Their Punch In / Punch Out rows are derived into muster entries using
   // the duty-duration rules: <4h = A, 4h–<8h = HD, >=8h = P.
   const selfPunchCandidateIds = useMemo(
-    // Relievers never generate regular attendance from punches. Their client
+    // Relievers never generate regular attendance from punches. Their unit
     // assignment is ED-only and is filled exclusively on the ED row.
     () => (employees ?? []).filter((e) => !e.is_reliever).map((e) => e.id),
     [employees],
@@ -1006,7 +1006,7 @@ function MusterRollPage() {
     enabled: selfPunchCandidateIds.length > 0,
   });
 
-  // Contractual shift hours (8h / 12h) per designation for this client — the
+  // Contractual shift hours (8h / 12h) per designation for this unit — the
   // foundation for attendance codes and overtime.
   const { data: shiftMap } = useQuery({
     queryKey: ["shift-hours-map", unitId],
@@ -1173,7 +1173,7 @@ function MusterRollPage() {
         action: "update",
         entityType: "muster_slot",
         entityId: cand.id,
-        entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${client?.name ?? unitId}`,
+        entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
       toast.success(`${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`);
       setMapSlot(null);
@@ -1223,8 +1223,8 @@ function MusterRollPage() {
       // and has no attendance in it belongs to earlier months only.
       const leftOn = (emp as { left_on?: string }).left_on;
       if (leftOn && leftOn < periodStart && !candidatesWithEntries.has(emp.id)) continue;
-      // A guard may be deployed at many clients — "is_home_mapped" here means
-      // "regularly assigned to this client", not "this is their only client".
+      // A guard may be deployed at many units — "is_home_mapped" here means
+      // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
       // Primary row from candidate's own designation
       const primaryKey = rowKey(emp.id, emp.designation_id);
@@ -1393,7 +1393,7 @@ function MusterRollPage() {
       : undefined;
     const usesActualCalendarDays = contractResource?.payrollDayBase?.method === "actual_days";
     const desigCap = designation_id ? maxPDaysByDesignation.get(designation_id) : undefined;
-    // A known contract designation must use its own rule. The client fallback is
+    // A known contract designation must use its own rule. The unit fallback is
     // only for designations absent from the contract; otherwise an Accounts
     // line configured as Actual Days could incorrectly inherit another line's
     // Fixed 26 Days restriction.
@@ -1670,7 +1670,7 @@ function MusterRollPage() {
       const resolvePairKey = (cid: string, did: string | null): string | null => {
         const direct = pairKey(cid, did);
         if (pairByKey.has(direct)) return direct;
-        // OCR returned a designation that isn't a resource on this client's
+        // OCR returned a designation that isn't a resource on this unit's
         // contract — block per "Block with a warning" rule.
         if (did) {
           // Try to label it for the warning.
@@ -1710,7 +1710,7 @@ function MusterRollPage() {
 
       if (blockedDesigNames.size) {
         toast.warning(
-          `Skipped rows for ${Array.from(blockedDesigNames).join(", ")} — not on this client's active contract. Add the designation to the contract first, then re-import.`,
+          `Skipped rows for ${Array.from(blockedDesigNames).join(", ")} — not on this unit's active contract. Add the designation to the contract first, then re-import.`,
           { duration: 8000 },
         );
       }
@@ -1983,7 +1983,7 @@ function MusterRollPage() {
 
 
         // Designation routing: if the sheet has a designation column and the
-        // value matches a contract resource on this client, save under that
+        // value matches a contract resource on this unit, save under that
         // designation. The auto-create row block already kicks in when
         // musterRows re-derives from the new entries.
         let targetDesignationId: string | null = mr.designationId;
@@ -2215,7 +2215,7 @@ function MusterRollPage() {
   };
 
   // Contractual shift length for a muster row (8h / 12h) — never hard-coded,
-  // it comes from the client's active contract resource line.
+  // it comes from the unit's active contract resource line.
   const rowShiftHours = (k: string | null) => {
     const row = findRow(k);
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
@@ -2293,7 +2293,7 @@ function MusterRollPage() {
   };
 
   // edOnlyLine = reliever / extra-designation line: it earns extra duty only and
-  // must not receive a second public-holiday credit for the same employee/client.
+  // must not receive a second public-holiday credit for the same employee/unit.
   const computeTotalsForRow = (rk: string, edOnlyLine = false, joiningDate?: string | null) => {
     let pDays = 0;
     let otDaysSum = 0;
@@ -2306,7 +2306,7 @@ function MusterRollPage() {
       otDaysSum += Number(e.ot_hours) || 0;
       const c = codeMap.get(e.code);
       if (!c) continue;
-      // Client-level public holiday credit: granted on the listed holiday whether
+      // Unit-level public holiday credit: granted on the listed holiday whether
       // the employee worked (P + PH) or was absent (A + PH).
       if (
         phEnabled &&
@@ -2319,7 +2319,7 @@ function MusterRollPage() {
       }
 
       if (e.code === "PH") {
-        // Client setting first, else the PH day value from Attendance Code settings.
+        // Unit setting first, else the PH day value from Attendance Code settings.
         const phValue =
           unitPhDayValue != null
             ? unitPhDayValue
@@ -2344,18 +2344,18 @@ function MusterRollPage() {
   };
 
 
-  const principalEmployer = client
-    ? `${unit.customer_name || ""}${unit.code ? ` - ${client.code}` : ""}`.trim()
+  const principalEmployer = unit
+    ? `${unit.customer_name || ""}${unit.code ? ` - ${unit.code}` : ""}`.trim()
     : "—";
-  const principalAddress = client
+  const principalAddress = unit
     ? [
-        client.shipping_address1 || client.billing_address1 || client.location,
-        client.shipping_address2 || client.billing_address2,
+        unit.shipping_address1 || unit.billing_address1 || unit.location,
+        unit.shipping_address2 || unit.billing_address2,
         [
-          client.shipping_city || client.billing_city,
-          client.shipping_district || client.billing_district,
-          client.shipping_state || client.billing_state,
-          client.shipping_pincode || client.billing_pincode,
+          unit.shipping_city || unit.billing_city,
+          unit.shipping_district || unit.billing_district,
+          unit.shipping_state || unit.billing_state,
+          unit.shipping_pincode || unit.billing_pincode,
         ].filter(Boolean).join(", "),
       ].filter((v) => v && String(v).trim()).join(", ")
     : "";
@@ -2728,7 +2728,7 @@ function MusterRollPage() {
             ? "Edit the muster roll below. Version " + (currentVersion - 1) + " stays archived exactly as it was paid. Submit once the corrections are in."
             : amendmentSubmitted
               ? "Submitted for approval. Approving it unlocks the payroll difference."
-              : "Approved. Open Payroll for this client and process the difference — only affected employees get an arrears or recovery line."}
+              : "Approved. Open Payroll for this unit and process the difference — only affected employees get an arrears or recovery line."}
           {previousVersion?.reason ? <> Reason: {previousVersion.reason}</> : null}
         </div>
       )}
@@ -3066,9 +3066,9 @@ function MusterRollPage() {
               {isLoading ? (
                 <tr><td colSpan={9 + dayCount} className="p-4 text-slate-500">Loading roster…</td></tr>
               ) : rosterError ? (
-                <tr><td colSpan={9 + dayCount} className="p-6 text-red-600">Failed to load mapped employees for this client.</td></tr>
+                <tr><td colSpan={9 + dayCount} className="p-6 text-red-600">Failed to load mapped employees for this unit.</td></tr>
               ) : musterRows.length === 0 ? (
-                <tr><td colSpan={9 + dayCount} className="p-6 text-slate-500">No active security guards are mapped to this client.</td></tr>
+                <tr><td colSpan={9 + dayCount} className="p-6 text-slate-500">No active security guards are mapped to this unit.</td></tr>
               ) : visibleMusterRows.length === 0 ? (
                 <tr><td colSpan={9 + dayCount} className="p-6 text-slate-500">No rows match &ldquo;{musterQuery}&rdquo;.</td></tr>
               ) : (
@@ -3133,7 +3133,7 @@ function MusterRollPage() {
                                     if (error) throw error;
                                   }
                                   // A reliever who reached this muster through a
-                                  // candidate_units link (their home client is elsewhere)
+                                  // candidate_units link (their home unit is elsewhere)
                                   // is unmapped entirely when their last line goes.
                                   if (mr.isPrimary) {
                                     const { error: unlinkError } = await supabase
@@ -3447,7 +3447,7 @@ function MusterRollPage() {
             <DialogTitle>Map employee to slot</DialogTitle>
             <DialogDescription>
               Search the full employee base by name or employee / candidate code, then pick one to fill the{" "}
-              <span className="font-medium">{mapSlot?.designationName ?? "—"}</span> slot on this client.
+              <span className="font-medium">{mapSlot?.designationName ?? "—"}</span> slot on this unit.
             </DialogDescription>
           </DialogHeader>
           <div className="relative">

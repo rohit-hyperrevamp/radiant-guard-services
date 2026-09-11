@@ -158,7 +158,7 @@ function MyReporteesPage() {
         eyebrow="Field operations"
         title="My reportees"
         crumbs={[{ label: "Field dashboard", to: "/admin/field-dashboard" }, { label: "My reportees" }]}
-        description="Every security guard mapped to you across all your clients."
+        description="Every security guard mapped to you across all your units."
       />
 
       <div className="grid grid-cols-3 gap-2.5">
@@ -188,7 +188,7 @@ function MyReporteesPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <FilterChip active={unitFilter === "all"} onClick={() => setUnitFilter("all")}>All clients</FilterChip>
+          <FilterChip active={unitFilter === "all"} onClick={() => setUnitFilter("all")}>All units</FilterChip>
           {units.map((u) => (
             <FilterChip key={u.id} active={unitFilter === u.id} onClick={() => setUnitFilter(u.id)}>
               {u.code}
@@ -222,7 +222,7 @@ function MyReporteesPage() {
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {r.placements.length === 0 ? (
-                    <span className="text-[11px] text-muted-foreground">No client mapping</span>
+                    <span className="text-[11px] text-muted-foreground">No unit mapping</span>
                   ) : (
                     r.placements.map((p) => (
                       <span

@@ -73,7 +73,7 @@ const SALUTATIONS = ["Mr.", "Mrs.", "Ms.", "Dr.", "Mx."];
 const GST_TYPES = [
   "Regular",
   "Composition",
-  "SEZ Client",
+  "SEZ Unit",
   "SEZ Developer",
   "Casual Taxable Person",
   "Non-Resident Taxable Person",
@@ -209,17 +209,17 @@ function UnitManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Clients"
+        title="Unit Manager"
         eyebrow="Organizations"
         icon={Warehouse}
-        description="Track operational clients deployed across branches."
+        description="Track operational units deployed across branches."
         crumbs={[
           { label: "Organizations", to: "/admin/customers/customer-manager" },
-          { label: "Clients" },
+          { label: "Unit Manager" },
         ]}
         kpis={
           <>
-            <PageStat label="Total clients" value={units.length} icon={Warehouse} />
+            <PageStat label="Total units" value={units.length} icon={Warehouse} />
             <PageStat label="Active" value={activeCount} tone="accent" />
             <PageStat label="Inactive" value={units.length - activeCount} tone="destructive" />
           </>
@@ -332,8 +332,8 @@ function UnitManagerPage() {
                   mapLink: csvMapLink(u.latitude, u.longitude),
                 })),
                 [
-                  { key: "unitCode", header: "Client code" },
-                  { key: "unitName", header: "Client name" },
+                  { key: "unitCode", header: "Unit code" },
+                  { key: "unitName", header: "Unit name" },
                   { key: "customer", header: "Organization" },
                   { key: "branch", header: "Branch" },
                   { key: "location", header: "Location" },
@@ -375,7 +375,7 @@ function UnitManagerPage() {
             className="h-10 rounded-xl bg-primary text-primary-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add client
+            Add unit
           </Button>
         </div>
       </div>
@@ -388,7 +388,7 @@ function UnitManagerPage() {
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
-                <th className="px-5 py-3">Client ID</th>
+                <th className="px-5 py-3">Unit ID</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Location</th>
                 <th className="px-5 py-3">Branch</th>
@@ -431,8 +431,8 @@ function UnitManagerPage() {
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => setPeopleFor(u)}
-                        aria-label="People in this client"
-                        title="People in this client"
+                        aria-label="People in this unit"
+                        title="People in this unit"
                       >
                         <Users className="h-4 w-4" />
                       </Button>
@@ -468,8 +468,8 @@ function UnitManagerPage() {
                   <td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     <Warehouse className="mx-auto mb-2 h-6 w-6 opacity-50" />
                     {units.length === 0
-                      ? "No clients yet. Add your first client to get started."
-                      : "No clients match your search."}
+                      ? "No units yet. Add your first unit to get started."
+                      : "No units match your search."}
                   </td>
                 </tr>
               )}
@@ -487,8 +487,8 @@ function UnitManagerPage() {
             </DialogTitle>
             <DialogDescription>
               {peopleFor?.isBillable === false
-                ? "Department-wise hierarchy of everyone onboarded under this client."
-                : "Field officers and security guards deployed to this client."}
+                ? "Department-wise hierarchy of everyone onboarded under this unit."
+                : "Field officers and security guards deployed to this unit."}
             </DialogDescription>
           </DialogHeader>
           {peopleFor && (
@@ -517,8 +517,8 @@ function UnitManagerPage() {
         onSubmit={async (data) => {
           const r = editing ? await updateUnit(editing.id, data) : await addUnit(data);
           if (!r.ok) return { error: r.error, id: null };
-          void logActivity({ module: "Clients", action: editing ? "update" : "create", entityType: "units", entityId: editing?.id, entityLabel: String((data as Record<string, unknown>).code ?? (data as Record<string, unknown>).name ?? ""), details: data as Record<string, unknown> });
-          toast.success(editing ? "Client updated" : "Client added");
+          void logActivity({ module: "Unit Manager", action: editing ? "update" : "create", entityType: "units", entityId: editing?.id, entityLabel: String((data as Record<string, unknown>).code ?? (data as Record<string, unknown>).name ?? ""), details: data as Record<string, unknown> });
+          toast.success(editing ? "Unit updated" : "Unit added");
           return { error: null, id: editing ? editing.id : (("id" in r ? r.id : undefined) ?? null) };
         }}
       />
@@ -526,7 +526,7 @@ function UnitManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete client?</AlertDialogTitle>
+            <AlertDialogTitle>Delete unit?</AlertDialogTitle>
             <AlertDialogDescription>
               This will remove <span className="font-mono font-semibold text-foreground">{deleting?.code}</span>
               {deleting?.name ? <> – {deleting.name}</> : null} from the directory.
@@ -542,8 +542,8 @@ function UnitManagerPage() {
                   const _delId = deleting.id;
                   const _delLabel = String((deleting as Record<string, unknown>).name ?? (deleting as Record<string, unknown>).code ?? _delId);
                   await deleteUnit(_delId);
-                  void logActivity({ module: "Clients", action: "delete", entityType: "units", entityId: _delId, entityLabel: _delLabel });
-                  toast.success("Client deleted");
+                  void logActivity({ module: "Unit Manager", action: "delete", entityType: "units", entityId: _delId, entityLabel: _delLabel });
+                  toast.success("Unit deleted");
                   setDeleting(null);
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Delete failed");
@@ -603,8 +603,8 @@ function UnitFormDialog({
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  editing: Client | null;
-  clients: Client[];
+  editing: Unit | null;
+  units: Unit[];
   onSubmit: (data: Omit<Unit, "id">) => Promise<{ error: string | null; id: string | null }>;
 }) {
   const { branches } = useBranches();
@@ -645,7 +645,7 @@ function UnitFormDialog({
 
 
 
-  const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(clients)));
+  const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(units)));
   const [error, setError] = useState<string | null>(null);
   const [assignedFoIds, setAssignedFoIds] = useState<string[]>([]);
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
@@ -853,7 +853,7 @@ function UnitFormDialog({
       }
       if (toRemove.length || toAdd.length) {
         void logActivity({
-          module: "Clients",
+          module: "Unit Manager",
           action: "assign_field_officers",
           entityType: "units",
           entityId: unitId,
@@ -894,7 +894,7 @@ function UnitFormDialog({
     if (isSaving) return;
     setError(null);
     if (!form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) {
-      const msg = "Enter the uniform fee (₹) — uniform is not included in this client's contract.";
+      const msg = "Enter the uniform fee (₹) — uniform is not included in this unit's contract.";
       setError(msg);
       toast.error(msg);
       return;
@@ -911,11 +911,11 @@ function UnitFormDialog({
       onOpenChange(false);
       if (result.id) {
         void syncFieldOfficerAssignments(result.id).then((syncErr) => {
-          if (syncErr) toast.error(`Client saved, but field officer assignments could not be updated: ${syncErr}`);
+          if (syncErr) toast.error(`Unit saved, but field officer assignments could not be updated: ${syncErr}`);
         });
       }
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Could not save the client. Please try again.";
+      const message = cause instanceof Error ? cause.message : "Could not save the unit. Please try again.";
       setError(message);
       toast.error(message);
     } finally {
@@ -927,9 +927,9 @@ function UnitFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto pb-0">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit client" : "Add client"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit unit" : "Add unit"}</DialogTitle>
           <DialogDescription>
-            A client is an operational location mapped to a branch and an organisation.
+            A unit is an operational location mapped to a branch and an organisation.
           </DialogDescription>
         </DialogHeader>
 
@@ -979,9 +979,9 @@ function UnitFormDialog({
           </Section>
 
           {/* UNIT INFO */}
-          <Section title="Client information">
+          <Section title="Unit information">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Client code (auto, editable)">
+              <Field label="Unit code (auto, editable)">
                 <Input
                   value={form.code}
                   onChange={(e) => set("code", e.target.value.toUpperCase())}
@@ -989,10 +989,10 @@ function UnitFormDialog({
                   className="font-mono"
                 />
               </Field>
-              <Field label="Client name">
+              <Field label="Unit name">
                 <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
               </Field>
-              <Field label="Client location">
+              <Field label="Unit location">
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
               </Field>
               <Field label="Status">
@@ -1204,7 +1204,7 @@ function UnitFormDialog({
                   </div>
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
                     {form.uniformIncluded
-                      ? "When on, uniforms issued to staff on this client are billed to the client — the staff member is not charged. Uniform items will show ₹0 · Included on their profile."
+                      ? "When on, uniforms issued to staff on this unit are billed to the client — the staff member is not charged. Uniform items will show ₹0 · Included on their profile."
                       : "When off, the value of uniforms issued to staff is charged to the staff member. Their profile will show the recoverable rupee value against each uniform item."}
                   </p>
                 </div>
@@ -1229,7 +1229,7 @@ function UnitFormDialog({
                     />
                   </Field>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                    This amount is charged to every staff member on this client as an automatic uniform deduction once they acknowledge issuance. It can be edited or split into instalments later in Payroll → Deductions.
+                    This amount is charged to every staff member on this unit as an automatic uniform deduction once they acknowledge issuance. It can be edited or split into instalments later in Payroll → Deductions.
                   </p>
                 </div>
               )}
@@ -1252,7 +1252,7 @@ function UnitFormDialog({
                     </Badge>
                   </div>
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                    Turn on if a recruitment fee is chargeable for this client, then enter the amount in rupees.
+                    Turn on if a recruitment fee is chargeable for this unit, then enter the amount in rupees.
                   </p>
                 </div>
                 <Switch
@@ -1292,7 +1292,7 @@ function UnitFormDialog({
                     </Badge>
                   </div>
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                    Group Personal Accident Insurance Policy. Turn on to charge this client, then enter the amount in rupees.
+                    Group Personal Accident Insurance Policy. Turn on to charge this unit, then enter the amount in rupees.
                   </p>
                 </div>
                 <Switch
@@ -1406,7 +1406,7 @@ function UnitFormDialog({
                     </Badge>
                   </div>
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                    Statutory / contractual bonus for this client. Turn on and choose how it is paid out.
+                    Statutory / contractual bonus for this unit. Turn on and choose how it is paid out.
                   </p>
                 </div>
                 <Switch
@@ -1460,7 +1460,7 @@ function UnitFormDialog({
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
                     Capped: EPF is computed on the ₹15,000 wage ceiling and attendance is limited to the contract payroll days
                     (extra duties must be marked as ED). No cap: EPF is computed on full wages and Present days are not limited
-                    by payroll days. Contracts on this client inherit this setting.
+                    by payroll days. Contracts on this unit inherit this setting.
                   </p>
                 </div>
                 <Switch
@@ -1550,7 +1550,7 @@ function UnitFormDialog({
               onClick={() => void saveUnit()}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {isSaving ? "Saving…" : editing ? "Save changes" : "Create client"}
+              {isSaving ? "Saving…" : editing ? "Save changes" : "Create unit"}
             </Button>
           </DialogFooter>
         </div>
@@ -1763,7 +1763,7 @@ function LwfBlock({
         <div className="rounded-lg border border-border bg-background p-3 text-sm">
           {result.kind === "no_pincode" || result.kind === "invalid" ? (
             <p className="text-muted-foreground">
-              Navigate to <span className="font-semibold text-foreground">client's billing</span> and provide a valid 6-digit pincode to view applicable LWF.
+              Navigate to <span className="font-semibold text-foreground">unit's billing</span> and provide a valid 6-digit pincode to view applicable LWF.
             </p>
           ) : result.kind === "no_state" ? (
             <p className="text-muted-foreground">
@@ -1865,7 +1865,7 @@ function UnitDeployment({
     <div className="grid gap-4 md:grid-cols-2">
       <div className="rounded-xl border border-border/60 bg-card p-3">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tree</div>
-        {fms.length === 0 && <p className="text-xs text-muted-foreground">No field officer posted to this client yet.</p>}
+        {fms.length === 0 && <p className="text-xs text-muted-foreground">No field officer posted to this unit yet.</p>}
         {fms.map(({ fm, sources }) => (
           <div key={fm.id} className="mb-2">
             <div className="flex items-center gap-2 text-sm">
@@ -1890,7 +1890,7 @@ function UnitDeployment({
       </div>
       <div className="rounded-xl border border-border/60 bg-card p-3">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guards deployed ({guards.length})</div>
-        {guards.length === 0 && <p className="text-xs text-muted-foreground">No guards deployed to this client yet.</p>}
+        {guards.length === 0 && <p className="text-xs text-muted-foreground">No guards deployed to this unit yet.</p>}
         <div className="space-y-1">
           {guards.map((g) => {
             const mgr = employees.find((e) => e.id === g.reports_to);

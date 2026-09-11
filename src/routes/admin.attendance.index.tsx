@@ -135,7 +135,7 @@ function AttendanceUnitsPage() {
       };
 
       // One paginated read per table, all issued in parallel and joined in
-      // memory. Filtering by hundreds of client ids meant dozens of sequential
+      // memory. Filtering by hundreds of unit ids meant dozens of sequential
       // round trips, which is what made this page slow to appear.
       const [
         contracts,
@@ -157,7 +157,7 @@ function AttendanceUnitsPage() {
         ),
         fetchAllPages<RawUnitRow>((from, to) =>
           supabase
-            .from("clients")
+            .from("units")
             .select("id, code, name, location, branch_id, customer_id, billing_state")
             .order("id", { ascending: true })
             .range(from, to),
@@ -201,7 +201,7 @@ function AttendanceUnitsPage() {
         contractsByUnit.set(c.unit_id, cur);
       }
 
-      // Clients with an active contract, plus clients that only have people mapped
+      // Units with an active contract, plus units that only have people mapped
       // to them (primary or reliever) so they still show on attendance.
       const unitIdSet = new Set<string>(contractsByUnit.keys());
       for (const row of allCandidates) {
@@ -214,26 +214,26 @@ function AttendanceUnitsPage() {
       const unitIds = Array.from(unitIdSet);
       if (unitIds.length === 0) {
         return {
-          clients: [],
+          units: [],
           organizations: [],
           employeesByCustomer: {},
-          summary: { organizations: 0, clients: 0, activeEmployees: 0 },
+          summary: { organizations: 0, units: 0, activeEmployees: 0 },
         };
       }
 
-      const clients = allUnits.filter((u) => unitIdSet.has(u.id));
-      const unitsById = new Map(clients.map((client) => [client.id, client]));
+      const units = allUnits.filter((u) => unitIdSet.has(u.id));
+      const unitsById = new Map(units.map((unit) => [unit.id, unit]));
 
       const billableCandidates = allCandidates.filter((c) => c.non_billable !== true);
       const candidatesById = new Map(billableCandidates.map((c) => [c.id, c]));
       const primaryCandidates = billableCandidates.filter((c) => c.unit_id && unitIdSet.has(c.unit_id));
       const secondaryMap = candidatesById;
 
-      const unitContexts: AttendanceUnitContext[] = clients.map((client) => ({
-        id: client.id,
-        branch_id: client.branch_id,
-        customer_id: client.customer_id,
-        billing_state: client.billing_state,
+      const unitContexts: AttendanceUnitContext[] = units.map((unit) => ({
+        id: unit.id,
+        branch_id: unit.branch_id,
+        customer_id: unit.customer_id,
+        billing_state: unit.billing_state,
       }));
       const scopeUnitsByAssignment = new Map<AttendanceScopeAssignment, string[]>();
       for (const assignment of scopeAssignmentRows) {
@@ -288,7 +288,7 @@ function AttendanceUnitsPage() {
       }
 
 
-      const rows: UnitRow[] = (clients ?? [])
+      const rows: UnitRow[] = (units ?? [])
         .map((u) => {
           const a = acc.get(u.id);
           const employees = a ? Array.from(a.employees.entries()) : [];
@@ -334,7 +334,7 @@ function AttendanceUnitsPage() {
         for (const sg of r.security_guards) {
           const key = r.customer_id || r.customer_name;
           if (!employeesByCustomer[key]) employeesByCustomer[key] = [];
-          // de-dupe per client (employee may appear in multiple clients rarely)
+          // de-dupe per client (employee may appear in multiple units rarely)
           if (!employeesByCustomer[key].some((e) => e.id === sg.id && e.unit_id === r.id)) {
             employeesByCustomer[key].push({
               id: sg.id,
@@ -352,12 +352,12 @@ function AttendanceUnitsPage() {
       }
 
       return {
-        clients: rows,
+        units: rows,
         organizations: orgs,
         employeesByCustomer,
         summary: {
           organizations: orgs.length,
-          clients: rows.length,
+          units: rows.length,
           activeEmployees: rows.reduce((s, r) => s + r.active_employee_count, 0),
         },
       };
@@ -366,17 +366,17 @@ function AttendanceUnitsPage() {
   });
 
   const foScope = useFieldOfficerUnitScope();
-  const rawUnits = data?.clients ?? [];
-  const clients = useMemo(
+  const rawUnits = data?.units ?? [];
+  const units = useMemo(
     () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
     [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     if (!foScope.isFieldOfficer) return all;
-    const allowed = new Set(clients.map((u) => u.customer_id));
+    const allowed = new Set(units.map((u) => u.customer_id));
     return all.filter((o) => allowed.has(o.id));
-  }, [data?.organizations, foScope.isFieldOfficer, clients]);
+  }, [data?.organizations, foScope.isFieldOfficer, units]);
   const employeesByCustomer = useMemo(() => {
     const src = data?.employeesByCustomer ?? {};
     if (!foScope.isFieldOfficer) return src;
@@ -389,9 +389,9 @@ function AttendanceUnitsPage() {
   }, [data?.employeesByCustomer, foScope.isFieldOfficer, foScope.unitIds]);
   const summary = useMemo(
     () => (foScope.isFieldOfficer
-      ? { organizations: organizations.length, clients: clients.length, activeEmployees: clients.reduce((s, r) => s + r.active_employee_count, 0) }
-      : data?.summary ?? { organizations: 0, clients: 0, activeEmployees: 0 }),
-    [foScope.isFieldOfficer, organizations, clients, data?.summary],
+      ? { organizations: organizations.length, units: units.length, activeEmployees: units.reduce((s, r) => s + r.active_employee_count, 0) }
+      : data?.summary ?? { organizations: 0, units: 0, activeEmployees: 0 }),
+    [foScope.isFieldOfficer, organizations, units, data?.summary],
   );
 
   const queryClient = useQueryClient();
@@ -448,7 +448,7 @@ function AttendanceUnitsPage() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return clients.filter((u) => {
+    return units.filter((u) => {
       if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
       if (unitFilter !== "all" && u.id !== unitFilter) return false;
       if (term) {
@@ -467,7 +467,7 @@ function AttendanceUnitsPage() {
       }
       return true;
     });
-  }, [q, orgFilter, unitFilter, clients]);
+  }, [q, orgFilter, unitFilter, units]);
 
   const anyFilter = orgFilter !== "all" || unitFilter !== "all" || q.trim().length > 0;
 
@@ -479,7 +479,7 @@ function AttendanceUnitsPage() {
         eyebrow="Attendance month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Browse clients with active contracts and drill into the monthly muster roll. Only billable employees appear — non-billable staff are on Radiant's own payroll."
+        description="Browse units with active contracts and drill into the monthly muster roll. Only billable employees appear — non-billable staff are on Radiant's own payroll."
         right={
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
@@ -525,7 +525,7 @@ function AttendanceUnitsPage() {
               Attendance charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Committed vs actual deployment with month-till-date attendance. Open any client for its full muster roll.
+              Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
 
@@ -545,11 +545,11 @@ function AttendanceUnitsPage() {
               label="Unit"
               value={unitFilter}
               onChange={setUnitFilter}
-              options={clients.map((u) => ({
+              options={units.map((u) => ({
                 value: u.id,
                 label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
               }))}
-              allLabel={`All clients (${clients.length})`}
+              allLabel={`All units (${units.length})`}
             />
           </div>
 
@@ -557,7 +557,7 @@ function AttendanceUnitsPage() {
           {anyFilter && (
             <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               <span>
-                Showing <span className="font-bold text-foreground">{filtered.length}</span> of {clients.length} clients
+                Showing <span className="font-bold text-foreground">{filtered.length}</span> of {units.length} units
               </span>
               <Button
                 variant="ghost"
@@ -589,7 +589,7 @@ function AttendanceUnitsPage() {
             </div>
           ) : (
             <AttendanceCharter
-              clients={filtered}
+              units={filtered}
               monthIdx={monthIdx}
               year={year}
               query={q}

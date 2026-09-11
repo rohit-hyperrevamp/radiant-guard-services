@@ -195,7 +195,7 @@ function EmployerContributionsPage() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search employee, client or contribution…"
+              placeholder="Search employee, unit or contribution…"
               className="pl-9"
             />
           </div>
@@ -221,7 +221,7 @@ function EmployerContributionsPage() {
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Client</th>
+                <th className="px-4 py-3 font-medium">Unit</th>
                 <th className="px-4 py-3 font-medium">Contribution</th>
                 <th className="px-4 py-3 font-medium">Frequency</th>
                 <th className="px-4 py-3 font-medium">Period</th>

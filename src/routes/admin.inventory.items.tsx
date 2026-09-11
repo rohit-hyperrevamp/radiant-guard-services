@@ -191,7 +191,7 @@ function ItemsPage() {
                 <th className="px-5 py-3">Code</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Category</th>
-                <th className="px-5 py-3">Client</th>
+                <th className="px-5 py-3">Unit</th>
                 <th className="px-5 py-3 text-right">Purchase Cost</th>
                 <th className="px-5 py-3 text-right">Std Issue Price</th>
                 <th className="px-5 py-3 text-right">Last Buy</th>
@@ -328,7 +328,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
                 <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2"><Label>Client</Label>
+            <div className="grid gap-2"><Label>Unit</Label>
               <Select value={unit} onValueChange={setUnit}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
             </div>
           </div>
@@ -483,7 +483,7 @@ function PriceHistoryDialog({ item, open, onOpenChange }: { item: Item | null; o
                 <th className="px-3 py-2">Size</th>
                 <th className="px-3 py-2 text-right">Ordered</th>
                 <th className="px-3 py-2 text-right">Received</th>
-                <th className="px-3 py-2 text-right">Client ₹</th>
+                <th className="px-3 py-2 text-right">Unit ₹</th>
                 <th className="px-3 py-2 text-right">Tax %</th>
               </tr>
             </thead>
@@ -573,8 +573,8 @@ function AddStockDialog({ item, open, onOpenChange, onDone }: { item: Item | nul
         reference_type: "manual_adjust",
         notes: notes || "Manual stock add",
       }]);
-      void logActivity({ module: MODULE, action: "create", entityType: "inv_stock_movements", entityLabel: `+${qty} ${item.client} of ${item.name}${item.is_sized ? ` (${sizeValue})` : ""}` });
-      toast.success(`Added ${qty} ${item.client} to stock`);
+      void logActivity({ module: MODULE, action: "create", entityType: "inv_stock_movements", entityLabel: `+${qty} ${item.unit} of ${item.name}${item.is_sized ? ` (${sizeValue})` : ""}` });
+      toast.success(`Added ${qty} ${item.unit} to stock`);
       onDone();
       onOpenChange(false);
     } catch (e) {

@@ -135,7 +135,7 @@ export function computeAttendanceTotals(
       unitPhDays += phUnitMultiplier;
     }
     if (e.code === "PH") {
-      // Value of one Paid Holiday duty: the client's own setting when present,
+      // Value of one Paid Holiday duty: the unit's own setting when present,
       // else the PH code's day_value from Attendance Code settings.
       const codeValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       phCount += phOverride != null ? phOverride : codeValue;
@@ -391,7 +391,7 @@ export function applyEsiToWageComputation(
 
 // ---- Professional Tax (PT) ----
 // PT is resolved per employee from the Professional Tax Manager slabs using:
-//   - Client billing state (with optional pincode for region disambiguation)
+//   - Unit billing state (with optional pincode for region disambiguation)
 //   - Candidate gender (fallback "all")
 //   - Earned gross for the period (monthly)
 // The matching slab's tax_per_month becomes that employee's PT for the period.
@@ -689,7 +689,7 @@ export function computeWages(
     periodDates?: Date[];
     dayBases?: PayrollDayBaseDef[];
     /**
-     * Client-level EPF cap policy (clients.epf_cap_enabled), inherited by the contract.
+     * Unit-level EPF cap policy (units.epf_cap_enabled), inherited by the contract.
      * true  → EPF base is capped at the ₹15,000 wage ceiling.
      * false → no ceiling; EPF is computed on the full configured base.
      * undefined → legacy behaviour: whatever the contract line configures.
@@ -751,7 +751,7 @@ export function computeWages(
   // 208) × 2 = 991.38  →  Gross 23,056).
   const perDayRate = contractGross / baseDays;
   // phDays is already expressed in duty-days (PH count × the PH day_value
-  // configured in Attendance Code settings, plus client holiday credit).
+  // configured in Attendance Code settings, plus unit holiday credit).
   const phCount = totals.phDays;
 
   // Earnings prorate on PRESENT days only. Non-present "paid" codes do not
@@ -1029,8 +1029,8 @@ export function computeWages(
     if (hasConfiguredFormula(i)) return i;
     return {
       ...i,
-      // Client-level cap policy wins when set: capped clients get the ₹15,000
-      // ceiling even if the contract line omits it; no-cap clients drop any
+      // Unit-level cap policy wins when set: capped units get the ₹15,000
+      // ceiling even if the contract line omits it; no-cap units drop any
       // configured ceiling so EPF is paid on the full base.
       capAmount:
         epfCapPolicy === true
