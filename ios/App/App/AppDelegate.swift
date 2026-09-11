@@ -85,7 +85,7 @@ public class RadiantDeviceTelemetryPlugin: CAPPlugin, CAPBridgedPlugin {
         let isCharging = batteryState == .charging || batteryState == .full
 
         let monitor = NWPathMonitor()
-        let queue = DispatchQueue(label: "app.lovable.radiantguard.telemetry")
+        let queue = DispatchQueue(label: "app.com.radiantguard.telemetry")
         var didResolve = false
 
         func cellularGeneration() -> String? {
@@ -235,7 +235,7 @@ public class RadiantNativeAuthStorePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "clearPhone", returnType: CAPPluginReturnPromise)
     ]
 
-    private let service = "app.lovable.radiantguard.biometric"
+    private let service = "app.com.radiantguard.biometric"
     private let account = "primary-phone"
 
     private func baseQuery() -> [String: Any] {

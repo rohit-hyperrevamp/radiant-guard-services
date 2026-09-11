@@ -1,4 +1,4 @@
-package app.lovable.radiantguard;
+package app.com.radiantguard;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
