@@ -455,7 +455,7 @@ function AdminLayout() {
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
-      { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", activePrefixes: ["/admin/control-center"] },
+      { key: "control", label: "Admin Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
     [dashboardHref],
   );
@@ -603,9 +603,12 @@ function AdminLayout() {
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
-              { label: "Operations", keys: ["organizations", "contracts", "employees", "attendance", "inventory", "vehicles", "assets"] },
-              { label: "Finance", keys: ["payroll", "invoice"] },
-              { label: "Admin", keys: ["control"] },
+              { label: "Operations", keys: ["organizations", "contracts", "employees", "inventory", "vehicles", "assets"] },
+              { label: "HR", keys: ["attendance", "payroll"] },
+              { label: "Finance", keys: ["invoice"] },
+              { label: "Surveillance", keys: ["field-sense"] },
+              { label: "Compliance", keys: ["compliance"] },
+              { label: "", keys: ["control"] },
             ];
             const used = new Set<string>();
             return (
