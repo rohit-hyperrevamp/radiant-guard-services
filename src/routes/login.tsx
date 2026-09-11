@@ -338,14 +338,23 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-panel-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="mx-auto w-full max-w-[380px]">
-              <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
-                {step === "phone" ? "Sign in" : "Verify your number"}
-              </h2>
-              <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                {step === "phone"
-                  ? "Enter your mobile number to receive a one-time code."
-                  : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
-              </p>
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-muted ring-1 ring-border">
+                  <img
+                    src={logo}
+                    alt="Radiant Guard Services"
+                    className="h-8 w-8 object-contain"
+                  />
+                </div>
+                <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
+                  {step === "phone" ? "Sign in" : "Verify your number"}
+                </h2>
+                <p className="mt-2 max-w-[300px] text-[14px] leading-relaxed text-muted-foreground">
+                  {step === "phone"
+                    ? "Enter your mobile number to receive a one-time code."
+                    : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
+                </p>
+              </div>
 
               <div className="mt-8">
                 {step === "phone" ? (
