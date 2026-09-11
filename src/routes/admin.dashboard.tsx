@@ -68,8 +68,27 @@ function PeopleInsightsSection({ compact }: { compact?: boolean }) {
 
 
 
+function DashboardErrorState({ error }: { error: Error }) {
+  return (
+    <div className="mx-auto max-w-md p-6 text-center">
+      <h1 className="text-lg font-semibold">Dashboard could not load</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {error?.message || "Something went wrong while loading your data."}
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="mt-5 h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
+  errorComponent: DashboardErrorState,
 });
 
 const MONTH_NAMES = [
