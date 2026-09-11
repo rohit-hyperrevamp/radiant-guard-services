@@ -523,7 +523,10 @@ function AdminLayout() {
         if (g.key === "compliance") {
           return !isFieldOfficer && (isSuperAdmin || can("contracts") || can("employees"));
         }
-        return !g.module || can(g.module);
+        if (!g.module) return true;
+        if (!can(g.module)) return false;
+        if (g.sub && !canSub(g.module, g.sub)) return false;
+        return true;
       })
       .map((g) => {
         if (g.key === "inventory") return { ...g, children: filteredInventoryChildren };
