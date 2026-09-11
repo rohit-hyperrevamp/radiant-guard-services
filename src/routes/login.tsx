@@ -78,6 +78,17 @@ function LoginPage() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+  const [splashGone, setSplashGone] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setSplashDone(true), 1900);
+    const t2 = setTimeout(() => setSplashGone(true), 2500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
 
   useEffect(() => {
     if (user && !revealing) navigate({ to: "/", replace: true });
@@ -218,6 +229,65 @@ function LoginPage() {
       className="relative min-h-dvh w-full overflow-x-clip bg-slate-950 bg-cover bg-center bg-no-repeat text-foreground"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
+      {/* Splash entrance keyframes */}
+      <style>{`
+        @keyframes login-splash-fade {
+          from { opacity: 0; transform: scale(0.92); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes login-splash-out {
+          from { opacity: 1; }
+          to { opacity: 0; visibility: hidden; }
+        }
+        @keyframes login-panel-in {
+          from { opacity: 0; transform: translateX(48px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes login-brand-in {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes login-loader-bar {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
+
+      {/* Splash screen */}
+      {!splashGone && (
+        <div
+          aria-hidden={splashDone}
+          className={`fixed inset-0 z-50 grid place-items-center bg-slate-950 ${
+            splashDone ? "[animation:login-splash-out_0.6s_ease_forwards]" : ""
+          }`}
+          style={
+            splashDone
+              ? undefined
+              : { backgroundImage: `url(${loginBg})`, backgroundSize: "cover", backgroundPosition: "center" }
+          }
+        >
+          {!splashDone && (
+            <div className="absolute inset-0 bg-slate-950/70" aria-hidden />
+          )}
+          <div className="relative flex flex-col items-center gap-6 [animation:login-splash-fade_0.7s_ease-out_both]">
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-white shadow-2xl ring-1 ring-white/40">
+              <img src={logo} alt="Radiant Guard Services" className="h-12 w-12 object-contain" />
+            </div>
+            <div className="text-center">
+              <div className="font-display text-xl font-semibold tracking-tight text-white">
+                Radiant Guard
+              </div>
+              <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/70">
+                Services Pvt. Ltd.
+              </div>
+            </div>
+            <div className="h-[3px] w-44 overflow-hidden rounded-full bg-white/20">
+              <div className="h-full rounded-full bg-accent [animation:login-loader-bar_1.6s_ease-in-out_forwards]" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Subtle dark scrim for text legibility */}
       <div
         aria-hidden
@@ -228,7 +298,10 @@ function LoginPage() {
       <div className={revealing ? "animate-slide-out-up" : ""}>
         <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
           {/* Left — brand + tagline */}
-          <div className="relative flex flex-col justify-between px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14">
+          <div
+            className="relative flex flex-col justify-between px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14"
+            style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
+          >
             <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg ring-1 ring-white/50">
                 <img src={logo} alt="Radiant Guard Services logo" className="h-8 w-8 object-contain" />
@@ -262,7 +335,10 @@ function LoginPage() {
           </div>
 
           {/* Right — login panel */}
-          <div className="relative flex w-full flex-col justify-center bg-white px-6 py-10 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14">
+          <div
+            className="relative flex w-full flex-col justify-center bg-white px-6 py-10 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14"
+            style={{ animation: splashDone ? "login-panel-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both" : "none", opacity: splashDone ? undefined : 0 }}
+          >
             <div className="mx-auto w-full max-w-[380px]">
               <div className="mb-8 lg:hidden">
                 <div className="grid h-14 w-14 place-items-center rounded-full bg-white shadow-md ring-1 ring-border">
