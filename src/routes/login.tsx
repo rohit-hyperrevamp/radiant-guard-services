@@ -406,7 +406,7 @@ function LoginPage() {
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            <Fingerprint className="h-4 w-4 text-accent" />
+                            <Fingerprint className="h-4 w-4 text-brand" />
                             Sign in with Face ID
                           </>
                         )}
@@ -476,7 +476,7 @@ function LoginPage() {
                         type="button"
                         disabled={resendIn > 0 || sending}
                         onClick={() => sendOtp()}
-                        className="font-semibold text-accent hover:opacity-80 disabled:cursor-not-allowed disabled:text-muted-foreground"
+                        className="font-semibold text-brand hover:opacity-80 disabled:cursor-not-allowed disabled:text-muted-foreground"
                       >
                         {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend OTP"}
                       </button>
