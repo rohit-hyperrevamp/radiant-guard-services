@@ -221,83 +221,73 @@ function LoginPage() {
       {/* Subtle dark scrim for text legibility */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-slate-950/30"
+        className="pointer-events-none absolute inset-0 bg-slate-950/45"
       />
-
-
 
       {/* Content wrapper — slides up on successful sign-in to reveal the CRM */}
       <div className={revealing ? "animate-slide-out-up" : ""}>
-
-      {/* Centered glass card */}
-      <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
-
-        <div className="w-full max-w-[420px]">
-          {/* Brand */}
-          <div className="mb-5 flex flex-col items-center gap-3 text-center sm:mb-7 sm:gap-4">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-white shadow-[0_22px_54px_-16px_rgba(15,23,42,0.45)] ring-1 ring-white/50 sm:h-20 sm:w-20">
-              <img src={logo} alt="Radiant" className="h-11 w-11 object-contain sm:h-14 sm:w-14" />
+        <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
+          {/* Left — brand + tagline */}
+          <div className="relative flex flex-col justify-between px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg ring-1 ring-white/50">
+                <img src={logo} alt="Radiant Guard Services logo" className="h-8 w-8 object-contain" />
+              </div>
+              <div>
+                <div className="font-display text-[15px] font-semibold tracking-tight text-white">
+                  Radiant Guard
+                </div>
+                <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/80">
+                  Services Pvt. Ltd.
+                </div>
+              </div>
             </div>
-            <div>
-              <div
-                className="font-display text-[17px] font-semibold tracking-tight text-white sm:text-[18px]"
-                style={{ textShadow: "0 2px 12px rgba(15,23,42,0.55)" }}
-              >
-                Radiant Guard
-              </div>
-              <div
-                className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90 sm:text-[11px]"
-                style={{ textShadow: "0 1px 8px rgba(15,23,42,0.55)" }}
-              >
-                Services Pvt. Ltd.
-              </div>
+
+            <div className="mt-10 max-w-xl lg:mt-0">
+              <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Security operations,
+                <br />
+                <span className="text-white/70">managed with precision.</span>
+              </h1>
+              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75">
+                One portal for attendance, payroll, contracts and field teams —
+                built for the people who keep every site running.
+              </p>
+            </div>
+
+            <div className="hidden items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60 lg:flex">
+              <ShieldCheck className="h-4 w-4" />
+              Radiant Ops Portal
             </div>
           </div>
 
-          {/* Glass card */}
-          <div className="relative overflow-hidden rounded-[24px] border border-white/85 bg-white/[0.98] p-5 shadow-[0_32px_90px_-24px_rgba(15,23,42,0.5)] backdrop-blur-2xl sm:rounded-[28px] sm:p-9">
-            {/* inner highlight */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-px"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)",
-              }}
-            />
-            {/* soft accent halo inside card */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full opacity-30 blur-3xl"
-              style={{ background: "radial-gradient(circle, color-mix(in oklab, var(--accent) 50%, transparent), transparent 70%)" }}
-            />
-
-            <div className="relative">
-              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-white/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground backdrop-blur">
-                {step === "phone" ? (
-                  <><Sparkles className="h-3.5 w-3.5 text-accent" /> Welcome back</>
-                ) : (
-                  <><ShieldCheck className="h-3.5 w-3.5 text-accent" /> Almost there</>
-                )}
+          {/* Right — login panel */}
+          <div className="relative flex w-full flex-col justify-center bg-white px-6 py-10 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14">
+            <div className="mx-auto w-full max-w-[380px]">
+              <div className="mb-8 lg:hidden">
+                <div className="grid h-14 w-14 place-items-center rounded-full bg-white shadow-md ring-1 ring-border">
+                  <img src={logo} alt="Radiant Guard Services logo" className="h-10 w-10 object-contain" />
+                </div>
               </div>
-              <h1 className="font-display text-[30px] font-semibold leading-[1.1] tracking-tight text-foreground">
-                {step === "phone" ? "Sign in to continue" : "Verify your number"}
-              </h1>
-              <p className="mt-2 text-[14.5px] leading-relaxed text-muted-foreground">
+
+              <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
+                {step === "phone" ? "Sign in" : "Verify your number"}
+              </h2>
+              <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
                 {step === "phone"
                   ? "Enter your mobile number to receive a one-time code."
                   : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
               </p>
 
-              <div className="mt-7">
+              <div className="mt-8">
                 {step === "phone" ? (
                   <form onSubmit={sendOtp} className="space-y-5">
                     <label className="block">
                       <span className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         Mobile number
                       </span>
-                      <div className="flex h-14 w-full items-center overflow-hidden rounded-2xl border border-border/70 bg-white/85 backdrop-blur transition-all focus-within:border-accent focus-within:bg-white focus-within:ring-4 focus-within:ring-accent/15">
-                        <div className="flex items-center gap-3 pl-5 pr-3">
+                      <div className="flex h-13 w-full items-center overflow-hidden rounded-xl border border-border bg-white transition-all focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
+                        <div className="flex items-center gap-3 pl-4 pr-3">
                           <span className="whitespace-nowrap text-[15px] font-semibold text-foreground">
                             +91
                           </span>
@@ -312,7 +302,7 @@ function LoginPage() {
                           onChange={(e) =>
                             setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                           }
-                          className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                          className="h-13 flex-1 bg-transparent pr-4 text-[16px] font-medium tracking-wide text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
                         />
                       </div>
                     </label>
@@ -320,7 +310,7 @@ function LoginPage() {
                     <Button
                       type="submit"
                       disabled={!phoneValid || sending}
-                      className="group h-14 w-full rounded-2xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_18px_40px_-12px_color-mix(in_oklab,var(--primary)_60%,transparent)] transition-all hover:bg-primary/90 hover:shadow-[0_22px_44px_-12px_color-mix(in_oklab,var(--primary)_70%,transparent)] disabled:bg-slate-700 disabled:text-white disabled:opacity-60"
+                      className="group h-13 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
                     >
                       {sending ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -337,7 +327,7 @@ function LoginPage() {
                         type="button"
                         onClick={handleBiometricLogin}
                         disabled={bioBusy}
-                        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border/70 bg-white/70 text-[14px] font-semibold text-foreground backdrop-blur transition hover:bg-white disabled:opacity-60"
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white text-[14px] font-semibold text-foreground transition hover:bg-muted disabled:opacity-60"
                       >
                         {bioBusy ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -365,10 +355,10 @@ function LoginPage() {
                       >
                         <InputOTPGroup className="flex w-full justify-between gap-2">
                           {Array.from({ length: OTP_LENGTH }, (_, i) => i).map((i) => (
-                          <InputOTPSlot
+                            <InputOTPSlot
                               key={i}
                               index={i}
-                              className="h-14 w-full rounded-2xl border border-border/70 bg-white/85 text-xl font-semibold tabular-nums text-foreground backdrop-blur first:rounded-l-2xl last:rounded-r-2xl data-[active=true]:border-accent data-[active=true]:bg-white data-[active=true]:ring-4 data-[active=true]:ring-accent/15"
+                              className="h-14 w-full rounded-xl border border-border bg-white text-xl font-semibold tabular-nums text-foreground first:rounded-l-xl last:rounded-r-xl data-[active=true]:border-accent data-[active=true]:ring-4 data-[active=true]:ring-accent/15"
                             />
                           ))}
                         </InputOTPGroup>
@@ -388,7 +378,7 @@ function LoginPage() {
                     <Button
                       onClick={() => handleVerify()}
                       disabled={otp.length !== OTP_LENGTH || verifying}
-                      className="h-14 w-full rounded-2xl bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_18px_40px_-12px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90 disabled:bg-slate-700 disabled:text-white disabled:opacity-60"
+                      className="h-13 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
                       {verifying ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -423,28 +413,19 @@ function LoginPage() {
               </div>
 
               {/* trust row */}
-              <div className="mt-7 flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-white/80 px-3 py-2.5 text-[12px] font-medium text-muted-foreground backdrop-blur">
+              <div className="mt-8 flex items-center gap-2 text-[12px] font-medium text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 text-accent" />
                 <span>Encrypted end-to-end · Secure OTP verification</span>
               </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div
-            className="mx-auto mt-7 flex w-fit max-w-full flex-wrap items-center justify-center gap-x-7 gap-y-2 rounded-full border border-white/25 bg-slate-950/28 px-5 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_14px_34px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md"
-            style={{ textShadow: "0 1px 8px rgba(15,23,42,0.75)" }}
-          >
-            <span>Radiant Ops Portal</span>
-            <span className="inline-flex items-center gap-1.5">
-              Powered by
-              <span className="rounded-md border border-white/35 bg-white/20 px-1.5 py-0.5 text-white backdrop-blur">
-                HyperRevamp
-              </span>
-            </span>
+            {/* Footer credit */}
+            <div className="mt-10 text-center text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground lg:absolute lg:inset-x-0 lg:bottom-6 lg:mt-0">
+              Designed &amp; Developed by{" "}
+              <span className="font-semibold text-foreground">HyperRevamp</span>
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );
