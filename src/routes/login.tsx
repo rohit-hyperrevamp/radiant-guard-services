@@ -282,7 +282,7 @@ function LoginPage() {
               </div>
             </div>
             <div className="h-[3px] w-44 overflow-hidden rounded-full bg-white/20">
-              <div className="h-full rounded-full bg-accent [animation:login-loader-bar_1.6s_ease-in-out_forwards]" />
+              <div className="h-full rounded-full bg-brand [animation:login-loader-bar_1.6s_ease-in-out_forwards]" />
             </div>
           </div>
         </div>
@@ -339,7 +339,7 @@ function LoginPage() {
           >
             <div className="mx-auto w-full max-w-[380px]">
               <div className="flex flex-col items-center text-center">
-                <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/25">
+                <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-brand text-white shadow-lg shadow-brand/25">
                   <UserRound className="h-10 w-10" strokeWidth={1.75} />
                 </div>
                 <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
@@ -359,7 +359,7 @@ function LoginPage() {
                       <span className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         Mobile number
                       </span>
-                      <div className="flex h-13 w-full items-center overflow-hidden rounded-xl border border-border bg-white transition-all focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
+                      <div className="flex h-13 w-full items-center overflow-hidden rounded-xl border border-border bg-white transition-all focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15">
                         <div className="flex items-center gap-3 pl-4 pr-3">
                           <span className="whitespace-nowrap text-[15px] font-semibold text-foreground">
                             +91
@@ -383,7 +383,7 @@ function LoginPage() {
                     <Button
                       type="submit"
                       disabled={!phoneValid || sending}
-                      className="group h-13 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+                      className="group h-13 w-full rounded-xl bg-brand text-[15px] font-semibold text-white transition-all hover:bg-brand/90 disabled:opacity-50"
                     >
                       {sending ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -431,7 +431,7 @@ function LoginPage() {
                             <InputOTPSlot
                               key={i}
                               index={i}
-                              className="h-14 w-full rounded-xl border border-border bg-white text-xl font-semibold tabular-nums text-foreground first:rounded-l-xl last:rounded-r-xl data-[active=true]:border-accent data-[active=true]:ring-4 data-[active=true]:ring-accent/15"
+                              className="h-14 w-full rounded-xl border border-border bg-white text-xl font-semibold tabular-nums text-foreground first:rounded-l-xl last:rounded-r-xl data-[active=true]:border-brand data-[active=true]:ring-4 data-[active=true]:ring-brand/15"
                             />
                           ))}
                         </InputOTPGroup>
@@ -451,7 +451,7 @@ function LoginPage() {
                     <Button
                       onClick={() => handleVerify()}
                       disabled={otp.length !== OTP_LENGTH || verifying}
-                      className="h-13 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      className="h-13 w-full rounded-xl bg-brand text-[15px] font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
                     >
                       {verifying ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
