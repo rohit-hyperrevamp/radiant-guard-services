@@ -138,8 +138,13 @@ function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
 
+  // Phones cannot hold the whole-month profitability computation in memory
+  // (it loads every contract, roster and attendance row). Keep the mobile
+  // dashboard to the light counts so the app never runs out of memory.
+  const lightMode = useIsMobile();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-snapshot", year, month],
+    queryKey: ["dashboard-snapshot", year, month, lightMode],
     enabled: !permsLoading && !showInventoryDashboard,
     queryFn: async () => {
       const sixtyDaysOut = new Date();
