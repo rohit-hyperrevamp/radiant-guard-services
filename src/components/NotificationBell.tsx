@@ -29,7 +29,7 @@ import { isNativePlatform } from "@/lib/native";
 
 const NQK = ["notifications", "mine"] as const;
 
-export function NotificationBell() {
+export function NotificationBell({ triggerClassName }: { triggerClassName?: string } = {}) {
   const qc = useQueryClient();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -115,7 +115,7 @@ export function NotificationBell() {
         event.stopPropagation();
         setMobileOpen(true);
       }}
-      className="relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
+      className={triggerClassName ?? "relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"}
       style={{ borderRadius: "9999px", flex: "0 0 40px" }}
     >
       <Bell className="h-4 w-4" />

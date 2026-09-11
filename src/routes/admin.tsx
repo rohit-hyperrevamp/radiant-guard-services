@@ -577,7 +577,7 @@ function AdminLayout() {
       {/* Desktop vertical sidebar — glass / iPadOS */}
       <aside
         className={cn(
-          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-border/50 bg-card/65 shadow-[0_10px_40px_-16px_rgba(15,23,42,0.18)] backdrop-blur-2xl backdrop-saturate-150 transition-[width] duration-300 lg:flex animate-slide-in-left",
+          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-white/10 bg-[#15161a] text-white shadow-[0_18px_50px_-20px_rgba(0,0,0,0.65)] transition-[width] duration-300 lg:flex animate-slide-in-left",
           nativeShell && "lg:hidden",
           sidebarWidth,
         )}
@@ -585,12 +585,12 @@ function AdminLayout() {
         {/* Brand */}
         <div className={cn("flex items-center px-4 pt-5 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground text-[13px] font-bold">
+            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-white text-[#15161a] text-[13px] font-bold">
               R
             </Link>
           ) : (
             <Link to={dashboardHref} className="flex min-w-0 items-center">
-              <BrandMark />
+              <BrandMark className="[&_.font-display]:text-white [&_.tracking-\[0\.2em\]]:text-white/50" />
             </Link>
           )}
         </div>
@@ -614,7 +614,7 @@ function AdminLayout() {
                   return (
                     <div key={s.label} className="space-y-[3px]">
                       {!collapsed && (
-                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground/70">
+                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">
                           {s.label}
                         </div>
                       )}
@@ -630,7 +630,7 @@ function AdminLayout() {
                   return (
                     <div className="space-y-[3px]">
                       {!collapsed && (
-                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground/70">More</div>
+                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">More</div>
                       )}
                       {rest.map((g) => (
                         <SidebarGroup key={g.key} group={g} collapsed={collapsed} isActive={isActive} groupActive={isGroupActive(g)} />
@@ -644,17 +644,17 @@ function AdminLayout() {
         </nav>
 
         {/* Footer: user + collapse */}
-        <div className="border-t border-border/40 p-3">
+        <div className="border-t border-white/10 p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-2xl border border-border/40 bg-card/60 p-2 text-sm font-semibold text-foreground transition hover:bg-card/80",
+                  "flex w-full items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-2 text-sm font-semibold text-white transition hover:bg-white/10",
                   collapsed && "justify-center p-1.5",
                 )}
               >
-                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary text-primary-foreground text-[11px] font-bold">
+                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white text-[#15161a] text-[11px] font-bold">
                   {me.photoUrl ? (
                     <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
@@ -668,7 +668,7 @@ function AdminLayout() {
                         {me.fullName || (user?.phone ? maskPhone(user.phone) : "Account")}
                       </span>
                       {me.designation && (
-                        <span className="block truncate text-[11px] font-medium capitalize text-muted-foreground">
+                        <span className="block truncate text-[11px] font-medium capitalize text-white/50">
                           {me.designation}
                         </span>
                       )}
@@ -726,13 +726,13 @@ function AdminLayout() {
 
           <div
             className={cn(
-              "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2 py-1.5",
+              "mt-2 flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-2 py-1.5",
               collapsed && "justify-center px-1.5",
             )}
           >
-            <NotificationBell />
+            <NotificationBell triggerClassName="relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:border-white/30 hover:bg-white/15" />
             {!collapsed && (
-              <span className="flex-1 truncate text-[12px] font-semibold text-foreground">
+              <span className="flex-1 truncate text-[12px] font-semibold text-white">
                 Notifications
               </span>
             )}
@@ -742,7 +742,7 @@ function AdminLayout() {
             type="button"
             onClick={() => setCollapsed((v) => !v)}
             className={cn(
-              "mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-card/60 hover:text-foreground",
+              "mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-white/50 hover:bg-white/10 hover:text-white",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -1020,13 +1020,13 @@ function SidebarGroup({
 
   const itemBase =
     "group relative flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2 text-[13px] font-medium transition-all";
-  const itemIdle = "text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground";
+  const itemIdle = "text-white/60 hover:bg-white/[0.07] hover:text-white";
   const itemActive =
-    "bg-foreground text-background shadow-[0_10px_28px_-14px_rgba(15,23,42,0.55)]";
+    "bg-white text-[#15161a] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.6)]";
 
   const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-xl transition-colors";
-  const iconSpanActive = "bg-card/15 text-background";
-  const iconSpanIdle = "text-foreground/60 group-hover:text-foreground";
+  const iconSpanActive = "bg-black/[0.07] text-[#15161a]";
+  const iconSpanIdle = "text-white/55 group-hover:text-white";
 
   if (!group.children || group.children.length === 0) {
     const link = (
@@ -1087,7 +1087,7 @@ function SidebarGroup({
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
             aria-label={open ? "Collapse" : "Expand"}
-            className="grid h-6 w-6 place-items-center rounded-md hover:bg-foreground/10"
+            className="grid h-6 w-6 place-items-center rounded-md hover:bg-white/10"
           >
             <ChevronDown className={cn("h-3.5 w-3.5 opacity-60 transition-transform", open ? "rotate-0" : "-rotate-90")} />
           </button>
@@ -1106,7 +1106,7 @@ function SidebarGroup({
         </button>
       )}
       {open && (
-        <div className="mt-0.5 ml-[22px] space-y-0.5 border-l border-foreground/10 pl-3">
+        <div className="mt-0.5 ml-[22px] space-y-0.5 border-l border-white/10 pl-3">
           {group.children.map((c) => {
             const a = isActive(c.to);
             return (
@@ -1117,8 +1117,8 @@ function SidebarGroup({
                 className={cn(
                   "relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
                   a
-                    ? "bg-accent/10 text-accent font-semibold"
-                    : "text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground",
+                    ? "bg-white text-[#15161a] font-semibold"
+                    : "text-white/55 hover:bg-white/[0.06] hover:text-white",
                 )}
               >
                 <c.icon className="h-3.5 w-3.5 opacity-70" />
