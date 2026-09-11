@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Fingerprint, Loader2 } from "lucide-react";
+import { ArrowRight, Fingerprint, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -303,14 +303,12 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="max-w-xl py-10 lg:py-0">
-              <div className="mb-9 flex items-center gap-4">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white shadow-xl ring-1 ring-white/50 sm:h-[72px] sm:w-[72px]">
-                  <img
-                    src={logo}
-                    alt="Radiant Guard Services logo"
-                    className="h-10 w-10 object-contain sm:h-11 sm:w-11"
-                  />
-                </div>
+              <div className="mb-9 inline-flex items-center gap-4 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15 backdrop-blur-sm sm:px-6">
+                <img
+                  src={logo}
+                  alt="Radiant Guard Services logo"
+                  className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
+                />
                 <div>
                   <div className="font-display text-2xl font-semibold leading-none tracking-tight text-white sm:text-[26px]">
                     Radiant Guard
@@ -339,12 +337,8 @@ function LoginPage() {
           >
             <div className="mx-auto w-full max-w-[380px]">
               <div className="flex flex-col items-center text-center">
-                <div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-muted ring-1 ring-border">
-                  <img
-                    src={logo}
-                    alt="Radiant Guard Services"
-                    className="h-8 w-8 object-contain"
-                  />
+                <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/25">
+                  <UserRound className="h-10 w-10" strokeWidth={1.75} />
                 </div>
                 <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
                   {step === "phone" ? "Sign in" : "Verify your number"}
