@@ -582,7 +582,7 @@ function AdminLayout() {
       {/* Desktop vertical sidebar — glass / iPadOS */}
       <aside
         className={cn(
-          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-white/10 bg-brand text-white shadow-[0_18px_50px_-20px_rgba(0,0,0,0.65)] transition-[width] duration-300 lg:flex animate-slide-in-left",
+          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_50px_-20px_rgba(0,0,0,0.65)] transition-[width] duration-300 lg:flex animate-slide-in-left",
           nativeShell && "lg:hidden",
           sidebarWidth,
         )}
@@ -590,7 +590,7 @@ function AdminLayout() {
         {/* Brand */}
         <div className={cn("flex items-center px-4 pt-5 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-white text-brand text-[13px] font-bold">
+            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-white text-black text-[13px] font-bold">
               R
             </Link>
           ) : (
@@ -662,7 +662,7 @@ function AdminLayout() {
                   collapsed && "justify-center p-1.5",
                 )}
               >
-                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white text-brand text-[11px] font-bold">
+                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white text-black text-[11px] font-bold">
                   {me.photoUrl ? (
                     <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
@@ -1030,10 +1030,10 @@ function SidebarGroup({
     "group relative flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2 text-[13px] font-medium transition-all";
   const itemIdle = "text-white/60 hover:bg-white/[0.07] hover:text-white";
   const itemActive =
-    "bg-white text-brand shadow-[0_10px_28px_-14px_rgba(0,0,0,0.6)]";
+    "bg-white text-black shadow-[0_10px_28px_-14px_rgba(0,0,0,0.6)]";
 
   const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-xl transition-colors";
-  const iconSpanActive = "bg-brand/10 text-brand";
+  const iconSpanActive = "bg-black/10 text-black";
   const iconSpanIdle = "text-white/55 group-hover:text-white";
 
   if (!group.children || group.children.length === 0) {
@@ -1125,7 +1125,7 @@ function SidebarGroup({
                 className={cn(
                   "relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
                   a
-                    ? "bg-white text-brand font-semibold"
+                    ? "bg-white text-black font-semibold"
                     : "text-white/55 hover:bg-white/[0.06] hover:text-white",
                 )}
               >

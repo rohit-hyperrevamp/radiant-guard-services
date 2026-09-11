@@ -115,7 +115,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
         event.stopPropagation();
         setMobileOpen(true);
       }}
-      className={triggerClassName ?? "relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"}
+      className={triggerClassName ?? "relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-border bg-card text-foreground outline-none transition-colors focus-visible:outline-none hover:border-accent hover:text-accent"}
       style={{ borderRadius: "9999px", flex: "0 0 40px" }}
     >
       <Bell className="h-4 w-4" />
