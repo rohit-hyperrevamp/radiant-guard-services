@@ -154,7 +154,7 @@ export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssu
   const unitRows = rows(unitsR);
   const activeUnits = unitRows.filter((u) => str(u.status).toLowerCase() === "active");
   for (const u of activeUnits) {
-    const label = str(u.name) || str(u.code) || "Unit";
+    const label = str(u.name) || str(u.code) || "Client";
     if (!str(u.gst_number)) {
       push({ id: `unit-gst-${u.id}`, domain: "organizations", check: "Client GST missing", severity: "high", subject: label, detail: "No GST number on the client — invoices for this site cannot be tax-compliant.", href: "/admin/customers/unit-manager" });
     }
@@ -253,7 +253,7 @@ export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssu
   }
   for (const s of rows(sheetsR)) {
     const st = str(s.status).toLowerCase();
-    const label = unitName.get(str(s.unit_id)) ?? "Unit";
+    const label = unitName.get(str(s.unit_id)) ?? "Client";
     if (st === "rejected") {
       push({ id: `sheet-rej-${s.id}`, domain: "attendance", check: "Muster roll rejected", severity: "high", subject: label, detail: `Sheet for ${str(s.period_start)} → ${str(s.period_end)} was rejected and needs correction.`, href: "/admin/attendance" });
     }
@@ -331,7 +331,7 @@ export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssu
   const runByUnitPeriod = new Map(rows(runsR).map((r) => [`${str(r.unit_id)}|${str(r.period_start)}`, r]));
   for (const s of rows(sheetsR)) {
     if (str(s.status).toLowerCase() !== "approved") continue;
-    const label = unitName.get(str(s.unit_id)) ?? "Unit";
+    const label = unitName.get(str(s.unit_id)) ?? "Client";
     const run = runByUnitPeriod.get(`${str(s.unit_id)}|${str(s.period_start)}`);
     const period = `${str(s.period_start)} → ${str(s.period_end)}`;
     if (str(run?.payroll_status) !== "processed") {

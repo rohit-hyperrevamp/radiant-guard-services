@@ -1801,7 +1801,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
   const summaryRows: Array<[string, string | number]> = [];
   summaryRows.push(["Contract Code", contract.contractCode]);
   summaryRows.push([
-    "Unit",
+    "Client",
     unitRow ? `${String(unitRow.code ?? "")} — ${String(unitRow.name ?? "")}` : contract.unitId,
   ]);
   summaryRows.push(["Start Date", contract.startDate]);
@@ -2480,7 +2480,7 @@ function ClientContractsPage() {
               [
                 { key: "code", header: "Contract ID" },
                 { key: "organization", header: "Organization" },
-                { key: "unit", header: "Unit" },
+                { key: "unit", header: "Client" },
                 { key: "start", header: "Start date" },
                 { key: "end", header: "End date" },
                 { key: "description", header: "Description" },
@@ -2583,7 +2583,7 @@ function ClientContractsPage() {
           </Select>
           <Select value={unitFilter} onValueChange={setUnitFilter}>
             <SelectTrigger className="h-10 rounded-lg">
-              <SelectValue placeholder="Unit" />
+              <SelectValue placeholder="Client" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All units</SelectItem>
@@ -3049,7 +3049,7 @@ function ContractViewDialog({
 
         <div className="grid gap-2 sm:grid-cols-3">
           <ViewRow label="Organisation" value={contract.orgName} />
-          <ViewRow label="Unit" value={`${contract.unitCode ?? ""} ${contract.unitName ?? ""}`.trim()} />
+          <ViewRow label="Client" value={`${contract.unitCode ?? ""} ${contract.unitName ?? ""}`.trim()} />
           <ViewRow label="Service type" value={serviceTypeName(contract.serviceTypeId)} />
           <ViewRow label="Start date" value={contract.startDate} />
           <ViewRow label="End date" value={contract.endDate} />

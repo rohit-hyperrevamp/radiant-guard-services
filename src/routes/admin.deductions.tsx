@@ -530,7 +530,7 @@ function DeductionList() {
               [
                 { key: "employee_code", header: "Emp Code" },
                 { key: "employee", header: "Employee" },
-                { key: "unit", header: "Unit" },
+                { key: "unit", header: "Client" },
                 { key: "designation", header: "Designation" },
                 { key: "head", header: "Deduction Head" },
                 { key: "source", header: "Source" },

@@ -1173,7 +1173,7 @@ function PayrollUnitPage() {
       "Vch No.","Vch Type","Date","GST Registration","Bill to Place","Ship to Place","Reference No.",
       "Delivery Note No","Delivery Note Date","Order No","Order Date","Party Name","Ledger Group",
       "Registration Type","GSTIN No","Country","State","Pincode","Address 1","Address 2","Address 3",
-      "Cost Center","Cost Center Amt","Sales Ledger","Item Name","Stock Group","Unit","Maintain Batches",
+      "Cost Center","Cost Center Amt","Sales Ledger","Item Name","Stock Group","Client","Maintain Batches",
       "Applicable From","HSN Description","HSN","IGST Rate","CGST Rate","SGST Rate","CESS Rate",
       "Tracking No","Order No ","Order Due Date","Godown","Batch","Qty ","Incluse","Rate","Amt",
       "Additional Ledger","Amount","CGST Ledger","CGST Amt","SGST Ledger","SGST Amt","IGST Ledger",
@@ -1230,7 +1230,7 @@ function PayrollUnitPage() {
           "Sales Ledger": salesLedger,
           "Item Name": itemName,
           "Stock Group": "Primary",
-          "Unit": "Duty",
+          "Client": "Duty",
           "Maintain Batches": "Yes",
           "Applicable From": "01-Jul-2017",
           "HSN Description": `${serviceTypeName} Services`,
@@ -1291,7 +1291,7 @@ function PayrollUnitPage() {
         </div>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-900 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-[0.16em]">Invoice locked</div>
-          <h1 className="mt-1 text-2xl font-semibold">{unit?.name || unit?.code || "Unit"}</h1>
+          <h1 className="mt-1 text-2xl font-semibold">{unit?.name || unit?.code || "Client"}</h1>
           <p className="mt-3 text-sm">
             Invoice for {fmtPretty(start)} – {fmtPretty(end)} cannot be generated because attendance is
             {attStatus ? ` "${attStatus}"` : " not yet submitted"}. Invoices only run against <strong>approved</strong> attendance.
@@ -1331,7 +1331,7 @@ function PayrollUnitPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Customer invoice</div>
-            <h1 className="mt-1 text-2xl font-semibold text-foreground">{unit?.name || unit?.code || "Unit"}</h1>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">{unit?.name || unit?.code || "Client"}</h1>
             <div className="mt-1 text-sm text-muted-foreground">
               {unit?.customer_name} · Period {fmtPretty(start)} – {fmtPretty(end)}
             </div>

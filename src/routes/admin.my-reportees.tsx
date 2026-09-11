@@ -164,7 +164,7 @@ function MyReporteesPage() {
       <div className="grid grid-cols-3 gap-2.5">
         <StatBox label="Reportees" value={rows.length} />
         <StatBox label="Primary" value={primaryCount} />
-        <StatBox label="Units" value={units.length} />
+        <StatBox label="Clients" value={units.length} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

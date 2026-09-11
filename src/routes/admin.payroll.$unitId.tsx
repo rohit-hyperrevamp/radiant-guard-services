@@ -1672,7 +1672,7 @@ function PayrollUnitPage() {
         </div>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-900 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-[0.16em]">Payroll locked</div>
-          <h1 className="mt-1 text-2xl font-semibold">{unit?.name || unit?.code || "Unit"}</h1>
+          <h1 className="mt-1 text-2xl font-semibold">{unit?.name || unit?.code || "Client"}</h1>
           <p className="mt-3 text-sm">
             Payroll for {fmtPretty(start)} – {fmtPretty(end)} cannot be generated because attendance is
             {attStatus ? ` "${attStatus}"` : " not yet submitted"}. Payroll only runs against <strong>approved</strong> attendance.
@@ -1721,7 +1721,7 @@ function PayrollUnitPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Payroll computation</div>
-            <h1 className="mt-1 text-2xl font-semibold text-foreground">{unit?.name || unit?.code || "Unit"}</h1>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">{unit?.name || unit?.code || "Client"}</h1>
             <div className="mt-1 text-sm text-muted-foreground">
               {unit?.customer_name} · Period {fmtPretty(start)} – {fmtPretty(end)}
             </div>

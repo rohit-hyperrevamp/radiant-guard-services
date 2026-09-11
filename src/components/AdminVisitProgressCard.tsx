@@ -207,7 +207,7 @@ function Column({
           <li className="px-3 py-6 text-center text-xs text-muted-foreground">{empty}</li>
         )}
         {rows.map((r) => {
-          const unitLabel = [r.unit?.customer?.name, r.unit?.name].filter(Boolean).join(" — ") || "Unit";
+          const unitLabel = [r.unit?.customer?.name, r.unit?.name].filter(Boolean).join(" — ") || "Client";
           return (
             <li key={r.id} className="px-3 py-2">
               <div className="flex items-start justify-between gap-2">

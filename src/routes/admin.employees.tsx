@@ -1148,7 +1148,7 @@ function useUnits() {
     refetchOnWindowFocus: false,
     staleTime: 60_000,
     queryFn: async (): Promise<UnitLite[]> => {
-      const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
+      const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
         await supabase
           .from("units" as never)
           .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
@@ -1751,7 +1751,7 @@ function EmployeesPage() {
     { key: "email", header: "Email" },
     { key: "role", header: "Role" },
     { key: "designation", header: "Designation" },
-    { key: "unit", header: "Unit" },
+    { key: "unit", header: "Client" },
     { key: "customer", header: "Customer" },
     { key: "reports_to", header: "Reports to" },
     { key: "status", header: "Status" },
@@ -3868,7 +3868,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.unit && (
               <Select value={filterUnit} onValueChange={setFilterUnit}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Client" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All units</SelectItem>
                   {units.map((u) => (<SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>))}
@@ -3957,7 +3957,7 @@ function EmployeesPage() {
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show filters</div>
                     {([
                       ["role", "Role"], ["designation", "Designation"], ["department", "Department"], ["customer", "Organization"],
-                      ["unit", "Unit"], ["manager", "Reports to"], ["enabled", "Active / Inactive"], ["billable", "Billable"], ["offboardReason", "Offboarding reason"],
+                      ["unit", "Client"], ["manager", "Reports to"], ["enabled", "Active / Inactive"], ["billable", "Billable"], ["offboardReason", "Offboarding reason"],
                     ] as const).map(([k, label]) => (
                       <label key={k} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
                         <span>{label}</span>
@@ -3969,7 +3969,7 @@ function EmployeesPage() {
                     ))}
                     <div className="pt-2 mt-2 border-t border-border/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show columns</div>
                     {([
-                      ["mobile", "Mobile"], ["email", "Email"], ["unit", "Unit"], ["designation", "Designation"], ["department", "Department"],
+                      ["mobile", "Mobile"], ["email", "Email"], ["unit", "Client"], ["designation", "Designation"], ["department", "Department"],
                       ["dob", "Date of Birth"], ["doj", "Date of Joining"], ["role", "Role"], ["active", "Active toggle"],
                     ] as const).map(([k, label]) => (
                       <label key={`col-${k}`} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
@@ -4203,7 +4203,7 @@ function EmployeesPage() {
                 <div className="divide-y divide-border/50 rounded-xl border border-border/60 px-3">
                   <Row k="Role" v={roleName} />
                   <Row k="Designation" v={desigLabel} />
-                  <Row k="Unit" v={unitLabel} />
+                  <Row k="Client" v={unitLabel} />
                   <Row k="Mobile" v={c.mobile ?? "—"} />
                   <Row k="Email" v={c.email ?? "—"} />
                   <Row k="Aadhaar" v={aad} />
@@ -6843,7 +6843,7 @@ function CandidateWizard({
                                   : "border-input bg-muted/20 text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {u?.name ?? "Unit"}
+                              {u?.name ?? "Client"}
                               <span className="ml-1.5 opacity-70">{has ? "✓" : "—"}</span>
                             </button>
                           );

@@ -312,7 +312,7 @@ function LwfRegisterPage() {
                     { key: "name", header: "Name" },
                     { key: "state", header: "State" },
                     { key: "frequency", header: "Frequency" },
-                    { key: "unit", header: "Unit" },
+                    { key: "unit", header: "Client" },
                     { key: "employee", header: "Employee share" },
                     { key: "employer", header: "Employer share" },
                     { key: "total", header: "Total" },

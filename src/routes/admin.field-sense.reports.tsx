@@ -184,7 +184,7 @@ function ReportsPage() {
         customerName: customer?.name ?? "All organizations",
         unitNames: unitIds.length === 0
           ? ["All clients"]
-          : activeUnitIds.map((id) => unitMap.get(id)?.name || unitMap.get(id)?.code || "Unit"),
+          : activeUnitIds.map((id) => unitMap.get(id)?.name || unitMap.get(id)?.code || "Client"),
         rangeLabel: range.label,
         rangeStart: range.start,
         rangeEnd: range.end,

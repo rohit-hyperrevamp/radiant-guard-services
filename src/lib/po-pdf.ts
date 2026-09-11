@@ -218,7 +218,7 @@ export async function generatePOPdf(data: POPdfData): Promise<jsPDF> {
   autoTable(doc, {
     startY: y,
     margin: { left: M, right: M },
-    head: [["SI No", "Code", "Name", "Unit", "Quantity", "Purchase Price", "Total Price"]],
+    head: [["SI No", "Code", "Name", "Client", "Quantity", "Purchase Price", "Total Price"]],
     body: [
       ...lineRows.map((r) => [
         r.sl, r.code, r.name, r.unit,

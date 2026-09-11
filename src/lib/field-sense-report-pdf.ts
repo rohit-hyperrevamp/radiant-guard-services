@@ -192,7 +192,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   autoTable(doc, {
     startY: tableStartY,
     margin: { left: margin, right: margin, bottom: 40 },
-    head: [["Date", "Unit", "Field Officer", "Check-in", "Check-out", "Duration", "Rating", "Client", "Notes"]],
+    head: [["Date", "Client", "Field Officer", "Check-in", "Check-out", "Duration", "Rating", "Client", "Notes"]],
     body: input.visits.map((v) => [
       fmtDate(v.date),
       v.unit,

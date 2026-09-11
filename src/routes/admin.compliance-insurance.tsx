@@ -411,7 +411,7 @@ function InsuranceRegisterPage() {
                       : []),
                     { key: "code", header: "Employee code" },
                     { key: "name", header: "Name" },
-                    { key: "unit", header: "Unit" },
+                    { key: "unit", header: "Client" },
                     { key: "joining", header: "Date of joining" },
                     ...(head === "esic" ? [{ key: "side", header: "Contribution" }] : []),
                     { key: "amount", header: `${meta.label} amount` },

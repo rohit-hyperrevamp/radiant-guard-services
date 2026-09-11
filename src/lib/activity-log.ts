@@ -63,7 +63,7 @@ const MODULE_LINKS: Record<string, string> = {
   "Inventory Caps": "/admin/inventory/caps",
   "Vendor Rate Cards": "/admin/inventory/rate-cards",
   // Organization / misc
-  "Organization Manager": "/admin/org-settings",
+  "Organizations": "/admin/org-settings",
   "My Profile": "/admin/profile",
 };
 

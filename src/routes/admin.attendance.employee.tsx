@@ -360,7 +360,7 @@ function EmployeeAttendanceLookupPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Stat label="Present days" value={totals.present.toFixed(2).replace(/\.00$/, "")} />
               <Stat label="Extra duty hrs" value={totals.ed.toFixed(2).replace(/\.00$/, "")} />
-              <Stat label="Units" value={String(unitBlocks.length)} />
+              <Stat label="Clients" value={String(unitBlocks.length)} />
             </div>
           </div>
 

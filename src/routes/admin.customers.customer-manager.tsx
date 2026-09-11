@@ -111,13 +111,13 @@ function CustomerManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Organization Manager"
+        title="Organizations"
         eyebrow="Organizations"
         icon={Network}
         description="Onboard organisations and manage their contract details."
         crumbs={[
           { label: "Organizations", to: "/admin/customers/customer-manager" },
-          { label: "Organization Manager" },
+          { label: "Organizations" },
         ]}
         kpis={
           <>
@@ -310,12 +310,12 @@ function CustomerManagerPage() {
           if (editing) {
             const r = await updateCustomer(editing.id, data);
             if (!r.ok) return { error: r.error, id: null };
-            void logActivity({ module: "Organization Manager", action: "update", entityType: "customers", entityId: editing.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
+            void logActivity({ module: "Organizations", action: "update", entityType: "customers", entityId: editing.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
             return { error: null, id: editing.id };
           }
           const r = await addCustomer(data);
           if (!r.ok) return { error: r.error, id: null };
-          void logActivity({ module: "Organization Manager", action: "create", entityType: "customers", entityId: r.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
+          void logActivity({ module: "Organizations", action: "create", entityType: "customers", entityId: r.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
           return { error: null, id: r.id };
         }}
         onSuccess={() => {
@@ -345,7 +345,7 @@ function CustomerManagerPage() {
                   const _delId = deleting.id;
                   const _delLabel = String((deleting as Record<string, unknown>).name ?? (deleting as Record<string, unknown>).code ?? _delId);
                   await deleteCustomer(_delId);
-                  void logActivity({ module: "Organization Manager", action: "delete", entityType: "customers", entityId: _delId, entityLabel: _delLabel });
+                  void logActivity({ module: "Organizations", action: "delete", entityType: "customers", entityId: _delId, entityLabel: _delLabel });
                   toast.success("Organization deleted");
                   setDeleting(null);
                 } catch (e) {

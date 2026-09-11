@@ -73,7 +73,7 @@ export async function createFieldVisitRequest(input: {
       action: "request",
       entityType: "field_visit_request",
       entityId: row.id,
-      entityLabel: input.unitLabel ?? "Unit",
+      entityLabel: input.unitLabel ?? "Client",
       details: { priority: input.priority, reason: input.reason },
     });
   } catch { /* noop */ }

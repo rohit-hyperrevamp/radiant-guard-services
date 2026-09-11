@@ -419,7 +419,7 @@ export function FinanceCharter({
           accent="violet"
         />
         <CharterTile
-          label="Units"
+          label="Clients"
           sub="sites in this charter"
           countTo={units.length}
           icon={MapPinned}

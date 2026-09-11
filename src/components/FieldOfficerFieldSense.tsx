@@ -1259,7 +1259,7 @@ function CheckOutDialog({
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Complete visit #{visit.visit_seq} — {unit?.unit_name ?? "Unit"}
+            Complete visit #{visit.visit_seq} — {unit?.unit_name ?? "Client"}
           </DialogTitle>
         </DialogHeader>
 
@@ -1446,7 +1446,7 @@ function FieldSenseTimeline(props: {
               key={v.id}
               color="sky"
               icon={<Flag className="h-3.5 w-3.5" />}
-              title={`Visit #${v.visit_seq} · ${u?.unit_name ?? "Unit"}`}
+              title={`Visit #${v.visit_seq} · ${u?.unit_name ?? "Client"}`}
               time={`${fmtTime(v.check_in_at)} → ${fmtTime(v.check_out_at)}`}
               subtitle={u?.address ?? u?.customer_name ?? ""}
               chip={v.customer_rating != null ? `★ ${v.customer_rating}` : undefined}
@@ -1460,7 +1460,7 @@ function FieldSenseTimeline(props: {
             color="amber"
             pulsing
             icon={<Navigation className="h-3.5 w-3.5" />}
-            title={`In meeting · ${openVisitUnit?.unit_name ?? "Unit"}`}
+            title={`In meeting · ${openVisitUnit?.unit_name ?? "Client"}`}
             time={`${fmtTime(openVisit.check_in_at)} · now`}
             subtitle={
               openVisitUnit?.address ??
@@ -1722,7 +1722,7 @@ function RangeInsightsPanel({
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-foreground">
-                        {unit?.unit_name ?? "Unit"}
+                        {unit?.unit_name ?? "Client"}
                         <span className="ml-1 text-[10px] font-medium text-muted-foreground">
                           {unit?.customer_name ?? ""}
                         </span>
@@ -1838,7 +1838,7 @@ function RequestedVisitsPanel({
                     </span>
                   )}
                   <span className="truncate text-[13px] font-semibold text-foreground">
-                    {u ? `${u.customer_name ? `${u.customer_name} — ` : ""}${u.unit_name}` : "Unit"}
+                    {u ? `${u.customer_name ? `${u.customer_name} — ` : ""}${u.unit_name}` : "Client"}
                   </span>
                 </div>
                 {r.reason && (

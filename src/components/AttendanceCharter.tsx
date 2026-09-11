@@ -381,7 +381,7 @@ export function AttendanceCharter({
           icon={Building2}
           accent="violet"
         />
-        <CharterTile label="Units" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
+        <CharterTile label="Clients" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
         <CharterTile
           label="Active employees"
           sub="on the muster roll"

@@ -542,7 +542,7 @@ function AttendanceUnitsPage() {
               allLabel={`All clients (${organizations.length})`}
             />
             <FilterSelect
-              label="Unit"
+              label="Client"
               value={unitFilter}
               onChange={setUnitFilter}
               options={units.map((u) => ({
