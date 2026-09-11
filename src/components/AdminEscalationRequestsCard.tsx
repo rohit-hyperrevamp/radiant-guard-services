@@ -187,7 +187,7 @@ export function AdminEscalationRequestsCard() {
                     </span>
                     <span className="truncate text-[12.5px] font-semibold text-foreground">
                       {unit?.customer_name ? `${unit.customer_name} — ` : ""}
-                      {unit?.name ?? "Unit"}
+                      {unit?.name ?? "Client"}
                     </span>
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">

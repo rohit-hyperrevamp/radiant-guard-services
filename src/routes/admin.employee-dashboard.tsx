@@ -530,7 +530,7 @@ function EmployeeDashboard() {
                 <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.violet}`}><Building2 className="h-3.5 w-3.5" /></span>
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Assignment</div>
-                  <div className="font-display text-[15px] font-bold leading-tight">Units ({myUnits.length})</div>
+                  <div className="font-display text-[15px] font-bold leading-tight">Clients ({myUnits.length})</div>
                 </div>
               </div>
               {myUnits.length === 0 ? (

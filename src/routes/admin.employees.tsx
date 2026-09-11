@@ -1148,7 +1148,7 @@ function useUnits() {
     refetchOnWindowFocus: false,
     staleTime: 60_000,
     queryFn: async (): Promise<UnitLite[]> => {
-      const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
+      const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
         await supabase
           .from("units" as never)
           .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
@@ -1751,7 +1751,7 @@ function EmployeesPage() {
     { key: "email", header: "Email" },
     { key: "role", header: "Role" },
     { key: "designation", header: "Designation" },
-    { key: "unit", header: "Unit" },
+    { key: "unit", header: "Client" },
     { key: "customer", header: "Customer" },
     { key: "reports_to", header: "Reports to" },
     { key: "status", header: "Status" },
@@ -2134,7 +2134,7 @@ function EmployeesPage() {
               sort_order: u.sort_order,
             })) as unknown as never,
           );
-        if (unitsErr) throw new Error(getMutationErrorMessage(unitsErr, "Reactivation created the employee record but failed to copy unit assignments."));
+        if (unitsErr) throw new Error(getMutationErrorMessage(unitsErr, "Reactivation created the employee record but failed to copy client assignments."));
       }
 
       await logActivity({
@@ -2811,7 +2811,7 @@ function EmployeesPage() {
                   )}
                   {(mode === "candidate" || columnsVisible.unit) && (
                     <div className="truncate" title={unit?.name ?? ""}>
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Unit</span>
+                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Client</span>
                       {unit?.name || "—"}
                     </div>
                   )}
@@ -3278,7 +3278,7 @@ function EmployeesPage() {
                   <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                     <span className="truncate">{c.mobile || "No mobile"}</span>
                     <span className="truncate text-right">{roleName}</span>
-                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</span>
+                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No client"}</span>
                     <span className="truncate text-right" title={desig?.name ?? ""}>{desig?.name || "No designation"}</span>
                   </div>
                 </div>
@@ -3489,7 +3489,7 @@ function EmployeesPage() {
               )}
               {(mode === "candidate" || columnsVisible.unit) && (
                 <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
-                  Unit
+                  Client
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.designation) && (
@@ -3542,7 +3542,7 @@ function EmployeesPage() {
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Employees"
-        description="Onboard and manage candidates joining client units."
+        description="Onboard and manage candidates joining client sites."
         crumbs={[{ label: "Employees" }]}
       />
 
@@ -3868,7 +3868,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.unit && (
               <Select value={filterUnit} onValueChange={setFilterUnit}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Client" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All units</SelectItem>
                   {units.map((u) => (<SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>))}
@@ -3957,7 +3957,7 @@ function EmployeesPage() {
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show filters</div>
                     {([
                       ["role", "Role"], ["designation", "Designation"], ["department", "Department"], ["customer", "Organization"],
-                      ["unit", "Unit"], ["manager", "Reports to"], ["enabled", "Active / Inactive"], ["billable", "Billable"], ["offboardReason", "Offboarding reason"],
+                      ["unit", "Client"], ["manager", "Reports to"], ["enabled", "Active / Inactive"], ["billable", "Billable"], ["offboardReason", "Offboarding reason"],
                     ] as const).map(([k, label]) => (
                       <label key={k} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
                         <span>{label}</span>
@@ -3969,7 +3969,7 @@ function EmployeesPage() {
                     ))}
                     <div className="pt-2 mt-2 border-t border-border/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show columns</div>
                     {([
-                      ["mobile", "Mobile"], ["email", "Email"], ["unit", "Unit"], ["designation", "Designation"], ["department", "Department"],
+                      ["mobile", "Mobile"], ["email", "Email"], ["unit", "Client"], ["designation", "Designation"], ["department", "Department"],
                       ["dob", "Date of Birth"], ["doj", "Date of Joining"], ["role", "Role"], ["active", "Active toggle"],
                     ] as const).map(([k, label]) => (
                       <label key={`col-${k}`} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
@@ -4021,7 +4021,7 @@ function EmployeesPage() {
           unitsQuery.error instanceof Error
             ? unitsQuery.error.message
             : isFieldOfficer && !scopeStillLoading && scopedUnitsForWizard.length === 0
-              ? "You have no units assigned. Ask your admin to assign a branch or unit before onboarding."
+              ? "You have no clients assigned. Ask your admin to assign a branch or client before onboarding."
               : null
         }
         designations={designations}
@@ -4203,7 +4203,7 @@ function EmployeesPage() {
                 <div className="divide-y divide-border/50 rounded-xl border border-border/60 px-3">
                   <Row k="Role" v={roleName} />
                   <Row k="Designation" v={desigLabel} />
-                  <Row k="Unit" v={unitLabel} />
+                  <Row k="Client" v={unitLabel} />
                   <Row k="Mobile" v={c.mobile ?? "—"} />
                   <Row k="Email" v={c.email ?? "—"} />
                   <Row k="Aadhaar" v={aad} />
@@ -5295,7 +5295,7 @@ function CandidateWizard({
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "PAN verified", ok: panVerified },
-    { key: "Unit assignment", ok: form.unit_ids.length > 0 },
+    { key: "Client assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
 
@@ -6551,7 +6551,7 @@ function CandidateWizard({
                         </Select>
                       </Field>
                     ) : (
-                      <Field label={`Units (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
+                      <Field label={`Clients (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
                         <MultiUnitPicker
                           units={units}
                           value={form.unit_ids}
@@ -6843,7 +6843,7 @@ function CandidateWizard({
                                   : "border-input bg-muted/20 text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {u?.name ?? "Unit"}
+                              {u?.name ?? "Client"}
                               <span className="ml-1.5 opacity-70">{has ? "✓" : "—"}</span>
                             </button>
                           );
@@ -7472,7 +7472,7 @@ function UnitPicker({
   value,
   onChange,
   disabled = false,
-  emptyMessage = "No units found.",
+  emptyMessage = "No clients found.",
 }: {
   units: UnitLite[];
   value: string | null;
@@ -7526,7 +7526,7 @@ function UnitPicker({
         }}
       >
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search units…" value={query} onValueChange={setQuery} />
+          <CommandInput placeholder="Search clients…" value={query} onValueChange={setQuery} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>

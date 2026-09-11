@@ -356,7 +356,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
   return (
     <div>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Warehouse} label="Units covered" value={unitIds.length} accent="bg-cyan-600" />
+        <StatTile icon={Warehouse} label="Clients covered" value={unitIds.length} accent="bg-cyan-600" />
         <StatTile icon={ShieldCheck} label="Guards on duty" value={totalGuards} accent="bg-emerald-600" />
         <StatTile icon={PackageCheck} label="Guards with stock" value={guardsWithStock} accent="bg-violet-600" />
         <StatTile icon={Inbox} label="Total items at guards" value={balances.reduce((s, b) => s + Number(b.qty || 0), 0)} accent="bg-amber-500" />

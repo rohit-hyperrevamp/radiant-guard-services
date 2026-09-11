@@ -471,7 +471,7 @@ function DeductionList() {
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:max-w-4xl">
           <div className="grid gap-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unit</Label>
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Client</Label>
             <Select value={effectiveUnitId} onValueChange={setUnitId}>
               <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select unit" /></SelectTrigger>
               <SelectContent className="max-h-[320px]">
@@ -530,7 +530,7 @@ function DeductionList() {
               [
                 { key: "employee_code", header: "Emp Code" },
                 { key: "employee", header: "Employee" },
-                { key: "unit", header: "Unit" },
+                { key: "unit", header: "Client" },
                 { key: "designation", header: "Designation" },
                 { key: "head", header: "Deduction Head" },
                 { key: "source", header: "Source" },

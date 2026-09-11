@@ -269,7 +269,7 @@ export function RehireRequestDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>
-                  Unit<span className="text-rose-500"> *</span>
+                  Client<span className="text-rose-500"> *</span>
                 </Label>
                 <Select value={unitId} onValueChange={setUnitId}>
                   <SelectTrigger className="mt-1">

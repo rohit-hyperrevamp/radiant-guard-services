@@ -991,7 +991,7 @@ function HoldingsCard({ title, icon: Icon, accent, rows }: {
   const total = rows.reduce((s, r) => s + r.qty, 0);
   const active = openIdx !== null ? rows[openIdx] : null;
   return (
-    <Panel title={title} subtitle={`${rows.length} holders · ${total.toLocaleString("en-IN")} units`}>
+    <Panel title={title} subtitle={`${rows.length} holders · ${total.toLocaleString("en-IN")} clients`}>
       <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/40 ${accent}`}><Icon className="h-4 w-4" /></div>
       {rows.length === 0 ? <Empty>Nothing in hand.</Empty> : (
         <div className="space-y-2">

@@ -132,7 +132,7 @@ function InvoiceUnitsPage() {
               allLabel={`All clients (${organizations.length})`}
             />
             <FilterSelect
-              label="Unit"
+              label="Client"
               value={unitFilter}
               onChange={setUnitFilter}
               options={units.map((u) => ({
@@ -169,7 +169,7 @@ function InvoiceUnitsPage() {
             <ListSkeleton rows={5} />
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load invoice units right now."}
+              {error instanceof Error ? error.message : "Could not load invoice clients right now."}
             </div>
           ) : (
             <FinanceCharter

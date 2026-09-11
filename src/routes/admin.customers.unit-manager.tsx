@@ -73,7 +73,7 @@ const SALUTATIONS = ["Mr.", "Mrs.", "Ms.", "Dr.", "Mx."];
 const GST_TYPES = [
   "Regular",
   "Composition",
-  "SEZ Unit",
+  "SEZ Client",
   "SEZ Developer",
   "Casual Taxable Person",
   "Non-Resident Taxable Person",
@@ -209,17 +209,17 @@ function UnitManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Unit Manager"
+        title="Clients"
         eyebrow="Organizations"
         icon={Warehouse}
-        description="Track operational units deployed across branches."
+        description="Track operational clients deployed across branches."
         crumbs={[
           { label: "Organizations", to: "/admin/customers/customer-manager" },
-          { label: "Unit Manager" },
+          { label: "Clients" },
         ]}
         kpis={
           <>
-            <PageStat label="Total units" value={units.length} icon={Warehouse} />
+            <PageStat label="Total clients" value={units.length} icon={Warehouse} />
             <PageStat label="Active" value={activeCount} tone="accent" />
             <PageStat label="Inactive" value={units.length - activeCount} tone="destructive" />
           </>
@@ -332,8 +332,8 @@ function UnitManagerPage() {
                   mapLink: csvMapLink(u.latitude, u.longitude),
                 })),
                 [
-                  { key: "unitCode", header: "Unit code" },
-                  { key: "unitName", header: "Unit name" },
+                  { key: "unitCode", header: "Client code" },
+                  { key: "unitName", header: "Client name" },
                   { key: "customer", header: "Organization" },
                   { key: "branch", header: "Branch" },
                   { key: "location", header: "Location" },
@@ -388,7 +388,7 @@ function UnitManagerPage() {
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
-                <th className="px-5 py-3">Unit ID</th>
+                <th className="px-5 py-3">Client ID</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Location</th>
                 <th className="px-5 py-3">Branch</th>
@@ -431,8 +431,8 @@ function UnitManagerPage() {
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => setPeopleFor(u)}
-                        aria-label="People in this unit"
-                        title="People in this unit"
+                        aria-label="People in this client"
+                        title="People in this client"
                       >
                         <Users className="h-4 w-4" />
                       </Button>
@@ -468,8 +468,8 @@ function UnitManagerPage() {
                   <td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     <Warehouse className="mx-auto mb-2 h-6 w-6 opacity-50" />
                     {units.length === 0
-                      ? "No units yet. Add your first unit to get started."
-                      : "No units match your search."}
+                      ? "No clients yet. Add your first client to get started."
+                      : "No clients match your search."}
                   </td>
                 </tr>
               )}
@@ -487,8 +487,8 @@ function UnitManagerPage() {
             </DialogTitle>
             <DialogDescription>
               {peopleFor?.isBillable === false
-                ? "Department-wise hierarchy of everyone onboarded under this unit."
-                : "Field officers and security guards deployed to this unit."}
+                ? "Department-wise hierarchy of everyone onboarded under this client."
+                : "Field officers and security guards deployed to this client."}
             </DialogDescription>
           </DialogHeader>
           {peopleFor && (
@@ -517,8 +517,8 @@ function UnitManagerPage() {
         onSubmit={async (data) => {
           const r = editing ? await updateUnit(editing.id, data) : await addUnit(data);
           if (!r.ok) return { error: r.error, id: null };
-          void logActivity({ module: "Unit Manager", action: editing ? "update" : "create", entityType: "units", entityId: editing?.id, entityLabel: String((data as Record<string, unknown>).code ?? (data as Record<string, unknown>).name ?? ""), details: data as Record<string, unknown> });
-          toast.success(editing ? "Unit updated" : "Unit added");
+          void logActivity({ module: "Clients", action: editing ? "update" : "create", entityType: "units", entityId: editing?.id, entityLabel: String((data as Record<string, unknown>).code ?? (data as Record<string, unknown>).name ?? ""), details: data as Record<string, unknown> });
+          toast.success(editing ? "Client updated" : "Client added");
           return { error: null, id: editing ? editing.id : (("id" in r ? r.id : undefined) ?? null) };
         }}
       />
@@ -542,8 +542,8 @@ function UnitManagerPage() {
                   const _delId = deleting.id;
                   const _delLabel = String((deleting as Record<string, unknown>).name ?? (deleting as Record<string, unknown>).code ?? _delId);
                   await deleteUnit(_delId);
-                  void logActivity({ module: "Unit Manager", action: "delete", entityType: "units", entityId: _delId, entityLabel: _delLabel });
-                  toast.success("Unit deleted");
+                  void logActivity({ module: "Clients", action: "delete", entityType: "units", entityId: _delId, entityLabel: _delLabel });
+                  toast.success("Client deleted");
                   setDeleting(null);
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Delete failed");
@@ -853,7 +853,7 @@ function UnitFormDialog({
       }
       if (toRemove.length || toAdd.length) {
         void logActivity({
-          module: "Unit Manager",
+          module: "Clients",
           action: "assign_field_officers",
           entityType: "units",
           entityId: unitId,
@@ -911,11 +911,11 @@ function UnitFormDialog({
       onOpenChange(false);
       if (result.id) {
         void syncFieldOfficerAssignments(result.id).then((syncErr) => {
-          if (syncErr) toast.error(`Unit saved, but field officer assignments could not be updated: ${syncErr}`);
+          if (syncErr) toast.error(`Client saved, but field officer assignments could not be updated: ${syncErr}`);
         });
       }
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Could not save the unit. Please try again.";
+      const message = cause instanceof Error ? cause.message : "Could not save the client. Please try again.";
       setError(message);
       toast.error(message);
     } finally {
@@ -927,7 +927,7 @@ function UnitFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto pb-0">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit unit" : "Add unit"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit client" : "Add client"}</DialogTitle>
           <DialogDescription>
             A unit is an operational location mapped to a branch and an organisation.
           </DialogDescription>
@@ -979,9 +979,9 @@ function UnitFormDialog({
           </Section>
 
           {/* UNIT INFO */}
-          <Section title="Unit information">
+          <Section title="Client information">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Unit code (auto, editable)">
+              <Field label="Client code (auto, editable)">
                 <Input
                   value={form.code}
                   onChange={(e) => set("code", e.target.value.toUpperCase())}
@@ -989,10 +989,10 @@ function UnitFormDialog({
                   className="font-mono"
                 />
               </Field>
-              <Field label="Unit name">
+              <Field label="Client name">
                 <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
               </Field>
-              <Field label="Unit location">
+              <Field label="Client location">
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
               </Field>
               <Field label="Status">
@@ -1204,7 +1204,7 @@ function UnitFormDialog({
                   </div>
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
                     {form.uniformIncluded
-                      ? "When on, uniforms issued to staff on this unit are billed to the client — the staff member is not charged. Uniform items will show ₹0 · Included on their profile."
+                      ? "When on, uniforms issued to staff on this client are billed to the client — the staff member is not charged. Uniform items will show ₹0 · Included on their profile."
                       : "When off, the value of uniforms issued to staff is charged to the staff member. Their profile will show the recoverable rupee value against each uniform item."}
                   </p>
                 </div>
@@ -1550,7 +1550,7 @@ function UnitFormDialog({
               onClick={() => void saveUnit()}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {isSaving ? "Saving…" : editing ? "Save changes" : "Create unit"}
+              {isSaving ? "Saving…" : editing ? "Save changes" : "Create client"}
             </Button>
           </DialogFooter>
         </div>

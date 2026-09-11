@@ -231,10 +231,10 @@ export function MarkAttendanceCard({
       }
 
       if (gated) {
-        if (!geo) throw new Error("Location is required to check in at your assigned unit.");
+        if (!geo) throw new Error("Location is required to check in at your assigned client.");
         const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
         if (units.length === 0) {
-          throw new Error("No unit locations are configured for you. Ask your admin to set unit coordinates.");
+          throw new Error("No client locations are configured for you. Ask your admin to set client coordinates.");
         }
         const withDist = units
           .map((u) => ({
@@ -246,7 +246,7 @@ export function MarkAttendanceCard({
         if (within.length === 0) {
           const nearest = withDist[0];
           throw new Error(
-            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Please reach one of your assigned units.`,
+            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Please reach one of your assigned clients.`,
           );
         }
         if (within.length === 1) {

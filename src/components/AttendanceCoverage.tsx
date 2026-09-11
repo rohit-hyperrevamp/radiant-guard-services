@@ -484,7 +484,7 @@ function AttendanceCharterDialog({
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>Attendance charter · {dayLabel}</DialogTitle>
           <DialogDescription>
-            Unit-wise view of who is present, absent or still unmarked today.
+            Client-wise view of who is present, absent or still unmarked today.
           </DialogDescription>
         </DialogHeader>
 
@@ -494,7 +494,7 @@ function AttendanceCharterDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search unit, organisation or employee…"
+              placeholder="Search client, organisation or employee…"
               className="h-9 rounded-lg pl-9"
             />
           </div>

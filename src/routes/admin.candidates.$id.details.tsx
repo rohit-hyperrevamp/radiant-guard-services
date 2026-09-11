@@ -69,7 +69,7 @@ const MODULE = "Candidate Details";
 
 const SECTIONS = [
   { id: "basic", label: "Basic Info", icon: Activity },
-  { id: "units", label: "Unit Mapping", icon: Building2 },
+  { id: "units", label: "Client Mapping", icon: Building2 },
   { id: "compliance", label: "Compliance", icon: ShieldCheck },
   { id: "knowledge", label: "Knowledge & Experience", icon: GraduationCap },
   { id: "physical", label: "Physical & Health", icon: Heart },
@@ -579,7 +579,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
   const addMapping = async () => {
     if (!addUnitId) return;
     if (!addDesignationId) {
-      toast.error("Pick the designation this employee fills at that unit — attendance and salary follow the designation.");
+      toast.error("Pick the designation this employee fills at that client — attendance and salary follow the designation.");
       return;
     }
     const isFirstMapping = mappings.length === 0;
@@ -606,7 +606,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         details: { unit_id: addUnitId, designation_id: addDesignationId },
       });
       const unitLabel = unitMap.get(addUnitId)?.name ?? "the site";
-      toast.success(isFirstMapping ? "Primary unit mapped" : `Mapped as reliever at ${unitLabel} (extra duty only)`);
+      toast.success(isFirstMapping ? "Primary client mapped" : `Mapped as reliever at ${unitLabel} (extra duty only)`);
       if (isFirstMapping) {
         // Work orders are only dispatched for the primary unit.
         await supabase
@@ -624,14 +624,14 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
       refresh();
 
     } catch (e: any) {
-      toast.error(e.message || "Failed to map unit");
+      toast.error(e.message || "Failed to map client");
     } finally {
       setBusy(false);
     }
   };
 
   const removeMapping = async (row: CandidateUnitRow) => {
-    if (!(await confirmAction({ title: "Remove unit mapping?", description: "This will unmap the employee from this unit.", confirmText: "Remove" }))) return;
+    if (!(await confirmAction({ title: "Remove client mapping?", description: "This will unmap the employee from this client.", confirmText: "Remove" }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.from("candidate_units" as never).delete().eq("id", row.id);
@@ -654,7 +654,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
 
   const setPrimary = async (row: CandidateUnitRow) => {
     if (!row.designation_id) {
-      toast.error("Set the designation for this unit before making it primary — attendance and salary follow the designation.");
+      toast.error("Set the designation for this client before making it primary — attendance and salary follow the designation.");
       return;
     }
     setBusy(true);
@@ -716,7 +716,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         entityId: candidateId,
         details: { unit_id: row.unit_id, designation_id: designationId },
       });
-      toast.success("Designation updated for this unit");
+      toast.success("Designation updated for this client");
       refresh();
     } catch (e: any) {
       toast.error(e.message || "Failed to update designation");
@@ -731,7 +731,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
   return (
     <div>
       <SectionHeader
-        title="Unit Mapping"
+        title="Client Mapping"
         desc="One primary unit only — that is where the posting order is dispatched. Every other unit is a reliever posting: the employee appears as (R) and can only be marked for extra duty (ED)."
       />
 
@@ -806,7 +806,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">Code</th>
-                <th className="px-3 py-2 text-left">Unit</th>
+                <th className="px-3 py-2 text-left">Client</th>
                 <th className="px-3 py-2 text-left">Designation</th>
                 <th className="px-3 py-2 text-left">Primary</th>
                 <th className="px-3 py-2 text-right" data-col="actions">Actions</th>

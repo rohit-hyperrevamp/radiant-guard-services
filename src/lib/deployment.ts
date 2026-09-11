@@ -139,5 +139,5 @@ export const SCOPE_TYPE_LABEL: Record<ScopeType, string> = {
   state: "State",
   customer: "Organization",
   branch: "Branch",
-  unit: "Unit",
+  unit: "Client",
 };

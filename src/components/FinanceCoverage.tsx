@@ -329,7 +329,7 @@ function CharterDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by unit or organisation…"
+              placeholder="Search by client or organisation…"
               className="h-9 rounded-lg pl-9"
             />
           </div>
@@ -547,7 +547,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             P&amp;L
           </div>
-          <h2 className="text-base font-semibold">Unit Profitability — Committed vs Actual</h2>
+          <h2 className="text-base font-semibold">Client Profitability — Committed vs Actual</h2>
           <p className="text-xs text-muted-foreground">
             Contracted value against invoice earned and payroll spent month-till-date, per unit.
           </p>
@@ -595,7 +595,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search unit or organisation…"
+          placeholder="Search client or organisation…"
           className="h-9 rounded-lg pl-9"
         />
       </div>
@@ -604,7 +604,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold">Unit</th>
+              <th className="px-3 py-2 text-left font-semibold">Client</th>
               <th className="px-3 py-2 text-right font-semibold">Contracted</th>
               <th className="px-3 py-2 text-right font-semibold">Invoice MTD</th>
               <th className="px-3 py-2 text-right font-semibold">Payroll MTD</th>

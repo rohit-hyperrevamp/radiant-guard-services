@@ -158,13 +158,13 @@ function MyReporteesPage() {
         eyebrow="Field operations"
         title="My reportees"
         crumbs={[{ label: "Field dashboard", to: "/admin/field-dashboard" }, { label: "My reportees" }]}
-        description="Every security guard mapped to you across all your units."
+        description="Every security guard mapped to you across all your clients."
       />
 
       <div className="grid grid-cols-3 gap-2.5">
         <StatBox label="Reportees" value={rows.length} />
         <StatBox label="Primary" value={primaryCount} />
-        <StatBox label="Units" value={units.length} />
+        <StatBox label="Clients" value={units.length} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

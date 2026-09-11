@@ -234,7 +234,7 @@ function MigrationUtilityPage() {
         payroll_window_id: string | null;
         units?: { name?: string; code?: string; customers?: { name?: string } | null } | null;
       };
-      if (!r.unit_id) throw new Error("This contract is not mapped to a unit");
+      if (!r.unit_id) throw new Error("This contract is not mapped to a client");
       return {
         id: r.id,
         contract_code: r.contract_code,
@@ -493,7 +493,7 @@ function MigrationUtilityPage() {
             is_reliever: false,
             sort_order: 0,
           } as never);
-          if (mapErr) throw new Error(`Unit mapping failed for ${row.name}: ${mapErr.message}`);
+          if (mapErr) throw new Error(`Client mapping failed for ${row.name}: ${mapErr.message}`);
         }
         candidateIds.push(candidateId);
       }
@@ -642,7 +642,7 @@ function MigrationUtilityPage() {
               <div className="font-semibold">{contract.contract_code}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Unit</div>
+              <div className="text-xs text-muted-foreground">Client</div>
               <div className="font-semibold">
                 {contract.customer_name ? `${contract.customer_name} — ` : ""}
                 {contract.unit_name} {contract.unit_code ? `(${contract.unit_code})` : ""}

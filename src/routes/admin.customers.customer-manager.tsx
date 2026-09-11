@@ -111,13 +111,13 @@ function CustomerManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Organization Manager"
+        title="Organizations"
         eyebrow="Organizations"
         icon={Network}
         description="Onboard organisations and manage their contract details."
         crumbs={[
           { label: "Organizations", to: "/admin/customers/customer-manager" },
-          { label: "Organization Manager" },
+          { label: "Organizations" },
         ]}
         kpis={
           <>
@@ -253,8 +253,8 @@ function CustomerManagerPage() {
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
                         onClick={() => setViewingUnits(c)}
-                        aria-label="View units"
-                        title="View mapped units"
+                        aria-label="View clients"
+                        title="View mapped clients"
                       >
                         <Network className="h-4 w-4" />
                       </Button>
@@ -310,12 +310,12 @@ function CustomerManagerPage() {
           if (editing) {
             const r = await updateCustomer(editing.id, data);
             if (!r.ok) return { error: r.error, id: null };
-            void logActivity({ module: "Organization Manager", action: "update", entityType: "customers", entityId: editing.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
+            void logActivity({ module: "Organizations", action: "update", entityType: "customers", entityId: editing.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
             return { error: null, id: editing.id };
           }
           const r = await addCustomer(data);
           if (!r.ok) return { error: r.error, id: null };
-          void logActivity({ module: "Organization Manager", action: "create", entityType: "customers", entityId: r.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
+          void logActivity({ module: "Organizations", action: "create", entityType: "customers", entityId: r.id, entityLabel: String(data.name ?? ""), details: data as Record<string, unknown> });
           return { error: null, id: r.id };
         }}
         onSuccess={() => {
@@ -345,7 +345,7 @@ function CustomerManagerPage() {
                   const _delId = deleting.id;
                   const _delLabel = String((deleting as Record<string, unknown>).name ?? (deleting as Record<string, unknown>).code ?? _delId);
                   await deleteCustomer(_delId);
-                  void logActivity({ module: "Organization Manager", action: "delete", entityType: "customers", entityId: _delId, entityLabel: _delLabel });
+                  void logActivity({ module: "Organizations", action: "delete", entityType: "customers", entityId: _delId, entityLabel: _delLabel });
                   toast.success("Organization deleted");
                   setDeleting(null);
                 } catch (e) {
@@ -462,7 +462,7 @@ function CustomerUnitsDialog({
             <table className="ios-table w-full text-sm">
               <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2.5">Unit</th>
+                  <th className="px-4 py-2.5">Client</th>
                   <th className="px-4 py-2.5">Branch</th>
                   <th className="px-4 py-2.5">Location</th>
                   <th className="px-4 py-2.5">Active</th>

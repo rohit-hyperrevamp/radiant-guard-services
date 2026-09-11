@@ -436,8 +436,8 @@ function AdminLayout() {
   const groups: GroupItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
-      { key: "org-manager", label: "Organization Manager", module: "organizations", sub: "organization_manager", icon: Users, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
-      { key: "unit-manager", label: "Unit Manager", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
+      { key: "org-manager", label: "Organizations", module: "organizations", sub: "organization_manager", icon: Users, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
+      { key: "unit-manager", label: "Clients", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 
@@ -603,8 +603,8 @@ function AdminLayout() {
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
-              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "employees", "inventory", "vehicles", "assets"] },
-              { label: "HR", keys: ["attendance", "payroll"] },
+              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "inventory", "vehicles", "assets"] },
+              { label: "HR", keys: ["employees", "attendance", "payroll"] },
               { label: "Finance", keys: ["invoice"] },
               { label: "Surveillance", keys: ["field-sense"] },
               { label: "Compliance", keys: ["compliance"] },

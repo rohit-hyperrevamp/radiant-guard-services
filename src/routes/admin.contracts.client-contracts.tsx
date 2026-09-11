@@ -478,7 +478,7 @@ async function assertSingleActiveContract(unitId: string, excludeId?: string | n
   const dup = ((data as unknown as Record<string, unknown>[]) ?? [])[0];
   if (dup) {
     throw new Error(
-      `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before activating another one.`,
+      `Client already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before activating another one.`,
     );
   }
 }
@@ -584,7 +584,7 @@ function useContracts() {
 
   const addMut = useMutation({
     mutationFn: async (p: Payload): Promise<string> => {
-      if (!p.unitId) throw new Error("Unit is required");
+      if (!p.unitId) throw new Error("Client is required");
       const uidRes = await supabase.auth.getUser();
       const insertRow = { ...toRow(p, { isNew: true }), created_by: uidRes.data.user?.id ?? null };
       const { data, error } = await supabase
@@ -1801,7 +1801,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
   const summaryRows: Array<[string, string | number]> = [];
   summaryRows.push(["Contract Code", contract.contractCode]);
   summaryRows.push([
-    "Unit",
+    "Client",
     unitRow ? `${String(unitRow.code ?? "")} — ${String(unitRow.name ?? "")}` : contract.unitId,
   ]);
   summaryRows.push(["Start Date", contract.startDate]);
@@ -2381,7 +2381,7 @@ function ClientContractsPage() {
       <PageHeader
         title="Client Contracts"
         eyebrow="Contracts"
-        description="Manage client contracts across organisations and units."
+        description="Manage contracts across organisations and clients."
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         kpis={
           <>
@@ -2480,7 +2480,7 @@ function ClientContractsPage() {
               [
                 { key: "code", header: "Contract ID" },
                 { key: "organization", header: "Organization" },
-                { key: "unit", header: "Unit" },
+                { key: "unit", header: "Client" },
                 { key: "start", header: "Start date" },
                 { key: "end", header: "End date" },
                 { key: "description", header: "Description" },
@@ -2558,7 +2558,7 @@ function ClientContractsPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by contract ID, unit, organisation…"
+              placeholder="Search by contract ID, client, organisation…"
               className="h-10 rounded-lg pl-9"
             />
           </div>
@@ -2583,7 +2583,7 @@ function ClientContractsPage() {
           </Select>
           <Select value={unitFilter} onValueChange={setUnitFilter}>
             <SelectTrigger className="h-10 rounded-lg">
-              <SelectValue placeholder="Unit" />
+              <SelectValue placeholder="Client" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All units</SelectItem>
@@ -2642,7 +2642,7 @@ function ClientContractsPage() {
               <tr>
                 <th className="px-5 py-3" data-col="code">{tab === "client" ? "Contract ID" : "Prospect ID"}</th>
                 <th className="px-5 py-3">Organization</th>
-                <th className="px-5 py-3">Unit</th>
+                <th className="px-5 py-3">Client</th>
                 {tab === "client" ? (
                   <>
                     <th className="px-5 py-3" data-col="date">Start</th>
@@ -3049,7 +3049,7 @@ function ContractViewDialog({
 
         <div className="grid gap-2 sm:grid-cols-3">
           <ViewRow label="Organisation" value={contract.orgName} />
-          <ViewRow label="Unit" value={`${contract.unitCode ?? ""} ${contract.unitName ?? ""}`.trim()} />
+          <ViewRow label="Client" value={`${contract.unitCode ?? ""} ${contract.unitName ?? ""}`.trim()} />
           <ViewRow label="Service type" value={serviceTypeName(contract.serviceTypeId)} />
           <ViewRow label="Start date" value={contract.startDate} />
           <ViewRow label="End date" value={contract.endDate} />
@@ -3720,7 +3720,7 @@ function ContractFormDialog({
                   </div>
                 </div>
                 <div className="sm:col-span-3 text-[11px] text-muted-foreground">
-                  Manage these in Unit Manager.
+                  Manage these in Clients.
                 </div>
               </div>
             ) : (

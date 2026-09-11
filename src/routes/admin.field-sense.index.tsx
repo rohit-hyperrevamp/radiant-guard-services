@@ -703,7 +703,7 @@ function FieldSenseLeaderboards() {
           {/* Units + Customers */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <Leaderboard
-              title="Units · Most visited"
+              title="Clients · Most visited"
               tone="sky"
               rows={unitsDesc}
               render={(r) => ({
@@ -713,10 +713,10 @@ function FieldSenseLeaderboards() {
                 metric: `${r.visits}`,
                 metricLabel: r.visits === 1 ? "visit" : "visits",
               })}
-              emptyLabel="No units visited in range."
+              emptyLabel="No clients visited in range."
             />
             <Leaderboard
-              title="Units · Least visited"
+              title="Clients · Least visited"
               tone="rose"
               rows={unitsAsc}
               render={(r) => ({
@@ -726,7 +726,7 @@ function FieldSenseLeaderboards() {
                 metric: `${r.visits}`,
                 metricLabel: r.visits === 1 ? "visit" : "visits",
               })}
-              emptyLabel="No units visited in range."
+              emptyLabel="No clients visited in range."
             />
           </div>
         </>

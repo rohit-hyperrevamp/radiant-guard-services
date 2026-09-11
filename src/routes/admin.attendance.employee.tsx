@@ -211,7 +211,7 @@ function EmployeeAttendanceLookupPage() {
         }
         return {
           id,
-          name: unit?.name || unit?.code || "Unknown unit",
+          name: unit?.name || unit?.code || "Unknown client",
           code: unit?.code || "",
           designation: d.designationByUnit[id] || "",
           isPrimary: !!link?.is_primary,
@@ -247,12 +247,12 @@ function EmployeeAttendanceLookupPage() {
         title="Employee attendance lookup"
         eyebrow="Attendance"
         icon={UserRound}
-        description="Search any employee and review their marked attendance across every unit they work at."
+        description="Search any employee and review their marked attendance across every client they work at."
         crumbs={[{ label: "Attendance", to: "/admin/attendance" }, { label: "Employee lookup" }]}
         actions={
           <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
             <Link to="/admin/attendance">
-              <MapPinned className="h-3.5 w-3.5" /> Unit view
+              <MapPinned className="h-3.5 w-3.5" /> Client view
             </Link>
           </Button>
         }
@@ -360,7 +360,7 @@ function EmployeeAttendanceLookupPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Stat label="Present days" value={totals.present.toFixed(2).replace(/\.00$/, "")} />
               <Stat label="Extra duty hrs" value={totals.ed.toFixed(2).replace(/\.00$/, "")} />
-              <Stat label="Units" value={String(unitBlocks.length)} />
+              <Stat label="Clients" value={String(unitBlocks.length)} />
             </div>
           </div>
 

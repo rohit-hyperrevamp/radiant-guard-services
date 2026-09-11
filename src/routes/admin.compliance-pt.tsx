@@ -294,7 +294,7 @@ function PtRegisterPage() {
                     { key: "name", header: "Name" },
                     { key: "gender", header: "Gender" },
                     { key: "state", header: "State" },
-                    { key: "unit", header: "Unit" },
+                    { key: "unit", header: "Client" },
                     { key: "band", header: "Slab band" },
                     { key: "amount", header: "PT deducted" },
                     { key: "date", header: "Deduction date" },
