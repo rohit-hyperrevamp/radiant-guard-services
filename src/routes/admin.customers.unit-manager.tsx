@@ -603,8 +603,8 @@ function UnitFormDialog({
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  editing: Client | null;
-  units: Client[];
+  editing: Unit | null;
+  units: Unit[];
   onSubmit: (data: Omit<Unit, "id">) => Promise<{ error: string | null; id: string | null }>;
 }) {
   const { branches } = useBranches();

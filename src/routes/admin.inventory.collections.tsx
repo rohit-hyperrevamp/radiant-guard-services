@@ -532,7 +532,7 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
   open: boolean;
   onOpenChange: (o: boolean) => void;
   guard: Candidate;
-  unit: Client | null;
+  unit: Unit | null;
   balances: Balance[];
   itemMap: Map<string, Item>;
   onConfirm: (
