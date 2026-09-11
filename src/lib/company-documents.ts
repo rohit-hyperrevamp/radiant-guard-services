@@ -1204,7 +1204,7 @@ export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
   logoUrl: COMPANY_LOGO_URL,
   frontLogoHeight: 22,
   front: {
-    companyName: "Radiant Guard Services Pvt.Ltd.",
+    companyName: "Radiant Guard Services Pvt. Ltd.",
     showPhoto: true,
     showPhotoStamp: true,
     fields: [

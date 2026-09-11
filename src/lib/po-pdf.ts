@@ -38,7 +38,7 @@ export type POPdfData = {
 };
 
 const COMPANY = {
-  name: "Radiant Guard Services Private Limited",
+  name: "Radiant Guard Services Pvt. Ltd.",
   address: "Office No. 818, 8th Floor, Clover Hills Plaza, NIBM Road, Pune. 411048",
   phone: "02048622515",
   email: "info@radiantguards.com",

@@ -314,7 +314,7 @@ function LoginPage() {
                     Radiant Guard
                   </div>
                   <div className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
-                    Services Private Limited
+                    Services Pvt. Ltd.
                   </div>
                 </div>
               </div>
@@ -324,7 +324,7 @@ function LoginPage() {
                 <span className="text-white/70">managed with precision.</span>
               </h1>
               <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75">
-                One portal for attendance, payroll, contracts and field teams —
+                One portal for attendance, payroll, contracts and field teams
                 built for the people who keep every site running.
               </p>
             </div>
