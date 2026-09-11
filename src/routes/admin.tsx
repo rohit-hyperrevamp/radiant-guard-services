@@ -106,10 +106,13 @@ type GroupItem = {
 };
 
 const customersChildren: LeafItem[] = [
-  { to: "/admin/customers/state-manager", label: "State Manager", icon: MapPin, sub: "state_manager" },
-  { to: "/admin/customers/branch-manager", label: "Branch Manager", icon: Building2, sub: "branch_manager" },
   { to: "/admin/customers/customer-manager", label: "Organization Manager", icon: Users, sub: "organization_manager" },
   { to: "/admin/customers/unit-manager", label: "Unit Manager", icon: Warehouse, sub: "unit_manager" },
+];
+
+const controlCenterChildren: LeafItem[] = [
+  { to: "/admin/customers/state-manager", label: "State Manager", icon: MapPin, sub: "state_manager" },
+  { to: "/admin/customers/branch-manager", label: "Branch Manager", icon: Building2, sub: "branch_manager" },
 ];
 
 
@@ -439,7 +442,7 @@ function AdminLayout() {
   const groups: GroupItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
-      { key: "organizations", label: "Organizations", module: "organizations", icon: Building2, to: "/admin/customers/customer-manager", children: customersChildren, activePrefixes: ["/admin/customers"] },
+      { key: "organizations", label: "Organizations", module: "organizations", icon: Building2, to: "/admin/customers/customer-manager", children: customersChildren, activePrefixes: ["/admin/customers/customer-manager", "/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 
@@ -452,7 +455,7 @@ function AdminLayout() {
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
-      { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", activePrefixes: ["/admin/control-center"] },
+      { key: "control", label: "Admin Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
     [dashboardHref],
   );
@@ -539,7 +542,9 @@ function AdminLayout() {
           return { ...g, children: kids };
         }
         if (!g.module || !g.children) return g;
-        const filtered = g.children.filter((c) => !c.sub || canSub(g.module!, c.sub));
+        // Control Center hosts the State/Branch managers — their subs live under the organizations module.
+        const subModule = g.key === "control" ? "organizations" : g.module!;
+        const filtered = g.children.filter((c) => !c.sub || canSub(subModule, c.sub));
         return { ...g, children: filtered };
       });
 
@@ -600,9 +605,12 @@ function AdminLayout() {
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
-              { label: "Operations", keys: ["organizations", "contracts", "employees", "attendance", "inventory", "vehicles", "assets"] },
-              { label: "Finance", keys: ["payroll", "invoice"] },
-              { label: "Admin", keys: ["control"] },
+              { label: "Operations", keys: ["organizations", "contracts", "employees", "inventory", "vehicles", "assets"] },
+              { label: "HR", keys: ["attendance", "payroll"] },
+              { label: "Finance", keys: ["invoice"] },
+              { label: "Surveillance", keys: ["field-sense"] },
+              { label: "Compliance", keys: ["compliance"] },
+              { label: "", keys: ["control"] },
             ];
             const used = new Set<string>();
             return (
@@ -613,7 +621,7 @@ function AdminLayout() {
                   items.forEach((g) => used.add(g.key));
                   return (
                     <div key={s.label} className="space-y-[3px]">
-                      {!collapsed && (
+                      {!collapsed && s.label && (
                         <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">
                           {s.label}
                         </div>
