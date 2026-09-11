@@ -6452,6 +6452,7 @@ function CandidateWizard({
                         }));
                       }}
                     />
+                    )}
                   </div>
                 </div>
               </Section>
