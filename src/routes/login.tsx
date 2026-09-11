@@ -302,7 +302,7 @@ function LoginPage() {
             className="relative flex flex-col px-6 pb-6 pt-6 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-12 lg:pb-8 lg:pt-8"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
-            <div className="inline-flex items-center gap-2.5 rounded-lg bg-white px-3 py-2 shadow-md shadow-black/15 sm:gap-3 sm:px-3.5 sm:py-2.5">
+            <div className="inline-flex items-center gap-2.5 self-start rounded-lg bg-white px-3 py-2 shadow-md shadow-black/15 sm:gap-3 sm:px-3.5 sm:py-2.5">
               <img
                 src={logo}
                 alt="Radiant Guard Services logo"
@@ -318,13 +318,13 @@ function LoginPage() {
               </div>
             </div>
             <div className="flex flex-1 items-center">
-              <div className="w-full max-w-xl py-6">
-                <h1 className="font-display text-[26px] font-semibold leading-[1.18] tracking-tight text-white sm:text-3xl lg:text-4xl xl:text-[42px]">
+              <div className="w-full max-w-2xl py-6">
+                <h1 className="font-display text-3xl font-semibold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-[56px]">
                   Security operations,
                   <br />
                   <span className="text-white/70">managed with precision.</span>
                 </h1>
-                <p className="mt-4 max-w-md text-[13px] leading-relaxed text-white/75 lg:text-[14px]">
+                <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/75 lg:text-base">
                   One portal for attendance, payroll, contracts and field teams
                   built for the people who keep every site running.
                 </p>
