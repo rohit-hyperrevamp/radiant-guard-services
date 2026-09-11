@@ -1,4 +1,4 @@
-package app.lovable.radiantguard;
+package app.com.radiantguard;
 
 import android.content.Context;
 import android.content.Intent;

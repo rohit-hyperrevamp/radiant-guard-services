@@ -9,7 +9,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * back to the Lovable-hosted native API where the APNs secrets live.
  */
 const config: CapacitorConfig = {
-  appId: "app.lovable.radiantguard",
+  appId: "app.com.radiantguard",
   appName: "Radiant Guard",
   webDir: "capacitor-web",
   server: {
