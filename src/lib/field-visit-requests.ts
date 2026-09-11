@@ -52,7 +52,7 @@ export async function createFieldVisitRequest(input: {
     );
     const foUserId = (uidData as unknown as string | null) ?? null;
     if (foUserId) {
-      const label = input.unitLabel ?? "a unit";
+      const label = input.unitLabel ?? "a client";
       const priorityLabel = input.priority === "emergency" ? "Emergency" : input.priority === "high" ? "High priority" : "New";
       await notifyUser(foUserId, {
         type: "field_visit:request",

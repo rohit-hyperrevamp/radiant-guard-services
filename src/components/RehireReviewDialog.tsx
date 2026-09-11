@@ -139,7 +139,7 @@ export function RehireReviewDialog({
                 <Field label="Mobile" value={request.mobile || "—"} />
                 <Field label="Previous employee ID" value={prevQ.data?.employee_code || prevQ.data?.candidate_code || "—"} />
                 <Field label="New employee ID" value={request.new_employee_code || "Pending HR"} />
-                <Field label="Rehire unit" value={targetQ.data?.unit || "—"} />
+                <Field label="Rehire client" value={targetQ.data?.unit || "—"} />
                 <Field
                   label="Rehire role"
                   value={(request.role_key || "").replace(/_/g, " ") || "—"}

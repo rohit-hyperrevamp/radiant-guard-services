@@ -438,7 +438,7 @@ export function AttendanceCharter({
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search by unit, client or contract…"
+            placeholder="Search by client or contract…"
             className="h-9 rounded-xl pl-9"
           />
         </div>

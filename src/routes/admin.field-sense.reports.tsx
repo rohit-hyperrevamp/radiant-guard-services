@@ -15,9 +15,9 @@ export const Route = createFileRoute("/admin/field-sense/reports")({
   head: () => ({
     meta: [
       { title: "Radar Reports — Radiant Guard" },
-      { name: "description", content: "Branded, downloadable visit reports for any organization or unit across any date range." },
+      { name: "description", content: "Branded, downloadable visit reports for any organization or client across any date range." },
       { property: "og:title", content: "Radar Reports" },
-      { property: "og:description", content: "Branded, downloadable visit reports for any organization or unit across any date range." },
+      { property: "og:description", content: "Branded, downloadable visit reports for any organization or client across any date range." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -183,7 +183,7 @@ function ReportsPage() {
         logoSrc: radiantLogo,
         customerName: customer?.name ?? "All organizations",
         unitNames: unitIds.length === 0
-          ? ["All units"]
+          ? ["All clients"]
           : activeUnitIds.map((id) => unitMap.get(id)?.name || unitMap.get(id)?.code || "Unit"),
         rangeLabel: range.label,
         rangeStart: range.start,
@@ -210,7 +210,7 @@ function ReportsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Reports"
-        description="Branded visit reports for any customer or unit. Filter by date range and download a client-ready PDF."
+        description="Branded visit reports for any customer or client. Filter by date range and download a client-ready PDF."
         crumbs={[
           { label: "Admin", to: "/admin/dashboard" },
           { label: "Radar", to: "/admin/field-sense" },
@@ -249,7 +249,7 @@ function ReportsPage() {
           </div>
           <div className="min-w-[260px] flex-[2]">
             <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-              <span>Units</span>
+              <span>Clients</span>
               {customerId && (unitQ.data?.length ?? 0) > 0 && (
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setUnitIds([])} className="normal-case text-[10px] font-semibold text-primary hover:underline">All units</button>
@@ -310,7 +310,7 @@ function ReportsPage() {
           <SummaryTile label="Total visits" value={String(summary.total)} />
           <SummaryTile label="Completed" value={String(summary.completed)} />
           <SummaryTile label="Avg rating" value={summary.avgRating != null ? `${summary.avgRating.toFixed(2)} / 5` : "—"} sub={summary.avgRating != null ? `${summary.ratedCount} rated` : undefined} />
-          <SummaryTile label="Officers · Units" value={`${summary.officers} · ${summary.unitsCovered}`} />
+          <SummaryTile label="Officers · Clients" value={`${summary.officers} · ${summary.unitsCovered}`} />
         </div>
       )}
 
@@ -333,7 +333,7 @@ function ReportsPage() {
               <thead>
                 <tr className="border-b border-border/50 bg-muted/40 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                   <th className="px-3 py-2 text-left">Date</th>
-                  <th className="px-3 py-2 text-left">Unit</th>
+                  <th className="px-3 py-2 text-left">Client</th>
                   <th className="px-3 py-2 text-left">Field officer</th>
                   <th className="px-3 py-2 text-left">Check-in</th>
                   <th className="px-3 py-2 text-left">Check-out</th>

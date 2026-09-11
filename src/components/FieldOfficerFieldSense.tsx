@@ -1137,7 +1137,7 @@ function CheckInDialog({
               No unit within {NEAREST_MAX_METERS}m of your location. Pick manually.
             </div>
           )}
-          <label className="block text-[11px] font-semibold text-muted-foreground">Unit</label>
+          <label className="block text-[11px] font-semibold text-muted-foreground">Client</label>
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
@@ -1689,7 +1689,7 @@ function RangeInsightsPanel({
       <div className="mt-3">
         <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
           {highlight === "unvisited"
-            ? `Units not visited in ${rangeInfo.label.toLowerCase()} (${unvisited.length})`
+            ? `Clients not visited in ${rangeInfo.label.toLowerCase()} (${unvisited.length})`
             : `Visits — ${rangeInfo.label} (${displayed.length})`}
         </div>
         {loading ? (

@@ -427,7 +427,7 @@ export function FinanceCharter({
         />
         <CharterTile
           label="Active employees"
-          sub="deployed across units"
+          sub="deployed across clients"
           countTo={activeEmployees ?? units.reduce((s, u) => s + u.active_employee_count, 0)}
           icon={Users}
           accent="sky"
@@ -495,7 +495,7 @@ export function FinanceCharter({
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search by unit, client or contract…"
+            placeholder="Search by client or contract…"
             className="h-9 rounded-xl pl-9"
           />
         </div>

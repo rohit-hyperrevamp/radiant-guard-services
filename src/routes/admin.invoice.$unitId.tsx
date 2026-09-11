@@ -1349,7 +1349,7 @@ function PayrollUnitPage() {
           </span>
           <span
             className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-            title={`Company state: ${COMPANY_STATE} · Unit state: ${unitState ?? "—"}`}
+            title={`Company state: ${COMPANY_STATE} · Client state: ${unitState ?? "—"}`}
           >
             {isIntraStateCurrent ? `Intra-state (${COMPANY_STATE}) · CGST + SGST` : `Inter-state · IGST`}
           </span>

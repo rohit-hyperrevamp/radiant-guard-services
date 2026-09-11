@@ -726,7 +726,7 @@ function StockLedgerPage() {
               <tr>
                 <th className="px-4 py-3">Item</th>
                 <th className="px-4 py-3">Size</th>
-                <th className="px-4 py-3">Unit</th>
+                <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3 text-right">Opening</th>
                 <th className="px-4 py-3 text-right">Stock In (period)</th>
                 <th className="px-4 py-3 text-right">Stock Out (period)</th>

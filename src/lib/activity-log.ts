@@ -8,7 +8,7 @@ const MODULE_LINKS: Record<string, string> = {
   "Contract Resources": "/admin/contracts/client-contracts",
   "Customer Manager": "/admin/customers/customer-manager",
   "Branch Manager": "/admin/customers/branch-manager",
-  "Unit Manager": "/admin/customers/unit-manager",
+  "Clients": "/admin/customers/unit-manager",
   "State Manager": "/admin/customers/state-manager",
   "Designation Manager": "/admin/designation-manager",
   "Department Manager": "/admin/department-manager",

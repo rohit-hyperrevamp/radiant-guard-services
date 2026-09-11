@@ -1670,7 +1670,7 @@ function MusterRollPage() {
       const resolvePairKey = (cid: string, did: string | null): string | null => {
         const direct = pairKey(cid, did);
         if (pairByKey.has(direct)) return direct;
-        // OCR returned a designation that isn't a resource on this unit's
+        // OCR returned a designation that isn't a resource on this client's
         // contract — block per "Block with a warning" rule.
         if (did) {
           // Try to label it for the warning.

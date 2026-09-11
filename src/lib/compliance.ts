@@ -156,7 +156,7 @@ export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssu
   for (const u of activeUnits) {
     const label = str(u.name) || str(u.code) || "Unit";
     if (!str(u.gst_number)) {
-      push({ id: `unit-gst-${u.id}`, domain: "organizations", check: "Unit GST missing", severity: "high", subject: label, detail: "No GST number on the unit — invoices for this site cannot be tax-compliant.", href: "/admin/customers/unit-manager" });
+      push({ id: `unit-gst-${u.id}`, domain: "organizations", check: "Client GST missing", severity: "high", subject: label, detail: "No GST number on the client — invoices for this site cannot be tax-compliant.", href: "/admin/customers/unit-manager" });
     }
     if (u.latitude == null || u.longitude == null) {
       push({ id: `unit-geo-${u.id}`, domain: "organizations", check: "Geo-fence not set", severity: "medium", subject: label, detail: "No latitude/longitude — guard self-attendance proximity checks cannot run at this site.", href: "/admin/customers/unit-manager" });
@@ -165,7 +165,7 @@ export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssu
       push({ id: `unit-emg-${u.id}`, domain: "organizations", check: "Emergency contact missing", severity: "low", subject: label, detail: "No site emergency contact number recorded.", href: "/admin/customers/unit-manager" });
     }
     if (!u.customer_id) {
-      push({ id: `unit-cust-${u.id}`, domain: "organizations", check: "Unit not linked to client", severity: "critical", subject: label, detail: "Unit has no parent organization — billing and reporting will exclude it.", href: "/admin/customers/unit-manager" });
+      push({ id: `unit-cust-${u.id}`, domain: "organizations", check: "Client not linked to client", severity: "critical", subject: label, detail: "Client has no parent organization — billing and reporting will exclude it.", href: "/admin/customers/unit-manager" });
     }
     const d = daysUntil(str(u.contract_end_date) || null);
     const sev = expirySeverity(d);

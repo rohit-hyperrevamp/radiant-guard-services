@@ -84,7 +84,7 @@ function PayrollUnitsPage() {
         eyebrow="Payroll month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Month-till-date payroll gross earned from actual attendance across all units."
+        description="Month-till-date payroll gross earned from actual attendance across all clients."
         right={
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
@@ -172,7 +172,7 @@ function PayrollUnitsPage() {
             <ListSkeleton rows={5} />
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load payroll units right now."}
+              {error instanceof Error ? error.message : "Could not load payroll clients right now."}
             </div>
           ) : (
             <FinanceCharter

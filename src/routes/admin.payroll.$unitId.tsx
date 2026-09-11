@@ -2145,7 +2145,7 @@ function PayrollUnitPage() {
                     {!r.wages && (
                       <span
                         className="ml-2 text-xs text-amber-600"
-                        title={`The contract for this unit has no resource line for the designation "${r.designation}". Add it on the contract, or change the employee's designation to a contracted one.`}
+                        title={`The contract for this client has no resource line for the designation "${r.designation}". Add it on the contract, or change the employee's designation to a contracted one.`}
                       >
                         not on contract
                       </span>
@@ -2953,7 +2953,7 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
               return r.pt.source === "resolved"
                 ? `Per ${r.pt.state ?? ""} slab`
                 : r.pt.source === "no_state"
-                ? "Unit state not set"
+                ? "Client state not set"
                 : "No matching slab";
             }
             return null;

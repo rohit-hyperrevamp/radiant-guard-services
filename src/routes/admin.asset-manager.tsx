@@ -220,7 +220,7 @@ function AssetManagerPage() {
                   { key: "name", header: "Name" },
                   { key: "category", header: "Category" },
                   { key: "description", header: "Description" },
-                  { key: "unit_price", header: "Unit Price (₹)" },
+                  { key: "unit_price", header: "Client Price (₹)" },
                   { key: "enabled", header: "Enabled" },
                 ],
               )
@@ -244,7 +244,7 @@ function AssetManagerPage() {
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Category</th>
                 <th className="px-5 py-3">Description</th>
-                <th className="px-5 py-3">Unit Price</th>
+                <th className="px-5 py-3">Client Price</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
               </tr>
@@ -427,7 +427,7 @@ function AssetFormDialog({
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional notes" rows={3} />
           </div>
           <div className="grid gap-2">
-            <Label>Unit Price (₹)</Label>
+            <Label>Client Price (₹)</Label>
             <Input
               type="number"
               min={0}

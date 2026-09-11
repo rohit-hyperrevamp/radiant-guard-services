@@ -149,7 +149,7 @@ function FieldOfficerDashboard() {
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
       const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
-      // "My units" = units actually ASSIGNED to me: candidates.unit_id (home) +
+      // "My clients" = units actually ASSIGNED to me: candidates.unit_id (home) +
       // candidate_units + unit-level scope assignments. Branch/customer scope rows
       // are visibility scopes (RLS), NOT assignments — expanding them here dumped
       // every unit of the branch into the FO's dashboard and inflated team size.
@@ -357,7 +357,7 @@ function FieldOfficerDashboard() {
       const orphPending = pendingByUnit.get(UNASSIGNED) ?? 0;
       if (orphaned.length || orphPending) {
         units.push({
-          id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a unit",
+          id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a client",
           is_primary: false, guards: orphaned, co_field_officers: [], pending_onboarding: orphPending,
           open_demands: demandsByUnit.get(UNASSIGNED) ?? 0, inventory_items: inventoryByUnit.get(UNASSIGNED) ?? 0,
         });
@@ -1072,7 +1072,7 @@ function ManageGuardUnitsDialog({
       ]);
       if (cancel) return;
       if (error) {
-        toast.error(error.message || "Failed to load unit mappings");
+        toast.error(error.message || "Failed to load client mappings");
       }
       const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null; designation_id: string | null }>;
       const ids = new Set<string>(rows.map((r) => r.unit_id));
@@ -1118,7 +1118,7 @@ function ManageGuardUnitsDialog({
   const removeFromAllUnits = async () => {
     if (!guard) return;
     const ok = window.confirm(
-      `Remove ${guard.full_name} from every unit? They will no longer appear on any roster or attendance sheet until they are mapped again.`,
+      `Remove ${guard.full_name} from every client? They will no longer appear on any roster or attendance sheet until they are mapped again.`,
     );
     if (!ok) return;
     setSaving(true);
@@ -1133,13 +1133,13 @@ function ManageGuardUnitsDialog({
         .update({ unit_id: null, designation_id: null, reports_to: null })
         .eq("id", guard.id);
       if (homeErr && !homeErr.message.toLowerCase().includes("row-level security")) throw homeErr;
-      toast.success(`${guard.full_name} removed from all units`);
+      toast.success(`${guard.full_name} removed from all clients`);
       await qc.invalidateQueries({ queryKey: ["field-officer-dashboard-v4"] });
       await qc.invalidateQueries({ queryKey: ["my-reportees"] });
       await qc.invalidateQueries({ queryKey: ["admin", "unmapped-guards"] });
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to remove the guard from their units";
+      const msg = e instanceof Error ? e.message : "Failed to remove the guard from their clients";
       toast.error(msg.includes("row-level security") ? "You don't have permission to remove this guard." : msg);
     } finally {
       setSaving(false);
@@ -1149,16 +1149,16 @@ function ManageGuardUnitsDialog({
   const save = async () => {
     if (!guard) return;
     if (selected.size === 0) {
-      toast.error('No unit ticked — use "Remove from all units" if this guard should be unmapped.');
+      toast.error('No client ticked — use "Remove from all clients" if this guard should be unmapped.');
       return;
     }
     if (!primaryId || !selected.has(primaryId)) {
-      toast.error("Pick a primary unit — that is where attendance and the work order are issued.");
+      toast.error("Pick a primary client — that is where attendance and the work order are issued.");
       return;
     }
     const missingDesig = [...selected].filter((u) => !desigByUnit[u]);
     if (missingDesig.length) {
-      toast.error("Pick the designation this guard fills at every ticked unit — attendance and salary follow that designation.");
+      toast.error("Pick the designation this guard fills at every ticked client — attendance and salary follow that designation.");
       return;
     }
     const toAdd = [...selected].filter((u) => !initial.has(u));
@@ -1186,7 +1186,7 @@ function ManageGuardUnitsDialog({
           .select("unit_id");
         if (error) throw error;
         if ((inserted ?? []).length !== rows.length) {
-          throw new Error("You don't have permission to map this guard to one of those units.");
+          throw new Error("You don't have permission to map this guard to one of those clients.");
 
         }
       }
@@ -1213,7 +1213,7 @@ function ManageGuardUnitsDialog({
           .select("unit_id");
         if (setErr) throw setErr;
         if ((promoted ?? []).length === 0) {
-          throw new Error("Could not set the primary unit — you may not have permission.");
+          throw new Error("Could not set the primary client — you may not have permission.");
         }
         const { error: clearErr } = await supabase
           .from("candidate_units")

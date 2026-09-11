@@ -513,7 +513,7 @@ function friendlyDbError(
       if (/state/i.test(msg)) return "State already mapped to a branch";
       return "Branch code already exists";
     }
-    if (kind === "unit") return "Unit code already exists";
+    if (kind === "unit") return "Client code already exists";
     if (/name/i.test(msg)) return "Organisation name already exists";
     return "Organisation ID already exists";
   }
@@ -767,8 +767,8 @@ function rowToUnit(r: UnitRow): Unit {
 
 function unitToRow(data: Omit<Unit, "id">) {
   const code = data.code.trim();
-  if (!code) throw new Error("Unit code is required");
-  if (!data.name.trim()) throw new Error("Unit name is required");
+  if (!code) throw new Error("Client code is required");
+  if (!data.name.trim()) throw new Error("Client name is required");
   return {
     code,
     name: data.name.trim(),
@@ -876,7 +876,7 @@ export function useUnits() {
         .select("id")
         .single();
       if (error) throw error;
-      void logActivity({ module: "Unit Manager", action: "create", entityType: "units", entityLabel: (data as unknown as { name?: string; code?: string }).name || (data as unknown as { code?: string }).code || "", details: data as unknown as Record<string, unknown> });
+      void logActivity({ module: "Clients", action: "create", entityType: "units", entityLabel: (data as unknown as { name?: string; code?: string }).name || (data as unknown as { code?: string }).code || "", details: data as unknown as Record<string, unknown> });
       return (inserted as { id: string }).id;
     },
     onSuccess: invalidate,
@@ -891,8 +891,8 @@ export function useUnits() {
         .select("id")
         .maybeSingle();
       if (error) throw error;
-      if (!updated) throw new Error("The unit was not updated. Please check your access and try again.");
-      void logActivity({ module: "Unit Manager", action: "update", entityType: "units", entityId: id, entityLabel: (data as unknown as { name?: string; code?: string }).name || (data as unknown as { code?: string }).code || "", details: data as unknown as Record<string, unknown> });
+      if (!updated) throw new Error("The client was not updated. Please check your access and try again.");
+      void logActivity({ module: "Clients", action: "update", entityType: "units", entityId: id, entityLabel: (data as unknown as { name?: string; code?: string }).name || (data as unknown as { code?: string }).code || "", details: data as unknown as Record<string, unknown> });
     },
     onSuccess: invalidate,
   });
@@ -901,7 +901,7 @@ export function useUnits() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("units").delete().eq("id", id);
       if (error) throw error;
-      void logActivity({ module: "Unit Manager", action: "delete", entityType: "units", entityId: id });
+      void logActivity({ module: "Clients", action: "delete", entityType: "units", entityId: id });
     },
     onSuccess: invalidate,
   });
@@ -928,7 +928,7 @@ export function useUnits() {
     try {
       await deleteMut.mutateAsync(id);
     } catch (e) {
-      throw new Error(errMsg(e, "Could not delete unit"));
+      throw new Error(errMsg(e, "Could not delete client"));
     }
   };
 

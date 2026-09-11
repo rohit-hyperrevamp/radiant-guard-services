@@ -253,8 +253,8 @@ function CustomerManagerPage() {
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
                         onClick={() => setViewingUnits(c)}
-                        aria-label="View units"
-                        title="View mapped units"
+                        aria-label="View clients"
+                        title="View mapped clients"
                       >
                         <Network className="h-4 w-4" />
                       </Button>
@@ -462,7 +462,7 @@ function CustomerUnitsDialog({
             <table className="ios-table w-full text-sm">
               <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2.5">Unit</th>
+                  <th className="px-4 py-2.5">Client</th>
                   <th className="px-4 py-2.5">Branch</th>
                   <th className="px-4 py-2.5">Location</th>
                   <th className="px-4 py-2.5">Active</th>

@@ -192,7 +192,7 @@ function RateCardsPage() {
               <th className="p-3 text-left font-medium">Vendor</th>
               <th className="p-3 text-left font-medium">Item</th>
               <th className="p-3 text-left font-medium">Size</th>
-              <th className="p-3 text-right font-medium">Unit Price</th>
+              <th className="p-3 text-right font-medium">Client Price</th>
               <th className="p-3 text-right font-medium">Tax %</th>
               <th className="p-3 text-right font-medium">MOQ</th>
               <th className="p-3 text-right font-medium">Lead (days)</th>
@@ -358,7 +358,7 @@ function RateCardDialog({
                 <thead className="bg-secondary/10 text-[10px] uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="px-2 py-2 text-left font-medium">Size</th>
-                    <th className="px-2 py-2 text-right font-medium">Unit Price (₹)</th>
+                    <th className="px-2 py-2 text-right font-medium">Client Price (₹)</th>
                     <th className="px-2 py-2 text-right font-medium">Tax %</th>
                     <th className="px-2 py-2 text-right font-medium">MOQ</th>
                     <th className="px-2 py-2 text-right font-medium">Lead (d)</th>
@@ -433,7 +433,7 @@ function CompareView({ rows, vendorMap, itemMap }: { rows: RateCard[]; vendorMap
               <thead className="bg-secondary/10 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">Vendor</th>
-                  <th className="px-4 py-2 text-right font-medium">Unit Price</th>
+                  <th className="px-4 py-2 text-right font-medium">Client Price</th>
                   <th className="px-4 py-2 text-right font-medium">Tax %</th>
                   <th className="px-4 py-2 text-right font-medium">MOQ</th>
                   <th className="px-4 py-2 text-right font-medium">Lead (days)</th>

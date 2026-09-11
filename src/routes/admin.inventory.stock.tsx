@@ -417,7 +417,7 @@ function StockPage() {
                 <th className="px-5 py-3">Item</th>
                 <th className="px-5 py-3">Size</th>
                 <th className="px-5 py-3 text-right">Qty</th>
-                <th className="px-5 py-3">Unit</th>
+                <th className="px-5 py-3">Client</th>
                 <th className="px-5 py-3 text-right">Reorder</th>
               </tr>
             </thead>

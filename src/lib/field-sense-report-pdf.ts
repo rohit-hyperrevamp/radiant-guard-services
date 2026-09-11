@@ -110,7 +110,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   doc.setFontSize(8.5);
   doc.setTextColor(220, 220, 220);
   const unitCountLabel =
-    input.unitNames.length === 1 ? "1 unit in scope" : `${input.unitNames.length} units in scope`;
+    input.unitNames.length === 1 ? "1 client in scope" : `${input.unitNames.length} clients in scope`;
   doc.text(unitCountLabel, rightX, 47, { align: "right" });
   doc.setFontSize(8);
   doc.setTextColor(255, 210, 120);
@@ -143,7 +143,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
     { label: "In progress", value: String(input.summary.inProgress) },
     { label: "Avg rating", value: input.summary.avgRating != null ? `${input.summary.avgRating.toFixed(2)} / 5` : "—" },
     { label: "Officers", value: String(input.summary.officers) },
-    { label: "Units covered", value: String(input.summary.unitsCovered) },
+    { label: "Clients covered", value: String(input.summary.unitsCovered) },
   ];
   const gap = 10;
   const tileW = (pageW - margin * 2 - gap * (tiles.length - 1)) / tiles.length;

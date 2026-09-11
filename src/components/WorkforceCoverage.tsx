@@ -492,7 +492,7 @@ function DeploymentCharterDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by unit, organisation or contract ID…"
+              placeholder="Search by client, organisation or contract ID…"
               className="h-9 rounded-lg pl-9"
             />
           </div>

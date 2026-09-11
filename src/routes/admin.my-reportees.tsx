@@ -158,7 +158,7 @@ function MyReporteesPage() {
         eyebrow="Field operations"
         title="My reportees"
         crumbs={[{ label: "Field dashboard", to: "/admin/field-dashboard" }, { label: "My reportees" }]}
-        description="Every security guard mapped to you across all your units."
+        description="Every security guard mapped to you across all your clients."
       />
 
       <div className="grid grid-cols-3 gap-2.5">
