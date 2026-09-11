@@ -58,111 +58,111 @@
 }
 
 :root {
-  --radius: 1.25rem;
-  /* surfaces — soft tinted greys so nothing is stark white */
-  --background: oklch(0.965 0.008 250);
-  --foreground: oklch(0.11 0.02 260);
-  --card: oklch(0.99 0.004 250);
-  --card-foreground: oklch(0.11 0.02 260);
-  --popover: oklch(0.995 0.003 250);
-  --popover-foreground: oklch(0.11 0.02 260);
-  /* deep navy/black ink primary (#0B1220) */
-  --primary: oklch(0.16 0.03 260);
+  --radius: 1.5rem;
+  /* surfaces — soft neutral canvas, pure white cards (reference design language) */
+  --background: oklch(0.958 0.004 170);
+  --foreground: oklch(0.19 0.015 168);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.015 168);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.015 168);
+  /* deep ink primary — the dark pill used for active nav / primary buttons */
+  --primary: oklch(0.22 0.022 168);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.92 0.008 250);
-  --secondary-foreground: oklch(0.13 0.02 260);
-  --muted: oklch(0.925 0.008 250);
-  --muted-foreground: oklch(0.36 0.02 260);
-  /* electric blue accent (#2563EB) — from logo */
-  --accent: oklch(0.52 0.22 262);
+  --secondary: oklch(0.945 0.006 170);
+  --secondary-foreground: oklch(0.22 0.02 168);
+  --muted: oklch(0.948 0.005 170);
+  --muted-foreground: oklch(0.52 0.012 170);
+  /* muted teal accent — from the reference pastel family */
+  --accent: oklch(0.60 0.075 192);
   --accent-foreground: oklch(0.99 0 0);
-  --accent-secondary: oklch(0.16 0.03 260);
-  --destructive: oklch(0.58 0.22 27);
+  --accent-secondary: oklch(0.22 0.022 168);
+  --destructive: oklch(0.62 0.16 20);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.86 0.008 260);
-  --input: oklch(0.86 0.008 260);
+  --border: oklch(0.905 0.005 170);
+  --input: oklch(0.905 0.005 170);
 
-  --ring: oklch(0.55 0.22 262);
-  --chart-1: oklch(0.55 0.22 262);
-  --chart-2: oklch(0.18 0.03 260);
-  --chart-3: oklch(0.7 0.15 262);
-  --chart-4: oklch(0.35 0.18 262);
-  --chart-5: oklch(0.82 0.08 262);
+  --ring: oklch(0.60 0.075 192);
+  --chart-1: oklch(0.78 0.11 165);
+  --chart-2: oklch(0.86 0.12 120);
+  --chart-3: oklch(0.82 0.08 15);
+  --chart-4: oklch(0.22 0.022 168);
+  --chart-5: oklch(0.72 0.05 240);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.13 0.02 260);
-  --sidebar-primary: oklch(0.18 0.03 260);
+  --sidebar-foreground: oklch(0.22 0.02 168);
+  --sidebar-primary: oklch(0.20 0.022 168);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.965 0.005 250);
-  --sidebar-accent-foreground: oklch(0.13 0.02 260);
-  --sidebar-border: oklch(0.92 0.006 260);
-  --sidebar-ring: oklch(0.55 0.22 262);
+  --sidebar-accent: oklch(0.955 0.005 170);
+  --sidebar-accent-foreground: oklch(0.22 0.02 168);
+  --sidebar-border: oklch(0.925 0.005 170);
+  --sidebar-ring: oklch(0.60 0.075 192);
 
   /* Theme-aware surfaces used by .glass, .tile, admin shell, etc. */
   --surface: 255 255 255;                 /* rgb triplet for translucent backgrounds */
   --surface-strong: 255 255 255;
-  --surface-hairline: 255 255 255;        /* highlight edge */
-  --surface-shadow: 15 23 42;             /* rgb for shadow ink */
-  --surface-glass-alpha: 0.62;
-  --surface-glass-strong-alpha: 0.78;
-  --surface-border-alpha: 0.55;
+  --surface-hairline: 226 231 229;        /* hairline edge */
+  --surface-shadow: 17 34 30;             /* rgb for shadow ink */
+  --surface-glass-alpha: 0.96;
+  --surface-glass-strong-alpha: 1;
+  --surface-border-alpha: 0.9;
 
-  /* Soft tint palette — used as gentle background washes on cards/tiles.
-     Kept low-saturation so surfaces feel warm and layered, never candy. */
-  --tint-blue:    237 244 255;
-  --tint-indigo:  240 240 255;
-  --tint-emerald: 236 250 244;
-  --tint-amber:   253 247 232;
-  --tint-rose:    253 240 244;
-  --tint-violet:  244 240 255;
-  --tint-sky:     235 246 255;
-  --tint-slate:   242 245 250;
+  /* Pastel tint palette taken from the reference dashboard cards:
+     soft lime, mint/teal, blush pink plus quiet neutrals. */
+  --tint-blue:    226 240 246;
+  --tint-indigo:  232 238 250;
+  --tint-emerald: 205 234 226;   /* mint */
+  --tint-amber:   238 244 205;   /* lime */
+  --tint-rose:    250 214 219;   /* blush */
+  --tint-violet:  238 234 250;
+  --tint-sky:     224 240 245;
+  --tint-slate:   240 242 241;
 }
 
 
 
 .dark {
-  --background: oklch(0.205 0.012 260);
+  --background: oklch(0.19 0.012 168);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0.255 0.014 260);
+  --card: oklch(0.235 0.014 168);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.255 0.014 260);
+  --popover: oklch(0.235 0.014 168);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.74 0.16 262);
-  --primary-foreground: oklch(0.14 0.02 260);
-  --secondary: oklch(0.3 0.014 260);
+  --primary: oklch(0.86 0.06 178);
+  --primary-foreground: oklch(0.18 0.02 168);
+  --secondary: oklch(0.29 0.014 168);
   --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.3 0.014 260);
-  --muted-foreground: oklch(0.82 0.01 260);
-  --accent: oklch(0.74 0.18 262);
-  --accent-foreground: oklch(0.14 0.02 260);
-  --accent-secondary: oklch(0.58 0.18 262);
-  --destructive: oklch(0.7 0.22 27);
+  --muted: oklch(0.29 0.014 168);
+  --muted-foreground: oklch(0.8 0.01 168);
+  --accent: oklch(0.8 0.09 190);
+  --accent-foreground: oklch(0.16 0.02 168);
+  --accent-secondary: oklch(0.66 0.08 190);
+  --destructive: oklch(0.7 0.18 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(1 0 0 / 20%);
-  --input: oklch(1 0 0 / 24%);
-  --ring: oklch(0.74 0.18 262);
-  --chart-1: oklch(0.74 0.18 262);
-  --chart-2: oklch(0.84 0.16 96);
-  --chart-3: oklch(0.9 0.06 200);
-  --chart-4: oklch(0.62 0.18 262);
-  --chart-5: oklch(0.86 0.08 262);
-  --sidebar: oklch(0.235 0.014 260);
+  --border: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 20%);
+  --ring: oklch(0.8 0.09 190);
+  --chart-1: oklch(0.82 0.1 168);
+  --chart-2: oklch(0.86 0.13 120);
+  --chart-3: oklch(0.82 0.09 15);
+  --chart-4: oklch(0.7 0.06 190);
+  --chart-5: oklch(0.75 0.05 240);
+  --sidebar: oklch(0.22 0.014 168);
   --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.74 0.18 262);
-  --sidebar-primary-foreground: oklch(0.14 0.02 260);
-  --sidebar-accent: oklch(0.32 0.014 260);
+  --sidebar-primary: oklch(0.86 0.06 178);
+  --sidebar-primary-foreground: oklch(0.18 0.02 168);
+  --sidebar-accent: oklch(0.3 0.014 168);
   --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(1 0 0 / 18%);
-  --sidebar-ring: oklch(0.74 0.18 262);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: oklch(0.8 0.09 190);
 
-  /* Dark theme surfaces — cool ink, lifted for readability */
-  --surface: 44 50 66;
-  --surface-strong: 56 64 84;
+  /* Dark theme surfaces — deep ink, lifted for readability */
+  --surface: 40 50 48;
+  --surface-strong: 52 63 60;
   --surface-hairline: 255 255 255;
   --surface-shadow: 0 0 0;
-  --surface-glass-alpha: 0.72;
-  --surface-glass-strong-alpha: 0.88;
-  --surface-border-alpha: 0.22;
+  --surface-glass-alpha: 0.9;
+  --surface-glass-strong-alpha: 1;
+  --surface-border-alpha: 0.18;
 }
 
 
@@ -247,21 +247,17 @@
   /* ============ Glassmorphism system (theme-aware) ============ */
   .glass {
     background: rgb(var(--surface) / var(--surface-glass-alpha));
-    backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(120%);
     border: 1px solid rgb(var(--surface-hairline) / var(--surface-border-alpha));
-    box-shadow:
-      0 1px 0 0 rgb(var(--surface-hairline) / 0.22) inset,
-      0 1px 2px rgb(var(--surface-shadow) / 0.06),
-      0 12px 32px -16px rgb(var(--surface-shadow) / 0.28);
+    border-radius: 24px;
+    box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.04), 0 10px 28px -22px rgb(var(--surface-shadow) / 0.18);
   }
   .glass-strong {
     background: rgb(var(--surface-strong) / var(--surface-glass-strong-alpha));
-    backdrop-filter: blur(28px) saturate(180%);
-    border: 1px solid rgb(var(--surface-hairline) / calc(var(--surface-border-alpha) + 0.08));
-    box-shadow:
-      0 1px 0 0 rgb(var(--surface-hairline) / 0.28) inset,
-      0 2px 4px rgb(var(--surface-shadow) / 0.07),
-      0 24px 48px -20px rgb(var(--surface-shadow) / 0.32);
+    backdrop-filter: blur(16px) saturate(130%);
+    border: 1px solid rgb(var(--surface-hairline) / var(--surface-border-alpha));
+    border-radius: 24px;
+    box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.05), 0 16px 36px -26px rgb(var(--surface-shadow) / 0.22);
   }
   .glass-dark {
     background: color-mix(in oklab, oklch(0.18 0.03 260) 70%, transparent);
@@ -310,35 +306,34 @@
     height: 100%;
     min-height: var(--tile-min-h, 120px);
     padding: var(--tile-pad, 1rem);
-    border-radius: 18px;
+    border-radius: 24px;
     background: rgb(var(--surface) / var(--surface-glass-alpha));
     border: 1px solid rgb(var(--surface-hairline) / var(--surface-border-alpha));
-    backdrop-filter: blur(22px) saturate(160%);
-    box-shadow:
-      0 1px 0 0 rgb(var(--surface-hairline) / 0.24) inset,
-      0 1px 2px rgb(var(--surface-shadow) / 0.06),
-      0 14px 36px -20px rgb(var(--surface-shadow) / 0.32);
+    box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.04), 0 12px 30px -24px rgb(var(--surface-shadow) / 0.2);
     transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
     color: var(--foreground);
   }
 
   .tile-interactive:hover {
     transform: translateY(-2px);
-    border-color: color-mix(in oklab, var(--accent) 40%, transparent);
-    box-shadow:
-      0 1px 0 0 rgb(var(--surface-hairline) / 0.28) inset,
-      0 22px 48px -22px color-mix(in oklab, var(--accent) 45%, transparent);
+    border-color: color-mix(in oklab, var(--foreground) 16%, transparent);
+    box-shadow: 0 18px 38px -26px rgb(var(--surface-shadow) / 0.32);
   }
+  /* Reference icon style: soft circular chip, quiet neutral fill, ink glyph. */
   .tile-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 2.25rem;
     width: 2.25rem;
-    border-radius: 0.75rem;
-    background: color-mix(in oklab, var(--accent) 18%, var(--card));
-    color: var(--accent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 24%, transparent);
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--foreground) 6%, var(--card));
+    color: var(--foreground);
+    box-shadow: none;
+  }
+  .dark .tile-icon {
+    background: color-mix(in oklab, white 10%, transparent);
+    color: white;
   }
 
 
@@ -462,20 +457,13 @@
     .candidate-wizard-page [data-slot="select-item"] { font-size: 15px !important; }
   }
 
-  /* Softly tinted canvas — subtle warm+cool wash so pages breathe instead of
-     looking like flat white paper. Kept low-opacity for professionalism. */
+  /* Flat neutral canvas — the reference uses one quiet grey field behind
+     pure-white rounded cards, with no coloured washes. */
   .app-canvas {
-    background:
-      radial-gradient(ellipse 55% 40% at 6% -6%, color-mix(in oklab, var(--accent) 12%, transparent) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 38% at 100% 8%, color-mix(in oklab, oklch(0.7 0.14 30) 10%, transparent) 0%, transparent 58%),
-      radial-gradient(ellipse 60% 40% at 50% 105%, color-mix(in oklab, oklch(0.7 0.14 160) 7%, transparent) 0%, transparent 60%),
-      var(--background);
+    background: var(--background);
   }
   .dark .app-canvas {
-    background:
-      radial-gradient(ellipse 55% 40% at 6% -6%, color-mix(in oklab, var(--accent) 20%, transparent) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 38% at 100% 8%, color-mix(in oklab, oklch(0.55 0.18 30) 14%, transparent) 0%, transparent 58%),
-      var(--background);
+    background: var(--background);
   }
 
 
@@ -483,16 +471,11 @@
   /* Grid removed — kept as no-op so existing usages stay safe */
   .app-canvas-grid { background-image: none; }
 
-  /* Every base card gets a clean, consistent modern surface: crisp white in
-     light mode, subtle hairline border via component classes, and a soft
-     layered shadow so cards read as elevated without gradients. */
+  /* Every base card: pure white, generously rounded, whisper-soft shadow. */
   .bg-card {
     background-image: none;
-    border-radius: 20px;
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, var(--foreground) 3%, transparent) inset,
-      0 1px 2px rgb(var(--surface-shadow) / 0.035),
-      0 14px 34px -22px rgb(var(--surface-shadow) / 0.16);
+    border-radius: 24px;
+    box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.035), 0 12px 30px -24px rgb(var(--surface-shadow) / 0.18);
   }
   .dark .bg-card {
     background-image: none;
@@ -502,16 +485,20 @@
       0 18px 40px -22px rgb(0 0 0 / 0.55);
   }
 
-  /* Soft tinted tile variants — pair with .tile. Adds a coloured wash + a
-     tinted accent bar/icon without shouting. */
-  .tile-tint-blue    { background: linear-gradient(180deg, rgb(var(--tint-blue))    0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-indigo  { background: linear-gradient(180deg, rgb(var(--tint-indigo))  0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-emerald { background: linear-gradient(180deg, rgb(var(--tint-emerald)) 0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-amber   { background: linear-gradient(180deg, rgb(var(--tint-amber))   0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-rose    { background: linear-gradient(180deg, rgb(var(--tint-rose))    0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-violet  { background: linear-gradient(180deg, rgb(var(--tint-violet))  0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-sky     { background: linear-gradient(180deg, rgb(var(--tint-sky))     0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-slate   { background: linear-gradient(180deg, rgb(var(--tint-slate))   0%, rgb(var(--surface) / 0.9) 100%); }
+  /* Flat pastel tile variants — solid soft fills, no gradient, matching the
+     lime / mint / blush cards of the reference dashboard. */
+  .tile-tint-blue    { background: rgb(var(--tint-blue));    border-color: color-mix(in oklab, rgb(var(--tint-blue)) 70%, black 6%); }
+  .tile-tint-indigo  { background: rgb(var(--tint-indigo));  border-color: color-mix(in oklab, rgb(var(--tint-indigo)) 70%, black 6%); }
+  .tile-tint-emerald { background: rgb(var(--tint-emerald)); border-color: color-mix(in oklab, rgb(var(--tint-emerald)) 70%, black 6%); }
+  .tile-tint-amber   { background: rgb(var(--tint-amber));   border-color: color-mix(in oklab, rgb(var(--tint-amber)) 70%, black 6%); }
+  .tile-tint-rose    { background: rgb(var(--tint-rose));    border-color: color-mix(in oklab, rgb(var(--tint-rose)) 70%, black 6%); }
+  .tile-tint-violet  { background: rgb(var(--tint-violet));  border-color: color-mix(in oklab, rgb(var(--tint-violet)) 70%, black 6%); }
+  .tile-tint-sky     { background: rgb(var(--tint-sky));     border-color: color-mix(in oklab, rgb(var(--tint-sky)) 70%, black 6%); }
+  .tile-tint-slate   { background: rgb(var(--tint-slate));   border-color: color-mix(in oklab, rgb(var(--tint-slate)) 70%, black 6%); }
+  :where(.tile-tint-blue, .tile-tint-indigo, .tile-tint-emerald, .tile-tint-amber,
+         .tile-tint-rose, .tile-tint-violet, .tile-tint-sky, .tile-tint-slate) .tile-icon {
+    background: rgb(255 255 255 / 0.7);
+  }
   .dark .tile-tint-blue,
   .dark .tile-tint-indigo,
   .dark .tile-tint-emerald,
@@ -1273,7 +1260,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   .mt-6 { margin-top: 1rem !important; }
 
   /* Cards default to a lighter radius on phones — feels native, less "web". */
-  .bg-card { border-radius: 16px !important; }
+  .bg-card { border-radius: 20px !important; }
   [class*="rounded-[2"], [class*="rounded-3xl"], [class*="rounded-4xl"] {
     border-radius: 18px !important;
   }
