@@ -78,6 +78,17 @@ function LoginPage() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+  const [splashGone, setSplashGone] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setSplashDone(true), 1900);
+    const t2 = setTimeout(() => setSplashGone(true), 2500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
 
   useEffect(() => {
     if (user && !revealing) navigate({ to: "/", replace: true });
