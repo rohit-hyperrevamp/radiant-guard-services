@@ -303,12 +303,21 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="max-w-xl py-10 lg:py-0">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-lg ring-1 ring-white/50">
-                  <img src={logo} alt="Radiant Guard Services logo" className="h-7 w-7 object-contain" />
+              <div className="mb-9 flex items-center gap-4">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white shadow-xl ring-1 ring-white/50 sm:h-[72px] sm:w-[72px]">
+                  <img
+                    src={logo}
+                    alt="Radiant Guard Services logo"
+                    className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+                  />
                 </div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/80">
-                  Radiant Guard Services
+                <div>
+                  <div className="font-display text-2xl font-semibold leading-none tracking-tight text-white sm:text-[26px]">
+                    Radiant Guard
+                  </div>
+                  <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.2em] text-white/65">
+                    Services Private Limited
+                  </div>
                 </div>
               </div>
               <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -329,14 +338,23 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-panel-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="mx-auto w-full max-w-[380px]">
-              <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
-                {step === "phone" ? "Sign in" : "Verify your number"}
-              </h2>
-              <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                {step === "phone"
-                  ? "Enter your mobile number to receive a one-time code."
-                  : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
-              </p>
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-muted ring-1 ring-border">
+                  <img
+                    src={logo}
+                    alt="Radiant Guard Services"
+                    className="h-8 w-8 object-contain"
+                  />
+                </div>
+                <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
+                  {step === "phone" ? "Sign in" : "Verify your number"}
+                </h2>
+                <p className="mt-2 max-w-[300px] text-[14px] leading-relaxed text-muted-foreground">
+                  {step === "phone"
+                    ? "Enter your mobile number to receive a one-time code."
+                    : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
+                </p>
+              </div>
 
               <div className="mt-8">
                 {step === "phone" ? (
