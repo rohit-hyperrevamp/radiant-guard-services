@@ -107,10 +107,7 @@ type GroupItem = {
 };
 
 
-const controlCenterChildren: LeafItem[] = [
-  { to: "/admin/customers/state-manager", label: "State Manager", icon: MapPin, sub: "state_manager" },
-  { to: "/admin/customers/branch-manager", label: "Branch Manager", icon: Building2, sub: "branch_manager" },
-];
+const controlCenterChildren: LeafItem[] = [];
 
 
 const vehiclesChildren: LeafItem[] = [
