@@ -1,13 +1,4 @@
-- [x] Reproduce empty Unit/sidebar pages
-- [x] Fix the underlying route or data-loading issue
-- [x] Verify affected navigation in a signed-in browser
-- [x] Record the production cloud database as the only source of truth
-- [ ] Reconcile CON14897 August attendance row-by-row, correct L/weekly-off handling, and verify totals
-- [x] Fix and re-audit CON15246 against the original Pune contract sheet
-- [x] Remove the em dash from the login tagline
-- [x] Standardize company name as "Radiant Guard Services Pvt. Ltd." everywhere (code + company settings)
-- [x] Move notification bell from the top bar into the left panel, below the profile entry
-- [x] Move the light/dark mode control into the profile menu only
-- [x] Optimize login left-panel spacing for full screen and reduce brand card rounding
-- [x] Sidebar: revert left panel to black (not brand blue); fix double ring on hover/click of nav icons → single clean circle
-- [x] Brand color: navy → bright blue #1877f2 globally; login layout tightened + blue glow
+# Roadmap
+
+- [x] Liven dashboard/interior colors: richer tiles, solid icon chips, brand blue accents; keep sidebar black
+- [x] Login screen: bigger logo in top-left white card, less rounded corners (6px)

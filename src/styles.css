@@ -76,8 +76,8 @@
   --secondary-foreground: oklch(0.22 0.02 168);
   --muted: oklch(0.948 0.005 170);
   --muted-foreground: oklch(0.52 0.012 170);
-  /* muted teal accent — from the reference pastel family */
-  --accent: oklch(0.60 0.075 192);
+  /* vivid blue accent — echoes the Radiant brand blue inside the app */
+  --accent: oklch(0.585 0.197 259);
   --accent-foreground: oklch(0.99 0 0);
   --accent-secondary: oklch(0.22 0.022 168);
   --destructive: oklch(0.62 0.16 20);
@@ -85,12 +85,12 @@
   --border: oklch(0.905 0.005 170);
   --input: oklch(0.905 0.005 170);
 
-  --ring: oklch(0.60 0.075 192);
-  --chart-1: oklch(0.78 0.11 165);
-  --chart-2: oklch(0.86 0.12 120);
-  --chart-3: oklch(0.82 0.08 15);
-  --chart-4: oklch(0.22 0.022 168);
-  --chart-5: oklch(0.72 0.05 240);
+  --ring: oklch(0.585 0.197 259);
+  --chart-1: oklch(0.585 0.197 259);
+  --chart-2: oklch(0.72 0.15 160);
+  --chart-3: oklch(0.75 0.15 85);
+  --chart-4: oklch(0.62 0.19 300);
+  --chart-5: oklch(0.65 0.2 25);
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.22 0.02 168);
   --sidebar-primary: oklch(0.20 0.022 168);

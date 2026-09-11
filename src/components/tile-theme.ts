@@ -1,7 +1,10 @@
 /**
  * Shared tile design language — mirrors the dashboard metric tiles so every
  * KPI/stat tile across the platform reads the same way:
- * pastel accent surface, quiet label, oversized numeral, accent icon chip.
+ * vivid accent surface, quiet label, oversized numeral, solid accent icon chip.
+ *
+ * Palette pairs the Radiant brand blue with saturated corporate accents so the
+ * interior feels alive instead of washed out.
  */
 export type Accent =
   | "rose"
@@ -24,33 +27,36 @@ export const ACCENTS: Accent[] = [
   "indigo",
 ];
 
+/** Tile surfaces — noticeably richer than plain pastels, still corporate. */
 export const ACCENT_TILE_BG: Record<Accent, string> = {
-  rose: "bg-rose-100/80 dark:bg-rose-500/15",
-  cyan: "bg-cyan-100/80 dark:bg-cyan-500/15",
-  lime: "bg-lime-100/80 dark:bg-lime-500/15",
-  violet: "bg-violet-100/80 dark:bg-violet-500/15",
-  amber: "bg-amber-100/80 dark:bg-amber-500/15",
-  emerald: "bg-emerald-100/80 dark:bg-emerald-500/15",
-  sky: "bg-sky-100/80 dark:bg-sky-500/15",
-  indigo: "bg-indigo-100/80 dark:bg-indigo-500/15",
+  rose: "bg-rose-200/60 dark:bg-rose-500/20",
+  cyan: "bg-cyan-200/60 dark:bg-cyan-500/20",
+  lime: "bg-lime-200/70 dark:bg-lime-500/20",
+  violet: "bg-violet-200/60 dark:bg-violet-500/20",
+  amber: "bg-amber-200/70 dark:bg-amber-500/20",
+  emerald: "bg-emerald-200/60 dark:bg-emerald-500/20",
+  /* Brand blue — the Radiant identity colour, used for headline tiles. */
+  sky: "bg-brand/12 dark:bg-brand/25",
+  indigo: "bg-indigo-200/60 dark:bg-indigo-500/20",
 };
 
+/** Icon chips — solid accent discs with white glyphs for real contrast. */
 export const ACCENT_CHIP: Record<Accent, string> = {
-  rose: "bg-rose-50 text-rose-700 ring-rose-200/70 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/20",
-  cyan: "bg-cyan-50 text-cyan-700 ring-cyan-200/70 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-400/20",
-  lime: "bg-lime-50 text-lime-700 ring-lime-200/70 dark:bg-lime-500/10 dark:text-lime-300 dark:ring-lime-400/20",
+  rose: "bg-rose-500 text-white ring-rose-600/30 dark:bg-rose-400 dark:text-rose-950 dark:ring-rose-300/30",
+  cyan: "bg-cyan-600 text-white ring-cyan-700/30 dark:bg-cyan-400 dark:text-cyan-950 dark:ring-cyan-300/30",
+  lime: "bg-lime-600 text-white ring-lime-700/30 dark:bg-lime-400 dark:text-lime-950 dark:ring-lime-300/30",
   violet:
-    "bg-violet-50 text-violet-700 ring-violet-200/70 dark:bg-violet-500/10 dark:text-violet-300 dark:ring-violet-400/20",
+    "bg-violet-500 text-white ring-violet-600/30 dark:bg-violet-400 dark:text-violet-950 dark:ring-violet-300/30",
   amber:
-    "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20",
+    "bg-amber-500 text-white ring-amber-600/30 dark:bg-amber-400 dark:text-amber-950 dark:ring-amber-300/30",
   emerald:
-    "bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
-  sky: "bg-sky-50 text-sky-700 ring-sky-200/70 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20",
+    "bg-emerald-600 text-white ring-emerald-700/30 dark:bg-emerald-400 dark:text-emerald-950 dark:ring-emerald-300/30",
+  sky: "bg-brand text-white ring-brand/30 dark:bg-brand dark:text-white dark:ring-brand/40",
   indigo:
-    "bg-indigo-50 text-indigo-700 ring-indigo-200/70 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/20",
+    "bg-indigo-500 text-white ring-indigo-600/30 dark:bg-indigo-400 dark:text-indigo-950 dark:ring-indigo-300/30",
 };
 
-/** Stable pastel accent derived from a tile label, so colours stay consistent per page. */
+/** Stable accent derived from a tile label, so colours stay consistent per page. */
 export function accentFromKey(key: string): Accent {
   let hash = 0;
   for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
