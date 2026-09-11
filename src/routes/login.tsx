@@ -294,6 +294,12 @@ function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-slate-950/45"
       />
 
+      {/* Soft brand-blue glow anchoring the left content */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-32 top-1/3 h-[480px] w-[480px] rounded-full bg-brand/25 blur-[140px]"
+      />
+
       {/* Content wrapper — slides up on successful sign-in to reveal the CRM */}
       <div className={revealing ? "animate-slide-out-up" : ""}>
         <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
