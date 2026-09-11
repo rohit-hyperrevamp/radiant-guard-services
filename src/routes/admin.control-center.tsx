@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, MapPin, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -14,6 +14,18 @@ type Tile = {
 };
 
 const tiles: Tile[] = [
+  {
+    to: "/admin/customers/state-manager",
+    label: "State Manager",
+    description: "Manage states and their statutory details used across the platform.",
+    icon: MapPin,
+  },
+  {
+    to: "/admin/customers/branch-manager",
+    label: "Branch Manager",
+    description: "Manage branches mapped to states and locations.",
+    icon: Building2,
+  },
   {
     to: "/admin/professional-tax-manager",
     label: "Professional Tax Manager",
