@@ -321,12 +321,6 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-panel-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="mx-auto w-full max-w-[380px]">
-              <div className="mb-8 lg:hidden">
-                <div className="grid h-14 w-14 place-items-center rounded-full bg-white shadow-md ring-1 ring-border">
-                  <img src={logo} alt="Radiant Guard Services logo" className="h-10 w-10 object-contain" />
-                </div>
-              </div>
-
               <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
                 {step === "phone" ? "Sign in" : "Verify your number"}
               </h2>
