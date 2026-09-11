@@ -105,10 +105,6 @@ type GroupItem = {
   exact?: boolean;
 };
 
-const customersChildren: LeafItem[] = [
-  { to: "/admin/customers/customer-manager", label: "Organization Manager", icon: Users, sub: "organization_manager" },
-  { to: "/admin/customers/unit-manager", label: "Unit Manager", icon: Warehouse, sub: "unit_manager" },
-];
 
 const controlCenterChildren: LeafItem[] = [
   { to: "/admin/customers/state-manager", label: "State Manager", icon: MapPin, sub: "state_manager" },
@@ -442,7 +438,8 @@ function AdminLayout() {
   const groups: GroupItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
-      { key: "organizations", label: "Organizations", module: "organizations", icon: Building2, to: "/admin/customers/customer-manager", children: customersChildren, activePrefixes: ["/admin/customers/customer-manager", "/admin/customers/unit-manager"] },
+      { key: "org-manager", label: "Organization Manager", module: "organizations", icon: Users, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
+      { key: "unit-manager", label: "Unit Manager", module: "organizations", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 
@@ -455,7 +452,7 @@ function AdminLayout() {
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
-      { key: "control", label: "Admin Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
+      { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
     [dashboardHref],
   );
@@ -605,12 +602,12 @@ function AdminLayout() {
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
-              { label: "Operations", keys: ["organizations", "contracts", "employees", "inventory", "vehicles", "assets"] },
+              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "employees", "inventory", "vehicles", "assets"] },
               { label: "HR", keys: ["attendance", "payroll"] },
               { label: "Finance", keys: ["invoice"] },
               { label: "Surveillance", keys: ["field-sense"] },
               { label: "Compliance", keys: ["compliance"] },
-              { label: "", keys: ["control"] },
+              { label: "Admin", keys: ["control"] },
             ];
             const used = new Set<string>();
             return (
