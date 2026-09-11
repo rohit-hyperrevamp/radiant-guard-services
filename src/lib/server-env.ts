@@ -11,8 +11,9 @@ const PRODUCTION_SUPABASE: Record<string, string> = {
   SUPABASE_URL: "https://yimpxawqoarprhtxapie.supabase.co",
   SUPABASE_PUBLISHABLE_KEY:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTgyMzYsImV4cCI6MjEwMzMzNDIzNn0.6MaMS-my38sgzBhVkYJ0-GNT7SMIhy3C61gKNmFKq1o",
-  // Note: SUPABASE_SERVICE_ROLE_KEY is not hard-coded here; it is supplied by the
-  // Lovable Cloud runtime when a server function legitimately needs admin access.
+  // Radiant production service-role key (server-only; never bundled to the browser).
+  SUPABASE_SERVICE_ROLE_KEY:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzc1ODIzNiwiZXhwIjoyMTAzMzM0MjM2fQ.bKutUzXNVuFCZA2erF79oII_cwTzMvh3vrLwsne25Xw",
   // Surepass (Aadhaar validation + DigiLocker). Sandbox token, valid to 01 Oct 2026.
   SUREPASS_BASE_URL: "https://sandbox.surepass.io",
   SUREPASS_TOKEN:
