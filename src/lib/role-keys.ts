@@ -13,6 +13,8 @@ export const ROLE_KEYS = {
   TRANSPORT: "transport",
   ACCOUNTS: "accounts",
   FINANCE: "finance",
+  SALES: "sales",
+  MARKETING: "marketing",
   OPERATIONS: "operations",
   OPERATIONS_MANAGER: "operations_manager",
   VP_OPERATIONS: "vp_operations",
