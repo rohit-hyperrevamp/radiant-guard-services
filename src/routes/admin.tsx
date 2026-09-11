@@ -106,10 +106,13 @@ type GroupItem = {
 };
 
 const customersChildren: LeafItem[] = [
-  { to: "/admin/customers/state-manager", label: "State Manager", icon: MapPin, sub: "state_manager" },
-  { to: "/admin/customers/branch-manager", label: "Branch Manager", icon: Building2, sub: "branch_manager" },
   { to: "/admin/customers/customer-manager", label: "Organization Manager", icon: Users, sub: "organization_manager" },
   { to: "/admin/customers/unit-manager", label: "Unit Manager", icon: Warehouse, sub: "unit_manager" },
+];
+
+const controlCenterChildren: LeafItem[] = [
+  { to: "/admin/customers/state-manager", label: "State Manager", icon: MapPin, sub: "state_manager" },
+  { to: "/admin/customers/branch-manager", label: "Branch Manager", icon: Building2, sub: "branch_manager" },
 ];
 
 
