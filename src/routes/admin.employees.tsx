@@ -6003,6 +6003,7 @@ function CandidateWizard({
                         setPanVerified(true);
                       }}
                     />
+                    )}
                   </Field>
                 </div>
               </Section>
