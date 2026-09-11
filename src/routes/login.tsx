@@ -303,17 +303,17 @@ function LoginPage() {
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="max-w-xl py-10 lg:py-0">
-              <div className="mb-9 inline-flex items-center gap-4 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15 backdrop-blur-sm sm:px-6">
+              <div className="mb-9 inline-flex items-center gap-4 rounded-2xl bg-white px-5 py-4 shadow-xl shadow-black/25 sm:px-6">
                 <img
                   src={logo}
                   alt="Radiant Guard Services logo"
                   className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
                 />
                 <div>
-                  <div className="font-display text-2xl font-semibold leading-none tracking-tight text-white sm:text-[26px]">
+                  <div className="font-display text-2xl font-semibold leading-none tracking-tight text-foreground sm:text-[26px]">
                     Radiant Guard
                   </div>
-                  <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.2em] text-white/65">
+                  <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                     Services Private Limited
                   </div>
                 </div>
