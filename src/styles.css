@@ -1260,7 +1260,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   .mt-6 { margin-top: 1rem !important; }
 
   /* Cards default to a lighter radius on phones — feels native, less "web". */
-  .bg-card { border-radius: 16px !important; }
+  .bg-card { border-radius: 20px !important; }
   [class*="rounded-[2"], [class*="rounded-3xl"], [class*="rounded-4xl"] {
     border-radius: 18px !important;
   }
