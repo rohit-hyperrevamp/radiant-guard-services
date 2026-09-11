@@ -19,6 +19,20 @@ let lastError: string | null = null;
 let authSyncAttached = false;
 let pendingTokenResolvers: Array<(token: string | null) => void> = [];
 
+/**
+ * Which native store the device token belongs to. iOS tokens go to APNs,
+ * Android tokens are FCM registration tokens — the backend needs to know which.
+ */
+function nativePlatform(): "ios" | "android" | "web" {
+  try {
+    const platform = Capacitor.getPlatform();
+    if (platform === "ios" || platform === "android") return platform;
+  } catch {
+    /* fall through */
+  }
+  return "web";
+}
+
 type PushRegisterResult = {
   supported: boolean;
   permission: string | null;
@@ -42,7 +56,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   }
 
   try {
-    const result = await saveMyPushTokenViaApi({ token, platform: "ios" });
+    const result = await saveMyPushTokenViaApi({ token, platform: nativePlatform() });
     if (!result?.saved) {
       lastError = "The iPhone token was received, but the backend did not confirm it was saved.";
       logNativeEvent("push", "APNs token save not confirmed", {
