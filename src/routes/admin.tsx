@@ -577,7 +577,7 @@ function AdminLayout() {
       {/* Desktop vertical sidebar — glass / iPadOS */}
       <aside
         className={cn(
-          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-border/50 bg-card/65 shadow-[0_10px_40px_-16px_rgba(15,23,42,0.18)] backdrop-blur-2xl backdrop-saturate-150 transition-[width] duration-300 lg:flex animate-slide-in-left",
+          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-white/10 bg-[#15161a] text-white shadow-[0_18px_50px_-20px_rgba(0,0,0,0.65)] transition-[width] duration-300 lg:flex animate-slide-in-left",
           nativeShell && "lg:hidden",
           sidebarWidth,
         )}
@@ -585,12 +585,12 @@ function AdminLayout() {
         {/* Brand */}
         <div className={cn("flex items-center px-4 pt-5 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground text-[13px] font-bold">
+            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-white text-[#15161a] text-[13px] font-bold">
               R
             </Link>
           ) : (
             <Link to={dashboardHref} className="flex min-w-0 items-center">
-              <BrandMark />
+              <BrandMark className="[&_.font-display]:text-white [&_.tracking-\[0\.2em\]]:text-white/50" />
             </Link>
           )}
         </div>
