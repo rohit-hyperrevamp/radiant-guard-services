@@ -29,6 +29,7 @@ import {
 } from "@/lib/payroll-calc";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchAllPages } from "@/lib/supabase-batch";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -68,8 +69,27 @@ function PeopleInsightsSection({ compact }: { compact?: boolean }) {
 
 
 
+function DashboardErrorState({ error }: { error: Error }) {
+  return (
+    <div className="mx-auto max-w-md p-6 text-center">
+      <h1 className="text-lg font-semibold">Dashboard could not load</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {error?.message || "Something went wrong while loading your data."}
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="mt-5 h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
+  errorComponent: DashboardErrorState,
 });
 
 const MONTH_NAMES = [
@@ -118,8 +138,13 @@ function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
 
+  // Phones cannot hold the whole-month profitability computation in memory
+  // (it loads every contract, roster and attendance row). Keep the mobile
+  // dashboard to the light counts so the app never runs out of memory.
+  const lightMode = useIsMobile();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-snapshot", year, month],
+    queryKey: ["dashboard-snapshot", year, month, lightMode],
     enabled: !permsLoading && !showInventoryDashboard,
     queryFn: async () => {
       const sixtyDaysOut = new Date();
@@ -197,6 +222,24 @@ function DashboardPage() {
         else runCounts.draft += 1;
       }
       const fuelTotal = (fuelMonth ?? []).reduce((s: number, e: { amount: number | null }) => s + (Number(e.amount) || 0), 0);
+
+      if (lightMode) {
+        return {
+          orgs: orgsCount ?? 0,
+          units: unitsCount ?? 0,
+          employees: empCount ?? 0,
+          contractsActive: contractsActive ?? 0,
+          contractsExpiring: contractsExpiring ?? [],
+          vehicles: vehiclesCount ?? 0,
+          fuelTotal,
+          items: itemsCount ?? 0,
+          sheetCounts,
+          runCounts,
+          pnlRows: [] as PnLRow[],
+          pnlTotals: { contract: 0, invoice: 0, payroll: 0 },
+        };
+      }
+
 
       // ── P&L from actual attendance ────────────────────────────────────
       // Mirrors the Invoice and Payroll modules: per (candidate × designation)

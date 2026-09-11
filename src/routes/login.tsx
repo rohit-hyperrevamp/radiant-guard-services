@@ -305,7 +305,7 @@ function LoginPage() {
         <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
           {/* Left — brand + tagline */}
           <div
-            className="relative flex flex-col px-6 pb-6 pt-6 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-14 lg:pb-10 lg:pt-10"
+            className="relative hidden flex-col px-6 pb-6 pt-6 sm:px-10 lg:flex lg:min-h-0 lg:flex-1 lg:px-14 lg:pb-10 lg:pt-10"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="inline-flex items-center gap-3 self-start rounded-[6px] bg-white px-3.5 py-2.5 shadow-md shadow-black/15 sm:gap-3.5 sm:px-4 sm:py-3">
@@ -350,25 +350,30 @@ function LoginPage() {
 
           {/* Right — login panel */}
           <div
-            className="relative flex w-full flex-col justify-center bg-white px-6 py-10 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14"
+            className="relative flex min-h-dvh w-full flex-col justify-center bg-white px-5 py-8 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14"
             style={{ animation: splashDone ? "login-panel-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="mx-auto w-full max-w-[380px]">
               <div className="flex flex-col items-center text-center">
-                <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-brand text-white shadow-lg shadow-brand/25">
+                <img
+                  src={logo}
+                  alt="Radiant Guard Services"
+                  className="mb-4 h-12 w-12 object-contain lg:hidden"
+                />
+                <div className="mb-5 hidden h-20 w-20 place-items-center rounded-full bg-brand text-white shadow-lg shadow-brand/25 lg:grid">
                   <UserRound className="h-10 w-10" strokeWidth={1.75} />
                 </div>
-                <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
+                <h2 className="font-display text-[24px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[28px]">
                   {step === "phone" ? "Sign in" : "Verify your number"}
                 </h2>
                 <p className="mt-2 max-w-[300px] text-[14px] leading-relaxed text-muted-foreground">
                   {step === "phone"
                     ? "Enter your mobile number to receive a one-time code."
-                    : `We sent a ${OTP_LENGTH}-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
+                    : `Code sent to +91 ••• ••• ${phone.slice(-4)}.`}
                 </p>
               </div>
 
-              <div className="mt-8">
+              <div className="mt-6 sm:mt-8">
                 {step === "phone" ? (
                   <form onSubmit={sendOtp} className="space-y-5">
                     <label className="block">
