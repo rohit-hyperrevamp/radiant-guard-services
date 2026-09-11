@@ -1020,13 +1020,13 @@ function SidebarGroup({
 
   const itemBase =
     "group relative flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2 text-[13px] font-medium transition-all";
-  const itemIdle = "text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground";
+  const itemIdle = "text-white/60 hover:bg-white/[0.07] hover:text-white";
   const itemActive =
-    "bg-foreground text-background shadow-[0_10px_28px_-14px_rgba(15,23,42,0.55)]";
+    "bg-white text-[#15161a] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.6)]";
 
   const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-xl transition-colors";
-  const iconSpanActive = "bg-card/15 text-background";
-  const iconSpanIdle = "text-foreground/60 group-hover:text-foreground";
+  const iconSpanActive = "bg-black/[0.07] text-[#15161a]";
+  const iconSpanIdle = "text-white/55 group-hover:text-white";
 
   if (!group.children || group.children.length === 0) {
     const link = (
@@ -1087,7 +1087,7 @@ function SidebarGroup({
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
             aria-label={open ? "Collapse" : "Expand"}
-            className="grid h-6 w-6 place-items-center rounded-md hover:bg-foreground/10"
+            className="grid h-6 w-6 place-items-center rounded-md hover:bg-white/10"
           >
             <ChevronDown className={cn("h-3.5 w-3.5 opacity-60 transition-transform", open ? "rotate-0" : "-rotate-90")} />
           </button>
@@ -1106,7 +1106,7 @@ function SidebarGroup({
         </button>
       )}
       {open && (
-        <div className="mt-0.5 ml-[22px] space-y-0.5 border-l border-foreground/10 pl-3">
+        <div className="mt-0.5 ml-[22px] space-y-0.5 border-l border-white/10 pl-3">
           {group.children.map((c) => {
             const a = isActive(c.to);
             return (
@@ -1117,8 +1117,8 @@ function SidebarGroup({
                 className={cn(
                   "relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
                   a
-                    ? "bg-accent/10 text-accent font-semibold"
-                    : "text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground",
+                    ? "bg-white text-[#15161a] font-semibold"
+                    : "text-white/55 hover:bg-white/[0.06] hover:text-white",
                 )}
               >
                 <c.icon className="h-3.5 w-3.5 opacity-70" />
