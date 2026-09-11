@@ -282,7 +282,7 @@ function LoginPage() {
               </div>
             </div>
             <div className="h-[3px] w-44 overflow-hidden rounded-full bg-white/20">
-              <div className="h-full rounded-full bg-accent [animation:login-loader-bar_1.6s_ease-in-out_forwards]" />
+              <div className="h-full rounded-full bg-brand [animation:login-loader-bar_1.6s_ease-in-out_forwards]" />
             </div>
           </div>
         </div>
@@ -302,7 +302,7 @@ function LoginPage() {
             className="relative flex flex-col px-6 pb-6 pt-6 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-12 lg:pb-8 lg:pt-8"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
-            <div className="inline-flex items-center gap-2.5 rounded-lg bg-white px-3 py-2 shadow-md shadow-black/15 sm:gap-3 sm:px-3.5 sm:py-2.5">
+            <div className="inline-flex items-center gap-2.5 self-start rounded-lg bg-white px-3 py-2 shadow-md shadow-black/15 sm:gap-3 sm:px-3.5 sm:py-2.5">
               <img
                 src={logo}
                 alt="Radiant Guard Services logo"
@@ -318,13 +318,13 @@ function LoginPage() {
               </div>
             </div>
             <div className="flex flex-1 items-center">
-              <div className="w-full max-w-xl py-6">
-                <h1 className="font-display text-[26px] font-semibold leading-[1.18] tracking-tight text-white sm:text-3xl lg:text-4xl xl:text-[42px]">
+              <div className="w-full max-w-2xl py-6">
+                <h1 className="font-display text-3xl font-semibold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-[56px]">
                   Security operations,
                   <br />
                   <span className="text-white/70">managed with precision.</span>
                 </h1>
-                <p className="mt-4 max-w-md text-[13px] leading-relaxed text-white/75 lg:text-[14px]">
+                <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/75 lg:text-base">
                   One portal for attendance, payroll, contracts and field teams
                   built for the people who keep every site running.
                 </p>
@@ -339,7 +339,7 @@ function LoginPage() {
           >
             <div className="mx-auto w-full max-w-[380px]">
               <div className="flex flex-col items-center text-center">
-                <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/25">
+                <div className="mb-5 grid h-20 w-20 place-items-center rounded-full bg-brand text-white shadow-lg shadow-brand/25">
                   <UserRound className="h-10 w-10" strokeWidth={1.75} />
                 </div>
                 <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-foreground">
@@ -359,7 +359,7 @@ function LoginPage() {
                       <span className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         Mobile number
                       </span>
-                      <div className="flex h-13 w-full items-center overflow-hidden rounded-xl border border-border bg-white transition-all focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
+                      <div className="flex h-13 w-full items-center overflow-hidden rounded-xl border border-border bg-white transition-all focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15">
                         <div className="flex items-center gap-3 pl-4 pr-3">
                           <span className="whitespace-nowrap text-[15px] font-semibold text-foreground">
                             +91
@@ -383,7 +383,7 @@ function LoginPage() {
                     <Button
                       type="submit"
                       disabled={!phoneValid || sending}
-                      className="group h-13 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+                      className="group h-13 w-full rounded-xl bg-brand text-[15px] font-semibold text-white transition-all hover:bg-brand/90 disabled:opacity-50"
                     >
                       {sending ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -406,7 +406,7 @@ function LoginPage() {
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            <Fingerprint className="h-4 w-4 text-accent" />
+                            <Fingerprint className="h-4 w-4 text-brand" />
                             Sign in with Face ID
                           </>
                         )}
@@ -431,7 +431,7 @@ function LoginPage() {
                             <InputOTPSlot
                               key={i}
                               index={i}
-                              className="h-14 w-full rounded-xl border border-border bg-white text-xl font-semibold tabular-nums text-foreground first:rounded-l-xl last:rounded-r-xl data-[active=true]:border-accent data-[active=true]:ring-4 data-[active=true]:ring-accent/15"
+                              className="h-14 w-full rounded-xl border border-border bg-white text-xl font-semibold tabular-nums text-foreground first:rounded-l-xl last:rounded-r-xl data-[active=true]:border-brand data-[active=true]:ring-4 data-[active=true]:ring-brand/15"
                             />
                           ))}
                         </InputOTPGroup>
@@ -451,7 +451,7 @@ function LoginPage() {
                     <Button
                       onClick={() => handleVerify()}
                       disabled={otp.length !== OTP_LENGTH || verifying}
-                      className="h-13 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      className="h-13 w-full rounded-xl bg-brand text-[15px] font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
                     >
                       {verifying ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -476,7 +476,7 @@ function LoginPage() {
                         type="button"
                         disabled={resendIn > 0 || sending}
                         onClick={() => sendOtp()}
-                        className="font-semibold text-accent hover:opacity-80 disabled:cursor-not-allowed disabled:text-muted-foreground"
+                        className="font-semibold text-brand hover:opacity-80 disabled:cursor-not-allowed disabled:text-muted-foreground"
                       >
                         {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend OTP"}
                       </button>
