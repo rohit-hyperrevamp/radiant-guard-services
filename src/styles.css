@@ -485,16 +485,20 @@
       0 18px 40px -22px rgb(0 0 0 / 0.55);
   }
 
-  /* Soft tinted tile variants — pair with .tile. Adds a coloured wash + a
-     tinted accent bar/icon without shouting. */
-  .tile-tint-blue    { background: linear-gradient(180deg, rgb(var(--tint-blue))    0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-indigo  { background: linear-gradient(180deg, rgb(var(--tint-indigo))  0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-emerald { background: linear-gradient(180deg, rgb(var(--tint-emerald)) 0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-amber   { background: linear-gradient(180deg, rgb(var(--tint-amber))   0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-rose    { background: linear-gradient(180deg, rgb(var(--tint-rose))    0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-violet  { background: linear-gradient(180deg, rgb(var(--tint-violet))  0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-sky     { background: linear-gradient(180deg, rgb(var(--tint-sky))     0%, rgb(var(--surface) / 0.9) 100%); }
-  .tile-tint-slate   { background: linear-gradient(180deg, rgb(var(--tint-slate))   0%, rgb(var(--surface) / 0.9) 100%); }
+  /* Flat pastel tile variants — solid soft fills, no gradient, matching the
+     lime / mint / blush cards of the reference dashboard. */
+  .tile-tint-blue    { background: rgb(var(--tint-blue));    border-color: color-mix(in oklab, rgb(var(--tint-blue)) 70%, black 6%); }
+  .tile-tint-indigo  { background: rgb(var(--tint-indigo));  border-color: color-mix(in oklab, rgb(var(--tint-indigo)) 70%, black 6%); }
+  .tile-tint-emerald { background: rgb(var(--tint-emerald)); border-color: color-mix(in oklab, rgb(var(--tint-emerald)) 70%, black 6%); }
+  .tile-tint-amber   { background: rgb(var(--tint-amber));   border-color: color-mix(in oklab, rgb(var(--tint-amber)) 70%, black 6%); }
+  .tile-tint-rose    { background: rgb(var(--tint-rose));    border-color: color-mix(in oklab, rgb(var(--tint-rose)) 70%, black 6%); }
+  .tile-tint-violet  { background: rgb(var(--tint-violet));  border-color: color-mix(in oklab, rgb(var(--tint-violet)) 70%, black 6%); }
+  .tile-tint-sky     { background: rgb(var(--tint-sky));     border-color: color-mix(in oklab, rgb(var(--tint-sky)) 70%, black 6%); }
+  .tile-tint-slate   { background: rgb(var(--tint-slate));   border-color: color-mix(in oklab, rgb(var(--tint-slate)) 70%, black 6%); }
+  :where(.tile-tint-blue, .tile-tint-indigo, .tile-tint-emerald, .tile-tint-amber,
+         .tile-tint-rose, .tile-tint-violet, .tile-tint-sky, .tile-tint-slate) .tile-icon {
+    background: rgb(255 255 255 / 0.7);
+  }
   .dark .tile-tint-blue,
   .dark .tile-tint-indigo,
   .dark .tile-tint-emerald,
