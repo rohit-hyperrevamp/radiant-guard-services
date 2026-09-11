@@ -302,21 +302,7 @@ function LoginPage() {
             className="relative flex flex-col justify-between px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg ring-1 ring-white/50">
-                <img src={logo} alt="Radiant Guard Services logo" className="h-8 w-8 object-contain" />
-              </div>
-              <div>
-                <div className="font-display text-[15px] font-semibold tracking-tight text-white">
-                  Radiant Guard
-                </div>
-                <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/80">
-                  Services Pvt. Ltd.
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-10 max-w-xl lg:mt-0">
+            <div className="my-auto max-w-xl py-10 lg:py-0">
               <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
                 Security operations,
                 <br />
@@ -326,11 +312,6 @@ function LoginPage() {
                 One portal for attendance, payroll, contracts and field teams —
                 built for the people who keep every site running.
               </p>
-            </div>
-
-            <div className="hidden items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60 lg:flex">
-              <ShieldCheck className="h-4 w-4" />
-              Radiant Ops Portal
             </div>
           </div>
 
