@@ -223,6 +223,24 @@ function DashboardPage() {
       }
       const fuelTotal = (fuelMonth ?? []).reduce((s: number, e: { amount: number | null }) => s + (Number(e.amount) || 0), 0);
 
+      if (lightMode) {
+        return {
+          orgs: orgsCount ?? 0,
+          units: unitsCount ?? 0,
+          employees: empCount ?? 0,
+          contractsActive: contractsActive ?? 0,
+          contractsExpiring: contractsExpiring ?? [],
+          vehicles: vehiclesCount ?? 0,
+          fuelTotal,
+          items: itemsCount ?? 0,
+          sheetCounts,
+          runCounts,
+          pnlRows: [] as PnLRow[],
+          pnlTotals: { contract: 0, invoice: 0, payroll: 0 },
+        };
+      }
+
+
       // ── P&L from actual attendance ────────────────────────────────────
       // Mirrors the Invoice and Payroll modules: per (candidate × designation)
       // we compute T-Days from attendance, then scale the contract resource by
