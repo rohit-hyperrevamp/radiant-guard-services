@@ -299,10 +299,18 @@ function LoginPage() {
         <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
           {/* Left — brand + tagline */}
           <div
-            className="relative flex flex-col justify-between px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14"
+            className="relative flex flex-col justify-center px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
-            <div className="my-auto max-w-xl py-10 lg:py-0">
+            <div className="max-w-xl py-10 lg:py-0">
+              <div className="mb-8 flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-lg ring-1 ring-white/50">
+                  <img src={logo} alt="Radiant Guard Services logo" className="h-7 w-7 object-contain" />
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/80">
+                  Radiant Guard Services
+                </div>
+              </div>
               <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
                 Security operations,
                 <br />
