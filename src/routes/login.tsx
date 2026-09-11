@@ -294,12 +294,18 @@ function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-slate-950/45"
       />
 
+      {/* Soft brand-blue glow anchoring the left content */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-32 top-1/3 h-[480px] w-[480px] rounded-full bg-brand/25 blur-[140px]"
+      />
+
       {/* Content wrapper — slides up on successful sign-in to reveal the CRM */}
       <div className={revealing ? "animate-slide-out-up" : ""}>
         <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
           {/* Left — brand + tagline */}
           <div
-            className="relative flex flex-col px-6 pb-6 pt-6 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-12 lg:pb-8 lg:pt-8"
+            className="relative flex flex-col px-6 pb-6 pt-6 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-14 lg:pb-10 lg:pt-10"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
             <div className="inline-flex items-center gap-2.5 self-start rounded-lg bg-white px-3 py-2 shadow-md shadow-black/15 sm:gap-3 sm:px-3.5 sm:py-2.5">
@@ -318,16 +324,26 @@ function LoginPage() {
               </div>
             </div>
             <div className="flex flex-1 items-center">
-              <div className="w-full max-w-2xl py-6">
-                <h1 className="font-display text-3xl font-semibold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-[56px]">
+              <div className="w-full max-w-xl">
+                <h1 className="font-display text-3xl font-semibold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[44px] xl:text-[52px]">
                   Security operations,
                   <br />
                   <span className="text-white/70">managed with precision.</span>
                 </h1>
-                <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/75 lg:text-base">
+                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/75 lg:text-base">
                   One portal for attendance, payroll, contracts and field teams
                   built for the people who keep every site running.
                 </p>
+                <div className="mt-8 flex flex-wrap gap-2.5">
+                  {["Attendance", "Payroll", "Contracts", "Field Teams"].map((label) => (
+                    <span
+                      key={label}
+                      className="rounded-full bg-white/10 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-white/85 ring-1 ring-white/20 backdrop-blur-sm"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

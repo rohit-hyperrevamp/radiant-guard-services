@@ -11,8 +11,8 @@
  */
 
 @theme inline {
-  /* Radiant brand blue — base identity color (white + blue) */
-  --color-brand: #1e3a8a;
+  /* Radiant brand blue — bright, bold identity blue (white + blue) */
+  --color-brand: #1877f2;
   --color-brand-foreground: #ffffff;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
