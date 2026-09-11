@@ -738,7 +738,7 @@ function AdminLayout() {
               collapsed && "justify-center px-1.5",
             )}
           >
-            <NotificationBell triggerClassName="relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:border-white/30 hover:bg-white/15" />
+            <NotificationBell triggerClassName="relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-white/15 bg-white/10 text-white outline-none transition-colors focus-visible:outline-none hover:border-white/30 hover:bg-white/15" />
             {!collapsed && (
               <span className="flex-1 truncate text-[12px] font-semibold text-white">
                 Notifications
@@ -788,7 +788,7 @@ function AdminLayout() {
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-accent/20 to-primary/20 text-foreground ring-1 ring-border/60 transition hover:ring-accent"
+            className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-accent/20 to-primary/20 text-foreground outline-none ring-1 ring-border/60 transition focus-visible:outline-none hover:ring-accent"
           >
             {me.photoUrl ? (
               <img
