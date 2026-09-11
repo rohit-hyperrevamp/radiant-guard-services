@@ -335,7 +335,10 @@ function LoginPage() {
           </div>
 
           {/* Right — login panel */}
-          <div className="relative flex w-full flex-col justify-center bg-white px-6 py-10 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14">
+          <div
+            className="relative flex w-full flex-col justify-center bg-white px-6 py-10 shadow-2xl sm:px-12 lg:w-[480px] lg:min-h-dvh lg:py-14"
+            style={{ animation: splashDone ? "login-panel-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both" : "none", opacity: splashDone ? undefined : 0 }}
+          >
             <div className="mx-auto w-full max-w-[380px]">
               <div className="mb-8 lg:hidden">
                 <div className="grid h-14 w-14 place-items-center rounded-full bg-white shadow-md ring-1 ring-border">
