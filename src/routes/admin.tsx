@@ -603,8 +603,8 @@ function AdminLayout() {
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
-              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "employees", "inventory", "vehicles", "assets"] },
-              { label: "HR", keys: ["attendance", "payroll"] },
+              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "inventory", "vehicles", "assets"] },
+              { label: "HR", keys: ["employees", "attendance", "payroll"] },
               { label: "Finance", keys: ["invoice"] },
               { label: "Surveillance", keys: ["field-sense"] },
               { label: "Compliance", keys: ["compliance"] },
