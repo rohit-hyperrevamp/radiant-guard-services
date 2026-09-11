@@ -159,6 +159,26 @@ async function preparePushNotificationsOnce(): Promise<void> {
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     attachAuthTokenSync();
+
+    // Android needs an explicit high-importance channel, otherwise banners are
+    // delivered silently. iOS ignores channels.
+    if (nativePlatform() === "android") {
+      try {
+        await PushNotifications.createChannel({
+          id: "radiant_alerts",
+          name: "Radiant Guard alerts",
+          description: "Approvals, attendance and field alerts",
+          importance: 5,
+          visibility: 1,
+          vibration: true,
+          sound: "radiant_chime.wav",
+        });
+      } catch (err) {
+        logNativeEvent("push", "android channel setup failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
     logNativeEvent("push", "preparing listeners", getNativeRuntimeSnapshot());
 
     const perm = await PushNotifications.checkPermissions();
