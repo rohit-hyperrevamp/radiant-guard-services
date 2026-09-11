@@ -41,7 +41,7 @@ type Props = {
   roles: Option[];
   designations: Option[];
   organizations: Option[];
-  units: Array<Option & { customerId?: string | null }>;
+  clients: Array<Option & { customerId?: string | null }>;
   managers: Option[];
   labelFor: (p: DocExportPerson) => {
     role: string;
@@ -346,7 +346,7 @@ export function EmployeeDocumentsExportDialog({
         const active = (row.is_enabled ?? true) && (row.status ?? "") !== "inactive";
         const lines = [
           `Role: ${meta.role || "—"}    Designation: ${meta.designation || "—"}`,
-          `Organization: ${meta.organization || "—"}    Unit: ${meta.unit || "—"}`,
+          `Organization: ${meta.organization || "—"}    Client: ${meta.client || "—"}`,
           `Reports to: ${meta.manager || "—"}    Mobile: ${row.mobile || "—"}`,
           `Aadhaar: ${row.aadhaar_number || "—"}    PAN: ${row.pan_number || "—"}    Documents: ${docs.length}`,
           `Status: ${active ? "Active" : "Inactive / offboarded"}`,
@@ -513,9 +513,9 @@ export function EmployeeDocumentsExportDialog({
             </SelectContent>
           </Select>
           <Select value={unit} onValueChange={setUnit}>
-            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All units" /></SelectTrigger>
+            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All clients" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL} className="text-xs">All units</SelectItem>
+              <SelectItem value={ALL} className="text-xs">All clients</SelectItem>
               {unitOptions.map((u) => <SelectItem key={u.value} value={u.value} className="text-xs">{u.label}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -567,7 +567,7 @@ export function EmployeeDocumentsExportDialog({
                   <th className="px-3 py-2">Employee</th>
                   <th className="px-3 py-2">Role</th>
                   <th className="px-3 py-2">Organization</th>
-                  <th className="px-3 py-2">Unit</th>
+                  <th className="px-3 py-2">Client</th>
                   <th className="px-3 py-2">Reports to</th>
                   <th className="px-3 py-2">Status</th>
                 </tr>

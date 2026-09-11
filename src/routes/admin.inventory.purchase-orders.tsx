@@ -118,7 +118,7 @@ function POPage() {
   const { data: items = [] } = useQuery({
     queryKey: ["inv", "items-list"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("inv_items" as never).select("id,name,item_code,unit,is_sized").eq("enabled", true).order("name");
+      const { data, error } = await supabase.from("inv_items" as never).select("id,name,item_code,client,is_sized").eq("enabled", true).order("name");
       if (error) throw error;
       return (data as unknown as Item[]) ?? [];
     },
@@ -235,7 +235,7 @@ function POPage() {
       return {
         item_code: it?.item_code ?? "",
         item_name: it?.name ?? "",
-        unit: it?.unit ?? "",
+        client: it?.client ?? "",
         size_value: l.size_value || undefined,
         qty: Number(l.ordered_qty) || 0,
         unit_price: Number(l.unit_price) || 0,
@@ -691,7 +691,7 @@ function POFormDialog({
                     <th className="px-3 py-2">Item</th>
                     <th className="px-3 py-2 w-20">Size</th>
                     <th className="px-3 py-2 w-20 text-right">Qty</th>
-                    <th className="px-3 py-2 w-24 text-right">Unit ₹</th>
+                    <th className="px-3 py-2 w-24 text-right">Client ₹</th>
                     <th className="px-3 py-2 w-20 text-right">Tax %</th>
                     <th className="px-3 py-2 w-28 text-right">Total</th>
                     <th className="px-3 py-2 w-10"></th>

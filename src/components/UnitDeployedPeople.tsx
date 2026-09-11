@@ -69,7 +69,7 @@ function NonBillableHierarchy({ unitId, className = "" }: { unitId: string; clas
   if (staff.length === 0) {
     return (
       <div className={`text-[11px] italic text-muted-foreground ${className}`}>
-        No one onboarded under this unit yet.
+        No one onboarded under this client yet.
       </div>
     );
   }

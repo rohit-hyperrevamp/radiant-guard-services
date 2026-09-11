@@ -356,7 +356,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
   return (
     <div>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Warehouse} label="Units covered" value={unitIds.length} accent="bg-cyan-600" />
+        <StatTile icon={Warehouse} label="Clients covered" value={unitIds.length} accent="bg-cyan-600" />
         <StatTile icon={ShieldCheck} label="Guards on duty" value={totalGuards} accent="bg-emerald-600" />
         <StatTile icon={PackageCheck} label="Guards with stock" value={guardsWithStock} accent="bg-violet-600" />
         <StatTile icon={Inbox} label="Total items at guards" value={balances.reduce((s, b) => s + Number(b.qty || 0), 0)} accent="bg-amber-500" />
@@ -457,7 +457,7 @@ function UnitBlock({ unit, guards, balByGuard, itemMap, onCollect }: {
             <Warehouse className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground">{unit ? `${unit.code} · ${unit.name}` : "Unassigned guards"}</div>
+            <div className="text-sm font-semibold text-foreground">{unit ? `${client.code} · ${client.name}` : "Unassigned guards"}</div>
             <div className="text-[11px] text-muted-foreground">{guards.length} guard{guards.length === 1 ? "" : "s"}</div>
           </div>
         </div>
@@ -532,7 +532,7 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
   open: boolean;
   onOpenChange: (o: boolean) => void;
   guard: Candidate;
-  unit: Unit | null;
+  client: Client | null;
   balances: Balance[];
   itemMap: Map<string, Item>;
   onConfirm: (
@@ -673,7 +673,7 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
         <DialogHeader>
           <DialogTitle>{isOffboarding ? "Exit collection" : "Recover stock"} — {guard.full_name}</DialogTitle>
           <div className="text-xs text-muted-foreground">
-            {guard.employee_code ?? "—"}{unit ? ` · ${unit.code} · ${unit.name}` : ""}
+            {guard.employee_code ?? "—"}{unit ? ` · ${client.code} · ${client.name}` : ""}
           </div>
         </DialogHeader>
 

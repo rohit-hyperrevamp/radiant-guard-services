@@ -84,7 +84,7 @@ function PayrollUnitsPage() {
         eyebrow="Payroll month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Month-till-date payroll gross earned from actual attendance across all units."
+        description="Month-till-date payroll gross earned from actual attendance across all clients."
         right={
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
@@ -119,7 +119,7 @@ function PayrollUnitsPage() {
               Payroll charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Month-till-date payroll by unit. Open any unit for the full payroll register.
+              Month-till-date payroll by client. Open any client for the full payroll register.
             </p>
           </div>
 
@@ -142,7 +142,7 @@ function PayrollUnitsPage() {
                 value: u.id,
                 label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
               }))}
-              allLabel={`All units (${units.length})`}
+              allLabel={`All clients (${clients.length})`}
             />
           </div>
 
@@ -172,7 +172,7 @@ function PayrollUnitsPage() {
             <ListSkeleton rows={5} />
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load payroll units right now."}
+              {error instanceof Error ? error.message : "Could not load payroll clients right now."}
             </div>
           ) : (
             <FinanceCharter

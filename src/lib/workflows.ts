@@ -449,13 +449,13 @@ async function enableRehiredCandidate(
       .delete()
       .eq("candidate_id", candidateId)
       .neq("unit_id", request.unit_id);
-    if (delErr) throw new Error(`Could not clear the previous unit mapping: ${delErr.message}`);
+    if (delErr) throw new Error(`Could not clear the previous client mapping: ${delErr.message}`);
     const { error: cuErr } = await supabase
       .from("candidate_units" as never)
       .upsert({ candidate_id: candidateId, unit_id: request.unit_id } as never, {
         onConflict: "candidate_id,unit_id",
       } as never);
-    if (cuErr) throw new Error(`Could not assign the rehire unit: ${cuErr.message}`);
+    if (cuErr) throw new Error(`Could not assign the rehire client: ${cuErr.message}`);
   }
 
   // Same for designations: candidate_designations drives candidates.designation_id

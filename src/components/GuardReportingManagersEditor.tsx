@@ -147,7 +147,7 @@ export function GuardReportingManagersEditor({
           <div>
             <div className="text-sm font-semibold">Reporting Managers</div>
             <div className="text-[11px] text-muted-foreground">
-              Field Officers this guard reports to. Multiple allowed for guards covering more than one unit.
+              Field Officers this guard reports to. Multiple allowed for guards covering more than one client.
             </div>
           </div>
         </div>

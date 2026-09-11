@@ -16,7 +16,7 @@ export const DEFAULT_SHIFT_HOURS = 8;
 export type ShiftHoursMap = {
   /** `${unitId}|${designationId}` -> hours */
   byUnitDesignation: Map<string, number>;
-  /** unitId -> most common shift hours on that unit */
+  /** unitId -> most common shift hours on that client */
   byUnit: Map<string, number>;
 };
 

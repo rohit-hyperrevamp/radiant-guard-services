@@ -160,7 +160,7 @@ export function InvoiceExtraChargesCard({
         <div>
           <h3 className="text-sm font-semibold">Additional charges</h3>
           <p className="text-xs text-muted-foreground">
-            Agreed charges billed on top of the designation lines — configured per unit and period, nothing fixed in code.
+            Agreed charges billed on top of the designation lines — configured per client and period, nothing fixed in code.
           </p>
         </div>
         <div className="text-sm font-semibold tabular-nums text-emerald-700">{fmtINR(total)}</div>

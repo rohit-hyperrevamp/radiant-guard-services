@@ -29,7 +29,7 @@ export const Route = createFileRoute("/admin/compliance-insurance")({
       {
         name: "description",
         content:
-          "GPAIP, ESIC and Workmen's Compensation recovered this month, employee by employee, grouped by the unit that carries the cover.",
+          "GPAIP, ESIC and Workmen's Compensation recovered this month, employee by employee, grouped by the client that carries the cover.",
       },
       { property: "og:title", content: "Insurance Register" },
       {
@@ -283,7 +283,7 @@ function InsuranceRegisterPage() {
       if (head === "esic" && loc !== "all" && (r.branchId ?? "none") !== loc) return false;
       if (head === "esic" && basisFilter !== "all" && r.basis !== basisFilter) return false;
       if (!needle) return true;
-      return `${r.name} ${r.code} ${r.unit} ${r.location} ${r.esicCode}`.toLowerCase().includes(needle);
+      return `${r.name} ${r.code} ${r.client} ${r.location} ${r.esicCode}`.toLowerCase().includes(needle);
     });
   }, [all, q, loc, basisFilter, head]);
 
@@ -363,7 +363,7 @@ function InsuranceRegisterPage() {
         icon={meta.icon}
         eyebrow="Governance"
         title={`${meta.label} Register`}
-        description={`${meta.full} recovered in the month, employee by employee, grouped by the unit that carries the cover.`}
+        description={`${meta.full} recovered in the month, employee by employee, grouped by the client that carries the cover.`}
         crumbs={[{ label: "Compliance", to: "/admin/compliance" }, { label: `${meta.label} Register` }]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -463,7 +463,7 @@ function InsuranceRegisterPage() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={head === "esic" ? "Search employee, unit or ESIC code…" : "Search employee or unit…"}
+            placeholder={head === "esic" ? "Search employee, client or ESIC code…" : "Search employee or client…"}
             className="h-9 pl-8 text-xs"
           />
         </div>
@@ -481,15 +481,15 @@ function InsuranceRegisterPage() {
           <>
             <StatCard label="Employee contribution" value={inr(eeTotal)} sub="0.75% of gross" />
             <StatCard label="Employer contribution" value={inr(erTotal)} sub="3.25% of gross" />
-            <StatCard label="ESIC locations" value={String(esicTree.length)} sub={`${groups.length} units`} />
+            <StatCard label="ESIC locations" value={String(esicTree.length)} sub={`${groups.length} clients`} />
           </>
         ) : (
           <>
-            <StatCard label="Units covered" value={String(groups.length)} />
+            <StatCard label="Clients covered" value={String(groups.length)} />
             <StatCard
-              label="Units with cover on"
+              label="Clients with cover on"
               value={head === "gpaip" ? String(enabledUnits.length) : "—"}
-              sub={head === "gpaip" ? "Unit-level GPAIP toggle" : "Employer-borne cover"}
+              sub={head === "gpaip" ? "Client-level GPAIP toggle" : "Employer-borne cover"}
             />
           </>
         )}
@@ -561,7 +561,7 @@ function InsuranceRegisterPage() {
                 {locOpen ? (
                   <div className="divide-y divide-border/60">
                     {node.unitList.map((u) => {
-                      const uk = `unit:${node.key}:${u.unit}`;
+                      const uk = `client:${node.key}:${u.client}`;
                       const uOpen = open[uk] ?? false;
                       return (
                         <div key={uk}>

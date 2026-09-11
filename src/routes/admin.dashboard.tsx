@@ -214,7 +214,7 @@ function DashboardPage() {
         start_date: string;
       }>;
 
-      // A unit can briefly have overlapping active contracts during renewal.
+      // A client can briefly have overlapping active contracts during renewal.
       // The finance registers use one current contract, so the dashboard must
       // do the same instead of pricing the same attendance more than once.
       const currentContractByUnit = new Map<string, (typeof activeContracts)[number]>();
@@ -361,7 +361,7 @@ function DashboardPage() {
       for (const c of primaryCands) candById.set(c.id, c);
       for (const c of (secondaryCands ?? [])) candById.set(c.id, c);
 
-      // Roster grouped by unit.
+      // Roster grouped by client.
       const rosterByUnit = new Map<string, Set<string>>();
       for (const c of primaryCands) {
         if (!c.unit_id) continue;

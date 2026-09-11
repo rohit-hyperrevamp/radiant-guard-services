@@ -403,22 +403,22 @@ function PayrollUnitPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
-  const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
-  // Unit-level EPF cap policy — contracts on this unit inherit it.
+  const unitState = (client as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
+  const unitPincode = (client as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
+  // Client-level EPF cap policy — contracts on this client inherit it.
   const epfCapEnabled =
-    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
+    (client as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isPending, error } = useQuery({
     queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
-    // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
+    // `client` feeds PT state / pincode / EPF-cap policy — computing before it
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
-    enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    enabled: client !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     placeholderData: keepPreviousData,
     queryFn: async () => {
       await supabaseSessionReady();
-      // 1. Roster: candidates mapped to this unit (primary + secondary).
+      // 1. Roster: candidates mapped to this client (primary + secondary).
       const candidateCols =
         "id, employee_code, full_name, designation_id, gender, is_disabled, bank_account_holder, bank_account_number, bank_ifsc, bank_name, bank_branch, approved_at, preferred_joining_date, application_date, pan_number, compliance";
       const [{ data: primary }, { data: links }] = await Promise.all([
@@ -468,7 +468,7 @@ function PayrollUnitPage() {
         .select("code, counts_as_present, is_paid, day_value")
         .eq("enabled", true);
 
-      // 3. Contract resources for this unit's active contract.
+      // 3. Contract resources for this client's active contract.
       const { data: contracts } = await supabase
         .from("client_contracts")
         .select("id, payroll_window_id")
@@ -1637,7 +1637,7 @@ function PayrollUnitPage() {
     const misColumns = misHeaders.map((h) => ({ key: h, header: h }));
     const misRowsWithTotal = [...misDataRows, misTotals];
 
-    const baseName = `${unit?.code ?? unitId}-${start}-${end}`;
+    const baseName = `${client?.code ?? unitId}-${start}-${end}`;
     openExport({
       filename: `wage-register-${baseName}`,
       rows: wageRowsWithTotal,
@@ -1667,7 +1667,7 @@ function PayrollUnitPage() {
       <div className="space-y-4 p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/admin/payroll" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="h-4 w-4" /> Back to payroll units
+            <ChevronLeft className="h-4 w-4" /> Back to payroll clients
           </Link>
         </div>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-900 shadow-sm">
@@ -1694,7 +1694,7 @@ function PayrollUnitPage() {
           to="/admin/payroll"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft className="h-4 w-4" /> Back to payroll units
+          <ChevronLeft className="h-4 w-4" /> Back to payroll clients
         </Link>
         <div className="flex items-center gap-2">
           {isProcessed && (
@@ -1978,7 +1978,7 @@ function PayrollUnitPage() {
           )}
           <p className="text-xs text-muted-foreground">
             Bank disbursement is not integrated yet — record the actual transfer in your bank portal. Salary slips for
-            this unit will show <span className="font-semibold text-foreground">Paid</span> once processed.
+            this client will show <span className="font-semibold text-foreground">Paid</span> once processed.
           </p>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setProcessOpen(false)}>Cancel</Button>
@@ -2063,7 +2063,7 @@ function PayrollUnitPage() {
               ) : error ? (
                 <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
+                <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this client.</td></tr>
               ) : pg.pageRows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
                 const isExpanded = expandedRows.has(r.rowKey);
@@ -2145,7 +2145,7 @@ function PayrollUnitPage() {
                     {!r.wages && (
                       <span
                         className="ml-2 text-xs text-amber-600"
-                        title={`The contract for this unit has no resource line for the designation "${r.designation}". Add it on the contract, or change the employee's designation to a contracted one.`}
+                        title={`The contract for this client has no resource line for the designation "${r.designation}". Add it on the contract, or change the employee's designation to a contracted one.`}
                       >
                         not on contract
                       </span>
@@ -2953,7 +2953,7 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
               return r.pt.source === "resolved"
                 ? `Per ${r.pt.state ?? ""} slab`
                 : r.pt.source === "no_state"
-                ? "Unit state not set"
+                ? "Client state not set"
                 : "No matching slab";
             }
             return null;

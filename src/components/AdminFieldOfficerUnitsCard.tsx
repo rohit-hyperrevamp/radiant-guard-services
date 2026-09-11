@@ -161,7 +161,7 @@ export function AdminFieldOfficerUnitsCard() {
       <header className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-            Field officers &amp; units
+            Field officers &amp; clients
           </div>
           <h3 className="mt-0.5 font-display text-base font-bold tracking-tight text-foreground">
             Deployed roster
@@ -220,7 +220,7 @@ export function AdminFieldOfficerUnitsCard() {
                 <ul className="border-t border-border/40 bg-muted/30 px-2 py-2">
                   {units.length === 0 && (
                     <li className="px-3 py-2 text-[11px] italic text-muted-foreground">
-                      No units mapped.
+                      No clients mapped.
                     </li>
                   )}
                   {units.map((u) => {
@@ -309,7 +309,7 @@ function RequestVisitDialog({
         unitId: target.unit.id,
         priority,
         reason: reason.trim(),
-        unitLabel: `${target.unit.customer_name ? `${target.unit.customer_name} — ` : ""}${target.unit.name}`,
+        unitLabel: `${target.client.customer_name ? `${target.unit.customer_name} — ` : ""}${target.client.name}`,
       });
       toast.success(`Sent to ${target.fo.full_name}`);
       setReason("");
@@ -339,7 +339,7 @@ function RequestVisitDialog({
               <>
                 Send to <span className="font-semibold text-foreground">{target.fo.full_name}</span> for{" "}
                 <span className="font-semibold text-foreground">
-                  {target.unit.customer_name ? `${target.unit.customer_name} — ` : ""}
+                  {target.unit.customer_name ? `${target.client.customer_name} — ` : ""}
                   {target.unit.name}
                 </span>
                 .

@@ -67,7 +67,7 @@ function StockLedgerPage() {
   const { data: items = [] } = useQuery({
     queryKey: ["ledger", "items"],
     queryFn: async () => {
-      const { data } = await supabase.from("inv_items" as never).select("id,name,item_code,unit,standard_cost");
+      const { data } = await supabase.from("inv_items" as never).select("id,name,item_code,client,standard_cost");
       return (data as unknown as Item[]) ?? [];
     },
   });
@@ -726,7 +726,7 @@ function StockLedgerPage() {
               <tr>
                 <th className="px-4 py-3">Item</th>
                 <th className="px-4 py-3">Size</th>
-                <th className="px-4 py-3">Unit</th>
+                <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3 text-right">Opening</th>
                 <th className="px-4 py-3 text-right">Stock In (period)</th>
                 <th className="px-4 py-3 text-right">Stock Out (period)</th>

@@ -568,12 +568,12 @@ function EmployeeDashboard() {
                   </ul>
                   {isGuard && !primaryUnitId && (
                     <div className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
-                      No primary unit assigned yet — ask your field officer to set one.
+                      No primary client assigned yet — ask your field officer to set one.
                     </div>
                   )}
                   {isGuard && primaryUnitId && myUnits.length > 1 && (
                     <div className="mt-2 text-[11px] text-muted-foreground">
-                      Attendance is marked at your primary unit. Reliever units record extra duty (ED) only.
+                      Attendance is marked at your primary client. Reliever clients record extra duty (ED) only.
                     </div>
                   )}
                 </>
@@ -627,13 +627,13 @@ function EmployeeDashboard() {
             <header className="flex items-center gap-3 border-b border-border/50 bg-card px-5 py-3.5">
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.indigo}`}><Users className="h-3.5 w-3.5" /></span>
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Your unit</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Your client</div>
                 <div className="font-display text-[15px] font-bold text-foreground leading-tight">Fellow guards</div>
               </div>
               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{guardTeam.length}</span>
             </header>
             {guardTeam.length === 0 ? (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No fellow guards in your unit yet.</div>
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No fellow guards in your client yet.</div>
             ) : (
               <ul className="max-h-[320px] divide-y divide-border/60 overflow-y-auto">
                 {guardTeam.map((t) => (

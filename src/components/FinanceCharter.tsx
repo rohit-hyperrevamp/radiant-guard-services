@@ -378,7 +378,7 @@ export function FinanceCharter({
       const base = {
         Contract: r.contractCode,
         Organisation: r.unit.customer_name,
-        Unit: r.unit.name || r.unit.code,
+        Client: r.unit.name || r.unit.code,
         Committed: r.committed,
         Deployed: r.actual,
         "Payroll gross (MTD)": Math.round(r.payrollAmount),
@@ -427,7 +427,7 @@ export function FinanceCharter({
         />
         <CharterTile
           label="Active employees"
-          sub="deployed across units"
+          sub="deployed across clients"
           countTo={activeEmployees ?? units.reduce((s, u) => s + u.active_employee_count, 0)}
           icon={Users}
           accent="sky"
@@ -495,7 +495,7 @@ export function FinanceCharter({
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search by unit, client or contract…"
+            placeholder="Search by client, client or contract…"
             className="h-9 rounded-xl pl-9"
           />
         </div>
@@ -510,7 +510,7 @@ export function FinanceCharter({
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          No units match this search.
+          No clients match this search.
         </div>
       ) : (
         <div className="space-y-2">
@@ -677,7 +677,7 @@ export function FinanceCharter({
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                          No attendance marked for this unit yet this month.
+                          No attendance marked for this client yet this month.
                         </p>
                       ) : (
                         <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">

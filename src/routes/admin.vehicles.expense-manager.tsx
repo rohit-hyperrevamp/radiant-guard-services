@@ -969,7 +969,7 @@ function AddEntryDialog({
                   />
                 </div>
                 <div>
-                  <Label>Rate (₹ per unit)</Label>
+                  <Label>Rate (₹ per client)</Label>
                   <Input
                     type="number"
                     inputMode="decimal"
@@ -1053,7 +1053,7 @@ function AddEntryDialog({
               </Label>
               <div className="grid gap-3 sm:grid-cols-4">
                 <FileTile label="Odometer *" file={odoFile} onChange={setOdoFile} />
-                <FileTile label="Pump / units *" file={pumpFile} onChange={setPumpFile} />
+                <FileTile label="Pump / clients *" file={pumpFile} onChange={setPumpFile} />
                 <FileTile label="Receipt *" file={receiptFile} onChange={setReceiptFile} />
                 <FileTile label="Filling (optional)" file={fillingFile} onChange={setFillingFile} />
               </div>

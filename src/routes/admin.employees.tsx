@@ -283,7 +283,7 @@ function InlineWageEditor({
     capAmount: null,
     capFlatAmount: null,
     amount: 0,
-    state: "Per state slab (resolved at payroll from unit state, employee gender, earned gross)",
+    state: "Per state slab (resolved at payroll from client state, employee gender, earned gross)",
     description: "",
     party: "employee" as const,
     deductionCalcType: "fixed_amount" as const,
@@ -778,7 +778,7 @@ export type OffboardingInventoryReturn = {
   item_id: string;
   item_name: string;
   size_value: string;
-  unit: string;
+  client: string;
   on_hand: number;
   qty_returned: number;
   destination_type: LocationType;
@@ -936,7 +936,7 @@ function getMutationErrorMessage(error: unknown, fallback: string) {
     return "Candidate number generation collided with an existing record. Please retry once; the next number will be allocated automatically.";
   }
   if (/candidate_units|row-level security|infinite recursion/i.test(raw)) {
-    return `Unit assignment failed: ${raw}`;
+    return `Client assignment failed: ${raw}`;
   }
   if (raw) return raw;
   return fallback;
@@ -1148,17 +1148,17 @@ function useUnits() {
     refetchOnWindowFocus: false,
     staleTime: 60_000,
     queryFn: async (): Promise<UnitLite[]> => {
-      const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
+      const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
         await supabase
-          .from("units" as never)
+          .from("clients" as never)
           .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
           .order("name", { ascending: true })
           .limit(5000)
           .abortSignal(signal),
       );
       if (error) throw error;
-      const units = ((data as unknown) as UnitLite[]) ?? [];
-      const custIds = Array.from(new Set(units.map((u) => u.customer_id).filter(Boolean))) as string[];
+      const clients = ((data as unknown) as UnitLite[]) ?? [];
+      const custIds = Array.from(new Set(clients.map((u) => u.customer_id).filter(Boolean))) as string[];
       let custMap = new Map<string, string>();
       if (custIds.length) {
         const { data: cs } = await runWithQueryTimeout("Customers", async (signal) =>
@@ -1170,7 +1170,7 @@ function useUnits() {
         );
         custMap = new Map(((cs ?? []) as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
       }
-      return units.map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }));
+      return clients.map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }));
     },
   });
 }
@@ -1271,7 +1271,7 @@ function EmployeesPage() {
   const esicBranchesQuery = useEsicBranchesLite();
   const signedDocsQuery = useSignedDocsSummary();
   const candidates = candidatesQuery.data ?? [];
-  const units = unitsQuery.data ?? [];
+  const clients = unitsQuery.data ?? [];
   const designations = designationsQuery.data ?? [];
   const exServices = exServicesQuery.data ?? [];
   const languagesList = languagesQuery.data ?? [];
@@ -1461,7 +1461,7 @@ function EmployeesPage() {
     designation: true,
     department: true,
     customer: true,
-    unit: true,
+    client: true,
     manager: true,
     enabled: true,
     billable: true,
@@ -1485,7 +1485,7 @@ function EmployeesPage() {
   const DEFAULT_COLUMNS_VIS = {
     mobile: true,
     email: false,
-    unit: true,
+    client: true,
     designation: true,
     department: true,
     role: true,
@@ -1519,13 +1519,13 @@ function EmployeesPage() {
   const scopeQuery = useScopeAssignments();
   const scopeAssignments = scopeQuery.data ?? [];
 
-  const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u])), [units]);
+  const unitMap = useMemo(() => new Map(clients.map((u) => [u.id, u])), [clients]);
   const desigMap = useMemo(() => new Map(designations.map((d) => [d.id, d])), [designations]);
 
   const { candidateId: currentCandidateId, isLoading: roleLoading } = useCurrentUserRole();
   const candidateUnitsQuery = useCandidateUnits();
   /**
-   * Fallback unit for the list: `candidates.unit_id` mirrors the primary unit,
+   * Fallback client for the list: `candidates.unit_id` mirrors the primary client,
    * but older / non-billable records may only have rows in `candidate_units`.
    */
   const primaryUnitIdByCandidate = useMemo(() => {
@@ -1540,37 +1540,37 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
-  /** The saved employee classification is authoritative; unit mappings are operational scope. */
+  /** The saved employee classification is authoritative; client mappings are operational scope. */
   const isBillableCandidate = (c: Pick<CandidateListItem, "non_billable">) => !c.non_billable;
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
 
   const scopedUnitsForWizard = useMemo(() => {
-    if (!isFieldOfficer) return units;
-    if (!currentCandidateId) return [] as typeof units;
+    if (!isFieldOfficer) return clients;
+    if (!currentCandidateId) return [] as typeof clients;
     const mine = scopeAssignments.filter((s) => s.candidate_id === currentCandidateId);
     const unitIds = new Set(
-      mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id),
+      mine.filter((s) => s.scope_type === "client").map((s) => s.scope_id),
     );
     // NOTE: `scope_type='branch'` on a field officer is their **Home Branch**
     // (payroll/employment marker — always Radiant's own branch). It is NOT an
     // operational scope and must never be expanded into every unit of that
-    // branch, otherwise the FO sees the whole organisation's units.
+    // branch, otherwise the FO sees the whole organisation's clients.
     const customerIds = new Set(
       mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id),
     );
-    // Legacy: candidate_units mappings also count as direct unit scope.
+    // Legacy: candidate_units mappings also count as direct client scope.
     for (const cu of candidateUnitsQuery.data ?? []) {
       if (cu.candidate_id === currentCandidateId && cu.unit_id) unitIds.add(cu.unit_id);
     }
-    // Always include "No Man's Land" as a fallback unit for FO onboarding.
+    // Always include "No Man's Land" as a fallback client for FO onboarding.
     unitIds.add(NOMANS_UNIT_ID);
-    return units.filter(
+    return clients.filter(
       (u) =>
         unitIds.has(u.id) ||
         ((u as { customer_id?: string | null }).customer_id != null &&
           customerIds.has((u as { customer_id?: string | null }).customer_id as string)),
     );
-  }, [isFieldOfficer, currentCandidateId, scopeAssignments, units, candidateUnitsQuery.data]);
+  }, [isFieldOfficer, currentCandidateId, scopeAssignments, clients, candidateUnitsQuery.data]);
   const scopedUnitIdSet = useMemo(
     () => new Set(scopedUnitsForWizard.map((u) => u.id)),
     [scopedUnitsForWizard],
@@ -1596,15 +1596,15 @@ function EmployeesPage() {
       } else if (c.department_id !== filterDepartment) return false;
     }
     if (filterCustomer !== "all") {
-      const unit = unitOfCandidate(c);
-      if (!unit || unit.customer_id !== filterCustomer) return false;
+      const client = unitOfCandidate(c);
+      if (!client || client.customer_id !== filterCustomer) return false;
     }
     if (filterManager !== "all" && c.reports_to !== filterManager) return false;
     if (filterEnabled === "enabled" && !c.is_enabled) return false;
     if (filterEnabled === "disabled" && c.is_enabled) return false;
     if (filterBillable !== "all") {
       // Use the employee's persisted classification. Non-billable staff can
-      // have operational unit mappings without becoming billable employees.
+      // have operational client mappings without becoming billable employees.
       const isBillable = isBillableCandidate(c);
       if (filterBillable === "billable" && !isBillable) return false;
       if (filterBillable === "nonbillable" && isBillable) return false;
@@ -1662,7 +1662,7 @@ function EmployeesPage() {
       if (!matchesSearch(c)) return false;
       if (!matchesFilters(c)) return false;
       if (isFieldOfficer) {
-        // FO sees active employees only within his assigned units.
+        // FO sees active employees only within his assigned clients.
         if (!c.unit_id || !scopedUnitIdSet.has(c.unit_id)) return false;
       }
       const isActive = c.is_enabled && c.status !== "inactive";
@@ -1671,7 +1671,7 @@ function EmployeesPage() {
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, filterDepartment, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
+    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, filterDepartment, clients, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
   );
   const candidateRows = useMemo(
     () => candidates.filter((c) => {
@@ -1679,8 +1679,8 @@ function EmployeesPage() {
       if (isEmployeeStatus(c.status) && !hasRehire) return false;
       if (!matchesSearch(c)) return false;
       if (isFieldOfficer) {
-        // FO sees pending/rejected/draft submissions within his units,
-        // plus his own submissions regardless of unit (in case unit not yet set).
+        // FO sees pending/rejected/draft submissions within his clients,
+        // plus his own submissions regardless of client (in case client not yet set).
         const inMyUnits = !!c.unit_id && scopedUnitIdSet.has(c.unit_id);
         const isMine = !!currentUserId && c.created_by === currentUserId;
         if (!inMyUnits && !isMine) return false;
@@ -1728,7 +1728,7 @@ function EmployeesPage() {
     email: c.email || "",
     role: roleNameOf(c.role_key),
     designation: desigName(c.designation_id),
-    unit: unitLabel(c.unit_id),
+    client: unitLabel(c.unit_id),
     customer: customerNameOfUnit(c.unit_id),
     reports_to: managerName(c.reports_to),
     status: csvStatus(c.status),
@@ -2134,7 +2134,7 @@ function EmployeesPage() {
               sort_order: u.sort_order,
             })) as unknown as never,
           );
-        if (unitsErr) throw new Error(getMutationErrorMessage(unitsErr, "Reactivation created the employee record but failed to copy unit assignments."));
+        if (unitsErr) throw new Error(getMutationErrorMessage(unitsErr, "Reactivation created the employee record but failed to copy client assignments."));
       }
 
       await logActivity({
@@ -2811,7 +2811,7 @@ function EmployeesPage() {
                   )}
                   {(mode === "candidate" || columnsVisible.unit) && (
                     <div className="truncate" title={unit?.name ?? ""}>
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Unit</span>
+                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Client</span>
                       {unit?.name || "—"}
                     </div>
                   )}
@@ -3278,7 +3278,7 @@ function EmployeesPage() {
                   <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                     <span className="truncate">{c.mobile || "No mobile"}</span>
                     <span className="truncate text-right">{roleName}</span>
-                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</span>
+                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No client"}</span>
                     <span className="truncate text-right" title={desig?.name ?? ""}>{desig?.name || "No designation"}</span>
                   </div>
                 </div>
@@ -3489,7 +3489,7 @@ function EmployeesPage() {
               )}
               {(mode === "candidate" || columnsVisible.unit) && (
                 <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
-                  Unit
+                  Client
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.designation) && (
@@ -3542,7 +3542,7 @@ function EmployeesPage() {
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Employees"
-        description="Onboard and manage candidates joining client units."
+        description="Onboard and manage candidates joining client clients."
         crumbs={[{ label: "Employees" }]}
       />
 
@@ -3870,7 +3870,7 @@ function EmployeesPage() {
               <Select value={filterUnit} onValueChange={setFilterUnit}>
                 <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">All units</SelectItem>
+                  <SelectItem value="all" className="text-xs">All clients</SelectItem>
                   {units.map((u) => (<SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>))}
                 </SelectContent>
               </Select>
@@ -4021,7 +4021,7 @@ function EmployeesPage() {
           unitsQuery.error instanceof Error
             ? unitsQuery.error.message
             : isFieldOfficer && !scopeStillLoading && scopedUnitsForWizard.length === 0
-              ? "You have no units assigned. Ask your admin to assign a branch or unit before onboarding."
+              ? "You have no clients assigned. Ask your admin to assign a branch or client before onboarding."
               : null
         }
         designations={designations}
@@ -4175,9 +4175,9 @@ function EmployeesPage() {
             const c = approvePreview;
             const roleName = rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "—";
             const unit = units.find((u) => u.id === c.unit_id);
-            const unitLabel = unit ? `${unit.customer_name ? unit.customer_name + " — " : ""}${unit.name}${unit.code ? ` (${unit.code})` : ""}` : "—";
+            const unitLabel = unit ? `${client.customer_name ? client.customer_name + " — " : ""}${client.name}${client.code ? ` (${unit.code})` : ""}` : "—";
             const desig = designations.find((d) => d.id === c.designation_id);
-            const desigLabel = desig ? `${desig.name}${unit && unit.is_billable === false ? " · Non-billable" : ""}` : "—";
+            const desigLabel = desig ? `${desig.name}${client && client.is_billable === false ? " · Non-billable" : ""}` : "—";
             const aad = c.aadhaar_number ? `•••• •••• ${String(c.aadhaar_number).slice(-4)}` : "—";
             const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
               <div className="flex items-start justify-between gap-3 py-1.5">
@@ -4749,7 +4749,7 @@ function CandidateWizard({
   onOpenChange,
   editing,
   mode = "candidate",
-  units,
+  clients,
   unitsLoading,
   unitsError,
   designations,
@@ -4770,7 +4770,7 @@ function CandidateWizard({
   onOpenChange: (o: boolean) => void;
   editing: Candidate | null;
   mode?: "candidate" | "employee";
-  units: UnitLite[];
+  clients: UnitLite[];
   unitsLoading: boolean;
   unitsError: string | null;
   designations: DesignationLite[];
@@ -4833,13 +4833,13 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees can only belong to the approved Radiant home units.
+  // Non-billable employees can only belong to the approved Radiant home clients.
   const [homeUnitId, setHomeUnitId] = useState<string>("");
   const nonBillableUnits = useMemo(
-    () => units.filter(isRadiantHomeUnit).sort((a, b) => a.name.localeCompare(b.name)),
-    [units],
+    () => clients.filter(isRadiantHomeUnit).sort((a, b) => a.name.localeCompare(b.name)),
+    [clients],
   );
-  // Keep the selection valid as units load / change.
+  // Keep the selection valid as clients load / change.
   useEffect(() => {
     if (!isEmployeeMode) return;
     if (nonBillableUnits.length === 0) return;
@@ -4849,9 +4849,9 @@ function CandidateWizard({
   }, [isEmployeeMode, nonBillableUnits, homeUnitId]);
 
 
-  // Home Unit is the actual unit assignment for an internal employee. Keep
+  // Home Client is the actual client assignment for an internal employee. Keep
   // the shared assignment model in sync so validation, candidate_units,
-  // wages, and the employee list all persist/read the same unit.
+  // wages, and the employee list all persist/read the same client.
   useEffect(() => {
     if (!isEmployeeMode || !homeUnitId) return;
     setForm((current) => {
@@ -4987,7 +4987,7 @@ function CandidateWizard({
 
   // Restrict the Designation dropdown to designations present in the contracts
   // of the selected units. Field officer or not — a unit's contract resources
-  // define the valid designations for that unit.
+  // define the valid designations for that client.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
     if (isEmployeeMode && homeUnitId) ids.add(homeUnitId);
@@ -5038,7 +5038,7 @@ function CandidateWizard({
     return base.filter((d) => allow.has(d.id));
   }, [designations, desigLookupUnitIds.length, contractDesigQuery.isLoading, allowedDesignationIds, isEmployeeMode]);
 
-  // If the currently selected designation is no longer allowed by the units'
+  // If the currently selected designation is no longer allowed by the clients'
   // contracts, clear it so the user picks a valid one.
   useEffect(() => {
     if (isEmployeeMode) return;
@@ -5107,7 +5107,7 @@ function CandidateWizard({
       const next: Record<string, ContractResource | null> = {};
       for (const row of ((data ?? []) as unknown as Array<Record<string, unknown>>)) {
         // Older wage rows could have a null unit_id. Attach those to the
-        // employee's persisted unit so the saved sheet remains visible.
+        // employee's persisted client so the saved sheet remains visible.
         const key = (row.unit_id as string | null) ?? editing.unit_id ?? homeUnitId;
         if (!key) continue;
         next[key] = {
@@ -5135,7 +5135,7 @@ function CandidateWizard({
   const setActiveWage = (next: ContractResource | null) =>
     setWagesByUnit((m) => ({ ...m, [activeWageUnit]: next }));
 
-  /** Persist one wage sheet per mapped unit. */
+  /** Persist one wage sheet per mapped client. */
   const syncEmployeeWages = async (candidateId: string) => {
     const rows = wageUnitIds
       .map((unitId) => {
@@ -5295,7 +5295,7 @@ function CandidateWizard({
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "PAN verified", ok: panVerified },
-    { key: "Unit assignment", ok: form.unit_ids.length > 0 },
+    { key: "Client assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
 
@@ -5351,16 +5351,16 @@ function CandidateWizard({
 
   /** Replace the candidate's entries in candidate_units with the current form selection. */
   const syncCandidateUnits = async (candidateId: string) => {
-    // Wipe existing rows then re-insert. Simpler & atomic enough for typical 1-5 units.
+    // Wipe existing rows then re-insert. Simpler & atomic enough for typical 1-5 clients.
     const { error: deleteError } = await supabase.from("candidate_units" as never).delete().eq("candidate_id", candidateId);
-    if (deleteError) throw new Error(`Unit assignment sync failed: ${deleteError.message}`);
+    if (deleteError) throw new Error(`Client assignment sync failed: ${deleteError.message}`);
     if (form.unit_ids.length === 0) return;
-    // First unit = primary (work orders go here). All others are reliever
+    // First client = primary (work orders go here). All others are reliever
     // postings: extra duty (ED) only, never a regular muster line.
     const rows = form.unit_ids.map((unit_id, idx) => ({
       candidate_id: candidateId,
       unit_id,
-      // The contracted designation this person fills at that unit drives
+      // The contracted designation this person fills at that client drives
       // attendance caps and salary — never the master designation.
       designation_id:
         (form.unit_designations ?? {})[unit_id] ?? (idx === 0 ? form.designation_id ?? null : null),
@@ -5370,12 +5370,12 @@ function CandidateWizard({
     }));
 
     const { error } = await supabase.from("candidate_units" as never).insert(rows as never);
-    if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
+    if (error) throw new Error(`Client assignment sync failed: ${error.message}`);
 
-    // Auto-dispatch a posting order for the PRIMARY unit only (guards only).
-    // Fires when the primary unit is newly assigned OR switched to another
-    // unit — a change of primary posting always needs a fresh posting order.
-    // Reliever units never trigger a work order.
+    // Auto-dispatch a posting order for the PRIMARY client only (guards only).
+    // Fires when the primary client is newly assigned OR switched to another
+    // client — a change of primary posting always needs a fresh posting order.
+    // Reliever clients never trigger a work order.
     const primaryUnitId = form.unit_ids[0];
     const previousPrimaryUnitId = initialUnitIds[0] ?? null;
     if (primaryUnitId && primaryUnitId !== previousPrimaryUnitId) {
@@ -5439,7 +5439,7 @@ function CandidateWizard({
         .update(patched as never)
         .eq("id", editing.id);
       if (error) throw error;
-      // Always sync: unit IDs may be unchanged while a per-unit designation changed.
+      // Always sync: client IDs may be unchanged while a per-unit designation changed.
       await syncCandidateUnits(editing.id);
       setInitialUnitIds([...form.unit_ids]);
       await logActivity({
@@ -5519,24 +5519,24 @@ function CandidateWizard({
       }
     }
 
-    // Sync Home Unit → employee_scope_assignments (non-billable employees only).
+    // Sync Home Client → employee_scope_assignments (non-billable employees only).
     const cidForBranch = editing?.id ?? createdCandidateId;
     if (isEmployeeMode && homeUnitId && cidForBranch) {
-      const unitLabel = units.find((u) => u.id === homeUnitId)?.name ?? "";
+      const unitLabel = clients.find((u) => u.id === homeUnitId)?.name ?? "";
       await supabase
         .from("employee_scope_assignments" as never)
         .delete()
         .eq("candidate_id", cidForBranch)
-        .eq("scope_type", "unit");
+        .eq("scope_type", "client");
       const { error: esaErr } = await supabase
         .from("employee_scope_assignments" as never)
         .insert({
           candidate_id: cidForBranch,
-          scope_type: "unit",
+          scope_type: "client",
           scope_id: homeUnitId,
           scope_label: unitLabel,
         } as never);
-      if (esaErr) console.error("home unit sync failed", esaErr);
+      if (esaErr) console.error("home client sync failed", esaErr);
     }
     if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
@@ -5705,7 +5705,7 @@ function CandidateWizard({
               {nonBillableUnits.length > 0 && (
 
                 <div className="grid gap-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting client</label>
                   <Select value={homeUnitId} onValueChange={setHomeUnitId}>
                     <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
                       <SelectValue placeholder="Select a Radiant unit" />
@@ -5737,10 +5737,10 @@ function CandidateWizard({
               )}
               {(() => {
                 const unitId = form.unit_id || editing.unit_id;
-                const unit = unitId ? units.find((u) => u.id === unitId) : null;
-                return unit ? (
+                const client = unitId ? clients.find((u) => u.id === unitId) : null;
+                return client ? (
                   <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
-                    Unit · {unit.name}
+                    Client · {client.name}
                   </Badge>
                 ) : null;
               })()}
@@ -5748,7 +5748,7 @@ function CandidateWizard({
                 const desigId = form.designation_id || editing.designation_id;
                 const desig = desigId ? designations.find((d) => d.id === desigId) : null;
                 const bUnitId = form.unit_id || editing.unit_id;
-                const bUnit = bUnitId ? units.find((u) => u.id === bUnitId) : null;
+                const bUnit = bUnitId ? clients.find((u) => u.id === bUnitId) : null;
                 const billable = !!bUnit && bUnit.is_billable !== false;
                 return desig ? (
                   <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
@@ -6551,13 +6551,13 @@ function CandidateWizard({
                         </Select>
                       </Field>
                     ) : (
-                      <Field label={`Units (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
+                      <Field label={`Clients (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
                         <MultiUnitPicker
-                          units={units}
+                          clients={clients}
                           value={form.unit_ids}
                           onChange={(ids) => setForm((f) => ({ ...f, unit_ids: ids }))}
                           disabled={unitsLoading || !!unitsError}
-                          emptyMessage={unitsError ? `Could not load units: ${unitsError}` : "No units found."}
+                          emptyMessage={unitsError ? `Could not load clients: ${unitsError}` : "No units found."}
                         />
                       </Field>
                     )}
@@ -6567,7 +6567,7 @@ function CandidateWizard({
                       <Field label="Designation at each unit (from that unit's contract)">
                         <div className="space-y-2 rounded-md border border-input bg-muted/20 p-2">
                           {form.unit_ids.map((uid, idx) => {
-                            const u = units.find((x) => x.id === uid);
+                            const u = clients.find((x) => x.id === uid);
                             return (
                               <div key={uid} className="flex flex-wrap items-center gap-2">
                                 <span className="min-w-[180px] flex-1 truncate text-sm">
@@ -6617,14 +6617,14 @@ function CandidateWizard({
 
                   <div className="sm:col-span-2">
                     <Field label={`Organizations${(() => {
-                      const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
+                      const orgs = Array.from(new Set(form.unit_ids.map((id) => clients.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
                       return orgs.length > 0 ? ` · ${orgs.length}` : "";
                     })()}`}>
                       <div className="flex flex-wrap gap-1.5 rounded-md border border-input bg-muted/30 p-2 min-h-[44px]">
                         {(() => {
-                          const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
+                          const orgs = Array.from(new Set(form.unit_ids.map((id) => clients.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
                           if (orgs.length === 0) {
-                            return <span className="self-center px-1 text-sm text-muted-foreground">Select a unit to see its organization.</span>;
+                            return <span className="self-center px-1 text-sm text-muted-foreground">Select a client to see its organization.</span>;
                           }
                           return orgs.map((org) => (
                             <Badge key={org} variant="secondary" className="font-normal">{org}</Badge>
@@ -6638,8 +6638,8 @@ function CandidateWizard({
                       isEmployeeMode
                         ? `Designation — ${filteredDesignations.length} in master`
                         : form.unit_ids.length === 0
-                          ? "Designation (Primary) — select a unit first"
-                          : `Designation (Primary) — ${filteredDesignations.length} available in unit contract${form.unit_ids.length > 1 ? "s" : ""}`
+                          ? "Designation (Primary) — select a client first"
+                          : `Designation (Primary) — ${filteredDesignations.length} available in client contract${form.unit_ids.length > 1 ? "s" : ""}`
                     }
                   >
                     <DesignationPicker
@@ -6656,7 +6656,7 @@ function CandidateWizard({
                         designationsError
                           ? `Could not load designations: ${designationsError}`
                           : form.unit_ids.length === 0
-                            ? "Select a unit above to see the designations available in that unit's contract."
+                            ? "Select a client above to see the designations available in that client's contract."
                             : contractDesigQuery.isLoading
                               ? "Loading designations from unit contract…"
                               : "No designations found in the selected unit's contract. Ask an admin to add resources to the contract."
@@ -6757,7 +6757,7 @@ function CandidateWizard({
                           const ids = form.unit_ids.length > 0 ? form.unit_ids : (form.unit_id ? [form.unit_id] : []);
                           if (ids.length === 0) return true;
                           return ids.every((id) => {
-                            const u = units.find((x) => x.id === id);
+                            const u = clients.find((x) => x.id === id);
                             return u ? u.uniform_included !== false : true;
                           });
                         })()}
@@ -6765,7 +6765,7 @@ function CandidateWizard({
                           const ids = form.unit_ids.length > 0 ? form.unit_ids : (form.unit_id ? [form.unit_id] : []);
                           let max = 0;
                           for (const id of ids) {
-                            const u = units.find((x) => x.id === id);
+                            const u = clients.find((x) => x.id === id);
                             if (u && u.uniform_included === false) {
                               max = Math.max(max, Number(u.uniform_fee_amount ?? 0) || 0);
                             }
@@ -6822,14 +6822,14 @@ function CandidateWizard({
               <Section title="Wages">
                 {wageUnitIds.length === 0 ? (
                   <div className="rounded-xl border border-input bg-muted/20 p-3 text-xs text-muted-foreground">
-                    Assign {isEmployeeMode ? "a home unit" : "at least one unit"} first — the wage sheet is maintained per unit.
+                    Assign {isEmployeeMode ? "a home client" : "at least one client"} first — the wage sheet is maintained per client.
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {wageUnitIds.length > 1 && (
                       <div className="flex flex-wrap gap-1.5">
                         {wageUnitIds.map((uid) => {
-                          const u = units.find((x) => x.id === uid);
+                          const u = clients.find((x) => x.id === uid);
                           const has = !!wagesByUnit[uid];
                           return (
                             <button
@@ -6843,7 +6843,7 @@ function CandidateWizard({
                                   : "border-input bg-muted/20 text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {u?.name ?? "Unit"}
+                              {u?.name ?? "Client"}
                               <span className="ml-1.5 opacity-70">{has ? "✓" : "—"}</span>
                             </button>
                           );
@@ -6856,7 +6856,7 @@ function CandidateWizard({
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <p className="text-xs text-muted-foreground">
                             Shift hours, payroll days and wage components for{" "}
-                            {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"}. Saved with the profile.
+                            {clients.find((x) => x.id === activeWageUnit)?.name ?? "this client"}. Saved with the profile.
                           </p>
                           <Button
                             type="button"
@@ -6873,7 +6873,7 @@ function CandidateWizard({
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
                         <p className="text-xs text-muted-foreground">
-                          No wage sheet yet for {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"} — shift
+                          No wage sheet yet for {clients.find((x) => x.id === activeWageUnit)?.name ?? "this client"} — shift
                           hours, payroll days, wage components, deductions and employer contributions.
                         </p>
                         <Button
@@ -7472,7 +7472,7 @@ function UnitPicker({
   value,
   onChange,
   disabled = false,
-  emptyMessage = "No units found.",
+  emptyMessage = "No clients found.",
 }: {
   units: UnitLite[];
   value: string | null;
@@ -7511,7 +7511,7 @@ function UnitPicker({
               <b>{selected.code}</b> · {selected.name}
             </span>
           ) : (
-            <span className="text-muted-foreground">Search unit by code or name…</span>
+            <span className="text-muted-foreground">Search client by code or name…</span>
           )}
           <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -7526,7 +7526,7 @@ function UnitPicker({
         }}
       >
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search units…" value={query} onValueChange={setQuery} />
+          <CommandInput placeholder="Search clients…" value={query} onValueChange={setQuery} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
@@ -7606,7 +7606,7 @@ function OffboardingDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inv_stock_balances" as never)
-        .select("item_id,size_value,qty,inv_items(name,unit)")
+        .select("item_id,size_value,qty,inv_items(name,client)")
         .eq("location_type", "guard")
         .eq("location_id", target!.id)
         .gt("qty", 0);
@@ -7727,7 +7727,7 @@ function OffboardingDialog({
         item_id: b.item_id,
         item_name: b.inv_items?.name ?? "Item",
         size_value: b.size_value ?? "",
-        unit: b.inv_items?.unit ?? "pcs",
+        client: b.inv_items?.client ?? "pcs",
         on_hand: Number(b.qty ?? 0),
         qty_returned: Number(b.qty ?? 0),
         destination_type: "field_officer" as LocationType,
@@ -7933,7 +7933,7 @@ function OffboardingDialog({
                         )}
                       </div>
                       <div className="text-right tabular-nums text-xs text-muted-foreground">
-                        {row.on_hand} {row.unit}
+                        {row.on_hand} {row.client}
                       </div>
                       <Input
                         type="number"
@@ -8254,9 +8254,9 @@ function AssetMultiPicker({
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-2.5 py-1.5 text-[11px]">
             <span className="text-muted-foreground">
               {uniformSelected.length > 0 && uniformIncluded
-                ? "Uniform items are included in this unit's contract (₹0 to the staff member)."
+                ? "Uniform items are included in this client's contract (₹0 to the staff member)."
                 : uniformSelected.length > 0 && flatUniformFee > 0
-                  ? `Uniform is not included — a flat uniform fee of ${inr(flatUniformFee)} set on this unit will be recovered from the staff member.`
+                  ? `Uniform is not included — a flat uniform fee of ${inr(flatUniformFee)} set on this client will be recovered from the staff member.`
                   : uniformSelected.length > 0
                     ? "Uniform is not included — value shown will be recoverable from the staff member."
                     : "Values shown are recoverable against the staff member."}
@@ -8386,13 +8386,13 @@ function AssetMultiPicker({
 
 
 function MultiUnitPicker({
-  units,
+  clients,
   value,
   onChange,
   disabled = false,
   emptyMessage = "No units found.",
 }: {
-  units: UnitLite[];
+  clients: UnitLite[];
   value: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;
@@ -8404,19 +8404,19 @@ function MultiUnitPicker({
 
   const selectedSet = useMemo(() => new Set(value), [value]);
   const selectedUnits = useMemo(
-    () => value.map((id) => units.find((u) => u.id === id)).filter(Boolean) as UnitLite[],
-    [value, units],
+    () => value.map((id) => clients.find((u) => u.id === id)).filter(Boolean) as UnitLite[],
+    [value, clients],
   );
 
   const filteredUnits = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return units;
-    return units.filter((u) =>
+    if (!needle) return clients;
+    return clients.filter((u) =>
       [u.code, u.name, u.customer_name ?? "", u.id].some((p) => p.toLowerCase().includes(needle)),
     );
-  }, [query, units]);
+  }, [query, clients]);
 
-  // Group filtered units by customer/organization
+  // Group filtered clients by customer/organization
   const grouped = useMemo(() => {
     const groups = new Map<string, UnitLite[]>();
     for (const u of filteredUnits) {
@@ -8455,11 +8455,11 @@ function MultiUnitPicker({
 
   return (
     <div className="space-y-2">
-      {/* Chips of selected units */}
+      {/* Chips of selected clients */}
       <div className="flex flex-wrap gap-1.5 rounded-md border border-input bg-background p-2 min-h-[44px]">
         {selectedUnits.length === 0 && (
           <span className="self-center px-1 text-sm text-muted-foreground">
-            No units selected — click "Add unit" to assign.
+            No clients selected — click "Add unit" to assign.
           </span>
         )}
         {selectedUnits.map((u, idx) => {

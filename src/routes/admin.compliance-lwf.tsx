@@ -29,7 +29,7 @@ export const Route = createFileRoute("/admin/compliance-lwf")({
       {
         name: "description",
         content:
-          "State-wise Labour Welfare Fund contributions by frequency, split into employee and employer share, drillable down to the unit and employee.",
+          "State-wise Labour Welfare Fund contributions by frequency, split into employee and employer share, drillable down to the client and employee.",
       },
       { property: "og:title", content: "Labour Welfare Fund Register" },
       {
@@ -215,7 +215,7 @@ function LwfRegisterPage() {
       if (state !== "all" && r.state !== state) return false;
       if (freq !== "all" && freqOf(r.state) !== freq) return false;
       if (!needle) return true;
-      return `${r.name} ${r.code} ${r.unit}`.toLowerCase().includes(needle);
+      return `${r.name} ${r.code} ${r.client}`.toLowerCase().includes(needle);
     });
   }, [all, state, freq, q, masterByState]);
 
@@ -281,7 +281,7 @@ function LwfRegisterPage() {
         icon={Landmark}
         eyebrow="Governance"
         title="Labour Welfare Fund Register"
-        description="State-wise LWF for the month — frequency, employee share, employer share and total, drillable to unit and employee."
+        description="State-wise LWF for the month — frequency, employee share, employer share and total, drillable to client and employee."
         crumbs={[{ label: "Compliance", to: "/admin/compliance" }, { label: "Labour Welfare Fund" }]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -359,7 +359,7 @@ function LwfRegisterPage() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search employee or unit…"
+            placeholder="Search employee or client…"
             className="h-9 pl-8 text-xs"
           />
         </div>
@@ -422,7 +422,7 @@ function LwfRegisterPage() {
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="border-b border-border/60 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-semibold">Unit</th>
+                    <th className="px-3 py-2 text-left font-semibold">Client</th>
                     <th className="px-3 py-2 text-right font-semibold">Employees</th>
                     <th className="px-3 py-2 text-right font-semibold">Employee share</th>
                     <th className="px-3 py-2 text-right font-semibold">Employer share</th>
@@ -431,7 +431,7 @@ function LwfRegisterPage() {
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {g.units.map((u) => {
-                    const key = `${g.state}:${u.unit}`;
+                    const key = `${g.state}:${u.client}`;
                     const isOpen = !!open[key];
                     return (
                       <Fragment key={key}>

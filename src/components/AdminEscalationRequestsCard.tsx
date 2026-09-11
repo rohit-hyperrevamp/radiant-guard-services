@@ -186,7 +186,7 @@ export function AdminEscalationRequestsCard() {
                       {r.priority === "emergency" ? "Emergency" : r.priority === "high" ? "High" : "Normal"}
                     </span>
                     <span className="truncate text-[12.5px] font-semibold text-foreground">
-                      {unit?.customer_name ? `${unit.customer_name} — ` : ""}
+                      {unit?.customer_name ? `${client.customer_name} — ` : ""}
                       {unit?.name ?? "Unit"}
                     </span>
                   </div>

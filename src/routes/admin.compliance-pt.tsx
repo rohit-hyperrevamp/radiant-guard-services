@@ -205,7 +205,7 @@ function PtRegisterPage() {
       if (state !== "all" && r.state !== state) return false;
       if (gender !== "all" && r.gender !== gender) return false;
       if (!needle) return true;
-      return `${r.name} ${r.code} ${r.unit}`.toLowerCase().includes(needle);
+      return `${r.name} ${r.code} ${r.client}`.toLowerCase().includes(needle);
     });
   }, [all, state, gender, q]);
 

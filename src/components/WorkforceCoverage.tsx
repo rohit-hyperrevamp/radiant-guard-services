@@ -108,7 +108,7 @@ async function fetchCoverage(): Promise<UnitCoverage[]> {
   );
   const candById = new Map(candidates.map((c) => [String(c.id), c]));
 
-  // unit -> set of candidate ids (mapping table + primary unit on the record)
+  // unit -> set of candidate ids (mapping table + primary client on the record)
   const unitMembers = new Map<string, Set<string>>();
   const push = (unitId: string, candId: string) => {
     if (!unitId || !candById.has(candId)) return;
@@ -351,7 +351,7 @@ export function WorkforceCoverageCard() {
           <h2 className="text-base font-semibold">Committed vs Actual Workforce</h2>
           <p className="text-xs text-muted-foreground">
             Contracted headcount across active client contracts against employees
-            actually mapped to those units.
+            actually mapped to those clients.
           </p>
         </div>
         <Button
@@ -415,7 +415,7 @@ export function WorkforceCoverageCard() {
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>
             <span className="font-bold tabular-nums">{unmapped.length}</span> active
-            employee(s) are not mapped to any unit — they are paid but deployed nowhere.
+            employee(s) are not mapped to any client — they are paid but deployed nowhere.
           </span>
         </button>
       )}
@@ -465,7 +465,7 @@ function DeploymentCharterDialog({
         Contract: r.contractCode,
         Status: "Active",
         Organisation: r.orgName,
-        Unit: r.unitName,
+        Client: r.unitName,
         Role: l.role,
         Committed: l.committed,
         Actual: l.actual,
@@ -482,7 +482,7 @@ function DeploymentCharterDialog({
           <DialogTitle>Deployment charter</DialogTitle>
           <DialogDescription>
             Active client contracts only — committed staff per contract against
-            employees mapped to the unit.
+            employees mapped to the client.
           </DialogDescription>
         </DialogHeader>
 
@@ -492,7 +492,7 @@ function DeploymentCharterDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by unit, organisation or contract ID…"
+              placeholder="Search by client, organisation or contract ID…"
               className="h-9 rounded-lg pl-9"
             />
           </div>
@@ -649,17 +649,17 @@ function UnmappedGuardsDialog({
       <DialogContent className="max-h-[80vh] max-w-lg overflow-hidden p-0">
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-4 w-4" /> Employees not mapped to any unit
+            <AlertTriangle className="h-4 w-4" /> Employees not mapped to any client
           </DialogTitle>
           <DialogDescription>
-            These active, billable employees have no primary unit and no reliever
-            mapping. Map them to a unit so attendance, payroll and billing line up.
+            These active, billable employees have no primary client and no reliever
+            mapping. Map them to a client so attendance, payroll and billing line up.
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[55vh] overflow-y-auto px-5 py-3">
           {rows.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Everyone is mapped to a unit.
+              Everyone is mapped to a client.
             </p>
           ) : (
             <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-destructive/30">
@@ -673,7 +673,7 @@ function UnmappedGuardsDialog({
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-                    No unit
+                    No client
                   </span>
                 </li>
               ))}

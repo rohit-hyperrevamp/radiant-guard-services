@@ -32,7 +32,7 @@ export function UnitDesignationSelect({
           {q.isLoading
             ? "Loading designations…"
             : options.length === 0
-              ? "No designations on this unit's contract"
+              ? "No designations on this client's contract"
               : "Select designation…"}
         </option>
         {options.map((d) => (

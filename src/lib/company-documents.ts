@@ -666,7 +666,7 @@ export async function generateDocumentPdf(opts: {
     });
   }
   const { default: jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ client: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 48;
@@ -1361,7 +1361,7 @@ export async function generateHtmlDocumentPdf(opts: {
     document.body.appendChild(host);
     try {
       const faces = Array.from(host.querySelectorAll(".idcard")) as HTMLElement[];
-      const doc = new jsPDF({ unit: "mm", format: [54, 85.6] });
+      const doc = new jsPDF({ client: "mm", format: [54, 85.6] });
       for (let i = 0; i < faces.length; i += 1) {
         const canvas = await html2canvas(faces[i], { scale: 4, backgroundColor: "#ffffff", useCORS: true });
         if (i > 0) doc.addPage([54, 85.6], "portrait");
@@ -1647,7 +1647,7 @@ export const DEFAULT_WAGE_SLIP_TEMPLATE = `<div class="wage-slip-doc">
       <td class="v">b) D.A.<br/><b>$rate_da</b></td>
       <td class="v">c) Other allowances<br/><b>$rate_other</b></td>
     </tr>
-    <tr><td class="n">8.</td><td class="k">Total attendance/unit of work done</td><td class="v" colspan="3">$total_attendance</td></tr>
+    <tr><td class="n">8.</td><td class="k">Total attendance/client of work done</td><td class="v" colspan="3">$total_attendance</td></tr>
     <tr><td class="n">9.</td><td class="k">Extra duty wages</td><td class="v" colspan="3">$extra_duty_wages</td></tr>
     <tr><td class="n">10.</td><td class="k">Gross wages payable</td><td class="v" colspan="3"><b>$gross_wages</b></td></tr>
     <tr>

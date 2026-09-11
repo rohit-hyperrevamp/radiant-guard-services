@@ -185,7 +185,7 @@ function PayrollUnitPage() {
     queryKey: ["invoice-unit-ph", unitId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("units")
+        .from("clients")
         .select("ph_enabled, ph_multiplier, ph_day_value" as never)
         .eq("id", unitId)
         .maybeSingle();
@@ -209,12 +209,12 @@ function PayrollUnitPage() {
     return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
   }, [unitPh, periodDates, publicHolidays]);
 
-  const { data: unit } = useQuery({
+  const { data: client } = useQuery({
     queryKey: ["payroll-unit", unitId],
     queryFn: async () => {
       await supabaseSessionReady();
       const { data } = await supabase
-        .from("units")
+        .from("clients")
         .select(
           "id, code, name, customer_id, epf_cap_enabled, gst_number, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
         )
@@ -296,19 +296,19 @@ function PayrollUnitPage() {
     },
   });
 
-  const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
-  const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
+  const unitState = (client as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
+  const unitPincode = (client as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
   const epfCapEnabled =
-    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
+    (client as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["invoice-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
-    // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
+    // Wait for `client` (PT state / pincode / EPF cap) before computing, else the
     // first render is wrong/zero until a manual refresh.
-    enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    enabled: client !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       await supabaseSessionReady();
-      // 1. Roster: candidates mapped to this unit (primary + secondary).
+      // 1. Roster: candidates mapped to this client (primary + secondary).
       const [primaryRes, linksRes] = await Promise.all([
         supabase
           .from("candidates")
@@ -362,7 +362,7 @@ function PayrollUnitPage() {
         .select("code, counts_as_present, is_paid, day_value")
         .eq("enabled", true);
 
-      // 3. Contract resources for this unit's active contract.
+      // 3. Contract resources for this client's active contract.
       const { data: contracts } = await supabase
         .from("client_contracts")
         .select("id, payroll_window_id, billing_type_id")
@@ -999,7 +999,7 @@ function PayrollUnitPage() {
     const monthIdx = Number(start.split("-")[1]) - 1;
     const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][monthIdx] ?? "";
     return {
-      invoiceNumber: `${orgSettings?.company_state_code ?? ""}-${monthAbbr}${start.slice(2, 4)}-${(unit?.code ?? "UNIT").toUpperCase()}`,
+      invoiceNumber: `${orgSettings?.company_state_code ?? ""}-${monthAbbr}${start.slice(2, 4)}-${(client?.code ?? "UNIT").toUpperCase()}`,
       invoiceDate: fmtPretty(end),
       periodLabel: `${start.split("-").reverse().join("-")} To ${end.split("-").reverse().join("-")}`,
       company: {
@@ -1110,7 +1110,7 @@ function PayrollUnitPage() {
       };
       return cells;
     });
-    downloadCsv(`invoice-${unit?.code ?? unitId}-${start}-${end}`, dataRows, columns);
+    downloadCsv(`invoice-${client?.code ?? unitId}-${start}-${end}`, dataRows, columns);
   };
 
 
@@ -1155,9 +1155,9 @@ function PayrollUnitPage() {
     const fyStart = ms >= 4 ? ys : ys - 1;
     const fyEnd = fyStart + 1;
     const stateCode = gstinStateCode(unit.gstin) || "00";
-    const vchNo = `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(unit.code || "").toUpperCase()}`;
+    const vchNo = `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(client.code || "").toUpperCase()}`;
     const vchDate = end;
-    const partyName = `${unit.customer_name || ""}, ${unit.name || unit.code || ""}`.trim();
+    const partyName = `${client.customer_name || ""}, ${client.name || client.code || ""}`.trim();
 
     const addr1 = unit.billing_address1 || unit.customer?.billing_address1 || "";
     const addr2 = unit.billing_address2 || unit.customer?.billing_address2 || "";
@@ -1267,13 +1267,13 @@ function PayrollUnitPage() {
 
     if (billingRows.length === 0) {
       // fall back to chooser-based export with empty headers
-      downloadCsv(`Billing File_${end}_${unit.code ?? unitId}`, [{}], columns);
+      downloadCsv(`Billing File_${end}_${client.code ?? unitId}`, [{}], columns);
       return;
     }
 
     // Skip the chooser — Tally needs a strict .xlsx format.
     await writeXlsx({
-      filename: `Billing File_${end}_${(unit.code || unitId).toUpperCase()}_${stateCode}`,
+      filename: `Billing File_${end}_${(client.code || unitId).toUpperCase()}_${stateCode}`,
       rows: billingRows,
       columns,
     });
@@ -1286,7 +1286,7 @@ function PayrollUnitPage() {
       <div className="space-y-4 p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/admin/invoice" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="h-4 w-4" /> Back to invoice units
+            <ChevronLeft className="h-4 w-4" /> Back to invoice clients
           </Link>
         </div>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-900 shadow-sm">
@@ -1313,7 +1313,7 @@ function PayrollUnitPage() {
           to="/admin/invoice"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft className="h-4 w-4" /> Back to invoice units
+          <ChevronLeft className="h-4 w-4" /> Back to invoice clients
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv}>
@@ -1349,7 +1349,7 @@ function PayrollUnitPage() {
           </span>
           <span
             className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-            title={`Company state: ${COMPANY_STATE} · Unit state: ${unitState ?? "—"}`}
+            title={`Company state: ${COMPANY_STATE} · Client state: ${unitState ?? "—"}`}
           >
             {isIntraStateCurrent ? `Intra-state (${COMPANY_STATE}) · CGST + SGST` : `Inter-state · IGST`}
           </span>
