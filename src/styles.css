@@ -457,20 +457,13 @@
     .candidate-wizard-page [data-slot="select-item"] { font-size: 15px !important; }
   }
 
-  /* Softly tinted canvas — subtle warm+cool wash so pages breathe instead of
-     looking like flat white paper. Kept low-opacity for professionalism. */
+  /* Flat neutral canvas — the reference uses one quiet grey field behind
+     pure-white rounded cards, with no coloured washes. */
   .app-canvas {
-    background:
-      radial-gradient(ellipse 55% 40% at 6% -6%, color-mix(in oklab, var(--accent) 12%, transparent) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 38% at 100% 8%, color-mix(in oklab, oklch(0.7 0.14 30) 10%, transparent) 0%, transparent 58%),
-      radial-gradient(ellipse 60% 40% at 50% 105%, color-mix(in oklab, oklch(0.7 0.14 160) 7%, transparent) 0%, transparent 60%),
-      var(--background);
+    background: var(--background);
   }
   .dark .app-canvas {
-    background:
-      radial-gradient(ellipse 55% 40% at 6% -6%, color-mix(in oklab, var(--accent) 20%, transparent) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 38% at 100% 8%, color-mix(in oklab, oklch(0.55 0.18 30) 14%, transparent) 0%, transparent 58%),
-      var(--background);
+    background: var(--background);
   }
 
 
@@ -478,16 +471,11 @@
   /* Grid removed — kept as no-op so existing usages stay safe */
   .app-canvas-grid { background-image: none; }
 
-  /* Every base card gets a clean, consistent modern surface: crisp white in
-     light mode, subtle hairline border via component classes, and a soft
-     layered shadow so cards read as elevated without gradients. */
+  /* Every base card: pure white, generously rounded, whisper-soft shadow. */
   .bg-card {
     background-image: none;
-    border-radius: 20px;
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, var(--foreground) 3%, transparent) inset,
-      0 1px 2px rgb(var(--surface-shadow) / 0.035),
-      0 14px 34px -22px rgb(var(--surface-shadow) / 0.16);
+    border-radius: 24px;
+    box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.035), 0 12px 30px -24px rgb(var(--surface-shadow) / 0.18);
   }
   .dark .bg-card {
     background-image: none;
