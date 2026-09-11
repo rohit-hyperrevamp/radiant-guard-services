@@ -139,6 +139,30 @@ function toDigilockerProfile(
 /** Request-scoped Supabase client (RLS as the signed-in staff user). */
 type Db = { from: (table: string) => any };
 
+/**
+ * Platform switch: when employee verification is OFF, Aadhaar/PAN/bank checks
+ * are never called and all details are captured manually.
+ */
+async function assertVerificationEnabled(db: Db): Promise<void> {
+  try {
+    const { data } = await db
+      .from("inv_settings")
+      .select("value")
+      .eq("key", "employee_verification_enabled")
+      .maybeSingle();
+    const enabled = (data as { value?: { enabled?: boolean } } | null)?.value?.enabled;
+    if (enabled === false) {
+      throw new Error(
+        "Employee verification is turned off in Platform Settings. Enter the details manually.",
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Employee verification is turned off")) throw error;
+    // A settings read failure must not block onboarding — fail open.
+    console.error("[surepass] settings read failed", error);
+  }
+}
+
 /** Persisted cache so a DigiLocker download (one-shot at Surepass) can be replayed into the form. */
 async function readCachedProfile(db: Db, clientId: string): Promise<DigilockerProfile | null> {
   try {
@@ -174,7 +198,8 @@ export const validateAadhaarNumber = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ aadhaar: z.string().regex(/^\d{12}$/, "Aadhaar must be 12 digits") }).parse(input),
   )
-  .handler(async ({ data }): Promise<AadhaarValidationResult> => {
+  .handler(async ({ data, context }): Promise<AadhaarValidationResult> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>(
       "/api/v1/aadhaar-validation/aadhaar-validation",
       { method: "POST", body: { id_number: data.aadhaar } },
@@ -222,6 +247,7 @@ export const startDigilockerSession = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<DigilockerSession> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>("/api/v1/digilocker/initialize", {
       method: "POST",
       body: {
@@ -433,7 +459,8 @@ export const verifyPanComprehensive = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<PanComprehensiveResult> => {
+  .handler(async ({ data, context }): Promise<PanComprehensiveResult> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>("/api/v1/pan/pan-comprehensive", {
       method: "POST",
       body: { id_number: data.pan },
@@ -501,7 +528,8 @@ export const verifyBankAccount = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<BankVerificationResult> => {
+  .handler(async ({ data, context }): Promise<BankVerificationResult> => {
+    await assertVerificationEnabled(context.supabase as unknown as Db);
     const json = await surepass<Record<string, unknown>>("/api/v1/bank-verification/", {
       method: "POST",
       body: { id_number: data.accountNumber, ifsc: data.ifsc, ifsc_details: true },

@@ -80,6 +80,7 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 import { DigilockerVerify } from "@/components/DigilockerVerify";
 import { PanVerify } from "@/components/PanVerify";
 import { BankVerify } from "@/components/BankVerify";
+import { useEmployeeVerificationEnabled } from "@/lib/platform-settings";
 import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
@@ -4798,6 +4799,8 @@ function CandidateWizard({
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [invalidField, setInvalidField] = useState<string | null>(null);
   const [digilockerVerified, setDigilockerVerified] = useState(false);
+  // Platform switch — when OFF, Aadhaar/PAN/bank are captured manually and nothing is verified.
+  const { enabled: verificationEnabled } = useEmployeeVerificationEnabled();
   const [panVerified, setPanVerified] = useState(false);
   const [bankVerified, setBankVerified] = useState(false);
   const checkSavedDigilockerVerification = useServerFn(hasCompletedDigilockerVerification);
@@ -5294,7 +5297,7 @@ function CandidateWizard({
 
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
-    { key: "PAN verified", ok: panVerified },
+    { key: "PAN verified", ok: !verificationEnabled || panVerified },
     { key: "Client assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
@@ -5590,7 +5593,11 @@ function CandidateWizard({
     if (!isEditingEmployeeProfile) {
       if (!form.photo_url) return failValidation("Photograph is required");
       if (!digilockerVerified && !form.aadhaar_image_url)
-        return failValidation("Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy");
+        return failValidation(
+          verificationEnabled
+            ? "Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy"
+            : "Upload an Aadhaar copy",
+        );
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
@@ -5890,6 +5897,7 @@ function CandidateWizard({
                     {aadhaarChecking && (
                       <div className="mt-1 text-[11px] text-muted-foreground">Checking existing records…</div>
                     )}
+                    {verificationEnabled && (
                     <DigilockerVerify
                       aadhaar={form.aadhaar_number}
                       mobile={form.mobile}
@@ -5924,6 +5932,7 @@ function CandidateWizard({
                         setDigilockerVerified(true);
                       }}
                     />
+                    )}
 
                     <RehireRequestDialog
                       open={rehireOpen}
@@ -5953,6 +5962,7 @@ function CandidateWizard({
                         }
                       }}
                     />
+                    {verificationEnabled && (
                     <PanVerify
                       pan={form.pan_number}
                       aadhaar={form.aadhaar_number}
@@ -5997,6 +6007,7 @@ function CandidateWizard({
                         setPanVerified(true);
                       }}
                     />
+                    )}
                   </Field>
                 </div>
               </Section>
@@ -6419,6 +6430,7 @@ function CandidateWizard({
                     </Select>
                   </Field>
                   <div className="sm:col-span-2">
+                    {verificationEnabled && (
                     <BankVerify
                       accountNumber={form.bank_account_number}
                       ifsc={form.bank_ifsc}
@@ -6444,6 +6456,7 @@ function CandidateWizard({
                         }));
                       }}
                     />
+                    )}
                   </div>
                 </div>
               </Section>
