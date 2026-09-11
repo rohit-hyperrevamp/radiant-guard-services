@@ -5593,7 +5593,11 @@ function CandidateWizard({
     if (!isEditingEmployeeProfile) {
       if (!form.photo_url) return failValidation("Photograph is required");
       if (!digilockerVerified && !form.aadhaar_image_url)
-        return failValidation("Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy");
+        return failValidation(
+          verificationEnabled
+            ? "Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy"
+            : "Upload an Aadhaar copy",
+        );
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
