@@ -9,3 +9,5 @@
 - [x] Move notification bell from the top bar into the left panel, below the profile entry
 - [x] Move the light/dark mode control into the profile menu only
 - [x] Optimize login left-panel spacing for full screen and reduce brand card rounding
+- [ ] Sidebar: revert left panel to black (not brand blue); fix double ring on hover/click of nav icons → single clean circle
+- [x] Brand color: navy → bright blue #1877f2 globally; login layout tightened + blue glow
