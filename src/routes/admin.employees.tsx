@@ -3542,7 +3542,7 @@ function EmployeesPage() {
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Employees"
-        description="Onboard and manage candidates joining client clients."
+        description="Onboard and manage candidates joining client sites."
         crumbs={[{ label: "Employees" }]}
       />
 

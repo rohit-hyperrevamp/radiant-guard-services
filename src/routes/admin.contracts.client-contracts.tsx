@@ -2381,7 +2381,7 @@ function ClientContractsPage() {
       <PageHeader
         title="Client Contracts"
         eyebrow="Contracts"
-        description="Manage client contracts across organisations and clients."
+        description="Manage contracts across organisations and clients."
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         kpis={
           <>

@@ -165,7 +165,7 @@ export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssu
       push({ id: `unit-emg-${u.id}`, domain: "organizations", check: "Emergency contact missing", severity: "low", subject: label, detail: "No site emergency contact number recorded.", href: "/admin/customers/unit-manager" });
     }
     if (!u.customer_id) {
-      push({ id: `unit-cust-${u.id}`, domain: "organizations", check: "Client not linked to client", severity: "critical", subject: label, detail: "Client has no parent organization — billing and reporting will exclude it.", href: "/admin/customers/unit-manager" });
+      push({ id: `unit-cust-${u.id}`, domain: "organizations", check: "Client not linked to organization", severity: "critical", subject: label, detail: "Client has no parent organization — billing and reporting will exclude it.", href: "/admin/customers/unit-manager" });
     }
     const d = daysUntil(str(u.contract_end_date) || null);
     const sev = expirySeverity(d);
