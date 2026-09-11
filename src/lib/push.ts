@@ -5,6 +5,7 @@
  * the resulting device token in `public.device_push_tokens` so backend jobs
  * can target the signed-in user. Safe no-op on web.
  */
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getNativeRuntimeSnapshot, isNativePlatform, logNativeEvent } from "./native";
