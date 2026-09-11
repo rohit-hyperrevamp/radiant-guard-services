@@ -644,17 +644,17 @@ function AdminLayout() {
         </nav>
 
         {/* Footer: user + collapse */}
-        <div className="border-t border-border/40 p-3">
+        <div className="border-t border-white/10 p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-2xl border border-border/40 bg-card/60 p-2 text-sm font-semibold text-foreground transition hover:bg-card/80",
+                  "flex w-full items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-2 text-sm font-semibold text-white transition hover:bg-white/10",
                   collapsed && "justify-center p-1.5",
                 )}
               >
-                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary text-primary-foreground text-[11px] font-bold">
+                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white text-[#15161a] text-[11px] font-bold">
                   {me.photoUrl ? (
                     <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
@@ -668,7 +668,7 @@ function AdminLayout() {
                         {me.fullName || (user?.phone ? maskPhone(user.phone) : "Account")}
                       </span>
                       {me.designation && (
-                        <span className="block truncate text-[11px] font-medium capitalize text-muted-foreground">
+                        <span className="block truncate text-[11px] font-medium capitalize text-white/50">
                           {me.designation}
                         </span>
                       )}
