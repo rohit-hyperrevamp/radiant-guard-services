@@ -139,6 +139,30 @@ function toDigilockerProfile(
 /** Request-scoped Supabase client (RLS as the signed-in staff user). */
 type Db = { from: (table: string) => any };
 
+/**
+ * Platform switch: when employee verification is OFF, Aadhaar/PAN/bank checks
+ * are never called and all details are captured manually.
+ */
+async function assertVerificationEnabled(db: Db): Promise<void> {
+  try {
+    const { data } = await db
+      .from("inv_settings")
+      .select("value")
+      .eq("key", "employee_verification_enabled")
+      .maybeSingle();
+    const enabled = (data as { value?: { enabled?: boolean } } | null)?.value?.enabled;
+    if (enabled === false) {
+      throw new Error(
+        "Employee verification is turned off in Platform Settings. Enter the details manually.",
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Employee verification is turned off")) throw error;
+    // A settings read failure must not block onboarding — fail open.
+    console.error("[surepass] settings read failed", error);
+  }
+}
+
 /** Persisted cache so a DigiLocker download (one-shot at Surepass) can be replayed into the form. */
 async function readCachedProfile(db: Db, clientId: string): Promise<DigilockerProfile | null> {
   try {
