@@ -542,7 +542,9 @@ function AdminLayout() {
           return { ...g, children: kids };
         }
         if (!g.module || !g.children) return g;
-        const filtered = g.children.filter((c) => !c.sub || canSub(g.module!, c.sub));
+        // Control Center hosts the State/Branch managers — their subs live under the organizations module.
+        const subModule = g.key === "control" ? "organizations" : g.module!;
+        const filtered = g.children.filter((c) => !c.sub || canSub(subModule, c.sub));
         return { ...g, children: filtered };
       });
 
