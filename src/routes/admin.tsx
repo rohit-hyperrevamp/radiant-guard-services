@@ -726,13 +726,13 @@ function AdminLayout() {
 
           <div
             className={cn(
-              "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2 py-1.5",
+              "mt-2 flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-2 py-1.5",
               collapsed && "justify-center px-1.5",
             )}
           >
-            <NotificationBell />
+            <NotificationBell triggerClassName="relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:border-white/30 hover:bg-white/15" />
             {!collapsed && (
-              <span className="flex-1 truncate text-[12px] font-semibold text-foreground">
+              <span className="flex-1 truncate text-[12px] font-semibold text-white">
                 Notifications
               </span>
             )}
@@ -742,7 +742,7 @@ function AdminLayout() {
             type="button"
             onClick={() => setCollapsed((v) => !v)}
             className={cn(
-              "mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-card/60 hover:text-foreground",
+              "mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-white/50 hover:bg-white/10 hover:text-white",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
