@@ -5,6 +5,7 @@
  * the resulting device token in `public.device_push_tokens` so backend jobs
  * can target the signed-in user. Safe no-op on web.
  */
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getNativeRuntimeSnapshot, isNativePlatform, logNativeEvent } from "./native";
@@ -18,6 +19,20 @@ let lastPermission: string | null = null;
 let lastError: string | null = null;
 let authSyncAttached = false;
 let pendingTokenResolvers: Array<(token: string | null) => void> = [];
+
+/**
+ * Which native store the device token belongs to. iOS tokens go to APNs,
+ * Android tokens are FCM registration tokens — the backend needs to know which.
+ */
+function nativePlatform(): "ios" | "android" | "web" {
+  try {
+    const platform = Capacitor.getPlatform();
+    if (platform === "ios" || platform === "android") return platform;
+  } catch {
+    /* fall through */
+  }
+  return "web";
+}
 
 type PushRegisterResult = {
   supported: boolean;
@@ -42,7 +57,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   }
 
   try {
-    const result = await saveMyPushTokenViaApi({ token, platform: "ios" });
+    const result = await saveMyPushTokenViaApi({ token, platform: nativePlatform() });
     if (!result?.saved) {
       lastError = "The iPhone token was received, but the backend did not confirm it was saved.";
       logNativeEvent("push", "APNs token save not confirmed", {
@@ -144,6 +159,25 @@ async function preparePushNotificationsOnce(): Promise<void> {
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     attachAuthTokenSync();
+
+    // Android needs an explicit high-importance channel, otherwise banners are
+    // delivered silently. iOS ignores channels.
+    if (nativePlatform() === "android") {
+      try {
+        await PushNotifications.createChannel({
+          id: "radiant_alerts",
+          name: "Radiant Guard alerts",
+          description: "Approvals, attendance and field alerts",
+          importance: 5,
+          visibility: 1,
+          vibration: true,
+        });
+      } catch (err) {
+        logNativeEvent("push", "android channel setup failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
     logNativeEvent("push", "preparing listeners", getNativeRuntimeSnapshot());
 
     const perm = await PushNotifications.checkPermissions();
