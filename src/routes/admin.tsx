@@ -614,7 +614,7 @@ function AdminLayout() {
                   return (
                     <div key={s.label} className="space-y-[3px]">
                       {!collapsed && (
-                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground/70">
+                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">
                           {s.label}
                         </div>
                       )}
@@ -630,7 +630,7 @@ function AdminLayout() {
                   return (
                     <div className="space-y-[3px]">
                       {!collapsed && (
-                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground/70">More</div>
+                        <div className="px-2.5 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">More</div>
                       )}
                       {rest.map((g) => (
                         <SidebarGroup key={g.key} group={g} collapsed={collapsed} isActive={isActive} groupActive={isGroupActive(g)} />
