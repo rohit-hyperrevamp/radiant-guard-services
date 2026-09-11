@@ -5,6 +5,7 @@
 - [ ] Reconcile CON14897 August attendance row-by-row, correct L/weekly-off handling, and verify totals
 - [x] Fix and re-audit CON15246 against the original Pune contract sheet
 - [x] Remove the em dash from the login tagline
-- [ ] Standardize company name as "Radiant Guard Services Pvt. Ltd." everywhere (code + company settings)
-- [ ] Move notification bell from the top bar into the left panel, below the profile entry
-- [ ] Move the light/dark mode control into the profile menu only
+- [x] Standardize company name as "Radiant Guard Services Pvt. Ltd." everywhere (code + company settings)
+- [x] Move notification bell from the top bar into the left panel, below the profile entry
+- [x] Move the light/dark mode control into the profile menu only
+- [x] Optimize login left-panel spacing for full screen and reduce brand card rounding
