@@ -97,6 +97,7 @@ type LeafItem = {
 type GroupItem = {
   key: string;
   label: string;
+  sub?: string; // optional sub-module key for RBAC filtering on top-level entries
   icon: React.ComponentType<{ className?: string }>;
   module?: string;
   to?: string;
