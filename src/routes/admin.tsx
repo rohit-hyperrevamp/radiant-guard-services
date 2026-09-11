@@ -709,6 +709,14 @@ function AdminLayout() {
                   <Bell className="h-4 w-4" /> Notifications
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={toggleTheme} className="gap-2">
+                {themeMounted && theme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+                {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" /> Sign out
@@ -716,42 +724,19 @@ function AdminLayout() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {isFieldOfficer && (
-            <div
-              className={cn(
-                "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2 py-1.5",
-                collapsed && "justify-center px-1.5",
-              )}
-            >
-              <NotificationBell />
-              {!collapsed && (
-                <span className="flex-1 truncate text-[12px] font-semibold text-foreground">
-                  Notifications
-                </span>
-              )}
-            </div>
-          )}
-
-
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          <div
             className={cn(
-              "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2.5 py-2 text-[12px] font-semibold text-foreground hover:bg-card/80 transition",
+              "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2 py-1.5",
               collapsed && "justify-center px-1.5",
             )}
           >
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-foreground/[0.06] text-foreground/70">
-              {themeMounted && theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-            </span>
+            <NotificationBell />
             {!collapsed && (
-              <span className="flex-1 text-left text-[12px]">
-                {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
+              <span className="flex-1 truncate text-[12px] font-semibold text-foreground">
+                Notifications
               </span>
             )}
-          </button>
+          </div>
 
           <button
             type="button"
@@ -935,12 +920,6 @@ function AdminLayout() {
 
       {/* Main */}
       <main data-admin-scroll className={cn("relative z-10 min-h-0 flex-1 overflow-x-clip overflow-y-visible safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
-        {/* Desktop top utility bar — notifications only */}
-        {!isFieldOfficer && !nativeShell && (
-          <div className="mb-4 hidden items-center justify-end gap-3 lg:flex animate-slide-in-top">
-            <NotificationBell />
-          </div>
-        )}
 
 
         <div className="mx-auto max-w-[1500px]">

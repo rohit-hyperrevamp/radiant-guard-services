@@ -87,7 +87,7 @@ type OcrRowSummary = {
 };
 
 const SERVICE_PROVIDER = {
-  name: "Radiant Guard Services Private Limited",
+  name: "Radiant Guard Services Pvt. Ltd.",
   address: "Office No. 818, 8th Floor, Clover Hills Plaza, NIBM Road, Pune. 411048",
 };
 

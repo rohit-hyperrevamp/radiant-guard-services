@@ -299,34 +299,36 @@ function LoginPage() {
         <div className="relative z-10 flex min-h-dvh flex-col lg:flex-row">
           {/* Left — brand + tagline */}
           <div
-            className="relative flex flex-col justify-center px-6 pb-6 pt-8 sm:px-10 lg:flex-1 lg:p-14"
+            className="relative flex flex-col px-6 pb-8 pt-7 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-14 lg:pb-12 lg:pt-10"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
-            <div className="max-w-xl py-10 lg:py-0">
-              <div className="mb-8 inline-flex items-center gap-3 rounded-xl bg-white px-4 py-2.5 shadow-lg shadow-black/20 sm:px-5 sm:py-3">
-                <img
-                  src={logo}
-                  alt="Radiant Guard Services logo"
-                  className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
-                />
-                <div>
-                  <div className="font-display text-lg font-semibold leading-none tracking-tight text-foreground sm:text-xl">
-                    Radiant Guard
-                  </div>
-                  <div className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
-                    Services Private Limited
-                  </div>
+            <div className="inline-flex items-center gap-3 rounded-lg bg-white px-4 py-2.5 shadow-lg shadow-black/20 sm:px-5 sm:py-3">
+              <img
+                src={logo}
+                alt="Radiant Guard Services logo"
+                className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
+              />
+              <div>
+                <div className="font-display text-lg font-semibold leading-none tracking-tight text-foreground sm:text-xl">
+                  Radiant Guard
+                </div>
+                <div className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
+                  Services Pvt. Ltd.
                 </div>
               </div>
-              <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
-                Security operations,
-                <br />
-                <span className="text-white/70">managed with precision.</span>
-              </h1>
-              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75">
-                One portal for attendance, payroll, contracts and field teams —
-                built for the people who keep every site running.
-              </p>
+            </div>
+            <div className="flex flex-1 items-center">
+              <div className="w-full max-w-2xl py-8">
+                <h1 className="font-display text-4xl font-semibold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
+                  Security operations,
+                  <br />
+                  <span className="text-white/70">managed with precision.</span>
+                </h1>
+                <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/75 lg:text-base">
+                  One portal for attendance, payroll, contracts and field teams
+                  built for the people who keep every site running.
+                </p>
+              </div>
             </div>
           </div>
 
