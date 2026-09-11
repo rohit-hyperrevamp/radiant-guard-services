@@ -469,11 +469,6 @@ function LoginPage() {
                 )}
               </div>
 
-              {/* trust row */}
-              <div className="mt-8 flex items-center gap-2 text-[12px] font-medium text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-accent" />
-                <span>Encrypted end-to-end · Secure OTP verification</span>
-              </div>
             </div>
 
             {/* Footer credit */}
