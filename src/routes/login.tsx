@@ -308,7 +308,7 @@ function LoginPage() {
             className="relative flex flex-col px-6 pb-6 pt-6 sm:px-10 lg:min-h-0 lg:flex-1 lg:px-14 lg:pb-10 lg:pt-10"
             style={{ animation: splashDone ? "login-brand-in 0.7s ease-out both" : "none", opacity: splashDone ? undefined : 0 }}
           >
-            <div className="inline-flex items-center gap-3 self-start rounded-sm bg-white px-3.5 py-2.5 shadow-md shadow-black/15 sm:gap-3.5 sm:px-4 sm:py-3">
+            <div className="inline-flex items-center gap-3 self-start rounded-[6px] bg-white px-3.5 py-2.5 shadow-md shadow-black/15 sm:gap-3.5 sm:px-4 sm:py-3">
               <img
                 src={logo}
                 alt="Radiant Guard Services logo"
