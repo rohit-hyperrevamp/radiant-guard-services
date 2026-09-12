@@ -50,9 +50,14 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units" as never)
-        .select("id,branch_id,customer_id");
+        .select("id,branch_id,customer_id,is_billable");
       if (error) throw error;
-      return ((data as unknown) as Array<{ id: string; branch_id: string | null; customer_id: string | null }>) ?? [];
+      return ((data as unknown) as Array<{
+        id: string;
+        branch_id: string | null;
+        customer_id: string | null;
+        is_billable: boolean | null;
+      }>) ?? [];
     },
   });
 
@@ -76,6 +81,11 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
       for (const u of unitsQ.data ?? []) {
         if (u.customer_id && customerIds.has(u.customer_id)) set.add(u.id);
       }
+    }
+    // Drop Radiant's own non-billable offices: those are payroll/home units,
+    // never operational work sites.
+    for (const u of unitsQ.data ?? []) {
+      if (u.is_billable === false) set.delete(u.id);
     }
     return set;
   }, [isFieldOfficer, candidateId, scopeQ.data, cuQ.data, unitsQ.data]);

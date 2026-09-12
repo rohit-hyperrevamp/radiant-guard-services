@@ -160,6 +160,18 @@ function FieldOfficerDashboard() {
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
       for (const id of scopeUnitIds) unitIdSet.add(id);
       unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
+      // Non-billable units (Radiant's own offices) are payroll/home markers, not
+      // work sites. A non-billable employee's home office must never appear as
+      // one of "my units" — only the client sites they are actually mapped to.
+      if (unitIdSet.size) {
+        const { data: billableRows } = await supabase
+          .from("units")
+          .select("id,is_billable")
+          .in("id", Array.from(unitIdSet));
+        for (const r of ((billableRows ?? []) as Array<{ id: string; is_billable: boolean | null }>)) {
+          if (r.is_billable === false) unitIdSet.delete(r.id);
+        }
+      }
       const unitIds = Array.from(unitIdSet);
 
 
