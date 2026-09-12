@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { getNativeRuntimeSnapshot, isNativePlatform, logNativeEvent } from "./native";
 import { playNotificationChime } from "./notification-sound";
 import { saveMyPushTokenViaApi } from "./native-push-api";
+import { openPushLink } from "./push-deeplink";
 
 let initialized = false;
 let initPromise: Promise<void> | null = null;
