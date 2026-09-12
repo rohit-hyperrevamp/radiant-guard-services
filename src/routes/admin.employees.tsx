@@ -5841,28 +5841,20 @@ function CandidateWizard({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
               </div>
-              {nonBillableUnits.length > 0 && (
-
-                <div className="grid gap-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
-                  <Select value={homeUnitId} onValueChange={setHomeUnitId}>
-                    <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
-                      <SelectValue placeholder="Select a Radiant unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nonBillableUnits
-                        .slice()
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} className="text-xs">
-                            {u.name} {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                   <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO).</span>
-                </div>
-              )}
+              <div className="grid gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
+                <SearchableUnitSelect
+                  units={nonBillableUnits}
+                  value={homeUnitId}
+                  onChange={setHomeUnitId}
+                  placeholder="Select a Radiant unit"
+                  loading={homeUnitsLoading}
+                  error={homeUnitsError}
+                  onRetry={() => void homeUnitsQuery.refetch()}
+                  className="w-full sm:w-[320px]"
+                />
+                <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO). Type to search.</span>
+              </div>
             </div>
           )}
 
@@ -6682,18 +6674,15 @@ function CandidateWizard({
                   <div className="sm:col-span-2">
                     {isEmployeeMode ? (
                       <Field label="Radiant Guard Services unit">
-                        <Select value={homeUnitId} onValueChange={setHomeUnitId} disabled={unitsLoading || !!unitsError}>
-                          <SelectTrigger className="h-11 w-full">
-                            <SelectValue placeholder="Select a Radiant unit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {nonBillableUnits.map((u) => (
-                              <SelectItem key={u.id} value={u.id}>
-                                {u.name} {u.code ? `· ${u.code}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableUnitSelect
+                          units={nonBillableUnits}
+                          value={homeUnitId}
+                          onChange={setHomeUnitId}
+                          placeholder="Select a Radiant unit"
+                          loading={homeUnitsLoading}
+                          error={homeUnitsError}
+                          onRetry={() => void homeUnitsQuery.refetch()}
+                        />
                       </Field>
                     ) : (
                       <Field label={`Clients (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
