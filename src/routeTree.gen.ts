@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -120,6 +121,11 @@ import { Route as AdminCandidatesIdDetailsRouteImport } from './routes/admin.can
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -683,6 +689,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
@@ -792,6 +799,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
@@ -898,6 +906,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
@@ -1009,6 +1018,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/privacy-policy'
     | '/welcome'
     | '/admin/addition-type-manager'
     | '/admin/additions'
@@ -1118,6 +1128,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/privacy-policy'
     | '/welcome'
     | '/admin/addition-type-manager'
     | '/admin/additions'
@@ -1223,6 +1234,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/privacy-policy'
     | '/welcome'
     | '/admin/addition-type-manager'
     | '/admin/additions'
@@ -1333,6 +1345,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   WelcomeRoute: typeof WelcomeRoute
   DigilockerCallbackRoute: typeof DigilockerCallbackRoute
   ApiPublicOtpHealthRoute: typeof ApiPublicOtpHealthRoute
@@ -1347,6 +1360,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -2374,6 +2394,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   WelcomeRoute: WelcomeRoute,
   DigilockerCallbackRoute: DigilockerCallbackRoute,
   ApiPublicOtpHealthRoute: ApiPublicOtpHealthRoute,
