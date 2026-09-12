@@ -5910,21 +5910,13 @@ function CandidateWizard({
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
+                  Payroll home unit · {nonBillableUnits.find((u) => u.id === homeUnitId)?.name ?? "Corporate Office (Pune - HO)"}
+                </Badge>
               </div>
-              <div className="grid gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
-                <SearchableUnitSelect
-                  units={nonBillableUnits}
-                  value={homeUnitId}
-                  onChange={setHomeUnitId}
-                  placeholder="Select a Radiant unit"
-                  loading={homeUnitsLoading}
-                  error={homeUnitsError}
-                  onRetry={() => void homeUnitsQuery.refetch()}
-                  className="w-full sm:w-[320px]"
-                />
-                <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO). Type to search.</span>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Salary is always calculated on the Radiant home unit. Use the Assignment section below to map where this person actually works (any client unit or organization).
+              </p>
             </div>
           )}
 
@@ -6743,15 +6735,15 @@ function CandidateWizard({
                   </Field>
                   <div className="sm:col-span-2">
                     {isEmployeeMode ? (
-                      <Field label="Radiant Guard Services unit">
-                        <SearchableUnitSelect
-                          units={nonBillableUnits}
-                          value={homeUnitId}
-                          onChange={setHomeUnitId}
-                          placeholder="Select a Radiant unit"
-                          loading={homeUnitsLoading}
-                          error={homeUnitsError}
-                          onRetry={() => void homeUnitsQuery.refetch()}
+                      <Field label={`Work mapping — where this person works (payroll stays at Radiant Pune)${operationalMappings.length > 0 ? ` · ${operationalMappings.length} selected` : ""}`}>
+                        <OperationalMappingPicker
+                          units={units}
+                          customers={wizardCustomers}
+                          value={operationalMappings}
+                          onChange={setOperationalMappings}
+                          loading={unitsLoading}
+                          error={unitsError}
+                          onRetry={() => void qc.invalidateQueries({ queryKey: QK_UNITS })}
                         />
                       </Field>
                     ) : (
