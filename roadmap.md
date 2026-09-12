@@ -15,4 +15,4 @@
 - [ ] Role/hierarchy-contextual notification routing verification
 - [x] Signed release AAB + Play Store internal testing
 - [x] Google Play listing icon and feature graphic prepared from the Apple app icon
-- [ ] Google Play phone screenshots prepared
+- [x] Google Play phone screenshots prepared
