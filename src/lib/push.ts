@@ -250,7 +250,7 @@ async function preparePushNotificationsOnce(): Promise<void> {
             ? {
                 label: "Open",
                 onClick: () => {
-                  if (link.startsWith("/")) window.location.href = link;
+                  openPushLink(link);
                 },
               }
             : undefined,
@@ -261,10 +261,9 @@ async function preparePushNotificationsOnce(): Promise<void> {
           data: action.notification.data,
         });
         const link = (action.notification.data as { link?: string } | undefined)?.link;
-        if (link && typeof window !== "undefined" && link.startsWith("/")) {
-          window.location.href = link;
-        }
+        openPushLink(link);
       }),
+
     ]);
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);
