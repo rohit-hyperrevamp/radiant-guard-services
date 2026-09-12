@@ -53,6 +53,7 @@ import {
   type Unit,
 } from "@/lib/admin-data";
 import { cn } from "@/lib/utils";
+import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
 import { MONTH_NAMES, resolveLwf, useLwfRows } from "@/lib/lwf-lookup";
 import {
@@ -151,6 +152,17 @@ function UnitManagerPage() {
   const { branches } = useBranches();
   const { customers } = useCustomers();
   const { states } = useStates();
+  const foScope = useFieldOfficerUnitScope();
+
+  // Field officers only ever see the clients they are mapped to.
+  const scopedUnits = useMemo(
+    () => (foScope.isFieldOfficer ? units.filter((u) => foScope.unitIds.has(u.id)) : units),
+    [units, foScope.isFieldOfficer, foScope.unitIds],
+  );
+  const scopedCustomers = useMemo(
+    () => (foScope.isFieldOfficer ? customers.filter((c) => foScope.customerIds.has(c.id)) : customers),
+    [customers, foScope.isFieldOfficer, foScope.customerIds],
+  );
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -165,7 +177,7 @@ function UnitManagerPage() {
   const stateById = useMemo(() => new Map(states.map((s) => [s.id, s])), [states]);
 
   const rows = useMemo(() => {
-    const list = [...units]
+    const list = [...scopedUnits]
       .map((u) => {
         const br = u.branchId ? branchById.get(u.branchId) : undefined;
         const stName = br ? stateById.get(br.stateId)?.name ?? "" : "";
@@ -195,16 +207,16 @@ function UnitManagerPage() {
         u.branchLabel.toLowerCase().includes(q) ||
         u.customerLabel.toLowerCase().includes(q),
     );
-  }, [units, branchById, customerById, stateById, query, statusFilter, orgFilter]);
+  }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter]);
 
   const pg = usePagination(rows);
 
   const orgOptions = useMemo(
-    () => [...customers].sort((a, b) => a.name.localeCompare(b.name)),
-    [customers],
+    () => [...scopedCustomers].sort((a, b) => a.name.localeCompare(b.name)),
+    [scopedCustomers],
   );
 
-  const activeCount = units.filter((u) => u.status === "active").length;
+  const activeCount = scopedUnits.filter((u) => u.status === "active").length;
 
   return (
     <div>
