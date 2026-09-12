@@ -1210,93 +1210,163 @@ function useHomeUnits() {
   });
 }
 
-/** Searchable single-unit picker (type to filter by name or code). */
-function SearchableUnitSelect({
+type OperationalMapping = {
+  scope_type: "unit" | "customer";
+  scope_id: string;
+  scope_label: string;
+};
+
+/**
+ * Inline searchable mapping picker for non-billable employees. The person can
+ * be mapped to any client unit or organization they actually work at — payroll
+ * always stays on the Radiant home unit. Rendered inline (no Popover) because
+ * popup pickers are unreliable inside the full-screen wizard dialog.
+ */
+function OperationalMappingPicker({
   units,
+  customers,
   value,
   onChange,
-  placeholder = "Select a unit",
   disabled = false,
   loading = false,
   error = null,
   onRetry,
-  className = "",
 }: {
   units: UnitLite[];
-  value: string;
-  onChange: (id: string) => void;
-  placeholder?: string;
+  customers: { id: string; name: string }[];
+  value: OperationalMapping[];
+  onChange: (rows: OperationalMapping[]) => void;
   disabled?: boolean;
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
-  className?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const selected = units.find((u) => u.id === value);
+  const [targetType, setTargetType] = useState<"unit" | "customer">("unit");
+  const [query, setQuery] = useState("");
+  const selectedKeys = useMemo(() => new Set(value.map((m) => `${m.scope_type}:${m.scope_id}`)), [value]);
+
+  const options = useMemo(() => {
+    const rows =
+      targetType === "unit"
+        ? units
+            .filter((u) => u.is_billable !== false)
+            .map((u) => ({
+              id: u.id,
+              label: `${u.name}${u.code ? ` · ${u.code}` : ""}`,
+              sub: u.customer_name ?? "",
+            }))
+        : customers.map((c) => ({ id: c.id, label: c.name, sub: "Organization" }));
+    rows.sort((a, b) => a.label.localeCompare(b.label));
+    const needle = query.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((o) => `${o.label} ${o.sub}`.toLowerCase().includes(needle));
+  }, [targetType, units, customers, query]);
+
+  const toggle = (o: { id: string; label: string }) => {
+    const key = `${targetType}:${o.id}`;
+    if (selectedKeys.has(key)) {
+      onChange(value.filter((m) => !(m.scope_type === targetType && m.scope_id === o.id)));
+    } else {
+      onChange([...value, { scope_type: targetType, scope_id: o.id, scope_label: o.label }]);
+    }
+  };
+
   return (
-    <div className={className}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
+    <div className="space-y-2">
+      <div className="flex rounded-lg border border-border/60 bg-secondary/40 p-0.5">
+        {(["unit", "customer"] as const).map((t) => (
+          <button
+            key={t}
             type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled || loading}
-            className="h-11 w-full justify-between text-left font-normal"
-          >
-            <span className="truncate">
-              {loading
-                ? "Loading units…"
-                : selected
-                  ? `${selected.name}${selected.code ? ` · ${selected.code}` : ""}`
-                  : placeholder}
-            </span>
-            {loading ? (
-              <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
-            ) : (
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+            disabled={disabled}
+            onClick={() => { setTargetType(t); setQuery(""); }}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition disabled:opacity-40",
+              targetType === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Type a unit name or code…" />
-            <CommandList>
-              <CommandEmpty>No unit matches.</CommandEmpty>
-              <CommandGroup>
-                {units.map((u) => (
-                  <CommandItem
-                    key={u.id}
-                    value={`${u.name} ${u.code ?? ""}`}
-                    onSelect={() => {
-                      onChange(u.id);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check className={cn("mr-2 h-4 w-4", u.id === value ? "opacity-100" : "opacity-0")} />
-                    <span className="truncate">
-                      {u.name}
-                      {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
-                    </span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      {error && (
-        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-destructive">
-          <span className="truncate">Could not load units: {error}</span>
-          {onRetry && (
-            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-[11px]" onClick={onRetry}>
-              Retry
-            </Button>
-          )}
+          >
+            {t === "unit" ? "Client units" : "Organizations"}
+          </button>
+        ))}
+      </div>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          disabled={disabled || loading}
+          placeholder={targetType === "unit" ? "Search units by name, code or organization…" : "Search organizations…"}
+          className="h-9 pl-8"
+        />
+      </div>
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {value.map((m) => (
+            <Badge key={`${m.scope_type}:${m.scope_id}`} variant="secondary" className="gap-1 font-normal">
+              <span className="max-w-[220px] truncate">
+                {m.scope_type === "customer" ? "Org · " : ""}{m.scope_label}
+              </span>
+              <button
+                type="button"
+                aria-label={`Remove ${m.scope_label}`}
+                className="rounded-full p-0.5 hover:bg-foreground/10"
+                onClick={() => onChange(value.filter((x) => !(x.scope_type === m.scope_type && x.scope_id === m.scope_id)))}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
         </div>
       )}
+      <div className="max-h-56 overflow-y-auto rounded-lg border border-border/60 divide-y divide-border/40">
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 p-4 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center gap-2 p-4 text-xs text-destructive">
+            <span className="truncate">Could not load: {error}</span>
+            {onRetry && (
+              <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onRetry}>
+                Retry
+              </Button>
+            )}
+          </div>
+        ) : options.length === 0 ? (
+          <div className="p-4 text-center text-xs text-muted-foreground">
+            {query ? "No matches — try a different search." : `No ${targetType === "unit" ? "units" : "organizations"} found.`}
+          </div>
+        ) : (
+          options.map((o) => {
+            const checked = selectedKeys.has(`${targetType}:${o.id}`);
+            return (
+              <label
+                key={o.id}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-sm transition",
+                  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/40",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border accent-primary"
+                  disabled={disabled}
+                  checked={checked}
+                  onChange={() => toggle(o)}
+                />
+                <span className="flex-1 truncate">
+                  {o.label}
+                  {o.sub && <span className="ml-1.5 text-xs text-muted-foreground">{o.sub}</span>}
+                </span>
+                {checked && <Check className="h-4 w-4 shrink-0 text-primary" />}
+              </label>
+            );
+          })
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        {value.length} mapping{value.length === 1 ? "" : "s"} selected — payroll always stays on the Radiant home unit.
+      </p>
     </div>
   );
 }
@@ -4961,8 +5031,15 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees can only belong to the approved Radiant home units.
+  // Non-billable employees: payroll home unit is the Radiant office (auto-set);
+  // operational mappings (any client unit / organization) are stored separately.
   const [homeUnitId, setHomeUnitId] = useState<string>("");
+  const [operationalMappings, setOperationalMappings] = useState<OperationalMapping[]>([]);
+  const { customers: wizardCustomersRaw } = useCustomers();
+  const wizardCustomers = useMemo(
+    () => wizardCustomersRaw.map((c) => ({ id: c.id, name: c.name })),
+    [wizardCustomersRaw],
+  );
   // Fast, dedicated query for non-billable home units — independent of the
   // heavy all-units list so this dropdown always works.
   const homeUnitsQuery = useHomeUnits();
@@ -5089,24 +5166,33 @@ function CandidateWizard({
       setInitialUnitIds([]);
       setForm(emptyForm());
       setDigilockerVerified(false);
+      setOperationalMappings([]);
       setHomeUnitId(pickDefaultHomeUnit(nonBillableUnits));
     }
   }, [open, editing, isEmployeeMode]);
 
-  // Load existing Home Unit (employee_scope_assignments · scope_type='unit') for edit mode.
+  // Load existing operational mappings (employee_scope_assignments · unit/customer)
+  // for edit mode. The payroll home unit itself (candidates.unit_id) is excluded —
+  // it is a posting, not an operational mapping.
   useEffect(() => {
     if (!open || !editing || !isEmployeeMode) return;
     (async () => {
       const { data, error } = await supabase
         .from("employee_scope_assignments" as never)
-        .select("scope_id")
+        .select("scope_type,scope_id,scope_label")
         .eq("candidate_id", editing.id)
-        .eq("scope_type", "unit")
-        .limit(1)
-        .maybeSingle();
+        .in("scope_type", ["unit", "customer"]);
       if (error || !data) return;
-      const sid = (data as { scope_id?: string }).scope_id;
-      if (sid) setHomeUnitId(sid);
+      const homeId = editing.unit_id;
+      setOperationalMappings(
+        (data as Array<{ scope_type: string; scope_id: string; scope_label: string | null }>)
+          .filter((r) => r.scope_id && r.scope_id !== homeId)
+          .map((r) => ({
+            scope_type: r.scope_type === "customer" ? "customer" : "unit",
+            scope_id: r.scope_id,
+            scope_label: r.scope_label ?? "",
+          })),
+      );
     })();
   }, [open, editing, isEmployeeMode]);
 
@@ -5654,24 +5740,31 @@ function CandidateWizard({
       }
     }
 
-    // Sync Home Unit → employee_scope_assignments (non-billable employees only).
+    // Sync operational mappings → employee_scope_assignments (non-billable
+    // employees only). Payroll home unit lives on candidates.unit_id and is
+    // never written here — scope rows are operational access only.
     const cidForBranch = editing?.id ?? createdCandidateId;
-    if (isEmployeeMode && homeUnitId && cidForBranch) {
-      const unitLabel = units.find((u) => u.id === homeUnitId)?.name ?? "";
+    if (isEmployeeMode && cidForBranch) {
       await supabase
         .from("employee_scope_assignments" as never)
         .delete()
         .eq("candidate_id", cidForBranch)
-        .eq("scope_type", "unit");
-      const { error: esaErr } = await supabase
-        .from("employee_scope_assignments" as never)
-        .insert({
-          candidate_id: cidForBranch,
-          scope_type: "unit",
-          scope_id: homeUnitId,
-          scope_label: unitLabel,
-        } as never);
-      if (esaErr) console.error("home unit sync failed", esaErr);
+        .in("scope_type", ["unit", "customer"]);
+      if (operationalMappings.length > 0) {
+        const { error: esaErr } = await supabase
+          .from("employee_scope_assignments" as never)
+          .insert(
+            operationalMappings
+              .filter((m) => m.scope_id && m.scope_id !== homeUnitId)
+              .map((m) => ({
+                candidate_id: cidForBranch,
+                scope_type: m.scope_type,
+                scope_id: m.scope_id,
+                scope_label: m.scope_label,
+              })) as never,
+          );
+        if (esaErr) console.error("operational mapping sync failed", esaErr);
+      }
     }
     if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
@@ -5840,21 +5933,13 @@ function CandidateWizard({
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
+                  Payroll home unit · {nonBillableUnits.find((u) => u.id === homeUnitId)?.name ?? "Corporate Office (Pune - HO)"}
+                </Badge>
               </div>
-              <div className="grid gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
-                <SearchableUnitSelect
-                  units={nonBillableUnits}
-                  value={homeUnitId}
-                  onChange={setHomeUnitId}
-                  placeholder="Select a Radiant unit"
-                  loading={homeUnitsLoading}
-                  error={homeUnitsError}
-                  onRetry={() => void homeUnitsQuery.refetch()}
-                  className="w-full sm:w-[320px]"
-                />
-                <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO). Type to search.</span>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Salary is always calculated on the Radiant home unit. Use the Assignment section below to map where this person actually works (any client unit or organization).
+              </p>
             </div>
           )}
 
@@ -6673,15 +6758,15 @@ function CandidateWizard({
                   </Field>
                   <div className="sm:col-span-2">
                     {isEmployeeMode ? (
-                      <Field label="Radiant Guard Services unit">
-                        <SearchableUnitSelect
-                          units={nonBillableUnits}
-                          value={homeUnitId}
-                          onChange={setHomeUnitId}
-                          placeholder="Select a Radiant unit"
-                          loading={homeUnitsLoading}
-                          error={homeUnitsError}
-                          onRetry={() => void homeUnitsQuery.refetch()}
+                      <Field label={`Work mapping — where this person works (payroll stays at Radiant Pune)${operationalMappings.length > 0 ? ` · ${operationalMappings.length} selected` : ""}`}>
+                        <OperationalMappingPicker
+                          units={units}
+                          customers={wizardCustomers}
+                          value={operationalMappings}
+                          onChange={setOperationalMappings}
+                          loading={unitsLoading}
+                          error={unitsError}
+                          onRetry={() => void qc.invalidateQueries({ queryKey: QK_UNITS })}
                         />
                       </Field>
                     ) : (
