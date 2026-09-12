@@ -1181,6 +1181,126 @@ function useUnits() {
   });
 }
 
+const QK_HOME_UNITS = ["admin", "home-units"] as const;
+
+/**
+ * Non-billable "Radiant home" units only (Corporate Office etc.).
+ * Deliberately separate from the heavy all-units list so the employee
+ * onboarding dropdown never waits on (or dies with) the 5000-row query.
+ */
+function useHomeUnits() {
+  return useQuery({
+    queryKey: QK_HOME_UNITS,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<UnitLite[]> => {
+      const { data, error } = await runWithQueryTimeout("HomeUnits", async (signal) =>
+        await supabase
+          .from("units" as never)
+          .select("id,code,name,customer_id,branch_id,is_billable")
+          .eq("is_billable", false)
+          .order("name", { ascending: true })
+          .limit(200)
+          .abortSignal(signal),
+      );
+      if (error) throw error;
+      return ((data as unknown) as UnitLite[]) ?? [];
+    },
+  });
+}
+
+/** Searchable single-unit picker (type to filter by name or code). */
+function SearchableUnitSelect({
+  units,
+  value,
+  onChange,
+  placeholder = "Select a unit",
+  disabled = false,
+  loading = false,
+  error = null,
+  onRetry,
+  className = "",
+}: {
+  units: UnitLite[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = units.find((u) => u.id === value);
+  return (
+    <div className={className}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled || loading}
+            className="h-11 w-full justify-between text-left font-normal"
+          >
+            <span className="truncate">
+              {loading
+                ? "Loading units…"
+                : selected
+                  ? `${selected.name}${selected.code ? ` · ${selected.code}` : ""}`
+                  : placeholder}
+            </span>
+            {loading ? (
+              <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
+            ) : (
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Type a unit name or code…" />
+            <CommandList>
+              <CommandEmpty>No unit matches.</CommandEmpty>
+              <CommandGroup>
+                {units.map((u) => (
+                  <CommandItem
+                    key={u.id}
+                    value={`${u.name} ${u.code ?? ""}`}
+                    onSelect={() => {
+                      onChange(u.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", u.id === value ? "opacity-100" : "opacity-0")} />
+                    <span className="truncate">
+                      {u.name}
+                      {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {error && (
+        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-destructive">
+          <span className="truncate">Could not load units: {error}</span>
+          {onRetry && (
+            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-[11px]" onClick={onRetry}>
+              Retry
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function useDesignations() {
   return useQuery({
     queryKey: QK_DESIG,
