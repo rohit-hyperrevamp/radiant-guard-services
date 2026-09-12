@@ -8,6 +8,7 @@
 - [x] Android manifest: notification/vibrate permissions
 - [x] Platform-aware device token registration (ios vs android/FCM)
 - [x] Android high-importance notification channel
+- [x] Android launcher icon copied from the iOS app icon (all densities + adaptive)
 - [ ] Firebase project + `android/app/google-services.json` (waiting on user)
 - [ ] Build debug APK on user's Mac (`npm run android:apk`)
 - [ ] Server-side FCM sending for Android tokens (currently APNs only)
