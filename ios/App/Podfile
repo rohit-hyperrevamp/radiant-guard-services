@@ -1,3 +1,5 @@
+source 'https://cdn.cocoapods.org/'
+
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '15.0'
