@@ -1,4 +1,5 @@
 import { sendApnsPush, type ApnsPayload } from "./apns.server";
+import { sendFcmPush } from "./fcm.server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -98,7 +99,11 @@ async function sendNativePushToTokenRows(
   const failures: NativePushDeliveryResult["failures"] = [];
 
   for (const row of rows) {
-    const result = await sendApnsPush(row.token, payload);
+    // Android tokens are FCM registration tokens; iOS/other tokens are APNs.
+    const result =
+      row.platform === "android"
+        ? await sendFcmPush(row.token, payload)
+        : await sendApnsPush(row.token, payload);
     if (result.success) {
       sent += 1;
       continue;
@@ -121,7 +126,7 @@ export async function sendNativePushToCurrentUserServer(
   const { data, error } = await supabase
     .from("device_push_tokens")
     .select("user_id,token,platform,last_seen_at")
-    .eq("platform", "ios")
+    .in("platform", ["ios", "android"])
     .order("last_seen_at", { ascending: false });
   if (error) throw error;
 
@@ -140,7 +145,7 @@ export async function sendNativePushToUsersServer(
     .from("device_push_tokens")
     .select("user_id,token,platform,last_seen_at")
     .in("user_id", recipients)
-    .eq("platform", "ios")
+    .in("platform", ["ios", "android"])
     .order("last_seen_at", { ascending: false });
   if (error) throw error;
 
@@ -178,12 +183,14 @@ export async function sendNativePushForRecentNotifications(
     .from("device_push_tokens")
     .select("user_id,token,platform,last_seen_at")
     .in("user_id", allowedRecipients)
-    .eq("platform", "ios")
+    .in("platform", ["ios", "android"])
     .order("last_seen_at", { ascending: false });
 
   if (error) throw error;
 
-  const rows = ((data as unknown as TokenRow[] | null) ?? []).filter((row) => row.platform === "ios");
+  const rows = ((data as unknown as TokenRow[] | null) ?? []).filter(
+    (row) => row.platform === "ios" || row.platform === "android",
+  );
   console.log("native push real notification dispatch", {
     recipients: allowedRecipients.length,
     tokens: rows.length,
