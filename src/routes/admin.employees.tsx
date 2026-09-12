@@ -1262,25 +1262,52 @@ function OperationalMappingPicker({
     return needle ? rows.filter((o) => o.label.toLowerCase().includes(needle)) : rows;
   }, [customers, orgQuery]);
 
-  // Units are always scoped to the organizations picked above.
+  // Units of the selected organizations are fetched directly (paginated) rather
+  // than filtered from the shared units list — that list is truncated by the
+  // API row cap, so many real client units were simply missing from search.
+  const orgKey = useMemo(() => [...selectedOrgIds].sort().join(","), [selectedOrgIds]);
+  const orgUnitsQuery = useQuery({
+    queryKey: ["admin", "org-units", orgKey],
+    enabled: selectedOrgIds.length > 0,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<UnitLite[]> => {
+      const ids = [...selectedOrgIds];
+      const rows = await fetchAllPages<UnitLite>((from, to) =>
+        supabase
+          .from("units" as never)
+          .select("id,code,name,customer_id,branch_id,is_billable")
+          .in("customer_id", ids)
+          .order("name", { ascending: true })
+          .range(from, to),
+      );
+      return rows ?? [];
+    },
+  });
+
+  const orgUnits = orgUnitsQuery.data ?? [];
+  const orgNameById = useMemo(() => new Map(customers.map((c) => [c.id, c.name])), [customers]);
+
   const unitOptions = useMemo(() => {
-    if (selectedOrgSet.size === 0) return [];
-    const rows = units
-      .filter((u) => u.is_billable !== false && u.customer_id && selectedOrgSet.has(u.customer_id))
+    const rows = orgUnits
+      .filter((u) => u.is_billable !== false)
       .map((u) => ({
         id: u.id,
         label: `${u.name}${u.code ? ` · ${u.code}` : ""}`,
-        sub: u.customer_name ?? "",
+        sub: (u.customer_id && orgNameById.get(u.customer_id)) || "",
       }));
     rows.sort((a, b) => a.label.localeCompare(b.label));
     const needle = unitQuery.trim().toLowerCase();
     return needle ? rows.filter((o) => `${o.label} ${o.sub}`.toLowerCase().includes(needle)) : rows;
-  }, [units, selectedOrgSet, unitQuery]);
+  }, [orgUnits, orgNameById, unitQuery]);
 
   const toggleOrg = (o: { id: string; label: string }) => {
     if (selectedOrgSet.has(o.id)) {
       // Dropping an organization also drops its unit mappings.
-      const unitIdsOfOrg = new Set(units.filter((u) => u.customer_id === o.id).map((u) => u.id));
+      const unitIdsOfOrg = new Set(
+        [...orgUnits, ...units].filter((u) => u.customer_id === o.id).map((u) => u.id),
+      );
       onChange(
         value.filter(
           (m) =>
