@@ -34,6 +34,30 @@ function nativePlatform(): "ios" | "android" | "web" {
   return "web";
 }
 
+/**
+ * Android push needs Firebase (google-services.json + FCM) inside the APK.
+ * Without it, the native `PushNotifications.register()` call throws
+ * "Default FirebaseApp is not initialized" on the main thread and the whole
+ * app process crashes right after the notification permission prompt.
+ *
+ * So Android push stays fully disabled until the build explicitly opts in via
+ * VITE_ANDROID_PUSH_ENABLED="true" (set that only once google-services.json is
+ * committed into android/app/). iOS is unaffected.
+ */
+function androidPushEnabled(): boolean {
+  try {
+    return String(import.meta.env['VITE_ANDROID_PUSH_ENABLED'] ?? "").toLowerCase() === "true";
+  } catch {
+    return false;
+  }
+}
+
+function pushSupportedOnThisPlatform(): boolean {
+  if (!isNativePlatform()) return false;
+  if (nativePlatform() === "android" && !androidPushEnabled()) return false;
+  return true;
+}
+
 type PushRegisterResult = {
   supported: boolean;
   permission: string | null;
@@ -100,7 +124,7 @@ function waitForToken(timeoutMs = 7000, waitForFreshToken = false): Promise<stri
 }
 
 async function registerSilentlyIfAlreadyGranted() {
-  if (!isNativePlatform()) return;
+  if (!pushSupportedOnThisPlatform()) return;
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const perm = await PushNotifications.checkPermissions();
@@ -150,8 +174,12 @@ export async function initPushNotifications(): Promise<void> {
 
 async function preparePushNotificationsOnce(): Promise<void> {
   if (initialized) return;
-  if (!isNativePlatform()) {
-    logNativeEvent("push", "prepare skipped: not native", getNativeRuntimeSnapshot());
+  if (!pushSupportedOnThisPlatform()) {
+    logNativeEvent("push", "prepare skipped: push not supported on this build", {
+      ...getNativeRuntimeSnapshot(),
+      platform: nativePlatform(),
+      androidPushEnabled: androidPushEnabled(),
+    });
     return;
   }
   initialized = true;
@@ -252,6 +280,17 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
       tokenSaved: false,
       tokenSuffix: null,
       message: "Open the installed iOS app to register Apple push notifications.",
+    };
+  }
+
+  if (!pushSupportedOnThisPlatform()) {
+    return {
+      supported: false,
+      permission: null,
+      tokenSaved: false,
+      tokenSuffix: null,
+      message:
+        "Push notifications are not enabled in this Android build yet. Add the Firebase configuration file to the app, then rebuild.",
     };
   }
 
