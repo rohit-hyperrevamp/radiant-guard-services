@@ -10,6 +10,8 @@ export type FieldOfficerUnitScope = {
   isFieldOfficer: boolean;
   /** UUIDs of every unit the FO is allowed to see. Empty set = no access. */
   unitIds: Set<string>;
+  /** UUIDs of every organization (customer) the FO is allowed to see. */
+  customerIds: Set<string>;
   /** Convenience: FO has zero units mapped (used to hide/blank UI). */
   hasUnits: boolean;
   /** FO candidate id for the current user, if any. */
