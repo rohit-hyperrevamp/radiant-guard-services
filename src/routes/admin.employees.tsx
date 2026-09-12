@@ -5166,24 +5166,33 @@ function CandidateWizard({
       setInitialUnitIds([]);
       setForm(emptyForm());
       setDigilockerVerified(false);
+      setOperationalMappings([]);
       setHomeUnitId(pickDefaultHomeUnit(nonBillableUnits));
     }
   }, [open, editing, isEmployeeMode]);
 
-  // Load existing Home Unit (employee_scope_assignments · scope_type='unit') for edit mode.
+  // Load existing operational mappings (employee_scope_assignments · unit/customer)
+  // for edit mode. The payroll home unit itself (candidates.unit_id) is excluded —
+  // it is a posting, not an operational mapping.
   useEffect(() => {
     if (!open || !editing || !isEmployeeMode) return;
     (async () => {
       const { data, error } = await supabase
         .from("employee_scope_assignments" as never)
-        .select("scope_id")
+        .select("scope_type,scope_id,scope_label")
         .eq("candidate_id", editing.id)
-        .eq("scope_type", "unit")
-        .limit(1)
-        .maybeSingle();
+        .in("scope_type", ["unit", "customer"]);
       if (error || !data) return;
-      const sid = (data as { scope_id?: string }).scope_id;
-      if (sid) setHomeUnitId(sid);
+      const homeId = editing.unit_id;
+      setOperationalMappings(
+        (data as Array<{ scope_type: string; scope_id: string; scope_label: string | null }>)
+          .filter((r) => r.scope_id && r.scope_id !== homeId)
+          .map((r) => ({
+            scope_type: r.scope_type === "customer" ? "customer" : "unit",
+            scope_id: r.scope_id,
+            scope_label: r.scope_label ?? "",
+          })),
+      );
     })();
   }, [open, editing, isEmployeeMode]);
 
@@ -5731,24 +5740,31 @@ function CandidateWizard({
       }
     }
 
-    // Sync Home Unit → employee_scope_assignments (non-billable employees only).
+    // Sync operational mappings → employee_scope_assignments (non-billable
+    // employees only). Payroll home unit lives on candidates.unit_id and is
+    // never written here — scope rows are operational access only.
     const cidForBranch = editing?.id ?? createdCandidateId;
-    if (isEmployeeMode && homeUnitId && cidForBranch) {
-      const unitLabel = units.find((u) => u.id === homeUnitId)?.name ?? "";
+    if (isEmployeeMode && cidForBranch) {
       await supabase
         .from("employee_scope_assignments" as never)
         .delete()
         .eq("candidate_id", cidForBranch)
-        .eq("scope_type", "unit");
-      const { error: esaErr } = await supabase
-        .from("employee_scope_assignments" as never)
-        .insert({
-          candidate_id: cidForBranch,
-          scope_type: "unit",
-          scope_id: homeUnitId,
-          scope_label: unitLabel,
-        } as never);
-      if (esaErr) console.error("home unit sync failed", esaErr);
+        .in("scope_type", ["unit", "customer"]);
+      if (operationalMappings.length > 0) {
+        const { error: esaErr } = await supabase
+          .from("employee_scope_assignments" as never)
+          .insert(
+            operationalMappings
+              .filter((m) => m.scope_id && m.scope_id !== homeUnitId)
+              .map((m) => ({
+                candidate_id: cidForBranch,
+                scope_type: m.scope_type,
+                scope_id: m.scope_id,
+                scope_label: m.scope_label,
+              })) as never,
+          );
+        if (esaErr) console.error("operational mapping sync failed", esaErr);
+      }
     }
     if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
