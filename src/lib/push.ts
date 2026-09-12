@@ -36,19 +36,20 @@ function nativePlatform(): "ios" | "android" | "web" {
 
 /**
  * Android push needs Firebase (google-services.json + FCM) inside the APK.
- * Without it, the native `PushNotifications.register()` call throws
- * "Default FirebaseApp is not initialized" on the main thread and the whole
- * app process crashes right after the notification permission prompt.
+ * Without it, `PushNotifications.register()` throws "Default FirebaseApp is not
+ * initialized" on the main thread and the app process crashes right after the
+ * notification permission prompt.
  *
- * So Android push stays fully disabled until the build explicitly opts in via
- * VITE_ANDROID_PUSH_ENABLED="true" (set that only once google-services.json is
- * committed into android/app/). iOS is unaffected.
+ * android/app/google-services.json is now committed (Firebase project
+ * radiantguards-7792e), so Android push is on by default. Set
+ * VITE_ANDROID_PUSH_ENABLED="false" to switch it back off for a build.
  */
 function androidPushEnabled(): boolean {
   try {
-    return String(import.meta.env['VITE_ANDROID_PUSH_ENABLED'] ?? "").toLowerCase() === "true";
+    const flag = String(import.meta.env['VITE_ANDROID_PUSH_ENABLED'] ?? "").toLowerCase();
+    return flag !== "false";
   } catch {
-    return false;
+    return true;
   }
 }
 
