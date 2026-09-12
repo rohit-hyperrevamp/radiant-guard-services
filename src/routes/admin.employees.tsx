@@ -5031,8 +5031,15 @@ function CandidateWizard({
   };
 
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
-  // Non-billable employees can only belong to the approved Radiant home units.
+  // Non-billable employees: payroll home unit is the Radiant office (auto-set);
+  // operational mappings (any client unit / organization) are stored separately.
   const [homeUnitId, setHomeUnitId] = useState<string>("");
+  const [operationalMappings, setOperationalMappings] = useState<OperationalMapping[]>([]);
+  const { customers: wizardCustomersRaw } = useCustomers();
+  const wizardCustomers = useMemo(
+    () => wizardCustomersRaw.map((c) => ({ id: c.id, name: c.name })),
+    [wizardCustomersRaw],
+  );
   // Fast, dedicated query for non-billable home units — independent of the
   // heavy all-units list so this dropdown always works.
   const homeUnitsQuery = useHomeUnits();
