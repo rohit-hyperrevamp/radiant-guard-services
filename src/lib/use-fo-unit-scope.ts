@@ -92,6 +92,19 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
     return set;
   }, [isFieldOfficer, candidateId, scopeQ.data, cuQ.data, unitsQ.data]);
 
+  // Organizations the FO may see: explicit customer scopes plus the parent
+  // organization of every unit they are actually mapped to.
+  const customerIds = useMemo(() => {
+    const set = new Set<string>();
+    if (!isFieldOfficer || !candidateId) return set;
+    for (const s of scopeQ.data ?? []) {
+      if (s.candidate_id === candidateId && s.scope_type === "customer") set.add(s.scope_id);
+    }
+    for (const u of unitsQ.data ?? []) {
+      if (unitIds.has(u.id) && u.customer_id) set.add(u.customer_id);
+    }
+    return set;
+  }, [isFieldOfficer, candidateId, scopeQ.data, unitsQ.data, unitIds]);
 
   const isLoading = !!isFieldOfficer && (roleLoading || scopeQ.isLoading || cuQ.isLoading || unitsQ.isLoading);
   return {
@@ -99,6 +112,7 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
     isFieldOfficer: !!isFieldOfficer,
     candidateId,
     unitIds,
+    customerIds,
     hasUnits: unitIds.size > 0,
   };
 }
