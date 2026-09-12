@@ -183,12 +183,14 @@ export async function sendNativePushForRecentNotifications(
     .from("device_push_tokens")
     .select("user_id,token,platform,last_seen_at")
     .in("user_id", allowedRecipients)
-    .eq("platform", "ios")
+    .in("platform", ["ios", "android"])
     .order("last_seen_at", { ascending: false });
 
   if (error) throw error;
 
-  const rows = ((data as unknown as TokenRow[] | null) ?? []).filter((row) => row.platform === "ios");
+  const rows = ((data as unknown as TokenRow[] | null) ?? []).filter(
+    (row) => row.platform === "ios" || row.platform === "android",
+  );
   console.log("native push real notification dispatch", {
     recipients: allowedRecipients.length,
     tokens: rows.length,
