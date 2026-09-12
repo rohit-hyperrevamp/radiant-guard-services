@@ -6961,6 +6961,7 @@ function CandidateWizard({
                       </div>
                     </Field>
                   </div>
+                  )}
                   <Field
                     label={
                       isEmployeeMode
