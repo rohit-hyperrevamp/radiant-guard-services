@@ -38,7 +38,10 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
       backgroundColor: "#ffffff",
       showSpinner: false,
-      androidScaleType: "CENTER_CROP",
+      // FIT_CENTER keeps the shield centred at its natural size. CENTER_CROP
+      // zoomed the splash artwork on tall Android screens, so the logo filled
+      // the screen and clipped.
+      androidScaleType: "FIT_CENTER",
       splashImmersive: false,
     },
     StatusBar: {

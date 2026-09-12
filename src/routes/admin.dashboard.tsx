@@ -751,7 +751,7 @@ function DashboardPage() {
       </div>
 
       {/* Tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card" />
@@ -760,6 +760,7 @@ function DashboardPage() {
           tiles.map((t, i) => (
             <motion.div
               key={t.key}
+              className="h-full"
               initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 0.42, delay: i * 0.045, ease: [0.22, 1, 0.36, 1] }}
@@ -813,7 +814,7 @@ function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode;
   return (
     <Link
       to={to}
-      className={`group relative flex h-[104px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`group relative flex h-full min-h-[124px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:min-h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
     </Link>
@@ -826,8 +827,8 @@ function TileHeader({ Icon, accent, label, sub }: { Icon?: React.ComponentType<{
   return (
     <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="truncate font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">{label}</div>
-        {sub && <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">{sub}</div>}
+        <div className="font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">{label}</div>
+        {sub && <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">{sub}</div>}
       </div>
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-9 sm:w-9">
         <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

@@ -5,6 +5,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
+  useRouter,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -17,6 +18,7 @@ import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
+import { setPushRouter } from "@/lib/push-deeplink";
 
 import { NativeAppLock } from "@/components/NativeAppLock";
 
@@ -146,6 +148,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  const router = useRouter();
+
+  // Notification taps navigate in-app through the router (never a hard page
+  // load), so an unknown deep link falls back to home instead of a 404 page.
+  useEffect(() => {
+    setPushRouter(router);
+  }, [router]);
 
   // Initialise Capacitor plugins on native (no-op on web).
   useEffect(() => {
