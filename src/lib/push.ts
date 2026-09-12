@@ -283,6 +283,17 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
     };
   }
 
+  if (!pushSupportedOnThisPlatform()) {
+    return {
+      supported: false,
+      permission: null,
+      tokenSaved: false,
+      tokenSuffix: null,
+      message:
+        "Push notifications are not enabled in this Android build yet. Add the Firebase configuration file to the app, then rebuild.",
+    };
+  }
+
   await preparePushNotifications();
 
   let tokenPromise: Promise<string | null> | null = null;
