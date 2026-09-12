@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as RequestDataDeletionRouteImport } from './routes/request-data-deletion'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -75,6 +76,7 @@ import { Route as AdminFieldSenseIndexRouteImport } from './routes/admin.field-s
 import { Route as AdminCustomersIndexRouteImport } from './routes/admin.customers.index'
 import { Route as AdminAttendanceIndexRouteImport } from './routes/admin.attendance.index'
 import { Route as ApiPublicOtpHealthRouteImport } from './routes/api/public/otp-health'
+import { Route as ApiPublicDataDeletionRequestRouteImport } from './routes/api/public/data-deletion-request'
 import { Route as AdminVehiclesServiceManagerRouteImport } from './routes/admin.vehicles.service-manager'
 import { Route as AdminVehiclesPucsRouteImport } from './routes/admin.vehicles.pucs'
 import { Route as AdminVehiclesInventoryRouteImport } from './routes/admin.vehicles.inventory'
@@ -121,6 +123,11 @@ import { Route as AdminCandidatesIdDetailsRouteImport } from './routes/admin.can
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestDataDeletionRoute = RequestDataDeletionRouteImport.update({
+  id: '/request-data-deletion',
+  path: '/request-data-deletion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -458,6 +465,12 @@ const ApiPublicOtpHealthRoute = ApiPublicOtpHealthRouteImport.update({
   path: '/api/public/otp-health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDataDeletionRequestRoute =
+  ApiPublicDataDeletionRequestRouteImport.update({
+    id: '/api/public/data-deletion-request',
+    path: '/api/public/data-deletion-request',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminVehiclesServiceManagerRoute =
   AdminVehiclesServiceManagerRouteImport.update({
     id: '/service-manager',
@@ -690,6 +703,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
@@ -784,6 +798,7 @@ export interface FileRoutesByFullPath {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/api/public/data-deletion-request': typeof ApiPublicDataDeletionRequestRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
@@ -800,6 +815,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
@@ -890,6 +906,7 @@ export interface FileRoutesByTo {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/api/public/data-deletion-request': typeof ApiPublicDataDeletionRequestRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance': typeof AdminAttendanceIndexRoute
   '/admin/customers': typeof AdminCustomersIndexRoute
@@ -907,6 +924,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
@@ -1001,6 +1019,7 @@ export interface FileRoutesById {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/api/public/data-deletion-request': typeof ApiPublicDataDeletionRequestRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/admin/attendance/': typeof AdminAttendanceIndexRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
@@ -1019,6 +1038,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/privacy-policy'
+    | '/request-data-deletion'
     | '/welcome'
     | '/admin/addition-type-manager'
     | '/admin/additions'
@@ -1113,6 +1133,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/api/public/data-deletion-request'
     | '/api/public/otp-health'
     | '/admin/attendance/'
     | '/admin/customers/'
@@ -1129,6 +1150,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/privacy-policy'
+    | '/request-data-deletion'
     | '/welcome'
     | '/admin/addition-type-manager'
     | '/admin/additions'
@@ -1219,6 +1241,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/api/public/data-deletion-request'
     | '/api/public/otp-health'
     | '/admin/attendance'
     | '/admin/customers'
@@ -1235,6 +1258,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/privacy-policy'
+    | '/request-data-deletion'
     | '/welcome'
     | '/admin/addition-type-manager'
     | '/admin/additions'
@@ -1329,6 +1353,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/api/public/data-deletion-request'
     | '/api/public/otp-health'
     | '/admin/attendance/'
     | '/admin/customers/'
@@ -1346,8 +1371,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RequestDataDeletionRoute: typeof RequestDataDeletionRoute
   WelcomeRoute: typeof WelcomeRoute
   DigilockerCallbackRoute: typeof DigilockerCallbackRoute
+  ApiPublicDataDeletionRequestRoute: typeof ApiPublicDataDeletionRequestRoute
   ApiPublicOtpHealthRoute: typeof ApiPublicOtpHealthRoute
   ApiPublicHooksDailyPeoplePingsRoute: typeof ApiPublicHooksDailyPeoplePingsRoute
   ApiPublicNativePushRoute: typeof ApiPublicNativePushRoute
@@ -1360,6 +1387,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/request-data-deletion': {
+      id: '/request-data-deletion'
+      path: '/request-data-deletion'
+      fullPath: '/request-data-deletion'
+      preLoaderRoute: typeof RequestDataDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -1815,6 +1849,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/otp-health'
       fullPath: '/api/public/otp-health'
       preLoaderRoute: typeof ApiPublicOtpHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/data-deletion-request': {
+      id: '/api/public/data-deletion-request'
+      path: '/api/public/data-deletion-request'
+      fullPath: '/api/public/data-deletion-request'
+      preLoaderRoute: typeof ApiPublicDataDeletionRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/vehicles/service-manager': {
@@ -2395,8 +2436,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RequestDataDeletionRoute: RequestDataDeletionRoute,
   WelcomeRoute: WelcomeRoute,
   DigilockerCallbackRoute: DigilockerCallbackRoute,
+  ApiPublicDataDeletionRequestRoute: ApiPublicDataDeletionRequestRoute,
   ApiPublicOtpHealthRoute: ApiPublicOtpHealthRoute,
   ApiPublicHooksDailyPeoplePingsRoute: ApiPublicHooksDailyPeoplePingsRoute,
   ApiPublicNativePushRoute: ApiPublicNativePushRoute,
