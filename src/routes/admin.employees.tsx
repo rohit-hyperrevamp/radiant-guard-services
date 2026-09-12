@@ -1181,6 +1181,126 @@ function useUnits() {
   });
 }
 
+const QK_HOME_UNITS = ["admin", "home-units"] as const;
+
+/**
+ * Non-billable "Radiant home" units only (Corporate Office etc.).
+ * Deliberately separate from the heavy all-units list so the employee
+ * onboarding dropdown never waits on (or dies with) the 5000-row query.
+ */
+function useHomeUnits() {
+  return useQuery({
+    queryKey: QK_HOME_UNITS,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<UnitLite[]> => {
+      const { data, error } = await runWithQueryTimeout("HomeUnits", async (signal) =>
+        await supabase
+          .from("units" as never)
+          .select("id,code,name,customer_id,branch_id,is_billable")
+          .eq("is_billable", false)
+          .order("name", { ascending: true })
+          .limit(200)
+          .abortSignal(signal),
+      );
+      if (error) throw error;
+      return ((data as unknown) as UnitLite[]) ?? [];
+    },
+  });
+}
+
+/** Searchable single-unit picker (type to filter by name or code). */
+function SearchableUnitSelect({
+  units,
+  value,
+  onChange,
+  placeholder = "Select a unit",
+  disabled = false,
+  loading = false,
+  error = null,
+  onRetry,
+  className = "",
+}: {
+  units: UnitLite[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = units.find((u) => u.id === value);
+  return (
+    <div className={className}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled || loading}
+            className="h-11 w-full justify-between text-left font-normal"
+          >
+            <span className="truncate">
+              {loading
+                ? "Loading units…"
+                : selected
+                  ? `${selected.name}${selected.code ? ` · ${selected.code}` : ""}`
+                  : placeholder}
+            </span>
+            {loading ? (
+              <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
+            ) : (
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Type a unit name or code…" />
+            <CommandList>
+              <CommandEmpty>No unit matches.</CommandEmpty>
+              <CommandGroup>
+                {units.map((u) => (
+                  <CommandItem
+                    key={u.id}
+                    value={`${u.name} ${u.code ?? ""}`}
+                    onSelect={() => {
+                      onChange(u.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", u.id === value ? "opacity-100" : "opacity-0")} />
+                    <span className="truncate">
+                      {u.name}
+                      {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {error && (
+        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-destructive">
+          <span className="truncate">Could not load units: {error}</span>
+          {onRetry && (
+            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-[11px]" onClick={onRetry}>
+              Retry
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function useDesignations() {
   return useQuery({
     queryKey: QK_DESIG,
@@ -4843,10 +4963,17 @@ function CandidateWizard({
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
   // Non-billable employees can only belong to the approved Radiant home units.
   const [homeUnitId, setHomeUnitId] = useState<string>("");
-  const nonBillableUnits = useMemo(
-    () => units.filter(isRadiantHomeUnit).sort((a, b) => a.name.localeCompare(b.name)),
-    [units],
-  );
+  // Fast, dedicated query for non-billable home units — independent of the
+  // heavy all-units list so this dropdown always works.
+  const homeUnitsQuery = useHomeUnits();
+  const nonBillableUnits = useMemo(() => {
+    const rows = homeUnitsQuery.data ?? [];
+    return rows
+      .filter((u) => isRadiantHomeUnit(u) || u.is_billable === false)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [homeUnitsQuery.data]);
+  const homeUnitsLoading = homeUnitsQuery.isLoading;
+  const homeUnitsError = homeUnitsQuery.error instanceof Error ? homeUnitsQuery.error.message : null;
   // Keep the selection valid as units load / change.
   useEffect(() => {
     if (!isEmployeeMode) return;
@@ -5714,28 +5841,20 @@ function CandidateWizard({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
               </div>
-              {nonBillableUnits.length > 0 && (
-
-                <div className="grid gap-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
-                  <Select value={homeUnitId} onValueChange={setHomeUnitId}>
-                    <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
-                      <SelectValue placeholder="Select a Radiant unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nonBillableUnits
-                        .slice()
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} className="text-xs">
-                            {u.name} {u.code ? <span className="ml-1 text-muted-foreground">· {u.code}</span> : null}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                   <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO).</span>
-                </div>
-              )}
+              <div className="grid gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Radiant Guard Services · Posting unit</label>
+                <SearchableUnitSelect
+                  units={nonBillableUnits}
+                  value={homeUnitId}
+                  onChange={setHomeUnitId}
+                  placeholder="Select a Radiant unit"
+                  loading={homeUnitsLoading}
+                  error={homeUnitsError}
+                  onRetry={() => void homeUnitsQuery.refetch()}
+                  className="w-full sm:w-[320px]"
+                />
+                <span className="text-[11px] text-muted-foreground">Non-billable employees are posted to Corporate Office (Pune - HO). Type to search.</span>
+              </div>
             </div>
           )}
 
@@ -6555,18 +6674,15 @@ function CandidateWizard({
                   <div className="sm:col-span-2">
                     {isEmployeeMode ? (
                       <Field label="Radiant Guard Services unit">
-                        <Select value={homeUnitId} onValueChange={setHomeUnitId} disabled={unitsLoading || !!unitsError}>
-                          <SelectTrigger className="h-11 w-full">
-                            <SelectValue placeholder="Select a Radiant unit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {nonBillableUnits.map((u) => (
-                              <SelectItem key={u.id} value={u.id}>
-                                {u.name} {u.code ? `· ${u.code}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableUnitSelect
+                          units={nonBillableUnits}
+                          value={homeUnitId}
+                          onChange={setHomeUnitId}
+                          placeholder="Select a Radiant unit"
+                          loading={homeUnitsLoading}
+                          error={homeUnitsError}
+                          onRetry={() => void homeUnitsQuery.refetch()}
+                        />
                       </Field>
                     ) : (
                       <Field label={`Clients (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
