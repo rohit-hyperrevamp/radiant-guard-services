@@ -34,6 +34,30 @@ function nativePlatform(): "ios" | "android" | "web" {
   return "web";
 }
 
+/**
+ * Android push needs Firebase (google-services.json + FCM) inside the APK.
+ * Without it, the native `PushNotifications.register()` call throws
+ * "Default FirebaseApp is not initialized" on the main thread and the whole
+ * app process crashes right after the notification permission prompt.
+ *
+ * So Android push stays fully disabled until the build explicitly opts in via
+ * VITE_ANDROID_PUSH_ENABLED="true" (set that only once google-services.json is
+ * committed into android/app/). iOS is unaffected.
+ */
+function androidPushEnabled(): boolean {
+  try {
+    return String(import.meta.env['VITE_ANDROID_PUSH_ENABLED'] ?? "").toLowerCase() === "true";
+  } catch {
+    return false;
+  }
+}
+
+function pushSupportedOnThisPlatform(): boolean {
+  if (!isNativePlatform()) return false;
+  if (nativePlatform() === "android" && !androidPushEnabled()) return false;
+  return true;
+}
+
 type PushRegisterResult = {
   supported: boolean;
   permission: string | null;
