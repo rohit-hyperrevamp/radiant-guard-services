@@ -4963,10 +4963,17 @@ function CandidateWizard({
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
   // Non-billable employees can only belong to the approved Radiant home units.
   const [homeUnitId, setHomeUnitId] = useState<string>("");
-  const nonBillableUnits = useMemo(
-    () => units.filter(isRadiantHomeUnit).sort((a, b) => a.name.localeCompare(b.name)),
-    [units],
-  );
+  // Fast, dedicated query for non-billable home units — independent of the
+  // heavy all-units list so this dropdown always works.
+  const homeUnitsQuery = useHomeUnits();
+  const nonBillableUnits = useMemo(() => {
+    const rows = homeUnitsQuery.data ?? [];
+    return rows
+      .filter((u) => isRadiantHomeUnit(u) || u.is_billable === false)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [homeUnitsQuery.data]);
+  const homeUnitsLoading = homeUnitsQuery.isLoading;
+  const homeUnitsError = homeUnitsQuery.error instanceof Error ? homeUnitsQuery.error.message : null;
   // Keep the selection valid as units load / change.
   useEffect(() => {
     if (!isEmployeeMode) return;
