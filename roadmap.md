@@ -9,8 +9,10 @@
 - [x] Platform-aware device token registration (ios vs android/FCM)
 - [x] Android high-importance notification channel
 - [x] Android launcher icon copied from the iOS app icon (all densities + adaptive)
-- [ ] Firebase project + `android/app/google-services.json` (waiting on user)
+- [x] Firebase project + `android/app/google-services.json`
 - [ ] Build debug APK on user's Mac (`npm run android:apk`)
-- [ ] Server-side FCM sending for Android tokens (currently APNs only)
+- [x] Server-side FCM sending for Android tokens
 - [ ] Role/hierarchy-contextual notification routing verification
-- [ ] Signed release AAB + Play Store (later)
+- [x] Signed release AAB + Play Store internal testing
+- [x] Google Play listing icon and feature graphic prepared from the Apple app icon
+- [ ] Google Play phone screenshots prepared
