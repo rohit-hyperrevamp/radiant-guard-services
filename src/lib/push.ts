@@ -124,7 +124,7 @@ function waitForToken(timeoutMs = 7000, waitForFreshToken = false): Promise<stri
 }
 
 async function registerSilentlyIfAlreadyGranted() {
-  if (!isNativePlatform()) return;
+  if (!pushSupportedOnThisPlatform()) return;
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const perm = await PushNotifications.checkPermissions();
