@@ -1424,7 +1424,24 @@ function OperationalMappingPicker({
               />
             </div>
             <div className={listShell}>
-              {unitOptions.length === 0 ? (
+              {orgUnitsQuery.isLoading ? (
+                <div className="flex items-center justify-center gap-2 p-4 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading clients…
+                </div>
+              ) : orgUnitsQuery.isError ? (
+                <div className="flex items-center justify-center gap-2 p-4 text-xs text-destructive">
+                  <span className="truncate">Could not load clients.</span>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => void orgUnitsQuery.refetch()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : unitOptions.length === 0 ? (
                 <div className="p-4 text-center text-xs text-muted-foreground">
                   {unitQuery ? "No matches — try a different search." : "No clients under the selected organizations."}
                 </div>
