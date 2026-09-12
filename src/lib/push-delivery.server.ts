@@ -99,7 +99,11 @@ async function sendNativePushToTokenRows(
   const failures: NativePushDeliveryResult["failures"] = [];
 
   for (const row of rows) {
-    const result = await sendApnsPush(row.token, payload);
+    // Android tokens are FCM registration tokens; iOS/other tokens are APNs.
+    const result =
+      row.platform === "android"
+        ? await sendFcmPush(row.token, payload)
+        : await sendApnsPush(row.token, payload);
     if (result.success) {
       sent += 1;
       continue;
