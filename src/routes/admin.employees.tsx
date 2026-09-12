@@ -6942,6 +6942,7 @@ function CandidateWizard({
                     </div>
                   )}
 
+                  {!isEmployeeMode && (
                   <div className="sm:col-span-2">
                     <Field label={`Organizations${(() => {
                       const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
