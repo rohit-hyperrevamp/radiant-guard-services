@@ -18,5 +18,5 @@
 - [x] Google Play phone screenshots prepared
 
 ## Non-billable onboarding assignment
-- [ ] Home/payroll unit fixed to Radiant Pune office (read-only), remove duplicate top dropdown
-- [ ] Searchable operational mapping (units or organizations) for non-billable employees, saved as scope rows
+- [x] Home/payroll unit fixed to Radiant Pune office (read-only), remove duplicate top dropdown
+- [x] Searchable operational mapping (units or organizations) for non-billable employees, saved as scope rows
