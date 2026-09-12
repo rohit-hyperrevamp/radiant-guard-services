@@ -126,7 +126,7 @@ export async function sendNativePushToCurrentUserServer(
   const { data, error } = await supabase
     .from("device_push_tokens")
     .select("user_id,token,platform,last_seen_at")
-    .eq("platform", "ios")
+    .in("platform", ["ios", "android"])
     .order("last_seen_at", { ascending: false });
   if (error) throw error;
 
