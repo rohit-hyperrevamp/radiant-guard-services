@@ -1217,10 +1217,11 @@ type OperationalMapping = {
 };
 
 /**
- * Inline searchable mapping picker for non-billable employees. The person can
- * be mapped to any client unit or organization they actually work at — payroll
- * always stays on the Radiant home unit. Rendered inline (no Popover) because
- * popup pickers are unreliable inside the full-screen wizard dialog.
+ * Inline mapping picker for non-billable employees: pick one or more
+ * organizations first, then pick client units belonging to those
+ * organizations. Both levels are multi-select and searchable. Rendered inline
+ * (no Popover) because popup pickers are unreliable inside the full-screen
+ * wizard dialog.
  */
 function OperationalMappingPicker({
   units,
@@ -1241,64 +1242,173 @@ function OperationalMappingPicker({
   error?: string | null;
   onRetry?: () => void;
 }) {
-  const [targetType, setTargetType] = useState<"unit" | "customer">("unit");
-  const [query, setQuery] = useState("");
-  const selectedKeys = useMemo(() => new Set(value.map((m) => `${m.scope_type}:${m.scope_id}`)), [value]);
+  const [orgQuery, setOrgQuery] = useState("");
+  const [unitQuery, setUnitQuery] = useState("");
 
-  const options = useMemo(() => {
-    const rows =
-      targetType === "unit"
-        ? units
-            .filter((u) => u.is_billable !== false)
-            .map((u) => ({
-              id: u.id,
-              label: `${u.name}${u.code ? ` · ${u.code}` : ""}`,
-              sub: u.customer_name ?? "",
-            }))
-        : customers.map((c) => ({ id: c.id, label: c.name, sub: "Organization" }));
+  const selectedOrgIds = useMemo(
+    () => value.filter((m) => m.scope_type === "customer").map((m) => m.scope_id),
+    [value],
+  );
+  const selectedOrgSet = useMemo(() => new Set(selectedOrgIds), [selectedOrgIds]);
+  const selectedUnitSet = useMemo(
+    () => new Set(value.filter((m) => m.scope_type === "unit").map((m) => m.scope_id)),
+    [value],
+  );
+
+  const orgOptions = useMemo(() => {
+    const rows = customers.map((c) => ({ id: c.id, label: c.name }));
     rows.sort((a, b) => a.label.localeCompare(b.label));
-    const needle = query.trim().toLowerCase();
-    if (!needle) return rows;
-    return rows.filter((o) => `${o.label} ${o.sub}`.toLowerCase().includes(needle));
-  }, [targetType, units, customers, query]);
+    const needle = orgQuery.trim().toLowerCase();
+    return needle ? rows.filter((o) => o.label.toLowerCase().includes(needle)) : rows;
+  }, [customers, orgQuery]);
 
-  const toggle = (o: { id: string; label: string }) => {
-    const key = `${targetType}:${o.id}`;
-    if (selectedKeys.has(key)) {
-      onChange(value.filter((m) => !(m.scope_type === targetType && m.scope_id === o.id)));
+  // Units are always scoped to the organizations picked above.
+  const unitOptions = useMemo(() => {
+    if (selectedOrgSet.size === 0) return [];
+    const rows = units
+      .filter((u) => u.is_billable !== false && u.customer_id && selectedOrgSet.has(u.customer_id))
+      .map((u) => ({
+        id: u.id,
+        label: `${u.name}${u.code ? ` · ${u.code}` : ""}`,
+        sub: u.customer_name ?? "",
+      }));
+    rows.sort((a, b) => a.label.localeCompare(b.label));
+    const needle = unitQuery.trim().toLowerCase();
+    return needle ? rows.filter((o) => `${o.label} ${o.sub}`.toLowerCase().includes(needle)) : rows;
+  }, [units, selectedOrgSet, unitQuery]);
+
+  const toggleOrg = (o: { id: string; label: string }) => {
+    if (selectedOrgSet.has(o.id)) {
+      // Dropping an organization also drops its unit mappings.
+      const unitIdsOfOrg = new Set(units.filter((u) => u.customer_id === o.id).map((u) => u.id));
+      onChange(
+        value.filter(
+          (m) =>
+            !(m.scope_type === "customer" && m.scope_id === o.id) &&
+            !(m.scope_type === "unit" && unitIdsOfOrg.has(m.scope_id)),
+        ),
+      );
     } else {
-      onChange([...value, { scope_type: targetType, scope_id: o.id, scope_label: o.label }]);
+      onChange([...value, { scope_type: "customer", scope_id: o.id, scope_label: o.label }]);
     }
   };
 
+  const toggleUnit = (o: { id: string; label: string }) => {
+    if (selectedUnitSet.has(o.id)) {
+      onChange(value.filter((m) => !(m.scope_type === "unit" && m.scope_id === o.id)));
+    } else {
+      onChange([...value, { scope_type: "unit", scope_id: o.id, scope_label: o.label }]);
+    }
+  };
+
+  const removeMapping = (m: OperationalMapping) => {
+    if (m.scope_type === "customer") {
+      toggleOrg({ id: m.scope_id, label: m.scope_label });
+      return;
+    }
+    onChange(value.filter((x) => !(x.scope_type === "unit" && x.scope_id === m.scope_id)));
+  };
+
+  const listShell = "max-h-48 overflow-y-auto rounded-lg border border-border/60 divide-y divide-border/40";
+
+  const renderRow = (
+    o: { id: string; label: string; sub?: string },
+    checked: boolean,
+    onToggle: () => void,
+  ) => (
+    <label
+      key={o.id}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 text-sm transition",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/40",
+      )}
+    >
+      <input
+        type="checkbox"
+        className="h-4 w-4 rounded border-border accent-primary"
+        disabled={disabled}
+        checked={checked}
+        onChange={onToggle}
+      />
+      <span className="flex-1 truncate">
+        {o.label}
+        {o.sub && <span className="ml-1.5 text-xs text-muted-foreground">{o.sub}</span>}
+      </span>
+      {checked && <Check className="h-4 w-4 shrink-0 text-primary" />}
+    </label>
+  );
+
   return (
-    <div className="space-y-2">
-      <div className="flex rounded-lg border border-border/60 bg-secondary/40 p-0.5">
-        {(["unit", "customer"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            disabled={disabled}
-            onClick={() => { setTargetType(t); setQuery(""); }}
-            className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition disabled:opacity-40",
-              targetType === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t === "unit" ? "Client units" : "Organizations"}
-          </button>
-        ))}
+    <div className="space-y-3">
+      {/* Step 1 — organizations */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-foreground">1 · Organization</p>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={orgQuery}
+            onChange={(e) => setOrgQuery(e.target.value)}
+            disabled={disabled || loading}
+            placeholder="Search organizations (e.g. L&T)…"
+            className="h-9 pl-8"
+          />
+        </div>
+        <div className={listShell}>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 p-4 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center gap-2 p-4 text-xs text-destructive">
+              <span className="truncate">Could not load: {error}</span>
+              {onRetry && (
+                <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onRetry}>
+                  Retry
+                </Button>
+              )}
+            </div>
+          ) : orgOptions.length === 0 ? (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              {orgQuery ? "No matches — try a different search." : "No organizations found."}
+            </div>
+          ) : (
+            orgOptions.map((o) => renderRow(o, selectedOrgSet.has(o.id), () => toggleOrg(o)))
+          )}
+        </div>
       </div>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          disabled={disabled || loading}
-          placeholder={targetType === "unit" ? "Search units by name, code or organization…" : "Search organizations…"}
-          className="h-9 pl-8"
-        />
+
+      {/* Step 2 — units of the chosen organizations */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-foreground">2 · Client / Unit</p>
+        {selectedOrgSet.size === 0 ? (
+          <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-xs text-muted-foreground">
+            Select an organization above to see its clients.
+          </div>
+        ) : (
+          <>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={unitQuery}
+                onChange={(e) => setUnitQuery(e.target.value)}
+                disabled={disabled}
+                placeholder="Search clients by name or code…"
+                className="h-9 pl-8"
+              />
+            </div>
+            <div className={listShell}>
+              {unitOptions.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  {unitQuery ? "No matches — try a different search." : "No clients under the selected organizations."}
+                </div>
+              ) : (
+                unitOptions.map((o) => renderRow(o, selectedUnitSet.has(o.id), () => toggleUnit(o)))
+              )}
+            </div>
+          </>
+        )}
       </div>
+
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map((m) => (
@@ -1310,7 +1420,7 @@ function OperationalMappingPicker({
                 type="button"
                 aria-label={`Remove ${m.scope_label}`}
                 className="rounded-full p-0.5 hover:bg-foreground/10"
-                onClick={() => onChange(value.filter((x) => !(x.scope_type === m.scope_type && x.scope_id === m.scope_id)))}
+                onClick={() => removeMapping(m)}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -1318,52 +1428,6 @@ function OperationalMappingPicker({
           ))}
         </div>
       )}
-      <div className="max-h-56 overflow-y-auto rounded-lg border border-border/60 divide-y divide-border/40">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 p-4 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center gap-2 p-4 text-xs text-destructive">
-            <span className="truncate">Could not load: {error}</span>
-            {onRetry && (
-              <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onRetry}>
-                Retry
-              </Button>
-            )}
-          </div>
-        ) : options.length === 0 ? (
-          <div className="p-4 text-center text-xs text-muted-foreground">
-            {query ? "No matches — try a different search." : `No ${targetType === "unit" ? "units" : "organizations"} found.`}
-          </div>
-        ) : (
-          options.map((o) => {
-            const checked = selectedKeys.has(`${targetType}:${o.id}`);
-            return (
-              <label
-                key={o.id}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-sm transition",
-                  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/40",
-                )}
-              >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-border accent-primary"
-                  disabled={disabled}
-                  checked={checked}
-                  onChange={() => toggle(o)}
-                />
-                <span className="flex-1 truncate">
-                  {o.label}
-                  {o.sub && <span className="ml-1.5 text-xs text-muted-foreground">{o.sub}</span>}
-                </span>
-                {checked && <Check className="h-4 w-4 shrink-0 text-primary" />}
-              </label>
-            );
-          })
-        )}
-      </div>
       <p className="text-[11px] text-muted-foreground">
         {value.length} mapping{value.length === 1 ? "" : "s"} selected — payroll always stays on the Radiant home unit.
       </p>
