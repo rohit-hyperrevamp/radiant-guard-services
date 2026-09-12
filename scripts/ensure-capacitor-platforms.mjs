@@ -4,8 +4,13 @@ import { homedir } from "node:os";
 
 const run = (command, args) => {
   const result = spawnSync(command, args, { stdio: "inherit", shell: process.platform === "win32" });
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+  return result.status ?? 1;
+};
+
+const runOrExit = (command, args) => {
+  const status = run(command, args);
+  if (status !== 0) {
+    process.exit(status);
   }
 };
 
@@ -57,11 +62,11 @@ const ensureFullXcodeSelected = () => {
 ensureFullXcodeSelected();
 
 if (!existsSync("ios")) {
-  run("npx", [...CLI, "add", "ios", "--packagemanager", "CocoaPods"]);
+  runOrExit("npx", [...CLI, "add", "ios", "--packagemanager", "CocoaPods"]);
 }
 
 if (!existsSync("android")) {
-  run("npx", [...CLI, "add", "android"]);
+  runOrExit("npx", [...CLI, "add", "android"]);
 }
 
 // Keep Xcode from holding on to removed Swift Package state. This app uses
@@ -87,4 +92,17 @@ if (existsSync("ios")) {
   }
 }
 
-run("npx", [...CLI, "sync"]);
+let syncStatus = run("npx", [...CLI, "sync"]);
+
+// If iOS pod resolution fails (e.g. a new plugin version like IONCameraLib 2.x
+// is missing from the local CocoaPods catalog), refresh the spec repos once
+// and retry automatically.
+if (syncStatus !== 0 && process.platform === "darwin" && existsSync("ios/App/Podfile")) {
+  console.warn("\n⚠️  Sync failed — refreshing the CocoaPods spec repos and retrying…");
+  run("pod", ["repo", "update"]);
+  syncStatus = run("npx", [...CLI, "sync"]);
+}
+
+if (syncStatus !== 0) {
+  process.exit(syncStatus);
+}
