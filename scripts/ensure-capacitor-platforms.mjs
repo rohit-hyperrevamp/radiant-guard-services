@@ -92,4 +92,17 @@ if (existsSync("ios")) {
   }
 }
 
-run("npx", [...CLI, "sync"]);
+let syncStatus = run("npx", [...CLI, "sync"]);
+
+// If iOS pod resolution fails (e.g. a new plugin version like IONCameraLib 2.x
+// is missing from the local CocoaPods catalog), refresh the spec repos once
+// and retry automatically.
+if (syncStatus !== 0 && process.platform === "darwin" && existsSync("ios/App/Podfile")) {
+  console.warn("\n⚠️  Sync failed — refreshing the CocoaPods spec repos and retrying…");
+  run("pod", ["repo", "update"]);
+  syncStatus = run("npx", [...CLI, "sync"]);
+}
+
+if (syncStatus !== 0) {
+  process.exit(syncStatus);
+}
