@@ -2,7 +2,19 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
-import { useScopeAssignments } from "@/lib/deployment";
+
+type ScopeAssignment = {
+  candidate_id: string;
+  scope_type: "state" | "customer" | "branch" | "unit";
+  scope_id: string;
+};
+
+type ScopedUnit = {
+  id: string;
+  branch_id: string | null;
+  customer_id: string | null;
+  is_billable: boolean | null;
+};
 
 export type FieldOfficerUnitScope = {
   isLoading: boolean;
@@ -29,37 +41,82 @@ export type FieldOfficerUnitScope = {
  */
 export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const { isFieldOfficer, candidateId, isLoading: roleLoading } = useCurrentUserRole();
-  const scopeQ = useScopeAssignments();
+
+  // Fetch only this officer's assignments. Reusing the admin-wide assignment
+  // query could return a capped/cached list that omitted the current officer.
+  const scopeQ = useQuery({
+    queryKey: ["fo-scope-assignments", candidateId],
+    enabled: !!candidateId && isFieldOfficer,
+    staleTime: 30_000,
+    queryFn: async (): Promise<ScopeAssignment[]> => {
+      if (!candidateId) return [];
+      const { data, error } = await supabase
+        .from("employee_scope_assignments" as never)
+        .select("candidate_id,scope_type,scope_id")
+        .eq("candidate_id", candidateId);
+      if (error) throw error;
+      return ((data as unknown) as ScopeAssignment[]) ?? [];
+    },
+  });
 
   const cuQ = useQuery({
     queryKey: ["fo-candidate-units", candidateId],
     enabled: !!candidateId && isFieldOfficer,
     staleTime: 30_000,
     queryFn: async () => {
+      if (!candidateId) return [];
       const { data, error } = await supabase
         .from("candidate_units" as never)
         .select("unit_id")
-        .eq("candidate_id", candidateId!);
+        .eq("candidate_id", candidateId);
       if (error) throw error;
       return ((data as unknown) as Array<{ unit_id: string }>) ?? [];
     },
   });
 
   const unitsQ = useQuery({
-    queryKey: ["fo-units-lookup"],
-    enabled: isFieldOfficer,
+    queryKey: ["fo-units-lookup", candidateId, scopeQ.data, cuQ.data],
+    enabled: !!candidateId && isFieldOfficer && !scopeQ.isLoading && !cuQ.isLoading,
     staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("units" as never)
-        .select("id,branch_id,customer_id,is_billable");
-      if (error) throw error;
-      return ((data as unknown) as Array<{
-        id: string;
-        branch_id: string | null;
-        customer_id: string | null;
-        is_billable: boolean | null;
-      }>) ?? [];
+    queryFn: async (): Promise<ScopedUnit[]> => {
+      const assignments = scopeQ.data ?? [];
+      const directUnitIds = new Set([
+        ...assignments.filter((s) => s.scope_type === "unit").map((s) => s.scope_id),
+        ...(cuQ.data ?? []).map((row) => row.unit_id),
+      ]);
+      const customerIds = assignments
+        .filter((s) => s.scope_type === "customer")
+        .map((s) => s.scope_id);
+      const byId = new Map<string, ScopedUnit>();
+
+      if (directUnitIds.size) {
+        const { data, error } = await supabase
+          .from("units" as never)
+          .select("id,branch_id,customer_id,is_billable")
+          .in("id", [...directUnitIds]);
+        if (error) throw error;
+        for (const unit of ((data as unknown) as ScopedUnit[]) ?? []) byId.set(unit.id, unit);
+      }
+
+      // An organization assignment includes all its billable client units.
+      // Page this query so large organizations cannot silently lose units.
+      if (customerIds.length) {
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = await supabase
+            .from("units" as never)
+            .select("id,branch_id,customer_id,is_billable")
+            .in("customer_id", customerIds)
+            .order("id", { ascending: true })
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          const rows = ((data as unknown) as ScopedUnit[]) ?? [];
+          for (const unit of rows) byId.set(unit.id, unit);
+          if (rows.length < pageSize) break;
+        }
+      }
+
+      return [...byId.values()];
     },
   });
 
