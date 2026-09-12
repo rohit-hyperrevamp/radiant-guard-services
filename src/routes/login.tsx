@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Fingerprint, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -510,6 +510,13 @@ function LoginPage() {
 
             {/* Footer credit */}
             <div className="mt-10 text-center text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground lg:absolute lg:inset-x-0 lg:bottom-6 lg:mt-0">
+              <Link
+                to="/privacy-policy"
+                className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                Privacy Policy
+              </Link>
+              <span className="mx-2 text-muted-foreground/60">·</span>
               Designed &amp; Developed by{" "}
               <span className="font-semibold text-foreground">HyperRevamp</span>
             </div>
