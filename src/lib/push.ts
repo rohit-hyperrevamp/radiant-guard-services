@@ -174,8 +174,12 @@ export async function initPushNotifications(): Promise<void> {
 
 async function preparePushNotificationsOnce(): Promise<void> {
   if (initialized) return;
-  if (!isNativePlatform()) {
-    logNativeEvent("push", "prepare skipped: not native", getNativeRuntimeSnapshot());
+  if (!pushSupportedOnThisPlatform()) {
+    logNativeEvent("push", "prepare skipped: push not supported on this build", {
+      ...getNativeRuntimeSnapshot(),
+      platform: nativePlatform(),
+      androidPushEnabled: androidPushEnabled(),
+    });
     return;
   }
   initialized = true;
