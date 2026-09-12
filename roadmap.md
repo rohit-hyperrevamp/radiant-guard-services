@@ -16,3 +16,7 @@
 - [x] Signed release AAB + Play Store internal testing
 - [x] Google Play listing icon and feature graphic prepared from the Apple app icon
 - [x] Google Play phone screenshots prepared
+
+## Non-billable onboarding assignment
+- [ ] Home/payroll unit fixed to Radiant Pune office (read-only), remove duplicate top dropdown
+- [ ] Searchable operational mapping (units or organizations) for non-billable employees, saved as scope rows
