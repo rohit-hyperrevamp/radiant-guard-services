@@ -116,7 +116,7 @@ export function SignDocumentDialog({
         signedAt,
       });
       const fname = `${DOC_TYPE_SHORT[docType].replace(/ /g, "_")}_${data.candidate.employee_code || data.candidate.candidate_code || data.candidate.id}.pdf`;
-      downloadBlob(blob, fname);
+      await downloadBlob(blob, fname);
       toast.success("Signed and downloaded");
       onOpenChange(false);
     } catch (e) {

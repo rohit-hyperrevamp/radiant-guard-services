@@ -780,7 +780,7 @@ function ProfilePage() {
         signedAt: row.signed_at,
       });
       const filename = `${label.replace(/\s+/g, "_")}-${profile.employee_code || profile.candidate_code || "doc"}.pdf`;
-      downloadBlob(blob, filename);
+      await downloadBlob(blob, filename);
     } catch (e: any) {
       toast.error(e?.message || "Could not generate PDF");
     } finally {

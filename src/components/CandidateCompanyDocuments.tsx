@@ -115,7 +115,7 @@ export function CandidateCompanyDocuments({
         employeeCode: employeeCode ?? "",
         signedAt: row.signed_at,
       });
-      downloadBlob(blob, `${label.replace(/\s+/g, "_")}-${employeeCode || "document"}.pdf`);
+      await downloadBlob(blob, `${label.replace(/\s+/g, "_")}-${employeeCode || "document"}.pdf`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not generate PDF");
     } finally {
