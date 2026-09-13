@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Home } from "lucide-react";
+import { ArrowLeft, ChevronRight, Home } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +35,15 @@ export function PageHeader({
 }) {
   return (
     <div className={cn("relative mb-3 sm:mb-5", className)}>
+      {crumbs.length > 1 && crumbs[crumbs.length - 2]?.to && (
+        <Link
+          to={crumbs[crumbs.length - 2].to}
+          className="mb-2 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-muted-foreground sm:hidden"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to {crumbs[crumbs.length - 2].label}
+        </Link>
+      )}
       <nav aria-label="Breadcrumb" className="mb-2 hidden sm:block">
         <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <li>

@@ -525,7 +525,7 @@ function FieldOfficerDashboard() {
 
       {/* Pastel summary tiles — "My Summary" */}
       <section>
-        <div className="mb-2 flex items-end justify-between sm:mb-3">
+        <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:mb-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
             <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
@@ -925,9 +925,9 @@ function PastelTile({
 
 
   const inner = (
-    <div className={`relative flex h-full min-h-[86px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div>
+    <div className={`relative flex h-full min-h-[108px] min-w-0 flex-col justify-between overflow-hidden rounded-xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:p-5 ${bg} ${ring}`}>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+        <div className="min-w-0">
           <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
           <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">{hint}</div>
         </div>
