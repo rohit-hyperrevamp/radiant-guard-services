@@ -143,7 +143,7 @@ function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
 function timeStr(iso: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 function elapsed(from: string | null, to?: string | null) {
@@ -348,7 +348,7 @@ export function MarkAttendanceCard({
       ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
       : state === "in"
       ? "bg-amber-500/10 text-amber-600 ring-amber-500/20"
-      : "bg-muted text-muted-foreground ring-border/60";
+      : "bg-destructive/10 text-destructive ring-destructive/20";
 
   return (
     <section
@@ -357,7 +357,7 @@ export function MarkAttendanceCard({
         compact ? "p-3.5 sm:p-4" : "p-4 sm:p-6",
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Today</div>
           <h3 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-xl">
@@ -365,8 +365,8 @@ export function MarkAttendanceCard({
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {isNativePlatform()
-              ? "Face ID + live GPS will be captured."
-              : "Live GPS will be captured. Face ID is available in the iOS app."}
+              ? "Biometric verification and live GPS will be captured."
+              : "Live GPS will be captured. Biometric verification is available in the mobile app."}
           </p>
         </div>
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1", pillClass)}>

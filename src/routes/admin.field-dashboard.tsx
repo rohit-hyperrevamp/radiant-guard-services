@@ -475,13 +475,6 @@ function FieldOfficerDashboard() {
             </div>
           </div>
 
-          <Link
-            to="/admin/profile"
-            aria-label="Edit profile"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/20"
-          >
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
         </div>
 
         {(phone || email) && (
@@ -532,7 +525,7 @@ function FieldOfficerDashboard() {
 
       {/* Pastel summary tiles — "My Summary" */}
       <section>
-        <div className="mb-2 flex items-end justify-between sm:mb-3">
+        <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:mb-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
             <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
@@ -582,7 +575,7 @@ function FieldOfficerDashboard() {
             hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
             delta={0} deltaSuffix=""
             icon={Warehouse}
-            to="/admin/inventory/stock"
+            to="/admin/inventory/items"
           />
         </div>
       </section>
@@ -932,9 +925,9 @@ function PastelTile({
 
 
   const inner = (
-    <div className={`relative flex h-full min-h-[86px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div>
+    <div className={`relative flex h-full min-h-[108px] min-w-0 flex-col justify-between overflow-hidden rounded-xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:p-5 ${bg} ${ring}`}>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+        <div className="min-w-0">
           <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
           <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">{hint}</div>
         </div>
@@ -947,10 +940,12 @@ function PastelTile({
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
-            <TrendIcon className="h-3 w-3" />
-            {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
-          </span>
+          {delta !== 0 && (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
+              <TrendIcon className="h-3 w-3" />
+              {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
+            </span>
+          )}
           <span className="hidden h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70 sm:grid">
             <Icon className="h-3.5 w-3.5" />
           </span>

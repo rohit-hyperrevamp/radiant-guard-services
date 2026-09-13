@@ -780,7 +780,7 @@ function ProfilePage() {
         signedAt: row.signed_at,
       });
       const filename = `${label.replace(/\s+/g, "_")}-${profile.employee_code || profile.candidate_code || "doc"}.pdf`;
-      downloadBlob(blob, filename);
+      await downloadBlob(blob, filename);
     } catch (e: any) {
       toast.error(e?.message || "Could not generate PDF");
     } finally {
@@ -850,12 +850,7 @@ function ProfilePage() {
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-secondary/40 shadow-sm">
         <div className="flex flex-col items-center gap-4 px-5 pb-5 pt-6 text-center sm:flex-row sm:items-center sm:gap-6 sm:px-6 sm:text-left">
           <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="block h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-secondary shadow-md ring-2 ring-primary/20 sm:h-28 sm:w-28"
-              title="Change photo"
-            >
+            <div className="block h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-secondary shadow-md ring-2 ring-primary/20 sm:h-28 sm:w-28">
               {profile.photo_url ? (
                 <img
                   src={profile.photo_url}
@@ -867,7 +862,7 @@ function ProfilePage() {
                   {(profile.full_name || "?").slice(0, 1).toUpperCase()}
                 </div>
               )}
-            </button>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

@@ -49,6 +49,9 @@ export function AppleNativeSetupCard({
   const [pushRegistered, setPushRegistered] = useState(false);
   const [pushTokenCount, setPushTokenCount] = useState(0);
   const [bioStatus, setBioStatus] = useState<string>("");
+  const isAndroid = nativeSnapshot.platform === "android";
+  const deviceLabel = isAndroid ? "Android device" : nativeSnapshot.platform === "ios" ? "iPhone" : "device";
+  const biometricLabel = isAndroid ? "biometric" : "Face ID";
 
   useEffect(() => {
     const snapshot = getNativeRuntimeSnapshot();
@@ -229,21 +232,21 @@ export function AppleNativeSetupCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-accent" />
-            <h2 className="text-sm font-semibold tracking-wide">Apple app setup</h2>
+            <h2 className="text-sm font-semibold">Mobile app setup</h2>
           </div>
           <p className={cn("mt-1 text-sm text-muted-foreground", compact && "text-xs")}>
-            Register this iPhone for native push notifications and enable Face ID sign-in.
+            Register this {deviceLabel} for push notifications and enable {biometricLabel} sign-in.
           </p>
           <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-            <p>{pushStatus || (nativeSupported ? "Push status not checked yet." : "Open the installed iOS app to use Apple push notifications.")}</p>
-            <p>{bioStatus || (nativeSupported ? "Face ID status not checked yet." : "Open the installed iOS app to use Face ID.")}</p>
+            <p>{pushStatus || (nativeSupported ? "Push status not checked yet." : "Open the installed mobile app to use push notifications.")}</p>
+            <p>{bioStatus || (`${biometricLabel} status not checked yet.`)}</p>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-muted-foreground">
             <Badge variant={nativeSnapshot.isNative ? "default" : "outline"}>
               Platform: {nativeSnapshot.platform}
             </Badge>
             <Badge variant={nativeSnapshot.biometricPluginAvailable ? "default" : "outline"}>
-              Face ID plugin: {nativeSnapshot.biometricPluginAvailable ? "available" : "missing"}
+              Biometric plugin: {nativeSnapshot.biometricPluginAvailable ? "available" : "missing"}
             </Badge>
             <Badge variant={nativeSnapshot.pushPluginAvailable ? "default" : "outline"}>
               Push plugin: {nativeSnapshot.pushPluginAvailable ? "available" : "missing"}
@@ -256,7 +259,7 @@ export function AppleNativeSetupCard({
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRegisterPush} disabled={pushLoading || !nativeSupported}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : pushRegistered ? <CheckCircle2 className="mr-1.5 h-4 w-4" /> : <Bell className="mr-1.5 h-4 w-4" />}
-            {pushRegistered ? "Refresh iPhone" : "Register iPhone"}
+            {pushRegistered ? "Refresh device" : "Register device"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleTestPush} disabled={pushLoading}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Bell className="mr-1.5 h-4 w-4" />}
@@ -264,7 +267,7 @@ export function AppleNativeSetupCard({
           </Button>
           <Button variant="outline" size="sm" onClick={handleToggleBiometric} disabled={bioBusy || !nativeSupported}>
             {bioBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Fingerprint className="mr-1.5 h-4 w-4" />}
-            {bioEnabled ? "Disable Face ID" : "Enable Face ID"}
+            {bioEnabled ? `Disable ${biometricLabel}` : `Enable ${biometricLabel}`}
           </Button>
           <Button variant="secondary" size="sm" onClick={copyNativeDiagnostics}>
             <Clipboard className="mr-1.5 h-4 w-4" />

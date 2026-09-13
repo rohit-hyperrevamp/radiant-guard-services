@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CalendarDays, MapPinned, Search, UserRound, X } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -67,12 +67,17 @@ type CodeMeta = {
 function EmployeeAttendanceLookupPage() {
   const now = new Date();
   const [term, setTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   const [selected, setSelected] = useState<CandidateHit | null>(null);
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const foScope = useFieldOfficerUnitScope();
 
-  const search = term.trim();
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedTerm(term.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [term]);
+  const search = debouncedTerm;
 
   const searchQ = useQuery({
     queryKey: ["attendance-employee-search", search],
@@ -250,7 +255,7 @@ function EmployeeAttendanceLookupPage() {
         description="Search any employee and review their marked attendance across every client they work at."
         crumbs={[{ label: "Attendance", to: "/admin/attendance" }, { label: "Employee lookup" }]}
         actions={
-          <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button asChild variant="outline" size="sm" className="h-10 gap-1.5 text-xs">
             <Link to="/admin/attendance">
               <MapPinned className="h-3.5 w-3.5" /> Client view
             </Link>
@@ -266,22 +271,24 @@ function EmployeeAttendanceLookupPage() {
               value={term}
               onChange={(e) => setTerm(e.target.value)}
               placeholder="Search by name, employee code, candidate number or mobile…"
-              className="h-10 pl-9"
+              className="h-12 pl-10 pr-12"
             />
             {term && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted"
+                className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full text-muted-foreground"
                 aria-label="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             )}
           </div>
-          <div className="flex items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,0.7fr)] items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 sm:flex">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-8 w-[128px] rounded-xl border-0 bg-transparent shadow-none focus:ring-0">
+              <SelectTrigger className="h-10 w-full rounded-xl border-0 bg-transparent shadow-none focus:ring-0 sm:w-[128px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -292,7 +299,7 @@ function EmployeeAttendanceLookupPage() {
             </Select>
             <div className="h-5 w-px bg-border/70" />
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 w-[92px] rounded-xl border-0 bg-transparent shadow-none focus:ring-0">
+              <SelectTrigger className="h-10 w-full rounded-xl border-0 bg-transparent shadow-none focus:ring-0 sm:w-[92px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

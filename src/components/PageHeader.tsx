@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Home } from "lucide-react";
+import { ArrowLeft, ChevronRight, Home } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +35,15 @@ export function PageHeader({
 }) {
   return (
     <div className={cn("relative mb-3 sm:mb-5", className)}>
+      {crumbs.length > 1 && crumbs[crumbs.length - 2]?.to && (
+        <Link
+          to={crumbs[crumbs.length - 2].to}
+          className="mb-2 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-muted-foreground sm:hidden"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to {crumbs[crumbs.length - 2].label}
+        </Link>
+      )}
       <nav aria-label="Breadcrumb" className="mb-2 hidden sm:block">
         <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <li>
@@ -61,7 +70,7 @@ export function PageHeader({
         </ol>
       </nav>
 
-      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-3 sm:p-5">
+      <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card p-3 sm:p-5">
         <div className="relative flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-start gap-2.5">
             {Icon && (
@@ -77,7 +86,7 @@ export function PageHeader({
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[17px] font-semibold leading-tight tracking-tight text-foreground sm:truncate sm:text-[22px]">
+              <h1 className="font-display text-[17px] font-semibold leading-tight text-foreground sm:truncate sm:text-[22px]">
                 {title}
               </h1>
               {description && (

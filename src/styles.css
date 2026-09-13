@@ -55,13 +55,13 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --radius: 1.5rem;
+  --radius: 0.75rem;
   /* surfaces — soft neutral canvas, pure white cards (reference design language) */
   --background: oklch(0.958 0.004 170);
   --foreground: oklch(0.19 0.015 168);
@@ -177,7 +177,7 @@
   html, body {
     max-width: 100%;
     min-height: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     overflow-y: auto;
   }
 
@@ -190,7 +190,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    letter-spacing: -0.015em;
+    letter-spacing: 0;
     font-weight: 500;
   }
 
@@ -238,9 +238,7 @@
 /* Small-screen safety: any grid/flex row of cards keeps a
    single-column baseline until there's room. */
 @media (max-width: 480px) {
-  .grid.grid-cols-2:not([class*=":grid-cols-"]),
-  .grid.grid-cols-3:not([class*=":grid-cols-"]),
-  .grid.grid-cols-4:not([class*=":grid-cols-"]) { grid-template-columns: minmax(0, 1fr) !important; }
+  .mobile-single-column { grid-template-columns: minmax(0, 1fr) !important; }
 }
 
 @layer utilities {

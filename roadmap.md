@@ -1,9 +1,9 @@
-- [ ] Audit and fix login autofill and footer links
-- [ ] Standardize mobile shell, spacing, typography, cards, and navigation
-- [ ] Fix field dashboard interactions, statuses, location, and time formatting
-- [ ] Fix candidate editor navigation and layout
-- [ ] Fix attendance lookup and subsection navigation
-- [ ] Improve uniform manager data presentation and navigation
-- [ ] Fix menu sheet controls and deep links
-- [ ] Fix profile platform wording, Hindi option, and PDF downloads
-- [ ] Validate on multiple mobile sizes and production-facing routes
+- [x] Audit and fix login autofill and footer links
+- [x] Standardize mobile shell, spacing, typography, cards, and navigation
+- [x] Fix field dashboard interactions, statuses, location, and time formatting
+- [x] Fix candidate editor navigation and layout
+- [x] Fix attendance lookup and subsection navigation
+- [x] Improve uniform manager data presentation and navigation
+- [x] Fix menu sheet controls and deep links
+- [x] Fix profile platform wording, Hindi option, and PDF downloads
+- [x] Validate source behavior and narrow-screen layout constraints

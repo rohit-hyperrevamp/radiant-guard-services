@@ -55,6 +55,7 @@ import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNa
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -566,7 +567,7 @@ function AdminLayout() {
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
     <div className={cn(
-      "relative flex min-h-[100dvh] flex-col overflow-x-clip lg:block lg:min-h-screen lg:overflow-visible",
+      "relative flex min-h-[100dvh] min-w-0 flex-col lg:block lg:min-h-screen",
       isFieldOfficer && "bg-white dark:bg-neutral-950",
     )}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
@@ -821,8 +822,18 @@ function AdminLayout() {
             )}
           >
             {/* Grabber */}
-            <div className="flex justify-center pt-3 pb-2">
+            <div className="relative flex justify-center px-4 pt-3 pb-2">
               <div className="h-1.5 w-24 rounded-full bg-muted/80" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close menu"
+                onClick={() => setMobileOpen(false)}
+                className="absolute right-3 top-2 h-10 w-10 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
             <div className="px-4 pb-3">
               <h2 className="text-[22px] font-bold leading-tight text-foreground">Menu</h2>
@@ -835,7 +846,7 @@ function AdminLayout() {
                   { to: "/admin/employees", label: "Employees", icon: UserPlus },
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
                   { to: "/admin/field-sense", label: "Radar", icon: Radio },
-                  { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
+                  { to: "/admin/inventory", label: "Uniform", icon: Boxes },
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                 ];
                 return (
@@ -925,10 +936,10 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main data-admin-scroll className={cn("relative z-10 min-h-0 flex-1 overflow-x-clip overflow-y-visible safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
 
 
-        <div className="mx-auto max-w-[1500px]">
+        <div className="mx-auto min-w-0 max-w-[1500px]">
           <div
             key={pathname}
             className={cn(!pathname.startsWith("/admin/payroll/") && "page-enter")}
