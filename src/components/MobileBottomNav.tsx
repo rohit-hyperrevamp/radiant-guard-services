@@ -76,7 +76,7 @@ export function MobileBottomNav({
               </span>
               <span
                 className={cn(
-                  "block w-full whitespace-nowrap text-center text-[9.5px] leading-tight tracking-tight",
+                  "block w-full truncate whitespace-nowrap text-center text-[9.5px] leading-tight",
                   it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
                 )}
               >
@@ -112,7 +112,7 @@ export function MobileBottomNav({
               >
                 <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
               </span>
-              <span className={cn("block w-full whitespace-nowrap text-center text-[9.5px] leading-tight tracking-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
+               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9.5px] leading-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
                 More
               </span>
             </div>

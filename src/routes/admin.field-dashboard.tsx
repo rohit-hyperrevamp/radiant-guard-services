@@ -475,13 +475,6 @@ function FieldOfficerDashboard() {
             </div>
           </div>
 
-          <Link
-            to="/admin/profile"
-            aria-label="Edit profile"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/20"
-          >
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
         </div>
 
         {(phone || email) && (
@@ -582,7 +575,7 @@ function FieldOfficerDashboard() {
             hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
             delta={0} deltaSuffix=""
             icon={Warehouse}
-            to="/admin/inventory/stock"
+            to="/admin/inventory/items"
           />
         </div>
       </section>
@@ -947,10 +940,12 @@ function PastelTile({
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
-            <TrendIcon className="h-3 w-3" />
-            {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
-          </span>
+          {delta !== 0 && (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
+              <TrendIcon className="h-3 w-3" />
+              {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
+            </span>
+          )}
           <span className="hidden h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70 sm:grid">
             <Icon className="h-3.5 w-3.5" />
           </span>

@@ -57,6 +57,13 @@ export const Route = createFileRoute("/login")({
 
 type Step = "phone" | "otp";
 
+function normalizeIndianMobile(value: string) {
+  let digits = value.replace(/\D/g, "");
+  if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2);
+  if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits.slice(-10);
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const { user, login } = useAuth();
@@ -388,15 +395,15 @@ function LoginPage() {
                           <span className="h-6 w-px bg-border" />
                         </div>
                         <input
+                           id="mobile-number"
+                           name="tel-national"
                           type="tel"
                           inputMode="numeric"
-                          autoComplete="tel"
+                           autoComplete="tel-national"
                           placeholder="98765 43210"
                           value={phone}
-                          onChange={(e) =>
-                            setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                          }
-                          className="h-13 flex-1 bg-transparent pr-4 text-[16px] font-medium tracking-wide text-foreground placeholder:font-normal placeholder:text-muted-foreground/35 focus:outline-none"
+                           onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))}
+                           className="h-13 min-w-0 flex-1 bg-transparent pr-4 text-[16px] font-medium tracking-wide text-foreground placeholder:font-normal placeholder:text-muted-foreground/35 focus:outline-none"
                         />
                       </div>
                     </label>
@@ -438,6 +445,8 @@ function LoginPage() {
                   <div className="space-y-5">
                     <div className={error ? "animate-shake" : ""}>
                       <InputOTP
+                         autoComplete="one-time-code"
+                         inputMode="numeric"
                         maxLength={OTP_LENGTH}
                         value={otp}
                         onChange={(v) => {
@@ -517,8 +526,15 @@ function LoginPage() {
                 Privacy Policy
               </Link>
               <span className="mx-2 text-muted-foreground/60">·</span>
-              Designed &amp; Developed by{" "}
-              <span className="font-semibold text-foreground">HyperRevamp</span>
+               Designed &amp; Developed by{" "}
+               <a
+                 href="https://hyperrevamp.com"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="font-semibold text-foreground underline underline-offset-2 hover:text-brand"
+               >
+                 HyperRevamp
+               </a>
             </div>
           </div>
         </div>

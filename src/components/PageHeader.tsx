@@ -61,7 +61,7 @@ export function PageHeader({
         </ol>
       </nav>
 
-      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-3 sm:p-5">
+      <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card p-3 sm:p-5">
         <div className="relative flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-start gap-2.5">
             {Icon && (
@@ -77,7 +77,7 @@ export function PageHeader({
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[17px] font-semibold leading-tight tracking-tight text-foreground sm:truncate sm:text-[22px]">
+              <h1 className="font-display text-[17px] font-semibold leading-tight text-foreground sm:truncate sm:text-[22px]">
                 {title}
               </h1>
               {description && (
