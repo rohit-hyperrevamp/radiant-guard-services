@@ -219,19 +219,11 @@ export function MarkAttendanceCard({
       if (isNativePlatform()) {
         face = await verifyFaceForAttendance("Mark attendance check-in");
       }
-      // Geolocation is REQUIRED only when proximity gating is on (guards
-      // tied to a unit). Ungated callers (e.g. field officers) can check
-      // in from anywhere — capture GPS if available, otherwise proceed.
-      let geo: import("@/lib/self-attendance").Geo | null = null;
-      try {
-        geo = await getCurrentPosition();
-      } catch (err) {
-        if (gated) throw err;
-        toast.info("Location unavailable — checking you in without GPS.");
-      }
+      // Location is MANDATORY for every attendance punch. Attendance cannot be
+      // marked while GPS / location permission is off.
+      const geo: import("@/lib/self-attendance").Geo = await getCurrentPosition();
 
       if (gated) {
-        if (!geo) throw new Error("Location is required to check in at your assigned client.");
         const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
         if (units.length === 0) {
           throw new Error("No client locations are configured for you. Ask your admin to set client coordinates.");
