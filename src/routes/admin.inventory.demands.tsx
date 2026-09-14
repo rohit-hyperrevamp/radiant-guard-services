@@ -156,7 +156,7 @@ function DemandsPage() {
 
   return (
     <div>
-      <PageHeader title="Demands" description="Raise a stock demand from your branch to the warehouse. Once submitted, the warehouse will dispatch a transfer against it." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Demands" }]} />
+      <PageHeader title="Demands" description="Request stock from warehouse." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Demands" }]} />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">

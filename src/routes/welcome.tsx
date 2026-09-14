@@ -63,7 +63,7 @@ function WelcomePage() {
             <span className="font-semibold text-foreground">
               {user ? maskPhone(user.phone) : "—"}
             </span>
-            . Your command center is being prepared.
+            . Preparing dashboard...
           </p>
 
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

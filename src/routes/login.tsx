@@ -335,7 +335,7 @@ function LoginPage() {
                 <h1 className="font-display text-3xl font-semibold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[44px] xl:text-[52px]">
                   Security operations,
                   <br />
-                  <span className="text-white/70">managed with precision.</span>
+                  <span className="text-white/70">managed.</span>
                 </h1>
                 <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/75 lg:text-base">
                   One portal for attendance, payroll, contracts and field teams
@@ -375,7 +375,7 @@ function LoginPage() {
                 </h2>
                 <p className="mt-2 max-w-[300px] text-[14px] leading-relaxed text-muted-foreground">
                   {step === "phone"
-                    ? "Enter your mobile number to receive a one-time code."
+                    ? "Enter your mobile number."
                     : `Code sent to +91 ••• ••• ${phone.slice(-4)}.`}
                 </p>
               </div>

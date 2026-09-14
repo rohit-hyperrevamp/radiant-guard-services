@@ -142,7 +142,7 @@ export function AppleNativeSetupCard({
       await refreshPushStatus();
       if (result.sent > 0) {
         toast.success(`Test push sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);
-        setPushStatus(result.message || "Test push sent successfully.");
+        setPushStatus(result.message || "Push sent.");
       } else {
         const message = result.message || "No registered iPhone tokens found.";
         toast.error(message);
