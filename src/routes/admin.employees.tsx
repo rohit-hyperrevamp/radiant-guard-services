@@ -6034,7 +6034,7 @@ function CandidateWizard({
   const currentStep = steps[stepIndex] ?? steps[0];
   const at = (key: string) => stepKey === key;
   const isLastStep = stepIndex === steps.length - 1;
-  const stepPct = Math.round(((stepIndex + 1) / steps.length) * 100);
+  
   useEffect(() => {
     if (open) setStepKey("aadhaar");
   }, [open]);
