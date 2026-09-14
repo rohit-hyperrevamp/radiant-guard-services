@@ -176,6 +176,41 @@ export function MarkAttendanceCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [nearby, setNearby] = useState<Array<{ unit: AllowedUnit; distance: number }>>([]);
   const [pendingGeo, setPendingGeo] = useState<{ geo: import("@/lib/self-attendance").Geo; face: boolean } | null>(null);
+  const [locState, setLocState] = useState<"granted" | "denied" | "prompt" | "unavailable" | null>(null);
+  const [askingLoc, setAskingLoc] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { checkLocationPermission } = await import("@/lib/location-permission");
+      const s = await checkLocationPermission();
+      if (!cancelled) setLocState(s);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const enableLocation = async () => {
+    setAskingLoc(true);
+    try {
+      const { requestLocationPermission } = await import("@/lib/location-permission");
+      const s = await requestLocationPermission();
+      setLocState(s);
+      if (s === "granted") {
+        try {
+          await getCurrentPosition();
+          toast.success("Location is on");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Turn on GPS to continue");
+        }
+      } else if (s === "denied") {
+        toast.error("Location is blocked. Allow location for Radiant Guard in device settings.");
+      }
+    } finally {
+      setAskingLoc(false);
+    }
+  };
 
   const punchQ = useQuery({
     queryKey: ["self-attendance-today", candidateId],
