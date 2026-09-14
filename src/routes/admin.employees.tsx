@@ -6288,24 +6288,30 @@ function CandidateWizard({
             />
           </div>
           <div className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {steps.map((s, i) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => goToStep(s.key)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-                  i === stepIndex
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : i < stepIndex
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                      : "border-border/70 bg-card text-muted-foreground",
-                )}
-              >
-                {i < stepIndex ? "✓ " : `${i + 1}. `}
-                {s.label}
-              </button>
-            ))}
+            {steps.map((s, i) => {
+              const done = isStepComplete(s.key);
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => requestStep(s.key)}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
+                    i === stepIndex
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : done
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : i < stepIndex
+                          ? "border-destructive/40 bg-destructive/10 text-destructive"
+                          : "border-border/70 bg-card text-muted-foreground",
+                  )}
+                >
+                  {done ? "✓ " : `${i + 1}. `}
+                  {s.label}
+                </button>
+              );
+            })}
+
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground">
             Profile completion {completionPct}% · {completionDone} of {completionTotal} required fields
