@@ -6278,13 +6278,13 @@ function CandidateWizard({
                   {editing.employee_code || editing.candidate_code}
                 </Badge>
               )}
-              <span className="text-sm font-bold tabular-nums text-primary">{stepPct}%</span>
+              <span className="text-sm font-bold tabular-nums text-primary">{completionPct}%</span>
             </div>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-500"
-              style={{ width: `${stepPct}%` }}
+              style={{ width: `${completionPct}%` }}
             />
           </div>
           <div className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
