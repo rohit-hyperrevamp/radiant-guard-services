@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
@@ -11,7 +10,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
-import { extractAttendanceFromImage } from "@/lib/attendance-ocr.functions";
+import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -1556,7 +1555,6 @@ function MusterRollPage() {
   const [ocrSummary, setOcrSummary] = useState<string | null>(null);
   const [uploadReadyToContinue, setUploadReadyToContinue] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
-  const runOcr = useServerFn(extractAttendanceFromImage);
 
   const detectKind = (file: File): "image" | "excel" | null => {
     const name = file.name.toLowerCase();
@@ -1655,13 +1653,11 @@ function MusterRollPage() {
         }
       }
 
-      const result = await runOcr({
-        data: {
-          imageDataUrl: uploadPreview,
-          dates: periodCells.map((c) => c.date),
-          employees: employeesPayload,
-          codes: codes.map((c) => ({ code: c.code, label: c.label })),
-        },
+      const result = await extractAttendanceViaApi({
+        imageDataUrl: uploadPreview,
+        dates: periodCells.map((c) => c.date),
+        employees: employeesPayload,
+        codes: codes.map((c) => ({ code: c.code, label: c.label })),
       });
 
       const validDates = new Set(periodCells.map((c) => c.date));
