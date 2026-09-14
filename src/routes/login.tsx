@@ -519,13 +519,6 @@ function LoginPage() {
 
             {/* Footer credit */}
             <div className="mt-10 text-center text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground lg:absolute lg:inset-x-0 lg:bottom-6 lg:mt-0">
-              <Link
-                to="/privacy-policy"
-                className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                Privacy Policy
-              </Link>
-              <span className="mx-2 text-muted-foreground/60">·</span>
                Designed &amp; Developed by{" "}
                <a
                  href="https://hyperrevamp.com"
