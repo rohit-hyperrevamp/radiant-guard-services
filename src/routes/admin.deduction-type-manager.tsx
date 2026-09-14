@@ -88,9 +88,9 @@ function DeductionTypeManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Deduction Type Manager"
+        title="Deduction Types"
         description="Catalog of deduction categories used when recording employee deductions."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Deduction Type Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Deduction Types" }]}
       />
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">
@@ -152,7 +152,7 @@ function DeductionTypeManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this deduction type?</AlertDialogTitle>
+            <AlertDialogTitle>Delete deduction type?</AlertDialogTitle>
             <AlertDialogDescription>{deleting?.name}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

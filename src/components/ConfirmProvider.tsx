@@ -64,7 +64,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           <AlertDialogHeader>
             <AlertDialogTitle>{opts.title ?? "Confirm action"}</AlertDialogTitle>
             <AlertDialogDescription>
-              {opts.description ?? "Are you sure you want to proceed?"}
+              {opts.description ?? "Proceed?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

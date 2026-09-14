@@ -2903,7 +2903,7 @@ function ClientContractsPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this contract?</AlertDialogTitle>
+            <AlertDialogTitle>Delete contract?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-mono font-semibold text-foreground">
@@ -3795,7 +3795,7 @@ function ContractFormDialog({
             data-force-enabled={resourceSaveBypassEnabled ? "true" : undefined}
             onClick={async () => {
               if (!unitId) {
-                toast.error("Please select a unit");
+                toast.error("Select a unit");
                 return;
               }
               const payload = applyApprovalPickerToPayload({
@@ -3824,7 +3824,7 @@ function ContractFormDialog({
               const ok = await confirmAction({
                 title: editing ? "Confirm changes?" : "Create contract?",
                 description: editing
-                  ? "Are you sure you want to confirm and save these contract changes? The updated resource amounts will be used across payroll and related screens."
+                  ? "Save contract changes? Updates will apply to payroll."
                   : "This will create the contract and save all resource details.",
                 confirmText: editing ? "Yes, Save Changes" : "Create Contract",
                 cancelText: "Review Again",
@@ -3995,7 +3995,7 @@ function ResourcesSection({
         >
           <Users className="h-6 w-6 opacity-60" />
           <span className="font-medium">No resources mapped to the contract.</span>
-          <span className="text-xs">Click here to add resources</span>
+          <span className="text-xs">Add resources</span>
         </button>
       ) : (
         <div className="space-y-3">
@@ -4882,11 +4882,11 @@ export function ResourceFormDialog({
 
   const handleSubmit = () => {
     if (!isWages && !designationId) {
-      toast.error("Please select a designation");
+      toast.error("Select a designation");
       return;
     }
     if (!isWages && !serviceTypeId) {
-      toast.error("Please select a service type");
+      toast.error("Select a service type");
       return;
     }
     if (!payrollDayBaseId) {

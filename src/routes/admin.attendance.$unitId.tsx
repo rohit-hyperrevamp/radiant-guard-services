@@ -2512,7 +2512,7 @@ function MusterRollPage() {
                 className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
               >
                 <Upload className="h-6 w-6" />
-                <span>Click to choose an attendance image or Excel file</span>
+                <span>Upload image or Excel</span>
                 <span className="text-xs">PNG, JPG, HEIC · XLSX, XLS, CSV</span>
               </button>
             ) : uploadKind === "image" && uploadPreview ? (

@@ -125,9 +125,9 @@ function LanguageManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Language Manager"
+        title="Languages"
         description="Manage languages used across employee records."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Language Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Languages" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -258,7 +258,7 @@ function LanguageManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this language?</AlertDialogTitle>
+            <AlertDialogTitle>Delete language?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

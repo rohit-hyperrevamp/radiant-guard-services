@@ -273,7 +273,7 @@ export function MarkAttendanceCard({
         if (within.length === 0) {
           const nearest = withDist[0];
           throw new Error(
-            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Please reach one of your assigned clients.`,
+            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Check in at an assigned client.`,
           );
         }
         if (within.length === 1) {

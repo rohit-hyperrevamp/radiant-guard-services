@@ -159,11 +159,11 @@ function RolesManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Roles Manager"
+        title="Roles"
         description="Create, rename or remove roles. RBAC permissions and the role chips in Access Control update automatically."
         crumbs={[
           { label: "Control Center", to: "/admin/control-center" },
-          { label: "Roles Manager" },
+          { label: "Roles" },
         ]}
       />
 

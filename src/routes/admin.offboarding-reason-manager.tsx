@@ -149,9 +149,9 @@ function OffboardingReasonManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Offboarding Reason Manager"
+        title="Offboarding Reasons"
         description="Manage reasons used when offboarding an employee (Resignation, Termination, Absconding, Death)."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Offboarding Reason Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Offboarding Reasons" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -317,7 +317,7 @@ function OffboardingReasonManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this reason?</AlertDialogTitle>
+            <AlertDialogTitle>Delete reason?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.name}</span>

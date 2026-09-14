@@ -211,9 +211,9 @@ function ProfessionalTaxManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Professional Tax Manager"
+        title="Professional Tax"
         description="State-wise professional tax slabs with pincode coverage. Use this as the source of truth for payroll PT computation."
-        crumbs={[{ label: "Professional Tax Manager" }]}
+        crumbs={[{ label: "Professional Tax" }]}
       />
 
       {/* Stats */}
@@ -438,7 +438,7 @@ function ProfessionalTaxManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this tax slab?</AlertDialogTitle>
+            <AlertDialogTitle>Delete tax slab?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <>

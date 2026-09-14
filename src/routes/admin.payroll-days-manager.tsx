@@ -319,11 +319,11 @@ function PayrollDaysManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Payroll Days Manager"
+        title="Payroll Days"
         description="Define how monthly salary days are calculated. Used in every payroll & cost formula."
         crumbs={[
           { label: "Control Center", to: "/admin/control-center" },
-          { label: "Payroll Days Manager" },
+          { label: "Payroll Days" },
         ]}
       />
 
@@ -559,7 +559,7 @@ function PayrollDaysManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this payroll day base?</AlertDialogTitle>
+            <AlertDialogTitle>Delete payroll day base?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.name}</span>

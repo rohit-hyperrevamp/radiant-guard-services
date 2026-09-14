@@ -205,9 +205,9 @@ function PolicyManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Policy Manager"
+        title="Policies"
         description="Maintain insurance and company policies — provider, validity, policy number and the master policy document."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Policy Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Policies" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -422,7 +422,7 @@ function PolicyManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this policy?</AlertDialogTitle>
+            <AlertDialogTitle>Delete policy?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

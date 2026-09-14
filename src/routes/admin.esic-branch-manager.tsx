@@ -145,9 +145,9 @@ function EsicBranchManagerPage() {
   return (
     <div>
       <PageHeader
-        title="ESIC Branch Manager"
+        title="ESIC Branches"
         description="Manage ESIC branch codes mapped to locations across zones."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "ESIC Branch Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "ESIC Branches" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -306,7 +306,7 @@ function EsicBranchManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this ESIC branch?</AlertDialogTitle>
+            <AlertDialogTitle>Delete ESIC branch?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.location}</span>

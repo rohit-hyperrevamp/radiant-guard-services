@@ -158,11 +158,11 @@ function DesignationManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Designation Manager"
+        title="Designations"
         description="Manage employee designations used across rosters and payroll."
         crumbs={[
           { label: "Control Center", to: "/admin/control-center" },
-          { label: "Designation Manager" },
+          { label: "Designations" },
         ]}
       />
 
@@ -340,7 +340,7 @@ function DesignationManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this designation?</AlertDialogTitle>
+            <AlertDialogTitle>Delete designation?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

@@ -145,9 +145,9 @@ function ExServiceManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Ex-Service Manager"
+        title="Ex-Services"
         description="Manage ex-servicemen ranks (Army, Navy, Air Force, CAPF) used across employee records."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Ex-Service Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Ex-Services" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -306,7 +306,7 @@ function ExServiceManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this ex-service?</AlertDialogTitle>
+            <AlertDialogTitle>Delete ex-service?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.name}</span>

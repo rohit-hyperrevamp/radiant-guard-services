@@ -1,9 +1,5 @@
-- [x] Audit and fix login autofill and footer links
-- [x] Standardize mobile shell, spacing, typography, cards, and navigation
-- [x] Fix field dashboard interactions, statuses, location, and time formatting
-- [x] Fix candidate editor navigation and layout
-- [x] Fix attendance lookup and subsection navigation
-- [x] Improve uniform manager data presentation and navigation
-- [x] Fix menu sheet controls and deep links
-- [x] Fix profile platform wording, Hindi option, and PDF downloads
-- [x] Validate source behavior and narrow-screen layout constraints
+- [ ] Audit mobile layouts and visible copy across the app
+- [ ] Fix shared mobile overflow and spacing patterns
+- [ ] Simplify employee onboarding UI and validation copy
+- [ ] Simplify high-traffic mobile page copy and controls
+- [ ] Verify representative Android widths on production site

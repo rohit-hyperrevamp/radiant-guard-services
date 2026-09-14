@@ -306,7 +306,7 @@ function StockPage() {
   if (scope.isLoading || role.isLoading) {
     return (
       <div>
-        <PageHeader title="Stock Report" description="Live balances across warehouses, branches, field officers and guards." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Stock" }]} />
+        <PageHeader title="Stock Report" description="Live balances for all locations." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Stock" }]} />
         <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading…</div>
       </div>
     );
@@ -328,7 +328,7 @@ function StockPage() {
     <div>
       <PageHeader
         title={isFO ? "My Stock" : "Stock Report"}
-        description={isFO ? "Live balances for you and your guards." : "Live balances across warehouses, branches, field officers and guards."}
+        description={isFO ? "Live balances for you and your guards." : "Live balances for all locations."}
         crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: isFO ? "My Stock" : "Stock" }]}
       />
 

@@ -88,9 +88,9 @@ function AdditionTypeManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Addition Type Manager"
+        title="Addition Types"
         description="Catalog of addition categories used when recording employee additions."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Addition Type Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Addition Types" }]}
       />
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">
@@ -152,7 +152,7 @@ function AdditionTypeManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this addition type?</AlertDialogTitle>
+            <AlertDialogTitle>Delete addition type?</AlertDialogTitle>
             <AlertDialogDescription>{deleting?.name}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

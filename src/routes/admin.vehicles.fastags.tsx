@@ -409,7 +409,7 @@ function FastTagManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this FastTag record?</AlertDialogTitle>
+            <AlertDialogTitle>Delete FastTag record?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-mono font-semibold text-foreground">{deleting.fastag_number || vMap.get(deleting.vehicle_id)?.vehicle_number}</span>}
             </AlertDialogDescription>

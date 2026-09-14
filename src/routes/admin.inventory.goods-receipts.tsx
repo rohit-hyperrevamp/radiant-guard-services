@@ -257,7 +257,7 @@ function GRNPage() {
 
   return (
     <div>
-      <PageHeader title="Delivery Challans" description="Receive vendor deliveries against a Purchase Order. Posted challans increase warehouse stock." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Delivery Challans" }]} />
+      <PageHeader title="Delivery Challans" description="Log vendor deliveries." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Delivery Challans" }]} />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">

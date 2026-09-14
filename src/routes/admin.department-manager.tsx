@@ -131,9 +131,9 @@ function DepartmentManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Department Manager"
+        title="Departments"
         description="Manage company departments used across employee records and designations."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Department Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Departments" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -267,7 +267,7 @@ function DepartmentManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this department?</AlertDialogTitle>
+            <AlertDialogTitle>Delete department?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>
