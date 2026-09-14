@@ -106,14 +106,14 @@ function FieldChip({
           className={cn(
             "h-9 justify-between rounded-xl border-border/70 bg-card px-3 text-xs font-medium shadow-sm",
             active ? "border-amber-400/60 bg-amber-50 text-foreground dark:bg-amber-500/10" : "text-muted-foreground",
-            "min-w-[150px]"
+            "w-full min-w-0 sm:w-auto sm:min-w-[150px]"
           )}
         >
           <span className="truncate">{chipSummary(field, condition)}</span>
           <ChevronDown className="ml-1.5 h-3.5 w-3.5 opacity-60 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[280px] p-3">
+      <PopoverContent align="start" className="w-[min(280px,calc(100vw-1.5rem))] p-3">
         <div className="space-y-2">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {field.label}

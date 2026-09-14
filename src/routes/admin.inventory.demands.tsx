@@ -521,7 +521,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                         )}
                       </div>
                       <div className="grid gap-1.5 min-w-0">
-                        <Label className="text-[11px] font-semibold">Requested Qty</Label>
+                        <Label className="text-[11px] font-semibold">Qty</Label>
                         <Input type="number" min={0} className="h-10 text-right" value={l.requested_qty} onChange={(e) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, requested_qty: Number(e.target.value) || 0 } : x))} />
                       </div>
                     </div>
@@ -532,7 +532,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
             </div>
 
             {/* Tablet/desktop: original table */}
-            <div className="hidden overflow-x-clip rounded-xl border border-border sm:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
               <table className="ios-table w-full text-sm">
                 <thead className="bg-secondary/60 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -630,8 +630,8 @@ function DemandViewDialog({ open, onOpenChange, demand, items }: {
           <DialogTitle>Demand {demand?.demand_number}</DialogTitle>
           <DialogDescription>{demand?.demand_date} · <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusBadgeClass(demand?.status ?? "")}`}>{demand?.status?.replace("_", " ")}</span></DialogDescription>
         </DialogHeader>
-        <div className="overflow-x-clip rounded-xl border border-border">
-          <table className="ios-table w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-border">
+           <table className="ios-table w-full min-w-[480px] text-sm">
             <thead className="bg-secondary/60 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-3 py-2">Item</th>

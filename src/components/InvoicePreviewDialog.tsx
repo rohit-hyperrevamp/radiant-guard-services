@@ -98,7 +98,7 @@ export function InvoicePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-x-hidden overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tax invoice preview</DialogTitle>
           <DialogDescription>
@@ -106,7 +106,7 @@ export function InvoicePreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div ref={sheetRef} className="rounded-2xl border border-border/70 bg-background p-5 text-[12px]">
+        <div ref={sheetRef} className="min-w-0 rounded-xl border border-border/70 bg-background p-3 text-[11px] sm:p-5 sm:text-[12px]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="title text-base font-bold">{data.companyName}</div>
@@ -121,7 +121,7 @@ export function InvoicePreviewDialog({
             </div>
           </div>
 
-          <div className="grid mt-4 flex gap-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Bill to
@@ -142,7 +142,7 @@ export function InvoicePreviewDialog({
             </div>
           </div>
 
-          <table className="mt-4 w-full">
+          <table className="mt-4 w-full table-fixed">
             <thead>
               <tr>
                 <th>#</th>
@@ -163,7 +163,7 @@ export function InvoicePreviewDialog({
             </tbody>
           </table>
 
-          <table className="totals mt-3 w-[280px] md:ml-auto">
+          <table className="totals mt-3 w-full sm:ml-auto sm:w-[280px]">
             <tbody>
               <tr>
                 <td>Taxable value</td>
@@ -198,11 +198,11 @@ export function InvoicePreviewDialog({
             <span className="font-medium">{amountInWords(data.grandTotal)}</span>
           </div>
 
-          <div className="mt-6 flex items-end justify-between text-[11px]">
+          <div className="mt-6 grid gap-4 text-[11px] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div className="muted text-muted-foreground">
               Computed from approved attendance. Subject to contract terms.
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="h-10" />
               <div className="border-t border-border pt-1">Authorised signatory</div>
             </div>
@@ -210,7 +210,7 @@ export function InvoicePreviewDialog({
         </div>
 
         <div className="flex justify-end">
-          <Button size="sm" onClick={print}>
+          <Button size="sm" className="w-full sm:w-auto" onClick={print}>
             <Printer className="mr-1.5 h-4 w-4" /> Print / Save PDF
           </Button>
         </div>

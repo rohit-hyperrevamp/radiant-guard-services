@@ -1313,7 +1313,17 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   }
 
   [role="dialog"] {
-    max-width: 100vw;
+    max-width: calc(100vw - 1rem);
+  }
+
+  [data-radix-tabs-list] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  form .flex.flex-wrap > [data-slot="select-trigger"],
+  form .flex.flex-wrap > input,
+  form .flex.flex-wrap > textarea {
+    width: 100%;
   }
 }
 

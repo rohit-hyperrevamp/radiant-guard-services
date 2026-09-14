@@ -90,16 +90,16 @@ export function DataPagination<T>({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3",
+        "grid grid-cols-1 items-center gap-2 border-t border-border/60 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-4",
         className,
       )}
     >
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-xs text-muted-foreground">
         <span className="tabular-nums">
           {start + 1}–{end} of {total} {label}
         </span>
         <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-          <SelectTrigger className="h-8 w-[104px] rounded-lg text-xs">
+          <SelectTrigger className="h-8 w-[96px] rounded-lg text-xs sm:w-[104px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -112,7 +112,7 @@ export function DataPagination<T>({
         </Select>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-1 sm:justify-end">
         <Button
           type="button"
           variant="outline"

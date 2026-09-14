@@ -175,7 +175,7 @@ export function StatutoryHeadTiles({ ym }: { ym: string }) {
                       : `${t.people} employees`
                     : "No records this month"}
                 </span>
-                <ArrowUpRight className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                <ArrowUpRight className="h-3 w-3 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
               </div>
             </Link>
           );

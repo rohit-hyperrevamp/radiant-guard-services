@@ -395,7 +395,7 @@ function InlineWageEditor({
     onPick: (id: string) => void,
   ) => (
     <Select value="" onValueChange={(v) => v && onPick(v)}>
-      <SelectTrigger className="h-8 w-[190px] text-xs">
+      <SelectTrigger className="h-8 w-full text-xs sm:w-[190px]">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -4136,7 +4136,7 @@ function EmployeesPage() {
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="h-9 w-[150px] text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]"><SelectValue placeholder="Role" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All roles</SelectItem>
                   {rolesList.map((r) => (<SelectItem key={r.key} value={r.key} className="text-xs">{r.name}</SelectItem>))}
@@ -4145,7 +4145,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.designation && (
               <Select value={filterDesignation} onValueChange={setFilterDesignation}>
-                <SelectTrigger className="h-9 w-[170px] text-xs"><SelectValue placeholder="Designation" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]"><SelectValue placeholder="Designation" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All designations</SelectItem>
                   {designations.map((d) => (<SelectItem key={d.id} value={d.id} className="text-xs">{d.name}</SelectItem>))}
@@ -4154,7 +4154,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.department && (
               <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Department" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Department" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All departments</SelectItem>
                   <SelectItem value="none" className="text-xs">No department</SelectItem>
@@ -4164,7 +4164,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.customer && (
               <Select value={filterCustomer} onValueChange={setFilterCustomer}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Organization" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Organization" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All organizations</SelectItem>
                   {customers.map((c) => (<SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>))}
@@ -4173,7 +4173,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.unit && (
               <Select value={filterUnit} onValueChange={setFilterUnit}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Client" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Client" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All units</SelectItem>
                   {units.map((u) => (<SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>))}
@@ -4182,7 +4182,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.manager && (
               <Select value={filterManager} onValueChange={setFilterManager}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Reports to" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Reports to" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">Any manager</SelectItem>
                   {fieldOfficers.map((m) => (<SelectItem key={m.id} value={m.id} className="text-xs">{m.full_name} ({m.employee_code})</SelectItem>))}
@@ -4191,7 +4191,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.enabled && (
               <Select value={filterEnabled} onValueChange={(v) => setFilterEnabled(v as "all" | "enabled" | "disabled")}>
-                <SelectTrigger className="h-9 w-[140px] text-xs"><SelectValue placeholder="Active/Inactive" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All employees</SelectItem>
                   <SelectItem value="enabled" className="text-xs">Active only</SelectItem>
@@ -4201,7 +4201,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.billable && (
               <Select value={filterBillable} onValueChange={(v) => setFilterBillable(v as "all" | "billable" | "nonbillable")}>
-                <SelectTrigger className="h-9 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All billing</SelectItem>
                   <SelectItem value="billable" className="text-xs">Billable only</SelectItem>
@@ -4211,7 +4211,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.offboardReason && (
               <Select value={filterOffboardReason} onValueChange={setFilterOffboardReason}>
-                <SelectTrigger className="h-9 w-[170px] text-xs"><SelectValue placeholder="Any offboarding" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]"><SelectValue placeholder="Offboarding" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">Any offboarding</SelectItem>
                   <SelectItem value="none" className="text-xs">No offboarding</SelectItem>
