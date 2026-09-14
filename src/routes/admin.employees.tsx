@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Clock,
   Download,
   Edit2,
@@ -5990,6 +5991,9 @@ function CandidateWizard({
         ? (isEditingEmployeeProfile ? "Employee updated" : "Candidate updated")
         : "Candidate submitted for approval";
       await persist(nextStatus, successMsg);
+      if (draftStorageKey) {
+        try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
+      }
       onOpenChange(false);
     } catch (e) {
       const msg = getMutationErrorMessage(e, "Save failed");
@@ -6001,9 +6005,107 @@ function CandidateWizard({
   };
 
 
-
   const wizardScrollRef = useRef<HTMLDivElement>(null);
   const wizardBodyRef = useRef<HTMLDivElement>(null);
+
+  // ---------- Stepped, mobile-first wizard ----------
+  const { isFieldOfficer: wizardIsFieldOfficer } = useCurrentUserRole();
+  const steps = useMemo(
+    () => [
+      { key: "aadhaar", label: "Aadhaar", caption: "Identity" },
+      { key: "pan", label: "PAN", caption: "Tax identity" },
+      { key: "basic", label: "Personal", caption: "Basic details" },
+      { key: "address", label: "Address", caption: "Permanent & present" },
+      { key: "bank", label: "Bank", caption: "Salary account" },
+      { key: "contacts", label: "Contacts", caption: "Emergency & nominee" },
+      { key: "assignment", label: "Posting", caption: "Unit & designation" },
+      { key: "records", label: "Records", caption: "Compliance & checks" },
+      ...(wizardIsFieldOfficer ? [] : [{ key: "wages", label: "Wages", caption: "Salary sheet" }]),
+      { key: "uploads", label: "Documents", caption: "Photo & proofs" },
+      { key: "review", label: "Review", caption: "Submit" },
+    ],
+    [wizardIsFieldOfficer],
+  );
+  const [stepKey, setStepKey] = useState("aadhaar");
+  const stepIndex = Math.max(0, steps.findIndex((s) => s.key === stepKey));
+  const currentStep = steps[stepIndex] ?? steps[0];
+  const at = (key: string) => stepKey === key;
+  const isLastStep = stepIndex === steps.length - 1;
+  const stepPct = Math.round(((stepIndex + 1) / steps.length) * 100);
+  useEffect(() => {
+    if (open) setStepKey("aadhaar");
+  }, [open]);
+
+  const goToStep = (key: string) => {
+    setStepKey(key);
+    window.setTimeout(() => {
+      wizardScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      wizardBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }, 10);
+  };
+  const validateStep = (key: string): string | null => {
+    if (key === "aadhaar" && (form.aadhaar_number ?? "").replace(/\D/g, "").length !== 12)
+      return "Enter the 12-digit Aadhaar number to continue";
+    if (key === "pan") {
+      const pan = (form.pan_number ?? "").trim().toUpperCase();
+      if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return "PAN must look like ABCDE1234F";
+    }
+    if (key === "basic") {
+      if (!form.full_name.trim()) return "Full name is required";
+      if (!/^[6-9]\d{9}$/.test((form.mobile ?? "").trim())) return "A valid 10-digit mobile number is required";
+    }
+    if (key === "address" && !form.permanent_district.trim())
+      return "District is required in the permanent address";
+    return null;
+  };
+  const goNext = () => {
+    const problem = validateStep(stepKey);
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
+    const next = steps[stepIndex + 1];
+    if (next) goToStep(next.key);
+  };
+  const goBack = () => {
+    const prev = steps[stepIndex - 1];
+    if (prev) goToStep(prev.key);
+  };
+
+  // Keeps typed work safe between steps / accidental closes (new entries only).
+  const draftStorageKey = !editing ? `rg-wizard-draft-${mode}` : null;
+  const [pendingDraft, setPendingDraft] = useState<CandidateForm | null>(null);
+  useEffect(() => {
+    if (!open || !draftStorageKey) {
+      setPendingDraft(null);
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(draftStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { savedAt?: number; form?: CandidateForm };
+      if (!parsed?.form) return;
+      if (parsed.savedAt && Date.now() - parsed.savedAt > 86_400_000) {
+        window.localStorage.removeItem(draftStorageKey);
+        return;
+      }
+      if (!parsed.form.full_name && !parsed.form.aadhaar_number && !parsed.form.mobile) return;
+      setPendingDraft(parsed.form);
+    } catch {
+      /* noop */
+    }
+  }, [open, draftStorageKey]);
+  useEffect(() => {
+    if (!open || !draftStorageKey) return;
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(draftStorageKey, JSON.stringify({ savedAt: Date.now(), form }));
+      } catch {
+        /* noop */
+      }
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [open, draftStorageKey, form]);
   useEffect(() => {
     if (!open) return;
     const scrollToTop = () => {
@@ -6119,58 +6221,86 @@ function CandidateWizard({
           )}
         </DialogHeader>
 
-        {/* Profile completion meter */}
-        <div className="border-b border-border bg-card px-4 py-3 sm:px-6 sm:py-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                Profile Completion
-              </span>
+        {/* Step rail + progress */}
+        <div className="shrink-0 border-b border-border bg-gradient-to-b from-card to-secondary/20 px-4 py-3 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Step {stepIndex + 1} of {steps.length}
+              </p>
+              <p className="truncate text-sm font-semibold">
+                {currentStep.label}
+                <span className="font-normal text-muted-foreground"> · {currentStep.caption}</span>
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               {(editing?.employee_code || editing?.candidate_code) && (
                 <Badge className="border-0 bg-primary/10 font-mono text-[11px] font-semibold text-primary">
                   {editing.employee_code || editing.candidate_code}
                 </Badge>
               )}
-
+              <span className="text-sm font-bold tabular-nums text-primary">{stepPct}%</span>
             </div>
-            <span className={cn(
-              "text-sm font-bold tabular-nums",
-              completionPct === 100 ? "text-emerald-600" : completionPct >= 60 ? "text-amber-600" : "text-rose-500",
-            )}>
-              {completionPct}%
-            </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
             <div
-              className={cn(
-                "h-full transition-all",
-                completionPct === 100
-                  ? "bg-emerald-500"
-                  : completionPct >= 60
-                    ? "bg-amber-500"
-                    : "bg-rose-500",
-              )}
-              style={{ width: `${completionPct}%` }}
+              className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-500"
+              style={{ width: `${stepPct}%` }}
             />
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            {completionDone} of {completionTotal} required fields complete
-            {!profileComplete && " — Save as draft to come back later."}
+          <div className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {steps.map((s, i) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => goToStep(s.key)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
+                  i === stepIndex
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : i < stepIndex
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "border-border/70 bg-card text-muted-foreground",
+                )}
+              >
+                {i < stepIndex ? "✓ " : `${i + 1}. `}
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Profile completion {completionPct}% · {completionDone} of {completionTotal} required fields
           </p>
-          {!profileComplete && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Still missing:
-              </span>
-              {completionChecks.filter((c) => !c.ok).map((c) => (
-                <Badge
-                  key={c.key}
-                  variant="outline"
-                  className="border-rose-300 bg-rose-50 text-[10px] font-medium text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
-                >
-                  {c.key}
-                </Badge>
-              ))}
+          {pendingDraft && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="text-[11px] text-muted-foreground">You have an unsaved entry from earlier.</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-7 text-[11px]"
+                onClick={() => {
+                  setForm(pendingDraft);
+                  setPendingDraft(null);
+                  toast.success("Unsaved entry restored");
+                }}
+              >
+                Restore
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px]"
+                onClick={() => {
+                  if (draftStorageKey) {
+                    try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
+                  }
+                  setPendingDraft(null);
+                }}
+              >
+                Discard
+              </Button>
             </div>
           )}
         </div>
@@ -6180,11 +6310,15 @@ function CandidateWizard({
           {true && (
             <div className="space-y-4 sm:space-y-6">
               {/* Identity first — Aadhaar & PAN drive the rest of the profile */}
-              <Section title="Identity — Aadhaar &amp; PAN (start here)">
+              {(at("aadhaar") || at("pan")) && (
+              <Section title={at("aadhaar") ? "Aadhaar — start here" : "PAN details"}>
                 <p className="mb-3 text-[11px] text-muted-foreground">
-                  Enter and verify the Aadhaar number first, then the PAN number. Most of the profile below is filled in automatically from these two.
+                  {at("aadhaar")
+                    ? "Enter the Aadhaar number first. When verification is on, the name, date of birth and address fill in automatically — otherwise you can type them on the next steps."
+                    : "Now the PAN number. When verification is on, name, date of birth and Aadhaar linking are checked automatically."}
                 </p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4">
+                  {at("aadhaar") && (
                   <Field label="Aadhaar Number">
                     <Input
                       format="aadhaar"
@@ -6261,6 +6395,8 @@ function CandidateWizard({
                       onSubmitted={() => onOpenChange(false)}
                     />
                   </Field>
+                  )}
+                  {at("pan") && (
                   <Field label="PAN Number" anchor="pan_number">
                     <Input
                       format="pan"
@@ -6326,8 +6462,10 @@ function CandidateWizard({
                     />
                     )}
                   </Field>
+                  )}
                 </div>
               </Section>
+              )}
 
 
               {(unitsLoading || unitsError || designationsLoading || designationsError) && (
@@ -6338,6 +6476,7 @@ function CandidateWizard({
                 </div>
               )}
 
+              {at("basic") && (
               <Section title="Basic Information">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Full Name" required anchor="full_name">
@@ -6455,7 +6594,9 @@ function CandidateWizard({
                   </Field>
                 </div>
               </Section>
+              )}
 
+              {at("contacts") && (
               <Section title="Emergency Contact">
                 <div>
 
@@ -6697,7 +6838,9 @@ function CandidateWizard({
                   )}
                 </div>
               </Section>
+              )}
 
+              {at("bank") && (
               <Section title="Bank Details">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Account Holder Name">
@@ -6777,7 +6920,9 @@ function CandidateWizard({
                   </div>
                 </div>
               </Section>
+              )}
 
+              {at("address") && (
               <Section title="Permanent Address (auto-filled from Aadhaar)">
                 <CandidateAddressFields
                   block={{
@@ -6809,7 +6954,9 @@ function CandidateWizard({
                   }}
                 />
               </Section>
+              )}
 
+              {at("address") && (
               <Section title="Present Address">
                 <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer">
                   <span className="text-sm font-medium leading-snug">Same as permanent address</span>
@@ -6848,7 +6995,9 @@ function CandidateWizard({
                   </>
                 )}
               </Section>
+              )}
 
+              {at("assignment") && (
               <Section title="Assignment">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Application Date">
@@ -7121,33 +7270,45 @@ function CandidateWizard({
 
                 </div>
               </Section>
+              )}
 
+              {at("records") && (
               <Section title="Compliance">
                 <ComplianceSection form={form} setSection={setSection} esicBranches={esicBranches} />
               </Section>
+              )}
 
+              {at("records") && (
               <Section title="Knowledge & Experience">
                 <KnowledgeSection form={form} set={setAny} />
               </Section>
+              )}
 
+              {at("records") && (
               <Section title="Physical & Health">
                 <PhysicalSection form={form} setSection={setSection} />
               </Section>
+              )}
 
+              {at("records") && (
               <Section title="Identification Proofs">
                 <IdentificationSection form={form} set={setAny} setSection={setSection} hideWeapon={isEmployeeMode} />
               </Section>
+              )}
 
-              {isEmployeeMode && (
+              {at("records") && isEmployeeMode && (
                 <Section title="Criminal History">
                   <CriminalSection form={form} set={setAny} />
                 </Section>
               )}
 
+              {at("contacts") && (
               <Section title="Nominee">
                 <NomineeSection form={form} setSection={setSection} set={(k, v) => set(k as never, v as never)} />
               </Section>
+              )}
 
+              {at("wages") && (
               <Section title="Wages">
                 {wageUnitIds.length === 0 ? (
                   <div className="rounded-xl border border-input bg-muted/20 p-3 text-xs text-muted-foreground">
@@ -7220,8 +7381,10 @@ function CandidateWizard({
                   </div>
                 )}
               </Section>
+              )}
 
               {/* Uploads strip */}
+              {at("uploads") && (
               <Section title={`Uploads — all required${uploadsComplete ? "" : " (incomplete)"}`}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <UploadTile
@@ -7259,6 +7422,47 @@ function CandidateWizard({
                   />
                 </div>
               </Section>
+              )}
+
+              {at("review") && (
+              <Section title="Review & submit">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {([
+                      ["Name", form.full_name],
+                      ["Mobile", form.mobile],
+                      ["Aadhaar", form.aadhaar_number],
+                      ["PAN", form.pan_number],
+                      ["Bank A/c", form.bank_account_number],
+                      ["Unit", units.find((u) => u.id === form.unit_ids[0])?.name ?? ""],
+                    ] as Array<[string, string]>).map(([label, value]) => (
+                      <div key={label} className="rounded-xl border border-border/70 bg-secondary/20 p-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+                        <p className="truncate text-sm font-medium">{value || "—"}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {profileComplete ? (
+                    <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+                      Everything looks complete — submit for approval.
+                    </p>
+                  ) : (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        {completionTotal - completionDone} required field(s) still missing
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {completionChecks.filter((c) => !c.ok).map((c) => (
+                          <Badge key={c.key} variant="outline" className="border-amber-400/50 bg-card text-[10px]">
+                            {c.key}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Section>
+              )}
 
 
             </div>
@@ -7319,31 +7523,46 @@ function CandidateWizard({
               </>
             )}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            {stepIndex > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={goBack}
+                disabled={submitting || savingDraft || !!uploading}
+                className="h-11 flex-1 sm:h-10 sm:flex-none"
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" /> Back
+              </Button>
+            )}
             <Button
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading}
-              className="h-11 w-full sm:h-10 sm:w-auto"
+              className="h-11 flex-1 sm:h-10 sm:flex-none"
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
             </Button>
-            {(() => {
-              const isExistingEmployee = !!editing;
-              const submitDisabled = submitting || savingDraft || !!uploading;
-              return (
-                <Button
-                  onClick={submit}
-                  disabled={submitDisabled}
-                  title={!isExistingEmployee && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                  className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:w-auto"
-                >
-                  {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                  {isExistingEmployee ? "Save Changes" : "Save & Send to Approval"}
-                </Button>
-              );
-            })()}
+            {!isLastStep ? (
+              <Button
+                type="button"
+                onClick={goNext}
+                className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none"
+              >
+                Next <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={submit}
+                disabled={submitting || savingDraft || !!uploading}
+                title={!editing && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
+                className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none"
+              >
+                {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                {editing ? "Save Changes" : "Save & Send to Approval"}
+              </Button>
+            )}
           </div>
           </div>
         </DialogFooter>
