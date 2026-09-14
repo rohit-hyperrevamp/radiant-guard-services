@@ -338,7 +338,7 @@ function POPage() {
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" title="Delete" onClick={async () => {
                           const isRaised = p.status !== "draft";
                           const desc = isRaised
-                            ? `Are you sure? A purchase order has been raised (${p.po_number}). Do you really want to delete?`
+                            ? `Delete PO ${p.po_number}? One already exists.`
                             : `Delete ${p.po_number}?`;
                           if (!(await confirmAction({ title: "Delete PO?", description: desc, confirmText: "Delete" }))) return;
                           try { await deleteMut.mutateAsync(p.id); toast.success("Deleted"); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }

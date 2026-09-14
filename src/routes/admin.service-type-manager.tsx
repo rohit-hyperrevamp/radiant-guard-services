@@ -304,7 +304,7 @@ function ServiceTypeManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this service type?</AlertDialogTitle>
+            <AlertDialogTitle>Delete service type?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.name}</span>

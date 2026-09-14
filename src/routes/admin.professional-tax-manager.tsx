@@ -438,7 +438,7 @@ function ProfessionalTaxManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this tax slab?</AlertDialogTitle>
+            <AlertDialogTitle>Delete tax slab?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <>

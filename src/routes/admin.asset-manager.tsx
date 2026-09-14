@@ -340,7 +340,7 @@ function AssetManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this asset?</AlertDialogTitle>
+            <AlertDialogTitle>Delete asset?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

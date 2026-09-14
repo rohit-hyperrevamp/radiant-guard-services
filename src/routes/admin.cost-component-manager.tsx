@@ -576,7 +576,7 @@ function CostComponentManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this cost component?</AlertDialogTitle>
+            <AlertDialogTitle>Delete cost component?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

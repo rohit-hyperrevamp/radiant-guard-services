@@ -455,7 +455,7 @@ function AllowanceManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this allowance type?</AlertDialogTitle>
+            <AlertDialogTitle>Delete allowance type?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

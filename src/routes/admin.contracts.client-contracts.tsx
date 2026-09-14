@@ -2903,7 +2903,7 @@ function ClientContractsPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this contract?</AlertDialogTitle>
+            <AlertDialogTitle>Delete contract?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-mono font-semibold text-foreground">

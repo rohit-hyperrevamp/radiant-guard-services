@@ -326,7 +326,7 @@ function PucManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this PUC record?</AlertDialogTitle>
+            <AlertDialogTitle>Delete PUC record?</AlertDialogTitle>
             <AlertDialogDescription>{deleting && <span className="font-mono font-semibold text-foreground">{deleting.puc_number || vMap.get(deleting.vehicle_id)?.vehicle_number}</span>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

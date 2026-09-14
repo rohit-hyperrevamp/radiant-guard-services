@@ -314,7 +314,7 @@ function DutyManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this duty?</AlertDialogTitle>
+            <AlertDialogTitle>Delete duty?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.name}</span>

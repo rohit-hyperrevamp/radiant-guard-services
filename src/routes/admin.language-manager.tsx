@@ -258,7 +258,7 @@ function LanguageManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this language?</AlertDialogTitle>
+            <AlertDialogTitle>Delete language?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

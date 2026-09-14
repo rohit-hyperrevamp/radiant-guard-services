@@ -281,7 +281,7 @@ function PublicHolidayManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this public holiday?</AlertDialogTitle>
+            <AlertDialogTitle>Delete public holiday?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.name}</span>}
             </AlertDialogDescription>

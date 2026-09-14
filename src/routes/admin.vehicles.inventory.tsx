@@ -414,7 +414,7 @@ function VehicleInventoryPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this vehicle?</AlertDialogTitle>
+            <AlertDialogTitle>Delete vehicle?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && <span className="font-semibold text-foreground">{deleting.vehicle_number}</span>} — this will also remove its FastTag, insurance and PUC records.
             </AlertDialogDescription>

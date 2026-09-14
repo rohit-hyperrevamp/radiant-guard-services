@@ -559,7 +559,7 @@ function PayrollDaysManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this payroll day base?</AlertDialogTitle>
+            <AlertDialogTitle>Delete payroll day base?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.name}</span>

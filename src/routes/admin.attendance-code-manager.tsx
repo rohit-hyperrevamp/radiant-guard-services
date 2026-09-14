@@ -342,7 +342,7 @@ function AttendanceCodeManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this attendance code?</AlertDialogTitle>
+            <AlertDialogTitle>Delete attendance code?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{deleting.code} – {deleting.label}</span>

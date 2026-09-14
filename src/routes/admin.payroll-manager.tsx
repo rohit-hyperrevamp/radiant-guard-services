@@ -336,7 +336,7 @@ function PayrollManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this payroll window?</AlertDialogTitle>
+            <AlertDialogTitle>Delete payroll window?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <span className="font-semibold text-foreground">{windowLabel(deleting)}</span>

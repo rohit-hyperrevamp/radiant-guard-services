@@ -661,7 +661,7 @@ function DeductionList() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this deduction?</AlertDialogTitle>
+            <AlertDialogTitle>Delete deduction?</AlertDialogTitle>
             <AlertDialogDescription>{deleting?.deduction_name}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -152,7 +152,7 @@ function DeductionTypeManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this deduction type?</AlertDialogTitle>
+            <AlertDialogTitle>Delete deduction type?</AlertDialogTitle>
             <AlertDialogDescription>{deleting?.name}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

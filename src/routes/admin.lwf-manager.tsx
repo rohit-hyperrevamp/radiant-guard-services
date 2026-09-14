@@ -442,7 +442,7 @@ function LwfManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this LWF entry?</AlertDialogTitle>
+            <AlertDialogTitle>Delete LWF entry?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && (
                 <>

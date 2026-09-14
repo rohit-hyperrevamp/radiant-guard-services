@@ -218,7 +218,7 @@ function RateCardsPage() {
                   <td className="p-3 text-center">{r.enabled ? "✓" : "—"}</td>
                   <td className="p-3 text-right">
                     <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}>Edit</Button>
-                    <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => { if (confirm("Delete this rate card?")) delMut.mutate(r); }}><Trash2 className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => { if (confirm("Delete rate card?")) delMut.mutate(r); }}><Trash2 className="h-4 w-4" /></Button>
                   </td>
                 </tr>
               );

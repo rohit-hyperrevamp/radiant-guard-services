@@ -393,7 +393,7 @@ function InsuranceManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this insurance record?</AlertDialogTitle>
+            <AlertDialogTitle>Delete insurance record?</AlertDialogTitle>
             <AlertDialogDescription>{deleting && <span className="font-mono font-semibold text-foreground">{deleting.policy_number || vMap.get(deleting.vehicle_id)?.vehicle_number}</span>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -152,7 +152,7 @@ function AdditionTypeManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this addition type?</AlertDialogTitle>
+            <AlertDialogTitle>Delete addition type?</AlertDialogTitle>
             <AlertDialogDescription>{deleting?.name}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

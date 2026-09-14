@@ -287,7 +287,7 @@ function AdditionList() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this addition?</AlertDialogTitle>
+            <AlertDialogTitle>Delete addition?</AlertDialogTitle>
             <AlertDialogDescription>{deleting?.addition_name}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
