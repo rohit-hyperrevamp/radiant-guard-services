@@ -7075,19 +7075,19 @@ function CandidateWizard({
                   </div>
                   {!isEmployeeMode && form.unit_ids.length > 0 && (
                     <div className="sm:col-span-2">
-                      <Field label="Designation at each unit (from that unit's contract)">
+                      <Field label="Client designations">
                         <div className="space-y-2 rounded-md border border-input bg-muted/20 p-2">
                           {form.unit_ids.map((uid, idx) => {
                             const u = units.find((x) => x.id === uid);
                             return (
                               <div key={uid} className="flex flex-wrap items-center gap-2">
-                                <span className="min-w-[180px] flex-1 truncate text-sm">
+                                <span className="min-w-0 flex-1 basis-full truncate text-sm sm:basis-auto sm:min-w-[180px]">
                                   {u?.name ?? uid}
                                   <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                                     {idx === 0 ? "Primary" : "Reliever · ED"}
                                   </span>
                                 </span>
-                                <div className="min-w-[220px] flex-1">
+                                <div className="min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[220px]">
                                   <UnitDesignationSelect
                                     unitId={uid}
                                     value={(form.unit_designations ?? {})[uid] ?? null}
