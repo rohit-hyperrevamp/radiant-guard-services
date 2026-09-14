@@ -607,7 +607,7 @@ function MigrationUtilityPage() {
     <div className="space-y-6">
       <PageHeader
         title="Migration Utility"
-        description="Back-fill a legacy attendance sheet into a contract — creates the employees, fills the muster roll, then releases payroll and invoice."
+        description="Import attendance from images, PDF, Excel or CSV."
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Migration Utility" }]}
       />
 

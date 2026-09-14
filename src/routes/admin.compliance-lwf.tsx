@@ -329,7 +329,7 @@ function LwfRegisterPage() {
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Select value={state} onValueChange={setState}>
-          <SelectTrigger className="h-9 w-[190px] text-xs">
+          <SelectTrigger className="h-9 w-full text-xs sm:w-[190px]">
             <SelectValue placeholder="State" />
           </SelectTrigger>
           <SelectContent>
@@ -342,7 +342,7 @@ function LwfRegisterPage() {
           </SelectContent>
         </Select>
         <Select value={freq} onValueChange={setFreq}>
-          <SelectTrigger className="h-9 w-[180px] text-xs">
+          <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]">
             <SelectValue placeholder="Frequency" />
           </SelectTrigger>
           <SelectContent>
@@ -354,12 +354,12 @@ function LwfRegisterPage() {
             ))}
           </SelectContent>
         </Select>
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[200px]">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search employee or client…"
+            placeholder="Search…"
             className="h-9 pl-8 text-xs"
           />
         </div>

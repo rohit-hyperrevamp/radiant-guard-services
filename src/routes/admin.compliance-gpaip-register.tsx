@@ -279,12 +279,12 @@ function GpaipRegisterPage() {
             <span className="ml-1.5 tabular-nums opacity-70">{counts[c.key]}</span>
           </button>
         ))}
-        <div className="relative ml-auto min-w-[200px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-full sm:ml-auto sm:basis-auto sm:min-w-[200px]">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search employee, code or designation…"
+            placeholder="Search…"
             className="h-9 pl-8 text-xs"
           />
         </div>

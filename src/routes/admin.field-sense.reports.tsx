@@ -210,7 +210,7 @@ function ReportsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Reports"
-        description="Branded visit reports for any customer or client. Filter by date range and download a client-ready PDF."
+        description="Filter visits and export a PDF."
         crumbs={[
           { label: "Admin", to: "/admin/dashboard" },
           { label: "Radar", to: "/admin/field-sense" },
@@ -231,7 +231,7 @@ function ReportsPage() {
       {/* Scope */}
       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[220px] flex-1">
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[220px]">
             <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Organization</div>
             <select
               value={customerId}
@@ -241,13 +241,13 @@ function ReportsPage() {
               }}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold"
             >
-              <option value="">Select organization…</option>
+              <option value="">Select organization</option>
               {(custQ.data ?? []).map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
-          <div className="min-w-[260px] flex-[2]">
+          <div className="min-w-0 flex-[2] basis-full sm:basis-auto sm:min-w-[260px]">
             <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
               <span>Clients</span>
               {customerId && (unitQ.data?.length ?? 0) > 0 && (
@@ -259,11 +259,11 @@ function ReportsPage() {
             </div>
             {!customerId ? (
               <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-2 text-[11px] italic text-muted-foreground">
-                Pick an organization to see its units.
+                Select an organization.
               </div>
             ) : (unitQ.data?.length ?? 0) === 0 ? (
               <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-2 text-[11px] italic text-muted-foreground">
-                No units on file for this organization.
+                No clients found.
               </div>
             ) : (
               <div className="flex max-h-24 flex-wrap gap-1 overflow-auto rounded-md border border-border bg-background p-1.5">

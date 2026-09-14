@@ -743,7 +743,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
     <div>
       <SectionHeader
         title="Client Mapping"
-        desc="One primary unit only — that is where the posting order is dispatched. Every other unit is a reliever posting: the employee appears as (R) and can only be marked for extra duty (ED)."
+        desc="One primary client. Others are ED-only."
       />
 
       {primaryUnitId && !mappings.some((m) => m.unit_id === primaryUnitId) && (
@@ -761,7 +761,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
       )}
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
-        <div className="flex-1 min-w-[240px]">
+        <div className="min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[240px]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Add unit</label>
           <select
             value={addUnitId}
@@ -772,7 +772,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             disabled={busy || loading}
           >
-            <option value="">Select a unit…</option>
+            <option value="">Select client</option>
             {available.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.code} — {u.name} {u.location ? `(${u.location})` : ""}
@@ -780,9 +780,9 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             ))}
           </select>
         </div>
-        <div className="flex-1 min-w-[240px]">
+        <div className="min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[240px]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Designation at this unit (from contract)
+            Designation
           </label>
           {addUnitId ? (
             <UnitDesignationSelect
@@ -798,7 +798,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
           )}
         </div>
         <Button size="sm" onClick={addMapping} disabled={!addUnitId || !addDesignationId || busy}>
-          <Plus className="mr-2 h-4 w-4" /> Add mapping
+          <Plus className="mr-2 h-4 w-4" /> Add
         </Button>
       </div>
 
@@ -812,8 +812,8 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
           No units mapped yet.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-md border">
-          <table className="ios-table w-full text-sm">
+        <div className="overflow-x-auto rounded-md border">
+          <table className="ios-table w-full min-w-[620px] text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">Code</th>

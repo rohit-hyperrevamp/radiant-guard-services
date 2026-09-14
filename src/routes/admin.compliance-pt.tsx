@@ -324,7 +324,7 @@ function PtRegisterPage() {
           </SelectContent>
         </Select>
         <Select value={gender} onValueChange={setGender}>
-          <SelectTrigger className="h-9 w-[160px] text-xs">
+          <SelectTrigger className="h-9 w-full text-xs sm:w-[160px]">
             <SelectValue placeholder="Employees" />
           </SelectTrigger>
           <SelectContent>
@@ -334,7 +334,7 @@ function PtRegisterPage() {
             <SelectItem value="Unspecified">Unspecified</SelectItem>
           </SelectContent>
         </Select>
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[200px]">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}

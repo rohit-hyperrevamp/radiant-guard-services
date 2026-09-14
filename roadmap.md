@@ -1,5 +1,5 @@
-- [ ] Audit mobile layouts and visible copy across the app
-- [ ] Fix shared mobile overflow and spacing patterns
-- [ ] Simplify employee onboarding UI and validation copy
-- [ ] Simplify high-traffic mobile page copy and controls
-- [ ] Verify representative Android widths on production site
+- [x] Audit mobile layouts and visible copy across the app
+- [x] Fix shared mobile overflow and spacing patterns
+- [x] Simplify employee onboarding UI and validation copy
+- [x] Simplify high-traffic mobile page copy and controls
+- [x] Verify representative Android widths on production site

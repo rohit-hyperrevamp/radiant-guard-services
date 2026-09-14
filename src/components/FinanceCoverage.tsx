@@ -323,17 +323,17 @@ function CharterDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
-          <div className="relative min-w-[220px] flex-1">
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 sm:px-5 sm:pt-4">
+          <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by client or organisation…"
+              placeholder="Search…"
               className="h-9 rounded-lg pl-9"
             />
           </div>
-          <div className="whitespace-nowrap text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             <span className="font-semibold text-foreground tabular-nums">
               {fmtINR(totals.committed)}
             </span>{" "}

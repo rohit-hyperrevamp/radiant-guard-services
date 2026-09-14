@@ -480,19 +480,16 @@ function DeploymentCharterDialog({
       <DialogContent className="max-h-[88vh] max-w-4xl overflow-hidden p-0">
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>Deployment charter</DialogTitle>
-          <DialogDescription>
-            Active client contracts only — committed staff per contract against
-            employees mapped to the unit.
-          </DialogDescription>
+          <DialogDescription>Planned versus deployed staff.</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
-          <div className="relative min-w-[220px] flex-1">
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 sm:px-5 sm:pt-4">
+          <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by client, organisation or contract ID…"
+              placeholder="Search…"
               className="h-9 rounded-lg pl-9"
             />
           </div>

@@ -2859,13 +2859,13 @@ function MusterRollPage() {
       </Dialog>
 
       <div className="flex flex-wrap items-center gap-3 print:hidden">
-        <div className="flex flex-1 min-w-[260px] items-center gap-2 rounded-md border border-border/70 bg-card px-3 py-2">
+        <div className="flex min-w-0 flex-1 basis-full items-center gap-2 rounded-md border border-border/70 bg-card px-3 py-2 sm:basis-auto sm:min-w-[260px]">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             value={musterQuery}
             onChange={(e) => setMusterQuery(e.target.value)}
-            placeholder="Search by name, employee code, or designation…"
+            placeholder="Search employees…"
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {musterQuery && (
@@ -2883,9 +2883,8 @@ function MusterRollPage() {
             </span>
           )}
         </div>
-        <div className="rounded-md border border-dashed border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-          Tip: click a cell to mark one day, click & drag to mark a range. Future dates are locked. Use{" "}
-          <strong>Add line item</strong> below to give an employee an extra designation — each line is paid separately.
+        <div className="hidden rounded-md border border-dashed border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground sm:block">
+          Click or drag to mark attendance. Add another role below when needed.
         </div>
       </div>
 
@@ -2893,10 +2892,10 @@ function MusterRollPage() {
       {/* Add line item panel */}
       <div className="rounded-xl border border-border/70 bg-card p-3 print:hidden">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
+          <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Employee</label>
             <Select value={addCand} onValueChange={setAddCand}>
-              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Pick employee…" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Employee" /></SelectTrigger>
               <SelectContent>
                 {(employees ?? []).map((e) => (
                   <SelectItem key={e.id} value={e.id}>{e.full_name || e.employee_code || e.id}</SelectItem>
@@ -2904,10 +2903,10 @@ function MusterRollPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Additional designation</label>
             <Select value={addDesig} onValueChange={setAddDesig} disabled={!addCand}>
-              <SelectTrigger className="w-[260px]"><SelectValue placeholder="Pick designation from contract…" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[260px]"><SelectValue placeholder="Designation" /></SelectTrigger>
               <SelectContent>
                 {contractDesignations.length === 0 ? (
                   <div className="px-3 py-2 text-xs text-muted-foreground">No designations on this contract.</div>
@@ -2925,7 +2924,7 @@ function MusterRollPage() {
             </Select>
           </div>
           <Button size="sm" onClick={handleAddLineItem} disabled={!editable || !addCand || !addDesig}>
-            <Plus className="mr-1.5 h-4 w-4" /> Add line item
+            <Plus className="mr-1.5 h-4 w-4" /> Add role
           </Button>
           <div className="ml-auto text-[11px] text-muted-foreground">
             {contractDesignations.length === 0 ? "No contract resources mapped — add designations on the contract first." : `${contractDesignations.length} designation(s) on contract`}

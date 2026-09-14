@@ -252,7 +252,7 @@ function EmployeeAttendanceLookupPage() {
         title="Employee attendance lookup"
         eyebrow="Attendance"
         icon={UserRound}
-        description="Search any employee and review their marked attendance across every client they work at."
+        description="View attendance across clients."
         crumbs={[{ label: "Attendance", to: "/admin/attendance" }, { label: "Employee lookup" }]}
         actions={
           <Button asChild variant="outline" size="sm" className="h-10 gap-1.5 text-xs">
@@ -270,7 +270,7 @@ function EmployeeAttendanceLookupPage() {
             <Input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="Search by name, employee code, candidate number or mobile…"
+              placeholder="Search employees…"
               className="h-12 pl-10 pr-12"
             />
             {term && (
