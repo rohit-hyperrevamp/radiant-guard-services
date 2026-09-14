@@ -5624,7 +5624,7 @@ function CandidateWizard({
 
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
-    { key: "PAN verified", ok: !verificationEnabled || panVerified },
+    { key: "PAN verified", ok: panVerified || (!verificationEnabled && /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase())) },
     { key: "Client assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
@@ -6034,7 +6034,7 @@ function CandidateWizard({
   const currentStep = steps[stepIndex] ?? steps[0];
   const at = (key: string) => stepKey === key;
   const isLastStep = stepIndex === steps.length - 1;
-  const stepPct = Math.round(((stepIndex + 1) / steps.length) * 100);
+  
   useEffect(() => {
     if (open) setStepKey("aadhaar");
   }, [open]);
@@ -6278,13 +6278,13 @@ function CandidateWizard({
                   {editing.employee_code || editing.candidate_code}
                 </Badge>
               )}
-              <span className="text-sm font-bold tabular-nums text-primary">{stepPct}%</span>
+              <span className="text-sm font-bold tabular-nums text-primary">{completionPct}%</span>
             </div>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-500"
-              style={{ width: `${stepPct}%` }}
+              style={{ width: `${completionPct}%` }}
             />
           </div>
           <div className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
