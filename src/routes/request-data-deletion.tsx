@@ -148,13 +148,6 @@ function RequestDataDeletionPage() {
         </form>
       )}
 
-      <p className="mt-8 text-sm text-muted-foreground">
-        Read our{' '}
-        <Link to="/privacy-policy" className="text-primary underline">
-          Privacy Policy
-        </Link>{' '}
-        for full details on how we collect, use, and protect your data.
-      </p>
     </main>
   )
 }
