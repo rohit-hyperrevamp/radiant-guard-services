@@ -1,5 +1,6 @@
-- [x] Audit mobile layouts and visible copy across the app
-- [x] Fix shared mobile overflow and spacing patterns
-- [x] Simplify employee onboarding UI and validation copy
-- [x] Simplify high-traffic mobile page copy and controls
-- [x] Verify representative Android widths on production site
+# Mobile app UI re-review
+
+- [ ] Audit all mobile routes and shared components
+- [ ] Fix remaining alignment, placement, overflow, and clarity issues
+- [ ] Verify representative screens at narrow phone widths
+- [ ] Confirm checks and close remaining tasks
