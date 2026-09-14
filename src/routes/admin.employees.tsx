@@ -6051,7 +6051,8 @@ function CandidateWizard({
       return "Enter the 12-digit Aadhaar number to continue";
     if (key === "pan") {
       const pan = (form.pan_number ?? "").trim().toUpperCase();
-      if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return "PAN must look like ABCDE1234F";
+      if (!pan) return "Enter the PAN number to continue";
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return "PAN must look like ABCDE1234F";
     }
     if (key === "basic") {
       if (!form.full_name.trim()) return "Full name is required";
@@ -6059,6 +6060,25 @@ function CandidateWizard({
     }
     if (key === "address" && !form.permanent_district.trim())
       return "District is required in the permanent address";
+    if (key === "bank") {
+      const acc = (form.bank_account_number ?? "").trim();
+      const ifsc = (form.bank_ifsc ?? "").trim().toUpperCase();
+      if (!acc) return "Bank account number is required";
+      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return "A valid IFSC code is required";
+    }
+    if (key === "assignment" && !form.unit_id) return "Select the posting unit to continue";
+    return null;
+  };
+  // A step counts as done only when its own required fields actually pass.
+  const validatedSteps = new Set(["aadhaar", "pan", "basic", "address", "bank", "assignment"]);
+  const isStepComplete = (key: string) => validatedSteps.has(key) && validateStep(key) === null;
+  const firstBlockingStep = (targetIndex: number): { key: string; label: string; problem: string } | null => {
+    for (let i = 0; i < targetIndex; i += 1) {
+      const s = steps[i];
+      if (!s) continue;
+      const problem = validateStep(s.key);
+      if (problem) return { key: s.key, label: s.label, problem };
+    }
     return null;
   };
   const goNext = () => {
@@ -6074,6 +6094,22 @@ function CandidateWizard({
     const prev = steps[stepIndex - 1];
     if (prev) goToStep(prev.key);
   };
+  // Jumping backwards is always allowed; jumping ahead needs the earlier steps done.
+  const requestStep = (key: string) => {
+    const targetIndex = steps.findIndex((s) => s.key === key);
+    if (targetIndex < 0 || targetIndex <= stepIndex) {
+      goToStep(key);
+      return;
+    }
+    const blocking = firstBlockingStep(targetIndex);
+    if (blocking) {
+      toast.error(`${blocking.label}: ${blocking.problem}`);
+      goToStep(blocking.key);
+      return;
+    }
+    goToStep(key);
+  };
+
 
   // Keeps typed work safe between steps / accidental closes (new entries only).
   const draftStorageKey = !editing ? `rg-wizard-draft-${mode}` : null;
