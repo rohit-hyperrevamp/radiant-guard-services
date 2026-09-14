@@ -5892,6 +5892,9 @@ function CandidateWizard({
     try {
       // Drafts have no strict validation — let user save partial work.
       await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
+      if (draftStorageKey) {
+        try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
+      }
       onOpenChange(false);
     } catch (e) {
       const msg = getMutationErrorMessage(e, "Could not save draft");
