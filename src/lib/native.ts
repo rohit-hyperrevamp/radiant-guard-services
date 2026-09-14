@@ -214,4 +214,16 @@ export async function initNative(): Promise<void> {
     });
     /* noop */
   }
+
+  // Ask for location right alongside notifications so GPS is not left off
+  // after install — attendance cannot be marked without it.
+  try {
+    const { requestLocationPermission } = await import("./location-permission");
+    void requestLocationPermission();
+  } catch (err) {
+    logNativeEvent("location", "prepare import failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    /* noop */
+  }
 }

@@ -34,6 +34,31 @@ export type Geo = {
 };
 
 export async function getCurrentPosition(): Promise<Geo> {
+  if (isNativePlatform()) {
+    const { requestLocationPermission, LOCATION_REQUIRED_MESSAGE } = await import(
+      "@/lib/location-permission"
+    );
+    const state = await requestLocationPermission();
+    if (state === "denied") throw new Error(LOCATION_REQUIRED_MESSAGE);
+    try {
+      const { Geolocation } = await import("@capacitor/geolocation");
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 20_000,
+        maximumAge: 15_000,
+      });
+      return {
+        lat: Number(pos.coords.latitude.toFixed(7)),
+        lng: Number(pos.coords.longitude.toFixed(7)),
+        accuracy: Number((pos.coords.accuracy ?? 0).toFixed(2)),
+      };
+    } catch (err) {
+      logNativeEvent("location", "native position failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw new Error(LOCATION_REQUIRED_MESSAGE);
+    }
+  }
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     throw new Error("Location is not available on this device.");
   }

@@ -176,6 +176,41 @@ export function MarkAttendanceCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [nearby, setNearby] = useState<Array<{ unit: AllowedUnit; distance: number }>>([]);
   const [pendingGeo, setPendingGeo] = useState<{ geo: import("@/lib/self-attendance").Geo; face: boolean } | null>(null);
+  const [locState, setLocState] = useState<"granted" | "denied" | "prompt" | "unavailable" | null>(null);
+  const [askingLoc, setAskingLoc] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { checkLocationPermission } = await import("@/lib/location-permission");
+      const s = await checkLocationPermission();
+      if (!cancelled) setLocState(s);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const enableLocation = async () => {
+    setAskingLoc(true);
+    try {
+      const { requestLocationPermission } = await import("@/lib/location-permission");
+      const s = await requestLocationPermission();
+      setLocState(s);
+      if (s === "granted") {
+        try {
+          await getCurrentPosition();
+          toast.success("Location is on");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Turn on GPS to continue");
+        }
+      } else if (s === "denied") {
+        toast.error("Location is blocked. Allow location for Radiant Guard in device settings.");
+      }
+    } finally {
+      setAskingLoc(false);
+    }
+  };
 
   const punchQ = useQuery({
     queryKey: ["self-attendance-today", candidateId],
@@ -219,19 +254,11 @@ export function MarkAttendanceCard({
       if (isNativePlatform()) {
         face = await verifyFaceForAttendance("Mark attendance check-in");
       }
-      // Geolocation is REQUIRED only when proximity gating is on (guards
-      // tied to a unit). Ungated callers (e.g. field officers) can check
-      // in from anywhere — capture GPS if available, otherwise proceed.
-      let geo: import("@/lib/self-attendance").Geo | null = null;
-      try {
-        geo = await getCurrentPosition();
-      } catch (err) {
-        if (gated) throw err;
-        toast.info("Location unavailable — checking you in without GPS.");
-      }
+      // Location is MANDATORY for every attendance punch. Attendance cannot be
+      // marked while GPS / location permission is off.
+      const geo: import("@/lib/self-attendance").Geo = await getCurrentPosition();
 
       if (gated) {
-        if (!geo) throw new Error("Location is required to check in at your assigned client.");
         const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
         if (units.length === 0) {
           throw new Error("No client locations are configured for you. Ask your admin to set client coordinates.");
@@ -487,11 +514,34 @@ export function MarkAttendanceCard({
 
       {state === "in" && punch && <LiveTelemetryStrip punch={punch} />}
 
+      {locState && locState !== "granted" && state !== "done" && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+          <p className="min-w-0 flex-1 text-[11px] font-semibold text-destructive">
+            {locState === "unavailable"
+              ? "Location is not available on this device — attendance needs GPS."
+              : "Location (GPS) is off. Attendance cannot be marked until you turn it on."}
+          </p>
+          {locState !== "unavailable" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 rounded-lg text-xs font-semibold"
+              disabled={askingLoc}
+              onClick={() => void enableLocation()}
+            >
+              {askingLoc ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
+              Turn on GPS
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 sm:mt-4">
         {state === "idle" && (
           <Button
             className="h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm sm:h-12"
-            disabled={!candidateId || inMut.isPending || busy === "in"}
+            disabled={!candidateId || inMut.isPending || busy === "in" || locState === "denied" || locState === "unavailable"}
             onClick={() => { setBusy("in"); inMut.mutate(); }}
           >
             {inMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
@@ -501,7 +551,7 @@ export function MarkAttendanceCard({
         {state === "in" && (
           <Button
             className="h-11 w-full rounded-xl bg-emerald-600 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600/90 sm:h-12"
-            disabled={outMut.isPending || busy === "out"}
+            disabled={outMut.isPending || busy === "out" || locState === "denied" || locState === "unavailable"}
             onClick={() => { setBusy("out"); outMut.mutate(); }}
           >
             {outMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
