@@ -654,7 +654,7 @@ function LwfFormDialog({
 
           <div className="space-y-2">
             <Label>Deduction months</Label>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {MONTH_NAMES.map((name, idx) => {
                 const m = idx + 1;
                 const active = form.deductionMonths.includes(m);
@@ -675,7 +675,7 @@ function LwfFormDialog({
               })}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Pick the calendar month(s) when LWF gets deducted. e.g. Maharashtra deducts in June and December.
+              Select deduction months.
             </p>
           </div>
 

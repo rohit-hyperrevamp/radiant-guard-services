@@ -3398,7 +3398,7 @@ function MusterRollPage() {
           </table>
         </div>
 
-        <div className="mt-3 text-[10px] text-slate-600">
+        <div className="mt-3 hidden text-[10px] text-slate-600 sm:block">
           Att = Attendance · ED row = Extra duty hours (converted to ED days at the contractual shift length) · Each (employee × designation) is a separate payroll line.
         </div>
       </div>
@@ -3412,7 +3412,7 @@ function MusterRollPage() {
               {pickerCells.length ? ` for ${selectionLabel(pickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2 min-[380px]:grid-cols-4">
             {codes.map((c) => (
               <button
                 key={c.id}
@@ -3441,8 +3441,7 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Map employee to slot</DialogTitle>
             <DialogDescription>
-              Search the full employee base by name or employee / candidate code, then pick one to fill the{" "}
-              <span className="font-medium">{mapSlot?.designationName ?? "—"}</span> slot on this unit.
+              Find an employee for <span className="font-medium">{mapSlot?.designationName ?? "—"}</span>.
             </DialogDescription>
           </DialogHeader>
           <div className="relative">
@@ -3457,7 +3456,7 @@ function MusterRollPage() {
           </div>
           <div className="max-h-[45vh] space-y-1 overflow-y-auto">
             {mapSearch.length < 2 ? (
-              <p className="p-3 text-xs text-muted-foreground">Type at least 2 characters to search.</p>
+              <p className="p-3 text-xs text-muted-foreground">Enter 2 or more characters.</p>
             ) : mapSearching ? (
               <p className="p-3 text-xs text-muted-foreground">Searching…</p>
             ) : (mapResults ?? []).length === 0 ? (
@@ -3495,12 +3494,11 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Set ED hours</DialogTitle>
             <DialogDescription>
-              Pick extra duty in hours (0.5 – 16). Converted to ED days at each row&apos;s contractual
-              shift. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""} selected
+              Choose ED hours. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""} selected
               {otPickerCells.length ? ` for ${selectionLabel(otPickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid max-h-[45vh] grid-cols-4 gap-2 overflow-y-auto pr-1">
+          <div className="grid max-h-[45vh] grid-cols-3 gap-2 overflow-y-auto pr-1 min-[380px]:grid-cols-4">
             {[0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((n) => {
               const shift = rowShiftHours(otPickerCells[0] ? splitCellKey(otPickerCells[0]).rowKey : null);
               const days = Math.round((n / shift) * 100) / 100;

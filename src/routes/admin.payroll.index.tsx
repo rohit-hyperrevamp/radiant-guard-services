@@ -84,11 +84,11 @@ function PayrollUnitsPage() {
         eyebrow="Payroll month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Month-till-date payroll gross earned from actual attendance across all clients."
+        description="Payroll from approved attendance."
         right={
-          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,0.7fr)] items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 sm:flex sm:w-auto sm:gap-1.5 sm:rounded-2xl sm:p-1.5">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-8 w-[130px] rounded-xl border-0 bg-transparent shadow-none hover:bg-muted focus:ring-0">
+              <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 shadow-none hover:bg-muted focus:ring-0 sm:w-[130px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -99,7 +99,7 @@ function PayrollUnitsPage() {
             </Select>
             <div className="h-5 w-px bg-border/70" />
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 w-[92px] rounded-xl border-0 bg-transparent shadow-none hover:bg-muted focus:ring-0">
+              <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 shadow-none hover:bg-muted focus:ring-0 sm:w-[92px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

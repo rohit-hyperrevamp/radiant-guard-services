@@ -97,7 +97,7 @@ export function PageHeader({
             </div>
           </div>
           {actions && (
-            <div className="-mx-1 flex flex-wrap items-center gap-1.5 self-start overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0 sm:pb-0">{actions}</div>
+            <div className="flex w-full flex-wrap items-center gap-1.5 self-start [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-[calc(50%-0.2rem)] sm:w-auto sm:justify-end sm:[&>*]:w-auto sm:[&>*]:flex-none sm:[&>*]:basis-auto">{actions}</div>
           )}
         </div>
 

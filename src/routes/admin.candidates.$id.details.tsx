@@ -797,7 +797,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             </div>
           )}
         </div>
-        <Button size="sm" onClick={addMapping} disabled={!addUnitId || !addDesignationId || busy}>
+        <Button size="sm" className="w-full sm:w-auto" onClick={addMapping} disabled={!addUnitId || !addDesignationId || busy}>
           <Plus className="mr-2 h-4 w-4" /> Add
         </Button>
       </div>

@@ -61,7 +61,7 @@ export function MobileBottomNav({
           const inner = (
             <div
               className={cn(
-                "relative mx-auto flex min-w-0 max-w-[86px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors",
+                "relative mx-auto flex min-w-0 max-w-[86px] flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 pb-1 pt-1 transition-colors sm:gap-1 sm:px-2",
               )}
             >
               <span
@@ -76,7 +76,7 @@ export function MobileBottomNav({
               </span>
               <span
                 className={cn(
-                  "block w-full truncate whitespace-nowrap text-center text-[9.5px] leading-tight",
+                  "block w-full truncate whitespace-nowrap text-center text-[11px] leading-tight",
                   it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
                 )}
               >
@@ -103,7 +103,7 @@ export function MobileBottomNav({
             aria-label="More"
             className="block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90"
           >
-            <div className="relative mx-auto flex min-w-0 max-w-[86px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors">
+            <div className="relative mx-auto flex min-w-0 max-w-[86px] flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 pb-1 pt-1 transition-colors sm:gap-1 sm:px-2">
               <span
                 className={cn(
                   "grid h-9 w-9 place-items-center rounded-2xl transition-colors",
@@ -112,7 +112,7 @@ export function MobileBottomNav({
               >
                 <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
               </span>
-               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9.5px] leading-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
+               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[11px] leading-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
                 More
               </span>
             </div>
