@@ -97,7 +97,7 @@ export function PageHeader({
             </div>
           </div>
           {actions && (
-            <div className="grid w-full grid-cols-2 items-center gap-1.5 self-start [&>*]:min-w-0 [&>*]:w-full sm:flex sm:w-auto sm:flex-wrap sm:justify-end sm:[&>*]:w-auto">{actions}</div>
+            <div className="flex w-full flex-wrap items-center gap-1.5 self-start [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-[calc(50%-0.2rem)] sm:w-auto sm:justify-end sm:[&>*]:w-auto sm:[&>*]:flex-none sm:[&>*]:basis-auto">{actions}</div>
           )}
         </div>
 
