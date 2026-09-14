@@ -5624,7 +5624,7 @@ function CandidateWizard({
 
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
-    { key: "PAN verified", ok: !verificationEnabled || panVerified },
+    { key: "PAN verified", ok: panVerified || (!verificationEnabled && /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase())) },
     { key: "Client assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
     { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
