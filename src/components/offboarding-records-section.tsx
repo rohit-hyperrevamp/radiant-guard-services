@@ -140,7 +140,7 @@ export function OffboardingRecordsSection({ details, hideHeader = false }: { det
         {notes.length === 0 && returns.length === 0 ? (
           <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No assets recorded.</div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border">
+          <div className="overflow-x-auto overscroll-x-contain rounded-xl border" style={{ WebkitOverflowScrolling: "touch" }}>
             <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>

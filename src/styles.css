@@ -1316,7 +1316,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     max-width: calc(100vw - 1rem);
   }
 
-  [data-radix-tabs-list] {
+  [role="tablist"] {
     -webkit-overflow-scrolling: touch;
   }
 

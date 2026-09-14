@@ -126,12 +126,12 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
 
   return (
     <div className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm sm:p-5">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Tax invoice
         </h2>
         <Button size="sm" variant="outline" onClick={print}>
-          <Printer className="mr-1.5 h-4 w-4" /> Print / Save PDF
+          <Printer className="mr-1.5 h-4 w-4" /> PDF
         </Button>
       </div>
 

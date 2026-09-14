@@ -311,7 +311,7 @@ function PtRegisterPage() {
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Select value={state} onValueChange={setState}>
-          <SelectTrigger className="h-9 w-[180px] text-xs">
+          <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]">
             <SelectValue placeholder="State" />
           </SelectTrigger>
           <SelectContent>
