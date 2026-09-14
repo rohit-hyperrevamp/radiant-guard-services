@@ -21,7 +21,7 @@ import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
 import { fetchUnitDesignations } from "@/lib/unit-designations";
 import { logActivity } from "@/lib/activity-log";
-import { extractMigrationSheet } from "@/lib/migration-sheet.functions";
+import { extractMigrationSheetViaApi } from "@/lib/sheet-ocr-api";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/migration-utility")({
@@ -372,13 +372,11 @@ function MigrationUtilityPage() {
       }
 
 
-      const result = await extractMigrationSheet({
-        data: {
-          ...payload,
-          dates,
-          codes: codes.map((c) => ({ code: c.code, label: c.label })),
-          designations: designations.map((d) => ({ id: d.id, name: d.name })),
-        },
+      const result = await extractMigrationSheetViaApi({
+        ...payload,
+        dates,
+        codes: codes.map((c) => ({ code: c.code, label: c.label })),
+        designations: designations.map((d) => ({ id: d.id, name: d.name })),
       });
       const next: SheetRow[] = result.employees.map((e) => {
         const cells: Record<string, { code: string; ot: number }> = {};
