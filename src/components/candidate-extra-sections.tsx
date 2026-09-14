@@ -445,13 +445,12 @@ export function NomineeSection({ form, setSection, set }: { form: any; setSectio
     <div>
       <SectionHeader
         title="Nominee"
-        desc={`Nominees are picked from the candidate's contacts. Minimum 1, maximum ${MAX_NOMINEES}, shares must total 100%.`}
+        desc={`Choose 1–${MAX_NOMINEES} contacts. Total must be 100%.`}
       />
 
       {noContacts ? (
         <div className="rounded-md border border-dashed border-amber-300 bg-amber-50 p-6 text-center text-sm text-amber-800">
-          Add at least one contact in the <span className="font-semibold">Contacts</span> section first.
-          Nominees are picked from your candidate's contacts list.
+          Add a contact first.
         </div>
       ) : (
         <div className="rounded-md border p-3">
@@ -468,7 +467,7 @@ export function NomineeSection({ form, setSection, set }: { form: any; setSectio
                 };
                 return (
                   <div key={i} className="flex flex-wrap items-center gap-2">
-                    <div className="min-w-[200px] flex-1">
+                    <div className="min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[200px]">
                       <Select value={e.contact || undefined} onValueChange={(v) => update({ contact: v })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select contact" />

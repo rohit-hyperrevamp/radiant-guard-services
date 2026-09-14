@@ -16,185 +16,185 @@ type Tile = {
 const tiles: Tile[] = [
   {
     to: "/admin/customers/state-manager",
-    label: "State Manager",
-    description: "Manage states and their statutory details used across the platform.",
+    label: "States",
+    description: "State and statutory details.",
     icon: MapPin,
   },
   {
     to: "/admin/customers/branch-manager",
-    label: "Branch Manager",
-    description: "Manage branches mapped to states and locations.",
+    label: "Branches",
+    description: "Branches and locations.",
     icon: Building2,
   },
   {
     to: "/admin/professional-tax-manager",
-    label: "Professional Tax Manager",
-    description: "Configure state-wise professional tax slabs and rates.",
+    label: "Professional Tax",
+    description: "State tax slabs and rates.",
     icon: ReceiptText,
   },
   {
     to: "/admin/lwf-manager",
     label: "Labour Welfare Fund",
-    description: "Manage LWF contribution rules across states.",
+    description: "State contribution rules.",
     icon: HandCoins,
   },
   {
     to: "/admin/duty-manager",
-    label: "Duty Manager",
-    description: "Define duty types like 8 hrs and 12 hrs used in rosters.",
+    label: "Duty Types",
+    description: "Duty hours and shifts.",
     icon: Clock,
   },
   {
     to: "/admin/attendance-code-manager",
-    label: "Attendance Code Manager",
-    description: "Manage attendance codes (P, A, L, HD, WO, CL, SL…) used in daily attendance and payroll.",
+    label: "Attendance Codes",
+    description: "Daily attendance codes.",
     icon: CalendarCheck,
   },
   {
     to: "/admin/public-holiday-manager",
-    label: "Public Holiday Manager",
-    description: "Maintain the public holiday (PH) calendar used by unit-level PH credit on attendance.",
+    label: "Public Holidays",
+    description: "Holiday calendar.",
     icon: CalendarHeart,
   },
 
   {
     to: "/admin/service-type-manager",
-    label: "Service Type Manager",
-    description: "Define service types like Security, Manpower, Facility, Staff.",
+    label: "Service Types",
+    description: "Security and staffing services.",
     icon: Briefcase,
   },
   {
     to: "/admin/payroll-manager",
-    label: "Payroll Manager",
-    description: "Configure payroll windows and salary processing day.",
+    label: "Payroll Cycle",
+    description: "Payroll dates and processing day.",
     icon: CalendarRange,
   },
   {
     to: "/admin/payroll-days-manager",
-    label: "Payroll Days Manager",
-    description: "Define salary day bases (actual, fixed 26, actual minus Sundays).",
+    label: "Payroll Days",
+    description: "Salary day rules.",
     icon: CalendarDays,
   },
   {
     to: "/admin/allowance-manager",
-    label: "Allowance Manager",
-    description: "Define allowance / earning components used in payroll.",
+    label: "Allowances",
+    description: "Payroll earnings.",
     icon: Coins,
   },
   {
     to: "/admin/addition-type-manager",
-    label: "Addition Type Manager",
-    description: "Define payroll addition categories (bonus, incentive, paid holidays…) shown on employee additions.",
+    label: "Addition Types",
+    description: "Bonus and incentive types.",
     icon: TrendingUp,
   },
   {
     to: "/admin/deduction-type-manager",
-    label: "Deduction Type Manager",
-    description: "Define payroll deduction categories (advance, uniform, fines…) shown on employee deductions.",
+    label: "Deduction Types",
+    description: "Advance and deduction types.",
     icon: TrendingDown,
   },
   {
     to: "/admin/billing-type-manager",
-    label: "Billing Type Manager",
-    description: "Define billing types like Man Hours, Man Days, Man Months, Special.",
+    label: "Billing Types",
+    description: "Hours, days and monthly billing.",
     icon: Receipt,
   },
   {
     to: "/admin/designation-manager",
-    label: "Designation Manager",
-    description: "Manage employee designations used across rosters and payroll.",
+    label: "Designations",
+    description: "Employee roles and posts.",
     icon: BadgeCheck,
   },
   {
     to: "/admin/platform-settings",
     label: "Platform Settings",
-    description: "Toggle real MSG91 SMS OTP for sign-in and other platform-wide switches.",
+    description: "Sign-in and app controls.",
     icon: Settings,
   },
   {
     to: "/admin/department-manager",
-    label: "Department Manager",
-    description: "Manage company departments used across employee records and designations.",
+    label: "Departments",
+    description: "Company departments.",
     icon: Network,
   },
 
   {
     to: "/admin/cost-component-manager",
-    label: "Cost Component Manager",
-    description: "Configure CTC cost components like EPF, ESI, Bonus, Gratuity, LWF, etc.",
+    label: "Cost Components",
+    description: "EPF, ESI, bonus and more.",
     icon: Calculator,
   },
   {
     to: "/admin/ex-service-manager",
-    label: "Ex-Service Manager",
-    description: "Manage ex-servicemen ranks across Army, Navy, Air Force and CAPF.",
+    label: "Ex-Service Ranks",
+    description: "Service branch and rank.",
     icon: Shield,
   },
   {
     to: "/admin/offboarding-reason-manager",
-    label: "Offboarding Reason Manager",
-    description: "Manage reasons used to offboard employees (Resignation, Termination, Absconding, Death).",
+    label: "Offboarding Reasons",
+    description: "Exit reasons.",
     icon: LogOut,
   },
   {
     to: "/admin/esic-branch-manager",
-    label: "ESIC Branch Manager",
-    description: "Manage ESIC branch codes mapped to locations across zones.",
+    label: "ESIC Branches",
+    description: "Branch codes and zones.",
     icon: Building2,
   },
   {
     to: "/admin/asset-manager",
-    label: "Asset Manager",
-    description: "Manage company-issued assets like Uniform, ID Card, Laptop and SIM.",
+    label: "Asset Types",
+    description: "Uniforms, IDs and devices.",
     icon: Package,
   },
   {
     to: "/admin/language-manager",
-    label: "Language Manager",
-    description: "Manage languages used in employee profiles.",
+    label: "Languages",
+    description: "Profile languages.",
     icon: Languages,
   },
   {
     to: "/admin/company-documents",
     label: "Company Documents",
-    description: "Manage NDA and Appointment Letter master templates.",
+    description: "NDA and appointment templates.",
     icon: FileSignature,
   },
   {
     to: "/admin/policy-manager",
-    label: "Policy Manager",
-    description: "Maintain insurance and company policies — provider, validity, policy number and master policy document.",
+    label: "Policies",
+    description: "Insurance and company policies.",
     icon: FileBadge,
   },
   {
     to: "/admin/roles-manager",
     label: "Roles",
-    description: "Add, rename or remove roles. Updates RBAC role chips automatically.",
+    description: "Create and edit roles.",
     icon: ShieldCheck,
   },
 
   {
     to: "/admin/rbac",
-    label: "Role-Based Access Control",
-    description: "Define what each role can view, edit, and delete across modules.",
+    label: "Access Control",
+    description: "Role permissions.",
     icon: ShieldCheck,
   },
   {
     to: "/admin/workflow-manager",
-    label: "Workflow Manager",
-    description: "Configure approval chains such as the rehire pipeline — steps, roles and order.",
+    label: "Workflows",
+    description: "Approval steps and roles.",
     icon: Workflow,
   },
   {
     to: "/admin/migration-utility",
-    label: "Migration Utility",
-    description: "Back-fill a legacy attendance sheet into a contract month — creates employees, fills attendance, releases payroll and invoice.",
+    label: "Data Migration",
+    description: "Import attendance files.",
     icon: DatabaseZap,
   },
   {
     to: "/admin/org-settings",
     label: "Company Settings",
-    description: "Company name, GSTIN and home state — drives CGST/SGST vs IGST split on invoices.",
+    description: "Company, tax and bank details.",
     icon: Building2,
   },
 
@@ -207,7 +207,7 @@ function ControlCenterDashboard() {
       <div className="relative">
         <PageHeader
           title="Control Center"
-          description="Platform-wide statutory and configuration settings."
+          description="App settings and rules."
           crumbs={[{ label: "Control Center" }]}
         />
         <Link
@@ -226,7 +226,7 @@ function ControlCenterDashboard() {
           <Link
             key={tile.to}
             to={tile.to}
-            className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-accent/40 hover:bg-accent/5"
+            className="group relative flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-accent/40 hover:bg-accent/5"
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">
               <tile.icon className="h-5 w-5" />
