@@ -6016,15 +6016,15 @@ function CandidateWizard({
   const steps = useMemo(
     () => [
       { key: "aadhaar", label: "Aadhaar", caption: "Identity" },
-      { key: "pan", label: "PAN", caption: "Tax identity" },
-      { key: "basic", label: "Personal", caption: "Basic details" },
-      { key: "address", label: "Address", caption: "Permanent & present" },
-      { key: "bank", label: "Bank", caption: "Salary account" },
-      { key: "contacts", label: "Contacts", caption: "Emergency & nominee" },
-      { key: "assignment", label: "Posting", caption: "Unit & designation" },
-      { key: "records", label: "Records", caption: "Compliance & checks" },
-      ...(wizardIsFieldOfficer ? [] : [{ key: "wages", label: "Wages", caption: "Salary sheet" }]),
-      { key: "uploads", label: "Documents", caption: "Photo & proofs" },
+      { key: "pan", label: "PAN", caption: "Identity" },
+      { key: "basic", label: "Personal", caption: "Details" },
+      { key: "address", label: "Address", caption: "Addresses" },
+      { key: "bank", label: "Bank", caption: "Account" },
+      { key: "contacts", label: "Contacts", caption: "Family" },
+      { key: "assignment", label: "Posting", caption: "Work" },
+      { key: "records", label: "Records", caption: "Checks" },
+      ...(wizardIsFieldOfficer ? [] : [{ key: "wages", label: "Wages", caption: "Pay" }]),
+      { key: "uploads", label: "Documents", caption: "Files" },
       { key: "review", label: "Review", caption: "Submit" },
     ],
     [wizardIsFieldOfficer],
@@ -6174,9 +6174,7 @@ function CandidateWizard({
               : isEmployeeMode ? "Add Employee" : "Add Candidate"}</span>
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-                       {isEmployeeMode
-                         ? "Non-billable internal hire posted to Corporate Office (Pune - HO). Start with Aadhaar and PAN — most details fill in automatically; photograph and documents come last."
-              : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
+            {isEmployeeMode ? "Internal employee profile." : "Complete all required steps."}
           </DialogDescription>
           {isEmployeeMode && (
             <div className="mt-3 space-y-2">
@@ -6186,9 +6184,7 @@ function CandidateWizard({
                   Payroll home unit · {nonBillableUnits.find((u) => u.id === homeUnitId)?.name ?? "Corporate Office (Pune - HO)"}
                 </Badge>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Salary is always calculated on the Radiant home unit. Use the Assignment section below to map where this person actually works (any client unit or organization).
-              </p>
+              <p className="text-[11px] text-muted-foreground">Pay unit stays at Radiant Pune.</p>
             </div>
           )}
 
@@ -6313,12 +6309,10 @@ function CandidateWizard({
             })}
 
           </div>
-          <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Profile completion {completionPct}% · {completionDone} of {completionTotal} required fields
-          </p>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">{completionDone}/{completionTotal} required</p>
           {pendingDraft && (
             <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
-              <span className="text-[11px] text-muted-foreground">You have an unsaved entry from earlier.</span>
+              <span className="text-[11px] text-muted-foreground">Unsaved draft found.</span>
               <Button
                 type="button"
                 size="sm"
@@ -6356,11 +6350,11 @@ function CandidateWizard({
             <div className="space-y-4 sm:space-y-6">
               {/* Identity first — Aadhaar & PAN drive the rest of the profile */}
               {(at("aadhaar") || at("pan")) && (
-              <Section title={at("aadhaar") ? "Aadhaar — start here" : "PAN details"}>
+              <Section title={at("aadhaar") ? "Aadhaar" : "PAN"}>
                 <p className="mb-3 text-[11px] text-muted-foreground">
                   {at("aadhaar")
-                    ? "Enter the Aadhaar number first. When verification is on, the name, date of birth and address fill in automatically — otherwise you can type them on the next steps."
-                    : "Now the PAN number. When verification is on, name, date of birth and Aadhaar linking are checked automatically."}
+                    ? "Enter 12 digits. Verified details fill automatically."
+                    : "Enter the PAN number."}
                 </p>
                 <div className="grid grid-cols-1 gap-4">
                   {at("aadhaar") && (
@@ -6535,7 +6529,6 @@ function CandidateWizard({
                       className="font-mono"
                       onChange={(e) => set("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">Used as the login ID for this person.</p>
                   </Field>
                   <Field label="Alternate Mobile">
                     <Input
@@ -6551,12 +6544,9 @@ function CandidateWizard({
                       type="email"
                       value={form.email}
                       inputMode="email"
-                      placeholder="Optional — used for posting orders & documents"
+                      placeholder="Optional"
                       onChange={(e) => set("email", e.target.value.trim())}
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Optional. Work orders, posting orders and company documents are emailed here.
-                    </p>
                   </Field>
 
                   <Field label="Date of Birth">
@@ -6714,7 +6704,7 @@ function CandidateWizard({
                                   disabled={!presentAddress}
                                   onClick={() => upd({ address: presentAddress })}
                                 >
-                                  Same as candidate's present address
+                                  Use present address
                                 </Button>
                               </div>
                               <Input
@@ -6788,7 +6778,7 @@ function CandidateWizard({
                   </div>
                   {form.references.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
-                      No references added. Click "Add Reference" to include one.
+                      No references.
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -7060,7 +7050,7 @@ function CandidateWizard({
                   </Field>
                   <div className="sm:col-span-2">
                     {isEmployeeMode ? (
-                      <Field label={`Work mapping — where this person works (payroll stays at Radiant Pune)${operationalMappings.length > 0 ? ` · ${operationalMappings.length} selected` : ""}`}>
+                      <Field label={`Work mapping${operationalMappings.length > 0 ? ` · ${operationalMappings.length}` : ""}`}>
                         <OperationalMappingPicker
                           units={units}
                           customers={wizardCustomers}
@@ -7072,7 +7062,7 @@ function CandidateWizard({
                         />
                       </Field>
                     ) : (
-                      <Field label={`Clients (Client) — select one or more${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length} selected` : ""}`}>
+                      <Field label={`Clients${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length}` : ""}`}>
                         <MultiUnitPicker
                           units={units}
                           value={form.unit_ids}
@@ -7146,7 +7136,7 @@ function CandidateWizard({
                         {(() => {
                           const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
                           if (orgs.length === 0) {
-                            return <span className="self-center px-1 text-sm text-muted-foreground">Select a unit to see its organization.</span>;
+                            return <span className="self-center px-1 text-sm text-muted-foreground">Select a client first.</span>;
                           }
                           return orgs.map((org) => (
                             <Badge key={org} variant="secondary" className="font-normal">{org}</Badge>
@@ -7159,10 +7149,10 @@ function CandidateWizard({
                   <Field
                     label={
                       isEmployeeMode
-                        ? `Designation — ${filteredDesignations.length} in master`
+                          ? "Designation"
                         : form.unit_ids.length === 0
-                          ? "Designation (Primary) — select a unit first"
-                          : `Designation (Primary) — ${filteredDesignations.length} available in unit contract${form.unit_ids.length > 1 ? "s" : ""}`
+                          ? "Designation · select client first"
+                          : "Primary designation"
                     }
                   >
                     <DesignationPicker
@@ -7264,7 +7254,7 @@ function CandidateWizard({
                   ) : (
                     <Field label="Approval status">
                       <div className="flex h-10 items-center rounded-md border border-border bg-secondary/40 px-3 text-sm text-muted-foreground">
-                        Will be sent to approval
+                        Pending approval
                       </div>
                     </Field>
                   )}
@@ -7303,7 +7293,7 @@ function CandidateWizard({
                     <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
                       <div className="min-w-0 flex-1">
                         <Label className="m-0 block">Do not re-hire</Label>
-                        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">Blocks future hiring.</p>
                       </div>
                       <Switch
                         className="mt-0.5 shrink-0"
@@ -7357,7 +7347,7 @@ function CandidateWizard({
               <Section title="Wages">
                 {wageUnitIds.length === 0 ? (
                   <div className="rounded-xl border border-input bg-muted/20 p-3 text-xs text-muted-foreground">
-                    Assign {isEmployeeMode ? "a home unit" : "at least one unit"} first — the wage sheet is maintained per unit.
+                    Assign a unit first.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -7390,8 +7380,7 @@ function CandidateWizard({
                       <div className="rounded-xl border border-input bg-muted/20 p-3 sm:p-4">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <p className="text-xs text-muted-foreground">
-                            Shift hours, payroll days and wage components for{" "}
-                            {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"}. Saved with the profile.
+                            {units.find((x) => x.id === activeWageUnit)?.name ?? "Unit"}
                           </p>
                           <Button
                             type="button"
@@ -7408,8 +7397,7 @@ function CandidateWizard({
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/20 p-3">
                         <p className="text-xs text-muted-foreground">
-                          No wage sheet yet for {units.find((x) => x.id === activeWageUnit)?.name ?? "this unit"} — shift
-                          hours, payroll days, wage components, deductions and employer contributions.
+                          No wages added.
                         </p>
                         <Button
                           type="button"
@@ -7430,7 +7418,7 @@ function CandidateWizard({
 
               {/* Uploads strip */}
               {at("uploads") && (
-              <Section title={`Uploads — all required${uploadsComplete ? "" : " (incomplete)"}`}>
+              <Section title={`Documents${uploadsComplete ? "" : " · incomplete"}`}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <UploadTile
                     label="Photograph"
@@ -7541,10 +7529,8 @@ function CandidateWizard({
             </div>
           )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
-              Cancel
-            </Button>
+          <div className="hidden flex-wrap items-center gap-2 sm:mr-auto sm:flex">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-10">Cancel</Button>
             {canReview && (
               <>
                 <Button
@@ -7568,14 +7554,14 @@ function CandidateWizard({
               </>
             )}
           </div>
-          <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
             {stepIndex > 0 && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={goBack}
                 disabled={submitting || savingDraft || !!uploading}
-                className="h-11 flex-1 sm:h-10 sm:flex-none"
+                className="h-11 min-w-0 px-2 sm:h-10 sm:flex-none sm:px-4"
               >
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back
               </Button>
@@ -7584,7 +7570,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading}
-              className="h-11 flex-1 sm:h-10 sm:flex-none"
+              className={cn("h-11 min-w-0 px-2 sm:h-10 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
@@ -7593,7 +7579,7 @@ function CandidateWizard({
               <Button
                 type="button"
                 onClick={goNext}
-                className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none"
+                className="h-11 min-w-0 px-2 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none sm:px-4"
               >
                 Next <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
@@ -7602,10 +7588,10 @@ function CandidateWizard({
                 onClick={submit}
                 disabled={submitting || savingDraft || !!uploading}
                 title={!editing && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none"
+                className="h-11 min-w-0 px-2 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none sm:px-4"
               >
                 {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                {editing ? "Save Changes" : "Save & Send to Approval"}
+                {editing ? "Save" : "Submit"}
               </Button>
             )}
           </div>
