@@ -158,11 +158,11 @@ function DesignationManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Designation Manager"
+        title="Designations"
         description="Manage employee designations used across rosters and payroll."
         crumbs={[
           { label: "Control Center", to: "/admin/control-center" },
-          { label: "Designation Manager" },
+          { label: "Designations" },
         ]}
       />
 

@@ -161,9 +161,9 @@ function PayrollManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Payroll Manager"
+        title="Payroll Windows"
         description="Configure payroll windows and the salary processing day for each cycle."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Payroll Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Payroll Windows" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

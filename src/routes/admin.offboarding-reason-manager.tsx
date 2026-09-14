@@ -149,9 +149,9 @@ function OffboardingReasonManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Offboarding Reason Manager"
+        title="Offboarding Reasons"
         description="Manage reasons used when offboarding an employee (Resignation, Termination, Absconding, Death)."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Offboarding Reason Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Offboarding Reasons" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

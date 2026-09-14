@@ -143,9 +143,9 @@ function BillingTypeManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Billing Type Manager"
+        title="Billing Types"
         description="Define billing types like Man Hours, Man Days, Man Months, Special."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Billing Type Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Billing Types" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

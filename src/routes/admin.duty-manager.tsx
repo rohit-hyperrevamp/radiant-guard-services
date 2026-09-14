@@ -149,9 +149,9 @@ function DutyManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Duty Manager"
+        title="Duties"
         description="Define duty types (e.g. 8 hrs, 12 hrs) used across rosters and payroll."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Duty Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Duties" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

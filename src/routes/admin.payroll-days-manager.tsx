@@ -319,11 +319,11 @@ function PayrollDaysManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Payroll Days Manager"
+        title="Payroll Days"
         description="Define how monthly salary days are calculated. Used in every payroll & cost formula."
         crumbs={[
           { label: "Control Center", to: "/admin/control-center" },
-          { label: "Payroll Days Manager" },
+          { label: "Payroll Days" },
         ]}
       />
 

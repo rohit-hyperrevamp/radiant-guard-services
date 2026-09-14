@@ -211,9 +211,9 @@ function ProfessionalTaxManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Professional Tax Manager"
+        title="Professional Tax"
         description="State-wise professional tax slabs with pincode coverage. Use this as the source of truth for payroll PT computation."
-        crumbs={[{ label: "Professional Tax Manager" }]}
+        crumbs={[{ label: "Professional Tax" }]}
       />
 
       {/* Stats */}

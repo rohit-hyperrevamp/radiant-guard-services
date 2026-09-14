@@ -193,9 +193,9 @@ function WorkflowManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Workflow Manager"
+        title="Workflows"
         description="Configure approval workflows and the role that owns each step."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Workflow Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Workflows" }]}
       />
 
       {isLoading ? (

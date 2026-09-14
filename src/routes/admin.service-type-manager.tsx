@@ -143,9 +143,9 @@ function ServiceTypeManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Service Type Manager"
+        title="Service Types"
         description="Define service types (e.g. Security, Manpower) used across the platform."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Service Type Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Service Types" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

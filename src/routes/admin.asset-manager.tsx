@@ -167,9 +167,9 @@ function AssetManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Asset Manager"
+        title="Assets"
         description="Manage company-issued assets (Uniform, ID Card, Laptop, SIM, etc.) that can be assigned to employees."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Asset Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Assets" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

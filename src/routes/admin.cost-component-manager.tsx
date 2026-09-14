@@ -403,9 +403,9 @@ function CostComponentManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Cost Component Manager"
+        title="Cost Components"
         description="Configure CTC cost components like EPF, ESI, Bonus, Gratuity, LWF, Uniform charges, etc."
-        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Cost Component Manager" }]}
+        crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Cost Components" }]}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
