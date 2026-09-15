@@ -112,12 +112,13 @@ function FieldOfficerDashboard() {
     }
   }, [roleKey, isSuperAdmin, navigate]);
 
-  const dashQueryKey = ["field-officer-dashboard-v6", phone, userId] as const;
-  const dashQ = useQuery({
-    queryKey: dashQueryKey,
+  // ── Pass 1: identity + my units. Small, scoped reads only, so the "My units"
+  // card paints as soon as this resolves. Heavy team/attendance/inventory
+  // aggregation happens in pass 2 and never blocks the unit list.
+  const baseQ = useQuery({
+    queryKey: ["fo-base-v1", phone],
     enabled: !!phone,
-    staleTime: 0,
-    refetchInterval: 15_000,
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data: me } = await supabase
@@ -125,74 +126,122 @@ function FieldOfficerDashboard() {
         .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
         .eq("mobile", phone)
         .maybeSingle();
-      const meId = (me as { id?: string } | null)?.id ?? null;
-      const meName = (me as { full_name?: string } | null)?.full_name ?? "";
-      const meCode = (me as { employee_code?: string } | null)?.employee_code ?? "";
-      const mePhoto = (me as { photo_url?: string } | null)?.photo_url ?? "";
-
-      const empty = {
-        meId, meName, meCode, mePhoto,
-        units: [] as UnitNode[],
-        guardsTotal: 0, joinedThisWeek: 0, joinedLastWeek: 0,
-        attendanceRateToday: 0, attendanceRateYesterday: 0,
-        pendingOnboardingTotal: 0, pendingOnboardingLastWeek: 0,
-        openDemandsTotal: 0, inventoryItemsTotal: 0,
-        myStockQty: 0, myStockSkus: 0,
+      const meRow = me as
+        | { id?: string; full_name?: string; employee_code?: string; photo_url?: string; unit_id?: string | null }
+        | null;
+      const meId = meRow?.id ?? null;
+      const base = {
+        meId,
+        meName: meRow?.full_name ?? "",
+        meCode: meRow?.employee_code ?? "",
+        mePhoto: meRow?.photo_url ?? "",
+        units: [] as Array<{
+          id: string;
+          code: string;
+          name: string;
+          customer_id: string | null;
+          branch_id: string | null;
+          customer_name: string;
+          is_primary: boolean;
+        }>,
       };
+      if (!meId) return base;
 
-
-      if (!meId) return empty;
-
-      const [resolvedUnitsRes, scopeRes, cuRes, allUnitsRes] = await Promise.all([
+      const [resolvedUnitsRes, scopeRes, cuRes] = await Promise.all([
         supabase.rpc("current_user_unit_ids"),
         supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId),
         supabase.from("candidate_units").select("unit_id,is_primary").eq("candidate_id", meId),
-        supabase.from("units").select("id,code,name,customer_id,branch_id"),
       ]);
-      const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
-      const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
+      const scopeRows = (scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>;
       const scopeCustomerIds = scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id);
-      const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
+      const legacyUnits = (cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>;
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
-      const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
-      // "My clients" = units actually ASSIGNED to me: candidates.unit_id (home) +
-      // candidate_units + unit-level scope assignments + client units of the
-      // organizations I am mapped to. Branch scope rows are NOT expanded — a
-      // field officer's branch row is their home/payroll branch, and expanding
-      // it dumped every unit of the branch in and inflated team size.
-      // Radiant Pune home unit is excluded (payroll marker, not a client site).
+
+      // "My clients" = units actually ASSIGNED to me. Branch scope rows are NOT
+      // expanded — that row is the officer's home/payroll branch.
       const unitIdSet = new Set<string>();
-      for (const id of ((resolvedUnitsRes.data ?? []) as string[])) unitIdSet.add(id);
-      const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
-      if (meUnitId) unitIdSet.add(meUnitId);
+      for (const id of (resolvedUnitsRes.data ?? []) as string[]) unitIdSet.add(id);
+      if (meRow?.unit_id) unitIdSet.add(meRow.unit_id);
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
-      for (const id of scopeUnitIds) unitIdSet.add(id);
+      for (const r of scopeRows) if (r.scope_type === "unit") unitIdSet.add(r.scope_id);
       if (scopeCustomerIds.length) {
         const { data: orgUnits } = await supabase
           .from("units")
           .select("id")
           .in("customer_id", scopeCustomerIds)
           .eq("is_billable", true);
-        for (const r of ((orgUnits ?? []) as Array<{ id: string }>)) unitIdSet.add(r.id);
+        for (const r of (orgUnits ?? []) as Array<{ id: string }>) unitIdSet.add(r.id);
       }
       unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
-      // Non-billable units (Radiant's own offices) are payroll/home markers, not
-      // work sites. A non-billable employee's home office must never appear as
-      // one of "my units" — only the client sites they are actually mapped to.
-      if (unitIdSet.size) {
-        const { data: billableRows } = await supabase
-          .from("units")
-          .select("id,is_billable")
-          .in("id", Array.from(unitIdSet));
-        for (const r of ((billableRows ?? []) as Array<{ id: string; is_billable: boolean | null }>)) {
-          if (r.is_billable === false) unitIdSet.delete(r.id);
-        }
+      if (!unitIdSet.size) return base;
+
+      // Single scoped read: only my units, with everything the card needs.
+      const { data: unitRowsRaw } = await supabase
+        .from("units")
+        .select("id,code,name,customer_id,branch_id,is_billable")
+        .in("id", Array.from(unitIdSet));
+      const unitRows = ((unitRowsRaw ?? []) as Array<{
+        id: string;
+        code: string;
+        name: string;
+        customer_id: string | null;
+        branch_id: string | null;
+        is_billable: boolean | null;
+      }>).filter((u) => u.is_billable !== false);
+
+      const customerIds = Array.from(new Set(unitRows.map((u) => u.customer_id).filter(Boolean))) as string[];
+      const custMap = new Map<string, string>();
+      if (customerIds.length) {
+        const { data: custs } = await supabase.from("customers").select("id,name").in("id", customerIds);
+        for (const c of (custs ?? []) as Array<{ id: string; name: string }>) custMap.set(c.id, c.name);
       }
-      const unitIds = Array.from(unitIdSet);
 
+      return {
+        ...base,
+        units: unitRows
+          .map((u) => ({
+            id: u.id,
+            code: u.code,
+            name: u.name,
+            customer_id: u.customer_id,
+            branch_id: u.branch_id,
+            customer_name: (u.customer_id && custMap.get(u.customer_id)) || "—",
+            is_primary: primaryMap.get(u.id) ?? false,
+          }))
+          .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.name.localeCompare(b.name)),
+      };
+    },
+  });
 
-      // Guards mapped to any of my units via candidate_units (multi-unit coverage)
-      // must be included even when their primary candidates.unit_id points elsewhere.
+  const meId = baseQ.data?.meId ?? null;
+  const baseUnits = useMemo(() => baseQ.data?.units ?? [], [baseQ.data?.units]);
+  const unitIdsKey = useMemo(() => baseUnits.map((u) => u.id).sort().join(","), [baseUnits]);
+
+  // ── Pass 2: team, attendance, onboarding, inventory. Purely additive.
+  const statsQ = useQuery({
+    queryKey: ["fo-stats-v1", meId, userId, unitIdsKey],
+    enabled: !!meId,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const UNASSIGNED = "__unassigned__";
+      const unitIds = baseUnits.map((u) => u.id);
+      const emptyStats = {
+        guardsByUnit: {} as Record<string, Guard[]>,
+        coFoByUnit: {} as Record<string, CoFo[]>,
+        pendingByUnit: {} as Record<string, number>,
+        demandsByUnit: {} as Record<string, number>,
+        inventoryByUnit: {} as Record<string, number>,
+        guardsTotal: 0, joinedThisWeek: 0, joinedLastWeek: 0,
+        attendanceRateToday: 0, attendanceRateYesterday: 0,
+        pendingOnboardingTotal: 0, pendingOnboardingLastWeek: 0,
+        openDemandsTotal: 0, inventoryItemsTotal: 0,
+        myStockQty: 0, myStockSkus: 0,
+      };
+      if (!meId) return emptyStats;
+
+      // Guards mapped to my units via candidate_units (multi-unit coverage) must
+      // be included even when their primary unit points elsewhere.
       const guardExtraUnits = new Map<string, Set<string>>();
       if (unitIds.length) {
         const { data: cuGuards } = await supabase
@@ -207,29 +256,36 @@ function FieldOfficerDashboard() {
       }
       const extraGuardIds = Array.from(guardExtraUnits.keys());
 
-      let guardQuery = supabase
-        .from("candidates")
-        .select("id,full_name,employee_code,designation_id,unit_id,role_key,status,is_enabled,created_at")
-        .in("role_key", ["guard", "security_guard"])
-        .eq("status", "active").eq("is_enabled", true)
-        .order("full_name", { ascending: true })
-        .order("employee_code", { ascending: true });
-      // Team follows the FO's current unit assignments only. Historical
-      // reports_to / created_by links must never pull old guards (or their old
-      // units) into the dashboard after the FO is transferred.
       const teamFilters: string[] = [];
       if (unitIds.length) teamFilters.push(`unit_id.in.(${unitIds.join(",")})`);
       if (extraGuardIds.length) teamFilters.push(`id.in.(${extraGuardIds.join(",")})`);
-      if (teamFilters.length === 0) return empty;
 
-      guardQuery = guardQuery.or(teamFilters.join(","));
-      const { data: myGuards } = await guardQuery;
-      const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; employee_code: string | null; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
+      const guardList = teamFilters.length
+        ? (((
+            await supabase
+              .from("candidates")
+              .select("id,full_name,employee_code,designation_id,unit_id,role_key,status,is_enabled,created_at")
+              .in("role_key", ["guard", "security_guard"])
+              .eq("status", "active")
+              .eq("is_enabled", true)
+              .order("full_name", { ascending: true })
+              .or(teamFilters.join(","))
+          ).data ?? []) as Array<{
+            id: string;
+            full_name: string;
+            employee_code: string | null;
+            designation_id: string | null;
+            unit_id: string | null;
+            created_at: string | null;
+          }>)
+        : [];
 
-      // Co-field-officers: other FOs mapped to any of our unitIds via candidate_units,
-      // esa unit, esa branch, or esa customer. Used to show peer coverage on each unit.
-      const coFoByUnit = new Map<string, CoFo[]>();
+      // Co-field-officers on my units — scoped by unit / branch / customer ids only.
+      const coFoByUnit: Record<string, CoFo[]> = {};
       if (unitIds.length) {
+        const branchIds = Array.from(new Set(baseUnits.map((u) => u.branch_id).filter(Boolean))) as string[];
+        const customerIds = Array.from(new Set(baseUnits.map((u) => u.customer_id).filter(Boolean))) as string[];
+        const scopeIds = Array.from(new Set([...unitIds, ...branchIds, ...customerIds]));
         const [foRes, foCuRes, foEsaRes] = await Promise.all([
           supabase
             .from("candidates")
@@ -237,57 +293,54 @@ function FieldOfficerDashboard() {
             .eq("role_key", "field_officer")
             .in("status", ["active", "approved"])
             .eq("is_enabled", true),
-          supabase.from("candidate_units").select("candidate_id,unit_id"),
-          supabase.from("employee_scope_assignments").select("candidate_id,scope_id,scope_type"),
+          supabase.from("candidate_units").select("candidate_id,unit_id").in("unit_id", unitIds),
+          supabase
+            .from("employee_scope_assignments")
+            .select("candidate_id,scope_id,scope_type")
+            .in("scope_id", scopeIds),
         ]);
         const fos = ((foRes.data ?? []) as Array<{ id: string; full_name: string; employee_code: string | null; unit_id: string | null }>).filter((f) => f.id !== meId);
         const foMap = new Map(fos.map((f) => [f.id, f]));
-        const foCu = ((foCuRes.data ?? []) as Array<{ candidate_id: string; unit_id: string }>);
-        const foEsa = ((foEsaRes.data ?? []) as Array<{ candidate_id: string; scope_id: string; scope_type: string }>);
-        const unitById = new Map(allUnitsRaw.map((u) => [u.id, u]));
-        for (const uid of unitIds) {
-          const u = unitById.get(uid);
-          if (!u) continue;
+        const foCu = (foCuRes.data ?? []) as Array<{ candidate_id: string; unit_id: string }>;
+        const foEsa = (foEsaRes.data ?? []) as Array<{ candidate_id: string; scope_id: string; scope_type: string }>;
+        for (const u of baseUnits) {
           const mapped = new Set<string>();
-          for (const f of fos) if (f.unit_id === uid) mapped.add(f.id);
-          for (const r of foCu) if (r.unit_id === uid && foMap.has(r.candidate_id)) mapped.add(r.candidate_id);
+          for (const f of fos) if (f.unit_id === u.id) mapped.add(f.id);
+          for (const r of foCu) if (r.unit_id === u.id && foMap.has(r.candidate_id)) mapped.add(r.candidate_id);
           for (const r of foEsa) {
             if (!foMap.has(r.candidate_id)) continue;
-            if (r.scope_type === "unit" && r.scope_id === uid) mapped.add(r.candidate_id);
+            if (r.scope_type === "unit" && r.scope_id === u.id) mapped.add(r.candidate_id);
             if (r.scope_type === "branch" && u.branch_id && r.scope_id === u.branch_id) mapped.add(r.candidate_id);
             if (r.scope_type === "customer" && u.customer_id && r.scope_id === u.customer_id) mapped.add(r.candidate_id);
           }
           if (mapped.size) {
-            coFoByUnit.set(
-              uid,
-              Array.from(mapped)
-                .map((id) => foMap.get(id)!)
-                .filter(Boolean)
-                .map((f) => ({ id: f.id, full_name: f.full_name, employee_code: f.employee_code }))
-                .sort((a, b) => a.full_name.localeCompare(b.full_name)),
-            );
+            coFoByUnit[u.id] = Array.from(mapped)
+              .map((id) => foMap.get(id)!)
+              .filter(Boolean)
+              .map((f) => ({ id: f.id, full_name: f.full_name, employee_code: f.employee_code }))
+              .sort((a, b) => a.full_name.localeCompare(b.full_name));
           }
         }
       }
 
-      const [unitsRes, custRes, mineRes, desigsRes, codesRes] = await Promise.all([
-        unitIds.length
-          ? supabase.from("units").select("id,code,name,customer_id").in("id", unitIds)
-          : Promise.resolve({ data: [] as Array<{ id: string; code: string; name: string; customer_id: string | null }> }),
-        supabase.from("customers").select("id,name"),
+      const desigIds = Array.from(new Set(guardList.map((g) => g.designation_id).filter(Boolean))) as string[];
+      const [mineRes, desigsRes, codesRes] = await Promise.all([
         userId
           ? supabase.from("candidates").select("id,status,unit_id,created_by,created_at").eq("created_by", userId)
-          : Promise.resolve({ data: [] as Array<{ id: string; status: string; unit_id: string | null; created_by: string | null; created_at: string | null }> }),
-        supabase.from("designations").select("id,name"),
+          : Promise.resolve({ data: [] as Array<{ status: string; unit_id: string | null; created_at: string | null }> }),
+        desigIds.length
+          ? supabase.from("designations").select("id,name").in("id", desigIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
         supabase.from("attendance_codes").select("code,counts_as_present"),
       ]);
-
       const desigMap = new Map(((desigsRes.data ?? []) as Array<{ id: string; name: string }>).map((d) => [d.id, d.name]));
-      const custMap = new Map(((custRes.data ?? []) as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
-      const presentCodes = new Set(((codesRes.data ?? []) as Array<{ code: string; counts_as_present: boolean }>).filter((c) => c.counts_as_present).map((c) => c.code));
+      const presentCodes = new Set(
+        ((codesRes.data ?? []) as Array<{ code: string; counts_as_present: boolean }>)
+          .filter((c) => c.counts_as_present)
+          .map((c) => c.code),
+      );
 
-      const guardsByUnit = new Map<string, Guard[]>();
-      const UNASSIGNED = "__unassigned__";
+      const guardsByUnit: Record<string, Guard[]> = {};
       const guardIdToUnit = new Map<string, string>();
       for (const g of guardList) {
         const primary = g.unit_id ?? UNASSIGNED;
@@ -295,11 +348,16 @@ function FieldOfficerDashboard() {
         const extras = guardExtraUnits.get(g.id);
         if (extras) for (const uid of extras) placements.add(uid);
         guardIdToUnit.set(g.id, primary);
-        const entry = { id: g.id, full_name: g.full_name, employee_code: g.employee_code, designation: (g.designation_id && desigMap.get(g.designation_id)) || "—" };
+        const entry = {
+          id: g.id,
+          full_name: g.full_name,
+          employee_code: g.employee_code,
+          designation: (g.designation_id && desigMap.get(g.designation_id)) || "—",
+        };
         for (const uid of placements) {
-          const arr = guardsByUnit.get(uid) ?? [];
+          const arr = guardsByUnit[uid] ?? [];
           if (!arr.some((x) => x.id === entry.id)) arr.push(entry);
-          guardsByUnit.set(uid, arr);
+          guardsByUnit[uid] = arr;
         }
       }
 
@@ -308,28 +366,31 @@ function FieldOfficerDashboard() {
       const guardIds = guardList.map((g) => g.id);
       let presentToday = 0, totalToday = 0, presentYday = 0, totalYday = 0;
       if (guardIds.length) {
-        const { data: entries } = await supabase.from("attendance_entries").select("candidate_id,code,entry_date").in("entry_date", [today, yday]).in("candidate_id", guardIds);
-        for (const e of (entries ?? []) as Array<{ candidate_id: string; code: string; entry_date: string }>) {
+        const { data: entries } = await supabase
+          .from("attendance_entries")
+          .select("candidate_id,code,entry_date")
+          .in("entry_date", [today, yday])
+          .in("candidate_id", guardIds);
+        for (const e of (entries ?? []) as Array<{ code: string; entry_date: string }>) {
           if (e.entry_date === today) { totalToday += 1; if (presentCodes.has(e.code)) presentToday += 1; }
           else { totalYday += 1; if (presentCodes.has(e.code)) presentYday += 1; }
         }
       }
-      const attendanceRateToday = totalToday ? Math.round((presentToday / totalToday) * 100) : 0;
-      const attendanceRateYesterday = totalYday ? Math.round((presentYday / totalYday) * 100) : 0;
 
       const mine = (mineRes.data ?? []) as Array<{ status: string; unit_id: string | null; created_at: string | null }>;
       const weekAgoIso = isoDaysAgo(7);
       const twoWeeksAgoIso = isoDaysAgo(14);
-      const pendingOnboardingTotal = mine.filter((r) => ["pending", "rejected", "draft"].includes(r.status)).length;
+      const pendingStatuses = ["pending", "rejected", "draft"];
+      const pendingOnboardingTotal = mine.filter((r) => pendingStatuses.includes(r.status)).length;
       const pendingOnboardingLastWeek = mine.filter((r) => {
         const d = r.created_at ?? "";
-        return d && d >= twoWeeksAgoIso && d < weekAgoIso && ["pending", "rejected", "draft"].includes(r.status);
+        return d && d >= twoWeeksAgoIso && d < weekAgoIso && pendingStatuses.includes(r.status);
       }).length;
-      const pendingByUnit = new Map<string, number>();
+      const pendingByUnit: Record<string, number> = {};
       for (const c of mine) {
-        if (!["pending", "rejected", "draft"].includes(c.status)) continue;
+        if (!pendingStatuses.includes(c.status)) continue;
         const uid = c.unit_id ?? UNASSIGNED;
-        pendingByUnit.set(uid, (pendingByUnit.get(uid) ?? 0) + 1);
+        pendingByUnit[uid] = (pendingByUnit[uid] ?? 0) + 1;
       }
 
       let joinedThisWeek = 0, joinedLastWeek = 0;
@@ -340,76 +401,67 @@ function FieldOfficerDashboard() {
         else if (d >= twoWeeksAgoIso) joinedLastWeek += 1;
       }
 
-      const demandsByUnit = new Map<string, number>();
-      const inventoryByUnit = new Map<string, number>();
+      const demandsByUnit: Record<string, number> = {};
+      const inventoryByUnit: Record<string, number> = {};
       try {
         const teamIds = [meId, ...guardIds];
         const orClauses = [`requested_by.in.(${teamIds.join(",")})`];
         if (unitIds.length) orClauses.push(`unit_id.in.(${unitIds.join(",")})`);
-        const { data: demands } = await supabase.from("inv_demands" as never).select("id,status,unit_id,requested_by").or(orClauses.join(",")).in("status", ["pending", "approved", "partial", "open", "raised", "submitted"]);
+        const { data: demands } = await supabase
+          .from("inv_demands" as never)
+          .select("id,status,unit_id,requested_by")
+          .or(orClauses.join(","))
+          .in("status", ["pending", "approved", "partial", "open", "raised", "submitted"]);
         for (const d of (demands ?? []) as Array<{ unit_id: string | null }>) {
           const uid = d.unit_id ?? UNASSIGNED;
-          demandsByUnit.set(uid, (demandsByUnit.get(uid) ?? 0) + 1);
+          demandsByUnit[uid] = (demandsByUnit[uid] ?? 0) + 1;
         }
       } catch { /* ignore */ }
+
       let myStockQty = 0;
       let myStockSkus = 0;
       try {
-        const { data: myBal } = await supabase.from("inv_stock_balances" as never).select("item_id,size_value,qty").eq("location_type", "field_officer").eq("location_id", meId);
+        const { data: myBal } = await supabase
+          .from("inv_stock_balances" as never)
+          .select("item_id,size_value,qty")
+          .eq("location_type", "field_officer")
+          .eq("location_id", meId);
         for (const b of (myBal ?? []) as Array<{ qty: number }>) {
           const q = Number(b.qty) || 0;
           if (q > 0) { myStockQty += q; myStockSkus += 1; }
         }
         if (guardIds.length) {
-          const { data: bal } = await supabase.from("inv_stock_balances" as never).select("location_type,location_id,qty").in("location_type", ["guard", "security_guard", "field_officer"]).in("location_id", [meId, ...guardIds]);
+          const { data: bal } = await supabase
+            .from("inv_stock_balances" as never)
+            .select("location_type,location_id,qty")
+            .in("location_type", ["guard", "security_guard", "field_officer"])
+            .in("location_id", [meId, ...guardIds]);
           for (const b of (bal ?? []) as Array<{ location_id: string; qty: number }>) {
             const uid = guardIdToUnit.get(b.location_id) ?? UNASSIGNED;
-            if (b.qty > 0) inventoryByUnit.set(uid, (inventoryByUnit.get(uid) ?? 0) + 1);
+            if (b.qty > 0) inventoryByUnit[uid] = (inventoryByUnit[uid] ?? 0) + 1;
           }
         }
       } catch { /* ignore */ }
 
-      const rawUnits = (unitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null }>;
-      const units: UnitNode[] = rawUnits.map((u) => ({
-        id: u.id, code: u.code, name: u.name,
-        customer_name: (u.customer_id && custMap.get(u.customer_id)) || "—",
-        is_primary: primaryMap.get(u.id) ?? false,
-        guards: guardsByUnit.get(u.id) ?? [],
-        co_field_officers: coFoByUnit.get(u.id) ?? [],
-        pending_onboarding: pendingByUnit.get(u.id) ?? 0,
-        open_demands: demandsByUnit.get(u.id) ?? 0,
-        inventory_items: inventoryByUnit.get(u.id) ?? 0,
-      })).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.name.localeCompare(b.name));
-
-      const orphaned = guardsByUnit.get(UNASSIGNED) ?? [];
-      const orphPending = pendingByUnit.get(UNASSIGNED) ?? 0;
-      if (orphaned.length || orphPending) {
-        units.push({
-          id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a client",
-          is_primary: false, guards: orphaned, co_field_officers: [], pending_onboarding: orphPending,
-          open_demands: demandsByUnit.get(UNASSIGNED) ?? 0, inventory_items: inventoryByUnit.get(UNASSIGNED) ?? 0,
-        });
-      }
-
-      // A reliever can appear under multiple unit cards, but is still one person.
-      const guardsTotal = new Set(units.flatMap((u) => u.guards.map((g) => g.id))).size;
-      const openDemandsTotal = units.reduce((s, u) => s + u.open_demands, 0);
-      const inventoryItemsTotal = units.reduce((s, u) => s + u.inventory_items, 0);
+      const guardsTotal = new Set(guardList.map((g) => g.id)).size;
       return {
-        meId, meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
-        attendanceRateToday, attendanceRateYesterday, pendingOnboardingTotal,
-        pendingOnboardingLastWeek, openDemandsTotal, inventoryItemsTotal,
+        guardsByUnit, coFoByUnit, pendingByUnit, demandsByUnit, inventoryByUnit,
+        guardsTotal, joinedThisWeek, joinedLastWeek,
+        attendanceRateToday: totalToday ? Math.round((presentToday / totalToday) * 100) : 0,
+        attendanceRateYesterday: totalYday ? Math.round((presentYday / totalYday) * 100) : 0,
+        pendingOnboardingTotal, pendingOnboardingLastWeek,
+        openDemandsTotal: Object.values(demandsByUnit).reduce((s, n) => s + n, 0),
+        inventoryItemsTotal: Object.values(inventoryByUnit).reduce((s, n) => s + n, 0),
         myStockQty, myStockSkus,
       };
-
-
     },
   });
 
   useEffect(() => {
     if (!phone) return;
     const refresh = () => {
-      void queryClient.invalidateQueries({ queryKey: ["field-officer-dashboard-v6", phone, userId] });
+      void queryClient.invalidateQueries({ queryKey: ["fo-base-v1", phone] });
+      void queryClient.invalidateQueries({ queryKey: ["fo-stats-v1"] });
     };
     const channel = supabase
       .channel(dashboardChannelName(phone))
@@ -420,11 +472,59 @@ function FieldOfficerDashboard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [phone, userId, queryClient]);
+  }, [phone, queryClient]);
 
-  const data = dashQ.data;
-  const isLoading = dashQ.isLoading;
-  const units = useMemo(() => data?.units ?? [], [data?.units]);
+  const dashQ = baseQ;
+  const isLoading = baseQ.isLoading;
+  const stats = statsQ.data;
+  const units = useMemo<UnitNode[]>(() => {
+    const UNASSIGNED = "__unassigned__";
+    const rows: UnitNode[] = baseUnits.map((u) => ({
+      id: u.id,
+      code: u.code,
+      name: u.name,
+      customer_name: u.customer_name,
+      is_primary: u.is_primary,
+      guards: stats?.guardsByUnit[u.id] ?? [],
+      co_field_officers: stats?.coFoByUnit[u.id] ?? [],
+      pending_onboarding: stats?.pendingByUnit[u.id] ?? 0,
+      open_demands: stats?.demandsByUnit[u.id] ?? 0,
+      inventory_items: stats?.inventoryByUnit[u.id] ?? 0,
+    }));
+    const orphaned = stats?.guardsByUnit[UNASSIGNED] ?? [];
+    const orphPending = stats?.pendingByUnit[UNASSIGNED] ?? 0;
+    if (orphaned.length || orphPending) {
+      rows.push({
+        id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a client",
+        is_primary: false, guards: orphaned, co_field_officers: [], pending_onboarding: orphPending,
+        open_demands: stats?.demandsByUnit[UNASSIGNED] ?? 0,
+        inventory_items: stats?.inventoryByUnit[UNASSIGNED] ?? 0,
+      });
+    }
+    return rows;
+  }, [baseUnits, stats]);
+
+  const data = useMemo(
+    () => ({
+      meId,
+      meName: baseQ.data?.meName ?? "",
+      meCode: baseQ.data?.meCode ?? "",
+      mePhoto: baseQ.data?.mePhoto ?? "",
+      units,
+      guardsTotal: stats?.guardsTotal ?? 0,
+      joinedThisWeek: stats?.joinedThisWeek ?? 0,
+      joinedLastWeek: stats?.joinedLastWeek ?? 0,
+      attendanceRateToday: stats?.attendanceRateToday ?? 0,
+      attendanceRateYesterday: stats?.attendanceRateYesterday ?? 0,
+      pendingOnboardingTotal: stats?.pendingOnboardingTotal ?? 0,
+      pendingOnboardingLastWeek: stats?.pendingOnboardingLastWeek ?? 0,
+      openDemandsTotal: stats?.openDemandsTotal ?? 0,
+      inventoryItemsTotal: stats?.inventoryItemsTotal ?? 0,
+      myStockQty: stats?.myStockQty ?? 0,
+      myStockSkus: stats?.myStockSkus ?? 0,
+    }),
+    [meId, baseQ.data?.meName, baseQ.data?.meCode, baseQ.data?.mePhoto, units, stats],
+  );
 
   const pendingIssuanceQ = useQuery({
     queryKey: ["field-officer", "pending-issuance", userId],
@@ -662,7 +762,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
   const q = useQuery({
     queryKey: ["fo-dashboard-visits-v2", candidateId, todayStr],
     queryFn: async () => {
-      const [monthVisitsRes, punchRes, trackRes, unitsRes, cuRes, esaRes, allUnitsRes, custRes] = await Promise.all([
+      const [monthVisitsRes, punchRes, trackRes, candRes, cuRes, esaRes, rpcRes] = await Promise.all([
         supabase
           .from("field_visits" as never)
           .select("id, unit_id, customer_rating, check_out_at")
@@ -691,9 +791,47 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           .from("employee_scope_assignments")
           .select("scope_id,scope_type")
           .eq("candidate_id", candidateId),
-        supabase.from("units").select("id, name, customer_id, branch_id"),
-        supabase.from("customers").select("id, name"),
+        supabase.rpc("current_user_unit_ids"),
       ]);
+
+      // Resolve only this officer's units — never the whole unit table.
+      const ids = new Set<string>();
+      for (const id of (rpcRes.data ?? []) as string[]) ids.add(id);
+      const candUnit = ((candRes.data as unknown) as { unit_id: string | null } | null)?.unit_id ?? null;
+      if (candUnit) ids.add(candUnit);
+      for (const r of (cuRes.data ?? []) as Array<{ unit_id: string }>) ids.add(r.unit_id);
+      const esa = (esaRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>;
+      for (const s of esa) if (s.scope_type === "unit") ids.add(s.scope_id);
+      const custScopeIds = esa.filter((s) => s.scope_type === "customer").map((s) => s.scope_id);
+      if (custScopeIds.length) {
+        const { data: orgUnits } = await supabase
+          .from("units")
+          .select("id")
+          .in("customer_id", custScopeIds)
+          .eq("is_billable", true);
+        for (const r of (orgUnits ?? []) as Array<{ id: string }>) ids.add(r.id);
+      }
+
+      let scopedUnits: Array<{ id: string; name: string; customer_name: string }> = [];
+      if (ids.size) {
+        const { data: unitRows } = await supabase
+          .from("units")
+          .select("id,name,customer_id")
+          .in("id", Array.from(ids));
+        const rows = (unitRows ?? []) as Array<{ id: string; name: string; customer_id: string | null }>;
+        const custIds = Array.from(new Set(rows.map((u) => u.customer_id).filter(Boolean))) as string[];
+        const custMap = new Map<string, string>();
+        if (custIds.length) {
+          const { data: custs } = await supabase.from("customers").select("id,name").in("id", custIds);
+          for (const c of (custs ?? []) as Array<{ id: string; name: string }>) custMap.set(c.id, c.name);
+        }
+        scopedUnits = rows.map((u) => ({
+          id: u.id,
+          name: u.name,
+          customer_name: (u.customer_id && custMap.get(u.customer_id)) || u.name,
+        }));
+      }
+
       return {
         visits: (monthVisitsRes.data ?? []) as Array<{
           id: string;
@@ -703,53 +841,14 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         }>,
         punch: (punchRes.data as { check_in_at: string | null; check_out_at: string | null } | null) ?? null,
         track: ((trackRes.data as unknown) as Array<{ lat: number; lng: number }>) ?? [],
-        candUnit: ((unitsRes.data as unknown) as { unit_id: string | null } | null)?.unit_id ?? null,
-        cu: (cuRes.data ?? []) as Array<{ unit_id: string }>,
-        esa: (esaRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>,
-        allUnits: (allUnitsRes.data ?? []) as Array<{
-          id: string;
-          name: string;
-          customer_id: string | null;
-          branch_id: string | null;
-        }>,
-        customers: (custRes.data ?? []) as Array<{ id: string; name: string }>,
+        scopedUnits,
       };
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
 
-  const custMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const c of q.data?.customers ?? []) m.set(c.id, c.name);
-    return m;
-  }, [q.data?.customers]);
-
-  const scopedUnits = useMemo(() => {
-    if (!q.data) return [] as Array<{ id: string; name: string; customer_name: string }>;
-    const ids = new Set<string>();
-    if (q.data.candUnit) ids.add(q.data.candUnit);
-    for (const r of q.data.cu) ids.add(r.unit_id);
-    const branchIds = new Set<string>();
-    const custIds = new Set<string>();
-    for (const s of q.data.esa) {
-      if (s.scope_type === "unit") ids.add(s.scope_id);
-      else if (s.scope_type === "branch") branchIds.add(s.scope_id);
-      else if (s.scope_type === "customer") custIds.add(s.scope_id);
-    }
-    for (const u of q.data.allUnits) {
-      if ((u.branch_id && branchIds.has(u.branch_id)) || (u.customer_id && custIds.has(u.customer_id))) {
-        ids.add(u.id);
-      }
-    }
-    return q.data.allUnits
-      .filter((u) => ids.has(u.id))
-      .map((u) => ({
-        id: u.id,
-        name: u.name,
-        customer_name: (u.customer_id && custMap.get(u.customer_id)) || u.name,
-      }));
-  }, [q.data, custMap]);
+  const scopedUnits = useMemo(() => q.data?.scopedUnits ?? [], [q.data?.scopedUnits]);
 
   const visits = q.data?.visits ?? [];
   const monthCount = visits.length;
