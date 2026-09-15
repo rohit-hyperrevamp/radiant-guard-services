@@ -520,6 +520,10 @@ function AdminLayout() {
         if (g.key === "compliance") {
           return !isFieldOfficer && (isSuperAdmin || can("contracts") || can("employees"));
         }
+        // Client/organization masters are leadership surfaces — never for field officers.
+        if (g.key === "org-manager" || g.key === "unit-manager") {
+          if (isFieldOfficer) return false;
+        }
         if (!g.module) return true;
         if (!can(g.module)) return false;
         if (g.sub && !canSub(g.module, g.sub)) return false;
