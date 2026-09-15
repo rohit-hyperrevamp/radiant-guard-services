@@ -6060,8 +6060,17 @@ function CandidateWizard({
   const isLastStep = stepIndex === steps.length - 1;
   
   useEffect(() => {
-    if (open) setStepKey("aadhaar");
-  }, [open]);
+    if (!open) return;
+    // Resume an existing record where the person stopped: the first step whose
+    // own required fields are still missing. New entries always start at step 1.
+    if (editing) {
+      const resume = steps.find((s) => validatedSteps.has(s.key) && validateStep(s.key) !== null);
+      setStepKey(resume?.key ?? "aadhaar");
+      return;
+    }
+    setStepKey("aadhaar");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing?.id]);
 
   const goToStep = (key: string) => {
     setStepKey(key);
