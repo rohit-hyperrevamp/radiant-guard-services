@@ -12,7 +12,6 @@ import {
   UserRound,
   Users,
   ArrowUpRight,
-  ShieldCheck,
   Phone,
   MapPin,
   TrendingUp,
@@ -410,25 +409,6 @@ function EmployeeDashboard() {
         <div className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-accent/80 sm:w-1" />
 
         <div className="relative flex items-center gap-3 sm:gap-4">
-          <div className="relative shrink-0">
-            <div className="rounded-full border border-border/70 bg-muted/50 p-[3px]">
-              {me.photo_url ? (
-                <img
-                  src={me.photo_url}
-                  alt={me.full_name}
-                  className="!aspect-square h-16 w-16 !rounded-full object-cover sm:h-20 sm:w-20"
-                />
-              ) : (
-                <div className="grid !aspect-square h-16 w-16 place-items-center !rounded-full bg-accent font-display text-lg font-bold text-accent-foreground sm:h-20 sm:w-20">
-                  {initials(me.full_name)}
-                </div>
-              )}
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-card sm:h-6 sm:w-6">
-              <ShieldCheck className="h-3 w-3" />
-            </span>
-          </div>
-
           <div className="min-w-0 flex-1">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               {(me.role_key || "employee").replace(/_/g, " ")}
