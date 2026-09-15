@@ -32,6 +32,7 @@ import { DashboardShell } from "@/components/LiveFeed";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { readStoredAuthUser } from "@/lib/auth";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
@@ -87,13 +88,77 @@ function isoDaysAgo(days: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+type FoStats = {
+  guardsByUnit: Record<string, Guard[]>;
+  coFoByUnit: Record<string, CoFo[]>;
+  pendingByUnit: Record<string, number>;
+  demandsByUnit: Record<string, number>;
+  inventoryByUnit: Record<string, number>;
+  guardsTotal: number;
+  joinedThisWeek: number;
+  joinedLastWeek: number;
+  attendanceRateToday: number;
+  attendanceRateYesterday: number;
+  pendingOnboardingTotal: number;
+  pendingOnboardingLastWeek: number;
+  openDemandsTotal: number;
+  inventoryItemsTotal: number;
+  myStockQty: number;
+  myStockSkus: number;
+};
+
+type FoBaseUnit = {
+  id: string;
+  code: string;
+  name: string;
+  customer_id: string | null;
+  branch_id: string | null;
+  customer_name: string;
+  is_primary: boolean;
+};
+type FoBase = {
+  meId: string | null;
+  meName: string;
+  meCode: string;
+  mePhoto: string;
+  units: FoBaseUnit[];
+};
+
+// The signed-in phone is written synchronously by the login flow.
+function storedPhone(): string {
+  return readStoredAuthUser()?.phone?.replace(/\D/g, "").slice(-10) ?? "";
+}
+
+// Local paint cache only — every read still revalidates against the server.
+function readSnapshot<T>(key: string): T | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(`fo-snap:${key}`);
+    return raw ? (JSON.parse(raw) as T) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSnapshot(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(`fo-snap:${key}`, JSON.stringify(value));
+  } catch {
+    /* optional cache */
+  }
+}
+
 
 function FieldOfficerDashboard() {
   const { roleKey, isSuperAdmin } = useCurrentPermissions();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string>("");
+  // The signed-in phone is already known synchronously from the login snapshot.
+  // Waiting on supabase.auth.getUser() first added a whole round trip before
+  // any dashboard read could even start.
+  const [phone, setPhone] = useState<string>(() => storedPhone());
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
@@ -101,7 +166,7 @@ function FieldOfficerDashboard() {
       setUserId(data.user?.id ?? null);
       const em = data.user?.email ?? "";
       const m = em.match(/phone-(\d{10})@/);
-      setPhone(m?.[1] ?? "");
+      if (m?.[1]) setPhone(m[1]);
       setEmail(em);
     });
   }, []);
@@ -120,7 +185,10 @@ function FieldOfficerDashboard() {
     enabled: !!phone,
     staleTime: 60_000,
     refetchOnWindowFocus: true,
-    queryFn: async () => {
+    // Last known name/units paint immediately while the fresh read runs.
+    initialData: () => readSnapshot<FoBase>(`fo-base:${phone}`) ?? undefined,
+    initialDataUpdatedAt: 0,
+    queryFn: async (): Promise<FoBase> => {
       const { data: me } = await supabase
         .from("candidates")
         .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
@@ -130,20 +198,12 @@ function FieldOfficerDashboard() {
         | { id?: string; full_name?: string; employee_code?: string; photo_url?: string; unit_id?: string | null }
         | null;
       const meId = meRow?.id ?? null;
-      const base = {
+      const base: FoBase = {
         meId,
         meName: meRow?.full_name ?? "",
         meCode: meRow?.employee_code ?? "",
         mePhoto: meRow?.photo_url ?? "",
-        units: [] as Array<{
-          id: string;
-          code: string;
-          name: string;
-          customer_id: string | null;
-          branch_id: string | null;
-          customer_name: string;
-          is_primary: boolean;
-        }>,
+        units: [],
       };
       if (!meId) return base;
 
@@ -196,7 +256,7 @@ function FieldOfficerDashboard() {
         for (const c of (custs ?? []) as Array<{ id: string; name: string }>) custMap.set(c.id, c.name);
       }
 
-      return {
+      const out: FoBase = {
         ...base,
         units: unitRows
           .map((u) => ({
@@ -210,6 +270,8 @@ function FieldOfficerDashboard() {
           }))
           .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.name.localeCompare(b.name)),
       };
+      writeSnapshot(`fo-base:${phone}`, out);
+      return out;
     },
   });
 
@@ -223,6 +285,9 @@ function FieldOfficerDashboard() {
     enabled: !!meId,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    // Show the previous counts straight away instead of zeros/blanks while the
+    // aggregation runs; they refresh in place a moment later.
+    placeholderData: () => (meId ? readSnapshot<FoStats>(`fo-stats:${meId}`) : undefined),
     queryFn: async () => {
       const UNASSIGNED = "__unassigned__";
       const unitIds = baseUnits.map((u) => u.id);
@@ -444,7 +509,7 @@ function FieldOfficerDashboard() {
       } catch { /* ignore */ }
 
       const guardsTotal = new Set(guardList.map((g) => g.id)).size;
-      return {
+      const outStats: typeof emptyStats = {
         guardsByUnit, coFoByUnit, pendingByUnit, demandsByUnit, inventoryByUnit,
         guardsTotal, joinedThisWeek, joinedLastWeek,
         attendanceRateToday: totalToday ? Math.round((presentToday / totalToday) * 100) : 0,
@@ -454,6 +519,8 @@ function FieldOfficerDashboard() {
         inventoryItemsTotal: Object.values(inventoryByUnit).reduce((s, n) => s + n, 0),
         myStockQty, myStockSkus,
       };
+      writeSnapshot(`fo-stats:${meId}`, outStats);
+      return outStats;
     },
   });
 
