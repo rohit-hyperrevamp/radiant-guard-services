@@ -73,6 +73,13 @@ type PendingIssuance = {
   onboarding_details: { issuance_asset_ids?: string[] | null; issuance_requested_at?: string | null } | null;
 };
 
+function dashboardChannelName(phone: string) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `field-officer-units-${phone}-${crypto.randomUUID()}`;
+  }
+  return `field-officer-units-${phone}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function isoDaysAgo(days: number) {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -405,7 +412,7 @@ function FieldOfficerDashboard() {
       void queryClient.invalidateQueries({ queryKey: ["field-officer-dashboard-v6", phone, userId] });
     };
     const channel = supabase
-      .channel(`field-officer-units-${phone}`)
+      .channel(dashboardChannelName(phone))
       .on("postgres_changes", { event: "*", schema: "public", table: "employee_scope_assignments" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, refresh)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "units" }, refresh)
