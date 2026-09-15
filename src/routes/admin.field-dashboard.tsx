@@ -762,7 +762,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
   const q = useQuery({
     queryKey: ["fo-dashboard-visits-v2", candidateId, todayStr],
     queryFn: async () => {
-      const [monthVisitsRes, punchRes, trackRes, unitsRes, cuRes, esaRes, allUnitsRes, custRes] = await Promise.all([
+      const [monthVisitsRes, punchRes, trackRes, candRes, cuRes, esaRes, rpcRes] = await Promise.all([
         supabase
           .from("field_visits" as never)
           .select("id, unit_id, customer_rating, check_out_at")
@@ -793,6 +793,45 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           .eq("candidate_id", candidateId),
         supabase.rpc("current_user_unit_ids"),
       ]);
+
+      // Resolve only this officer's units — never the whole unit table.
+      const ids = new Set<string>();
+      for (const id of (rpcRes.data ?? []) as string[]) ids.add(id);
+      const candUnit = ((candRes.data as unknown) as { unit_id: string | null } | null)?.unit_id ?? null;
+      if (candUnit) ids.add(candUnit);
+      for (const r of (cuRes.data ?? []) as Array<{ unit_id: string }>) ids.add(r.unit_id);
+      const esa = (esaRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>;
+      for (const s of esa) if (s.scope_type === "unit") ids.add(s.scope_id);
+      const custScopeIds = esa.filter((s) => s.scope_type === "customer").map((s) => s.scope_id);
+      if (custScopeIds.length) {
+        const { data: orgUnits } = await supabase
+          .from("units")
+          .select("id")
+          .in("customer_id", custScopeIds)
+          .eq("is_billable", true);
+        for (const r of (orgUnits ?? []) as Array<{ id: string }>) ids.add(r.id);
+      }
+
+      let scopedUnits: Array<{ id: string; name: string; customer_name: string }> = [];
+      if (ids.size) {
+        const { data: unitRows } = await supabase
+          .from("units")
+          .select("id,name,customer_id")
+          .in("id", Array.from(ids));
+        const rows = (unitRows ?? []) as Array<{ id: string; name: string; customer_id: string | null }>;
+        const custIds = Array.from(new Set(rows.map((u) => u.customer_id).filter(Boolean))) as string[];
+        const custMap = new Map<string, string>();
+        if (custIds.length) {
+          const { data: custs } = await supabase.from("customers").select("id,name").in("id", custIds);
+          for (const c of (custs ?? []) as Array<{ id: string; name: string }>) custMap.set(c.id, c.name);
+        }
+        scopedUnits = rows.map((u) => ({
+          id: u.id,
+          name: u.name,
+          customer_name: (u.customer_id && custMap.get(u.customer_id)) || u.name,
+        }));
+      }
+
       return {
         visits: (monthVisitsRes.data ?? []) as Array<{
           id: string;
@@ -802,53 +841,14 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         }>,
         punch: (punchRes.data as { check_in_at: string | null; check_out_at: string | null } | null) ?? null,
         track: ((trackRes.data as unknown) as Array<{ lat: number; lng: number }>) ?? [],
-        candUnit: ((unitsRes.data as unknown) as { unit_id: string | null } | null)?.unit_id ?? null,
-        cu: (cuRes.data ?? []) as Array<{ unit_id: string }>,
-        esa: (esaRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>,
-        allUnits: (allUnitsRes.data ?? []) as Array<{
-          id: string;
-          name: string;
-          customer_id: string | null;
-          branch_id: string | null;
-        }>,
-        customers: (custRes.data ?? []) as Array<{ id: string; name: string }>,
+        scopedUnits,
       };
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
 
-  const custMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const c of q.data?.customers ?? []) m.set(c.id, c.name);
-    return m;
-  }, [q.data?.customers]);
-
-  const scopedUnits = useMemo(() => {
-    if (!q.data) return [] as Array<{ id: string; name: string; customer_name: string }>;
-    const ids = new Set<string>();
-    if (q.data.candUnit) ids.add(q.data.candUnit);
-    for (const r of q.data.cu) ids.add(r.unit_id);
-    const branchIds = new Set<string>();
-    const custIds = new Set<string>();
-    for (const s of q.data.esa) {
-      if (s.scope_type === "unit") ids.add(s.scope_id);
-      else if (s.scope_type === "branch") branchIds.add(s.scope_id);
-      else if (s.scope_type === "customer") custIds.add(s.scope_id);
-    }
-    for (const u of q.data.allUnits) {
-      if ((u.branch_id && branchIds.has(u.branch_id)) || (u.customer_id && custIds.has(u.customer_id))) {
-        ids.add(u.id);
-      }
-    }
-    return q.data.allUnits
-      .filter((u) => ids.has(u.id))
-      .map((u) => ({
-        id: u.id,
-        name: u.name,
-        customer_name: (u.customer_id && custMap.get(u.customer_id)) || u.name,
-      }));
-  }, [q.data, custMap]);
+  const scopedUnits = useMemo(() => q.data?.scopedUnits ?? [], [q.data?.scopedUnits]);
 
   const visits = q.data?.visits ?? [];
   const monthCount = visits.length;
