@@ -87,6 +87,48 @@ function isoDaysAgo(days: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+type FoBaseUnit = {
+  id: string;
+  code: string;
+  name: string;
+  customer_id: string | null;
+  branch_id: string | null;
+  customer_name: string;
+  is_primary: boolean;
+};
+type FoBase = {
+  meId: string | null;
+  meName: string;
+  meCode: string;
+  mePhoto: string;
+  units: FoBaseUnit[];
+};
+
+// The signed-in phone is written synchronously by the login flow.
+function storedPhone(): string {
+  return readStoredAuthUser()?.phone?.replace(/\D/g, "").slice(-10) ?? "";
+}
+
+// Local paint cache only — every read still revalidates against the server.
+function readSnapshot<T>(key: string): T | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(`fo-snap:${key}`);
+    return raw ? (JSON.parse(raw) as T) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSnapshot(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(`fo-snap:${key}`, JSON.stringify(value));
+  } catch {
+    /* optional cache */
+  }
+}
+
 
 function FieldOfficerDashboard() {
   const { roleKey, isSuperAdmin } = useCurrentPermissions();
@@ -126,7 +168,7 @@ function FieldOfficerDashboard() {
     // Last known name/units paint immediately while the fresh read runs.
     initialData: () => readSnapshot<FoBase>(`fo-base:${phone}`) ?? undefined,
     initialDataUpdatedAt: 0,
-    queryFn: async () => {
+    queryFn: async (): Promise<FoBase> => {
       const { data: me } = await supabase
         .from("candidates")
         .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
@@ -136,20 +178,12 @@ function FieldOfficerDashboard() {
         | { id?: string; full_name?: string; employee_code?: string; photo_url?: string; unit_id?: string | null }
         | null;
       const meId = meRow?.id ?? null;
-      const base = {
+      const base: FoBase = {
         meId,
         meName: meRow?.full_name ?? "",
         meCode: meRow?.employee_code ?? "",
         mePhoto: meRow?.photo_url ?? "",
-        units: [] as Array<{
-          id: string;
-          code: string;
-          name: string;
-          customer_id: string | null;
-          branch_id: string | null;
-          customer_name: string;
-          is_primary: boolean;
-        }>,
+        units: [],
       };
       if (!meId) return base;
 
