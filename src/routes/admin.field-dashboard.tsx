@@ -113,12 +113,12 @@ function FieldOfficerDashboard() {
   }, [roleKey, isSuperAdmin, navigate]);
 
   const dashQ = useQuery({
-    queryKey: ["field-officer-dashboard-v4", phone, userId],
+    queryKey: ["field-officer-dashboard-v5", phone, userId],
     enabled: !!phone,
     queryFn: async () => {
       const { data: me } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,designation_id,photo_url")
+        .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
         .eq("mobile", phone)
         .maybeSingle();
       const meId = (me as { id?: string } | null)?.id ?? null;
@@ -146,19 +146,29 @@ function FieldOfficerDashboard() {
       ]);
       const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
       const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
+      const scopeCustomerIds = scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id);
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
       const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
       // "My clients" = units actually ASSIGNED to me: candidates.unit_id (home) +
-      // candidate_units + unit-level scope assignments. Branch/customer scope rows
-      // are visibility scopes (RLS), NOT assignments — expanding them here dumped
-      // every unit of the branch into the FO's dashboard and inflated team size.
+      // candidate_units + unit-level scope assignments + client units of the
+      // organizations I am mapped to. Branch scope rows are NOT expanded — a
+      // field officer's branch row is their home/payroll branch, and expanding
+      // it dumped every unit of the branch in and inflated team size.
       // Radiant Pune home unit is excluded (payroll marker, not a client site).
       const unitIdSet = new Set<string>();
       const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
       if (meUnitId) unitIdSet.add(meUnitId);
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
       for (const id of scopeUnitIds) unitIdSet.add(id);
+      if (scopeCustomerIds.length) {
+        const { data: orgUnits } = await supabase
+          .from("units")
+          .select("id")
+          .in("customer_id", scopeCustomerIds)
+          .eq("is_billable", true);
+        for (const r of ((orgUnits ?? []) as Array<{ id: string }>)) unitIdSet.add(r.id);
+      }
       unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
       // Non-billable units (Radiant's own offices) are payroll/home markers, not
       // work sites. A non-billable employee's home office must never appear as
@@ -605,6 +615,12 @@ function FieldOfficerDashboard() {
           {isLoading ? (
             <ListSkeleton rows={3} />
 
+          ) : dashQ.isError ? (
+            <div className="flex flex-col items-center gap-2 p-10 text-center">
+              <div className="text-sm font-semibold text-foreground">Couldn’t load units</div>
+              <div className="text-xs text-muted-foreground">{(dashQ.error as Error)?.message || "Please retry."}</div>
+              <button type="button" onClick={() => void dashQ.refetch()} className="mt-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold">Retry</button>
+            </div>
           ) : units.length === 0 ? (
             <div className="flex flex-col items-center gap-2 p-12 text-center">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Sparkles className="h-5 w-5" /></div>
