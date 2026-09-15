@@ -5829,7 +5829,7 @@ function CandidateWizard({
       createdCandidateId = newId;
       await syncCandidateUnits(newId);
       setInitialUnitIds([...form.unit_ids]);
-      await logActivity({
+      void logActivity({
         module: "Employees",
         action: "create",
         entityType: "candidate",
