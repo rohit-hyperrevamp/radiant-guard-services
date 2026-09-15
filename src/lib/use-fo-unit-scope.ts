@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
@@ -41,13 +41,41 @@ export type FieldOfficerUnitScope = {
  */
 export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const { isFieldOfficer, candidateId, isLoading: roleLoading } = useCurrentUserRole();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!isFieldOfficer || !candidateId) return;
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ["fo-scope-assignments", candidateId] });
+      void queryClient.invalidateQueries({ queryKey: ["fo-candidate-units", candidateId] });
+      void queryClient.invalidateQueries({ queryKey: ["fo-units-lookup", candidateId] });
+    };
+    const channel = supabase
+      .channel(`field-officer-scope-${candidateId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "employee_scope_assignments", filter: `candidate_id=eq.${candidateId}` },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "candidate_units", filter: `candidate_id=eq.${candidateId}` },
+        refresh,
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [candidateId, isFieldOfficer, queryClient]);
 
   // Fetch only this officer's assignments. Reusing the admin-wide assignment
   // query could return a capped/cached list that omitted the current officer.
   const scopeQ = useQuery({
     queryKey: ["fo-scope-assignments", candidateId],
     enabled: !!candidateId && isFieldOfficer,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<ScopeAssignment[]> => {
       if (!candidateId) return [];
       const { data, error } = await supabase
@@ -62,7 +90,9 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const cuQ = useQuery({
     queryKey: ["fo-candidate-units", candidateId],
     enabled: !!candidateId && isFieldOfficer,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       if (!candidateId) return [];
       const { data, error } = await supabase
