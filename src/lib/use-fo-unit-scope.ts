@@ -30,6 +30,13 @@ export type FieldOfficerUnitScope = {
   candidateId: string | null;
 };
 
+function realtimeChannelName(candidateId: string) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `field-officer-scope-${candidateId}-${crypto.randomUUID()}`;
+  }
+  return `field-officer-scope-${candidateId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 /**
  * Resolves the set of units a field officer is scoped to. Combines:
  *   • employee_scope_assignments (scope_type='unit')
@@ -50,8 +57,11 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
       void queryClient.invalidateQueries({ queryKey: ["fo-candidate-units", candidateId] });
       void queryClient.invalidateQueries({ queryKey: ["fo-units-lookup", candidateId] });
     };
+    // Each mount needs its own channel. React can briefly mount this hook more
+    // than once while the admin shell hydrates; reusing a subscribed channel
+    // name makes Realtime throw before the dashboard can render.
     const channel = supabase
-      .channel(`field-officer-scope-${candidateId}`)
+      .channel(realtimeChannelName(candidateId))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "employee_scope_assignments", filter: `candidate_id=eq.${candidateId}` },
