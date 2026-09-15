@@ -118,6 +118,31 @@ import {
   ROLE_KEYS,
 } from "@/lib/role-keys";
 
+// Tiny local snapshot of the signed-in user's role + permissions. Purely a
+// paint accelerator: every read still revalidates against the server, and the
+// database keeps enforcing access.
+const roleCacheKey = (phone: string) => `rbac:role:${phone}`;
+const permsCacheKey = (roleKey: string) => `rbac:perms:${roleKey}`;
+
+function readCache<T>(key: string): T | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCache(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage full or unavailable — cache is optional */
+  }
+}
+
 export type PermCheck = (moduleKey: string, action?: PermissionAction) => boolean;
 export type SubPermCheck = (moduleKey: string, subModuleKey: string, action?: PermissionAction) => boolean;
 
@@ -156,8 +181,17 @@ export function useCurrentPermissions(): {
         .eq("mobile", phone)
         .maybeSingle();
       if (error) throw error;
-      return (data?.role_key as string | undefined) ?? null;
+      const key = (data?.role_key as string | undefined) ?? null;
+      writeCache(roleCacheKey(phone), key);
+      return key;
     },
+    // The shell is gated on this read. Serve the last known role instantly and
+    // revalidate in the background so navigation never blanks the interface.
+    initialData: () => readCache<string | null>(roleCacheKey(phone)) ?? undefined,
+    initialDataUpdatedAt: 0,
+    staleTime: 5 * 60_000,
+    gcTime: 60 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const roleKey = roleQ.data ?? null;
@@ -170,7 +204,17 @@ export function useCurrentPermissions(): {
   const permsQ = useQuery({
     queryKey: ["rbac", "current-perms", roleKey],
     enabled: !!roleKey && !isSuperAdmin,
-    queryFn: () => fetchRolePermissions(roleKey as string),
+    queryFn: async () => {
+      const rows = await fetchRolePermissions(roleKey as string);
+      writeCache(permsCacheKey(roleKey as string), rows);
+      return rows;
+    },
+    initialData: () =>
+      roleKey ? readCache<PermissionRow[]>(permsCacheKey(roleKey)) ?? undefined : undefined,
+    initialDataUpdatedAt: 0,
+    staleTime: 5 * 60_000,
+    gcTime: 60 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const map = new Map<string, PermissionRow>();
