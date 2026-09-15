@@ -1260,9 +1260,10 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   .mb-6 { margin-bottom: 1rem !important; }
   .mt-6 { margin-top: 1rem !important; }
 
-  /* Keep mobile surfaces flat and flush. Circular identity marks stay round. */
-  .bg-card { border-radius: 0 !important; }
-  [class*="rounded-"]:not(.rounded-full) {
+  /* Only form canvases stay flat on mobile. Cards, tiles and CTAs retain the
+     shared rounded visual language used by the dashboards. */
+  [role="dialog"]:has(form),
+  .keyboard-safe-form {
     border-radius: 0 !important;
   }
 
@@ -1312,10 +1313,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     max-width: 100%;
   }
 
-  [role="dialog"] {
-    max-width: 100vw;
-    border-radius: 0 !important;
-  }
+  [role="dialog"] { max-width: 100vw; }
 
   [role="tablist"] {
     -webkit-overflow-scrolling: touch;
