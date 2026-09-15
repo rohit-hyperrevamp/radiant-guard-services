@@ -88,6 +88,25 @@ function isoDaysAgo(days: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+type FoStats = {
+  guardsByUnit: Record<string, Guard[]>;
+  coFoByUnit: Record<string, CoFo[]>;
+  pendingByUnit: Record<string, number>;
+  demandsByUnit: Record<string, number>;
+  inventoryByUnit: Record<string, number>;
+  guardsTotal: number;
+  joinedThisWeek: number;
+  joinedLastWeek: number;
+  attendanceRateToday: number;
+  attendanceRateYesterday: number;
+  pendingOnboardingTotal: number;
+  pendingOnboardingLastWeek: number;
+  openDemandsTotal: number;
+  inventoryItemsTotal: number;
+  myStockQty: number;
+  myStockSkus: number;
+};
+
 type FoBaseUnit = {
   id: string;
   code: string;
