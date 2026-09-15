@@ -8,7 +8,7 @@
 - [x] Fix field officer unit visibility dynamically on dashboard and candidate posting.
 - [x] Rename field officer Employees surface to Candidates.
 - [x] Redesign mobile More panel without Menu/X and clipping.
-- [x] Make mobile surfaces flat with consistent square edges.
+- [x] Keep mobile form canvases flat; preserve rounded dashboards, tiles, and actions.
 - [x] Verify Rohit's production access and validate the mobile code changes.
 
 ## Interface recovery
