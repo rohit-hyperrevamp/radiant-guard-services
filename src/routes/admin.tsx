@@ -815,7 +815,7 @@ function AdminLayout() {
           <aside
             className={cn(
               "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
-              "border-t border-border bg-card",
+              "rounded-t-2xl border-t border-border bg-card",
               "animate-in slide-in-from-bottom duration-300 ease-out",
               "safe-bottom",
             )}
@@ -832,7 +832,7 @@ function AdminLayout() {
                 ];
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                    <div data-app-drawer-grid className="grid grid-cols-3 border-l border-t border-border">
+                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2 p-3">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -842,7 +842,7 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 border-b border-r border-border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
@@ -878,7 +878,7 @@ function AdminLayout() {
 
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                    <div data-app-drawer-grid className="grid grid-cols-3 border-l border-t border-border">
+                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2 p-3">
                       {tiles.map((t) => {
                         const Icon = t.icon;
                         return (
@@ -887,7 +887,7 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 border-b border-r border-border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               t.active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",

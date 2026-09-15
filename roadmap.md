@@ -10,3 +10,8 @@
 - [x] Redesign mobile More panel without Menu/X and clipping.
 - [x] Make mobile surfaces flat with consistent square edges.
 - [x] Verify Rohit's production access and validate the mobile code changes.
+
+## Interface recovery
+- [x] Restore rounded dashboards, tiles, and CTAs while keeping form canvases flat.
+- [ ] Diagnose and resolve the authenticated page-load failure.
+- [ ] Verify the corrected mobile interface and production app.
