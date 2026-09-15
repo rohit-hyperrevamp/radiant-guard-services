@@ -82,6 +82,9 @@ import { isAdminConsoleRole, isFieldOfficerRole } from "@/lib/role-keys";
 
 
 export const Route = createFileRoute("/admin")({
+  // The signed-in shell depends on the browser session, so server HTML can only
+  // ever be a throwaway guess that React then has to discard and re-render.
+  ssr: false,
   component: AdminLayout,
 });
 
