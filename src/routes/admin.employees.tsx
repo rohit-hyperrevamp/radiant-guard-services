@@ -3846,9 +3846,9 @@ function EmployeesPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
-        title="Employees"
-        description="Onboard and manage candidates joining client sites."
-        crumbs={[{ label: "Employees" }]}
+        title={isFieldOfficer ? "Candidates" : "Employees"}
+        description={isFieldOfficer ? "Manage your candidates." : "Onboard and manage candidates joining client sites."}
+        crumbs={[{ label: isFieldOfficer ? "Candidates" : "Employees" }]}
       />
 
       <RehireEnableDialog
@@ -7064,11 +7064,11 @@ function CandidateWizard({
                     ) : (
                       <Field label={`Clients${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length}` : ""}`}>
                         <MultiUnitPicker
-                          units={units}
+                          units={isFieldOfficer ? scopedUnitsForWizard : units}
                           value={form.unit_ids}
                           onChange={(ids) => setForm((f) => ({ ...f, unit_ids: ids }))}
-                          disabled={unitsLoading || !!unitsError}
-                          emptyMessage={unitsError ? `Could not load units: ${unitsError}` : "No units found."}
+                          disabled={unitsLoading || scopeStillLoading || !!unitsError}
+                          emptyMessage={unitsError ? `Could not load units: ${unitsError}` : "No clients available."}
                         />
                       </Field>
                     )}

@@ -440,7 +440,7 @@ function AdminLayout() {
       { key: "org-manager", label: "Organizations", module: "organizations", sub: "organization_manager", icon: Users, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
       { key: "unit-manager", label: "Clients", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
-      { key: "employees", label: "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
+      { key: "employees", label: isFieldOfficer ? "Candidates" : "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 
       { key: "attendance", label: "Attendance", module: "attendance", icon: ClipboardList, to: "/admin/attendance", activePrefixes: ["/admin/attendance"] },
       { key: "payroll", label: "Payroll", module: "payroll", icon: Wallet, to: "/admin/payroll", activePrefixes: ["/admin/payroll", "/admin/additions", "/admin/deductions"] },
@@ -453,7 +453,7 @@ function AdminLayout() {
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
       { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
-    [dashboardHref],
+    [dashboardHref, isFieldOfficer],
   );
 
   const isInventoryOnly =
@@ -816,42 +816,24 @@ function AdminLayout() {
           <aside
             className={cn(
               "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
-              "rounded-t-[26px] border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
+              "border-t border-border bg-card",
               "animate-in slide-in-from-bottom duration-300 ease-out",
               "safe-bottom",
             )}
           >
-            {/* Grabber */}
-            <div className="relative flex justify-center px-4 pt-3 pb-2">
-              <div className="h-1.5 w-24 rounded-full bg-muted/80" />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Close menu"
-                onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-2 h-10 w-10 rounded-full"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="px-4 pb-3">
-              <h2 className="text-[22px] font-bold leading-tight text-foreground">Menu</h2>
-            </div>
-
             {isFieldOfficer ? (
               (() => {
                 const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void; tone?: "default" | "danger" }> = [
                   { to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard },
-                  { to: "/admin/employees", label: "Employees", icon: UserPlus },
+                  { to: "/admin/employees", label: "Candidates", icon: UserPlus },
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
                   { to: "/admin/field-sense", label: "Radar", icon: Radio },
                   { to: "/admin/inventory", label: "Uniform", icon: Boxes },
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                 ];
                 return (
-                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
+                  <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+                    <div data-app-drawer-grid className="grid grid-cols-3 border-l border-t border-border">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -861,7 +843,7 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 border-b border-r border-border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
@@ -896,8 +878,8 @@ function AdminLayout() {
                 if (!has("/admin/notifications")) tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
 
                 return (
-                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
+                  <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+                    <div data-app-drawer-grid className="grid grid-cols-3 border-l border-t border-border">
                       {tiles.map((t) => {
                         const Icon = t.icon;
                         return (
@@ -906,7 +888,7 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 border-b border-r border-border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               t.active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",

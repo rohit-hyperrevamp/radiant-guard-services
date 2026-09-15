@@ -104,9 +104,13 @@ function FieldOfficerDashboard() {
     }
   }, [roleKey, isSuperAdmin, navigate]);
 
+  const dashQueryKey = ["field-officer-dashboard-v6", phone, userId] as const;
   const dashQ = useQuery({
-    queryKey: ["field-officer-dashboard-v5", phone, userId],
+    queryKey: dashQueryKey,
     enabled: !!phone,
+    staleTime: 0,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data: me } = await supabase
         .from("candidates")
@@ -131,7 +135,8 @@ function FieldOfficerDashboard() {
 
       if (!meId) return empty;
 
-      const [scopeRes, cuRes, allUnitsRes] = await Promise.all([
+      const [resolvedUnitsRes, scopeRes, cuRes, allUnitsRes] = await Promise.all([
+        supabase.rpc("current_user_unit_ids"),
         supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId),
         supabase.from("candidate_units").select("unit_id,is_primary").eq("candidate_id", meId),
         supabase.from("units").select("id,code,name,customer_id,branch_id"),
@@ -149,6 +154,7 @@ function FieldOfficerDashboard() {
       // it dumped every unit of the branch in and inflated team size.
       // Radiant Pune home unit is excluded (payroll marker, not a client site).
       const unitIdSet = new Set<string>();
+      for (const id of ((resolvedUnitsRes.data ?? []) as string[])) unitIdSet.add(id);
       const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
       if (meUnitId) unitIdSet.add(meUnitId);
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
@@ -391,6 +397,22 @@ function FieldOfficerDashboard() {
 
     },
   });
+
+  useEffect(() => {
+    if (!phone) return;
+    const refresh = () => {
+      void dashQ.refetch();
+    };
+    const channel = supabase
+      .channel(`field-officer-units-${phone}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "employee_scope_assignments" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "units" }, refresh)
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [phone, dashQueryKey]);
 
   const data = dashQ.data;
   const isLoading = dashQ.isLoading;

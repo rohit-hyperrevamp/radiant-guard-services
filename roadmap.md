@@ -5,8 +5,8 @@
 - [x] Verify representative screens at narrow phone widths
 - [x] Confirm checks and close remaining tasks
 ## Current request
-- [ ] Fix field officer unit visibility dynamically on dashboard and candidate posting.
-- [ ] Rename field officer Employees surface to Candidates.
-- [ ] Redesign mobile More panel without Menu/X and clipping.
-- [ ] Make mobile surfaces flat with consistent square edges.
+- [x] Fix field officer unit visibility dynamically on dashboard and candidate posting.
+- [x] Rename field officer Employees surface to Candidates.
+- [x] Redesign mobile More panel without Menu/X and clipping.
+- [x] Make mobile surfaces flat with consistent square edges.
 - [ ] Verify against production and mobile layouts.
