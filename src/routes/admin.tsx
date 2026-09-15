@@ -41,7 +41,6 @@ import {
   Warehouse,
   Wind,
   Wrench,
-  X,
   Briefcase,
   Tag,
   UserCheck,
