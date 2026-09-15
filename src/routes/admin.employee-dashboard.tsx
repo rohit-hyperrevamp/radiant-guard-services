@@ -405,14 +405,13 @@ function EmployeeDashboard() {
   return (
     <div className="space-y-5">
 
-      {/* Profile hero — matches Field Officer dashboard */}
-      <section className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 text-white shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] sm:p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-accent/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-emerald-400/15 blur-3xl" />
+      {/* Profile hero — same light panel as the other dashboards */}
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-3.5 shadow-sm sm:rounded-3xl sm:p-6">
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-accent/80 sm:w-1" />
 
         <div className="relative flex items-center gap-3 sm:gap-4">
           <div className="relative shrink-0">
-            <div className="rounded-full bg-white/10 p-[3px] ring-1 ring-white/20 backdrop-blur">
+            <div className="rounded-full border border-border/70 bg-muted/50 p-[3px]">
               {me.photo_url ? (
                 <img
                   src={me.photo_url}
@@ -425,24 +424,24 @@ function EmployeeDashboard() {
                 </div>
               )}
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-slate-900 sm:h-6 sm:w-6">
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-card sm:h-6 sm:w-6">
               <ShieldCheck className="h-3 w-3" />
             </span>
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               {(me.role_key || "employee").replace(/_/g, " ")}
             </div>
-            <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight sm:text-2xl">
+            <div className="mt-1 truncate font-display text-[20px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[30px]">
               {me.full_name}
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               {me.employee_code && (
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85 ring-1 ring-white/15">{me.employee_code}</span>
+                <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{me.employee_code}</span>
               )}
               {unit && (
-                <span className="max-w-[180px] truncate rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-300/25">
+                <span className="max-w-[180px] truncate rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-semibold text-accent ring-1 ring-inset ring-accent/30">
                   {unit.name}
                 </span>
               )}
@@ -452,14 +451,14 @@ function EmployeeDashboard() {
           <Link
             to="/admin/profile"
             aria-label="Edit profile"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/20"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-muted/50 text-muted-foreground transition hover:bg-background hover:text-foreground"
           >
             <ArrowUpRight className="h-4 w-4" />
           </Link>
         </div>
 
         {(me.mobile || unit?.site_address) && (
-          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75 sm:text-xs">
+          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
             {me.mobile && (
               <span className="inline-flex items-center gap-1.5"><Phone className="h-3 w-3" /><span className="tabular-nums">{me.mobile}</span></span>
             )}
@@ -469,7 +468,7 @@ function EmployeeDashboard() {
           </div>
         )}
 
-        <div className="relative mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
+        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
           <HeroStat label="Present" value={attStats.present} tint="emerald" />
           <HeroStat label="ED hrs" value={attStats.ot} tint="sky" />
           <HeroStat label="Team" value={guardTeam.length + 1} tint="amber" />
@@ -798,14 +797,14 @@ function MetricTile({
 }
 
 function HeroStat({ label, value, tint }: { label: string; value: number | string; tint: "sky" | "emerald" | "amber" }) {
-  const dot = { sky: "bg-sky-400", emerald: "bg-emerald-400", amber: "bg-amber-400" }[tint];
+  const dot = { sky: "bg-sky-500", emerald: "bg-emerald-500", amber: "bg-amber-500" }[tint];
   return (
-    <div className="min-w-0 rounded-2xl bg-white/8 px-3 py-2.5 ring-1 ring-white/10 backdrop-blur">
+    <div className="min-w-0 rounded-2xl border border-border bg-muted/40 px-3 py-2.5">
       <div className="flex items-center gap-1.5">
-        <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
-        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
+        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
       </div>
-      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{value}</div>
     </div>
   );
 }
