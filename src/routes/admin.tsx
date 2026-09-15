@@ -433,6 +433,7 @@ function AdminLayout() {
   }
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
+  const isFieldOfficer = !isSuperAdmin && roleKey === "field_officer";
 
   const groups: GroupItem[] = useMemo(
     () => [
@@ -497,7 +498,6 @@ function AdminLayout() {
     { key: "profile", label: "My Profile", icon: Users, to: "/admin/profile", activePrefixes: ["/admin/profile"] },
   ], []);
 
-  const isFieldOfficer = !isSuperAdmin && roleKey === "field_officer";
   const visibleGroups = (() => {
     if (isGuard) return guardGroups;
     if (isInventoryOnly) {

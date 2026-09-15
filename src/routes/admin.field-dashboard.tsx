@@ -84,6 +84,7 @@ function isoDaysAgo(days: number) {
 function FieldOfficerDashboard() {
   const { roleKey, isSuperAdmin } = useCurrentPermissions();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [phone, setPhone] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -401,7 +402,7 @@ function FieldOfficerDashboard() {
   useEffect(() => {
     if (!phone) return;
     const refresh = () => {
-      void dashQ.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["field-officer-dashboard-v6", phone, userId] });
     };
     const channel = supabase
       .channel(`field-officer-units-${phone}`)
@@ -412,7 +413,7 @@ function FieldOfficerDashboard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [phone, dashQueryKey]);
+  }, [phone, userId, queryClient]);
 
   const data = dashQ.data;
   const isLoading = dashQ.isLoading;

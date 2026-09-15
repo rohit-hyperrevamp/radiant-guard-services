@@ -7064,10 +7064,10 @@ function CandidateWizard({
                     ) : (
                       <Field label={`Clients${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length}` : ""}`}>
                         <MultiUnitPicker
-                          units={isFieldOfficer ? scopedUnitsForWizard : units}
+                          units={units}
                           value={form.unit_ids}
                           onChange={(ids) => setForm((f) => ({ ...f, unit_ids: ids }))}
-                          disabled={unitsLoading || scopeStillLoading || !!unitsError}
+                          disabled={unitsLoading || !!unitsError}
                           emptyMessage={unitsError ? `Could not load units: ${unitsError}` : "No clients available."}
                         />
                       </Field>
