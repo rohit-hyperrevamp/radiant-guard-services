@@ -5772,7 +5772,7 @@ function CandidateWizard({
       // Always sync: unit IDs may be unchanged while a per-unit designation changed.
       await syncCandidateUnits(editing.id);
       setInitialUnitIds([...form.unit_ids]);
-      await logActivity({
+      void logActivity({
         module: "Employees",
         action: isResubmit ? "resubmit" : "update",
         entityType: "candidate",
