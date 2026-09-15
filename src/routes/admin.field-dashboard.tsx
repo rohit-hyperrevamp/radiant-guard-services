@@ -113,12 +113,12 @@ function FieldOfficerDashboard() {
   }, [roleKey, isSuperAdmin, navigate]);
 
   const dashQ = useQuery({
-    queryKey: ["field-officer-dashboard-v4", phone, userId],
+    queryKey: ["field-officer-dashboard-v5", phone, userId],
     enabled: !!phone,
     queryFn: async () => {
       const { data: me } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,designation_id,photo_url")
+        .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
         .eq("mobile", phone)
         .maybeSingle();
       const meId = (me as { id?: string } | null)?.id ?? null;
