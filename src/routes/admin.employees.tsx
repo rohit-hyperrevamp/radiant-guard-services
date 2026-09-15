@@ -5718,7 +5718,7 @@ function CandidateWizard({
 
   };
 
-  const persist = async (status: string, successMsg: string) => {
+  const persist = async (status: string, successMsg: string, opts?: { fast?: boolean }) => {
     const payload = buildPayload(status);
     const normalizedAadhaar = String((payload as { aadhaar_number?: unknown }).aadhaar_number ?? "").replace(/\D/g, "");
     if (!editing && normalizedAadhaar.length === 12) {
@@ -5772,7 +5772,7 @@ function CandidateWizard({
       // Always sync: unit IDs may be unchanged while a per-unit designation changed.
       await syncCandidateUnits(editing.id);
       setInitialUnitIds([...form.unit_ids]);
-      await logActivity({
+      void logActivity({
         module: "Employees",
         action: isResubmit ? "resubmit" : "update",
         entityType: "candidate",
@@ -5829,7 +5829,7 @@ function CandidateWizard({
       createdCandidateId = newId;
       await syncCandidateUnits(newId);
       setInitialUnitIds([...form.unit_ids]);
-      await logActivity({
+      void logActivity({
         module: "Employees",
         action: "create",
         entityType: "candidate",
@@ -5878,6 +5878,29 @@ function CandidateWizard({
     if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
+    if (opts?.fast) {
+      // Draft saves must feel instant. Patch the cached list so the row shows
+      // up right away, then refresh in the background instead of blocking on a
+      // full re-read of every candidate.
+      const idForCache = editing?.id ?? createdCandidateId;
+      if (idForCache) {
+        qc.setQueryData(QK, (old: CandidateListItem[] | undefined) => {
+          if (!old) return old;
+          const patch = {
+            ...(payload as unknown as Record<string, unknown>),
+            id: idForCache,
+          } as unknown as CandidateListItem;
+          const idx = old.findIndex((r) => r.id === idForCache);
+          if (idx < 0) return [patch, ...old];
+          const next = [...old];
+          next[idx] = { ...next[idx], ...patch };
+          return next;
+        });
+      }
+      void qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS });
+      return;
+    }
     // Await so the caller (Save/Send-to-Approval handlers) can close the
     // wizard AFTER the list has refetched — prevents the "count went up
     // but I don't see my row" flash.
@@ -5886,12 +5909,13 @@ function CandidateWizard({
   };
 
 
+
   const saveDraft = async () => {
     setSavingDraft(true);
     setSaveError(null);
     try {
       // Drafts have no strict validation — let user save partial work.
-      await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
+      await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved", { fast: true });
       if (draftStorageKey) {
         try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
       }
@@ -6035,9 +6059,31 @@ function CandidateWizard({
   const at = (key: string) => stepKey === key;
   const isLastStep = stepIndex === steps.length - 1;
   
+  const resumedForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (open) setStepKey("aadhaar");
-  }, [open]);
+    if (!open) {
+      resumedForRef.current = null;
+      return;
+    }
+    if (!editing) {
+      if (resumedForRef.current !== "new") {
+        resumedForRef.current = "new";
+        setStepKey("aadhaar");
+      }
+      return;
+    }
+    // Resume an existing record where the person stopped: the first step whose
+    // own required fields are still missing. Waits until the record's data has
+    // actually loaded into the form, so the jump reflects saved values.
+    if (resumedForRef.current === editing.id) return;
+    const loaded = (form as { id?: string }).id === editing.id;
+    if (!loaded) return;
+    resumedForRef.current = editing.id;
+    const resume = steps.find((s) => validatedSteps.has(s.key) && validateStep(s.key) !== null);
+    setStepKey(resume?.key ?? "aadhaar");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing?.id, form]);
+
 
   const goToStep = (key: string) => {
     setStepKey(key);
