@@ -5878,12 +5878,36 @@ function CandidateWizard({
     if (cidForBranch) await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
+    if (opts?.fast) {
+      // Draft saves must feel instant. Patch the cached list so the row shows
+      // up right away, then refresh in the background instead of blocking on a
+      // full re-read of every candidate.
+      const idForCache = editing?.id ?? createdCandidateId;
+      if (idForCache) {
+        qc.setQueryData(QK, (old: CandidateListItem[] | undefined) => {
+          if (!old) return old;
+          const patch = {
+            ...(payload as unknown as Record<string, unknown>),
+            id: idForCache,
+          } as unknown as CandidateListItem;
+          const idx = old.findIndex((r) => r.id === idForCache);
+          if (idx < 0) return [patch, ...old];
+          const next = [...old];
+          next[idx] = { ...next[idx], ...patch };
+          return next;
+        });
+      }
+      void qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS });
+      return;
+    }
     // Await so the caller (Save/Send-to-Approval handlers) can close the
     // wizard AFTER the list has refetched — prevents the "count went up
     // but I don't see my row" flash.
     await qc.invalidateQueries({ queryKey: QK, refetchType: "active" });
     await qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS, refetchType: "active" });
   };
+
 
 
   const saveDraft = async () => {
