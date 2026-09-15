@@ -32,6 +32,7 @@ import { DashboardShell } from "@/components/LiveFeed";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { readStoredAuthUser } from "@/lib/auth";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
@@ -236,7 +237,7 @@ function FieldOfficerDashboard() {
         for (const c of (custs ?? []) as Array<{ id: string; name: string }>) custMap.set(c.id, c.name);
       }
 
-      return {
+      const out: FoBase = {
         ...base,
         units: unitRows
           .map((u) => ({
@@ -250,6 +251,8 @@ function FieldOfficerDashboard() {
           }))
           .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.name.localeCompare(b.name)),
       };
+      writeSnapshot(`fo-base:${phone}`, out);
+      return out;
     },
   });
 
