@@ -791,8 +791,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           .from("employee_scope_assignments")
           .select("scope_id,scope_type")
           .eq("candidate_id", candidateId),
-        supabase.from("units").select("id, name, customer_id, branch_id"),
-        supabase.from("customers").select("id, name"),
+        supabase.rpc("current_user_unit_ids"),
       ]);
       return {
         visits: (monthVisitsRes.data ?? []) as Array<{
