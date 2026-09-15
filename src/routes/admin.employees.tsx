@@ -5718,7 +5718,7 @@ function CandidateWizard({
 
   };
 
-  const persist = async (status: string, successMsg: string) => {
+  const persist = async (status: string, successMsg: string, opts?: { fast?: boolean }) => {
     const payload = buildPayload(status);
     const normalizedAadhaar = String((payload as { aadhaar_number?: unknown }).aadhaar_number ?? "").replace(/\D/g, "");
     if (!editing && normalizedAadhaar.length === 12) {
