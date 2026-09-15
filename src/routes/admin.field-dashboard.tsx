@@ -93,7 +93,10 @@ function FieldOfficerDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string>("");
+  // The signed-in phone is already known synchronously from the login snapshot.
+  // Waiting on supabase.auth.getUser() first added a whole round trip before
+  // any dashboard read could even start.
+  const [phone, setPhone] = useState<string>(() => storedPhone());
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
@@ -101,7 +104,7 @@ function FieldOfficerDashboard() {
       setUserId(data.user?.id ?? null);
       const em = data.user?.email ?? "";
       const m = em.match(/phone-(\d{10})@/);
-      setPhone(m?.[1] ?? "");
+      if (m?.[1]) setPhone(m[1]);
       setEmail(em);
     });
   }, []);
@@ -120,6 +123,9 @@ function FieldOfficerDashboard() {
     enabled: !!phone,
     staleTime: 60_000,
     refetchOnWindowFocus: true,
+    // Last known name/units paint immediately while the fresh read runs.
+    initialData: () => readSnapshot<FoBase>(`fo-base:${phone}`) ?? undefined,
+    initialDataUpdatedAt: 0,
     queryFn: async () => {
       const { data: me } = await supabase
         .from("candidates")
