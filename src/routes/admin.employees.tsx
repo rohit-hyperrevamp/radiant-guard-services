@@ -6059,18 +6059,31 @@ function CandidateWizard({
   const at = (key: string) => stepKey === key;
   const isLastStep = stepIndex === steps.length - 1;
   
+  const resumedForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!open) return;
-    // Resume an existing record where the person stopped: the first step whose
-    // own required fields are still missing. New entries always start at step 1.
-    if (editing) {
-      const resume = steps.find((s) => validatedSteps.has(s.key) && validateStep(s.key) !== null);
-      setStepKey(resume?.key ?? "aadhaar");
+    if (!open) {
+      resumedForRef.current = null;
       return;
     }
-    setStepKey("aadhaar");
+    if (!editing) {
+      if (resumedForRef.current !== "new") {
+        resumedForRef.current = "new";
+        setStepKey("aadhaar");
+      }
+      return;
+    }
+    // Resume an existing record where the person stopped: the first step whose
+    // own required fields are still missing. Waits until the record's data has
+    // actually loaded into the form, so the jump reflects saved values.
+    if (resumedForRef.current === editing.id) return;
+    const loaded = (form as { id?: string }).id === editing.id;
+    if (!loaded) return;
+    resumedForRef.current = editing.id;
+    const resume = steps.find((s) => validatedSteps.has(s.key) && validateStep(s.key) !== null);
+    setStepKey(resume?.key ?? "aadhaar");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editing?.id]);
+  }, [open, editing?.id, form]);
+
 
   const goToStep = (key: string) => {
     setStepKey(key);
