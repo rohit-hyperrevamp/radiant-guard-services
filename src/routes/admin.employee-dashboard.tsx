@@ -797,14 +797,14 @@ function MetricTile({
 }
 
 function HeroStat({ label, value, tint }: { label: string; value: number | string; tint: "sky" | "emerald" | "amber" }) {
-  const dot = { sky: "bg-sky-400", emerald: "bg-emerald-400", amber: "bg-amber-400" }[tint];
+  const dot = { sky: "bg-sky-500", emerald: "bg-emerald-500", amber: "bg-amber-500" }[tint];
   return (
-    <div className="min-w-0 rounded-2xl bg-white/8 px-3 py-2.5 ring-1 ring-white/10 backdrop-blur">
+    <div className="min-w-0 rounded-2xl border border-border bg-muted/40 px-3 py-2.5">
       <div className="flex items-center gap-1.5">
-        <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
-        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
+        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
       </div>
-      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{value}</div>
     </div>
   );
 }
