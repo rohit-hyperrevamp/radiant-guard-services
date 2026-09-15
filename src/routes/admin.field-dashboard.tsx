@@ -266,6 +266,9 @@ function FieldOfficerDashboard() {
     enabled: !!meId,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    // Show the previous counts straight away instead of zeros/blanks while the
+    // aggregation runs; they refresh in place a moment later.
+    placeholderData: () => (meId ? readSnapshot<FoStats>(`fo-stats:${meId}`) : undefined),
     queryFn: async () => {
       const UNASSIGNED = "__unassigned__";
       const unitIds = baseUnits.map((u) => u.id);
@@ -487,7 +490,7 @@ function FieldOfficerDashboard() {
       } catch { /* ignore */ }
 
       const guardsTotal = new Set(guardList.map((g) => g.id)).size;
-      return {
+      const outStats: typeof emptyStats = {
         guardsByUnit, coFoByUnit, pendingByUnit, demandsByUnit, inventoryByUnit,
         guardsTotal, joinedThisWeek, joinedLastWeek,
         attendanceRateToday: totalToday ? Math.round((presentToday / totalToday) * 100) : 0,
@@ -497,6 +500,8 @@ function FieldOfficerDashboard() {
         inventoryItemsTotal: Object.values(inventoryByUnit).reduce((s, n) => s + n, 0),
         myStockQty, myStockSkus,
       };
+      writeSnapshot(`fo-stats:${meId}`, outStats);
+      return outStats;
     },
   });
 
