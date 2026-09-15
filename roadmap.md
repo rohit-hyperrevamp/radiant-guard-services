@@ -13,5 +13,5 @@
 
 ## Interface recovery
 - [x] Restore rounded dashboards, tiles, and CTAs while keeping form canvases flat.
-- [x] Diagnose the page-load failure; live pages respond normally with no current browser error.
+- [x] Diagnose the signed-in page-load failure and stop duplicate live-unit subscriptions from crashing the dashboard.
 - [x] Verify the corrected mobile interface and production unit feed.
