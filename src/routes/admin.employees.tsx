@@ -5915,7 +5915,7 @@ function CandidateWizard({
     setSaveError(null);
     try {
       // Drafts have no strict validation — let user save partial work.
-      await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
+      await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved", { fast: true });
       if (draftStorageKey) {
         try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
       }
