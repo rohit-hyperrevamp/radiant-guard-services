@@ -146,19 +146,29 @@ function FieldOfficerDashboard() {
       ]);
       const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
       const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
+      const scopeCustomerIds = scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id);
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
       const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
       // "My clients" = units actually ASSIGNED to me: candidates.unit_id (home) +
-      // candidate_units + unit-level scope assignments. Branch/customer scope rows
-      // are visibility scopes (RLS), NOT assignments — expanding them here dumped
-      // every unit of the branch into the FO's dashboard and inflated team size.
+      // candidate_units + unit-level scope assignments + client units of the
+      // organizations I am mapped to. Branch scope rows are NOT expanded — a
+      // field officer's branch row is their home/payroll branch, and expanding
+      // it dumped every unit of the branch in and inflated team size.
       // Radiant Pune home unit is excluded (payroll marker, not a client site).
       const unitIdSet = new Set<string>();
       const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
       if (meUnitId) unitIdSet.add(meUnitId);
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
       for (const id of scopeUnitIds) unitIdSet.add(id);
+      if (scopeCustomerIds.length) {
+        const { data: orgUnits } = await supabase
+          .from("units")
+          .select("id")
+          .in("customer_id", scopeCustomerIds)
+          .eq("is_billable", true);
+        for (const r of ((orgUnits ?? []) as Array<{ id: string }>)) unitIdSet.add(r.id);
+      }
       unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
       // Non-billable units (Radiant's own offices) are payroll/home markers, not
       // work sites. A non-billable employee's home office must never appear as
