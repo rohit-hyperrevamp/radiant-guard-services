@@ -615,6 +615,12 @@ function FieldOfficerDashboard() {
           {isLoading ? (
             <ListSkeleton rows={3} />
 
+          ) : dashQ.isError ? (
+            <div className="flex flex-col items-center gap-2 p-10 text-center">
+              <div className="text-sm font-semibold text-foreground">Couldn’t load units</div>
+              <div className="text-xs text-muted-foreground">{(dashQ.error as Error)?.message || "Please retry."}</div>
+              <button type="button" onClick={() => void dashQ.refetch()} className="mt-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold">Retry</button>
+            </div>
           ) : units.length === 0 ? (
             <div className="flex flex-col items-center gap-2 p-12 text-center">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Sparkles className="h-5 w-5" /></div>
