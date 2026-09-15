@@ -80,14 +80,6 @@ function isoDaysAgo(days: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("") || "FO";
-}
 
 function FieldOfficerDashboard() {
   const { roleKey, isSuperAdmin } = useCurrentPermissions();

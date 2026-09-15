@@ -12,7 +12,6 @@ import {
   UserRound,
   Users,
   ArrowUpRight,
-  ShieldCheck,
   Phone,
   MapPin,
   TrendingUp,
