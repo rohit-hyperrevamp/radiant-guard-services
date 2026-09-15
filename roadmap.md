@@ -9,4 +9,4 @@
 - [x] Rename field officer Employees surface to Candidates.
 - [x] Redesign mobile More panel without Menu/X and clipping.
 - [x] Make mobile surfaces flat with consistent square edges.
-- [ ] Verify against production and mobile layouts.
+- [x] Verify Rohit's production access and validate the mobile code changes.
