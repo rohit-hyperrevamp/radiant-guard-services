@@ -449,25 +449,6 @@ function FieldOfficerDashboard() {
         <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-emerald-400/15 blur-3xl" />
 
         <div className="relative flex items-center gap-3 sm:gap-4">
-          <div className="relative shrink-0">
-            <div className="rounded-full bg-white/10 p-[2px] ring-1 ring-white/20 backdrop-blur">
-              {data?.mePhoto ? (
-                <img
-                  src={data.mePhoto}
-                  alt={data?.meName || "Profile"}
-                  className="!aspect-square h-12 w-12 !rounded-full object-cover sm:h-14 sm:w-14"
-                />
-              ) : (
-                <div className="grid !aspect-square h-12 w-12 place-items-center !rounded-full bg-accent font-display text-sm font-bold text-accent-foreground sm:h-14 sm:w-14">
-                  {initials(data?.meName || "FO")}
-                </div>
-              )}
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-slate-900 sm:h-5 sm:w-5">
-              <ShieldCheck className="h-2.5 w-2.5" />
-            </span>
-          </div>
-
           <div className="min-w-0 flex-1">
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">Field Officer</div>
             <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight sm:text-2xl">
