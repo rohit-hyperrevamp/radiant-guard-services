@@ -853,7 +853,7 @@ function CustomerFormDialog({
             <SectionHeading title="Contact person" />
             <div className="grid gap-4 sm:grid-cols-2">
             {contactFields.map((f) => (
-              <Field key={f.key} label={f.label} full={f.full}>
+              <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                 <Input
                   value={(form[f.key] as string) ?? ""}
                   onChange={(e) => set(f.key, e.target.value as never)}
@@ -871,7 +871,7 @@ function CustomerFormDialog({
               const isPincode = f.key === "billingPincode";
               const isPhone = f.key === "billingPhone" || f.key === "billingFax";
               return (
-                <Field key={f.key} label={f.label} full={f.full}>
+                <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                   <Input
                     value={(form[f.key] as string) ?? ""}
                     onChange={(e) => {
@@ -907,7 +907,7 @@ function CustomerFormDialog({
                   const isPincode = f.key === "shippingPincode";
                   const isPhone = f.key === "shippingPhone" || f.key === "shippingFax";
                   return (
-                    <Field key={f.key} label={f.label} full={f.full}>
+                    <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                       <Input
                         value={(form[f.key] as string) ?? ""}
                         onChange={(e) => {
@@ -1000,6 +1000,8 @@ function SectionHeading({ title, inline }: { title: string; inline?: boolean }) 
     </h3>
   );
 }
+
+const REQUIRED_ORG_FIELD_KEYS = new Set<string>(["billingName", "billingAddress1", "billingCity", "shippingAddress1", "shippingCity"]);
 
 function Field({
   label,
