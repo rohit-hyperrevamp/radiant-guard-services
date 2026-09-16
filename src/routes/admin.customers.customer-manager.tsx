@@ -193,10 +193,10 @@ function CustomerManagerPage() {
               setEditing(null);
               setFormOpen(true);
             }}
-            className="h-10 rounded-xl bg-primary text-primary-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90"
+            className="h-10 shrink-0 whitespace-nowrap rounded-xl bg-primary px-4 text-primary-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90"
           >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add organization
+            <Plus className="mr-1.5 h-4 w-4 shrink-0" />
+            Add
           </Button>
         </div>
       </div>
