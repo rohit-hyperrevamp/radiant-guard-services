@@ -3385,7 +3385,7 @@ function ContractFormDialog({
     if (key === "resources" && resources.length === 0) return "Add at least one resource";
     return null;
   };
-  const isStepComplete = (key: string) => {
+  const isStepComplete = (key: string): boolean => {
     if (key === "client" || key === "resources") return !validateStep(key);
     if (key === "payroll") return Boolean(payrollWindowId && billingTypeId);
     if (key === "gst") return Boolean(gstOption);
