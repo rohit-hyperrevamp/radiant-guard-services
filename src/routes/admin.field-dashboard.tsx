@@ -632,60 +632,61 @@ function FieldOfficerDashboard() {
 
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />}>
-      {/* Profile hero — modern gradient card with circular avatar */}
-      <section className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 text-white shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] sm:p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-accent/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-emerald-400/15 blur-3xl" />
-
-        <div className="relative flex items-center gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+      {/* Identity anchors the bento workspace without repeating the profile photo. */}
+      <section className="flex min-h-[250px] flex-col justify-between rounded-3xl border border-border/70 bg-card p-5 shadow-sm sm:col-span-2 sm:p-7 xl:col-span-5 xl:row-span-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">Field Officer</div>
-            <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight sm:text-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+              <ShieldCheck className="h-3.5 w-3.5" /> Field Officer
+            </div>
+            <div className="mt-5 truncate text-2xl font-bold text-foreground sm:text-3xl">
               {data?.meName || (isLoading ? "…" : "Welcome")}
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {data?.meCode && (
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85 ring-1 ring-white/15">{data.meCode}</span>
+                <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{data.meCode}</span>
               )}
               {primaryUnit && (
-                <span className="max-w-[160px] truncate rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-300/25">
+                <span className="max-w-[190px] truncate rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
                   {primaryUnit.name}
                 </span>
               )}
             </div>
           </div>
-
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+            <Building2 className="h-6 w-6" />
+          </div>
         </div>
 
         {(phone || email) && (
-          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75 sm:text-xs">
+          <div className="mt-6 space-y-2 text-xs text-muted-foreground">
             {phone && (
-              <span className="inline-flex items-center gap-1.5"><Phone className="h-3 w-3" /><span className="tabular-nums">+91 {phone}</span></span>
+              <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-primary" /><span className="tabular-nums">+91 {phone}</span></span>
             )}
             {primaryUnit && (
-              <span className="inline-flex items-center gap-1.5"><MapPin className="h-3 w-3" /><span className="truncate">{primaryUnit.customer_name}</span></span>
+              <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary" /><span className="truncate">{primaryUnit.customer_name}</span></span>
             )}
           </div>
         )}
-
-        <div className="relative mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
-          <HeroStat label="Team" value={totalListings} tint="sky" />
-          <HeroStat label="Present" value={attnPresent} tint="emerald" />
-          <HeroStat label="Items" value={totalItems} tint="amber" />
-        </div>
       </section>
 
+      <HeroStat label="Team" value={totalListings} icon={ShieldCheck} className="xl:col-span-3" />
+      <HeroStat label="Present" value={attnPresent} icon={UserCheck} className="xl:col-span-2" />
+      <HeroStat label="Items" value={totalItems} icon={Warehouse} className="xl:col-span-2" />
 
-      <MarkAttendanceCard candidateId={data?.meId ?? null} />
+      <div className="sm:col-span-2 xl:col-span-7">
+        <MarkAttendanceCard candidateId={data?.meId ?? null} />
+      </div>
 
       {pendingIssuances.length > 0 && (
-        <section className="rounded-2xl border border-amber-200/70 bg-amber-50/90 p-3 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 sm:p-4">
+        <section className="rounded-3xl border border-primary/20 bg-primary/5 p-4 shadow-sm sm:col-span-2 xl:col-span-12">
           <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-500 text-white shadow-sm">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <PackageCheck className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-200">Action required</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Action required</div>
               <h2 className="mt-0.5 text-sm font-bold text-foreground sm:text-base">Issue assets to activate new guard</h2>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {pendingIssuances[0]?.full_name || "New employee"}{pendingIssuances.length > 1 ? ` and ${pendingIssuances.length - 1} more` : ""} awaiting {pendingAssetCount} asset{pendingAssetCount === 1 ? "" : "s"}.
@@ -698,20 +699,18 @@ function FieldOfficerDashboard() {
         </section>
       )}
 
-      <MyLiveStatusCard />
+      <div className="sm:col-span-2 xl:col-span-5">
+        <MyLiveStatusCard />
+      </div>
 
-
-
-
-      {/* Pastel summary tiles — "My Summary" */}
-      <section>
-        <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:mb-3">
+      <section className="sm:col-span-2 xl:col-span-7">
+        <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
-            <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>
+            <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3">
           <PastelTile
             palette="lime"
             label="Team size"
@@ -760,49 +759,37 @@ function FieldOfficerDashboard() {
         </div>
       </section>
 
+      <section className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm sm:col-span-2 xl:col-span-5">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-bold text-foreground">My units</h2>
+              <p className="text-[11px] text-muted-foreground">Open a unit to view its team</p>
+            </div>
+          </div>
+          <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{units.length}</span>
+        </div>
+        <div className="divide-y divide-border/50">
+          {isLoading ? <ListSkeleton rows={3} /> : dashQ.isError ? (
+            <div className="flex flex-col items-center gap-2 p-10 text-center">
+              <div className="text-sm font-semibold text-foreground">Couldn’t load units</div>
+              <Button type="button" variant="secondary" size="sm" onClick={() => void dashQ.refetch()}>Retry</Button>
+            </div>
+          ) : units.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 p-10 text-center">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></div>
+              <div className="text-sm font-semibold text-foreground">No units yet</div>
+              <div className="text-xs text-muted-foreground">Ask HR to map your units.</div>
+            </div>
+          ) : units.map((u) => <UnitRow key={u.id} unit={u} allUnits={units} />)}
+        </div>
+      </section>
+      </div>
+
       <RehirePipelineCard mineOnly requestedByCandidateId={data?.meId ?? null} title="My rehire requests" />
 
       {data?.meId && <FieldSenseSummary candidateId={data.meId} />}
-
-
-
-
-
-
-      {/* Units list */}
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
-        <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3">
-          <div className="min-w-0">
-            <h2 className="font-display text-sm font-bold text-foreground sm:text-base">My units</h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Tap a row to see the team.</p>
-          </div>
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-            {units.length} unit{units.length === 1 ? "" : "s"}
-          </span>
-        </div>
-
-        <div className="divide-y divide-border/50">
-          {isLoading ? (
-            <ListSkeleton rows={3} />
-
-          ) : dashQ.isError ? (
-            <div className="flex flex-col items-center gap-2 p-10 text-center">
-              <div className="text-sm font-semibold text-foreground">Couldn’t load units</div>
-              <div className="text-xs text-muted-foreground">{(dashQ.error as Error)?.message || "Please retry."}</div>
-              <button type="button" onClick={() => void dashQ.refetch()} className="mt-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold">Retry</button>
-            </div>
-          ) : units.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-12 text-center">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Sparkles className="h-5 w-5" /></div>
-              <div className="text-sm font-semibold text-foreground">No units yet</div>
-              <div className="text-xs text-muted-foreground">Ask HR to map you to your unit(s).</div>
-            </div>
-          ) : (
-            units.map((u) => <UnitRow key={u.id} unit={u} allUnits={units} />)
-          )}
-        </div>
-      </section>
-
     </DashboardShell>
   );
 }
@@ -1061,15 +1048,16 @@ function StatBar({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function HeroStat({ label, value, tint }: { label: string; value: number | string; tint: "sky" | "emerald" | "amber" }) {
-  const dot = { sky: "bg-sky-400", emerald: "bg-emerald-400", amber: "bg-amber-400" }[tint];
+function HeroStat({ label, value, icon: Icon, className }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; className?: string }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-white/8 px-3 py-2.5 ring-1 ring-white/10 backdrop-blur">
-      <div className="flex items-center gap-1.5">
-        <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
-        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
+    <div className={cn("flex min-h-[116px] flex-col justify-between rounded-3xl border border-border/70 bg-card p-5 shadow-sm", className)}>
+      <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
       </div>
-      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+        <span className="text-3xl font-bold tabular-nums leading-none text-foreground">{value}</span>
+      </div>
     </div>
   );
 }
@@ -1084,20 +1072,7 @@ function PastelTile({
   delta: number; deltaSuffix: string; invertColor?: boolean;
   icon: React.ComponentType<{ className?: string }>; to?: string; search?: Record<string, unknown>;
 }) {
-  const bg = {
-    lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
-    teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
-    rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
-    amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
-    violet: "bg-[color-mix(in_oklab,oklch(0.72_0.15_300)_18%,var(--card))]",
-  }[palette];
-  const ring = {
-    lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
-    teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
-    rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
-    amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
-    violet: "ring-[color-mix(in_oklab,oklch(0.72_0.15_300)_35%,transparent)]",
-  }[palette];
+  const iconTone = palette === "rose" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary";
 
   const positive = invertColor ? delta < 0 : delta > 0;
   const negative = invertColor ? delta > 0 : delta < 0;
@@ -1110,18 +1085,18 @@ function PastelTile({
 
 
   const inner = (
-    <div className={`relative flex h-full min-h-[108px] min-w-0 flex-col justify-between overflow-hidden rounded-xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:p-5 ${bg} ${ring}`}>
+    <div className="relative flex h-full min-h-[132px] min-w-0 flex-col justify-between overflow-hidden rounded-3xl border border-border/70 bg-card p-4 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md sm:p-5">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
-          <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">{hint}</div>
+          <div className="text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">{label}</div>
+          <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div>
         </div>
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm sm:h-9 sm:w-9">
-          <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl", iconTone)}>
+          <Icon className="h-4 w-4" />
         </span>
       </div>
       <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
-        <div className="font-display text-[22px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[36px]">
+        <div className="text-[26px] font-bold leading-none tabular-nums text-foreground sm:text-[34px]">
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
@@ -1131,9 +1106,7 @@ function PastelTile({
               {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
             </span>
           )}
-          <span className="hidden h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70 sm:grid">
-            <Icon className="h-3.5 w-3.5" />
-          </span>
+          {to && <ArrowUpRight className="h-4 w-4 text-primary" />}
         </div>
       </div>
     </div>
