@@ -78,6 +78,8 @@
 - [x] Preserve profile details, photo actions, postings, documents, settings, and sign-out behavior.
 - [x] Rebuild My Profile as a full-width professional grid with a compact profile rail.
 - [x] Normalize all card spacing, headers, gutters, padding, radii, and paired heights.
+- [x] Remove Mobile App Status and keep the complete left profile/settings panel fixed on desktop.
+- [x] Align profile content cards on one consistent grid.
 
 ## Employee dashboard unit visibility
 - [x] Trace the pictured employee's production unit mappings and explain why they are missing.

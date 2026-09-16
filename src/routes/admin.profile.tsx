@@ -59,7 +59,6 @@ import {
   type DocType,
 } from "@/lib/company-documents";
 import { logActivity } from "@/lib/activity-log";
-import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 
 export const Route = createFileRoute("/admin/profile")({
@@ -804,13 +803,10 @@ function ProfilePage() {
     }
   }
 
-  const appleNativeCard = <AppleNativeSetupCard />;
-
   if (!phone) {
     return (
       <div className="space-y-5">
         <PageHeader title="My Profile" />
-        {appleNativeCard}
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           Sign in to view your profile.
         </div>
@@ -822,7 +818,6 @@ function ProfilePage() {
     return (
       <div className="space-y-5">
         <PageHeader title="My Profile" />
-        {appleNativeCard}
         <div className="flex items-center justify-center rounded-2xl border border-border bg-card p-12 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
         </div>
@@ -834,7 +829,6 @@ function ProfilePage() {
     return (
       <div className="space-y-5">
         <PageHeader title="My Profile" />
-        {appleNativeCard}
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           No employee record is linked to your phone number ({phone}). Please contact your admin.
         </div>
@@ -859,7 +853,7 @@ function ProfilePage() {
       />
 
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-4 xl:sticky xl:top-4">
+        <aside className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col items-center gap-4 p-5 text-center">
           <div className="relative shrink-0">
@@ -968,10 +962,6 @@ function ProfilePage() {
       </aside>
 
       <main className="min-w-0 space-y-4">
-        {appleNativeCard}
-
-
-
       <Section title="My Posting & Reporting" icon={Building2}>
         {postingsQ.isLoading ? (
           <div className="text-sm text-muted-foreground">Loading posting details…</div>
