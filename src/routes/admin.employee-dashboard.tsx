@@ -497,7 +497,6 @@ function EmployeeDashboard() {
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
                     {(myUnits.find((u) => u.id === primaryUnitId) ?? unit) && <span className="max-w-[220px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">Primary · {(myUnits.find((u) => u.id === primaryUnitId) ?? unit)?.name}</span>}
-                    {unit && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.is_billable === false ? "Non-billable" : "Billable"}</span>}
                   </div>
                 </div>
                 <Link to="/admin/profile" aria-label="Open profile" className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-foreground shadow-sm ring-1 ring-border">
