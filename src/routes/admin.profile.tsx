@@ -845,15 +845,15 @@ function ProfilePage() {
   const directReports = postingsQ.data?.directReports ?? [];
 
   return (
-    <div className="w-full min-w-0 space-y-4 pb-6">
+    <div className="flex w-full min-w-0 flex-col gap-4 pb-6 lg:h-[calc(100dvh-2rem)] lg:overflow-hidden lg:pb-0">
       <PageHeader
         title="My Profile"
         description="Work details, records and documents."
         icon={Users}
       />
 
-      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+      <div className="grid min-h-0 min-w-0 flex-1 items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col items-center gap-4 p-5 text-center">
           <div className="relative shrink-0">
@@ -961,7 +961,7 @@ function ProfilePage() {
       {bottomActions}
       </aside>
 
-      <main className="min-w-0 space-y-4">
+      <main className="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
       <Section title="My Posting & Reporting" icon={Building2}>
         {postingsQ.isLoading ? (
           <div className="text-sm text-muted-foreground">Loading posting details…</div>
