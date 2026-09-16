@@ -78,3 +78,8 @@
 - [x] Preserve profile details, photo actions, postings, documents, settings, and sign-out behavior.
 - [x] Rebuild My Profile as a full-width professional grid with a compact profile rail.
 - [x] Normalize all card spacing, headers, gutters, padding, radii, and paired heights.
+
+## Employee dashboard unit visibility
+- [ ] Trace the pictured employee's production unit mappings and explain why they are missing.
+- [ ] Show the primary unit and every secondary unit on the employee dashboard.
+- [ ] Verify the production data path and dashboard rendering.
