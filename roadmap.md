@@ -60,3 +60,5 @@
 - [x] Add a clean empty Candidate state with a direct Add Candidate action.
 - [x] Preserve totals, statuses, search, and candidate rows when records exist.
 - [x] Remove the Home/location breadcrumb trail from shared page headings for every role.
+
+- [ ] Candidate form: left step list must scroll to Review (step 10); completion card overlaps it
