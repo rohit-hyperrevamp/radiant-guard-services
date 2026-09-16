@@ -30,9 +30,10 @@ const SelectTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
+    data-slot="select-trigger"
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between whitespace-nowrap rounded-lg border border-border/70 bg-card px-3 py-2 text-sm shadow-sm ring-offset-background transition-colors hover:border-accent/50 data-[placeholder]:text-muted-foreground focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-10 w-full items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-card px-3.5 py-2 text-sm shadow-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-accent/50 data-[placeholder]:text-muted-foreground focus:border-accent focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-muted/45 disabled:opacity-60 [&>span]:line-clamp-1",
       className,
     )}
     {...props}
@@ -82,6 +83,7 @@ const SelectContent = React.forwardRef<
   return (
     <SelectPrimitive.Portal container={container ?? undefined}>
       <SelectPrimitive.Content
+        data-slot="select-content"
         ref={ref}
         className={cn(
           "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] overflow-hidden rounded-xl border border-border/60 bg-popover text-popover-foreground shadow-[0_12px_32px_-8px_rgba(15,23,42,0.18)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-select-content-transform-origin)",
@@ -127,6 +129,7 @@ const SelectItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
+    data-slot="select-item"
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-sm outline-none focus:bg-accent focus:text-white focus:[&_*]:!text-white data-[state=checked]:bg-accent data-[state=checked]:text-white data-[state=checked]:[&_*]:!text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",

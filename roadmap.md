@@ -34,3 +34,10 @@
 - [x] Keep the mobile form focused with compact progress and anchored actions.
 - [x] Apply the selected Cloud White direction while retaining the current font and form rules.
 
+## All-form design standardization
+- [x] Standardize shared inputs, dates, selectors, text areas, labels, checks, radios, and switches.
+- [x] Apply the Candidate form's white canvas and system-blue states to editable dialogs and sheets.
+- [x] Keep form canvases flat on mobile while preserving rounded dashboards, cards, tiles, and actions.
+- [x] Cover bespoke dialog fields that do not use a form wrapper.
+- [x] Verify formatting and mobile-safe action layouts.
+
