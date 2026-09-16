@@ -44,5 +44,5 @@
 ## Employee-style business forms
 - [x] Extend the white, system-blue form language across all shared form controls.
 - [x] Modernize organization, client, state, branch, vehicle, contract, uniform, and asset form layouts.
-- [ ] Verify representative business forms at phone, tablet, and desktop widths.
+- [x] Verify representative business forms at phone, tablet, and desktop widths.
 
