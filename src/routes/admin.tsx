@@ -1047,12 +1047,22 @@ function SidebarGroup({
         to={group.to!}
         aria-label={collapsed ? group.label : undefined}
         data-no-tip
-        className={cn(itemBase, groupActive ? itemActive : itemIdle, collapsed && "justify-center px-2")}
+        className={
+          collapsed
+            ? cn(collapsedIcon, "mx-auto flex", groupActive ? collapsedIconActive : collapsedIconIdle)
+            : cn(itemBase, groupActive ? itemActive : itemIdle)
+        }
       >
-        <span className={cn(iconSpanBase, groupActive ? iconSpanActive : iconSpanIdle)}>
-          <Icon className="h-4 w-4" />
-        </span>
-        {!collapsed && <span className="truncate">{t(group.label)}</span>}
+        {collapsed ? (
+          <Icon className="h-[18px] w-[18px]" />
+        ) : (
+          <>
+            <span className={cn(iconSpanBase, groupActive ? iconSpanActive : iconSpanIdle)}>
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="truncate">{t(group.label)}</span>
+          </>
+        )}
       </Link>
     );
     if (!collapsed) return link;
