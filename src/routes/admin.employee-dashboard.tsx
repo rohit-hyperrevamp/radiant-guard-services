@@ -200,11 +200,16 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const set = new Set<string>();
       if (me?.unit_id) set.add(me.unit_id);
-      const { data, error } = await supabase
-        .from("candidate_units" as never)
-        .select("unit_id,is_primary,designation_id")
-        .eq("candidate_id", me!.id);
+      const [assignments, resolvedUnits] = await Promise.all([
+        supabase
+          .from("candidate_units" as never)
+          .select("unit_id,is_primary,designation_id")
+          .eq("candidate_id", me?.id ?? ""),
+        supabase.rpc("current_user_unit_ids"),
+      ]);
+      const { data, error } = assignments;
       if (error) throw error;
+      if (resolvedUnits.error) throw resolvedUnits.error;
       const rows =
         ((data as unknown) as Array<{
           unit_id: string;
@@ -213,6 +218,9 @@ function EmployeeDashboard() {
         }>) ?? [];
       for (const r of rows) {
         if (r.unit_id) set.add(r.unit_id);
+      }
+      for (const unitId of resolvedUnits.data ?? []) {
+        if (unitId) set.add(unitId);
       }
       const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? me?.unit_id ?? null;
 
@@ -504,7 +512,7 @@ function EmployeeDashboard() {
                   <h1 className="employee-profile-hero-title mt-5 text-2xl font-bold leading-tight text-field-hero sm:text-3xl">{me.full_name}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
-                    {unit && <span className="max-w-[220px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">Primary · {unit.name}</span>}
+                    {(myUnits.find((u) => u.id === primaryUnitId) ?? unit) && <span className="max-w-[220px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">Primary · {(myUnits.find((u) => u.id === primaryUnitId) ?? unit)?.name}</span>}
                     {unit && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.is_billable === false ? "Non-billable" : "Billable"}</span>}
                   </div>
                 </div>

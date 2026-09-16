@@ -852,8 +852,8 @@ function ProfilePage() {
         icon={Users}
       />
 
-      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col items-center gap-4 p-5 text-center">
           <div className="relative shrink-0">
