@@ -144,14 +144,14 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const [u, d] = await Promise.all([
         me?.unit_id
-          ? supabase.from("units").select("id,name,code,branch_id,customer_id,shift_start_time,shift_end_time,site_address").eq("id", me.unit_id).maybeSingle()
+          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,shift_start_time,shift_end_time,site_address").eq("id", me.unit_id).maybeSingle()
           : Promise.resolve({ data: null }),
         me?.designation_id
           ? supabase.from("designations").select("id,name").eq("id", me.designation_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       return {
-        unit: (u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; shift_start_time: string | null; shift_end_time: string | null; site_address: string | null } | null),
+        unit: (u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; shift_start_time: string | null; shift_end_time: string | null; site_address: string | null } | null),
         designation: (d.data as unknown as { id: string; name: string } | null),
       };
     },
@@ -490,6 +490,7 @@ function EmployeeDashboard() {
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
                     {unit && <span className="max-w-[190px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.name}</span>}
+                    {unit && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.is_billable === false ? "Non-billable" : "Billable"}</span>}
                   </div>
                 </div>
                 <Link to="/admin/profile" aria-label="Open profile" className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-foreground shadow-sm ring-1 ring-border">
