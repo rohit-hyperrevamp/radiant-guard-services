@@ -56,6 +56,8 @@ import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
+const SALUTATIONS = ["Mr.", "Mrs.", "Ms.", "Dr.", "Mx."];
+
 export const Route = createFileRoute("/admin/customers/customer-manager")({
   component: CustomerManagerPage,
 });
@@ -672,7 +674,6 @@ function CustomerFormDialog({
   };
 
   const contactFields: Array<{ key: keyof Omit<Customer, "id">; label: string; placeholder?: string; full?: boolean }> = [
-    { key: "billingSalutation", label: "Salutation", placeholder: "Mr. / Ms. / Dr." },
     { key: "billingName", label: "Name" },
   ];
   const billingFields: Array<{ key: keyof Omit<Customer, "id">; label: string; placeholder?: string; full?: boolean }> = [
@@ -853,6 +854,18 @@ function CustomerFormDialog({
           {stepKey === "contact" && <section className="modern-form-section">
             <SectionHeading title="Contact person" />
             <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Salutation">
+              <Select value={form.billingSalutation} onValueChange={(value) => set("billingSalutation", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select salutation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SALUTATIONS.map((salutation) => (
+                    <SelectItem key={salutation} value={salutation}>{salutation}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {contactFields.map((f) => (
               <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                 <Input
