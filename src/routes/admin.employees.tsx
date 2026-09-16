@@ -6400,7 +6400,7 @@ function CandidateWizard({
                 </p>
                 <div className="grid grid-cols-1 gap-4">
                   {at("aadhaar") && (
-                  <Field label="Aadhaar Number">
+                  <Field label="Aadhaar Number" required>
                     <Input
                       format="aadhaar"
                       value={form.aadhaar_number}
@@ -6478,7 +6478,7 @@ function CandidateWizard({
                   </Field>
                   )}
                   {at("pan") && (
-                  <Field label="PAN Number" anchor="pan_number">
+                  <Field label="PAN Number" required anchor="pan_number">
                     <Input
                       format="pan"
                       value={form.pan_number}
@@ -6591,7 +6591,7 @@ function CandidateWizard({
                     />
                   </Field>
 
-                  <Field label="Date of Birth">
+                  <Field label="Date of Birth" required>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -6625,7 +6625,7 @@ function CandidateWizard({
                       </PopoverContent>
                     </Popover>
                   </Field>
-                  <Field label="Gender">
+                  <Field label="Gender" required>
                     <Select value={form.gender || undefined} onValueChange={(v) => set("gender", v)}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
@@ -6955,7 +6955,7 @@ function CandidateWizard({
                       placeholder="As per bank records"
                     />
                   </Field>
-                  <Field label="Account Number" anchor="bank_account_number">
+                  <Field label="Account Number" required anchor="bank_account_number">
                     <Input
                       value={form.bank_account_number}
                       inputMode="numeric"
@@ -6966,7 +6966,7 @@ function CandidateWizard({
                       className="font-mono"
                     />
                   </Field>
-                  <Field label="IFSC Code" anchor="bank_ifsc">
+                  <Field label="IFSC Code" required anchor="bank_ifsc">
                     <Input
                       value={form.bank_ifsc}
                       onChange={(e) => {
@@ -7120,7 +7120,7 @@ function CandidateWizard({
                   </Field>
                   <div className="sm:col-span-2">
                     {isEmployeeMode ? (
-                      <Field label={`Work mapping${operationalMappings.length > 0 ? ` · ${operationalMappings.length}` : ""}`}>
+                      <Field required label={`Work mapping${operationalMappings.length > 0 ? ` · ${operationalMappings.length}` : ""}`}>
                         <OperationalMappingPicker
                           units={units}
                           customers={wizardCustomers}
@@ -7132,7 +7132,7 @@ function CandidateWizard({
                         />
                       </Field>
                     ) : (
-                      <Field label={`Clients${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length}` : ""}`}>
+                      <Field required label={`Clients${form.unit_ids.length > 0 ? ` · ${form.unit_ids.length}` : ""}`}>
                         <MultiUnitPicker
                           units={units}
                           value={form.unit_ids}
@@ -7217,6 +7217,7 @@ function CandidateWizard({
                   </div>
                   )}
                   <Field
+                    required
                     label={
                       isEmployeeMode
                           ? "Designation"
@@ -7268,7 +7269,7 @@ function CandidateWizard({
                   )}
 
                   {isEmployeeMode && (
-                    <Field label="Role — required">
+                    <Field label="Role" required>
                       <Select
                         value={form.role_key || "__none"}
                         onValueChange={(v) => set("role_key", v === "__none" ? "" : v)}
@@ -7776,7 +7777,7 @@ function CandidateAddressFields({
       <Field label="District" required anchor={anchorPrefix ? `${anchorPrefix}_district` : undefined}>
         <Input value={block.district} onChange={(e) => onChange({ district: e.target.value })} />
       </Field>
-      <Field label="Address line 1">
+      <Field label="Address line 1" required>
         <Input value={block.address1} onChange={(e) => onChange({ address1: e.target.value })} />
       </Field>
       <Field label="Address line 2">
@@ -7785,7 +7786,7 @@ function CandidateAddressFields({
       <Field label="Landmark">
         <Input value={block.landmark} onChange={(e) => onChange({ landmark: e.target.value })} />
       </Field>
-      <Field label="Pincode">
+      <Field label="Pincode" required>
         <Input
           value={block.pincode}
           inputMode="numeric"

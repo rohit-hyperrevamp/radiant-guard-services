@@ -163,7 +163,7 @@ export function ComplianceSection({
     <div>
       <SectionHeader title="Compliance" desc="Statutory contributions applicable to the candidate" />
       <div className="space-y-3">
-        <Field label="UAN (Universal Account Number) *">
+        <Field label="UAN (Universal Account Number)" required>
           <Input format="uan" value={c.uan ?? ""} onChange={(e) => setSection("compliance", { uan: e.target.value })} />
           <p className="mt-1 text-[11px] text-muted-foreground">
             Mandatory · 12 digits and must start with 1.
@@ -177,7 +177,7 @@ export function ComplianceSection({
         {toggleRow("Employees' State Insurance (ESIC)", "Enable ESIC coverage", esic, (v) => setSection("compliance", { esic_enabled: v }))}
         {esic && (
           <div className="ml-3 space-y-3 border-l-2 border-primary/30 pl-4">
-            <Field label="ESIC Branch">
+            <Field label="ESIC Branch" required>
               {branches.length === 0 ? (
                 <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                   No ESIC branches found. Please add branches in{" "}
