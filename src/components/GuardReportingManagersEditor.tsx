@@ -33,8 +33,12 @@ export function GuardReportingManagersEditor({
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const { isFieldOfficer, isSuperAdmin, candidateId: myCandidateId } = useCurrentUserRole();
+  // A field officer onboards only into their own units, so they are the
+  // reporting manager by default and cannot pick other officers.
+  const selfOnly = isFieldOfficer && !isSuperAdmin && !!myCandidateId;
 
-  const { data: officers = [], isLoading: loadingOfficers } = useQuery({
+  const { data: allOfficers = [], isLoading: loadingOfficers } = useQuery({
     queryKey: ["active-field-officers"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_active_field_officers" as never);
@@ -42,6 +46,11 @@ export function GuardReportingManagersEditor({
       return (data as FieldOfficerRow[]) ?? [];
     },
   });
+
+  const officers = useMemo(
+    () => (selfOnly ? allOfficers.filter((o) => o.id === myCandidateId) : allOfficers),
+    [allOfficers, selfOnly, myCandidateId],
+  );
 
   const { data: current = [], isLoading: loadingCurrent } = useQuery({
     queryKey: ["candidate-reporting-managers", candidateId],
