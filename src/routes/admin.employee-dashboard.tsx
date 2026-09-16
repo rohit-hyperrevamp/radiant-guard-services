@@ -195,8 +195,10 @@ function EmployeeDashboard() {
   }, [attQ.data]);
 
   const myUnitsQ = useQuery({
-    queryKey: ["me-units", me?.id, me?.unit_id],
+    queryKey: ["me-units-v2", me?.id, me?.unit_id],
     enabled: !!me?.id,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const set = new Set<string>();
       if (me?.unit_id) set.add(me.unit_id);
@@ -298,8 +300,10 @@ function EmployeeDashboard() {
 
   // Names of all units the employee is part of
   const unitsListQ = useQuery({
-    queryKey: ["me-units-list", myUnitIds.join(",")],
+    queryKey: ["me-units-list-v2", myUnitIds.join(",")],
     enabled: myUnitIds.length > 0,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
@@ -589,7 +593,11 @@ function EmployeeDashboard() {
               <div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Assignment</div><h2 className="text-base font-bold text-foreground">My units</h2></div>
               <span className="ml-auto rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground ring-1 ring-border">{myUnits.length}</span>
             </div>
-            {myUnits.length === 0 ? <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
+            {myUnitsQ.isPending || (myUnitIds.length > 0 && unitsListQ.isPending) ? (
+              <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">Loading assignment…</div>
+            ) : myUnitsQ.isError || unitsListQ.isError ? (
+              <div className="rounded-2xl bg-destructive/5 p-6 text-center text-sm text-destructive">Assignment could not be loaded. Please refresh.</div>
+            ) : myUnits.length === 0 ? <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
               <ul className="space-y-2">
                 {[...myUnits].sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId)).map((u) => {
                   const isPrimary = u.id === primaryUnitId;
