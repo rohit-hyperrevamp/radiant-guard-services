@@ -233,6 +233,28 @@ function DashboardPage() {
     queryFn: async () => {
       const todayStr = new Date().toISOString().slice(0, 10);
 
+      const [contractsForPnl, unitsForPnl] = await Promise.all([
+        fetchAllPages<Record<string, unknown>>((from, to) =>
+          supabase
+            .from("client_contracts")
+            .select("id, unit_id, status, start_date, end_date, is_internal")
+            .eq("status", "active")
+            .lte("start_date", monthEnd)
+            .or(`end_date.is.null,end_date.gte.${monthStart}`)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        fetchAllPages<{ id: string; code: string; name: string; customer_id: string | null; epf_cap_enabled: boolean | null }>(
+          (from, to) =>
+            supabase
+              .from("units")
+              .select("id, code, name, customer_id, epf_cap_enabled")
+              .order("id", { ascending: true })
+              .range(from, to),
+        ),
+      ]);
+
+
 
 
       // ── P&L from actual attendance ────────────────────────────────────
