@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as RequestDataDeletionRouteImport } from './routes/request-data-deletion'
+import { Route as PrivacypolicyRouteImport } from './routes/privacypolicy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -129,6 +130,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const RequestDataDeletionRoute = RequestDataDeletionRouteImport.update({
   id: '/request-data-deletion',
   path: '/request-data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacypolicyRoute = PrivacypolicyRouteImport.update({
+  id: '/privacypolicy',
+  path: '/privacypolicy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -709,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
@@ -822,6 +829,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
@@ -932,6 +940,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
@@ -1047,6 +1056,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/privacy-policy'
+    | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
     | '/admin/addition-type-manager'
@@ -1160,6 +1170,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/privacy-policy'
+    | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
     | '/admin/addition-type-manager'
@@ -1269,6 +1280,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/privacy-policy'
+    | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
     | '/admin/addition-type-manager'
@@ -1383,6 +1395,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  PrivacypolicyRoute: typeof PrivacypolicyRoute
   RequestDataDeletionRoute: typeof RequestDataDeletionRoute
   WelcomeRoute: typeof WelcomeRoute
   DigilockerCallbackRoute: typeof DigilockerCallbackRoute
@@ -1407,6 +1420,13 @@ declare module '@tanstack/react-router' {
       path: '/request-data-deletion'
       fullPath: '/request-data-deletion'
       preLoaderRoute: typeof RequestDataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacypolicy': {
+      id: '/privacypolicy'
+      path: '/privacypolicy'
+      fullPath: '/privacypolicy'
+      preLoaderRoute: typeof PrivacypolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -2456,6 +2476,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  PrivacypolicyRoute: PrivacypolicyRoute,
   RequestDataDeletionRoute: RequestDataDeletionRoute,
   WelcomeRoute: WelcomeRoute,
   DigilockerCallbackRoute: DigilockerCallbackRoute,
