@@ -88,3 +88,5 @@
 - [x] Verify the production data path and dashboard rendering.
 - [x] Allow employees to read units explicitly assigned to them, regardless of branch scope.
 - [x] Resolve dashboard units directly from the signed-in employee's authoritative unit list.
+- [x] Replace multi-request assignment loading with one authenticated assignment resolver.
+- [x] Keep the My Profile rail fixed while only profile details scroll on desktop.

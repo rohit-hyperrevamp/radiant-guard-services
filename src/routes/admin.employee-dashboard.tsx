@@ -90,6 +90,19 @@ type Manager = {
 
 type Notif = { id: string; title: string; body: string | null; link: string | null; created_at: string; read_at: string | null };
 
+type AssignedUnit = {
+  id: string;
+  name: string;
+  code: string | null;
+  site_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
+  is_primary: boolean;
+  designation_id: string | null;
+};
+
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmt(d: Date) { return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`; }
 function initials(name: string) {
@@ -144,14 +157,19 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const [u, d] = await Promise.all([
         me?.unit_id
-          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,shift_start_time,shift_end_time,site_address,latitude,longitude").eq("id", me.unit_id).maybeSingle()
+          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,location,latitude,longitude").eq("id", me.unit_id).maybeSingle()
           : Promise.resolve({ data: null }),
         me?.designation_id
           ? supabase.from("designations").select("id,name").eq("id", me.designation_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       return {
-        unit: (u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; shift_start_time: string | null; shift_end_time: string | null; site_address: string | null; latitude: number | null; longitude: number | null } | null),
+        unit: u.data ? {
+          ...(u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; location: string | null; latitude: number | null; longitude: number | null }),
+          site_address: (u.data as unknown as { location: string | null }).location,
+          shift_start_time: null,
+          shift_end_time: null,
+        } : null,
         designation: (d.data as unknown as { id: string; name: string } | null),
       };
     },
@@ -195,43 +213,16 @@ function EmployeeDashboard() {
   }, [attQ.data]);
 
   const myUnitsQ = useQuery({
-    queryKey: ["me-units-v2", me?.id, me?.unit_id],
+    queryKey: ["me-assigned-units-v3", me?.id],
     enabled: !!me?.id,
     staleTime: 0,
     refetchOnMount: "always",
     queryFn: async () => {
-      const set = new Set<string>();
-      if (me?.unit_id) set.add(me.unit_id);
-      const [assignments, resolvedUnits] = await Promise.all([
-        supabase
-          .from("candidate_units" as never)
-          .select("unit_id,is_primary,designation_id")
-          .eq("candidate_id", me?.id ?? ""),
-        supabase.rpc("current_user_unit_ids"),
-      ]);
-      const { data, error } = assignments;
-      // Neither source is required: if one path is unavailable for this
-      // account, keep whatever the other one resolved instead of failing.
-      if (error && resolvedUnits.error && !me?.unit_id) throw error;
-      const rows =
-        ((data as unknown) as Array<{
-          unit_id: string;
-          is_primary: boolean | null;
-          designation_id: string | null;
-        }>) ?? [];
-      for (const r of rows) {
-        if (r.unit_id) set.add(r.unit_id);
-      }
-      for (const unitId of resolvedUnits.data ?? []) {
-        if (unitId) set.add(unitId);
-      }
-      const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? me?.unit_id ?? null;
-
-      // The designation held AT each unit (contracted role slot) — distinct
-      // from the person's system role (e.g. "Security guard").
-      const desigIds = Array.from(
-        new Set(rows.map((r) => r.designation_id).filter(Boolean)),
-      ) as string[];
+      const { data, error } = await supabase.rpc("get_my_assigned_units" as never);
+      if (error) throw error;
+      const rows = ((data as unknown) as AssignedUnit[]) ?? [];
+      const primaryId = rows.find((row) => row.is_primary)?.id ?? me?.unit_id ?? rows[0]?.id ?? null;
+      const desigIds = Array.from(new Set(rows.map((row) => row.designation_id).filter(Boolean))) as string[];
       const designationByUnit: Record<string, string> = {};
       if (desigIds.length) {
         const { data: desigs } = await supabase
@@ -241,17 +232,16 @@ function EmployeeDashboard() {
         const nameById = new Map(
           ((desigs as unknown as Array<{ id: string; name: string }>) ?? []).map((d) => [d.id, d.name]),
         );
-        for (const r of rows) {
-          if (r.designation_id && nameById.has(r.designation_id)) {
-            designationByUnit[r.unit_id] = nameById.get(r.designation_id)!;
+        for (const row of rows) {
+          if (row.designation_id && nameById.has(row.designation_id)) {
+            designationByUnit[row.id] = nameById.get(row.designation_id) ?? "";
           }
         }
       }
-
-      return { ids: Array.from(set), primaryId, designationByUnit };
+      return { units: rows, primaryId, designationByUnit };
     },
   });
-  const myUnitIds = useMemo(() => myUnitsQ.data?.ids ?? [], [myUnitsQ.data]);
+  const myUnitIds = useMemo(() => myUnitsQ.data?.units.map((row) => row.id) ?? [], [myUnitsQ.data]);
   const primaryUnitId = myUnitsQ.data?.primaryId ?? null;
   const designationByUnit = myUnitsQ.data?.designationByUnit ?? {};
 
@@ -299,23 +289,8 @@ function EmployeeDashboard() {
     [team],
   );
 
-  // Names of all units the employee is part of
-  const unitsListQ = useQuery({
-    queryKey: ["me-units-list-v2", myUnitIds.join(",")],
-    enabled: myUnitIds.length > 0,
-    staleTime: 0,
-    refetchOnMount: "always",
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("units")
-        .select("id,name,code,site_address,latitude,longitude")
-        .in("id", myUnitIds);
-      if (error && !unit) throw error;
-      return (data as unknown as Array<{ id: string; name: string; code: string | null; site_address: string | null; latitude: number | null; longitude: number | null }>) ?? [];
-    },
-  });
   const myUnits = useMemo(() => {
-    const byId = new Map<string, { id: string; name: string; code: string | null; site_address: string | null; latitude: number | null; longitude: number | null }>();
+    const byId = new Map<string, AssignedUnit>();
     if (unit) {
       byId.set(unit.id, {
         id: unit.id,
@@ -324,11 +299,15 @@ function EmployeeDashboard() {
         site_address: unit.site_address,
         latitude: unit.latitude,
         longitude: unit.longitude,
+        shift_start_time: unit.shift_start_time,
+        shift_end_time: unit.shift_end_time,
+        is_primary: unit.id === primaryUnitId,
+        designation_id: null,
       });
     }
-    for (const assignedUnit of unitsListQ.data ?? []) byId.set(assignedUnit.id, assignedUnit);
+    for (const assignedUnit of myUnitsQ.data?.units ?? []) byId.set(assignedUnit.id, assignedUnit);
     return Array.from(byId.values());
-  }, [unit, unitsListQ.data]);
+  }, [unit, myUnitsQ.data?.units, primaryUnitId]);
   const isGuard = me?.role_key === "guard" || me?.role_key === "security_guard";
   // Attendance can only be marked at the primary unit. All other units are
   // reliever units where the guard is only paid for extra duty (ED).
@@ -594,10 +573,8 @@ function EmployeeDashboard() {
               <div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Assignment</div><h2 className="text-base font-bold text-foreground">My units</h2></div>
               <span className="ml-auto rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground ring-1 ring-border">{myUnits.length}</span>
             </div>
-            {myUnitsQ.isPending || (myUnitIds.length > 0 && unitsListQ.isPending) ? (
+            {myUnitsQ.isPending ? (
               <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">Loading assignment…</div>
-            ) : myUnits.length === 0 && (myUnitsQ.isError || unitsListQ.isError) ? (
-              <div className="rounded-2xl bg-destructive/5 p-6 text-center text-sm text-destructive">Assignment could not be loaded. Please refresh.</div>
             ) : myUnits.length === 0 ? <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
               <ul className="space-y-2">
                 {[...myUnits].sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId)).map((u) => {
