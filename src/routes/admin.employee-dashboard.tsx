@@ -213,7 +213,7 @@ function EmployeeDashboard() {
       for (const r of rows) {
         if (r.unit_id) set.add(r.unit_id);
       }
-      const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? null;
+      const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? me?.unit_id ?? null;
 
       // The designation held AT each unit (contracted role slot) — distinct
       // from the person's system role (e.g. "Security guard").
@@ -294,10 +294,10 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
-        .select("id,name,code,latitude,longitude")
+        .select("id,name,code,site_address,latitude,longitude")
         .in("id", myUnitIds);
       if (error) throw error;
-      return (data as unknown as Array<{ id: string; name: string; code: string | null; latitude: number | null; longitude: number | null }>) ?? [];
+      return (data as unknown as Array<{ id: string; name: string; code: string | null; site_address: string | null; latitude: number | null; longitude: number | null }>) ?? [];
     },
   });
   const myUnits = unitsListQ.data ?? [];
@@ -572,8 +572,20 @@ function EmployeeDashboard() {
                   const isPrimary = u.id === primaryUnitId;
                   return <li key={u.id} className="flex items-center gap-3 rounded-2xl bg-background/80 p-3 ring-1 ring-border/70">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-4 w-4" /></span>
-                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-foreground">{u.name}</span><span className="block truncate text-[11px] text-muted-foreground">{designationByUnit[u.id] || u.code || "Assigned"}</span></span>
-                    {isPrimary && <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">Primary</span>}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-foreground">{u.name}</span>
+                      <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{u.site_address || "Location not added"}</span>
+                      </span>
+                      {(designationByUnit[u.id] || u.code) && <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{[designationByUnit[u.id], u.code].filter(Boolean).join(" · ")}</span>}
+                    </span>
+                    <span className={cn(
+                      "shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold",
+                      isPrimary
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+                    )}>{isPrimary ? "Primary" : "Secondary"}</span>
                   </li>;
                 })}
               </ul>
