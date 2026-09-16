@@ -43,6 +43,7 @@ import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
 import { UserCog, UserCheck } from "lucide-react";
 import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+import fieldOfficerDashboardImage from "@/assets/field-officer-dashboard.jpg";
 
 
 
@@ -632,55 +633,59 @@ function FieldOfficerDashboard() {
 
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
-      {/* Identity anchors the bento workspace without repeating the profile photo. */}
-      <section className="flex min-h-[250px] flex-col justify-between rounded-3xl border border-border/70 bg-card p-5 shadow-sm sm:col-span-2 sm:p-7 xl:col-span-5 xl:row-span-2">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> Field Officer
-            </div>
-            <div className="mt-5 truncate text-2xl font-bold text-foreground sm:text-3xl">
-              {data?.meName || (isLoading ? "…" : "Welcome")}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {data?.meCode && (
-                <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{data.meCode}</span>
+      <div className="space-y-4">
+        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          {/* Identity anchors the workspace without repeating the profile photo. */}
+          <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 shadow-sm">
+            <img
+              src={fieldOfficerDashboardImage}
+              alt="Field officer at a commercial site"
+              width={1600}
+              height={1000}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+            <div className="field-officer-hero-overlay absolute inset-0" />
+            <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-field-hero-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-field-hero ring-1 ring-field-hero-border">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Field Officer
+                  </div>
+                  <div className="mt-5 truncate text-2xl font-bold text-field-hero sm:text-3xl">
+                    {data?.meName || (isLoading ? "…" : "Welcome")}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {data?.meCode && <span className="rounded-full bg-field-hero-soft px-2.5 py-1 text-[10px] font-semibold text-field-hero-muted">{data.meCode}</span>}
+                    {primaryUnit && <span className="max-w-[190px] truncate rounded-full bg-field-hero-soft px-2.5 py-1 text-[10px] font-semibold text-field-hero">{primaryUnit.name}</span>}
+                  </div>
+                </div>
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-field-hero-soft text-field-hero ring-1 ring-field-hero-border">
+                  <Building2 className="h-5 w-5" />
+                </div>
+              </div>
+              {(phone || primaryUnit) && (
+                <div className="mt-8 space-y-2 text-xs text-field-hero-muted">
+                  {phone && <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-field-hero" /><span className="tabular-nums">+91 {phone}</span></span>}
+                  {primaryUnit && <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-field-hero" /><span className="truncate">{primaryUnit.customer_name}</span></span>}
+                </div>
               )}
-              {primaryUnit && (
-                <span className="max-w-[190px] truncate rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
-                  {primaryUnit.name}
-                </span>
-              )}
             </div>
-          </div>
-          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            <Building2 className="h-6 w-6" />
+          </section>
+
+          <div className="flex min-w-0 flex-col gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <HeroStat label="Team" value={totalListings} icon={ShieldCheck} tone="blue" />
+              <HeroStat label="Present" value={attnPresent} icon={UserCheck} tone="mint" />
+              <HeroStat label="Items" value={totalItems} icon={Warehouse} tone="violet" />
+            </div>
+            <div className="min-w-0 flex-1 [&>*]:h-full">
+              <MarkAttendanceCard candidateId={data?.meId ?? null} />
+            </div>
           </div>
         </div>
 
-        {(phone || email) && (
-          <div className="mt-6 space-y-2 text-xs text-muted-foreground">
-            {phone && (
-              <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-primary" /><span className="tabular-nums">+91 {phone}</span></span>
-            )}
-            {primaryUnit && (
-              <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary" /><span className="truncate">{primaryUnit.customer_name}</span></span>
-            )}
-          </div>
-        )}
-      </section>
-
-      <HeroStat label="Team" value={totalListings} icon={ShieldCheck} className="xl:col-span-3" />
-      <HeroStat label="Present" value={attnPresent} icon={UserCheck} className="xl:col-span-2" />
-      <HeroStat label="Items" value={totalItems} icon={Warehouse} className="xl:col-span-2" />
-
-      <div className="sm:col-span-2 xl:col-span-7">
-        <MarkAttendanceCard candidateId={data?.meId ?? null} />
-      </div>
-
-      {pendingIssuances.length > 0 && (
-        <section className="rounded-3xl border border-primary/20 bg-primary/5 p-4 shadow-sm sm:col-span-2 xl:col-span-12">
+        {pendingIssuances.length > 0 && (
+        <section className="rounded-3xl border border-primary/20 bg-primary/5 p-4 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <PackageCheck className="h-5 w-5" />
@@ -697,22 +702,21 @@ function FieldOfficerDashboard() {
             </Button>
           </div>
         </section>
-      )}
+        )}
 
-      <div className="sm:col-span-2 xl:col-span-5">
-        <MyLiveStatusCard />
-      </div>
-
-      <section className="sm:col-span-2 xl:col-span-7">
+        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div className="min-w-0 [&>*]:h-full"><MyLiveStatusCard /></div>
+          <section className="min-w-0">
         <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>
             <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
           <PastelTile
             palette="lime"
+            className="sm:col-span-3"
             label="Team size"
             value={totalListings}
             hint={`${data?.joinedThisWeek ?? 0} joined this week`}
@@ -722,6 +726,7 @@ function FieldOfficerDashboard() {
           />
           <PastelTile
             palette="teal"
+            className="sm:col-span-3"
             label="Attendance today"
             value={`${data?.attendanceRateToday ?? 0}%`}
             hint={`Yesterday ${data?.attendanceRateYesterday ?? 0}%`}
@@ -730,6 +735,7 @@ function FieldOfficerDashboard() {
           />
           <PastelTile
             palette="rose"
+            className="sm:col-span-2"
             label="Pending onboarding"
             value={data?.pendingOnboardingTotal ?? 0}
             hint="vs last week"
@@ -739,6 +745,7 @@ function FieldOfficerDashboard() {
           />
           <PastelTile
             palette="violet"
+            className="sm:col-span-2"
             label="Pending rehire"
             value={rehirePending.length}
             hint={rehireHint}
@@ -749,6 +756,7 @@ function FieldOfficerDashboard() {
           />
           <PastelTile
             palette="amber"
+            className="sm:col-span-2"
             label="My stock available"
             value={data?.myStockQty ?? 0}
             hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
@@ -757,9 +765,10 @@ function FieldOfficerDashboard() {
             to="/admin/inventory/items"
           />
         </div>
-      </section>
+          </section>
+        </div>
 
-      <section className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm sm:col-span-2 xl:col-span-5">
+      <section className="overflow-hidden rounded-3xl border border-border/70 bg-[rgb(var(--tint-slate))] shadow-sm">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></span>
@@ -1048,10 +1057,15 @@ function StatBar({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function HeroStat({ label, value, icon: Icon, className }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; className?: string }) {
+function HeroStat({ label, value, icon: Icon, tone }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet" }) {
+  const surface = {
+    blue: "bg-[rgb(var(--tint-blue))]",
+    mint: "bg-[rgb(var(--tint-emerald))]",
+    violet: "bg-[rgb(var(--tint-violet))]",
+  }[tone];
   return (
-    <div className={cn("flex min-h-[116px] flex-col justify-between rounded-3xl border border-border/70 bg-card p-5 shadow-sm", className)}>
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+    <div className={cn("flex min-h-[116px] min-w-0 flex-col justify-between rounded-3xl border border-border/50 p-4 shadow-sm sm:p-5", surface)}>
+      <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
         <Icon className="h-4 w-4" />
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
@@ -1065,14 +1079,21 @@ function HeroStat({ label, value, icon: Icon, className }: { label: string; valu
 
 
 function PastelTile({
-  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to, search,
+  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to, search, className,
 }: {
   palette: "lime" | "teal" | "rose" | "amber" | "violet";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
-  icon: React.ComponentType<{ className?: string }>; to?: string; search?: Record<string, unknown>;
+  icon: React.ComponentType<{ className?: string }>; to?: string; search?: Record<string, unknown>; className?: string;
 }) {
   const iconTone = palette === "rose" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary";
+  const surface = {
+    lime: "bg-[rgb(var(--tint-amber))]",
+    teal: "bg-[rgb(var(--tint-sky))]",
+    rose: "bg-[rgb(var(--tint-rose))]",
+    amber: "bg-[rgb(var(--tint-indigo))]",
+    violet: "bg-[rgb(var(--tint-violet))]",
+  }[palette];
 
   const positive = invertColor ? delta < 0 : delta > 0;
   const negative = invertColor ? delta > 0 : delta < 0;
@@ -1085,7 +1106,7 @@ function PastelTile({
 
 
   const inner = (
-    <div className="relative flex h-full min-h-[132px] min-w-0 flex-col justify-between overflow-hidden rounded-3xl border border-border/70 bg-card p-4 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md sm:p-5">
+    <div className={cn("relative flex h-full min-h-[132px] min-w-0 flex-col justify-between overflow-hidden rounded-3xl border border-border/50 p-4 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md sm:p-5", surface)}>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
           <div className="text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">{label}</div>
@@ -1111,7 +1132,7 @@ function PastelTile({
       </div>
     </div>
   );
-  return to ? <Link to={to} search={search as never} className="block">{inner}</Link> : inner;
+  return to ? <Link to={to} search={search as never} className={cn("block", className)}>{inner}</Link> : <div className={className}>{inner}</div>;
 }
 
 function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
