@@ -162,7 +162,14 @@ function elapsed(from: string | null, to?: string | null) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export type AllowedUnit = { id: string; name: string; latitude: number | null; longitude: number | null };
+export type AllowedUnit = {
+  id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  /** Present attendance is only accepted at the primary unit. */
+  isPrimary?: boolean;
+};
 
 export function MarkAttendanceCard({
   candidateId,
@@ -293,23 +300,24 @@ export function MarkAttendanceCard({
             distance: distanceMeters({ lat: geo!.lat, lng: geo!.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
           }))
           .sort((a, b) => a.distance - b.distance);
-        const within = withDist.filter((r) => r.distance <= proximityThresholdM);
-        if (within.length === 0) {
-          const nearest = withDist[0];
+
+        // More than one assigned unit → the person always chooses where they are.
+        if (withDist.length > 1) {
+          setNearby(withDist);
+          setPendingGeo({ geo, face });
+          setPickerOpen(true);
+          return null;
+        }
+
+        const only = withDist[0];
+        if (only.distance > proximityThresholdM) {
           throw new Error(
-            `You are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Move within ${proximityThresholdM}m of an assigned unit and try again.`,
+            `You are ${formatDistance(only.distance)} from ${only.unit.name}. Move within ${proximityThresholdM}m and try again.`,
           );
         }
-        if (within.length === 1) {
-          const confirmed = await confirmPunch("in", within[0].unit.name);
-          if (!confirmed) return null;
-          return await performCheckIn(within[0].unit.id, geo, face);
-        }
-        // Multiple within range → ask user to confirm.
-        setNearby(within);
-        setPendingGeo({ geo, face });
-        setPickerOpen(true);
-        return null;
+        const confirmed = await confirmPunch("in", only.unit.name);
+        if (!confirmed) return null;
+        return await performCheckIn(only.unit.id, geo, face);
       }
 
       const confirmed = await confirmPunch("in", "Current GPS location");
@@ -333,7 +341,13 @@ export function MarkAttendanceCard({
   const confirmUnitMut = useMutation({
     mutationFn: async (unitId: string) => {
       if (!pendingGeo) throw new Error("Location expired. Try again.");
-      const unitName = nearby.find((item) => item.unit.id === unitId)?.unit.name ?? "Assigned unit";
+      const picked = nearby.find((item) => item.unit.id === unitId);
+      const unitName = picked?.unit.name ?? "Assigned unit";
+      if (picked && picked.distance > proximityThresholdM) {
+        throw new Error(
+          `You are ${formatDistance(picked.distance)} from ${unitName}. Move within ${proximityThresholdM}m of it and try again.`,
+        );
+      }
       const confirmed = await confirmPunch("in", unitName);
       if (!confirmed) return null;
       return await performCheckIn(unitId, pendingGeo.geo, pendingGeo.face);
@@ -630,22 +644,44 @@ export function MarkAttendanceCard({
             className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Confirm unit</div>
-            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">You are near multiple units</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Select the unit you are checking in at.</p>
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Select unit</div>
+            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">Where are you checking in?</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pick your unit. You must be within {proximityThresholdM}m of it.
+            </p>
             <div className="mt-3 space-y-2">
-              {nearby.map((n) => (
-                <button
-                  key={n.unit.id}
-                  type="button"
-                  disabled={confirmUnitMut.isPending}
-                  onClick={() => confirmUnitMut.mutate(n.unit.id)}
-                  className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-background/60 px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-primary/5 disabled:opacity-60"
-                >
-                  <span className="min-w-0 truncate">{n.unit.name}</span>
-                  <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{formatDistance(n.distance)}</span>
-                </button>
-              ))}
+              {nearby.map((n) => {
+                const inRange = n.distance <= proximityThresholdM;
+                return (
+                  <button
+                    key={n.unit.id}
+                    type="button"
+                    disabled={confirmUnitMut.isPending}
+                    onClick={() => confirmUnitMut.mutate(n.unit.id)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-foreground disabled:opacity-60",
+                      inRange
+                        ? "border-primary/30 bg-primary/5 hover:bg-primary/10"
+                        : "border-border/60 bg-background/60 hover:bg-muted/60",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{n.unit.name}</span>
+                      <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {n.unit.isPrimary ? "Primary" : "Extra duty"}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                        inRange ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                      )}
+                    >
+                      {inRange ? formatDistance(n.distance) : `${formatDistance(n.distance)} away`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             <Button
               variant="ghost"

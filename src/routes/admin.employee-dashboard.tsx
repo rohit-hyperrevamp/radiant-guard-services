@@ -312,10 +312,18 @@ function EmployeeDashboard() {
   // Attendance can only be marked at the primary unit. All other units are
   // reliever units where the guard is only paid for extra duty (ED).
   const allowedUnits = useMemo(() => {
-    const list = myUnits.map((u) => ({ id: u.id, name: u.name, latitude: u.latitude, longitude: u.longitude }));
-    if (!isGuard || !primaryUnitId) return list;
-    const primary = list.filter((u) => u.id === primaryUnitId);
-    return primary.length ? primary : list;
+    const list = myUnits.map((u) => ({
+      id: u.id,
+      name: u.name,
+      latitude: u.latitude,
+      longitude: u.longitude,
+      isPrimary: primaryUnitId ? u.id === primaryUnitId : u.is_primary,
+    }));
+    if (!isGuard) return list;
+    // Guards may pick any assigned unit; only the primary unit accepts a
+    // present-day punch (all others are extra-duty/reliever units).
+    if (!primaryUnitId || list.some((u) => u.isPrimary)) return list;
+    return list.map((u, i) => (i === 0 ? { ...u, isPrimary: true } : u));
   }, [myUnits, isGuard, primaryUnitId]);
 
 
