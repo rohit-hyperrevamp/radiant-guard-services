@@ -664,10 +664,13 @@ function AdminLayout() {
                 type="button"
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-2 text-sm font-semibold text-white transition hover:bg-white/10",
-                  collapsed && "justify-center p-1.5",
+                  collapsed && "mx-auto h-11 w-11 justify-center rounded-full border-0 bg-transparent p-0 hover:bg-white/10",
                 )}
               >
-                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white text-black text-[11px] font-bold">
+                <span className={cn(
+                  "relative grid shrink-0 place-items-center overflow-hidden bg-white text-black text-[11px] font-bold",
+                  collapsed ? "h-11 w-11 rounded-full ring-1 ring-white/15" : "h-9 w-9 rounded-xl",
+                )}>
                   {me.photoUrl ? (
                     <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
