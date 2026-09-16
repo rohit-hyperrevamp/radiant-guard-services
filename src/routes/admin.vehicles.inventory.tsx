@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Car, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { fmtDate } from "@/lib/vehicle-helpers";
 import { MiniStat } from "@/components/MiniStat";
+import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -459,6 +460,7 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
   const [enabled, setEnabled] = useState(true);
   const [serviceIntervalKm, setServiceIntervalKm] = useState<string>(String(DEFAULT_SERVICE_INTERVAL_KM));
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("identity");
 
   useResetOnOpen(open, () => {
     setVehicleNumber(initial?.vehicle_number ?? "");
@@ -476,22 +478,67 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
     setNotes(initial?.notes ?? "");
     setEnabled(initial?.enabled ?? true);
     setServiceIntervalKm(String(initial?.service_interval_km ?? DEFAULT_SERVICE_INTERVAL_KM));
+    setStepKey("identity");
   });
+
+  type VehicleDraft = Omit<Vehicle, "id" | "vehicle_id">;
+  const draftValue = useMemo<VehicleDraft>(() => ({
+    vehicle_number: vehicleNumber, name, owner, brand, make, type, color, notes, enabled,
+    fuel_type: fuelType, engine_number: engineNumber, chassis_number: chassisNumber,
+    year: year ? Number(year) : null, registration_date: registrationDate || null,
+    service_interval_km: serviceIntervalKm ? Number(serviceIntervalKm) : DEFAULT_SERVICE_INTERVAL_KM,
+  }), [vehicleNumber, name, owner, brand, make, type, color, notes, enabled, fuelType, engineNumber, chassisNumber, year, registrationDate, serviceIntervalKm]);
+  const restoreDraft = useCallback((value: VehicleDraft) => {
+    setVehicleNumber(value.vehicle_number); setName(value.name); setOwner(value.owner); setBrand(value.brand);
+    setMake(value.make); setType(value.type); setColor(value.color); setNotes(value.notes); setEnabled(value.enabled);
+    setFuelType(value.fuel_type); setEngineNumber(value.engine_number); setChassisNumber(value.chassis_number);
+    setYear(value.year == null ? "" : String(value.year)); setRegistrationDate(value.registration_date ?? "");
+    setServiceIntervalKm(String(value.service_interval_km ?? DEFAULT_SERVICE_INTERVAL_KM));
+  }, []);
+  const meaningfulDraft = useCallback((value: VehicleDraft) => Boolean(value.vehicle_number || value.name || value.owner), []);
+  const draft = useGuidedFormDraft({ open, storageKey: initial ? null : "rg-wizard-draft-vehicle", value: draftValue, onRestore: restoreDraft, isMeaningful: meaningfulDraft });
+  const steps: GuidedFormStep[] = [
+    { key: "identity", label: "Identity", caption: "Registration and ownership" },
+    { key: "specs", label: "Vehicle details", caption: "Type, fuel and model" },
+    { key: "records", label: "Records", caption: "Registration and service details" },
+    { key: "review", label: "Review", caption: "Check and save the vehicle" },
+  ];
+  const isStepComplete = (key: string): boolean => {
+    if (key === "identity") return Boolean(vehicleNumber.trim());
+    if (key === "specs") return Boolean(type && fuelType);
+    if (key === "records") return true;
+    return isStepComplete("identity") && isStepComplete("specs");
+  };
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    if (target > 0 && !vehicleNumber.trim()) { toast.error("Vehicle number is required"); setStepKey("identity"); return; }
+    setStepKey(key);
+  };
+  const saveVehicle = async () => {
+    if (!vehicleNumber.trim()) { toast.error("Vehicle number is required"); setStepKey("identity"); return; }
+    setSaving(true);
+    const err = await onSubmit(draftValue);
+    setSaving(false);
+    if (err) toast.error(err);
+    else { draft.clear(); onOpenChange(false); }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>Vehicle registration details.</DialogDescription>
-        </DialogHeader>
-        <div className="modern-form-section grid max-h-[70vh] gap-4 overflow-y-auto sm:grid-cols-2">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[94vw] sm:max-w-5xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only"><DialogTitle>{title}</DialogTitle><DialogDescription>Vehicle setup</DialogDescription></DialogHeader>
+        <GuidedForm title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveVehicle()} saving={saving} submitLabel="Save vehicle">
+        {draft.hasDraft && !initial && stepKey === "identity" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
+        {stepKey === "identity" && <div className="modern-form-section grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Vehicle Number *</Label>
             <Input value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())} placeholder="e.g. KA01AB1234" />
           </div>
           <div className="grid gap-2"><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Owner name / company" /></div>
           <div className="grid gap-2"><Label>Name / Label</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Manager Car" /></div>
+          <div className="modern-form-toggle sm:col-span-2"><div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Show in dropdowns</div></div><Switch checked={enabled} onCheckedChange={setEnabled} /></div>
+        </div>}
+        {stepKey === "specs" && <div className="modern-form-section grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Type</Label>
             <Select value={type} onValueChange={setType}>
@@ -510,6 +557,8 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
           <div className="grid gap-2"><Label>Make / Model</Label><Input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Swift VXi" /></div>
           <div className="grid gap-2"><Label>Year</Label><Input type="number" value={year} onChange={(e) => setYear(e.target.value)} placeholder="e.g. 2022" min={1980} max={2100} /></div>
           <div className="grid gap-2"><Label>Color</Label><Input value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. White" /></div>
+        </div>}
+        {stepKey === "records" && <div className="modern-form-section grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2"><Label>Engine Number</Label><Input value={engineNumber} onChange={(e) => setEngineNumber(e.target.value.toUpperCase())} placeholder="Engine no." /></div>
           <div className="grid gap-2"><Label>Chassis Number</Label><Input value={chassisNumber} onChange={(e) => setChassisNumber(e.target.value.toUpperCase())} placeholder="Chassis / VIN" /></div>
           <div className="grid gap-2 sm:col-span-2"><Label>Registration Date</Label><Input type="date" value={registrationDate} onChange={(e) => setRegistrationDate(e.target.value)} /></div>
@@ -526,32 +575,9 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
             />
             <p className="text-xs text-muted-foreground">Service Manager uses this to auto-calculate the next service due for this vehicle. Defaults to {DEFAULT_SERVICE_INTERVAL_KM.toLocaleString()} km.</p>
           </div>
-          <div className="modern-form-toggle sm:col-span-2">
-            <div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Show in dropdowns</div></div>
-            <Switch checked={enabled} onCheckedChange={setEnabled} />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-          <Button
-            disabled={saving}
-            onClick={async () => {
-              setSaving(true);
-              const err = await onSubmit({
-                vehicle_number: vehicleNumber,
-                name, owner, brand, make, type, color, notes, enabled,
-                fuel_type: fuelType,
-                engine_number: engineNumber,
-                chassis_number: chassisNumber,
-                year: year ? Number(year) : null,
-                registration_date: registrationDate || null,
-                service_interval_km: serviceIntervalKm ? Number(serviceIntervalKm) : DEFAULT_SERVICE_INTERVAL_KM,
-              });
-              setSaving(false);
-              if (err) toast.error(err); else onOpenChange(false);
-            }}
-          >{saving ? "Saving…" : "Save"}</Button>
-        </DialogFooter>
+        </div>}
+        {stepKey === "review" && <div className="modern-form-section"><h3 className="modern-form-section-title">Review vehicle</h3><dl className="grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">Vehicle number</dt><dd className="mt-1 font-medium">{vehicleNumber}</dd></div><div><dt className="text-xs text-muted-foreground">Owner</dt><dd className="mt-1 font-medium">{owner || "Not entered"}</dd></div><div><dt className="text-xs text-muted-foreground">Vehicle</dt><dd className="mt-1 font-medium">{[brand, make].filter(Boolean).join(" ") || name || "Not entered"}</dd></div><div><dt className="text-xs text-muted-foreground">Type</dt><dd className="mt-1 font-medium">{type} · {fuelType}</dd></div><div><dt className="text-xs text-muted-foreground">Registration</dt><dd className="mt-1 font-medium">{registrationDate || "Not entered"}</dd></div><div><dt className="text-xs text-muted-foreground">Service interval</dt><dd className="mt-1 font-medium">{Number(serviceIntervalKm || DEFAULT_SERVICE_INTERVAL_KM).toLocaleString()} km</dd></div></dl></div>}
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
