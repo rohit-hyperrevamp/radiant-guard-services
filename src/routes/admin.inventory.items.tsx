@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, PackageOpen, History, PackagePlus } from "lucide-react";
 import { postMovements } from "@/lib/inv-helpers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
 export const Route = createFileRoute("/admin/inventory/items")({ component: ItemsPage });
 
@@ -262,6 +263,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
   const [saving, setSaving] = useState(false);
   const [sizes, setSizes] = useState<SizeRow[]>([]);
   const [origSizes, setOrigSizes] = useState<SizeRow[]>([]);
+  const [stepKey, setStepKey] = useState("details");
 
   useResetOnOpen(open, async () => {
     setName(initial?.name ?? "");
@@ -275,6 +277,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
     setStdCost(initial?.standard_cost ?? 0);
     setIssuePrice(initial?.standard_issue_price ?? 0);
     setSizes([]); setOrigSizes([]);
+    setStepKey("details");
     if (initial?.id) {
       const { data } = await supabase.from("inv_item_sizes" as never).select("id,size_value,reorder_level,enabled,sort_order").eq("item_id", initial.id).order("sort_order");
       const rows = ((data as unknown) as { id: string; size_value: string; reorder_level: number; enabled: boolean }[] | null) ?? [];
@@ -315,11 +318,91 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
     }
   }
 
+  type ItemDraft = Payload & { sizes: SizeRow[] };
+  const draftValue = useMemo<ItemDraft>(() => ({
+    name,
+    category_id: categoryId || null,
+    unit,
+    is_sized: isSized,
+    hsn_code: hsn,
+    default_reorder_level: reorder,
+    description,
+    enabled,
+    standard_cost: stdCost,
+    standard_issue_price: issuePrice,
+    sizes,
+  }), [name, categoryId, unit, isSized, hsn, reorder, description, enabled, stdCost, issuePrice, sizes]);
+  const restoreDraft = useCallback((value: ItemDraft) => {
+    setName(value.name); setCategoryId(value.category_id ?? ""); setUnit(value.unit);
+    setIsSized(value.is_sized); setHsn(value.hsn_code); setReorder(value.default_reorder_level);
+    setDescription(value.description); setEnabled(value.enabled); setStdCost(value.standard_cost);
+    setIssuePrice(value.standard_issue_price); setSizes(value.sizes ?? []);
+  }, []);
+  const meaningfulDraft = useCallback((value: ItemDraft) => Boolean(value.name || value.hsn_code || value.sizes.length), []);
+  const draft = useGuidedFormDraft({
+    open,
+    storageKey: initial ? null : "rg-wizard-draft-inventory-item",
+    value: draftValue,
+    onRestore: restoreDraft,
+    isMeaningful: meaningfulDraft,
+  });
+  const steps: GuidedFormStep[] = [
+    { key: "details", label: "Details", caption: "Product identity and category" },
+    { key: "pricing", label: "Pricing & sizes", caption: "Costs, sizes and reorder levels" },
+    { key: "review", label: "Review", caption: "Check and save the product" },
+  ];
+  const isStepComplete = (key: string): boolean => {
+    if (key === "details") return Boolean(name.trim() && categoryId && unit);
+    if (key === "pricing") return !isSized || sizes.every((size) => Boolean(size.size_value.trim()));
+    return isStepComplete("details") && isStepComplete("pricing");
+  };
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    if (target > 0 && !isStepComplete("details")) {
+      toast.error("Enter the product name, category and unit");
+      setStepKey("details");
+      return;
+    }
+    if (target > 1 && !isStepComplete("pricing")) {
+      toast.error("Complete each added size");
+      setStepKey("pricing");
+      return;
+    }
+    setStepKey(key);
+  };
+
+  async function saveItem() {
+    if (!isStepComplete("details")) { toast.error("Enter the product name, category and unit"); setStepKey("details"); return; }
+    if (!isStepComplete("pricing")) { toast.error("Complete each added size"); setStepKey("pricing"); return; }
+    setSaving(true);
+    const err = await onSubmit({ name, category_id: categoryId || null, unit, is_sized: isSized, hsn_code: hsn, default_reorder_level: reorder, description, enabled, standard_cost: stdCost, standard_issue_price: issuePrice });
+    if (err) { setSaving(false); toast.error(err); return; }
+    try {
+      let targetId = initial?.id;
+      if (!targetId) {
+        const { data } = await supabase.from("inv_items" as never).select("id").eq("name", name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        targetId = (data as { id?: string } | null)?.id;
+      }
+      if (targetId && isSized) await persistSizes(targetId);
+      if (targetId && !isSized && origSizes.length) await supabase.from("inv_item_sizes" as never).delete().eq("item_id", targetId);
+      qc.invalidateQueries({ queryKey: ["rc"] });
+    } catch (e) {
+      setSaving(false);
+      toast.error("Item saved but sizes failed: " + (e instanceof Error ? e.message : "Unknown"));
+      return;
+    }
+    draft.clear();
+    setSaving(false);
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>A stockable SKU.</DialogDescription></DialogHeader>
-        <div className="modern-form-section">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[90dvh] sm:w-[94vw] sm:max-w-5xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only"><DialogTitle>{title}</DialogTitle><DialogDescription>Product setup</DialogDescription></DialogHeader>
+        <GuidedForm title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveItem()} saving={saving} submitLabel="Save product">
+        {draft.hasDraft && !initial && stepKey === "details" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
+        {stepKey === "details" && <div className="modern-form-section">
           <div className="grid gap-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Security Shirt — Half Sleeve" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Category</Label>
@@ -332,6 +415,10 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
               <Select value={unit} onValueChange={setUnit}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
             </div>
           </div>
+          <div className="grid gap-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
+          <div className="modern-form-toggle"><div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Visible in dropdowns</div></div><Switch checked={enabled} onCheckedChange={setEnabled} /></div>
+        </div>}
+        {stepKey === "pricing" && <div className="modern-form-section">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>HSN Code</Label><Input value={hsn} onChange={(e) => setHsn(e.target.value)} placeholder="optional" /></div>
             <div className="grid gap-2"><Label>Reorder Level</Label><Input type="number" min={0} inputMode="numeric" value={reorder === 0 ? "" : reorder} onChange={(e) => setReorder(Number(e.target.value.replace(/^0+(?=\d)/, "")) || 0)} placeholder="0" /></div>
@@ -373,36 +460,9 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
               )}
             </div>
           )}
-          <div className="grid gap-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
-          <div className="modern-form-toggle"><div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Visible in dropdowns</div></div><Switch checked={enabled} onCheckedChange={setEnabled} /></div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-          <Button disabled={saving} onClick={async () => {
-            setSaving(true);
-            const err = await onSubmit({ name, category_id: categoryId || null, unit, is_sized: isSized, hsn_code: hsn, default_reorder_level: reorder, description, enabled, standard_cost: stdCost, standard_issue_price: issuePrice });
-            if (err) { setSaving(false); toast.error(err); return; }
-            try {
-              let targetId = initial?.id;
-              if (!targetId) {
-                const { data } = await supabase.from("inv_items" as never).select("id").eq("name", name).order("created_at", { ascending: false }).limit(1).maybeSingle();
-                targetId = (data as { id?: string } | null)?.id;
-              }
-              if (targetId && isSized) await persistSizes(targetId);
-              if (targetId && !isSized && origSizes.length) {
-                // turned off sizing — clean up any existing sizes
-                await supabase.from("inv_item_sizes" as never).delete().eq("item_id", targetId);
-              }
-              qc.invalidateQueries({ queryKey: ["rc"] });
-            } catch (e) {
-              setSaving(false);
-              toast.error("Item saved but sizes failed: " + (e instanceof Error ? e.message : "Unknown"));
-              return;
-            }
-            setSaving(false);
-            onOpenChange(false);
-          }}>{saving ? "Saving…" : "Save"}</Button>
-        </DialogFooter>
+        </div>}
+        {stepKey === "review" && <div className="modern-form-section"><h3 className="modern-form-section-title">Review product</h3><dl className="grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">Name</dt><dd className="mt-1 font-medium">{name}</dd></div><div><dt className="text-xs text-muted-foreground">Unit</dt><dd className="mt-1 font-medium">{unit}</dd></div><div><dt className="text-xs text-muted-foreground">Purchase cost</dt><dd className="mt-1 font-medium">₹{stdCost.toLocaleString("en-IN")}</dd></div><div><dt className="text-xs text-muted-foreground">Issue price</dt><dd className="mt-1 font-medium">₹{issuePrice.toLocaleString("en-IN")}</dd></div><div><dt className="text-xs text-muted-foreground">Sizes</dt><dd className="mt-1 font-medium">{isSized ? sizes.map((size) => size.size_value).filter(Boolean).join(", ") || "Not added" : "Not applicable"}</dd></div></dl></div>}
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
