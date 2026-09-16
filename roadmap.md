@@ -70,3 +70,4 @@
 - [x] Improve the profile-card image visibility and text contrast on mobile and desktop.
 - [x] Show assigned unit locations and identify Primary and Secondary units.
 - [x] Keep Duty and Unit cards white, color only their inner tiles, and label the profile card's primary unit.
+- [x] Center attendance errors and confirm check-in/out with time and location.
