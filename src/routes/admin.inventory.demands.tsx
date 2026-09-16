@@ -448,7 +448,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
           <DialogDescription className="text-xs sm:text-sm">{isFieldOfficer ? "Request stock from a warehouse or any branch." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label className="text-xs font-semibold">Demand Date</Label>

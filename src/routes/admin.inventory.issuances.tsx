@@ -728,7 +728,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
           <DialogDescription>{initial?.status === "completed" ? "Completed." : isIssued ? "Issued — waiting for acknowledgement." : "Build and issue."}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           {!isFieldOfficer && isDraft && !initial && openDemands.length > 0 && (
             <div className="grid gap-2">
               <Label>Against Demand <span className="font-normal text-muted-foreground">(optional — auto-fills items, source &amp; receiver)</span></Label>

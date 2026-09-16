@@ -515,7 +515,7 @@ function FastTagFormDialog({ open, onOpenChange, title, initial, vehicles, onSub
           <div className="grid gap-2"><Label>Password</Label><Input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} autoComplete="new-password" /></div>
 
           <div className="grid gap-2 sm:col-span-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 sm:col-span-2">
+          <div className="modern-form-toggle sm:col-span-2">
             <div><div className="text-sm font-medium">Enabled</div></div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>

@@ -382,7 +382,7 @@ function PucFormDialog({ open, onOpenChange, title, initial, vehicles, onSubmit 
           </div>
           <div className="grid gap-2"><Label>Expiry Date</Label><Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
           <div className="grid gap-2 sm:col-span-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 sm:col-span-2">
+          <div className="modern-form-toggle sm:col-span-2">
             <div><div className="text-sm font-medium">Enabled</div></div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>

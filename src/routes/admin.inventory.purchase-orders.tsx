@@ -609,7 +609,7 @@ function POFormDialog({
 
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Vendor</Label>
               <Select value={vendorId} onValueChange={(v) => { setVendorId(v); applyVendorPriceToLines(v); }} disabled={readOnly}>

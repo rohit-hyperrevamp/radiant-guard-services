@@ -454,7 +454,7 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
           <DialogDescription>{initial?.status === "completed" ? "Completed." : isDispatched ? "Initiated — awaiting delivery challan from branch." : "Pick a branch demand and initiate the transfer. Source inventory will be deducted immediately."}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           {isDraft && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Against Demand</div>
