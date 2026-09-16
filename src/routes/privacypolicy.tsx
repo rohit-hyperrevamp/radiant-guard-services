@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/privacy-policy')({
+export const Route = createFileRoute('/privacypolicy')({
   head: () => ({
     meta: [
       { title: 'Privacy Policy — Radiant Guard Services' },
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/privacy-policy')({
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary' },
     ],
-    links: [{ rel: 'canonical', href: 'https://radiant.hyperrevamp.com/privacy-policy' }],
+    links: [{ rel: 'canonical', href: 'https://radiant.hyperrevamp.com/privacypolicy' }],
   }),
   component: PrivacyPolicyPage,
 })
