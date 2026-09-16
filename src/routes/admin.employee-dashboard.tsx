@@ -210,8 +210,9 @@ function EmployeeDashboard() {
         supabase.rpc("current_user_unit_ids"),
       ]);
       const { data, error } = assignments;
-      if (error) throw error;
-      if (resolvedUnits.error) throw resolvedUnits.error;
+      // Neither source is required: if one path is unavailable for this
+      // account, keep whatever the other one resolved instead of failing.
+      if (error && resolvedUnits.error && !me?.unit_id) throw error;
       const rows =
         ((data as unknown) as Array<{
           unit_id: string;
@@ -309,7 +310,7 @@ function EmployeeDashboard() {
         .from("units")
         .select("id,name,code,site_address,latitude,longitude")
         .in("id", myUnitIds);
-      if (error) throw error;
+      if (error && !unit) throw error;
       return (data as unknown as Array<{ id: string; name: string; code: string | null; site_address: string | null; latitude: number | null; longitude: number | null }>) ?? [];
     },
   });
@@ -595,7 +596,7 @@ function EmployeeDashboard() {
             </div>
             {myUnitsQ.isPending || (myUnitIds.length > 0 && unitsListQ.isPending) ? (
               <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">Loading assignment…</div>
-            ) : myUnitsQ.isError || unitsListQ.isError ? (
+            ) : myUnits.length === 0 && (myUnitsQ.isError || unitsListQ.isError) ? (
               <div className="rounded-2xl bg-destructive/5 p-6 text-center text-sm text-destructive">Assignment could not be loaded. Please refresh.</div>
             ) : myUnits.length === 0 ? <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
               <ul className="space-y-2">
