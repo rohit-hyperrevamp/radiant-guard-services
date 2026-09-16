@@ -85,3 +85,4 @@
 - [x] Trace the pictured employee's production unit mappings and explain why they are missing.
 - [x] Show the primary unit and every secondary unit on the employee dashboard.
 - [x] Verify the production data path and dashboard rendering.
+- [x] Allow employees to read units explicitly assigned to them, regardless of branch scope.
