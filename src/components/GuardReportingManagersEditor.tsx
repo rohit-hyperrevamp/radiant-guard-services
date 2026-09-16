@@ -79,9 +79,33 @@ export function GuardReportingManagersEditor({
 
   const officerMap = useMemo(() => {
     const m = new Map<string, FieldOfficerRow>();
-    for (const o of officers) m.set(o.id, o);
+    for (const o of allOfficers) m.set(o.id, o);
     return m;
-  }, [officers]);
+  }, [allOfficers]);
+
+  // Field officer onboarding: assign themselves as the reporting manager once.
+  const autoAssignedRef = useRef(false);
+  useEffect(() => {
+    if (!selfOnly || !myCandidateId || loadingCurrent) return;
+    if (current.length > 0 || autoAssignedRef.current) return;
+    if (myCandidateId === candidateId) return;
+    autoAssignedRef.current = true;
+    void (async () => {
+      const { error } = await supabase
+        .from("candidate_reporting_managers" as never)
+        .insert({
+          candidate_id: candidateId,
+          manager_id: myCandidateId,
+          source: "auto",
+          is_primary: true,
+        } as never);
+      if (error) {
+        autoAssignedRef.current = false;
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ["candidate-reporting-managers", candidateId] });
+    })();
+  }, [selfOnly, myCandidateId, loadingCurrent, current.length, candidateId, qc]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
