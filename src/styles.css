@@ -638,9 +638,25 @@
 
   .guided-form {
     width: 100%;
+    height: 100%;
     min-height: 0;
+    min-width: 0;
     flex: 1 1 auto;
+    overflow: hidden;
     background: var(--card);
+  }
+
+  .guided-form > * {
+    min-width: 0;
+  }
+
+  /* Guided dialogs keep one stable frame while their fields and steps change. */
+  [data-slot="dialog-content"]:has(> .guided-form) {
+    width: min(96vw, 72rem);
+    height: min(94dvh, 56rem);
+    max-width: 72rem;
+    max-height: 94dvh;
+    overflow: hidden;
   }
 
   .guided-form .modern-form-section {
@@ -673,6 +689,12 @@
   }
 
   @media (max-width: 639px) {
+    [data-slot="dialog-content"]:has(> .guided-form) {
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      max-height: 100dvh;
+    }
     [data-slot="dialog-content"]:has(input, textarea, [role="combobox"]) {
       width: 100vw;
       max-width: none;
