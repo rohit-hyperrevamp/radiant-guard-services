@@ -716,7 +716,7 @@ function CustomerFormDialog({
               setSubmitting(false);
             }
           }}
-          className="space-y-6"
+          className="modern-business-form"
         >
           <SectionHeading title="Organization profile" />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -747,7 +747,7 @@ function CustomerFormDialog({
               <select
                 value={form.industryType}
                 onChange={(e) => set("industryType", e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                className="flex h-10 w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
               >
                 <option value="">Select industry…</option>
                 {INDUSTRY_TYPES.map((t) => (
@@ -765,7 +765,7 @@ function CustomerFormDialog({
               />
             </Field>
             <Field label="Status">
-              <div className="flex h-9 items-center justify-between rounded-md border border-input bg-transparent px-3">
+              <div className="modern-form-toggle">
                 <span className="text-sm font-medium text-foreground">
                   {form.status === "active" ? "Active" : "Inactive"}
                 </span>
@@ -914,7 +914,7 @@ function SectionHeading({ title, inline }: { title: string; inline?: boolean }) 
   return (
     <h3
       className={cn(
-        "text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+        "modern-form-section-title",
         !inline && "border-b border-border pb-2",
       )}
     >
@@ -933,8 +933,8 @@ function Field({
   full?: boolean;
 }) {
   return (
-    <div className={cn("space-y-2", full && "sm:col-span-2")}>
-      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className={cn("modern-form-field", full && "sm:col-span-2")}>
+      <Label className="font-medium text-foreground">
         {label}
       </Label>
       {children}

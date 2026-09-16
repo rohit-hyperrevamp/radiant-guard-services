@@ -41,3 +41,8 @@
 - [x] Cover bespoke dialog fields that do not use a form wrapper.
 - [x] Verify formatting and mobile-safe action layouts.
 
+## Employee-style business forms
+- [x] Extend the white, system-blue form language across all shared form controls.
+- [ ] Modernize organization, client, state, branch, vehicle, contract, uniform, and asset form layouts.
+- [ ] Verify representative business forms at phone, tablet, and desktop widths.
+

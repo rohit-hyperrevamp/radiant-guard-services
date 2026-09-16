@@ -285,7 +285,7 @@ function LoanManagerPage() {
             <DialogTitle>{editing ? "Edit Loan" : "Add Loan"}</DialogTitle>
             <DialogDescription>Capture loan information for the selected property.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={onSubmit} className="modern-form-section grid gap-4 sm:grid-cols-2">
             <Field label="Property *">
               <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
@@ -325,9 +325,9 @@ function LoanManagerPage() {
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
-      <div className="mt-1">{children}</div>
+    <div className={`modern-form-field ${className ?? ""}`}>
+      <Label className="font-medium text-foreground">{label}</Label>
+      {children}
     </div>
   );
 }

@@ -599,10 +599,10 @@ function readableError(e: unknown, fallback: string): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-secondary/30 p-4">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</h3>
+    <section className="modern-form-section">
+      <h3 className="modern-form-section-title">{title}</h3>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -945,7 +945,7 @@ function UnitFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="modern-business-form">
           {/* ORG & BRANCH (first) */}
           <Section title="Organisation & branch">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1008,7 +1008,7 @@ function UnitFormDialog({
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
               </Field>
               <Field label="Status">
-                <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">
+                <div className="modern-form-toggle">
                   <span className="text-sm font-medium text-foreground">
                     {form.status === "active" ? "Active" : "Inactive"}
                   </span>
@@ -1019,7 +1019,7 @@ function UnitFormDialog({
                 </div>
               </Field>
               <Field label="Billable">
-                <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">
+                <div className="modern-form-toggle">
                   <span className="text-sm font-medium text-foreground">
                     {form.isBillable ? "Billable" : "Non-billable"}
                   </span>
@@ -1044,7 +1044,7 @@ function UnitFormDialog({
                 />
               </Field>
               <Field label="GST payable?">
-                <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">
+                <div className="modern-form-toggle">
                   <span className="text-sm font-medium text-foreground">
                     {form.gstPayable ? "Yes" : "No"}
                   </span>
@@ -1573,8 +1573,8 @@ function UnitFormDialog({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs">{label}</Label>
+    <div className="modern-form-field">
+      <Label className="font-medium text-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -1590,7 +1590,7 @@ function ToggleRow({
   onCheckedChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">
+    <div className="modern-form-toggle">
       <span className="text-sm text-foreground">{label}</span>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>

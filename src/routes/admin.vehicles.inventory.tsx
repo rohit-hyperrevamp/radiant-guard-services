@@ -485,7 +485,7 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>Vehicle registration details.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2 sm:grid-cols-2 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="modern-form-section grid max-h-[70vh] gap-4 overflow-y-auto sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Vehicle Number *</Label>
             <Input value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())} placeholder="e.g. KA01AB1234" />
@@ -526,7 +526,7 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
             />
             <p className="text-xs text-muted-foreground">Service Manager uses this to auto-calculate the next service due for this vehicle. Defaults to {DEFAULT_SERVICE_INTERVAL_KM.toLocaleString()} km.</p>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 sm:col-span-2">
+          <div className="modern-form-toggle sm:col-span-2">
             <div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Show in dropdowns</div></div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>
