@@ -1125,12 +1125,45 @@ async function runWithQueryTimeout<T>(label: string, run: (signal: AbortSignal) 
 }
 
 // ---------------- Hooks ---------------- //
+
+/**
+ * Local snapshots so the list and client dropdowns paint instantly on
+ * revisit while the fresh rows load in the background.
+ */
+const SNAP_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readSnapshot<T>(key: string): T | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { at?: number; rows?: T };
+    if (!parsed?.at || !parsed.rows || Date.now() - parsed.at > SNAP_TTL_MS) return undefined;
+    return parsed.rows;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSnapshot(key: string, rows: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ at: Date.now(), rows }));
+  } catch {
+    /* quota or private mode — snapshots are best effort */
+  }
+}
+
+const SNAP_CANDIDATES = "radiant.snapshot.candidates.v1";
+const SNAP_UNITS = "radiant.snapshot.units.v1";
+
 function useCandidates() {
   return useQuery({
     queryKey: QK,
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 60_000,
+    placeholderData: () => readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES),
     queryFn: async (): Promise<CandidateListItem[]> => {
       const rows = await runWithQueryTimeout("Employees", async (signal) =>
         await fetchAllPages<CandidateListItem>((from, to) =>
@@ -1143,6 +1176,7 @@ function useCandidates() {
         ),
         20_000,
       );
+      writeSnapshot(SNAP_CANDIDATES, rows);
       return rows;
     },
 
@@ -1154,7 +1188,8 @@ function useUnits() {
     queryKey: QK_UNITS,
     retry: false,
     refetchOnWindowFocus: false,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    placeholderData: () => readSnapshot<UnitLite[]>(SNAP_UNITS),
     queryFn: async (): Promise<UnitLite[]> => {
       const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
         await supabase
@@ -1178,7 +1213,9 @@ function useUnits() {
         );
         custMap = new Map(((cs ?? []) as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
       }
-      return units.map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }));
+      const withNames = units.map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }));
+      writeSnapshot(SNAP_UNITS, withNames);
+      return withNames;
     },
   });
 }
@@ -6538,9 +6575,9 @@ function CandidateWizard({
         </div>
 
         <div className="flex min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 flex-col justify-between border-r border-border/60 bg-card px-7 py-8 lg:flex">
-            <div className="min-h-0">
-              <div className="mb-8">
+          <aside className="hidden min-h-0 flex-col overflow-hidden border-r border-border/60 bg-card px-7 py-8 lg:flex">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="mb-6 shrink-0">
                 <p className="text-xs font-semibold text-muted-foreground">Candidate</p>
                 <h2 className="mt-1 text-xl font-semibold text-foreground">
                   {editing ? "Edit profile" : "New profile"}
@@ -6551,7 +6588,7 @@ function CandidateWizard({
                   </p>
                 )}
               </div>
-              <nav aria-label="Candidate form steps" className="max-h-[58dvh] space-y-1 overflow-y-auto pr-1">
+              <nav aria-label="Candidate form steps" className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pb-2 pr-1">
                 {steps.map((s, i) => {
                   const done = isStepComplete(s.key);
                   const active = i === stepIndex;

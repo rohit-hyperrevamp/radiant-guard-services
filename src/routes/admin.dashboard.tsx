@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Building2, Briefcase, CalendarDays, ChevronLeft, ChevronRight,
@@ -143,9 +143,14 @@ function DashboardPage() {
   // dashboard to the light counts so the app never runs out of memory.
   const lightMode = useIsMobile();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-snapshot", year, month, lightMode],
+  // Fast tile counts paint first; the heavy month P&L loads in a second,
+  // independent query so the dashboard is usable immediately.
+  const countsQuery = useQuery({
+    queryKey: ["dashboard-counts", year, month],
     enabled: !permsLoading && !showInventoryDashboard,
+    staleTime: 2 * 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const sixtyDaysOut = new Date();
       sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60);
@@ -182,6 +187,52 @@ function DashboardPage() {
         supabase.from("payroll_runs" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
       ]);
 
+      const sheets = (sheetsMonth ?? []) as Array<{ status: string | null }>;
+      const sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
+      for (const s of sheets) {
+        const v = (s.status || "").toLowerCase();
+        if (v === "approved") sheetCounts.approved += 1;
+        else if (v === "submitted" || v === "pending") sheetCounts.pending += 1;
+        else if (v === "rejected") sheetCounts.rejected += 1;
+        else sheetCounts.draft += 1;
+      }
+      const runs = (runsMonth ?? []) as Array<{ status: string | null }>;
+      const runCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
+      for (const r of runs) {
+        const v = (r.status || "").toLowerCase();
+        if (v === "approved") runCounts.approved += 1;
+        else if (v === "submitted") runCounts.pending += 1;
+        else if (v === "rejected") runCounts.rejected += 1;
+        else runCounts.draft += 1;
+      }
+      const fuelTotal = (fuelMonth ?? []).reduce((s: number, e: { amount: number | null }) => s + (Number(e.amount) || 0), 0);
+
+      return {
+        orgs: orgsCount ?? 0,
+        units: unitsCount ?? 0,
+        employees: empCount ?? 0,
+        contractsActive: contractsActive ?? 0,
+        contractsExpiring: contractsExpiring ?? [],
+        vehicles: vehiclesCount ?? 0,
+        fuelTotal,
+        items: itemsCount ?? 0,
+        sheetCounts,
+        runCounts,
+      };
+    },
+  });
+
+  const pnlQuery = useQuery({
+    queryKey: ["dashboard-pnl", year, month],
+    // Phones cannot hold the whole-month profitability computation in memory
+    // (it loads every contract, roster and attendance row).
+    enabled: !permsLoading && !showInventoryDashboard && !lightMode,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const todayStr = new Date().toISOString().slice(0, 10);
+
       const [contractsForPnl, unitsForPnl] = await Promise.all([
         fetchAllPages<Record<string, unknown>>((from, to) =>
           supabase
@@ -203,42 +254,7 @@ function DashboardPage() {
         ),
       ]);
 
-      const sheets = (sheetsMonth ?? []) as Array<{ status: string | null }>;
-      const sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
-      for (const s of sheets) {
-        const v = (s.status || "").toLowerCase();
-        if (v === "approved") sheetCounts.approved += 1;
-        else if (v === "submitted" || v === "pending") sheetCounts.pending += 1;
-        else if (v === "rejected") sheetCounts.rejected += 1;
-        else sheetCounts.draft += 1;
-      }
-      const runs = (runsMonth ?? []) as Array<{ status: string | null }>;
-      const runCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
-      for (const r of runs) {
-        const v = (r.status || "").toLowerCase();
-        if (v === "approved") runCounts.approved += 1;
-        else if (v === "submitted") runCounts.pending += 1;
-        else if (v === "rejected") runCounts.rejected += 1;
-        else runCounts.draft += 1;
-      }
-      const fuelTotal = (fuelMonth ?? []).reduce((s: number, e: { amount: number | null }) => s + (Number(e.amount) || 0), 0);
 
-      if (lightMode) {
-        return {
-          orgs: orgsCount ?? 0,
-          units: unitsCount ?? 0,
-          employees: empCount ?? 0,
-          contractsActive: contractsActive ?? 0,
-          contractsExpiring: contractsExpiring ?? [],
-          vehicles: vehiclesCount ?? 0,
-          fuelTotal,
-          items: itemsCount ?? 0,
-          sheetCounts,
-          runCounts,
-          pnlRows: [] as PnLRow[],
-          pnlTotals: { contract: 0, invoice: 0, payroll: 0 },
-        };
-      }
 
 
       // ── P&L from actual attendance ────────────────────────────────────
@@ -593,22 +609,19 @@ function DashboardPage() {
         { contract: 0, invoice: 0, payroll: 0 },
       );
 
-      return {
-        orgs: orgsCount ?? 0,
-        units: unitsCount ?? 0,
-        employees: empCount ?? 0,
-        contractsActive: contractsActive ?? 0,
-        contractsExpiring: contractsExpiring ?? [],
-        vehicles: vehiclesCount ?? 0,
-        fuelTotal,
-        items: itemsCount ?? 0,
-        sheetCounts,
-        runCounts,
-        pnlRows,
-        pnlTotals,
-      };
+      return { pnlRows, pnlTotals };
     },
   });
+
+  const isLoading = countsQuery.isLoading;
+  const data = useMemo(() => {
+    if (!countsQuery.data) return undefined;
+    return {
+      ...countsQuery.data,
+      pnlRows: pnlQuery.data?.pnlRows ?? ([] as PnLRow[]),
+      pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0 },
+    };
+  }, [countsQuery.data, pnlQuery.data]);
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1);
