@@ -52,3 +52,6 @@
 - [x] Convert organization, client/unit, state, branch, contract, uniform, item/product, vehicle, asset, and related forms.
 - [x] Convert remaining operational forms while preserving validation, permissions, and saving.
 - [x] Verify responsive form structure and project checks across phone, tablet, and desktop layouts.
+
+## Field dashboard device card
+- [ ] Rebalance the My Device card so its status tiles and action fill the available height without a blank lower area.
