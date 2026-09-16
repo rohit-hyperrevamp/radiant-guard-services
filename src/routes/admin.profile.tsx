@@ -1159,9 +1159,8 @@ function ProfilePage() {
         )}
       </Section>
 
-      <div className="-mb-4 columns-1 gap-4 lg:columns-2 [&>section]:mb-4 [&>section]:break-inside-avoid [&>section]:w-full">
-
-
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
+        <div className="min-w-0 space-y-4">
         <Section title="Contact" icon={PhoneIcon}>
           <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow label="Mobile" value={profile.mobile} />
@@ -1302,6 +1301,9 @@ function ProfilePage() {
             </ul>
           )}
         </Section>
+
+        </div>
+        <div className="min-w-0 space-y-4">
 
         <Section title="References" icon={UserCheck}>
           {profile.references.length === 0 ? (
@@ -1540,6 +1542,7 @@ function ProfilePage() {
             <OffboardingRecordsSection details={profile.offboarding_details} hideHeader />
           </Section>
         )}
+        </div>
       </div>
 
       <div className="grid items-stretch gap-4 lg:grid-cols-3 [&>section]:h-full">
