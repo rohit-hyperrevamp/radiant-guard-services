@@ -531,7 +531,7 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
         {draft.hasDraft && !initial && stepKey === "identity" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         {stepKey === "identity" && <div className="modern-form-section grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label>Vehicle Number *</Label>
+            <Label>Vehicle Number<span className="ml-0.5 text-destructive">*</span></Label>
             <Input value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())} placeholder="e.g. KA01AB1234" />
           </div>
           <div className="grid gap-2"><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Owner name / company" /></div>
