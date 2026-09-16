@@ -18,6 +18,7 @@ import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -296,6 +297,7 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("route");
 
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const isDraft = !initial || initial.status === "draft";
@@ -384,6 +386,7 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
       setTransferDate(new Date().toISOString().slice(0, 10));
       setVehicle(""); setDriverName(""); setDriverPhone(""); setNotes(""); setLines([]);
     }
+    setStepKey("route");
   });
 
 
@@ -445,16 +448,42 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
     }
   }
 
+  const steps: GuidedFormStep[] = [
+    { key: "route", label: "Transfer", caption: "Demand, source and destination" },
+    { key: "items", label: "Items", caption: "Check stock and dispatch quantities" },
+    { key: "review", label: "Review", caption: "Check and initiate the transfer" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "route" && (!demandId || !sourceId || !destId)) return "Complete the transfer route";
+    if (key === "items" && (!lines.length || lines.some((line) => line.dispatched_qty <= 0))) return "Enter dispatch quantities";
+    return null;
+  };
+  const isStepComplete = (key: string) => key === "review"
+    ? !validateStep("route") && !validateStep("items") && !overDispatchLines.length && !overDemandLines.length
+    : !validateStep(key);
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>{initial ? `Transfer ${initial.transfer_number}` : "New Transfer"}</DialogTitle>
           <DialogDescription>{initial?.status === "completed" ? "Completed." : isDispatched ? "Initiated — awaiting delivery challan from branch." : "Pick a branch demand and initiate the transfer. Source inventory will be deducted immediately."}</DialogDescription>
         </DialogHeader>
 
-        <div className="modern-form-section">
+        <GuidedForm title={initial ? `Transfer ${initial.transfer_number}` : "New transfer"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void initiateTransfer()} saving={saving} submitLabel="Initiate transfer">
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "route" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Transfer route</h3>
           {isDraft && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Against Demand</div>
@@ -487,7 +516,11 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
             <Label>Date</Label>
             <Input type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} disabled={!isDraft} />
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "items" ? "block" : "hidden"}>
+          <section className="modern-form-section">
           <div>
             <div className="mb-2 flex items-center justify-between">
               <Label className="text-sm font-semibold">Items</Label>
@@ -546,14 +579,23 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
               </table>
             </div>
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Transfer summary</h3>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-1 font-medium">{transferDate}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Items</dt><dd className="mt-1 font-medium">{lines.length}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Total quantity</dt><dd className="mt-1 font-medium">{lines.reduce((sum, line) => sum + line.dispatched_qty, 0)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Status</dt><dd className="mt-1 font-medium">{initial?.status ?? "Ready"}</dd></div>
+            </dl>
+          </section>
           <div className="grid gap-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isReceived} rows={2} /></div>
+          </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Close</Button>
-          {isDraft && <Button onClick={initiateTransfer} disabled={saving || !demandId || !sourceId || overDispatchLines.length > 0 || overDemandLines.length > 0}>{saving ? "Initiating…" : overDispatchLines.length > 0 ? "Insufficient stock" : overDemandLines.length > 0 ? "Exceeds demand" : "Initiate Transfer"}</Button>}
-        </DialogFooter>
+        </GuidedForm>
 
       </DialogContent>
     </Dialog>

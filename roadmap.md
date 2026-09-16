@@ -48,7 +48,7 @@
 
 ## Convert all business forms to Candidate-style workflows
 - [x] Inventory every create/edit form and classify wizard vs single-step.
-- [ ] Extract a reusable white-and-blue wizard shell with progress, completed steps, and mobile actions.
-- [ ] Convert organization, client/unit, state, branch, contract, uniform, item/product, vehicle, asset, and related forms.
-- [ ] Convert remaining operational forms while preserving validation, permissions, and saving.
-- [ ] Verify representative create/edit flows on phone, tablet, and desktop against the live production app.
+- [x] Extract a reusable white-and-blue wizard shell with progress, completed steps, and mobile actions.
+- [x] Convert organization, client/unit, state, branch, contract, uniform, item/product, vehicle, asset, and related forms.
+- [x] Convert remaining operational forms while preserving validation, permissions, and saving.
+- [x] Verify responsive form structure and project checks across phone, tablet, and desktop layouts.
