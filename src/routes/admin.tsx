@@ -606,7 +606,7 @@ function AdminLayout() {
         </div>
 
         {/* Nav — grouped like the reference portal (Menu / Operations / Finance / Admin) */}
-        <nav className="scrollbar-hide flex-1 overflow-y-auto px-2.5 pb-3">
+        <nav className={cn("scrollbar-hide flex-1 overflow-y-auto pb-3", collapsed ? "px-2" : "px-2.5")}>
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
@@ -619,7 +619,7 @@ function AdminLayout() {
             ];
             const used = new Set<string>();
             return (
-              <div className="space-y-3">
+              <div className={collapsed ? "space-y-1.5" : "space-y-3"}>
                 {sections.map((s) => {
                   const items = visibleGroups.filter((g) => s.keys.includes(g.key));
                   if (items.length === 0) return null;
