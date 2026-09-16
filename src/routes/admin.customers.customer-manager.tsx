@@ -708,7 +708,7 @@ function CustomerFormDialog({
     if (key === "deployment" && !form.shippingSameAsBilling && form.shippingPincode && !/^\d{6}$/.test(form.shippingPincode)) return "Enter a valid 6-digit deployment pincode";
     return null;
   };
-  const isStepComplete = (key: string) => {
+  const isStepComplete = (key: string): boolean => {
     if (key === "profile") return !validateStep(key);
     if (key === "contact") return Boolean(form.billingName.trim());
     if (key === "billing") return Boolean(form.billingAddress1.trim() && form.billingCity.trim() && !validateStep(key));
