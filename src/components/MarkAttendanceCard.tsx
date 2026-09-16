@@ -205,7 +205,11 @@ export function MarkAttendanceCard({
           toast.error(err instanceof Error ? err.message : "Turn on GPS to continue");
         }
       } else if (s === "denied") {
-        toast.error("Location is blocked. Allow location for Radiant Guard in device settings.");
+        toast.error("Location is blocked. Allow location for this site in your browser or device settings.");
+      } else if (s === "unavailable") {
+        toast.error("This device cannot provide a location.");
+      } else {
+        toast.error("Could not get your location. Check that location is on, then try again.");
       }
     } finally {
       setAskingLoc(false);

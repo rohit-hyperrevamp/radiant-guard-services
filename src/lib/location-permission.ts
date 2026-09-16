@@ -3,14 +3,39 @@ import { isNativePlatform, logNativeEvent } from "@/lib/native";
 export type LocationPermissionState = "granted" | "denied" | "prompt" | "unavailable";
 
 /**
- * Ask the OS for foreground location access. On Android this shows the runtime
- * permission dialog (the same moment we ask for notifications), so GPS is not
- * left off by default after install.
+ * Browser location state without triggering a prompt. Chrome/Edge/Firefox
+ * expose the Permissions API; Safari does not, so we fall back to "prompt".
+ */
+async function queryWebPermission(): Promise<LocationPermissionState> {
+  if (typeof navigator === "undefined" || !navigator.geolocation) return "unavailable";
+  try {
+    const status = await navigator.permissions?.query({ name: "geolocation" as PermissionName });
+    if (status?.state === "granted") return "granted";
+    if (status?.state === "denied") return "denied";
+    return "prompt";
+  } catch {
+    return "prompt";
+  }
+}
+
+/**
+ * Ask for foreground location access. On Android this shows the OS runtime
+ * dialog (the same moment we ask for notifications); in a browser it shows the
+ * browser's own location prompt.
  */
 export async function requestLocationPermission(): Promise<LocationPermissionState> {
   if (!isNativePlatform()) {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return "unavailable";
-    return "prompt";
+    // On the web the only way to ask is to actually request a position — that
+    // is what shows the browser's own "Allow location" dialog.
+    const current = await queryWebPermission();
+    if (current === "unavailable" || current === "granted") return current;
+    return await new Promise<LocationPermissionState>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        () => resolve("granted"),
+        (err) => resolve(err.code === err.PERMISSION_DENIED ? "denied" : "prompt"),
+        { enableHighAccuracy: true, timeout: 20_000, maximumAge: 15_000 },
+      );
+    });
   }
   try {
     const { Geolocation } = await import("@capacitor/geolocation");
@@ -31,10 +56,7 @@ export async function requestLocationPermission(): Promise<LocationPermissionSta
 }
 
 export async function checkLocationPermission(): Promise<LocationPermissionState> {
-  if (!isNativePlatform()) {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return "unavailable";
-    return "prompt";
-  }
+  if (!isNativePlatform()) return await queryWebPermission();
   try {
     const { Geolocation } = await import("@capacitor/geolocation");
     const status = await Geolocation.checkPermissions();
