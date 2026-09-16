@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -681,7 +681,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
 
 
       await logActivity({ module: MODULE, action: target === "issue" ? "issue" : (initial ? "update" : "create"), entityType: ENTITY, entityId: id, entityLabel: initial?.issuance_number ?? "Issuance" });
-      toast.success(target === "issue" ? "Issued — stock dispatched from source. Awaiting acknowledgement." : "Saved");
+      void notifySaved({ title: "Saved", description: target === "issue" ? "Issued — stock dispatched from source. Awaiting acknowledgement." : "Saved" });
       onSaved(); onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");

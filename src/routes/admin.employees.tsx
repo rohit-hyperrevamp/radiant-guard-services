@@ -135,7 +135,7 @@ import { CalendarIcon } from "lucide-react";
 import { format as formatDateFns, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, confirmDiscardChanges, notifySaved } from "@/components/ConfirmProvider";
 import {
   QK_CANDIDATE_UNITS,
   QK_SCOPE_ASSIGNMENTS,
@@ -5306,12 +5306,22 @@ function CandidateWizard({
     })();
   }, [open, editing, isEmployeeMode]);
 
-  const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
+  // Tracks whether the person actually edited something in this session, so the
+  // close prompt only appears when there is real unsaved work.
+  const dirtyRef = useRef(false);
+  const markDirty = () => { dirtyRef.current = true; };
+  const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) => {
+    markDirty();
     setForm((f) => ({ ...f, [k]: v }));
-  const setAny = (k: string, v: any) =>
+  };
+  const setAny = (k: string, v: any) => {
+    markDirty();
     setForm((f) => ({ ...f, [k]: v }) as CandidateForm);
-  const setSection = (k: string, v: any) =>
+  };
+  const setSection = (k: string, v: any) => {
+    markDirty();
     setForm((f) => ({ ...f, [k]: { ...((f as any)[k] ?? {}), ...v } }) as CandidateForm);
+  };
 
   const primaryUnitId = form.unit_ids[0] ?? null;
   const unit = primaryUnitId ? units.find((u) => u.id === primaryUnitId) : undefined;
@@ -5921,7 +5931,12 @@ function CandidateWizard({
       if (draftStorageKey) {
         try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
       }
+      dirtyRef.current = false;
       onOpenChange(false);
+      void notifySaved({
+        title: "Draft saved",
+        description: "You can reopen this profile any time and continue where you left off.",
+      });
     } catch (e) {
       const msg = getMutationErrorMessage(e, "Could not save draft");
       setSaveError({ title: "Draft not saved", detail: msg });
@@ -5929,6 +5944,22 @@ function CandidateWizard({
     } finally {
       setSavingDraft(false);
     }
+  };
+
+  /** Close guard shared with the header X and the Cancel button. */
+  const requestClose = async () => {
+    if (!dirtyRef.current) {
+      onOpenChange(false);
+      return;
+    }
+    const choice = await confirmDiscardChanges({ what: "profile", canSaveDraft: true });
+    if (choice === "stay") return;
+    if (choice === "draft") {
+      await saveDraft();
+      return;
+    }
+    dirtyRef.current = false;
+    onOpenChange(false);
   };
 
   useEffect(() => {
@@ -6018,7 +6049,14 @@ function CandidateWizard({
       if (draftStorageKey) {
         try { window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
       }
+      dirtyRef.current = false;
       onOpenChange(false);
+      void notifySaved({
+        title: editing ? "Changes saved" : "Sent for approval",
+        description: editing
+          ? `${form.full_name || "This profile"} has been updated.`
+          : `${form.full_name || "The profile"} is now waiting for approval.`,
+      });
     } catch (e) {
       const msg = getMutationErrorMessage(e, "Save failed");
       setSaveError({ title: "Could not save candidate", detail: msg });
@@ -6114,10 +6152,49 @@ function CandidateWizard({
     }
     if (key === "contacts") return getEmergencyContactIssue();
     if (key === "assignment" && !form.unit_id) return "Select the posting unit to continue";
+    if (key === "records") {
+      const c = (form.compliance ?? {}) as Record<string, unknown>;
+      const uan = String(c.uan ?? "").trim();
+      if (!/^1\d{11}$/.test(uan)) return "Enter a valid 12-digit UAN starting with 1";
+      const blood = String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim();
+      if (!blood) return "Select the blood group";
+      const esicOn = (c.esic_enabled ?? true) as boolean;
+      if (esicOn) {
+        if (!String(c.esic_branch_id ?? "").trim()) return "Select the ESIC branch";
+        const family = Array.isArray(c.esic_family) ? (c.esic_family as Array<Record<string, unknown>>) : [];
+        if (family.some((m) => !m?.aadhaar_front_url || !m?.aadhaar_back_url))
+          return "Upload both Aadhaar sides for every ESIC family member";
+      }
+      return null;
+    }
+    if (key === "wages") {
+      if (wageUnitIds.length === 0) return "Assign a unit before setting wages";
+      const pending = wageUnitIds.find((uid) => !(wagesByUnit[uid]?.components?.length));
+      if (pending) return "Add the wage sheet for every mapped unit";
+      return null;
+    }
+    if (key === "uploads") {
+      if (!form.photo_url) return "Upload the photograph";
+      if (!form.aadhaar_image_url) return "Upload the Aadhaar card";
+      if (!form.pan_image_url) return "Upload the PAN card";
+      if (!form.signature_url) return "Upload the signature";
+      return null;
+    }
     return null;
   };
   // A step counts as done only when its own required fields actually pass.
-  const validatedSteps = new Set(["aadhaar", "pan", "basic", "address", "bank", "contacts", "assignment"]);
+  const validatedSteps = new Set([
+    "aadhaar",
+    "pan",
+    "basic",
+    "address",
+    "bank",
+    "contacts",
+    "assignment",
+    "records",
+    "wages",
+    "uploads",
+  ]);
   const isStepComplete = (key: string) => validatedSteps.has(key) && validateStep(key) === null;
   const firstBlockingStep = (targetIndex: number): { key: string; label: string; problem: string } | null => {
     for (let i = 0; i < targetIndex; i += 1) {
@@ -6207,7 +6284,7 @@ function CandidateWizard({
 
   return (
     <InvalidFieldContext.Provider value={invalidField}>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (o) onOpenChange(true); else void requestClose(); }}>
       <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:overflow-hidden sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
@@ -7687,7 +7764,7 @@ function CandidateWizard({
           )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
           <div className="hidden flex-wrap items-center gap-2 sm:mr-auto sm:flex">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-10">Cancel</Button>
+            <Button variant="outline" onClick={() => void requestClose()} className="h-10">Cancel</Button>
             {canReview && (
               <>
                 <Button

@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -396,7 +396,7 @@ function VehicleInventoryPage() {
         onOpenChange={setAddOpen}
         title="Add Vehicle"
         onSubmit={async (p) => {
-          try { await addMut.mutateAsync(p); toast.success("Vehicle added"); return null; }
+          try { await addMut.mutateAsync(p); void notifySaved({ title: "Saved", description: "Vehicle added" }); return null; }
           catch (e) { return e instanceof Error ? e.message : "Could not add vehicle"; }
         }}
       />
@@ -407,7 +407,7 @@ function VehicleInventoryPage() {
         title="Edit Vehicle"
         onSubmit={async (p) => {
           if (!editing) return null;
-          try { await updateMut.mutateAsync({ id: editing.id, p }); toast.success("Vehicle updated"); setEditing(null); return null; }
+          try { await updateMut.mutateAsync({ id: editing.id, p }); void notifySaved({ title: "Saved", description: "Vehicle updated" }); setEditing(null); return null; }
           catch (e) { return e instanceof Error ? e.message : "Could not update vehicle"; }
         }}
       />

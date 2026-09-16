@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { notifySaved } from "@/components/ConfirmProvider";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -531,7 +532,7 @@ function UnitManagerPage() {
           const r = editing ? await updateUnit(editing.id, data) : await addUnit(data);
           if (!r.ok) return { error: r.error, id: null };
           void logActivity({ module: "Clients", action: editing ? "update" : "create", entityType: "units", entityId: editing?.id, entityLabel: String((data as Record<string, unknown>).code ?? (data as Record<string, unknown>).name ?? ""), details: data as Record<string, unknown> });
-          toast.success(editing ? "Client updated" : "Client added");
+          void notifySaved({ title: "Saved", description: editing ? "Client updated" : "Client added" });
           return { error: null, id: editing ? editing.id : (("id" in r ? r.id : undefined) ?? null) };
         }}
       />
@@ -990,7 +991,7 @@ function UnitFormDialog({
           {/* ORG & BRANCH (first) */}
           <Section title="Organisation & branch">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Organisation *">
+              <Field label="Organisation" required>
                 <Select value={form.customerId ?? ""} onValueChange={(v) => set("customerId", v || null)}>
                   <SelectTrigger><SelectValue placeholder="Select organisation first" /></SelectTrigger>
                   <SelectContent>
@@ -1006,7 +1007,7 @@ function UnitFormDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Branch *">
+              <Field label="Branch" required>
                 <Select
                   value={form.branchId ?? ""}
                   onValueChange={(v) => set("branchId", v || null)}
@@ -1044,7 +1045,7 @@ function UnitFormDialog({
                   className="font-mono"
                 />
               </Field>
-              <Field label="Client name">
+              <Field label="Client name" required>
                 <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
               </Field>
               <Field label="Client location">
@@ -1281,7 +1282,7 @@ function UnitFormDialog({
               </div>
               {!form.uniformIncluded && (
                 <div className="mt-3 max-w-xs">
-                  <Field label="Uniform fee (₹) *">
+                  <Field label="Uniform fee (₹)" required>
                     <Input
                       type="number"
                       min={0}
@@ -1622,10 +1623,13 @@ function UnitFormDialog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="modern-form-field">
-      <Label className="font-medium text-foreground">{label}</Label>
+      <Label className="font-medium text-foreground">
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
       {children}
     </div>
   );

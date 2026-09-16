@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -430,7 +430,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       const destLabel = isWarehouse
         ? `${warehouseMap.get(targetWarehouseId)?.name ?? "warehouse"} (Warehouse)`
         : (branchMap.get(targetBranchId)?.name ?? "branch");
-      toast.success(submit ? `Demand submitted to ${destLabel}` : "Draft saved");
+      void notifySaved({ title: "Saved", description: submit ? `Demand submitted to ${destLabel}` : "Draft saved" });
       onSaved(); onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");

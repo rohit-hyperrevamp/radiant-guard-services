@@ -42,7 +42,7 @@ import {
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { Button } from "@/components/ui/button";
@@ -2872,7 +2872,7 @@ function ClientContractsPage() {
             }
             await persistResources(contractId, resources);
             await qc.invalidateQueries({ queryKey: ["admin", "contract-resources", contractId] });
-            toast.success(editing ? "Contract updated" : "Contract created");
+            void notifySaved({ title: "Saved", description: editing ? "Contract updated" : "Contract created" });
             return null;
           } catch (e) {
             console.error("[contract-save] failed", e);

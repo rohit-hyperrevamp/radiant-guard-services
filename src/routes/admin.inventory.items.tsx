@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,8 +230,8 @@ function ItemsPage() {
         </div>
       </div>
 
-      <ItemFormDialog open={addOpen} onOpenChange={setAddOpen} title="Add Item" categories={categories} onSubmit={async (p) => { try { await addMut.mutateAsync(p); toast.success("Item added"); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />
-      <ItemFormDialog open={!!editing} initial={editing} onOpenChange={(o) => !o && setEditing(null)} title="Edit Item" categories={categories} onSubmit={async (p) => { if (!editing) return null; try { await updateMut.mutateAsync({ id: editing.id, p }); toast.success("Updated"); setEditing(null); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />
+      <ItemFormDialog open={addOpen} onOpenChange={setAddOpen} title="Add Item" categories={categories} onSubmit={async (p) => { try { await addMut.mutateAsync(p); void notifySaved({ title: "Saved", description: "Item added" }); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />
+      <ItemFormDialog open={!!editing} initial={editing} onOpenChange={(o) => !o && setEditing(null)} title="Edit Item" categories={categories} onSubmit={async (p) => { if (!editing) return null; try { await updateMut.mutateAsync({ id: editing.id, p }); void notifySaved({ title: "Saved", description: "Updated" }); setEditing(null); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>

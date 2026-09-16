@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -587,7 +587,7 @@ function POFormDialog({
         entityId: poId,
         entityLabel: initial?.po_number ?? "PO",
       });
-      toast.success(targetStatus === "draft" ? "Draft saved" : initial ? "Changes saved" : "PO issued");
+      void notifySaved({ title: "Saved", description: targetStatus === "draft" ? "Draft saved" : initial ? "Changes saved" : "PO issued" });
 
       onSaved();
       onOpenChange(false);

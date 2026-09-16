@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -439,7 +439,7 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
       })));
       await supabase.from("inv_demands" as never).update({ status: "in_transit" } as never).eq("id", demandId);
       void logActivity({ module: MODULE, action: "dispatch", entityType: ENTITY, entityId: tid, entityLabel: number });
-      toast.success("Transfer initiated — stock deducted, awaiting delivery challan from branch");
+      void notifySaved({ title: "Saved", description: "Transfer initiated — stock deducted, awaiting delivery challan from branch" });
       onSaved(); onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");

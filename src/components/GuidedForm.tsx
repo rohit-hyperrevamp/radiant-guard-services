@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { confirmDiscardChanges } from "@/components/ConfirmProvider";
 import { cn } from "@/lib/utils";
 
 export type GuidedFormStep = {
@@ -21,6 +22,10 @@ type GuidedFormProps = {
   saving?: boolean;
   savingDraft?: boolean;
   submitLabel?: string;
+  /** Override the automatic edit detection used by the close prompt. */
+  isDirty?: boolean;
+  /** Word used in the close prompt, e.g. "client". */
+  entityLabel?: string;
   children: ReactNode;
 };
 
@@ -36,6 +41,8 @@ export function GuidedForm({
   saving = false,
   savingDraft = false,
   submitLabel = "Save",
+  isDirty,
+  entityLabel,
   children,
 }: GuidedFormProps) {
   const stepIndex = Math.max(0, steps.findIndex((step) => step.key === stepKey));
@@ -43,6 +50,34 @@ export function GuidedForm({
   const completed = steps.filter((step) => isStepComplete(step.key)).length;
   const completion = steps.length ? Math.round((completed / steps.length) * 100) : 0;
   const isLast = stepIndex === steps.length - 1;
+
+  // Any typing or selection inside the form body counts as unsaved work.
+  const touchedRef = useRef(false);
+  const markTouched = () => { touchedRef.current = true; };
+  const markTouchedFromPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest?.('input, textarea, select, button, [role="combobox"], [role="checkbox"], [role="switch"], [contenteditable="true"]')) return;
+    touchedRef.current = true;
+  };
+  const requestCancel = async () => {
+    const dirty = isDirty ?? touchedRef.current;
+    if (!dirty) {
+      onCancel();
+      return;
+    }
+    const choice = await confirmDiscardChanges({
+      what: entityLabel ?? title.toLowerCase(),
+      canSaveDraft: !!onSaveDraft,
+    });
+    if (choice === "stay") return;
+    if (choice === "draft") {
+      onSaveDraft?.();
+      return;
+    }
+    touchedRef.current = false;
+    onCancel();
+  };
+
 
   return (
     <div className="guided-form min-h-0 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -137,13 +172,15 @@ export function GuidedForm({
               <h3 className="mt-1 text-2xl font-semibold">{currentStep?.label}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{currentStep?.caption}</p>
             </div>
-            {children}
+            <div onInputCapture={markTouched} onChangeCapture={markTouched} onPointerDownCapture={markTouchedFromPointer}>
+              {children}
+            </div>
           </div>
         </div>
 
         <div className="grid shrink-0 grid-cols-3 gap-2 border-t border-border/60 bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-6">
           {stepIndex === 0 ? (
-            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => void requestCancel()}>Cancel</Button>
           ) : (
             <Button type="button" variant="outline" onClick={() => onStepChange(steps[stepIndex - 1]?.key ?? stepKey)}>
               <ChevronLeft className="mr-1 h-4 w-4" /> Back
