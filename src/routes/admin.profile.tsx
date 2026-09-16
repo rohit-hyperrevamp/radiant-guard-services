@@ -64,6 +64,16 @@ import { OffboardingRecordsSection } from "@/components/offboarding-records-sect
 
 export const Route = createFileRoute("/admin/profile")({
   component: ProfilePage,
+  head: () => ({
+    meta: [
+      { title: "My Profile | Radiant Guard Services" },
+      { name: "description", content: "View your Radiant employee profile, posting, CTC, and documents." },
+      { property: "og:title", content: "My Profile | Radiant Guard Services" },
+      { property: "og:description", content: "View your Radiant employee profile, posting, CTC, and documents." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 function CameraCaptureDialog({
@@ -233,11 +243,11 @@ type SignedDocRow = {
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl border border-border/50 bg-secondary/30 px-3 py-2">
-      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="min-w-0 rounded-xl border border-accent/10 bg-accent/5 px-3.5 py-3">
+      <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </span>
-      <span className="mt-0.5 block break-words text-[13.5px] font-semibold text-foreground">
+      <span className="mt-1 block break-words text-[13.5px] font-medium text-foreground">
         {value || "—"}
       </span>
     </div>
@@ -248,19 +258,23 @@ function Section({
   title,
   icon: Icon,
   children,
+  className = "",
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-accent" />
-        <h2 className="text-sm font-semibold tracking-wide">{title}</h2>
+    <section className={`overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm ${className}`}>
+      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/15">
+          <Icon className="h-4 w-4" />
+        </span>
+        <h2 className="text-sm font-medium text-foreground">{title}</h2>
       </div>
-      {children}
-    </div>
+      <div className="p-4 sm:p-5">{children}</div>
+    </section>
   );
 }
 
@@ -835,11 +849,11 @@ function ProfilePage() {
   const directReports = postingsQ.data?.directReports ?? [];
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-[1180px] space-y-5 pb-6">
       <PageHeader
         title="My Profile"
-        description="Your personal record, role, documents, and uploads."
-        crumbs={[{ label: "My Profile" }]}
+        description="Your work details, records and documents."
+        icon={Users}
       />
 
       <LanguagePreferenceCard candidateId={profile.id} />
@@ -847,10 +861,10 @@ function ProfilePage() {
       {appleNativeCard}
 
       {/* Hero card */}
-      <div className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-secondary/40 shadow-sm">
-        <div className="flex flex-col items-center gap-4 px-5 pb-5 pt-6 text-center sm:flex-row sm:items-center sm:gap-6 sm:px-6 sm:text-left">
+      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+        <div className="flex flex-col items-center gap-5 p-5 text-center sm:flex-row sm:items-center sm:gap-6 sm:p-7 sm:text-left">
           <div className="relative shrink-0">
-            <div className="block h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-secondary shadow-md ring-2 ring-primary/20 sm:h-28 sm:w-28">
+            <div className="block h-24 w-24 overflow-hidden rounded-2xl border-2 border-background bg-accent/10 shadow-sm ring-1 ring-border sm:h-28 sm:w-28">
               {profile.photo_url ? (
                 <img
                   src={profile.photo_url}
@@ -858,17 +872,18 @@ function ProfilePage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-muted-foreground">
-                  {(profile.full_name || "?").slice(0, 1).toUpperCase()}
+                  <div className="flex h-full w-full items-center justify-center text-accent">
+                    <Users className="h-10 w-10" />
                 </div>
               )}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
+                <Button
                   type="button"
+                  size="icon"
                   disabled={uploadingPhoto}
-                  className="absolute -bottom-1 -right-1 inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-md transition-colors hover:opacity-90 disabled:opacity-60"
+                  className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full border-2 border-background bg-accent text-accent-foreground shadow-md hover:bg-accent/90"
                   title="Change photo"
                 >
                   {uploadingPhoto ? (
@@ -876,7 +891,7 @@ function ProfilePage() {
                   ) : (
                     <Camera className="h-4 w-4" />
                   )}
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setCameraOpen(true)}>
@@ -905,7 +920,7 @@ function ProfilePage() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h1 className="break-words font-display text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
+            <h1 className="break-words font-display text-xl font-semibold leading-tight text-foreground sm:text-2xl">
               {profile.full_name || "Unnamed"}
             </h1>
             <p className="mt-1 break-words text-[13px] font-medium text-muted-foreground sm:text-sm">
@@ -913,8 +928,8 @@ function ProfilePage() {
               {lookups?.unit ? ` · ${lookups.unit.name}` : ""}
               {lookups?.unit?.city ? ` (${lookups.unit.city})` : ""}
             </p>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
-              <Badge variant="outline" className="rounded-full px-2.5 py-0.5 capitalize">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <Badge className="rounded-full border border-accent/15 bg-accent/10 px-3 py-1 capitalize text-accent hover:bg-accent/10">
                 {profile.status}
               </Badge>
               {lookups?.role?.name && (
@@ -931,7 +946,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 border-t border-border/60 bg-background/60 px-4 py-4 sm:grid-cols-2 sm:gap-3 sm:px-6">
+        <div className="grid grid-cols-2 gap-2 border-t border-border/60 bg-accent/5 p-4 sm:grid-cols-4 sm:gap-3 sm:px-7">
           <InfoRow label="Employee Code" value={profile.employee_code || "—"} />
           <InfoRow
             label="Role"
@@ -1148,7 +1163,7 @@ function ProfilePage() {
         )}
       </Section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
 
         <Section title="Contact" icon={PhoneIcon}>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1530,7 +1545,8 @@ function ProfilePage() {
         )}
       </div>
 
-      <Section title="Salary Structure" icon={Wallet}>
+      <div className="grid items-stretch gap-5 lg:grid-cols-3">
+      <Section title="CTC" icon={Wallet} className="lg:col-span-2">
         {salaryQ.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -1550,9 +1566,9 @@ function ProfilePage() {
             const c = salaryQ.data.contract;
             const p = salaryQ.data.period!;
             return (
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 p-4">
-                  <div>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
+                <div className="grid gap-4 rounded-xl border border-border/70 bg-secondary/30 p-4 sm:grid-cols-2">
+                  <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Pay Period
                     </div>
@@ -1561,7 +1577,7 @@ function ProfilePage() {
                       {p.start} → {p.end} · {p.days} days
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="min-w-0 sm:text-right">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Contract
                     </div>
@@ -1570,104 +1586,15 @@ function ProfilePage() {
                       {lookups?.unit?.name || "—"}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Net Pay
-                    </div>
-                    <div className="text-xl font-bold text-accent">{fmtINR(w.netPay)}</div>
+                </div>
+                <div className="flex min-w-[190px] flex-col justify-between rounded-xl border border-accent/15 bg-accent/10 p-4 sm:text-right">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-accent">
+                    Monthly CTC
+                  </div>
+                  <div className="mt-4 font-display text-3xl font-semibold tabular-nums text-accent">
+                    {fmtINR(w.employerCost)}
                   </div>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-border p-4">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Earnings
-                    </div>
-                    <ul className="space-y-1.5 text-sm">
-                      {w.components.map((c, i) => (
-                        <li key={i} className="flex justify-between">
-                          <span>{c.name}</span>
-                          <span className="font-mono">{fmtINR(c.amount)}</span>
-                        </li>
-                      ))}
-                      {w.benefits.length > 0 && (
-                        <>
-                          <li className="pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            Benefits
-                          </li>
-                          {w.benefits.map((b, i) => (
-                            <li key={`b-${i}`} className="flex justify-between text-muted-foreground">
-                              <span>{b.name}</span>
-                              <span className="font-mono">{fmtINR(b.amount)}</span>
-                            </li>
-                          ))}
-                        </>
-                      )}
-                      <li className="flex justify-between border-t border-border pt-2 font-semibold">
-                        <span>Gross Earned</span>
-                        <span className="font-mono">{fmtINR(w.earnedGross)}</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="rounded-xl border border-border p-4">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Deductions
-                    </div>
-                    {w.deductions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No deductions configured.</p>
-                    ) : (
-                      <ul className="space-y-1.5 text-sm">
-                        {w.deductions.map((d, i) => (
-                          <li key={i} className="flex justify-between">
-                            <span>{d.name}</span>
-                            <span className="font-mono">{fmtINR(d.amount)}</span>
-                          </li>
-                        ))}
-                        <li className="flex justify-between border-t border-border pt-2 font-semibold">
-                          <span>Total Deductions</span>
-                          <span className="font-mono">{fmtINR(w.totalDeductions)}</span>
-                        </li>
-                      </ul>
-                    )}
-                    {w.employerContributions.length > 0 && (
-                      <div className="mt-4">
-                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Employer Contributions
-                        </div>
-                        <ul className="space-y-1.5 text-sm text-muted-foreground">
-                          {w.employerContributions.map((e, i) => (
-                            <li key={i} className="flex justify-between">
-                              <span>{e.name}</span>
-                              <span className="font-mono">{fmtINR(e.amount)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/5 p-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Per-day rate:</span>{" "}
-                    <span className="font-semibold">{fmtINR(w.perDayRate)}</span>{" "}
-                    <span className="text-xs text-muted-foreground">
-                      · base {w.baseDays} days
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Employer cost:</span>{" "}
-                    <span className="font-semibold">{fmtINR(w.employerCost)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Net Pay:</span>{" "}
-                    <span className="text-base font-bold text-accent">{fmtINR(w.netPay)}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Default slip based on contract mapping for a full month. Actual payroll uses attendance from the Payroll module.
-                </p>
               </div>
             );
           })()
@@ -1676,7 +1603,7 @@ function ProfilePage() {
 
 
 
-      <Section title="Signed Documents" icon={FileSignature}>
+      <Section title="Signed Documents" icon={FileSignature} className="lg:col-span-1">
         {docsQ.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -1686,11 +1613,11 @@ function ProfilePage() {
             You haven't signed any company documents yet.
           </p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="space-y-2">
             {docsQ.data!.map((d) => (
               <li
                 key={d.id}
-                className="flex flex-wrap items-center justify-between gap-3 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 p-3 transition-colors hover:border-accent/25 hover:bg-accent/5"
               >
                 <div>
                   <div className="text-sm font-semibold">
@@ -1721,6 +1648,7 @@ function ProfilePage() {
           </ul>
         )}
       </Section>
+      </div>
 
       {bottomActions}
     </div>
