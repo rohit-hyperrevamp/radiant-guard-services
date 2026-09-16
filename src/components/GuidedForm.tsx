@@ -26,8 +26,37 @@ type GuidedFormProps = {
   isDirty?: boolean;
   /** Word used in the close prompt, e.g. "client". */
   entityLabel?: string;
+  /**
+   * Receives the guarded close handler so the surrounding dialog can route
+   * Esc, outside clicks and the header X through the same unsaved-work prompt.
+   */
+  closeGuardRef?: MutableRefObject<(() => void) | null>;
   children: ReactNode;
 };
+
+/**
+ * Wire a dialog's own close paths (Esc, outside click, header X) to the
+ * GuidedForm unsaved-work prompt:
+ *   const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
+ *   <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
+ *     <GuidedForm closeGuardRef={closeGuard.ref} ... />
+ */
+export function useGuidedFormCloseGuard(close: () => void) {
+  const ref = useRef<(() => void) | null>(null);
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  return useMemo(
+    () => ({
+      ref,
+      onOpenChange: (open: boolean) => {
+        if (open) return;
+        if (ref.current) ref.current();
+        else closeRef.current();
+      },
+    }),
+    [],
+  );
+}
 
 export function GuidedForm({
   title,
