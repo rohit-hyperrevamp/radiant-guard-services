@@ -72,6 +72,7 @@ export function GuidedForm({
   submitLabel = "Save",
   isDirty,
   entityLabel,
+  closeGuardRef,
   children,
 }: GuidedFormProps) {
   const stepIndex = Math.max(0, steps.findIndex((step) => step.key === stepKey));
@@ -106,6 +107,10 @@ export function GuidedForm({
     touchedRef.current = false;
     onCancel();
   };
+
+  // Expose the same prompt to the dialog's Esc / outside-click / header X.
+  if (closeGuardRef) closeGuardRef.current = () => void requestCancel();
+
 
 
   return (
