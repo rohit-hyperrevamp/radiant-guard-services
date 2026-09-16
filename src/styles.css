@@ -267,6 +267,22 @@
     color: white;
   }
 
+  /* Live blur behind cards is re-computed on every scroll frame. Touch devices
+     and reduced-transparency users get an opaque surface instead — same look,
+     no per-frame compositing cost. */
+  @media (hover: none), (prefers-reduced-transparency: reduce) {
+    .glass, .glass-strong {
+      backdrop-filter: none;
+      background: rgb(var(--surface));
+    }
+    .glass-dark {
+      backdrop-filter: none;
+      background: oklch(0.18 0.03 260);
+    }
+  }
+
+
+
 
   .text-gradient-accent {
     background-clip: text;
