@@ -473,7 +473,7 @@ function EmployeeDashboard() {
         <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <section className="relative isolate flex min-h-[300px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
             {me.photo_url ? (
-              <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center sm:object-right" />
+              <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center" />
             ) : (
               <div className="absolute inset-0 grid place-items-center bg-accent text-accent-foreground">
                 <UserRound className="h-28 w-28" strokeWidth={1.25} />
