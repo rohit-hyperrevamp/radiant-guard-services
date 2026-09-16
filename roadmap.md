@@ -68,3 +68,4 @@
 - [x] Preserve attendance, assignments, manager, team, device, and insights behavior.
 - [x] Verify responsive layout and project checks.
 - [x] Improve the profile-card image visibility and text contrast on mobile and desktop.
+- [x] Show assigned unit locations and identify Primary and Secondary units.
