@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { confirmDiscardChanges } from "@/components/ConfirmProvider";
