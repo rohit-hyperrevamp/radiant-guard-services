@@ -636,6 +636,18 @@
     padding: 0.625rem 0.75rem;
   }
 
+  .guided-form {
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    background: var(--card);
+  }
+
+  .guided-form .modern-form-section {
+    background: var(--card);
+    border-color: color-mix(in oklab, var(--border) 72%, transparent);
+  }
+
   [data-slot="dialog-content"]:has(input, textarea, [role="combobox"]) {
     scrollbar-gutter: stable;
   }

@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useItemSizeOptions, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
 
 // PO status → user-facing delivery label. Legacy "approved" maps to Delivery Open.
 const PO_STATUS_LABEL: Record<string, string> = {
@@ -394,6 +395,7 @@ function POFormDialog({
   const [lines, setLines] = useState<POLine[]>([]);
   const [status, setStatus] = useState<string>("open");
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("supplier");
 
 
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -491,6 +493,7 @@ function POFormDialog({
       setPoDate(new Date().toISOString().slice(0, 10));
       setExpectedDate(""); setNotes(""); setLines([]); setStatus("open");
     }
+    setStepKey("supplier");
   });
 
   const totals = useMemo(() => {
@@ -600,16 +603,45 @@ function POFormDialog({
     }
   }
 
+  const steps: GuidedFormStep[] = [
+    { key: "supplier", label: "Supplier", caption: "Vendor and delivery locations" },
+    { key: "items", label: "Items", caption: "Products, quantities and rates" },
+    { key: "review", label: "Review", caption: "Dates, notes and order total" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "supplier" && !vendorId) return "Select a vendor";
+    if (key === "supplier" && !orderingFrom) return "Select the ordering location";
+    if (key === "supplier" && !deliverTo) return "Select the delivery location";
+    if (key === "items" && !lines.length) return "Add at least one item";
+    if (key === "items" && lines.some((line) => !line.item_id || line.ordered_qty < 1)) return "Complete every item and quantity";
+    return null;
+  };
+  const isStepComplete = (key: string) => key === "review"
+    ? !validateStep("supplier") && !validateStep("items")
+    : !validateStep(key);
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>{initial ? `Purchase Order ${initial.po_number}` : "New Purchase Order"}</DialogTitle>
           <DialogDescription>{readOnly ? "Read-only — goods have started arriving, edits are locked." : initial ? "Edit the PO. Available until the first Goods Receipt is posted." : "Order items from a vendor."}</DialogDescription>
 
         </DialogHeader>
 
-        <div className="modern-form-section">
+        <GuidedForm title={initial ? `Purchase order ${initial.po_number}` : "New purchase order"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={!initial && !readOnly ? () => void save("draft") : undefined} onSubmit={() => void save(initial ? status : "open")} saving={saving} submitLabel={initial ? "Save changes" : "Issue order"}>
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "supplier" ? "block" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Supplier and delivery</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Vendor</Label>
               <Select value={vendorId} onValueChange={(v) => { setVendorId(v); applyVendorPriceToLines(v); }} disabled={readOnly}>
@@ -653,8 +685,11 @@ function POFormDialog({
               </div>
             )}
           </div>
+          </section>
+          </div>
 
-
+          <div className={stepKey === "items" ? "block" : "hidden"}>
+          <section className="modern-form-section">
           <div>
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
@@ -760,21 +795,24 @@ function POFormDialog({
               <div className="font-display text-base font-bold tabular-nums">Total ₹{totals.grand.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
             </div>
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Order summary</h3>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Vendor</dt><dd className="mt-1 font-medium">{vendorNameById(vendorId) || "Not selected"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Items</dt><dd className="mt-1 font-medium">{lines.length}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Order date</dt><dd className="mt-1 font-medium">{poDate}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Expected delivery</dt><dd className="mt-1 font-medium">{expectedDate || "Not set"}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Total</dt><dd className="mt-1 text-xl font-semibold">₹{totals.grand.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</dd></div>
+            </dl>
+          </section>
           <div className="grid gap-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={readOnly} rows={2} /></div>
+          </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Close</Button>
-          {initial ? (
-            <Button onClick={() => save(status)} disabled={saving}>{saving ? "Saving…" : "Save Changes"}</Button>
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => save("draft")} disabled={saving}>Save Draft</Button>
-              <Button onClick={() => save("open")} disabled={saving}>{saving ? "Saving…" : "Issue PO"}</Button>
-            </>
-          )}
-        </DialogFooter>
+        </GuidedForm>
 
       </DialogContent>
     </Dialog>

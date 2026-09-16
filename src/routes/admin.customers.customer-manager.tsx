@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Download, Edit2, ExternalLink, List as ListIcon, MapPin, Network, Plus, Search, Users, Warehouse } from "lucide-react";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { csvStatus, downloadCsv } from "@/lib/csv-export";
@@ -54,6 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
+import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
 export const Route = createFileRoute("/admin/customers/customer-manager")({
   component: CustomerManagerPage,
@@ -629,8 +630,8 @@ function CustomerFormDialog({
   const [form, setForm] = useState<Omit<Customer, "id">>(emptyCustomer());
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  
   const [submitting, setSubmitting] = useState(false);
+  const [stepKey, setStepKey] = useState("profile");
 
   useEffect(() => {
     if (!open) return;
@@ -642,6 +643,7 @@ function CustomerFormDialog({
       setForm({ ...emptyCustomer(), code: nextCustomerCode(customers) });
     }
     setError(null);
+    setStepKey("profile");
   }, [open, editing, customers]);
 
   const set = <K extends keyof Omit<Customer, "id">>(key: K, value: Omit<Customer, "id">[K]) => {
@@ -690,36 +692,105 @@ function CustomerFormDialog({
     key: f.key.toString().replace("billing", "shipping") as keyof Omit<Customer, "id">,
   }));
 
+  const steps: GuidedFormStep[] = [
+    { key: "profile", label: "Profile", caption: "Name, identity and status" },
+    { key: "contact", label: "Contact", caption: "Primary contact person" },
+    { key: "billing", label: "Billing", caption: "Billing address and contact" },
+    { key: "deployment", label: "Deployment", caption: "Shipping or deployment address" },
+    { key: "review", label: "Review", caption: "Check and create the organization" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "profile") {
+      if (!form.code.trim()) return "Organization ID is required";
+      if (!form.name.trim()) return "Organization name is required";
+    }
+    if (key === "billing" && form.billingPincode && !/^\d{6}$/.test(form.billingPincode)) return "Enter a valid 6-digit billing pincode";
+    if (key === "deployment" && !form.shippingSameAsBilling && form.shippingPincode && !/^\d{6}$/.test(form.shippingPincode)) return "Enter a valid 6-digit deployment pincode";
+    return null;
+  };
+  const isStepComplete = (key: string): boolean => {
+    if (key === "profile") return !validateStep(key);
+    if (key === "contact") return Boolean(form.billingName.trim());
+    if (key === "billing") return Boolean(form.billingAddress1.trim() && form.billingCity.trim() && !validateStep(key));
+    if (key === "deployment") return form.shippingSameAsBilling || Boolean(form.shippingAddress1.trim() && form.shippingCity.trim() && !validateStep(key));
+    return steps.slice(0, 4).every((step) => isStepComplete(step.key));
+  };
+  const requestStep = (key: string) => {
+    const currentIndex = steps.findIndex((step) => step.key === stepKey);
+    const targetIndex = steps.findIndex((step) => step.key === key);
+    if (targetIndex > currentIndex) {
+      for (let index = 0; index < targetIndex; index += 1) {
+        const problem = validateStep(steps[index].key);
+        if (problem) {
+          toast.error(problem);
+          setStepKey(steps[index].key);
+          return;
+        }
+      }
+    }
+    setStepKey(key);
+  };
+  const restoreDraft = useCallback((draft: Omit<Customer, "id">) => setForm(draft), []);
+  const meaningfulDraft = useCallback((draft: Omit<Customer, "id">) => Boolean(draft.name || draft.billingName || draft.billingAddress1), []);
+  const draft = useGuidedFormDraft({
+    open,
+    storageKey: editing ? null : "rg-wizard-draft-organization",
+    value: form,
+    onRestore: restoreDraft,
+    isMeaningful: meaningfulDraft,
+  });
+  const submitForm = async () => {
+    for (const step of steps.slice(0, 4)) {
+      const problem = validateStep(step.key);
+      if (problem) {
+        toast.error(problem);
+        setStepKey(step.key);
+        return;
+      }
+    }
+    setSubmitting(true);
+    try {
+      const result = await onSubmit(form);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      draft.clear();
+      onSuccess();
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>{editing ? "Edit organization" : "Add organization"}</DialogTitle>
-          <DialogDescription>
-            Capture the organisation profile, contract window, and billing / deployment addresses.
-          </DialogDescription>
+          <DialogDescription>Organization setup</DialogDescription>
         </DialogHeader>
-
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setSubmitting(true);
-            try {
-              const result = await onSubmit(form);
-              if (result.error) {
-                setError(result.error);
-                return;
-              }
-              onSuccess();
-              onOpenChange(false);
-            } finally {
-              setSubmitting(false);
-            }
-          }}
-          className="modern-business-form"
+        <GuidedForm
+          title={editing ? "Edit organization" : "New organization"}
+          steps={steps}
+          stepKey={stepKey}
+          onStepChange={requestStep}
+          isStepComplete={isStepComplete}
+          onCancel={() => onOpenChange(false)}
+          onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }}
+          onSubmit={() => void submitForm()}
+          saving={submitting || uploading}
+          submitLabel={editing ? "Save changes" : "Create organization"}
         >
-          <SectionHeading title="Organization profile" />
-          <div className="grid gap-4 sm:grid-cols-2">
+          {draft.hasDraft && !editing && stepKey === "profile" && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm">
+              <span className="text-muted-foreground">Saved draft available</span>
+              <Button type="button" size="sm" variant="outline" onClick={() => { draft.restore(); toast.success("Draft restored"); }}>Restore</Button>
+            </div>
+          )}
+          {stepKey === "profile" && <section className="modern-form-section">
+            <SectionHeading title="Organization profile" />
+            <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Organisation ID">
               <Input
                 value={form.code}
@@ -775,11 +846,12 @@ function CustomerFormDialog({
                 />
               </div>
             </Field>
-          </div>
+            </div>
+          </section>}
 
-
-          <SectionHeading title="Contact person" />
-          <div className="grid gap-4 sm:grid-cols-2">
+          {stepKey === "contact" && <section className="modern-form-section">
+            <SectionHeading title="Contact person" />
+            <div className="grid gap-4 sm:grid-cols-2">
             {contactFields.map((f) => (
               <Field key={f.key} label={f.label} full={f.full}>
                 <Input
@@ -789,10 +861,12 @@ function CustomerFormDialog({
                 />
               </Field>
             ))}
-          </div>
+            </div>
+          </section>}
 
-          <SectionHeading title="Billing information" />
-          <div className="grid gap-4 sm:grid-cols-2">
+          {stepKey === "billing" && <section className="modern-form-section">
+            <SectionHeading title="Billing information" />
+            <div className="grid gap-4 sm:grid-cols-2">
             {billingFields.map((f) => {
               const isPincode = f.key === "billingPincode";
               const isPhone = f.key === "billingPhone" || f.key === "billingFax";
@@ -813,9 +887,10 @@ function CustomerFormDialog({
                 </Field>
               );
             })}
-          </div>
+            </div>
+          </section>}
 
-          <div>
+          {stepKey === "deployment" && <section className="modern-form-section">
             <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
               <SectionHeading title="Shipping / Deployment address" inline />
               <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -850,19 +925,22 @@ function CustomerFormDialog({
                 })}
               </div>
             )}
-          </div>
+          </section>}
+
+          {stepKey === "review" && <section className="modern-form-section">
+            <SectionHeading title="Review" />
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Organization</dt><dd className="mt-1 font-medium">{form.name || "Not entered"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">ID</dt><dd className="mt-1 font-mono font-medium">{form.code || "Not entered"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Contact</dt><dd className="mt-1 font-medium">{form.billingName || "Not entered"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Status</dt><dd className="mt-1 font-medium capitalize">{form.status}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Billing address</dt><dd className="mt-1 font-medium">{[form.billingAddress1, form.billingCity, form.billingState, form.billingPincode].filter(Boolean).join(", ") || "Not entered"}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Deployment address</dt><dd className="mt-1 font-medium">{form.shippingSameAsBilling ? "Same as billing" : [form.shippingAddress1, form.shippingCity, form.shippingState, form.shippingPincode].filter(Boolean).join(", ") || "Not entered"}</dd></div>
+            </dl>
+          </section>}
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={uploading || submitting} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {submitting ? "Saving…" : editing ? "Save changes" : "Create organization"}
-            </Button>
-          </DialogFooter>
-        </form>
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
