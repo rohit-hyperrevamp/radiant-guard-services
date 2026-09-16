@@ -349,7 +349,7 @@ function RootComponent() {
     document.addEventListener("mouseout", onOut, true);
     document.addEventListener("focusin", onOver, true);
     document.addEventListener("focusout", onOut, true);
-    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
     window.addEventListener("resize", hide);
 
     return () => {
