@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as RequestDataDeletionRouteImport } from './routes/request-data-deletion'
 import { Route as PrivacypolicyRouteImport } from './routes/privacypolicy'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -134,6 +135,11 @@ const RequestDataDeletionRoute = RequestDataDeletionRouteImport.update({
 const PrivacypolicyRoute = PrivacypolicyRouteImport.update({
   id: '/privacypolicy',
   path: '/privacypolicy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -708,6 +714,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
@@ -821,6 +828,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
@@ -931,6 +939,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
@@ -1046,6 +1055,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/privacy-policy'
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
@@ -1159,6 +1169,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/privacy-policy'
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
@@ -1268,6 +1279,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/privacy-policy'
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
@@ -1382,6 +1394,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   PrivacypolicyRoute: typeof PrivacypolicyRoute
   RequestDataDeletionRoute: typeof RequestDataDeletionRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -1414,6 +1427,13 @@ declare module '@tanstack/react-router' {
       path: '/privacypolicy'
       fullPath: '/privacypolicy'
       preLoaderRoute: typeof PrivacypolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -2455,6 +2475,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   PrivacypolicyRoute: PrivacypolicyRoute,
   RequestDataDeletionRoute: RequestDataDeletionRoute,
   WelcomeRoute: WelcomeRoute,
