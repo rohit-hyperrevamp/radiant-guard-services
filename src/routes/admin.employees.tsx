@@ -6203,21 +6203,29 @@ function CandidateWizard({
   return (
     <InvalidFieldContext.Provider value={invalidField}>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg sm:border">
+      <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 bg-background p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-5xl sm:overflow-hidden sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
-        <DialogHeader className="shrink-0 border-b border-border bg-secondary/30 px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-6">
-          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <UserPlus className="h-5 w-5 shrink-0" />
-            <span className="truncate">{editing
-              ? (editing.status === "approved" || editing.status === "active" || editing.status === "inactive")
-                ? "Edit Employee"
-                : "Edit Candidate"
-              : isEmployeeMode ? "Add Employee" : "Add Candidate"}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            {isEmployeeMode ? "Internal employee profile." : "Complete all required steps."}
-          </DialogDescription>
+        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-14">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="truncate text-base font-semibold sm:text-lg">
+                  {editing ? "Edit Candidate" : "Add Candidate"}
+                </DialogTitle>
+                <DialogDescription className="truncate text-xs sm:text-sm">
+                  {currentStep.label} · {currentStep.caption}
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-base font-semibold tabular-nums text-foreground">{completionPct}%</p>
+              <p className="text-[11px] text-muted-foreground">{completionDone}/{completionTotal} complete</p>
+            </div>
+          </div>
           {isEmployeeMode && (
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -6226,7 +6234,7 @@ function CandidateWizard({
                   Payroll home unit · {nonBillableUnits.find((u) => u.id === homeUnitId)?.name ?? "Corporate Office (Pune - HO)"}
                 </Badge>
               </div>
-              <p className="text-[11px] text-muted-foreground">Pay unit stays at Radiant Pune.</p>
+              <p className="text-[11px] text-muted-foreground">Pay unit: Radiant Pune</p>
             </div>
           )}
 
@@ -6299,16 +6307,13 @@ function CandidateWizard({
         </DialogHeader>
 
         {/* Step rail + progress */}
-        <div className="shrink-0 border-b border-border bg-gradient-to-b from-card to-secondary/20 px-4 py-3 sm:px-6">
+        <div className="shrink-0 border-b border-border/60 bg-card px-4 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 Step {stepIndex + 1} of {steps.length}
               </p>
-              <p className="truncate text-sm font-semibold">
-                {currentStep.label}
-                <span className="font-normal text-muted-foreground"> · {currentStep.caption}</span>
-              </p>
+              <p className="truncate text-sm font-semibold">{currentStep.label}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {(editing?.employee_code || editing?.candidate_code) && (
@@ -6316,45 +6321,50 @@ function CandidateWizard({
                   {editing.employee_code || editing.candidate_code}
                 </Badge>
               )}
-              <span className="text-sm font-bold tabular-nums text-primary">{completionPct}%</span>
             </div>
           </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+          <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-secondary">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-500"
+              className="h-full rounded-full bg-primary transition-all duration-500"
               style={{ width: `${completionPct}%` }}
             />
           </div>
-          <div className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {steps.map((s, i) => {
               const done = isStepComplete(s.key);
               return (
-                <button
+                <Button
                   key={s.key}
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => requestStep(s.key)}
                   className={cn(
-                    "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
+                    "h-8 shrink-0 gap-1.5 rounded-lg border px-2.5 text-xs font-medium shadow-none transition-colors",
                     i === stepIndex
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                       : done
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        ? "border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
                         : i < stepIndex
                           ? "border-destructive/40 bg-destructive/10 text-destructive"
-                          : "border-border/70 bg-card text-muted-foreground",
+                          : "border-border/70 bg-background text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
                   )}
                 >
-                  {done ? "✓ " : `${i + 1}. `}
+                  <span className={cn(
+                    "grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
+                    i === stepIndex ? "bg-primary-foreground/20" : done ? "bg-primary/10" : "bg-secondary",
+                  )}>
+                    {done ? <Check className="h-3 w-3" /> : i + 1}
+                  </span>
                   {s.label}
-                </button>
+                </Button>
               );
             })}
 
           </div>
-          <p className="mt-1.5 text-[11px] text-muted-foreground">{completionDone}/{completionTotal} required</p>
           {pendingDraft && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
-              <span className="text-[11px] text-muted-foreground">Unsaved draft found.</span>
+            <div className="mt-2.5 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
+              <span className="truncate text-xs text-muted-foreground">Draft available</span>
               <Button
                 type="button"
                 size="sm"
@@ -6386,10 +6396,10 @@ function CandidateWizard({
           )}
         </div>
 
-        <div ref={wizardBodyRef} className="shrink-0 px-3 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-4">
+        <div ref={wizardBodyRef} className="shrink-0 bg-secondary/20 px-3 py-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-6 sm:py-5">
           {/* ----- Full form (single page) ----- */}
           {true && (
-            <div className="space-y-4 sm:space-y-6">
+            <div className="mx-auto max-w-4xl space-y-4 sm:space-y-5">
               {/* Identity first — Aadhaar & PAN drive the rest of the profile */}
               {(at("aadhaar") || at("pan")) && (
               <Section title={at("aadhaar") ? "Aadhaar" : "PAN"}>
@@ -6558,7 +6568,7 @@ function CandidateWizard({
               )}
 
               {at("basic") && (
-              <Section title="Basic Information">
+              <Section title="Personal details">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Full Name" required anchor="full_name">
                     <Input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} />
@@ -6674,7 +6684,7 @@ function CandidateWizard({
               )}
 
               {at("contacts") && (
-              <Section title="Emergency Contact">
+              <Section title="Contacts">
                 <div className="space-y-4">
 
                   {(() => {
@@ -6701,7 +6711,7 @@ function CandidateWizard({
                     const contactIssue = getEmergencyContactIssue();
                     return (
                       <>
-                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 sm:px-4">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 pb-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                               <HeartHandshake className="h-4.5 w-4.5" />
@@ -6718,7 +6728,7 @@ function CandidateWizard({
                             {contactIssue ? "Incomplete" : <><CheckCircle2 className="h-3.5 w-3.5" /> Complete</>}
                           </div>
                         </div>
-                        <div className="rounded-xl border border-border/70 bg-card p-3 shadow-sm sm:p-4">
+                        <div className="pt-4">
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
                             <div className="sm:col-span-2">
                             <Field label="Name" required>
@@ -7574,7 +7584,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/60 bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-3 sm:pb-3">
           {saveError && (
             <div
               role="alert"
@@ -7589,14 +7599,16 @@ function CandidateWizard({
                     </div>
                   )}
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setSaveError(null)}
-                  className="shrink-0 rounded-md p-1 text-rose-600/70 hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-500/20"
+                  className="h-7 w-7 shrink-0 text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
                   aria-label="Dismiss error"
                 >
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -7633,7 +7645,7 @@ function CandidateWizard({
                 variant="outline"
                 onClick={goBack}
                 disabled={submitting || savingDraft || !!uploading}
-                className="h-11 min-w-0 px-2 sm:h-10 sm:flex-none sm:px-4"
+                className="h-11 min-w-0 rounded-lg px-2 sm:h-10 sm:flex-none sm:px-4"
               >
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back
               </Button>
@@ -7642,7 +7654,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading}
-              className={cn("h-11 min-w-0 px-2 sm:h-10 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
+              className={cn("h-11 min-w-0 rounded-lg px-2 sm:h-10 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
@@ -7651,7 +7663,7 @@ function CandidateWizard({
               <Button
                 type="button"
                 onClick={goNext}
-                className="h-11 min-w-0 px-2 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none sm:px-4"
+                className="h-11 min-w-0 rounded-lg px-2 sm:h-10 sm:flex-none sm:px-4"
               >
                 Next <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
@@ -7660,7 +7672,7 @@ function CandidateWizard({
                 onClick={submit}
                 disabled={submitting || savingDraft || !!uploading}
                 title={!editing && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                className="h-11 min-w-0 px-2 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:flex-none sm:px-4"
+                className="h-11 min-w-0 rounded-lg px-2 sm:h-10 sm:flex-none sm:px-4"
               >
                 {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 {editing ? "Save" : "Submit"}
@@ -7677,14 +7689,14 @@ function CandidateWizard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-2.5 shadow-sm sm:p-5">
-      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+    <section className="border border-border/60 bg-card px-3 py-4 sm:rounded-xl sm:px-5 sm:py-5 sm:shadow-xs">
+      <div className="mb-4 text-sm font-semibold text-foreground">
         {title}
       </div>
       <SectionHeaderContext.Provider value={{ hideHeader: true }}>
         {children}
       </SectionHeaderContext.Provider>
-    </div>
+    </section>
   );
 }
 
@@ -7707,13 +7719,13 @@ function Field({
     <div
       id={anchor ? `fld-${anchor}` : undefined}
       data-invalid={invalid ? "true" : undefined}
-      className={invalid ? "rounded-xl bg-rose-500/5 p-2 ring-2 ring-rose-500/60 [&_input]:border-rose-500 [&_button]:border-rose-500" : undefined}
+      className={cn("min-w-0", invalid && "rounded-lg bg-destructive/5 p-2 ring-2 ring-destructive/50 [&_input]:border-destructive [&_button]:border-destructive")}
     >
-      <Label className="mb-1.5 block">
-        {label} {required && <span className="text-rose-500">*</span>}
+      <Label className="mb-1.5 block text-sm font-medium text-foreground">
+        {label} {required && <span className="text-destructive">*</span>}
       </Label>
       {children}
-      {invalid && <p className="mt-1 text-[11px] font-semibold text-rose-600">This field needs your attention</p>}
+      {invalid && <p className="mt-1.5 text-xs font-medium text-destructive">Check this field</p>}
     </div>
   );
 }
@@ -7835,17 +7847,18 @@ function UploadTile({
   const done = !!url;
   return (
     <div
-      className={`relative flex flex-col items-center gap-2 rounded-lg border border-dashed p-3 ${
-        done ? "border-emerald-500/40 bg-emerald-500/5" : required ? "border-rose-400/40 bg-secondary/20" : "border-border bg-secondary/20"
-      }`}
+      className={cn(
+        "relative flex min-h-48 flex-col items-center gap-3 rounded-xl border p-3 transition-colors",
+        done ? "border-primary/25 bg-primary/5" : required ? "border-destructive/30 bg-background" : "border-border/70 bg-background",
+      )}
     >
       <div className="flex w-full items-center justify-between">
-        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          {label} {required && <span className="text-rose-500">*</span>}
+        <div className="text-sm font-medium text-foreground">
+          {label} {required && <span className="text-destructive">*</span>}
         </div>
-        {done && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+        {done && <CheckCircle2 className="h-4 w-4 text-primary" />}
       </div>
-      <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-md bg-background">
+      <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border border-border/50 bg-secondary/30">
         {url ? (
           isPdf ? (
             <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
