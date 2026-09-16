@@ -7041,6 +7041,7 @@ function CandidateWizard({
                     country: form.permanent_country,
                   }}
                   anchorPrefix="permanent"
+                  requireFullAddress
                   onChange={(patch) => {
                     setForm((f) => {
                       const next = { ...f };
@@ -7767,17 +7768,19 @@ function CandidateAddressFields({
   block,
   onChange,
   anchorPrefix,
+  requireFullAddress = false,
 }: {
   block: AddressBlock;
   onChange: (patch: Partial<AddressBlock>) => void;
   anchorPrefix?: string;
+  requireFullAddress?: boolean;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Field label="District" required anchor={anchorPrefix ? `${anchorPrefix}_district` : undefined}>
         <Input value={block.district} onChange={(e) => onChange({ district: e.target.value })} />
       </Field>
-      <Field label="Address line 1" required>
+      <Field label="Address line 1" required={requireFullAddress}>
         <Input value={block.address1} onChange={(e) => onChange({ address1: e.target.value })} />
       </Field>
       <Field label="Address line 2">
@@ -7786,7 +7789,7 @@ function CandidateAddressFields({
       <Field label="Landmark">
         <Input value={block.landmark} onChange={(e) => onChange({ landmark: e.target.value })} />
       </Field>
-      <Field label="Pincode" required>
+      <Field label="Pincode" required={requireFullAddress}>
         <Input
           value={block.pincode}
           inputMode="numeric"
