@@ -126,35 +126,79 @@ function todayPunchDate(): string {
 }
 
 /** Load FO's assigned units with geo + address (aggregates candidate_units + esa + candidate.unit_id). */
+type RawUnit = {
+  id: string;
+  name: string;
+  code: string | null;
+  customer_id: string | null;
+  branch_id: string | null;
+  billing_address1: string | null;
+  billing_address2: string | null;
+  billing_city: string | null;
+  billing_state: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  is_billable: boolean | null;
+};
+
+const UNIT_COLUMNS =
+  "id,name,code,customer_id,branch_id,billing_address1,billing_address2,billing_city,billing_state,latitude,longitude,is_billable";
+
 async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
-  const [candRes, cuRes, esaRes, unitsRes, custRes, branchRes] = await Promise.all([
+  const [candRes, cuRes, esaRes] = await Promise.all([
     supabase.from("candidates" as never).select("id,unit_id").eq("id", candidateId).maybeSingle(),
     supabase.from("candidate_units" as never).select("unit_id").eq("candidate_id", candidateId),
     supabase
       .from("employee_scope_assignments" as never)
       .select("scope_type,scope_id")
       .eq("candidate_id", candidateId),
-    supabase.from("units" as never).select("id,name,code,customer_id,branch_id,billing_address1,billing_address2,billing_city,billing_state,latitude,longitude"),
-    supabase.from("customers" as never).select("id,name"),
-    supabase.from("branches" as never).select("id,name"),
   ]);
 
   const cand = (candRes.data ?? null) as unknown as { unit_id: string | null } | null;
   const cu = ((cuRes.data ?? []) as unknown) as Array<{ unit_id: string }>;
   const esa = ((esaRes.data ?? []) as unknown) as Array<{ scope_type: string; scope_id: string }>;
-  const allUnits = ((unitsRes.data ?? []) as unknown) as Array<{
-    id: string;
-    name: string;
-    code: string | null;
-    customer_id: string | null;
-    branch_id: string | null;
-    billing_address1: string | null;
-    billing_address2: string | null;
-    billing_city: string | null;
-    billing_state: string | null;
-    latitude: number | null;
-    longitude: number | null;
-  }>;
+
+  // Explicitly mapped units. NOTE: branch scopes are the officer's *home
+  // branch* (payroll marker), never an operational scope — do not expand them.
+  const directIds = new Set<string>();
+  if (cand?.unit_id) directIds.add(cand.unit_id);
+  for (const r of cu) directIds.add(r.unit_id);
+  for (const s of esa) if (s.scope_type === "unit") directIds.add(s.scope_id);
+  const customerIds = [...new Set(esa.filter((s) => s.scope_type === "customer").map((s) => s.scope_id))];
+
+  // Fetch ONLY the scoped units. Selecting the whole units table here hit the
+  // Data API row cap and returned nothing for field officers.
+  const byId = new Map<string, RawUnit>();
+  if (directIds.size) {
+    const { data } = await supabase.from("units" as never).select(UNIT_COLUMNS).in("id", [...directIds]);
+    for (const u of ((data ?? []) as unknown as RawUnit[])) byId.set(u.id, u);
+  }
+  if (customerIds.length) {
+    const pageSize = 1000;
+    for (let from = 0; ; from += pageSize) {
+      const { data } = await supabase
+        .from("units" as never)
+        .select(UNIT_COLUMNS)
+        .in("customer_id", customerIds)
+        .order("id", { ascending: true })
+        .range(from, from + pageSize - 1);
+      const rows = ((data ?? []) as unknown as RawUnit[]);
+      for (const u of rows) byId.set(u.id, u);
+      if (rows.length < pageSize) break;
+    }
+  }
+
+  const scoped = [...byId.values()].filter((u) => u.is_billable !== false);
+  const custIds = [...new Set(scoped.map((u) => u.customer_id).filter(Boolean))] as string[];
+  const brIds = [...new Set(scoped.map((u) => u.branch_id).filter(Boolean))] as string[];
+  const [custRes, branchRes] = await Promise.all([
+    custIds.length
+      ? supabase.from("customers" as never).select("id,name").in("id", custIds)
+      : Promise.resolve({ data: [] as unknown }),
+    brIds.length
+      ? supabase.from("branches" as never).select("id,name").in("id", brIds)
+      : Promise.resolve({ data: [] as unknown }),
+  ]);
   const customerMap = new Map(
     ((custRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]),
   );
@@ -162,34 +206,21 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
     ((branchRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((b) => [b.id, b.name]),
   );
 
-  const branchIds = new Set(esa.filter((s) => s.scope_type === "branch").map((s) => s.scope_id));
-  const customerIds = new Set(esa.filter((s) => s.scope_type === "customer").map((s) => s.scope_id));
-  const scopedUnitIds = new Set<string>();
-  if (cand?.unit_id) scopedUnitIds.add(cand.unit_id);
-  for (const r of cu) scopedUnitIds.add(r.unit_id);
-  for (const s of esa) if (s.scope_type === "unit") scopedUnitIds.add(s.scope_id);
-  for (const u of allUnits) {
-    if (u.branch_id && branchIds.has(u.branch_id)) scopedUnitIds.add(u.id);
-    if (u.customer_id && customerIds.has(u.customer_id)) scopedUnitIds.add(u.id);
-  }
-
-  const list: FoUnit[] = [];
-  for (const u of allUnits) {
-    if (!scopedUnitIds.has(u.id)) continue;
-    list.push({
-      unit_id: u.id,
-      unit_name: u.name,
-      unit_code: u.code,
-      customer_name: u.customer_id ? customerMap.get(u.customer_id) ?? null : null,
-      branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
-      address: [u.billing_address1, u.billing_address2, u.billing_city, u.billing_state].filter(Boolean).join(", ") || null,
-      latitude: u.latitude,
-      longitude: u.longitude,
-    });
-  }
+  const list: FoUnit[] = scoped.map((u) => ({
+    unit_id: u.id,
+    unit_name: u.name,
+    unit_code: u.code,
+    customer_name: u.customer_id ? customerMap.get(u.customer_id) ?? null : null,
+    branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
+    address:
+      [u.billing_address1, u.billing_address2, u.billing_city, u.billing_state].filter(Boolean).join(", ") || null,
+    latitude: u.latitude,
+    longitude: u.longitude,
+  }));
   list.sort((a, b) => a.unit_name.localeCompare(b.unit_name));
   return list;
 }
+
 
 export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId: string; viewDate?: string }) {
   const effectiveDate = viewDate ?? todayPunchDate();
