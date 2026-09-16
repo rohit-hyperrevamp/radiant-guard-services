@@ -210,8 +210,9 @@ function EmployeeDashboard() {
         supabase.rpc("current_user_unit_ids"),
       ]);
       const { data, error } = assignments;
-      if (error) throw error;
-      if (resolvedUnits.error) throw resolvedUnits.error;
+      // Neither source is required: if one path is unavailable for this
+      // account, keep whatever the other one resolved instead of failing.
+      if (error && resolvedUnits.error && !me?.unit_id) throw error;
       const rows =
         ((data as unknown) as Array<{
           unit_id: string;
