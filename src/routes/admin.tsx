@@ -1305,11 +1305,14 @@ function CollapsedGroupPopover({
             setOpen(true);
           }}
           onBlur={scheduleClose}
-          className={cn(itemBase, "justify-center px-2", groupActive ? itemActive : itemIdle)}
+          className={cn(
+            "mx-auto grid h-11 w-11 place-items-center rounded-full transition-all duration-200",
+            groupActive
+              ? "bg-white text-black shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)]"
+              : "text-white/55 hover:bg-white/[0.08] hover:text-white",
+          )}
         >
-          <span className={cn(iconSpanBase, groupActive ? iconSpanActive : iconSpanIdle)}>
-            <Icon className="h-4 w-4" />
-          </span>
+          <Icon className="h-[18px] w-[18px]" />
         </button>
       </PopoverTrigger>
       {group.children && (
