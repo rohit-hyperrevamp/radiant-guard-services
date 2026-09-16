@@ -6446,7 +6446,7 @@ function CandidateWizard({
                 })}
               </nav>
             </div>
-            <div className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-4 shadow-xs">
+            <div className="relative z-10 mt-6 shrink-0 rounded-xl border border-accent/20 bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-muted-foreground">Completion</span>
                 <span className="font-semibold tabular-nums text-foreground">{completionPct}%</span>
