@@ -393,7 +393,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
           No guards are reporting to you yet.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="modern-business-form">
           {grouped.map(({ unit, guards: gList }) => (
             <UnitBlock
               key={unit?.id ?? "__unassigned__"}

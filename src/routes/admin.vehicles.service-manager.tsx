@@ -291,7 +291,7 @@ function EditIntervalDialog({
           <DialogTitle>Edit Service Interval</DialogTitle>
         </DialogHeader>
         {vehicle && (
-          <div className="space-y-4">
+          <div className="modern-form-section">
             <div className="text-sm text-muted-foreground">
               Vehicle: <span className="font-medium text-foreground">{vehicle.vehicle_number}</span>
               {vehicle.name ? <> · {vehicle.name}</> : null}

@@ -173,7 +173,7 @@ function WHFormDialog({ open, onOpenChange, title, initial, onSubmit }: { open: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>Storage location.</DialogDescription></DialogHeader>
-        <div className="grid gap-3 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-2"><Label>Name *</Label><Input value={p.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Main Warehouse" /></div>
           <div className="grid gap-2"><Label>Phone</Label><Input value={p.phone} onChange={(e) => set("phone", e.target.value)} /></div>
           <div className="grid gap-2"><Label>Address</Label><Input value={p.address1} onChange={(e) => set("address1", e.target.value)} /></div>
@@ -183,8 +183,8 @@ function WHFormDialog({ open, onOpenChange, title, initial, onSubmit }: { open: 
             <div className="grid gap-2"><Label>Pincode</Label><Input value={p.pincode} onChange={(e) => set("pincode", e.target.value)} /></div>
           </div>
           <div className="grid gap-2"><Label>Notes</Label><Textarea rows={2} value={p.notes} onChange={(e) => set("notes", e.target.value)} /></div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2"><div><div className="text-sm font-medium">Default warehouse</div><div className="text-xs text-muted-foreground">Used by default in POs and transfers</div></div><Switch checked={p.is_default} onCheckedChange={(v) => set("is_default", v)} /></div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2"><div className="text-sm font-medium">Enabled</div><Switch checked={p.enabled} onCheckedChange={(v) => set("enabled", v)} /></div>
+          <div className="modern-form-toggle"><div><div className="text-sm font-medium">Default warehouse</div><div className="text-xs text-muted-foreground">Used by default in POs and transfers</div></div><Switch checked={p.is_default} onCheckedChange={(v) => set("is_default", v)} /></div>
+          <div className="modern-form-toggle"><div className="text-sm font-medium">Enabled</div><Switch checked={p.enabled} onCheckedChange={(v) => set("enabled", v)} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>

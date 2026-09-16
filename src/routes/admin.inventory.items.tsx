@@ -319,7 +319,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>A stockable SKU.</DialogDescription></DialogHeader>
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Security Shirt — Half Sleeve" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Category</Label>
@@ -340,7 +340,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
             <div className="grid gap-2"><Label>Purchase Cost ₹</Label><Input type="number" min={0} step="0.01" inputMode="decimal" value={stdCost === 0 ? "" : stdCost} onChange={(e) => setStdCost(Number(e.target.value.replace(/^0+(?=\d)/, "")) || 0)} placeholder="0.00" /><div className="text-[10px] text-muted-foreground">Auto-updated on GRN as weighted avg.</div></div>
             <div className="grid gap-2"><Label>Standard Issue Price ₹</Label><Input type="number" min={0} step="0.01" inputMode="decimal" value={issuePrice === 0 ? "" : issuePrice} onChange={(e) => setIssuePrice(Number(e.target.value.replace(/^0+(?=\d)/, "")) || 0)} placeholder="0.00" /><div className="text-[10px] text-muted-foreground">Used when issuing to staff/guards.</div></div>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2"><div><div className="text-sm font-medium">Sized item</div><div className="text-xs text-muted-foreground">Has size variants (S/M/L, shoe numbers, etc.)</div></div><Switch checked={isSized} onCheckedChange={setIsSized} /></div>
+          <div className="modern-form-toggle"><div><div className="text-sm font-medium">Sized item</div><div className="text-xs text-muted-foreground">Has size variants (S/M/L, shoe numbers, etc.)</div></div><Switch checked={isSized} onCheckedChange={setIsSized} /></div>
           {isSized && (
             <div className="rounded-lg border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
@@ -374,7 +374,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
             </div>
           )}
           <div className="grid gap-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2"><div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Visible in dropdowns</div></div><Switch checked={enabled} onCheckedChange={setEnabled} /></div>
+          <div className="modern-form-toggle"><div><div className="text-sm font-medium">Enabled</div><div className="text-xs text-muted-foreground">Visible in dropdowns</div></div><Switch checked={enabled} onCheckedChange={setEnabled} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
@@ -591,7 +591,7 @@ function AddStockDialog({ item, open, onOpenChange, onDone }: { item: Item | nul
           <DialogTitle>Add Stock — {item?.name}</DialogTitle>
           <DialogDescription>Quickly add quantity to a warehouse. Reflects everywhere immediately.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-2">
             <Label>Warehouse</Label>
             <Select value={warehouseId} onValueChange={setWarehouseId}>

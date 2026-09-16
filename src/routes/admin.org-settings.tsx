@@ -101,8 +101,14 @@ function OrgSettingsPage() {
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Company Settings" }]}
       />
 
-      <div className="mx-auto max-w-3xl space-y-5">
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <form
+        className="modern-business-form mx-auto max-w-3xl"
+        onSubmit={(event) => {
+          event.preventDefault();
+          saveMut.mutate();
+        }}
+      >
+        <section className="modern-form-section">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
               <Building2 className="h-5 w-5" />
@@ -137,7 +143,7 @@ function OrgSettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <section className="modern-form-section">
           <div className="mb-4 text-base font-semibold">Statutory registrations</div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field k="pf_number" label="PF No." />
@@ -148,7 +154,7 @@ function OrgSettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <section className="modern-form-section">
           <div className="mb-4 text-base font-semibold">Bank details</div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field k="bank_name" label="Bank Name" />
@@ -158,7 +164,7 @@ function OrgSettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <section className="modern-form-section">
           <div className="mb-4 text-base font-semibold">Invoice footer</div>
           <div className="grid gap-4">
             <Field k="invoice_declaration" label="Declaration" />
@@ -167,11 +173,11 @@ function OrgSettingsPage() {
         </section>
 
         <div className="flex justify-end pb-8">
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || isLoading}>
+          <Button type="submit" disabled={saveMut.isPending || isLoading}>
             {saveMut.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

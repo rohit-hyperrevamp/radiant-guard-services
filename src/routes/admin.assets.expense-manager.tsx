@@ -266,7 +266,7 @@ function AssetExpenseManagerPage() {
             <DialogTitle>{editing ? "Edit Expense" : "Add Expense"}</DialogTitle>
             <DialogDescription>Record an expense against a property.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={onSubmit} className="modern-form-section grid gap-4 sm:grid-cols-2">
             <Field label="Property *">
               <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
@@ -307,9 +307,9 @@ function AssetExpenseManagerPage() {
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
-      <div className="mt-1">{children}</div>
+    <div className={`modern-form-field ${className ?? ""}`}>
+      <Label className="font-medium text-foreground">{label}</Label>
+      {children}
     </div>
   );
 }

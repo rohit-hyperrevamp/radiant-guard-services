@@ -61,7 +61,7 @@ export function SectionHeader({ title, desc }: { title: string; desc?: string })
     ) : null;
   }
   return (
-    <div className="mb-4 border-b pb-3">
+    <div className="mb-4 border-b border-border/70 pb-3">
       <h2 className="text-base font-semibold sm:text-lg">{title}</h2>
       {desc && <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{desc}</p>}
     </div>
@@ -70,8 +70,8 @@ export function SectionHeader({ title, desc }: { title: string; desc?: string })
 
 export function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">
+    <div className="modern-form-field">
+      <Label className="font-medium text-foreground">
         {label} {required && <span className="text-rose-500">*</span>}
       </Label>
       {children}
@@ -120,7 +120,7 @@ export function PhysicalSection({ form, setSection, set }: { form: any; setSecti
         </Field>
       </div>
       {set && (
-        <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-4 py-3">
+        <div className="modern-form-toggle mt-6">
           <div>
             <div className="text-sm font-medium">Person with Disability (PwD)</div>
             <p className="text-xs text-muted-foreground">
@@ -151,7 +151,7 @@ export function ComplianceSection({
   const branches = esicBranches ?? [];
   
   const toggleRow = (label: string, desc: string, checked: boolean, onChange: (v: boolean) => void) => (
-    <div className="flex items-center justify-between rounded-md border p-3">
+    <div className="modern-form-toggle">
       <div>
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{desc}</p>
@@ -301,17 +301,19 @@ export function KnowledgeSection({ form, set }: { form: any; set: SetField }) {
             const langs: string[] = Array.isArray(form.languages) ? form.languages : [];
             const selected = langs.includes(lang);
             return (
-              <button
+              <Button
                 key={lang}
                 type="button"
                 onClick={() => {
                   const next = selected ? langs.filter((l) => l !== lang) : [...langs, lang];
                   set("languages", next);
                 }}
-                className={`rounded-full border px-3 py-1 text-xs transition ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-muted"}`}
+                variant={selected ? "default" : "outline"}
+                size="sm"
+                className="rounded-full"
               >
                 {lang}
-              </button>
+              </Button>
             );
           })}
         </div>

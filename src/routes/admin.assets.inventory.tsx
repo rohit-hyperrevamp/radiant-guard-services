@@ -295,7 +295,7 @@ function AssetInventoryPage() {
             <DialogTitle>{editing ? "Edit Property" : "Add Property"}</DialogTitle>
             <DialogDescription>Capture the immovable asset details.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={onSubmit} className="modern-form-section grid gap-4 sm:grid-cols-2">
             <Field label="House Number *"><Input value={form.house_number} onChange={(e) => setForm({ ...form, house_number: e.target.value })} required /></Field>
             <Field label="Name / Nickname"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Riverside Villa" /></Field>
             <Field label="Owner"><Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Owning entity" /></Field>
@@ -337,9 +337,9 @@ function AssetInventoryPage() {
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
-      <div className="mt-1">{children}</div>
+    <div className={`modern-form-field ${className ?? ""}`}>
+      <Label className="font-medium text-foreground">{label}</Label>
+      {children}
     </div>
   );
 }

@@ -5771,8 +5771,8 @@ export function ResourceFormDialog({
 
   if (inline) {
     return (
-      <div ref={dialogContentRef} className="space-y-4">
-        {content}
+      <div ref={dialogContentRef} className="modern-business-form">
+        <div className="modern-business-form">{content}</div>
       </div>
     );
   }

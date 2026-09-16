@@ -587,7 +587,7 @@ function GRNFormDialog({ open, onOpenChange, pos, vendors, branches, warehouses,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader><DialogTitle>New Delivery Challan</DialogTitle><DialogDescription>Receive items against a Purchase Order.</DialogDescription></DialogHeader>
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-2"><Label>Purchase Order</Label>
             <Select value={poId} onValueChange={loadPo}>
               <SelectTrigger><SelectValue placeholder="Pick an open PO" /></SelectTrigger>
@@ -961,7 +961,7 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
           <DialogTitle>New Delivery Challan</DialogTitle>
           <DialogDescription>Receive items dispatched to your branch — from a warehouse transfer or a vendor PO raised for this branch.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-2"><Label>Incoming Delivery</Label>
             <Select value={sourceKey} onValueChange={loadSource}>
               <SelectTrigger><SelectValue placeholder={hasAny ? "Pick an incoming transfer or PO" : "No incoming transfers or POs"} /></SelectTrigger>
@@ -1208,7 +1208,7 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
           <DialogTitle>New Delivery Challan</DialogTitle>
           <DialogDescription>Confirm receipt of items issued to you. Posting adds them to your inventory.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           <div className="grid gap-2"><Label>Incoming Issuance</Label>
             <Select value={issuanceId} onValueChange={loadIssuance}>
               <SelectTrigger><SelectValue placeholder={pendingIssuances.length ? "Pick a pending issuance" : "No pending issuances"} /></SelectTrigger>
