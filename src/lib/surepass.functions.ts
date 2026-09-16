@@ -75,8 +75,16 @@ async function surepass<T>(
 
   if (!res.ok || json.success === false) {
     const detail = json.message ?? text.slice(0, 200);
-    console.error(`[surepass] ${path} failed [${res.status}] ${detail}`);
-    throw new Error(detail || `Surepass request failed (${res.status})`);
+    console.error(`[surepass] ${path} failed [${res.status}] ${json.message_code ?? ""} ${detail}`);
+    // An expired/revoked provider key is an account problem, not a candidate
+    // data problem — say so instead of leaking the provider's raw code.
+    const code = (json.message_code ?? "").toLowerCase();
+    if (res.status === 401 || code.includes("token")) {
+      throw new Error(
+        "Aadhaar/PAN verification key has expired. Update the verification key in settings, or turn verification off to continue with manual entry.",
+      );
+    }
+    throw new Error(detail || `Verification request failed (${res.status})`);
   }
 
   return json;
