@@ -327,7 +327,7 @@
     background: rgb(var(--surface) / var(--surface-glass-alpha));
     border: 1px solid rgb(var(--surface-hairline) / var(--surface-border-alpha));
     box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.04), 0 12px 30px -24px rgb(var(--surface-shadow) / 0.2);
-    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    transition: transform .2s ease, border-color .2s ease;
     color: var(--foreground);
   }
 
@@ -368,6 +368,17 @@
   /* `backwards` (not `both`): the page must not keep a filter/transform layer
      after the animation ends, or every later scroll frame re-composites it. */
   .page-enter { animation: page-in 320ms cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+
+  @media (hover: none) {
+    .page-enter,
+    .reveal > * {
+      animation: none;
+    }
+
+    .tile {
+      transition: border-color .15s ease;
+    }
+  }
 
   @keyframes reveal-up {
     0% { opacity: 0; transform: translateY(14px); }
@@ -1291,7 +1302,10 @@ body {
   .overflow-auto,
   .overflow-x-auto,
   .overflow-y-auto
-) { -webkit-overflow-scrolling: touch; }
+) {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 
 /* Portal pages use translucent colours, but live backdrop blur forces a
    full repaint on every scroll frame. Preserve the appearance without the
