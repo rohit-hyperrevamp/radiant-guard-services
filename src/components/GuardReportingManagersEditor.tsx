@@ -181,19 +181,25 @@ export function GuardReportingManagersEditor({
           <div>
             <div className="text-sm font-semibold">Reporting Managers</div>
             <div className="text-[11px] text-muted-foreground">
-              Field Officers this guard reports to. Multiple allowed for guards covering more than one unit.
+              {selfOnly
+                ? "You are the reporting manager for candidates you onboard."
+                : "Field Officers this guard reports to. Multiple allowed for guards covering more than one unit."}
             </div>
           </div>
         </div>
-        <Button type="button" size="sm" variant="outline" onClick={() => setOpen((o) => !o)} className="h-7 rounded-md text-xs">
-          {open ? "Close" : "Edit"}
-        </Button>
+        {!selfOnly && (
+          <Button type="button" size="sm" variant="outline" onClick={() => setOpen((o) => !o)} className="h-7 rounded-md text-xs">
+            {open ? "Close" : "Edit"}
+          </Button>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         {!isLoading && current.length === 0 && (
-          <span className="text-xs text-muted-foreground">No reporting manager assigned yet.</span>
+          <span className="text-xs text-muted-foreground">
+            {selfOnly ? "Assigning you as reporting manager…" : "No reporting manager assigned yet."}
+          </span>
         )}
         {current.map((r) => {
           const fo = officerMap.get(r.manager_id);
