@@ -64,6 +64,6 @@
 - [ ] Candidate form: left step list must scroll to Review (step 10); completion card overlaps it
 
 ## Employee dashboard redesign
-- [x] Match Guard and non-billable employee dashboards to the Field Officer bento layout.
+- [x] Match Guard, billable, and non-billable employee dashboards to the Field Officer bento layout.
 - [x] Preserve attendance, assignments, manager, team, device, and insights behavior.
 - [x] Verify responsive layout and project checks.
