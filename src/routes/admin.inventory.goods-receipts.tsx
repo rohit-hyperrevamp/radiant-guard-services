@@ -810,6 +810,7 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("delivery");
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const wMap = useMemo(() => new Map(warehouses.map((w) => [w.id, w.name])), [warehouses]);
   const bMap = useMemo(() => new Map(branches.map((b) => [b.id, b.name])), [branches]);
@@ -824,6 +825,7 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
   useResetOnOpen(open, async () => {
     setSourceKey(""); setReceiptDate(new Date().toISOString().slice(0, 10));
     setNotes(""); setInvoiceNo(""); setInvoiceFile(null); setLines([]);
+    setStepKey("delivery");
   });
   const { data: tSummary = new Map<string, string>() } = useDocItemSummaries("inv_transfer_lines", transfers.map((t) => t.id));
   const { data: pSummary = new Map<string, string>() } = useDocItemSummaries("inv_po_lines", incomingPOs.map((p) => p.id));
@@ -993,15 +995,40 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
   }
 
   const hasAny = transfers.length + incomingPOs.length > 0;
+  const steps: GuidedFormStep[] = [
+    { key: "delivery", label: "Delivery", caption: "Choose the incoming delivery" },
+    { key: "items", label: "Items", caption: "Accept or reject delivered quantities" },
+    { key: "review", label: "Review", caption: "Check and post the challan" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "delivery" && !sourceKey) return "Pick an incoming delivery";
+    if (key === "items" && (!lines.length || !lines.some((line) => line.accepted_qty > 0 || line.rejected_qty > 0))) return "Enter received quantities";
+    if (key === "items" && lines.some((line) => line.accepted_qty + line.rejected_qty > line.ordered_qty)) return "Received quantity exceeds dispatched quantity";
+    if (key === "items" && lines.some((line) => line.rejected_qty > 0 && !line.rejection_reason.trim())) return "Add a reason for rejected items";
+    return null;
+  };
+  const isStepComplete = (key: string) => key === "review" ? !validateStep("delivery") && !validateStep("items") : !validateStep(key);
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>New Delivery Challan</DialogTitle>
           <DialogDescription>Receive items dispatched to your branch — from a warehouse transfer or a vendor PO raised for this branch.</DialogDescription>
         </DialogHeader>
-        <div className="modern-form-section">
+        <GuidedForm title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "delivery" ? "block" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Incoming delivery</h3>
           <div className="grid gap-2"><Label>Incoming Delivery</Label>
             <Select value={sourceKey} onValueChange={loadSource}>
               <SelectTrigger><SelectValue placeholder={hasAny ? "Pick an incoming transfer or PO" : "No incoming transfers or POs"} /></SelectTrigger>
@@ -1090,8 +1117,11 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
               {invoiceFile && <p className="text-xs text-muted-foreground">{invoiceFile.name} ({Math.round(invoiceFile.size / 1024)} KB)</p>}
             </div>
           )}
+          </section>
+          </div>
 
-
+          <div className={stepKey === "items" ? "block" : "hidden"}>
+          <section className="modern-form-section">
           {lines.length > 0 && (
             <div className="overflow-x-clip rounded-xl border border-border">
               <table className="ios-table w-full text-sm">
@@ -1120,13 +1150,23 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
               </table>
             </div>
           )}
+          </section>
+          </div>
 
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Receipt summary</h3>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Receipt date</dt><dd className="mt-1 font-medium">{receiptDate}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Items</dt><dd className="mt-1 font-medium">{lines.length}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Accepted</dt><dd className="mt-1 font-medium">{lines.reduce((sum, line) => sum + line.accepted_qty, 0)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Rejected</dt><dd className="mt-1 font-medium">{lines.reduce((sum, line) => sum + line.rejected_qty, 0)}</dd></div>
+            </dl>
+          </section>
           <div className="grid gap-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
+          </div>
         </div>
-        <DialogFooter>
-          <CancelBtn saving={saving} onClose={() => onOpenChange(false)} />
-          <Button onClick={save} disabled={saving || !sourceKey}>{saving ? "Posting…" : "Post Challan"}</Button>
-        </DialogFooter>
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
@@ -1144,11 +1184,13 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<FOLine[]>([]);
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("delivery");
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
   useResetOnOpen(open, async () => {
     setIssuanceId(""); setReceiptDate(new Date().toISOString().slice(0, 10));
     setNotes(""); setLines([]);
+    setStepKey("delivery");
   });
   const { data: iSummary = new Map<string, string>() } = useDocItemSummaries("inv_issuance_lines", pendingIssuances.map((i) => i.id));
 
@@ -1241,14 +1283,40 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
     }
   }
 
+  const steps: GuidedFormStep[] = [
+    { key: "delivery", label: "Delivery", caption: "Choose the incoming issuance" },
+    { key: "items", label: "Items", caption: "Accept or reject issued quantities" },
+    { key: "review", label: "Review", caption: "Check and post the challan" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "delivery" && !issuanceId) return "Pick a pending issuance";
+    if (key === "items" && (!lines.length || !lines.some((line) => line.accepted_qty > 0 || line.rejected_qty > 0))) return "Enter received quantities";
+    if (key === "items" && lines.some((line) => line.accepted_qty + line.rejected_qty > line.issued_qty)) return "Received quantity exceeds issued quantity";
+    if (key === "items" && lines.some((line) => line.rejected_qty > 0 && !line.rejection_reason.trim())) return "Add a reason for rejected items";
+    return null;
+  };
+  const isStepComplete = (key: string) => key === "review" ? !validateStep("delivery") && !validateStep("items") : !validateStep(key);
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>New Delivery Challan</DialogTitle>
           <DialogDescription>Confirm receipt of items issued to you. Posting adds them to your inventory.</DialogDescription>
         </DialogHeader>
-        <div className="modern-form-section">
+        <GuidedForm title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "delivery" ? "block" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Incoming issuance</h3>
           <div className="grid gap-2"><Label>Incoming Issuance</Label>
             <Select value={issuanceId} onValueChange={loadIssuance}>
               <SelectTrigger><SelectValue placeholder={pendingIssuances.length ? "Pick a pending issuance" : "No pending issuances"} /></SelectTrigger>
@@ -1272,7 +1340,11 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
             <Label>Receipt Date</Label>
             <Input type="date" value={receiptDate} onChange={(e) => setReceiptDate(e.target.value)} />
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "items" ? "block" : "hidden"}>
+          <section className="modern-form-section">
           {lines.length > 0 && (
             <div className="overflow-x-clip rounded-xl border border-border">
               <table className="ios-table w-full text-sm">
@@ -1301,13 +1373,23 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
               </table>
             </div>
           )}
+          </section>
+          </div>
 
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Receipt summary</h3>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Receipt date</dt><dd className="mt-1 font-medium">{receiptDate}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Items</dt><dd className="mt-1 font-medium">{lines.length}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Accepted</dt><dd className="mt-1 font-medium">{lines.reduce((sum, line) => sum + line.accepted_qty, 0)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Rejected</dt><dd className="mt-1 font-medium">{lines.reduce((sum, line) => sum + line.rejected_qty, 0)}</dd></div>
+            </dl>
+          </section>
           <div className="grid gap-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
+          </div>
         </div>
-        <DialogFooter>
-          <CancelBtn saving={saving} onClose={() => onOpenChange(false)} />
-          <Button onClick={save} disabled={saving || !issuanceId}>{saving ? "Posting…" : "Post Challan"}</Button>
-        </DialogFooter>
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
