@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity-log";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
 type FieldOfficerRow = {
   id: string;
@@ -32,8 +33,12 @@ export function GuardReportingManagersEditor({
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const { isFieldOfficer, isSuperAdmin, candidateId: myCandidateId } = useCurrentUserRole();
+  // A field officer onboards only into their own units, so they are the
+  // reporting manager by default and cannot pick other officers.
+  const selfOnly = isFieldOfficer && !isSuperAdmin && !!myCandidateId;
 
-  const { data: officers = [], isLoading: loadingOfficers } = useQuery({
+  const { data: allOfficers = [], isLoading: loadingOfficers } = useQuery({
     queryKey: ["active-field-officers"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_active_field_officers" as never);
@@ -41,6 +46,11 @@ export function GuardReportingManagersEditor({
       return (data as FieldOfficerRow[]) ?? [];
     },
   });
+
+  const officers = useMemo(
+    () => (selfOnly ? allOfficers.filter((o) => o.id === myCandidateId) : allOfficers),
+    [allOfficers, selfOnly, myCandidateId],
+  );
 
   const { data: current = [], isLoading: loadingCurrent } = useQuery({
     queryKey: ["candidate-reporting-managers", candidateId],
@@ -69,9 +79,33 @@ export function GuardReportingManagersEditor({
 
   const officerMap = useMemo(() => {
     const m = new Map<string, FieldOfficerRow>();
-    for (const o of officers) m.set(o.id, o);
+    for (const o of allOfficers) m.set(o.id, o);
     return m;
-  }, [officers]);
+  }, [allOfficers]);
+
+  // Field officer onboarding: assign themselves as the reporting manager once.
+  const autoAssignedRef = useRef(false);
+  useEffect(() => {
+    if (!selfOnly || !myCandidateId || loadingCurrent) return;
+    if (current.length > 0 || autoAssignedRef.current) return;
+    if (myCandidateId === candidateId) return;
+    autoAssignedRef.current = true;
+    void (async () => {
+      const { error } = await supabase
+        .from("candidate_reporting_managers" as never)
+        .insert({
+          candidate_id: candidateId,
+          manager_id: myCandidateId,
+          source: "auto",
+          is_primary: true,
+        } as never);
+      if (error) {
+        autoAssignedRef.current = false;
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ["candidate-reporting-managers", candidateId] });
+    })();
+  }, [selfOnly, myCandidateId, loadingCurrent, current.length, candidateId, qc]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -147,19 +181,25 @@ export function GuardReportingManagersEditor({
           <div>
             <div className="text-sm font-semibold">Reporting Managers</div>
             <div className="text-[11px] text-muted-foreground">
-              Field Officers this guard reports to. Multiple allowed for guards covering more than one unit.
+              {selfOnly
+                ? "You are the reporting manager for candidates you onboard."
+                : "Field Officers this guard reports to. Multiple allowed for guards covering more than one unit."}
             </div>
           </div>
         </div>
-        <Button type="button" size="sm" variant="outline" onClick={() => setOpen((o) => !o)} className="h-7 rounded-md text-xs">
-          {open ? "Close" : "Edit"}
-        </Button>
+        {!selfOnly && (
+          <Button type="button" size="sm" variant="outline" onClick={() => setOpen((o) => !o)} className="h-7 rounded-md text-xs">
+            {open ? "Close" : "Edit"}
+          </Button>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         {!isLoading && current.length === 0 && (
-          <span className="text-xs text-muted-foreground">No reporting manager assigned yet.</span>
+          <span className="text-xs text-muted-foreground">
+            {selfOnly ? "Assigning you as reporting manager…" : "No reporting manager assigned yet."}
+          </span>
         )}
         {current.map((r) => {
           const fo = officerMap.get(r.manager_id);
