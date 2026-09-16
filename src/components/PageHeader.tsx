@@ -14,7 +14,6 @@ export type Crumb = { label: string; to?: string };
 export function PageHeader({
   title,
   description,
-  crumbs,
   actions,
   icon: Icon,
   eyebrow,
