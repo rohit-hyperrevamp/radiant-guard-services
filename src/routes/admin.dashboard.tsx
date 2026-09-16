@@ -609,22 +609,19 @@ function DashboardPage() {
         { contract: 0, invoice: 0, payroll: 0 },
       );
 
-      return {
-        orgs: orgsCount ?? 0,
-        units: unitsCount ?? 0,
-        employees: empCount ?? 0,
-        contractsActive: contractsActive ?? 0,
-        contractsExpiring: contractsExpiring ?? [],
-        vehicles: vehiclesCount ?? 0,
-        fuelTotal,
-        items: itemsCount ?? 0,
-        sheetCounts,
-        runCounts,
-        pnlRows,
-        pnlTotals,
-      };
+      return { pnlRows, pnlTotals };
     },
   });
+
+  const isLoading = countsQuery.isLoading;
+  const data = useMemo(() => {
+    if (!countsQuery.data) return undefined;
+    return {
+      ...countsQuery.data,
+      pnlRows: pnlQuery.data?.pnlRows ?? ([] as PnLRow[]),
+      pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0 },
+    };
+  }, [countsQuery.data, pnlQuery.data]);
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1);
