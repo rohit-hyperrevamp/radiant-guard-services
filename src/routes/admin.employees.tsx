@@ -6538,9 +6538,9 @@ function CandidateWizard({
         </div>
 
         <div className="flex min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 flex-col justify-between border-r border-border/60 bg-card px-7 py-8 lg:flex">
-            <div className="min-h-0">
-              <div className="mb-8">
+          <aside className="hidden min-h-0 flex-col border-r border-border/60 bg-card px-7 py-8 lg:flex">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="mb-6 shrink-0">
                 <p className="text-xs font-semibold text-muted-foreground">Candidate</p>
                 <h2 className="mt-1 text-xl font-semibold text-foreground">
                   {editing ? "Edit profile" : "New profile"}
@@ -6551,7 +6551,7 @@ function CandidateWizard({
                   </p>
                 )}
               </div>
-              <nav aria-label="Candidate form steps" className="max-h-[58dvh] space-y-1 overflow-y-auto pr-1">
+              <nav aria-label="Candidate form steps" className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pb-2 pr-1">
                 {steps.map((s, i) => {
                   const done = isStepComplete(s.key);
                   const active = i === stepIndex;
