@@ -16,7 +16,7 @@
 - [x] Diagnose the signed-in page-load failure and stop duplicate live-unit subscriptions from crashing the dashboard.
 - [x] Verify the corrected mobile interface and production unit feed.
 ## Contacts form fix
-- [ ] Fix Contacts step completion and red status after valid entry.
-- [ ] Modernize the Contacts form while preserving mobile-first behavior.
-- [ ] Verify validation and visual layout.
+- [x] Fix Contacts step completion and red status after valid entry.
+- [x] Modernize the Contacts form while preserving mobile-first behavior.
+- [x] Verify validation and visual layout.
 
