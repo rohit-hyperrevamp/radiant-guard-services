@@ -4,6 +4,7 @@ import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, Alert
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import {
   checkIn,
   checkOut,
@@ -146,6 +147,10 @@ function timeStr(iso: string | null) {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+function currentTimeStr() {
+  return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
 function elapsed(from: string | null, to?: string | null) {
   if (!from) return "";
   const end = to ? new Date(to).getTime() : Date.now();
@@ -235,6 +240,21 @@ export function MarkAttendanceCard({
 
   const gated = Array.isArray(allowedUnits);
 
+  const confirmPunch = (action: "in" | "out", location: string) => confirmAction({
+    title: action === "in" ? "Confirm check-in" : "Confirm check-out",
+    description: `${currentTimeStr()} · ${location}`,
+    confirmText: action === "in" ? "Check in" : "Check out",
+    cancelText: "Not now",
+  });
+
+  const showPunchError = (action: "in" | "out", error: unknown) => confirmAction({
+    title: action === "in" ? "Unable to check in" : "Unable to check out",
+    description: error instanceof Error ? error.message : `${action === "in" ? "Check-in" : "Check-out"} could not be completed.`,
+    confirmText: "Got it",
+    hideCancel: true,
+    tone: "warning",
+  });
+
   const performCheckIn = async (unitId: string | null, geo: import("@/lib/self-attendance").Geo | null, face: boolean) => {
     if (!candidateId) throw new Error("Profile not ready.");
     const [row, battery, network] = await Promise.allSettled([
@@ -277,10 +297,12 @@ export function MarkAttendanceCard({
         if (within.length === 0) {
           const nearest = withDist[0];
           throw new Error(
-            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Check in at an assigned client.`,
+            `You are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Move within ${proximityThresholdM}m of an assigned unit and try again.`,
           );
         }
         if (within.length === 1) {
+          const confirmed = await confirmPunch("in", within[0].unit.name);
+          if (!confirmed) return null;
           return await performCheckIn(within[0].unit.id, geo, face);
         }
         // Multiple within range → ask user to confirm.
@@ -290,32 +312,46 @@ export function MarkAttendanceCard({
         return null;
       }
 
+      const confirmed = await confirmPunch("in", "Current GPS location");
+      if (!confirmed) return null;
       return await performCheckIn(null, geo, face);
     },
     onSuccess: (row) => {
       if (!row) return; // waiting for user to pick unit
-      toast.success("Checked in");
+      void notifySaved({
+        title: "Checked in",
+        description: `${timeStr(row.check_in_at)} · ${(allowedUnits ?? []).find((u) => u.id === row.unit_id)?.name ?? "Current GPS location"}`,
+        actionText: "Done",
+      });
       void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
       void qc.invalidateQueries({ queryKey: ["self-attendance-month", candidateId] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-in failed"),
+    onError: (e: unknown) => { void showPunchError("in", e); },
     onSettled: () => setBusy(null),
   });
 
   const confirmUnitMut = useMutation({
     mutationFn: async (unitId: string) => {
       if (!pendingGeo) throw new Error("Location expired. Try again.");
+      const unitName = nearby.find((item) => item.unit.id === unitId)?.unit.name ?? "Assigned unit";
+      const confirmed = await confirmPunch("in", unitName);
+      if (!confirmed) return null;
       return await performCheckIn(unitId, pendingGeo.geo, pendingGeo.face);
     },
-    onSuccess: () => {
-      toast.success("Checked in");
+    onSuccess: (row) => {
+      if (!row) return;
+      void notifySaved({
+        title: "Checked in",
+        description: `${timeStr(row.check_in_at)} · ${nearby.find((item) => item.unit.id === row.unit_id)?.unit.name ?? "Assigned unit"}`,
+        actionText: "Done",
+      });
       setPickerOpen(false);
       setPendingGeo(null);
       setNearby([]);
       void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
       void qc.invalidateQueries({ queryKey: ["self-attendance-month", candidateId] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-in failed"),
+    onError: (e: unknown) => { void showPunchError("in", e); },
   });
 
 
@@ -327,14 +363,29 @@ export function MarkAttendanceCard({
         face = await verifyFaceForAttendance("Mark attendance check-out");
       }
       const geo = await getCurrentPosition();
+      const nearest = (allowedUnits ?? [])
+        .filter((unit) => unit.latitude != null && unit.longitude != null)
+        .map((unit) => ({
+          unit,
+          distance: distanceMeters({ lat: geo.lat, lng: geo.lng }, { lat: unit.latitude as number, lng: unit.longitude as number }) ?? Number.POSITIVE_INFINITY,
+        }))
+        .sort((a, b) => a.distance - b.distance)[0];
+      const confirmed = await confirmPunch("out", nearest?.unit.name ?? "Current GPS location");
+      if (!confirmed) return null;
       return await checkOut(punch.id, geo, face);
     },
-    onSuccess: () => {
-      toast.success("Checked out");
+    onSuccess: (row) => {
+      if (!row) return;
+      const location = (allowedUnits ?? []).find((unit) => unit.id === punch?.unit_id)?.name ?? "Current GPS location";
+      void notifySaved({
+        title: "Checked out",
+        description: `${timeStr(row.check_out_at)} · ${location}`,
+        actionText: "Done",
+      });
       void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
       void qc.invalidateQueries({ queryKey: ["self-attendance-month", candidateId] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-out failed"),
+    onError: (e: unknown) => { void showPunchError("out", e); },
     onSettled: () => setBusy(null),
   });
 
