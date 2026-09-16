@@ -341,7 +341,13 @@ export function MarkAttendanceCard({
   const confirmUnitMut = useMutation({
     mutationFn: async (unitId: string) => {
       if (!pendingGeo) throw new Error("Location expired. Try again.");
-      const unitName = nearby.find((item) => item.unit.id === unitId)?.unit.name ?? "Assigned unit";
+      const picked = nearby.find((item) => item.unit.id === unitId);
+      const unitName = picked?.unit.name ?? "Assigned unit";
+      if (picked && picked.distance > proximityThresholdM) {
+        throw new Error(
+          `You are ${formatDistance(picked.distance)} from ${unitName}. Move within ${proximityThresholdM}m of it and try again.`,
+        );
+      }
       const confirmed = await confirmPunch("in", unitName);
       if (!confirmed) return null;
       return await performCheckIn(unitId, pendingGeo.geo, pendingGeo.face);
