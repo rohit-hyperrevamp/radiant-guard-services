@@ -19,4 +19,8 @@
 - [x] Fix Contacts step completion and red status after valid entry.
 - [x] Modernize the Contacts form while preserving mobile-first behavior.
 - [x] Verify validation and visual layout.
+## Required-field indicator audit
+- [x] Match every Candidate wizard red asterisk to actual save and submit rules.
+- [x] Mark conditional requirements only when the condition applies.
+- [x] Verify all wizard steps and shared address fields.
 
