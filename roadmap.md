@@ -15,3 +15,8 @@
 - [x] Restore rounded dashboards, tiles, and CTAs while keeping form canvases flat.
 - [x] Diagnose the signed-in page-load failure and stop duplicate live-unit subscriptions from crashing the dashboard.
 - [x] Verify the corrected mobile interface and production unit feed.
+## Contacts form fix
+- [x] Fix Contacts step completion and red status after valid entry.
+- [x] Modernize the Contacts form while preserving mobile-first behavior.
+- [x] Verify validation and visual layout.
+
