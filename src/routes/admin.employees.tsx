@@ -5875,7 +5875,9 @@ function CandidateWizard({
         if (esaErr) console.error("operational mapping sync failed", esaErr);
       }
     }
-    if (cidForBranch) await syncEmployeeWages(cidForBranch);
+    // Wage sheets belong to non-billable employees only; billable guards are
+    // paid via contract resources, so never touch employee_wages for them.
+    if (cidForBranch && mode === "employee") await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
     if (opts?.fast) {
@@ -6042,11 +6044,14 @@ function CandidateWizard({
       { key: "contacts", label: "Contacts", caption: "Family" },
       { key: "assignment", label: "Posting", caption: "Work" },
       { key: "records", label: "Records", caption: "Checks" },
-      ...(wizardIsFieldOfficer ? [] : [{ key: "wages", label: "Wages", caption: "Pay" }]),
+      // Wage sheets exist only for non-billable staff. Billable guards are
+      // paid from the client contract's resources, so this step stays hidden
+      // for them — exactly like the older form.
+      ...(mode === "employee" && !wizardIsFieldOfficer ? [{ key: "wages", label: "Wages", caption: "Pay" }] : []),
       { key: "uploads", label: "Documents", caption: "Files" },
       { key: "review", label: "Review", caption: "Submit" },
     ],
-    [wizardIsFieldOfficer],
+    [mode, wizardIsFieldOfficer],
   );
   const [stepKey, setStepKey] = useState("aadhaar");
   const stepIndex = Math.max(0, steps.findIndex((s) => s.key === stepKey));
