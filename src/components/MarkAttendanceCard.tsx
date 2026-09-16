@@ -644,22 +644,44 @@ export function MarkAttendanceCard({
             className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Confirm unit</div>
-            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">You are near multiple units</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Select the unit you are checking in at.</p>
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Select unit</div>
+            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">Where are you checking in?</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pick your unit. You must be within {proximityThresholdM}m of it.
+            </p>
             <div className="mt-3 space-y-2">
-              {nearby.map((n) => (
-                <button
-                  key={n.unit.id}
-                  type="button"
-                  disabled={confirmUnitMut.isPending}
-                  onClick={() => confirmUnitMut.mutate(n.unit.id)}
-                  className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-background/60 px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-primary/5 disabled:opacity-60"
-                >
-                  <span className="min-w-0 truncate">{n.unit.name}</span>
-                  <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{formatDistance(n.distance)}</span>
-                </button>
-              ))}
+              {nearby.map((n) => {
+                const inRange = n.distance <= proximityThresholdM;
+                return (
+                  <button
+                    key={n.unit.id}
+                    type="button"
+                    disabled={confirmUnitMut.isPending}
+                    onClick={() => confirmUnitMut.mutate(n.unit.id)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-foreground disabled:opacity-60",
+                      inRange
+                        ? "border-primary/30 bg-primary/5 hover:bg-primary/10"
+                        : "border-border/60 bg-background/60 hover:bg-muted/60",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{n.unit.name}</span>
+                      <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {n.unit.isPrimary ? "Primary" : "Extra duty"}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                        inRange ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                      )}
+                    >
+                      {inRange ? formatDistance(n.distance) : `${formatDistance(n.distance)} away`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             <Button
               variant="ghost"
