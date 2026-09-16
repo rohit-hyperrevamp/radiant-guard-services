@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, Edit2, MapPin, Plus, Search, Users, Warehouse, X } from "lucide-react";
@@ -54,6 +54,7 @@ import {
 } from "@/lib/admin-data";
 import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
 import { MONTH_NAMES, resolveLwf, useLwfRows } from "@/lib/lwf-lookup";
 import {
@@ -663,6 +664,7 @@ function UnitFormDialog({
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
   const [, setFoSyncing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("organization");
   const openedUnitRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -682,6 +684,7 @@ function UnitFormDialog({
     }
     setError(null);
     setSelectedFoToAdd("");
+    setStepKey("organization");
   }, [open, editing, units]);
 
   const set = <K extends keyof Omit<Unit, "id">>(k: K, v: Omit<Unit, "id">[K]) =>
@@ -935,17 +938,55 @@ function UnitFormDialog({
     }
   };
 
+  const steps: GuidedFormStep[] = [
+    { key: "organization", label: "Organization", caption: "Organization and branch mapping" },
+    { key: "details", label: "Client details", caption: "Identity, status and business details" },
+    { key: "billing", label: "Billing", caption: "Contact and billing address" },
+    { key: "deployment", label: "Deployment", caption: "Deployment address and map location" },
+    { key: "statutory", label: "Statutory", caption: "Tax and welfare settings" },
+    { key: "inclusions", label: "Inclusions", caption: "Contract charges and benefits" },
+    { key: "review", label: "Review", caption: "Contacts, deployment and final check" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "organization" && !form.customerId) return "Select an organization";
+    if (key === "organization" && !form.branchId) return "Select a branch";
+    if (key === "details" && !form.name.trim()) return "Client name is required";
+    if (key === "billing" && form.billingPincode && !/^\d{6}$/.test(form.billingPincode)) return "Enter a valid billing pincode";
+    if (key === "inclusions" && !form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) return "Enter the uniform fee";
+    return null;
+  };
+  const isStepComplete = (key: string): boolean => {
+    if (["organization", "details", "billing", "inclusions"].includes(key)) return !validateStep(key);
+    if (key === "deployment") return form.shippingSameAsBilling || form.shippingSameAsOrg || Boolean(form.shippingAddress1.trim());
+    if (key === "statutory") return true;
+    return steps.slice(0, 6).every((step) => isStepComplete(step.key));
+  };
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
+  const restoreDraft = useCallback((value: Omit<Unit, "id">) => setForm(value), []);
+  const meaningfulDraft = useCallback((value: Omit<Unit, "id">) => Boolean(value.name || value.customerId || value.billingAddress1), []);
+  const draft = useGuidedFormDraft({ open, storageKey: editing ? null : "rg-wizard-draft-client", value: form, onRestore: restoreDraft, isMeaningful: meaningfulDraft });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto pb-0">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>{editing ? "Edit client" : "Add client"}</DialogTitle>
           <DialogDescription>
             A unit is an operational location mapped to a branch and an organisation.
           </DialogDescription>
         </DialogHeader>
 
+        <GuidedForm title={editing ? "Edit client" : "New client"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveUnit()} saving={isSaving} submitLabel={editing ? "Save changes" : "Create client"}>
+          {draft.hasDraft && !editing && stepKey === "organization" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         <div className="modern-business-form">
+          <div className={stepKey === "organization" ? "block" : "hidden"}>
           {/* ORG & BRANCH (first) */}
           <Section title="Organisation & branch">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -989,8 +1030,10 @@ function UnitFormDialog({
               </Field>
             </div>
           </Section>
+          </div>
 
           {/* UNIT INFO */}
+          <div className={stepKey === "details" ? "space-y-5" : "hidden"}>
           <Section title="Client information">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Client code (auto, editable)">
@@ -1085,8 +1128,10 @@ function UnitFormDialog({
               )}
             </div>
           </Section>
+          </div>
 
           {/* CONTACT / BILLING */}
+          <div className={stepKey === "billing" ? "block" : "hidden"}>
           <Section title="Contact / billing information">
             <AddressFields
               prefix="billing"
@@ -1138,8 +1183,10 @@ function UnitFormDialog({
               </div>
             </div>
           </Section>
+          </div>
 
           {/* SHIPPING */}
+          <div className={stepKey === "deployment" ? "block" : "hidden"}>
           <Section title="Shipping / Deployment address">
             <div className="mb-3 grid gap-3 sm:grid-cols-2">
               <ToggleRow
@@ -1177,8 +1224,10 @@ function UnitFormDialog({
               />
             )}
           </Section>
+          </div>
 
           {/* PROFESSIONAL TAX */}
+          <div className={stepKey === "statutory" ? "space-y-5" : "hidden"}>
           <Section title="Professional tax information">
             <ProfessionalTaxBlock
               enabled={form.enablePt}
@@ -1195,8 +1244,10 @@ function UnitFormDialog({
               billingPincode={form.billingPincode}
             />
           </Section>
+          </div>
 
           {/* CONTRACT INCLUSIONS */}
+          <div className={stepKey === "inclusions" ? "block" : "hidden"}>
           <Section title="Contract inclusions">
             <div className="rounded-xl border border-border/60 bg-background p-3.5">
               <div className="flex items-start justify-between gap-3">
@@ -1507,10 +1558,12 @@ function UnitFormDialog({
               </p>
             </div>
           </Section>
+          </div>
 
 
 
           {/* OTHER */}
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
           <Section title="Other details">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Emergency contact name">
@@ -1550,22 +1603,20 @@ function UnitFormDialog({
               />
             </Section>
           )}
+          <Section title="Review">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Client</dt><dd className="mt-1 font-medium">{form.name || "Not entered"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Code</dt><dd className="mt-1 font-mono font-medium">{form.code || "Not entered"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Organization</dt><dd className="mt-1 font-medium">{selectedOrg?.name || "Not selected"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Location</dt><dd className="mt-1 font-medium">{form.location || form.billingCity || "Not entered"}</dd></div>
+            </dl>
+          </Section>
+          </div>
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 
-          <DialogFooter className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-border/60 bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancel</Button>
-            <Button
-              type="button"
-              disabled={isSaving}
-              data-force-enabled="true"
-              onClick={() => void saveUnit()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isSaving ? "Saving…" : editing ? "Save changes" : "Create client"}
-            </Button>
-          </DialogFooter>
         </div>
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
