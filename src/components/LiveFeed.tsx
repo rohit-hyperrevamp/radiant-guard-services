@@ -245,18 +245,27 @@ export function DashboardShell({
   children,
   rightExtras,
   fullWidthBelow,
+  fixedRightRail = false,
 }: {
   children: React.ReactNode;
   rightExtras?: React.ReactNode;
   fullWidthBelow?: React.ReactNode;
+  fixedRightRail?: boolean;
 }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">{children}</div>
-        <div className="hidden lg:flex lg:sticky lg:top-6 lg:h-fit lg:max-h-[calc(100vh-3rem)] lg:flex-col lg:gap-3 lg:overflow-y-auto lg:pr-1">
-          <LiveFeed />
-          {rightExtras}
+        <div className="hidden lg:block">
+          <div className={cn(
+            "flex flex-col gap-3 overflow-y-auto pr-1",
+            fixedRightRail
+              ? "fixed bottom-6 right-6 top-6 z-10 w-80 overscroll-contain"
+              : "sticky top-6 h-fit max-h-[calc(100vh-3rem)]",
+          )}>
+            <LiveFeed />
+            {rightExtras}
+          </div>
         </div>
         {rightExtras && <div className="lg:hidden space-y-3">{rightExtras}</div>}
       </div>

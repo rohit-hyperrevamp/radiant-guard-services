@@ -632,7 +632,7 @@ function FieldOfficerDashboard() {
   const totalItems = data?.inventoryItemsTotal ?? 0;
 
   return (
-    <DashboardShell rightExtras={<FoPeopleInsights />}>
+    <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
         <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           {/* Identity anchors the workspace without repeating the profile photo. */}

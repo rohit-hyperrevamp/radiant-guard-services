@@ -385,16 +385,17 @@ export function MarkAttendanceCard({
       )}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-        <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Today</div>
-          <h3 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-xl">
-            Mark my attendance
-          </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {isNativePlatform()
-              ? "Biometric verification and live GPS will be captured."
-              : "Live GPS will be captured. Biometric verification is available in the mobile app."}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Fingerprint className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Today</div>
+            <h3 className="mt-0.5 text-lg font-bold text-foreground sm:text-xl">Mark my attendance</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isNativePlatform() ? "Biometric and GPS check." : "GPS check. Biometric is available in the app."}
+            </p>
+          </div>
         </div>
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1", pillClass)}>
           {state === "done" ? (
