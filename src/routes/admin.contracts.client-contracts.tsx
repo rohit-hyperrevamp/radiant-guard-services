@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   Check,
@@ -44,6 +44,7 @@ import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
+import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -3216,6 +3217,7 @@ function ContractFormDialog({
   const [unitPickerOpen, setUnitPickerOpen] = useState(false);
   const [unitQuery, setUnitQuery] = useState("");
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("client");
   const [resources, setResources] = useState<ContractResource[]>([]);
   const [savedResourcesSnapshot, setSavedResourcesSnapshot] = useState("[]");
   const [hasStagedResourceChanges, setHasStagedResourceChanges] = useState(false);
@@ -3302,6 +3304,7 @@ function ContractFormDialog({
     setResources([]);
     setSavedResourcesSnapshot("[]");
     setHasStagedResourceChanges(false);
+    setStepKey("client");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
 
@@ -3370,11 +3373,72 @@ function ContractFormDialog({
     ? `${selectedWindow.windowStartDay} – ${selectedWindow.windowEndDay}`
     : "—";
   const resourceSaveBypassEnabled = hasStagedResourceChanges || resourcesSnapshot !== savedResourcesSnapshot;
+  const steps: GuidedFormStep[] = [
+    { key: "client", label: "Contract", caption: "Client, dates and approval" },
+    { key: "payroll", label: "Payroll", caption: "Payroll window and billing type" },
+    { key: "gst", label: "GST", caption: "Review statutory details and GST mode" },
+    { key: "resources", label: "Resources", caption: "Roles, wages and contract costing" },
+    { key: "review", label: "Review", caption: "Check the contract before saving" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "client" && !unitId) return "Select a client";
+    if (key === "resources" && resources.length === 0) return "Add at least one resource";
+    return null;
+  };
+  const isStepComplete = (key: string) => {
+    if (key === "client" || key === "resources") return !validateStep(key);
+    if (key === "payroll") return Boolean(payrollWindowId && billingTypeId);
+    if (key === "gst") return Boolean(gstOption);
+    return steps.slice(0, 4).every((step) => isStepComplete(step.key));
+  };
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
+  const draftValue = useMemo(() => ({ contractCode, prospectCode, unitId, startDate, endDate, expiryDate, originalStartDate, renewalCount, description, serviceTypeId, payrollWindowId, billingTypeId, gstOption, resources }), [contractCode, prospectCode, unitId, startDate, endDate, expiryDate, originalStartDate, renewalCount, description, serviceTypeId, payrollWindowId, billingTypeId, gstOption, resources]);
+  const restoreDraft = useCallback((draft: typeof draftValue) => {
+    setContractCode(draft.contractCode); setProspectCode(draft.prospectCode); setUnitId(draft.unitId);
+    setStartDate(draft.startDate); setEndDate(draft.endDate); setExpiryDate(draft.expiryDate);
+    setOriginalStartDate(draft.originalStartDate); setRenewalCount(draft.renewalCount); setDescription(draft.description);
+    setServiceTypeId(draft.serviceTypeId); setPayrollWindowId(draft.payrollWindowId); setBillingTypeId(draft.billingTypeId);
+    setGstOption(draft.gstOption); setResources(draft.resources.map(cloneContractResource));
+  }, []);
+  const meaningfulDraft = useCallback((draft: typeof draftValue) => Boolean(draft.unitId || draft.startDate || draft.resources.length), []);
+  const draft = useGuidedFormDraft({ open, storageKey: editing ? null : "rg-wizard-draft-contract", value: draftValue, onRestore: restoreDraft, isMeaningful: meaningfulDraft });
+  const saveContract = async () => {
+    if (!unitId) { toast.error("Select a client"); setStepKey("client"); return; }
+    const payload = applyApprovalPickerToPayload({
+      contractCode, prospectCode, recordType: editing?.recordType ?? "prospect", unitId, startDate, endDate,
+      expiryDate, originalStartDate: originalStartDate || startDate, renewalCount, description,
+      serviceTypeId: serviceTypeId || null, payrollWindowId: payrollWindowId || null,
+      billingTypeId: billingTypeId || null, gstOption, status: editing?.status ?? "inactive",
+      approvalStatus: editing?.approvalStatus ?? "pending", prospectStage: editing?.prospectStage ?? "new",
+      rejectionReason: editing?.rejectionReason ?? "", createdBy: editing?.createdBy ?? null,
+      promotedAt: editing?.promotedAt ?? null,
+    }, approvalValue, editing);
+    const ok = await confirmAction({
+      title: editing ? "Confirm changes?" : "Create contract?",
+      description: editing ? "Save contract changes? Updates will apply to payroll." : "This will create the contract and save all resource details.",
+      confirmText: editing ? "Yes, Save Changes" : "Create Contract", cancelText: "Review Again",
+    });
+    if (!ok) return;
+    setSaving(true);
+    try {
+      const resourcesToSave = resources.map(cloneContractResource);
+      const err = await onSubmit(payload, resourcesToSave);
+      if (err) toast.error(err);
+      else { setSavedResourcesSnapshot(serializeContractResources(resourcesToSave)); setHasStagedResourceChanges(false); draft.clear(); onOpenChange(false); }
+    } finally { setSaving(false); }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <div className="flex items-start justify-between gap-3">
             <div>
               <DialogTitle>{editing ? "Edit Contract" : "Create Contract"}</DialogTitle>
@@ -3386,7 +3450,10 @@ function ContractFormDialog({
         </DialogHeader>
 
 
-        <div className="space-y-5 py-2">
+        <GuidedForm title={editing ? "Edit contract" : "New contract"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveContract()} saving={saving} submitLabel={editing ? "Save changes" : "Create contract"}>
+        {draft.hasDraft && !editing && stepKey === "client" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "client" ? "space-y-5" : "hidden"}>
           {/* Client Information */}
           <Section title="Client Information">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -3647,9 +3714,11 @@ function ContractFormDialog({
               </Field>
             </div>
           </Section>
+          </div>
 
 
           {/* Payroll Information */}
+          <div className={stepKey === "payroll" ? "block" : "hidden"}>
           <Section title="Payroll Information">
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Payroll Window">
@@ -3698,8 +3767,10 @@ function ContractFormDialog({
               </div>
             </div>
           </Section>
+          </div>
 
           {/* GST */}
+          <div className={stepKey === "gst" ? "block" : "hidden"}>
           <Section title="GST">
             {selectedUnit ? (
               <div className="mb-4 grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 text-sm sm:grid-cols-3">
@@ -3758,8 +3829,10 @@ function ContractFormDialog({
               ))}
             </div>
           </Section>
+          </div>
 
           {/* Resources */}
+          <div className={stepKey === "resources" ? "block" : "hidden"}>
           <ResourcesSection
             resources={resources}
             onAdd={() =>
@@ -3784,70 +3857,21 @@ function ContractFormDialog({
               setHasStagedResourceChanges(true);
             }}
           />
+          </div>
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+            <Section title="Review">
+              <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                <div><dt className="text-xs text-muted-foreground">Client</dt><dd className="mt-1 font-medium">{selectedUnit?.name || "Not selected"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Organization</dt><dd className="mt-1 font-medium">{selectedOrg?.name || "Not selected"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Period</dt><dd className="mt-1 font-medium">{startDate || "—"} to {endDate || "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Resources</dt><dd className="mt-1 font-medium">{resources.length}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Payroll</dt><dd className="mt-1 font-medium">{selectedWindow?.label || "Not selected"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">GST</dt><dd className="mt-1 font-medium">{gstOption === "csgst" ? "CGST + SGST" : gstOption === "igst" ? "IGST" : "No GST"}</dd></div>
+              </dl>
+            </Section>
+          </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            disabled={saving}
-            data-force-enabled={resourceSaveBypassEnabled ? "true" : undefined}
-            onClick={async () => {
-              if (!unitId) {
-                toast.error("Select a unit");
-                return;
-              }
-              const payload = applyApprovalPickerToPayload({
-                contractCode,
-                prospectCode,
-                recordType: editing?.recordType ?? "prospect",
-                unitId,
-                startDate,
-                endDate,
-                expiryDate,
-                originalStartDate: originalStartDate || startDate,
-                renewalCount,
-                description,
-                serviceTypeId: serviceTypeId || null,
-                payrollWindowId: payrollWindowId || null,
-                billingTypeId: billingTypeId || null,
-                
-                gstOption,
-                status: editing?.status ?? "inactive",
-                approvalStatus: editing?.approvalStatus ?? "pending",
-                prospectStage: editing?.prospectStage ?? "new",
-                rejectionReason: editing?.rejectionReason ?? "",
-                createdBy: editing?.createdBy ?? null,
-                promotedAt: editing?.promotedAt ?? null,
-              }, approvalValue, editing);
-              const ok = await confirmAction({
-                title: editing ? "Confirm changes?" : "Create contract?",
-                description: editing
-                  ? "Save contract changes? Updates will apply to payroll."
-                  : "This will create the contract and save all resource details.",
-                confirmText: editing ? "Yes, Save Changes" : "Create Contract",
-                cancelText: "Review Again",
-              });
-              if (!ok) return;
-              setSaving(true);
-              try {
-                const resourcesToSave = resources.map(cloneContractResource);
-                const err = await onSubmit(payload, resourcesToSave);
-                if (err) toast.error(err);
-                else {
-                  setSavedResourcesSnapshot(serializeContractResources(resourcesToSave));
-                  setHasStagedResourceChanges(false);
-                  onOpenChange(false);
-                }
-              } finally {
-                setSaving(false);
-              }
-            }}
-          >
-            {saving ? "Saving…" : editing ? "Save Changes" : "Create Contract"}
-          </Button>
-        </DialogFooter>
+        </GuidedForm>
 
         <ResourceFormDialog
           open={resourceDialog.open}
