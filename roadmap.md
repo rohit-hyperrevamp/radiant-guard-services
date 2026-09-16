@@ -27,5 +27,5 @@
 ## Candidate form modernization
 - [x] Simplify the Candidate form header, progress, steps, and actions.
 - [x] Standardize sections, fields, contacts, documents, and validation states.
-- [ ] Verify narrow Android, iPhone, tablet, and desktop layouts.
+- [x] Verify narrow Android, iPhone, tablet, and desktop layouts.
 
