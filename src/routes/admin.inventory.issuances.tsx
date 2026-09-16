@@ -20,6 +20,7 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -433,6 +434,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
   const [lines, setLines] = useState<Line[]>([]);
   const [saving, setSaving] = useState(false);
   const [demandId, setDemandId] = useState<string>("");
+  const [stepKey, setStepKey] = useState("route");
 
   const meta = ISSUANCE_TYPES.find((t) => t.key === type)!;
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -525,6 +527,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
   }, [open, initial, isDraft, demandId, meta.dest, destId, candById, itemMap, stockMap]);
 
   useResetOnOpen(open, async () => {
+    setStepKey("route");
     setDemandId("");
     if (initial) {
       setType(initial.issuance_type); setSourceId(initial.source_id); setDestId(initial.destination_id);
@@ -719,16 +722,41 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
     }
   }
 
+  const steps: GuidedFormStep[] = [
+    { key: "route", label: "Issue to", caption: "Choose the source and receiver" },
+    { key: "items", label: "Items", caption: "Check stock and quantities" },
+    { key: "review", label: "Review", caption: "Check and issue the items" },
+  ];
+  const activeLines = isFreeIssue ? lines.filter((line) => line.qty > 0) : lines;
+  const validateStep = (key: string) => {
+    if (key === "route" && (!sourceId || !destId)) return "Pick source and destination";
+    if (key === "items" && (!activeLines.length || activeLines.some((line) => !line.item_id || line.qty <= 0))) return "Add items with quantity";
+    return null;
+  };
+  const isStepComplete = (key: string) => key === "review" ? !validateStep("route") && !validateStep("items") : !validateStep(key);
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle>{initial ? `Issuance ${initial.issuance_number}` : "New Issuance"}</DialogTitle>
           <DialogDescription>{initial?.status === "completed" ? "Completed." : isIssued ? "Issued — waiting for acknowledgement." : "Build and issue."}</DialogDescription>
         </DialogHeader>
 
-        <div className="modern-form-section">
+        <GuidedForm title={initial ? `Issuance ${initial.issuance_number}` : "New issuance"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={isDraft ? () => void saveOrIssue("draft") : undefined} onSubmit={() => { if (isDraft) void saveOrIssue("issue"); else if (isIssued && initial?.ack_method !== "otp") void acknowledge(); else onOpenChange(false); }} saving={saving} submitLabel={isDraft ? "Issue now" : isIssued && initial?.ack_method !== "otp" ? "Confirm receipt" : "Close"}>
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "route" ? "block" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Issue details</h3>
           {!isFieldOfficer && isDraft && !initial && openDemands.length > 0 && (
             <div className="grid gap-2">
               <Label>Against Demand <span className="font-normal text-muted-foreground">(optional — auto-fills items, source &amp; receiver)</span></Label>
@@ -788,7 +816,11 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
             </div>
             <div className="grid gap-2"><Label>Date</Label><Input type="date" value={issDate} onChange={(e) => setIssDate(e.target.value)} disabled={!isDraft} /></div>
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "items" ? "block" : "hidden"}>
+          <section className="modern-form-section">
           <div>
             <div className="mb-2 flex items-center justify-between">
               <Label className="text-sm font-semibold">Items</Label>
@@ -850,19 +882,24 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
               </table>
             </div>
           </div>
+          </section>
+          </div>
 
-
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Issuance summary</h3>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-1 font-medium">{issDate}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Items</dt><dd className="mt-1 font-medium">{activeLines.length}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Total quantity</dt><dd className="mt-1 font-medium">{activeLines.reduce((sum, line) => sum + line.qty, 0)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Confirmation</dt><dd className="mt-1 font-medium">{ackMethod === "otp" ? "OTP" : "Delivery challan"}</dd></div>
+            </dl>
+          </section>
           <div className="grid gap-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={initial?.status === "completed"} rows={2} /></div>
+          {isIssued && initial?.ack_method === "otp" && <p className="text-sm text-muted-foreground">Waiting for the guard to enter the OTP.</p>}
+          </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Close</Button>
-          {isDraft && <Button variant="outline" onClick={() => saveOrIssue("draft")} disabled={saving}>Save Draft</Button>}
-          {isDraft && <Button onClick={() => saveOrIssue("issue")} disabled={saving}>{saving ? "Issuing…" : "Issue Now"}</Button>}
-          {isIssued && initial?.ack_method !== "otp" && <Button onClick={acknowledge} disabled={saving}>Confirm Delivery Challan</Button>}
-          {isIssued && initial?.ack_method === "otp" && <span className="self-center text-xs text-muted-foreground">Waiting for guard to enter OTP</span>}
-
-        </DialogFooter>
+        </GuidedForm>
       </DialogContent>
     </Dialog>
   );
