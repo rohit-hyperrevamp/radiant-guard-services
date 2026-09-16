@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 const baseClasses =
-  "flex h-10 w-full rounded-lg border border-border/70 bg-card px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground/55 placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:tracking-normal hover:border-accent/50 focus-visible:outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
+  "flex h-10 w-full rounded-xl border border-border/80 bg-card px-3.5 py-2 text-base shadow-none transition-[border-color,box-shadow,background-color] duration-150 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground/55 placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:tracking-normal hover:border-accent/50 focus-visible:border-accent focus-visible:bg-card focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/10 aria-invalid:border-destructive aria-invalid:ring-destructive/10 disabled:cursor-not-allowed disabled:bg-muted/45 disabled:opacity-60 md:text-sm";
 
 const DateInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, value, defaultValue, onChange, disabled, name, id, placeholder, min, max, ...props }, ref) => {
@@ -59,6 +59,7 @@ const DateInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input
       <Popover open={open} onOpenChange={(o) => !disabled && setOpen(o)}>
         <PopoverTrigger asChild>
           <button
+            data-slot="input"
             type="button"
             disabled={disabled}
             className={cn(baseClasses, "flex items-center justify-between text-left font-normal", !selected && "text-muted-foreground", className)}
@@ -147,6 +148,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"inp
 
     return (
       <input
+        data-slot="input"
         {...props}
         ref={ref}
         type="text"
@@ -300,6 +302,7 @@ const FormattedInput = React.forwardRef<HTMLInputElement, FormattedInputProps>(
 
     return (
       <input
+        data-slot="input"
         {...props}
         ref={ref}
         type="text"
@@ -349,7 +352,7 @@ const Input = React.forwardRef<
   if (type === "number") {
     return <NumberInput className={className} {...props} ref={ref} />;
   }
-  return <input type={type} className={cn(baseClasses, className)} ref={ref} {...props} />;
+  return <input data-slot="input" type={type} className={cn(baseClasses, className)} ref={ref} {...props} />;
 });
 Input.displayName = "Input";
 
