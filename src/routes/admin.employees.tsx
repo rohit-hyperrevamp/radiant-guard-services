@@ -3041,10 +3041,17 @@ function EmployeesPage() {
     if (candidatesError) {
       return (
         <tr>
-          <td colSpan={mode === "employee" ? empCols : candCols} className="px-4 py-10 text-center text-muted-foreground">
-            {candidatesError instanceof Error
-              ? candidatesError.message
-              : "Could not load employees right now. Please retry."}
+          <td colSpan={mode === "employee" ? empCols : candCols} className="px-4 py-8 sm:px-8 sm:py-12">
+            <div className="mx-auto flex max-w-md flex-col items-center text-center">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-destructive/10 text-destructive ring-1 ring-destructive/15">
+                <UserPlus className="h-6 w-6" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-foreground">Candidates could not be loaded</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">Check your connection, then try again.</p>
+              <Button variant="outline" className="mt-5 h-10 rounded-xl px-4" onClick={() => void candidatesQuery.refetch()}>
+                Try Again
+              </Button>
+            </div>
           </td>
         </tr>
       );
@@ -3058,12 +3065,12 @@ function EmployeesPage() {
                 <UserPlus className="h-6 w-6" />
               </span>
               <h3 className="mt-4 text-base font-semibold text-foreground">
-                {mode === "employee" ? "No employees yet" : "No candidates yet"}
+                {mode === "employee" ? "No employees yet" : "No candidates available"}
               </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 {mode === "employee"
                   ? "Approved candidates will appear here with their Employee ID."
-                  : "Add your first candidate to begin onboarding."}
+                  : "Ready to onboard someone? Click Add Candidate to create a new profile."}
               </p>
               {mode === "candidate" && (
                 <Button
@@ -3544,8 +3551,15 @@ function EmployeesPage() {
 
     if (candidatesError) {
       return (
-        <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">
-          {candidatesError instanceof Error ? candidatesError.message : "Could not load employees right now. Please retry."}
+        <div className="rounded-2xl border border-border/70 bg-card px-5 py-10 text-center md:hidden">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-destructive/10 text-destructive ring-1 ring-destructive/15">
+            <UserPlus className="h-6 w-6" />
+          </span>
+          <h3 className="mt-4 text-base font-semibold text-foreground">Candidates could not be loaded</h3>
+          <p className="mt-1.5 text-sm text-muted-foreground">Check your connection, then try again.</p>
+          <Button variant="outline" className="mt-5 h-10 rounded-xl px-4" onClick={() => void candidatesQuery.refetch()}>
+            Try Again
+          </Button>
         </div>
       );
     }
@@ -3557,12 +3571,12 @@ function EmployeesPage() {
               <UserPlus className="h-6 w-6" />
             </span>
             <h3 className="mt-4 text-base font-semibold text-foreground">
-              {mode === "employee" ? "No employees yet" : "No candidates yet"}
+              {mode === "employee" ? "No employees yet" : "No candidates available"}
             </h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
               {mode === "employee"
                 ? "Approved candidates will appear here with their Employee ID."
-                : "Add your first candidate to begin onboarding."}
+                : "Ready to onboard someone? Click Add Candidate to create a new profile."}
             </p>
             {mode === "candidate" && (
               <Button
@@ -3895,7 +3909,6 @@ function EmployeesPage() {
       <PageHeader
         title={isFieldOfficer ? "Candidates" : "Employees"}
         description={isFieldOfficer ? "Manage your candidates." : "Onboard and manage candidates joining client sites."}
-        crumbs={[{ label: isFieldOfficer ? "Candidates" : "Employees" }]}
       />
 
       <RehireEnableDialog

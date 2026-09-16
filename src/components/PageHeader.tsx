@@ -9,8 +9,6 @@ import {
 } from "@/components/tile-theme";
 
 
-export type Crumb = { label: string; to?: string };
-
 export function PageHeader({
   title,
   description,
@@ -22,7 +20,6 @@ export function PageHeader({
 }: {
   title: string;
   description?: string;
-  crumbs: Crumb[];
   actions?: React.ReactNode;
   icon?: LucideIcon;
   eyebrow?: string;
