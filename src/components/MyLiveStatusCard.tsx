@@ -7,6 +7,7 @@ import {
   Radio,
   RefreshCw,
   Signal,
+  Smartphone,
   Wifi,
 } from "lucide-react";
 import {
@@ -110,11 +111,14 @@ export function MyLiveStatusCard() {
   return (
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-sm backdrop-blur-xl sm:rounded-3xl">
       <header className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
-        <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">My device</div>
-          <h3 className="mt-0.5 font-display text-base font-bold tracking-tight text-foreground">
-            Live status
-          </h3>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Smartphone className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">My device</div>
+            <h3 className="mt-0.5 text-base font-bold text-foreground">Live status</h3>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400">
