@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { confirmDiscardChanges } from "@/components/ConfirmProvider";
@@ -26,8 +26,37 @@ type GuidedFormProps = {
   isDirty?: boolean;
   /** Word used in the close prompt, e.g. "client". */
   entityLabel?: string;
+  /**
+   * Receives the guarded close handler so the surrounding dialog can route
+   * Esc, outside clicks and the header X through the same unsaved-work prompt.
+   */
+  closeGuardRef?: MutableRefObject<(() => void) | null>;
   children: ReactNode;
 };
+
+/**
+ * Wire a dialog's own close paths (Esc, outside click, header X) to the
+ * GuidedForm unsaved-work prompt:
+ *   const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
+ *   <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
+ *     <GuidedForm closeGuardRef={closeGuard.ref} ... />
+ */
+export function useGuidedFormCloseGuard(close: () => void) {
+  const ref = useRef<(() => void) | null>(null);
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  return useMemo(
+    () => ({
+      ref,
+      onOpenChange: (open: boolean) => {
+        if (open) return;
+        if (ref.current) ref.current();
+        else closeRef.current();
+      },
+    }),
+    [],
+  );
+}
 
 export function GuidedForm({
   title,
@@ -43,6 +72,7 @@ export function GuidedForm({
   submitLabel = "Save",
   isDirty,
   entityLabel,
+  closeGuardRef,
   children,
 }: GuidedFormProps) {
   const stepIndex = Math.max(0, steps.findIndex((step) => step.key === stepKey));
@@ -77,6 +107,10 @@ export function GuidedForm({
     touchedRef.current = false;
     onCancel();
   };
+
+  // Expose the same prompt to the dialog's Esc / outside-click / header X.
+  if (closeGuardRef) closeGuardRef.current = () => void requestCancel();
+
 
 
   return (

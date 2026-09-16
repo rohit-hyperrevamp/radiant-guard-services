@@ -19,7 +19,7 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -607,11 +607,12 @@ function GRNFormDialog({ open, onOpenChange, pos, vendors, branches, warehouses,
     setStepKey(key);
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only"><DialogTitle>New Delivery Challan</DialogTitle><DialogDescription>Receive items against a Purchase Order.</DialogDescription></DialogHeader>
-        <GuidedForm title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
+        <GuidedForm closeGuardRef={closeGuard.ref} title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "delivery" ? "block" : "hidden"}>
           <section className="modern-form-section">
@@ -1017,14 +1018,15 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
     setStepKey(key);
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>New Delivery Challan</DialogTitle>
           <DialogDescription>Receive items dispatched to your branch — from a warehouse transfer or a vendor PO raised for this branch.</DialogDescription>
         </DialogHeader>
-        <GuidedForm title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
+        <GuidedForm closeGuardRef={closeGuard.ref} title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "delivery" ? "block" : "hidden"}>
           <section className="modern-form-section">
@@ -1305,14 +1307,15 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
     setStepKey(key);
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>New Delivery Challan</DialogTitle>
           <DialogDescription>Confirm receipt of items issued to you. Posting adds them to your inventory.</DialogDescription>
         </DialogHeader>
-        <GuidedForm title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
+        <GuidedForm closeGuardRef={closeGuard.ref} title="New delivery challan" steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void save()} saving={saving} submitLabel="Post challan">
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "delivery" ? "block" : "hidden"}>
           <section className="modern-form-section">

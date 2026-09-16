@@ -20,7 +20,7 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -744,15 +744,16 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
   };
 
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>{initial ? `Issuance ${initial.issuance_number}` : "New Issuance"}</DialogTitle>
           <DialogDescription>{initial?.status === "completed" ? "Completed." : isIssued ? "Issued — waiting for acknowledgement." : "Build and issue."}</DialogDescription>
         </DialogHeader>
 
-        <GuidedForm title={initial ? `Issuance ${initial.issuance_number}` : "New issuance"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={isDraft ? () => void saveOrIssue("draft") : undefined} onSubmit={() => { if (isDraft) void saveOrIssue("issue"); else if (isIssued && initial?.ack_method !== "otp") void acknowledge(); else onOpenChange(false); }} saving={saving} submitLabel={isDraft ? "Issue now" : isIssued && initial?.ack_method !== "otp" ? "Confirm receipt" : "Close"}>
+        <GuidedForm closeGuardRef={closeGuard.ref} title={initial ? `Issuance ${initial.issuance_number}` : "New issuance"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={isDraft ? () => void saveOrIssue("draft") : undefined} onSubmit={() => { if (isDraft) void saveOrIssue("issue"); else if (isIssued && initial?.ack_method !== "otp") void acknowledge(); else onOpenChange(false); }} saving={saving} submitLabel={isDraft ? "Issue now" : isIssued && initial?.ack_method !== "otp" ? "Confirm receipt" : "Close"}>
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "route" ? "block" : "hidden"}>
           <section className="modern-form-section">

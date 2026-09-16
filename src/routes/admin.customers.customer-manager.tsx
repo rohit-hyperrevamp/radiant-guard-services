@@ -54,7 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
-import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
 export const Route = createFileRoute("/admin/customers/customer-manager")({
   component: CustomerManagerPage,
@@ -763,14 +763,15 @@ function CustomerFormDialog({
     }
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>{editing ? "Edit organization" : "Add organization"}</DialogTitle>
           <DialogDescription>Organization setup</DialogDescription>
         </DialogHeader>
-        <GuidedForm
+        <GuidedForm closeGuardRef={closeGuard.ref}
           title={editing ? "Edit organization" : "New organization"}
           steps={steps}
           stepKey={stepKey}

@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { fmtDate } from "@/lib/vehicle-helpers";
 import { MiniStat } from "@/components/MiniStat";
-import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -523,11 +523,12 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
     else { draft.clear(); onOpenChange(false); }
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[94vw] sm:max-w-5xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only"><DialogTitle>{title}</DialogTitle><DialogDescription>Vehicle setup</DialogDescription></DialogHeader>
-        <GuidedForm title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveVehicle()} saving={saving} submitLabel="Save vehicle">
+        <GuidedForm closeGuardRef={closeGuard.ref} title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveVehicle()} saving={saving} submitLabel="Save vehicle">
         {draft.hasDraft && !initial && stepKey === "identity" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         {stepKey === "identity" && <div className="modern-form-section grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">

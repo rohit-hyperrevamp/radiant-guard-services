@@ -18,7 +18,7 @@ import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useItemSizeOptions, sizePlaceholder, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, type GuidedFormStep } from "@/components/GuidedForm";
 
 export const Route = createFileRoute("/admin/inventory/demands")({ component: DemandsPage });
 
@@ -464,15 +464,16 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
     setStepKey(key);
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle className="text-base sm:text-lg">{initial ? `Edit Demand ${initial.demand_number}` : "New Demand"}</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">{isFieldOfficer ? "Request stock from a warehouse or any branch." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
         </DialogHeader>
 
-        <GuidedForm title={initial ? `Edit demand ${initial.demand_number}` : "New demand"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={() => void save(false)} onSubmit={() => void save(true)} saving={saving} submitLabel={submitLabel}>
+        <GuidedForm closeGuardRef={closeGuard.ref} title={initial ? `Edit demand ${initial.demand_number}` : "New demand"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={() => void save(false)} onSubmit={() => void save(true)} saving={saving} submitLabel={submitLabel}>
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "request" ? "block" : "hidden"}>
           <section className="modern-form-section">

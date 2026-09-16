@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
 export const Route = createFileRoute("/admin/inventory/items")({ component: ItemsPage });
 
@@ -396,11 +396,12 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
     onOpenChange(false);
   }
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[90dvh] sm:w-[94vw] sm:max-w-5xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only"><DialogTitle>{title}</DialogTitle><DialogDescription>Product setup</DialogDescription></DialogHeader>
-        <GuidedForm title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveItem()} saving={saving} submitLabel="Save product">
+        <GuidedForm closeGuardRef={closeGuard.ref} title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveItem()} saving={saving} submitLabel="Save product">
         {draft.hasDraft && !initial && stepKey === "details" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         {stepKey === "details" && <div className="modern-form-section">
           <div className="grid gap-2"><Label>Name<span className="ml-0.5 text-destructive">*</span></Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Security Shirt — Half Sleeve" /></div>

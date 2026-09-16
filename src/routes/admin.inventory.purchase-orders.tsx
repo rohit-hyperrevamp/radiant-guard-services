@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useItemSizeOptions, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, type GuidedFormStep } from "@/components/GuidedForm";
 
 // PO status → user-facing delivery label. Legacy "approved" maps to Delivery Open.
 const PO_STATUS_LABEL: Record<string, string> = {
@@ -628,8 +628,9 @@ function POFormDialog({
     setStepKey(key);
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>{initial ? `Purchase Order ${initial.po_number}` : "New Purchase Order"}</DialogTitle>
@@ -637,7 +638,7 @@ function POFormDialog({
 
         </DialogHeader>
 
-        <GuidedForm title={initial ? `Purchase order ${initial.po_number}` : "New purchase order"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={!initial && !readOnly ? () => void save("draft") : undefined} onSubmit={() => void save(initial ? status : "open")} saving={saving} submitLabel={initial ? "Save changes" : "Issue order"}>
+        <GuidedForm closeGuardRef={closeGuard.ref} title={initial ? `Purchase order ${initial.po_number}` : "New purchase order"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={!initial && !readOnly ? () => void save("draft") : undefined} onSubmit={() => void save(initial ? status : "open")} saving={saving} submitLabel={initial ? "Save changes" : "Issue order"}>
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "supplier" ? "block" : "hidden"}>
           <section className="modern-form-section">

@@ -44,7 +44,7 @@ import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
 import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
-import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -3435,8 +3435,9 @@ function ContractFormDialog({
     } finally { setSaving(false); }
   };
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <div className="flex items-start justify-between gap-3">
@@ -3450,7 +3451,7 @@ function ContractFormDialog({
         </DialogHeader>
 
 
-        <GuidedForm title={editing ? "Edit contract" : "New contract"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveContract()} saving={saving} submitLabel={editing ? "Save changes" : "Create contract"}>
+        <GuidedForm closeGuardRef={closeGuard.ref} title={editing ? "Edit contract" : "New contract"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveContract()} saving={saving} submitLabel={editing ? "Save changes" : "Create contract"}>
         {draft.hasDraft && !editing && stepKey === "client" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "client" ? "space-y-5" : "hidden"}>
