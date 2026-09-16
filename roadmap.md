@@ -61,7 +61,7 @@
 - [x] Preserve totals, statuses, search, and candidate rows when records exist.
 - [x] Remove the Home/location breadcrumb trail from shared page headings for every role.
 
-- [ ] Candidate form: left step list must scroll to Review (step 10); completion card overlaps it
+- [x] Candidate form: left step list must scroll to Review (step 10); completion card overlaps it
 
 ## Employee dashboard redesign
 - [x] Match Guard, billable, and non-billable employee dashboards to the Field Officer bento layout.
@@ -71,3 +71,8 @@
 - [x] Show assigned unit locations and identify Primary and Secondary units.
 - [x] Keep Duty and Unit cards white, color only their inner tiles, and label the profile card's primary unit.
 - [x] Center attendance errors and confirm check-in/out with time and location.
+
+## My Profile redesign
+- [x] Replace net pay and employer-cost presentation with one CTC value for every employee profile.
+- [x] Apply the selected Cloud White, system-blue, current-font bento profile design.
+- [x] Preserve profile details, photo actions, postings, documents, settings, and sign-out behavior.
