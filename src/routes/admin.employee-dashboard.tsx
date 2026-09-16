@@ -17,6 +17,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +29,21 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
+import { DashboardShell } from "@/components/LiveFeed";
+import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
+  head: () => ({
+    meta: [
+      { title: "My Dashboard | Radiant Guard Services" },
+      { name: "description", content: "Personal attendance, duty, assignments, team, and workplace updates." },
+      { property: "og:title", content: "My Dashboard | Radiant Guard Services" },
+      { property: "og:description", content: "Personal attendance, duty, assignments, team, and workplace updates." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: EmployeeDashboard,
 });
 
@@ -401,261 +414,11 @@ function EmployeeDashboard() {
   const started = me.approved_at || me.created_at;
   const tenureYears = started ? yearsBetween(started, new Date()) : null;
 
-  return (
-    <div className="space-y-5">
+  const roleLabel = (lookupsQ.data?.designation?.name || me.role_key || "employee").replace(/_/g, " ");
 
-      {/* Profile hero — same light panel as the other dashboards */}
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-3.5 shadow-sm sm:rounded-3xl sm:p-6">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-accent/80 sm:w-1" />
-
-        <div className="relative flex items-center gap-3 sm:gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              {(me.role_key || "employee").replace(/_/g, " ")}
-            </div>
-            <div className="mt-1 truncate font-display text-[20px] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[30px]">
-              {me.full_name}
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {me.employee_code && (
-                <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{me.employee_code}</span>
-              )}
-              {unit && (
-                <span className="max-w-[180px] truncate rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-semibold text-accent ring-1 ring-inset ring-accent/30">
-                  {unit.name}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <Link
-            to="/admin/profile"
-            aria-label="Edit profile"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-muted/50 text-muted-foreground transition hover:bg-background hover:text-foreground"
-          >
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {(me.mobile || unit?.site_address) && (
-          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
-            {me.mobile && (
-              <span className="inline-flex items-center gap-1.5"><Phone className="h-3 w-3" /><span className="tabular-nums">{me.mobile}</span></span>
-            )}
-            {(unit?.site_address || unit?.name) && (
-              <span className="inline-flex items-center gap-1.5 min-w-0"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{unit?.site_address || unit?.name}</span></span>
-            )}
-          </div>
-        )}
-
-        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
-          <HeroStat label="Present" value={attStats.present} tint="emerald" />
-          <HeroStat label="ED hrs" value={attStats.ot} tint="sky" />
-          <HeroStat label="Team" value={guardTeam.length + 1} tint="amber" />
-        </div>
-      </section>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 space-y-5">
-          {/* Pastel summary tiles — matches FO */}
-          <section>
-            <div className="mb-2 flex items-end justify-between sm:mb-3">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
-                <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-              <PastelTile palette="lime" label="Present days" value={attStats.present} hint={new Date().toLocaleString("en-IN",{month:"long"})} delta={0} deltaSuffix="" icon={ClipboardCheck} />
-              <PastelTile palette="rose" label="Absent" value={attStats.absent} hint="this month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
-              <PastelTile palette="amber" label="Leaves" value={attStats.leave} hint="this month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
-              <PastelTile palette="teal" label="Uniform items" value={issQ.data?.total ?? 0} hint={issQ.data?.pending ? `${issQ.data.pending} pending OTP` : "in hand"} delta={0} deltaSuffix="" icon={Package} to="/admin/my-inventory" />
-            </div>
-          </section>
-
-
-          {isGuard && (
-            <MarkAttendanceCard
-              candidateId={me.id}
-              allowedUnits={allowedUnits}
-              proximityThresholdM={300}
-            />
-          )}
-
-          {/* Duty & unit */}
-          <section className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.indigo}`}><CalendarDays className="h-3.5 w-3.5" /></span>
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Today</div>
-                  <div className="font-display text-[15px] font-bold leading-tight">Your duty</div>
-                </div>
-              </div>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <dt className="text-muted-foreground">Shift start</dt>
-                <dd className="font-medium tabular-nums">{unit?.shift_start_time || "—"}</dd>
-                <dt className="text-muted-foreground">Shift end</dt>
-                <dd className="font-medium tabular-nums">{unit?.shift_end_time || "—"}</dd>
-                <dt className="text-muted-foreground">Extra duty this month</dt>
-                <dd className="font-medium tabular-nums">{attStats.ot} hrs</dd>
-                <dt className="text-muted-foreground">Site</dt>
-                <dd className="truncate font-medium">{unit?.site_address || unit?.name || "—"}</dd>
-              </dl>
-            </div>
-
-            <div className="rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.violet}`}><Building2 className="h-3.5 w-3.5" /></span>
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Assignment</div>
-                  <div className="font-display text-[15px] font-bold leading-tight">Clients ({myUnits.length})</div>
-                </div>
-              </div>
-              {myUnits.length === 0 ? (
-                <div className="text-sm text-muted-foreground">Not assigned</div>
-              ) : (
-                <>
-                  <ul className="space-y-1.5">
-                    {[...myUnits]
-                      .sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId))
-                      .map((u) => {
-                        const isPrimary = u.id === primaryUnitId;
-                        const unitDesignation = designationByUnit[u.id];
-                        return (
-                          <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold text-foreground">{u.name}</span>
-                              <span className="block truncate text-[11px] text-muted-foreground">
-                                {unitDesignation ? `Designation · ${unitDesignation}` : "Designation not set"}
-                              </span>
-                            </span>
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
-                                isPrimary
-                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                                  : "bg-violet-500/15 text-violet-700 dark:text-violet-300"
-                              }`}
-                            >
-                              {isPrimary ? "Primary" : "Reliever · ED"}
-                            </span>
-                            {u.code && <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{u.code}</span>}
-                          </li>
-                        );
-                      })}
-
-                  </ul>
-                  {isGuard && !primaryUnitId && (
-                    <div className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
-                      No primary unit assigned yet — ask your field officer to set one.
-                    </div>
-                  )}
-                  {isGuard && primaryUnitId && myUnits.length > 1 && (
-                    <div className="mt-2 text-[11px] text-muted-foreground">
-                      Attendance is marked at your primary unit. Reliever units record extra duty (ED) only.
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-xl bg-secondary/60 px-3 py-2 text-center ring-1 ring-border">
-                  <div className="font-display text-lg font-bold tabular-nums">{guardTeam.length + 1}</div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Team size</div>
-                </div>
-                <Link to="/admin/my-inventory" className="flex items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
-                  My Uniform <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* Reporting manager */}
-          <section className="rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
-            <div className="mb-3 flex items-center gap-2">
-              <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.sky}`}><UserRound className="h-3.5 w-3.5" /></span>
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Reports to</div>
-                <div className="font-display text-[15px] font-bold leading-tight">Reporting Manager</div>
-              </div>
-            </div>
-            {!manager ? (
-              <div className="text-sm text-muted-foreground">No reporting manager assigned yet.</div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-[13px] font-bold text-accent ring-1 ring-inset ring-accent/20">
-                  {manager.photo_url ? <img src={manager.photo_url} alt="" className="h-full w-full object-cover" /> : initials(manager.full_name)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-foreground">{manager.full_name}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">
-                    {manager.designation_id ? desigMap.get(manager.designation_id) ?? "" : ""}
-                    {manager.role_key ? ` · ${manager.role_key.replace(/_/g, " ")}` : ""}
-                  </div>
-                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                    {manager.employee_code && <span className="font-mono">{manager.employee_code}</span>}
-                    {manager.mobile && <span>{manager.mobile}</span>}
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Team roster */}
-          <section className="overflow-hidden rounded-[24px] border border-border/60 bg-card/70 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
-            <header className="flex items-center gap-3 border-b border-border/50 bg-card px-5 py-3.5">
-              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.indigo}`}><Users className="h-3.5 w-3.5" /></span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Your unit</div>
-                <div className="font-display text-[15px] font-bold text-foreground leading-tight">Fellow guards</div>
-              </div>
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{guardTeam.length}</span>
-            </header>
-            {guardTeam.length === 0 ? (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No fellow guards in your unit yet.</div>
-            ) : (
-              <ul className="max-h-[320px] divide-y divide-border/60 overflow-y-auto">
-                {guardTeam.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-[11px] font-bold text-accent ring-1 ring-inset ring-accent/20">
-                      {t.photo_url ? <img src={t.photo_url} alt="" className="h-full w-full object-cover" /> : initials(t.full_name)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-semibold text-foreground">{t.full_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{t.designation_id ? desigMap.get(t.designation_id) ?? "" : ""}</div>
-                    </div>
-                    {t.employee_code && <div className="shrink-0 font-mono text-[11px] text-muted-foreground">{t.employee_code}</div>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        {/* Right rail */}
-        <div className="space-y-4 lg:sticky lg:top-6 lg:h-fit">
-          <SidePanel Icon={Bell} accent="indigo" eyebrow="Latest" title="Notifications" count={notifs.length}>
-            {notifs.length === 0 ? (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">Nothing new.</div>
-            ) : (
-              <ul className="divide-y divide-border/60">
-                {notifs.map((n) => (
-                  <li key={n.id}>
-                    <Link
-                      to={n.link ?? "/admin/notifications"}
-                      className={`block px-4 py-2.5 transition-colors hover:bg-accent/5 ${n.read_at ? "" : "bg-accent/8"}`}
-                    >
-                      <div className="text-[13px] font-semibold text-foreground">{n.title}</div>
-                      {n.body && <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{n.body}</div>}
-                      <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{new Date(n.created_at).toLocaleString("en-IN")}</div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SidePanel>
-
-          <SidePanel Icon={Cake} accent="rose" eyebrow="This year" title="Upcoming Birthdays" count={birthdays.length}>
+  const insights = (
+    <div className="flex flex-col gap-3">
+      <SidePanel Icon={Cake} accent="rose" eyebrow="This year" title="Upcoming Birthdays" count={birthdays.length}>
             {birthdays.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs text-muted-foreground">No more birthdays this year.</div>
             ) : (
@@ -678,7 +441,6 @@ function EmployeeDashboard() {
               </ul>
             )}
           </SidePanel>
-
           <SidePanel Icon={PartyPopper} accent="amber" eyebrow="This year" title="Work Anniversaries" count={anniversaries.length}>
             {anniversaries.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs text-muted-foreground">No more anniversaries this year.</div>
@@ -702,9 +464,138 @@ function EmployeeDashboard() {
               </ul>
             )}
           </SidePanel>
-        </div>
-      </div>
     </div>
+  );
+
+  return (
+    <DashboardShell rightExtras={insights} fixedRightRail>
+      <div className="space-y-4">
+        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
+            {me.photo_url ? (
+              <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center" />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center bg-accent text-accent-foreground">
+                <UserRound className="h-28 w-28" strokeWidth={1.25} />
+              </div>
+            )}
+            {me.photo_url && <div className="field-officer-hero-overlay absolute inset-0" />}
+            <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground shadow-sm ring-1 ring-border">
+                    <ShieldCheck className="h-3.5 w-3.5" /> {roleLabel}
+                  </div>
+                  <h1 className="mt-5 truncate text-2xl font-bold text-field-hero sm:text-3xl">{me.full_name}</h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
+                    {unit && <span className="max-w-[190px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.name}</span>}
+                  </div>
+                </div>
+                <Link to="/admin/profile" aria-label="Open profile" className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-foreground shadow-sm ring-1 ring-border">
+                  <ArrowUpRight className="h-5 w-5" />
+                </Link>
+              </div>
+              <div className="mt-8 space-y-2 text-xs text-field-hero-muted">
+                {me.mobile && <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-field-hero" /><span className="tabular-nums">{me.mobile}</span></span>}
+                {(unit?.site_address || unit?.name) && <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-field-hero" /><span className="truncate">{unit?.site_address || unit?.name}</span></span>}
+              </div>
+            </div>
+          </section>
+
+          <div className="flex min-w-0 flex-col gap-4">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+              <HeroStat label="Present" value={attStats.present} icon={ClipboardCheck} tone="mint" />
+              <HeroStat label="ED hrs" value={attStats.ot} icon={CalendarDays} tone="blue" />
+              <HeroStat label="Team" value={guardTeam.length + 1} icon={Users} tone="amber" />
+            </div>
+            <div className="min-w-0 flex-1 [&>*]:h-full">
+              {isGuard ? (
+                <MarkAttendanceCard candidateId={me.id} allowedUnits={allowedUnits} proximityThresholdM={300} />
+              ) : (
+                <section className="flex h-full min-h-[180px] flex-col justify-between rounded-3xl border border-border/70 bg-[rgb(var(--tint-blue))] p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></span>
+                    <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground ring-1 ring-border">{me.status || "Active"}</span>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Workplace</div>
+                    <h2 className="mt-1 text-lg font-bold text-foreground">{unit?.name || "Assignment pending"}</h2>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{unit?.site_address || "Your assigned workplace will appear here."}</p>
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div className="min-w-0 [&>*]:h-full"><MyLiveStatusCard /></div>
+          <section className="min-w-0">
+            <div className="mb-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>
+              <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+              <PastelTile className="sm:col-span-3" palette="lime" label="Present days" value={attStats.present} hint={new Date().toLocaleString("en-IN", { month: "long" })} delta={0} deltaSuffix="" icon={ClipboardCheck} />
+              <PastelTile className="sm:col-span-3" palette="teal" label="Uniform items" value={issQ.data?.total ?? 0} hint={issQ.data?.pending ? `${issQ.data.pending} pending` : "In hand"} delta={0} deltaSuffix="" icon={Package} to="/admin/my-inventory" />
+              <PastelTile className="sm:col-span-3" palette="rose" label="Absent" value={attStats.absent} hint="This month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
+              <PastelTile className="sm:col-span-3" palette="amber" label="Leaves" value={attStats.leave} hint="This month" delta={0} deltaSuffix="" icon={CalendarDays} />
+            </div>
+          </section>
+        </div>
+
+        <section className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-3xl border border-border/70 bg-[rgb(var(--tint-sky))] p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="h-5 w-5" /></span>
+              <div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Today</div><h2 className="text-base font-bold text-foreground">My duty</h2></div>
+            </div>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Starts</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{unit?.shift_start_time || "Not set"}</dd></div>
+              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Ends</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{unit?.shift_end_time || "Not set"}</dd></div>
+              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Extra duty</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{attStats.ot} hrs</dd></div>
+              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Tenure</dt><dd className="mt-1 font-semibold text-foreground">{tenureYears == null ? "—" : `${tenureYears} yr${tenureYears === 1 ? "" : "s"}`}</dd></div>
+            </dl>
+          </div>
+
+          <div className="rounded-3xl border border-border/70 bg-[rgb(var(--tint-violet))] p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></span>
+              <div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Assignment</div><h2 className="text-base font-bold text-foreground">My units</h2></div>
+              <span className="ml-auto rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground ring-1 ring-border">{myUnits.length}</span>
+            </div>
+            {myUnits.length === 0 ? <div className="rounded-2xl bg-background/70 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
+              <ul className="space-y-2">
+                {[...myUnits].sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId)).map((u) => {
+                  const isPrimary = u.id === primaryUnitId;
+                  return <li key={u.id} className="flex items-center gap-3 rounded-2xl bg-background/80 p-3 ring-1 ring-border/70">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-4 w-4" /></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-foreground">{u.name}</span><span className="block truncate text-[11px] text-muted-foreground">{designationByUnit[u.id] || u.code || "Assigned"}</span></span>
+                    {isPrimary && <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">Primary</span>}
+                  </li>;
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]">
+          <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><UserRound className="h-5 w-5" /></span><div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Reports to</div><h2 className="text-base font-bold text-foreground">Reporting manager</h2></div></div>
+            {!manager ? <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">Not assigned yet.</div> : <div className="flex items-center gap-3 rounded-2xl bg-muted/50 p-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-sm font-bold text-accent">{manager.photo_url ? <img src={manager.photo_url} alt={`${manager.full_name} profile`} className="h-full w-full object-cover" /> : initials(manager.full_name)}</div>
+              <div className="min-w-0"><div className="truncate text-sm font-semibold text-foreground">{manager.full_name}</div><div className="truncate text-xs text-muted-foreground">{manager.designation_id ? desigMap.get(manager.designation_id) ?? "Manager" : "Manager"}</div>{manager.mobile && <div className="mt-1 text-xs text-muted-foreground">{manager.mobile}</div>}</div>
+            </div>}
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm">
+            <header className="flex items-center gap-3 border-b border-border/60 px-5 py-4"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Users className="h-5 w-5" /></span><div className="min-w-0 flex-1"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">My unit</div><h2 className="text-base font-bold text-foreground">Team</h2></div><span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{guardTeam.length}</span></header>
+            {guardTeam.length === 0 ? <div className="px-5 py-10 text-center text-sm text-muted-foreground">No teammates listed yet.</div> : <ul className="max-h-[320px] divide-y divide-border/60 overflow-y-auto">{guardTeam.map((t) => <li key={t.id} className="flex items-center gap-3 px-5 py-3"><div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-xs font-bold text-accent">{t.photo_url ? <img src={t.photo_url} alt={`${t.full_name} profile`} className="h-full w-full object-cover" /> : initials(t.full_name)}</div><div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold text-foreground">{t.full_name}</div><div className="truncate text-xs text-muted-foreground">{t.designation_id ? desigMap.get(t.designation_id) ?? "Team member" : "Team member"}</div></div>{t.employee_code && <span className="shrink-0 text-xs text-muted-foreground">{t.employee_code}</span>}</li>)}</ul>}
+          </div>
+        </section>
+      </div>
+    </DashboardShell>
   );
 }
 
@@ -776,38 +667,33 @@ function MetricTile({
 
 }
 
-function HeroStat({ label, value, tint }: { label: string; value: number | string; tint: "sky" | "emerald" | "amber" }) {
-  const dot = { sky: "bg-sky-500", emerald: "bg-emerald-500", amber: "bg-amber-500" }[tint];
+function HeroStat({ label, value, icon: Icon, tone }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "amber" }) {
+  const surface = {
+    blue: "bg-[rgb(var(--tint-blue))]",
+    mint: "bg-[rgb(var(--tint-emerald))]",
+    amber: "bg-[rgb(var(--tint-amber))]",
+  }[tone];
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-muted/40 px-3 py-2.5">
-      <div className="flex items-center gap-1.5">
-        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
-        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
-      </div>
-      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{value}</div>
+    <div className={cn("flex min-w-0 flex-col justify-between rounded-2xl border border-border/60 p-3 shadow-sm sm:min-h-[96px] sm:p-4", surface)}>
+      <div className="flex items-start justify-between gap-2"><span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span><Icon className="h-4 w-4 shrink-0 text-primary" /></div>
+      <div className="mt-2 font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</div>
     </div>
   );
 }
 
 function PastelTile({
-  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
+  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to, className,
 }: {
   palette: "lime" | "teal" | "rose" | "amber";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
-  icon: React.ComponentType<{ className?: string }>; to?: string;
+  icon: React.ComponentType<{ className?: string }>; to?: string; className?: string;
 }) {
   const bg = {
-    lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
-    teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
-    rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
-    amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
-  }[palette];
-  const ring = {
-    lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
-    teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
-    rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
-    amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
+    lime: "bg-[rgb(var(--tint-emerald))]",
+    teal: "bg-[rgb(var(--tint-blue))]",
+    rose: "bg-[rgb(var(--tint-rose))]",
+    amber: "bg-[rgb(var(--tint-amber))]",
   }[palette];
 
   const positive = invertColor ? delta < 0 : delta > 0;
@@ -820,7 +706,7 @@ function PastelTile({
     : "bg-card/70 text-foreground/60";
 
   const inner = (
-    <div className={`relative flex h-full min-h-[86px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
+    <div className={cn("relative flex h-full min-h-[108px] flex-col justify-between overflow-hidden rounded-2xl border border-border/50 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-3xl sm:p-5", bg)}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
@@ -848,6 +734,6 @@ function PastelTile({
       </div>
     </div>
   );
-  return to ? <Link to={to} className="block">{inner}</Link> : inner;
+  return to ? <Link to={to} className={cn("block", className)}>{inner}</Link> : <div className={className}>{inner}</div>;
 }
 

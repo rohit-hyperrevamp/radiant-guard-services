@@ -62,3 +62,8 @@
 - [x] Remove the Home/location breadcrumb trail from shared page headings for every role.
 
 - [ ] Candidate form: left step list must scroll to Review (step 10); completion card overlaps it
+
+## Employee dashboard redesign
+- [ ] Match Guard and non-billable employee dashboards to the Field Officer bento layout.
+- [ ] Preserve attendance, assignments, manager, team, device, and insights behavior.
+- [ ] Verify responsive layout and project checks.
