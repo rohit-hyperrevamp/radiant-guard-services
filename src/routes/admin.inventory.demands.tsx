@@ -18,6 +18,7 @@ import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useItemSizeOptions, sizePlaceholder, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
 
 export const Route = createFileRoute("/admin/inventory/demands")({ component: DemandsPage });
 
@@ -333,6 +334,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
   );
   const [source, setSource] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [stepKey, setStepKey] = useState("request");
 
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const branchMap = useMemo(() => new Map(branches.map((b) => [b.id, b])), [branches]);
@@ -363,6 +365,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       setLines([]);
       setSource(defaultWarehouseId ? `wh:${defaultWarehouseId}` : "");
     }
+    setStepKey("request");
   });
 
   const isWarehouse = source.startsWith("wh:");
@@ -439,16 +442,41 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
   const submitLabel = isWarehouse
     ? `Submit to ${warehouseMap.get(targetWarehouseId)?.name ?? "Warehouse"}`
     : `Submit to ${branchMap.get(targetBranchId)?.name ?? "Branch"}`;
+  const steps: GuidedFormStep[] = [
+    { key: "request", label: "Request", caption: "Date and fulfilment source" },
+    { key: "items", label: "Items", caption: "Products, sizes and quantities" },
+    { key: "review", label: "Review", caption: "Check and submit the demand" },
+  ];
+  const validateStep = (key: string) => {
+    if (key === "request" && !source) return "Choose where to send this demand";
+    if (key === "items" && (!lines.length || lines.some((line) => !line.item_id || line.requested_qty <= 0))) return "Add at least one complete item";
+    return null;
+  };
+  const isStepComplete = (key: string) => key === "review"
+    ? !validateStep("request") && !validateStep("items")
+    : !validateStep(key);
+  const requestStep = (key: string) => {
+    const target = steps.findIndex((step) => step.key === key);
+    for (let index = 0; index < target; index += 1) {
+      const problem = validateStep(steps[index].key);
+      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+    }
+    setStepKey(key);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[96vw] max-w-3xl overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
+        <DialogHeader className="sr-only">
           <DialogTitle className="text-base sm:text-lg">{initial ? `Edit Demand ${initial.demand_number}` : "New Demand"}</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">{isFieldOfficer ? "Request stock from a warehouse or any branch." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
         </DialogHeader>
 
-        <div className="modern-form-section">
+        <GuidedForm title={initial ? `Edit demand ${initial.demand_number}` : "New demand"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={() => void save(false)} onSubmit={() => void save(true)} saving={saving} submitLabel={submitLabel}>
+        <div className="modern-business-form space-y-5">
+          <div className={stepKey === "request" ? "block" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Request details</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label className="text-xs font-semibold">Demand Date</Label>
@@ -470,7 +498,11 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
               {!isFieldOfficer && <p className="text-[11px] text-muted-foreground break-words">From branch: <span className="font-medium">{branchLabel}</span></p>}
             </div>
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "items" ? "block" : "hidden"}>
+          <section className="modern-form-section">
           <div>
             <div className="mb-2 flex items-center justify-between gap-2">
               <Label className="text-sm font-semibold">Items</Label>
@@ -593,15 +625,23 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
               </table>
             </div>
           </div>
+          </section>
+          </div>
 
+          <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
+          <section className="modern-form-section">
+            <h3 className="modern-form-section-title">Demand summary</h3>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-1 font-medium">{demandDate}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Requested from</dt><dd className="mt-1 font-medium">{isWarehouse ? warehouseMap.get(targetWarehouseId)?.name : branchMap.get(targetBranchId)?.name}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Items</dt><dd className="mt-1 font-medium">{lines.length}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Total quantity</dt><dd className="mt-1 font-medium">{lines.reduce((sum, line) => sum + line.requested_qty, 0)}</dd></div>
+            </dl>
+          </section>
           <div className="grid gap-1.5"><Label className="text-xs font-semibold">Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional message to warehouse" /></div>
+          </div>
         </div>
-
-        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => save(false)} disabled={saving}>Save Draft</Button>
-          <Button className="w-full sm:w-auto" onClick={() => save(true)} disabled={saving}><Send className="mr-1.5 h-4 w-4" />{saving ? "Submitting…" : submitLabel}</Button>
-        </DialogFooter>
+        </GuidedForm>
       </DialogContent>
     </Dialog>
 
