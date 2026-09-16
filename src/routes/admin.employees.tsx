@@ -4477,7 +4477,7 @@ function EmployeesPage() {
         editing={editing}
         mode={wizardMode}
         units={scopedUnitsForWizard}
-        unitsLoading={unitsQuery.isLoading || scopeStillLoading}
+        unitsLoading={isFieldOfficer ? scopeStillLoading : unitsQuery.isLoading}
         unitsError={
           unitsQuery.error instanceof Error
             ? unitsQuery.error.message
