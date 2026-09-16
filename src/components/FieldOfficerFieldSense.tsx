@@ -246,12 +246,16 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   const [mapReady, setMapReady] = useState(false);
   const lastRouteFitKeyRef = useRef("");
 
-  // Data
+  // Data — paints from the last known units instantly, refreshes silently.
   const unitsQ = useQuery({
     queryKey: ["fo-fs-units", candidateId],
     queryFn: () => loadFoUnits(candidateId),
+    initialData: () => readUnitsSnapshot(candidateId),
     staleTime: 60_000,
+    refetchOnMount: "always",
+    placeholderData: (prev) => prev,
   });
+
   const punchQ = useQuery({
     queryKey: ["fo-fs-punch", candidateId, effectiveDate],
     queryFn: async () => {
