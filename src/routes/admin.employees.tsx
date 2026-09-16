@@ -6538,7 +6538,7 @@ function CandidateWizard({
         </div>
 
         <div className="flex min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 flex-col border-r border-border/60 bg-card px-7 py-8 lg:flex">
+          <aside className="hidden min-h-0 flex-col overflow-hidden border-r border-border/60 bg-card px-7 py-8 lg:flex">
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="mb-6 shrink-0">
                 <p className="text-xs font-semibold text-muted-foreground">Candidate</p>
