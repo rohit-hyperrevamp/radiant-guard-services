@@ -1,5 +1,3 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ChevronRight, Home } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -16,7 +14,6 @@ export type Crumb = { label: string; to?: string };
 export function PageHeader({
   title,
   description,
-  crumbs,
   actions,
   icon: Icon,
   eyebrow,
@@ -35,41 +32,6 @@ export function PageHeader({
 }) {
   return (
     <div className={cn("relative mb-3 sm:mb-5", className)}>
-      {crumbs.length > 1 && crumbs[crumbs.length - 2]?.to && (
-        <Link
-          to={crumbs[crumbs.length - 2].to}
-          className="mb-2 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-muted-foreground sm:hidden"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to {crumbs[crumbs.length - 2].label}
-        </Link>
-      )}
-      <nav aria-label="Breadcrumb" className="mb-2 hidden sm:block">
-        <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
-          <li>
-            <Link
-              to="/admin/customers/customer-manager"
-              className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-            >
-              <Home className="h-3 w-3" />
-              <span>Home</span>
-            </Link>
-          </li>
-          {crumbs.map((c, i) => (
-            <li key={`${c.label}-${i}`} className="flex items-center gap-1">
-              <ChevronRight className="h-3 w-3 opacity-50" />
-              {c.to && i < crumbs.length - 1 ? (
-                <Link to={c.to} className="transition-colors hover:text-foreground">
-                  {c.label}
-                </Link>
-              ) : (
-                <span className="text-foreground/90">{c.label}</span>
-              )}
-            </li>
-          ))}
-        </ol>
-      </nav>
-
       <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card p-3 sm:p-5">
         <div className="relative flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-start gap-2.5">

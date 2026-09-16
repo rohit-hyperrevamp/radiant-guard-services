@@ -55,3 +55,8 @@
 
 ## Field dashboard device card
 - [x] Rebalance the My Device card so its status tiles and action fill the available height without a blank lower area.
+
+## Candidate list and page headings
+- [x] Add a clean empty Candidate state with a direct Add Candidate action.
+- [x] Preserve totals, statuses, search, and candidate rows when records exist.
+- [x] Remove the Home/location breadcrumb trail from shared page headings for every role.

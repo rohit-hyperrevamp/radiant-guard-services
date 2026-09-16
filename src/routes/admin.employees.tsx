@@ -3052,12 +3052,33 @@ function EmployeesPage() {
     if (rows.length === 0) {
       return (
         <tr>
-          <td colSpan={mode === "employee" ? empCols : candCols} className="px-4 py-10 text-center text-muted-foreground">
-            {mode === "employee"
-              ? "No employees yet. Approve a candidate to generate an Employee ID."
-              : "No candidates here. Click "}
-            {mode === "candidate" && <b>Add Candidate</b>}
-            {mode === "candidate" && " to start."}
+          <td colSpan={mode === "employee" ? empCols : candCols} className="px-4 py-8 sm:px-8 sm:py-12">
+            <div className="mx-auto flex max-w-md flex-col items-center text-center">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/15">
+                <UserPlus className="h-6 w-6" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-foreground">
+                {mode === "employee" ? "No employees yet" : "No candidates yet"}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {mode === "employee"
+                  ? "Approved candidates will appear here with their Employee ID."
+                  : "Add your first candidate to begin onboarding."}
+              </p>
+              {mode === "candidate" && (
+                <Button
+                  className="mt-5 h-10 rounded-xl px-4 text-sm font-semibold"
+                  onClick={() => {
+                    setEditing(null);
+                    setWizardMode("candidate");
+                    setOpenWizard(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Candidate
+                </Button>
+              )}
+            </div>
           </td>
         </tr>
       );
@@ -3530,8 +3551,33 @@ function EmployeesPage() {
     }
     if (rows.length === 0) {
       return (
-        <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">
-          {mode === "employee" ? "No employees yet. Approve a candidate to generate an Employee ID." : "No candidates here. Add Candidate to start."}
+        <div className="rounded-2xl border border-border/70 bg-card px-5 py-10 text-center md:hidden">
+          <div className="mx-auto flex max-w-sm flex-col items-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/15">
+              <UserPlus className="h-6 w-6" />
+            </span>
+            <h3 className="mt-4 text-base font-semibold text-foreground">
+              {mode === "employee" ? "No employees yet" : "No candidates yet"}
+            </h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+              {mode === "employee"
+                ? "Approved candidates will appear here with their Employee ID."
+                : "Add your first candidate to begin onboarding."}
+            </p>
+            {mode === "candidate" && (
+              <Button
+                className="mt-5 h-10 rounded-xl px-4 text-sm font-semibold"
+                onClick={() => {
+                  setEditing(null);
+                  setWizardMode("candidate");
+                  setOpenWizard(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add Candidate
+              </Button>
+            )}
+          </div>
         </div>
       );
     }
