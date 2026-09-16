@@ -8,7 +8,6 @@ import {
   type Accent,
 } from "@/components/tile-theme";
 
-
 export type Crumb = { label: string; to?: string };
 
 export function PageHeader({
@@ -22,7 +21,8 @@ export function PageHeader({
 }: {
   title: string;
   description?: string;
-  crumbs: Crumb[];
+  /** Kept for call-site compatibility; breadcrumb navigation is intentionally hidden. */
+  crumbs?: Crumb[];
   actions?: React.ReactNode;
   icon?: LucideIcon;
   eyebrow?: string;
