@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Building2, Briefcase, CalendarDays, ChevronLeft, ChevronRight,
@@ -143,9 +143,14 @@ function DashboardPage() {
   // dashboard to the light counts so the app never runs out of memory.
   const lightMode = useIsMobile();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-snapshot", year, month, lightMode],
+  // Fast tile counts paint first; the heavy month P&L loads in a second,
+  // independent query so the dashboard is usable immediately.
+  const countsQuery = useQuery({
+    queryKey: ["dashboard-counts", year, month],
     enabled: !permsLoading && !showInventoryDashboard,
+    staleTime: 2 * 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const sixtyDaysOut = new Date();
       sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60);
@@ -182,27 +187,6 @@ function DashboardPage() {
         supabase.from("payroll_runs" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
       ]);
 
-      const [contractsForPnl, unitsForPnl] = await Promise.all([
-        fetchAllPages<Record<string, unknown>>((from, to) =>
-          supabase
-            .from("client_contracts")
-            .select("id, unit_id, status, start_date, end_date, is_internal")
-            .eq("status", "active")
-            .lte("start_date", monthEnd)
-            .or(`end_date.is.null,end_date.gte.${monthStart}`)
-            .order("id", { ascending: true })
-            .range(from, to),
-        ),
-        fetchAllPages<{ id: string; code: string; name: string; customer_id: string | null; epf_cap_enabled: boolean | null }>(
-          (from, to) =>
-            supabase
-              .from("units")
-              .select("id, code, name, customer_id, epf_cap_enabled")
-              .order("id", { ascending: true })
-              .range(from, to),
-        ),
-      ]);
-
       const sheets = (sheetsMonth ?? []) as Array<{ status: string | null }>;
       const sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
       for (const s of sheets) {
@@ -223,22 +207,32 @@ function DashboardPage() {
       }
       const fuelTotal = (fuelMonth ?? []).reduce((s: number, e: { amount: number | null }) => s + (Number(e.amount) || 0), 0);
 
-      if (lightMode) {
-        return {
-          orgs: orgsCount ?? 0,
-          units: unitsCount ?? 0,
-          employees: empCount ?? 0,
-          contractsActive: contractsActive ?? 0,
-          contractsExpiring: contractsExpiring ?? [],
-          vehicles: vehiclesCount ?? 0,
-          fuelTotal,
-          items: itemsCount ?? 0,
-          sheetCounts,
-          runCounts,
-          pnlRows: [] as PnLRow[],
-          pnlTotals: { contract: 0, invoice: 0, payroll: 0 },
-        };
-      }
+      return {
+        orgs: orgsCount ?? 0,
+        units: unitsCount ?? 0,
+        employees: empCount ?? 0,
+        contractsActive: contractsActive ?? 0,
+        contractsExpiring: contractsExpiring ?? [],
+        vehicles: vehiclesCount ?? 0,
+        fuelTotal,
+        items: itemsCount ?? 0,
+        sheetCounts,
+        runCounts,
+      };
+    },
+  });
+
+  const pnlQuery = useQuery({
+    queryKey: ["dashboard-pnl", year, month],
+    // Phones cannot hold the whole-month profitability computation in memory
+    // (it loads every contract, roster and attendance row).
+    enabled: !permsLoading && !showInventoryDashboard && !lightMode,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const todayStr = new Date().toISOString().slice(0, 10);
+
 
 
       // ── P&L from actual attendance ────────────────────────────────────
