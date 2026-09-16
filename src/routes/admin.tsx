@@ -595,8 +595,12 @@ function AdminLayout() {
         {/* Brand */}
         <div className={cn("flex items-center px-4 pt-5 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-full bg-white text-black text-[13px] font-bold">
-              R
+            <Link
+              to={dashboardHref}
+              aria-label="Dashboard"
+              className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-white p-1.5 shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)]"
+            >
+              <img src={brandLogo} alt="Radiant" className="h-full w-full object-contain" />
             </Link>
           ) : (
             <Link to={dashboardHref} className="flex min-w-0 items-center">
@@ -1053,7 +1057,7 @@ function SidebarGroup({
         data-no-tip
         className={
           collapsed
-            ? cn(collapsedIcon, "mx-auto flex", groupActive ? collapsedIconActive : collapsedIconIdle)
+            ? cn(collapsedIcon, "mx-auto", groupActive ? collapsedIconActive : collapsedIconIdle)
             : cn(itemBase, groupActive ? itemActive : itemIdle)
         }
       >
