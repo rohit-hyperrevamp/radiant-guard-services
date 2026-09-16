@@ -80,7 +80,7 @@ export function GuidedForm({
 
 
   return (
-    <div className="guided-form min-h-0 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <div className="guided-form flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="hidden min-h-0 flex-col justify-between border-r border-border/60 bg-card px-6 py-7 lg:flex">
         <div className="min-h-0">
           <p className="text-xs font-semibold text-muted-foreground">Setup</p>
@@ -132,7 +132,7 @@ export function GuidedForm({
         </div>
       </aside>
 
-      <div className="flex min-h-0 flex-col bg-card">
+      <div className="flex h-full min-h-0 flex-1 flex-col bg-card">
         <div className="border-b border-border/60 px-4 py-3 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
