@@ -82,4 +82,4 @@
 ## Employee dashboard unit visibility
 - [x] Trace the pictured employee's production unit mappings and explain why they are missing.
 - [x] Show the primary unit and every secondary unit on the employee dashboard.
-- [ ] Verify the production data path and dashboard rendering.
+- [x] Verify the production data path and dashboard rendering.
