@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   PackageCheck,
   Sparkles,
+  UserRound,
 } from "lucide-react";
 
 
@@ -43,7 +44,6 @@ import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
 import { UserCog, UserCheck } from "lucide-react";
 import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
-import fieldOfficerDashboardImage from "@/assets/field-officer-dashboard.jpg";
 
 
 
@@ -636,15 +636,19 @@ function FieldOfficerDashboard() {
       <div className="space-y-4">
         <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           {/* Identity anchors the workspace without repeating the profile photo. */}
-          <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 shadow-sm">
-            <img
-              src={fieldOfficerDashboardImage}
-              alt="Field officer at a commercial site"
-              width={1600}
-              height={1000}
-              className="absolute inset-0 h-full w-full object-cover object-center"
-            />
-            <div className="field-officer-hero-overlay absolute inset-0" />
+          <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
+            {data?.mePhoto ? (
+              <img
+                src={data.mePhoto}
+                alt={`${data.meName || "Field officer"} profile`}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center bg-accent text-accent-foreground">
+                <UserRound className="h-28 w-28" strokeWidth={1.25} />
+              </div>
+            )}
+            {data?.mePhoto && <div className="field-officer-hero-overlay absolute inset-0" />}
             <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                 <div className="min-w-0">
