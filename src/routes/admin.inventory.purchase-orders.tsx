@@ -643,7 +643,7 @@ function POFormDialog({
           <section className="modern-form-section">
             <h3 className="modern-form-section-title">Supplier and delivery</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2"><Label>Vendor</Label>
+            <div className="grid gap-2"><Label>Vendor<span className="ml-0.5 text-destructive">*</span></Label>
               <Select value={vendorId} onValueChange={(v) => { setVendorId(v); applyVendorPriceToLines(v); }} disabled={readOnly}>
                 <SelectTrigger><SelectValue placeholder="Pick vendor" /></SelectTrigger>
                 <SelectContent>{vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>

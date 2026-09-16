@@ -403,7 +403,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
         <GuidedForm title={title} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={initial ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveItem()} saving={saving} submitLabel="Save product">
         {draft.hasDraft && !initial && stepKey === "details" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         {stepKey === "details" && <div className="modern-form-section">
-          <div className="grid gap-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Security Shirt — Half Sleeve" /></div>
+          <div className="grid gap-2"><Label>Name<span className="ml-0.5 text-destructive">*</span></Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Security Shirt — Half Sleeve" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Category</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
