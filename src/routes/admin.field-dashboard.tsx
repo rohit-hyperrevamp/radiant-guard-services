@@ -652,18 +652,18 @@ function FieldOfficerDashboard() {
             <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                 <div className="min-w-0">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-field-hero-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-field-hero ring-1 ring-field-hero-border">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground shadow-sm ring-1 ring-border">
                     <ShieldCheck className="h-3.5 w-3.5" /> Field Officer
                   </div>
                   <div className="mt-5 truncate text-2xl font-bold text-field-hero sm:text-3xl">
                     {data?.meName || (isLoading ? "…" : "Welcome")}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {data?.meCode && <span className="rounded-full bg-field-hero-soft px-2.5 py-1 text-[10px] font-semibold text-field-hero-muted">{data.meCode}</span>}
-                    {primaryUnit && <span className="max-w-[190px] truncate rounded-full bg-field-hero-soft px-2.5 py-1 text-[10px] font-semibold text-field-hero">{primaryUnit.name}</span>}
+                    {data?.meCode && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{data.meCode}</span>}
+                    {primaryUnit && <span className="max-w-[190px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{primaryUnit.name}</span>}
                   </div>
                 </div>
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-field-hero-soft text-field-hero ring-1 ring-field-hero-border">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-foreground shadow-sm ring-1 ring-border">
                   <Building2 className="h-5 w-5" />
                 </div>
               </div>
