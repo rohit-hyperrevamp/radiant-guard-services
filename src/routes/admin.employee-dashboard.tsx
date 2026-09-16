@@ -144,14 +144,14 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const [u, d] = await Promise.all([
         me?.unit_id
-          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,shift_start_time,shift_end_time,site_address").eq("id", me.unit_id).maybeSingle()
+          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,shift_start_time,shift_end_time,site_address,latitude,longitude").eq("id", me.unit_id).maybeSingle()
           : Promise.resolve({ data: null }),
         me?.designation_id
           ? supabase.from("designations").select("id,name").eq("id", me.designation_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       return {
-        unit: (u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; shift_start_time: string | null; shift_end_time: string | null; site_address: string | null } | null),
+        unit: (u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; shift_start_time: string | null; shift_end_time: string | null; site_address: string | null; latitude: number | null; longitude: number | null } | null),
         designation: (d.data as unknown as { id: string; name: string } | null),
       };
     },
@@ -200,10 +200,11 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const set = new Set<string>();
       if (me?.unit_id) set.add(me.unit_id);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("candidate_units" as never)
         .select("unit_id,is_primary,designation_id")
         .eq("candidate_id", me!.id);
+      if (error) throw error;
       const rows =
         ((data as unknown) as Array<{
           unit_id: string;
@@ -300,7 +301,21 @@ function EmployeeDashboard() {
       return (data as unknown as Array<{ id: string; name: string; code: string | null; site_address: string | null; latitude: number | null; longitude: number | null }>) ?? [];
     },
   });
-  const myUnits = unitsListQ.data ?? [];
+  const myUnits = useMemo(() => {
+    const byId = new Map<string, { id: string; name: string; code: string | null; site_address: string | null; latitude: number | null; longitude: number | null }>();
+    if (unit) {
+      byId.set(unit.id, {
+        id: unit.id,
+        name: unit.name,
+        code: unit.code,
+        site_address: unit.site_address,
+        latitude: unit.latitude,
+        longitude: unit.longitude,
+      });
+    }
+    for (const assignedUnit of unitsListQ.data ?? []) byId.set(assignedUnit.id, assignedUnit);
+    return Array.from(byId.values());
+  }, [unit, unitsListQ.data]);
   const isGuard = me?.role_key === "guard" || me?.role_key === "security_guard";
   // Attendance can only be marked at the primary unit. All other units are
   // reliever units where the guard is only paid for extra duty (ED).
