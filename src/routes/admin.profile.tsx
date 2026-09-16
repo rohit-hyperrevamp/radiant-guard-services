@@ -856,10 +856,6 @@ function ProfilePage() {
         icon={Users}
       />
 
-      <LanguagePreferenceCard candidateId={profile.id} />
-
-      {appleNativeCard}
-
       {/* Hero card */}
       <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col items-center gap-5 p-5 text-center sm:flex-row sm:items-center sm:gap-6 sm:p-7 sm:text-left">
@@ -962,6 +958,11 @@ function ProfilePage() {
           />
           <InfoRow label="Status" value={profile.status} />
         </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <LanguagePreferenceCard candidateId={profile.id} />
+        {appleNativeCard}
       </div>
 
 
@@ -1685,29 +1686,36 @@ function LanguagePreferenceCard({ candidateId }: { candidateId: string }) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/15">
+          <LanguagesIcon className="h-4 w-4" />
+        </span>
         <div>
-          <div className="text-sm font-semibold text-foreground">Language Preference</div>
-          <p className="text-xs text-muted-foreground">Choose the language used across the portal.</p>
+          <div className="text-sm font-medium text-foreground">Language</div>
+          <p className="text-xs text-muted-foreground">Portal language</p>
         </div>
+      </div>
+      <div className="p-4 sm:p-5">
         <div className="flex flex-wrap gap-2">
           {enabled.map((code) => (
-            <button
+            <Button
               key={code}
               type="button"
+              size="sm"
+              variant={lang === code ? "default" : "outline"}
               onClick={() => change(code)}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-full px-4 ${
                 lang === code
-                  ? "border-accent bg-accent text-accent-foreground"
-                  : "border-border bg-card text-foreground hover:bg-accent/10"
+                  ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                  : "hover:border-accent/25 hover:bg-accent/5"
               }`}
             >
               {LANG_LABELS[code]}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
