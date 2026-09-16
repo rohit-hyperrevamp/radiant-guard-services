@@ -243,11 +243,11 @@ type SignedDocRow = {
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl border border-accent/10 bg-accent/5 px-3.5 py-3">
-      <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="min-w-0 rounded-lg border border-border/70 bg-secondary/35 px-3 py-2.5">
+      <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </span>
-      <span className="mt-1 block break-words text-[13.5px] font-medium text-foreground">
+      <span className="mt-0.5 block break-words text-[13px] font-medium text-foreground">
         {value || "—"}
       </span>
     </div>
@@ -266,14 +266,14 @@ function Section({
   className?: string;
 }) {
   return (
-    <section className={`overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm ${className}`}>
-      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/15">
+    <section className={`flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm ${className}`}>
+      <div className="flex min-h-14 items-center gap-3 border-b border-border/60 px-4 py-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-inset ring-accent/15">
           <Icon className="h-4 w-4" />
         </span>
         <h2 className="text-sm font-medium text-foreground">{title}</h2>
       </div>
-      <div className="p-4 sm:p-5">{children}</div>
+      <div className="flex-1 p-4">{children}</div>
     </section>
   );
 }
@@ -287,28 +287,30 @@ function ProfilePage() {
     navigate({ to: "/login", replace: true });
   }
   const bottomActions = (
-    <div className="rounded-2xl border border-border bg-card p-2 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-2 shadow-sm">
       <div className="grid grid-cols-2 gap-2">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={toggleTheme}
-          className="flex items-center justify-center gap-2 rounded-xl bg-secondary/50 px-3 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary [-webkit-tap-highlight-color:transparent]"
+          className="h-11 justify-center gap-2 rounded-lg bg-secondary/50 px-3 text-sm text-foreground hover:bg-secondary"
         >
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-background text-primary shadow-sm">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-background text-primary shadow-sm">
             {themeMounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </span>
           {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           onClick={handleSignOut}
-          className="flex items-center justify-center gap-2 rounded-xl bg-destructive/5 px-3 py-3 text-sm font-semibold text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
+          className="h-11 justify-center gap-2 rounded-lg bg-destructive/5 px-3 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
         >
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-destructive/10 text-destructive">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-destructive/10 text-destructive">
             <LogOut className="h-4 w-4" />
           </span>
           Sign out
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -807,7 +809,7 @@ function ProfilePage() {
   if (!phone) {
     return (
       <div className="space-y-5">
-        <PageHeader title="My Profile" crumbs={[{ label: "My Profile" }]} />
+        <PageHeader title="My Profile" />
         {appleNativeCard}
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           Sign in to view your profile.
@@ -819,7 +821,7 @@ function ProfilePage() {
   if (profileQ.isLoading) {
     return (
       <div className="space-y-5">
-        <PageHeader title="My Profile" crumbs={[{ label: "My Profile" }]} />
+        <PageHeader title="My Profile" />
         {appleNativeCard}
         <div className="flex items-center justify-center rounded-2xl border border-border bg-card p-12 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
@@ -831,7 +833,7 @@ function ProfilePage() {
   if (!profile) {
     return (
       <div className="space-y-5">
-        <PageHeader title="My Profile" crumbs={[{ label: "My Profile" }]} />
+        <PageHeader title="My Profile" />
         {appleNativeCard}
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           No employee record is linked to your phone number ({phone}). Please contact your admin.
@@ -849,18 +851,19 @@ function ProfilePage() {
   const directReports = postingsQ.data?.directReports ?? [];
 
   return (
-    <div className="mx-auto max-w-[1180px] space-y-5 pb-6">
+    <div className="w-full min-w-0 space-y-4 pb-6">
       <PageHeader
         title="My Profile"
-        description="Your work details, records and documents."
+        description="Work details, records and documents."
         icon={Users}
       />
 
-      {/* Hero card */}
-      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="flex flex-col items-center gap-5 p-5 text-center sm:flex-row sm:items-center sm:gap-6 sm:p-7 sm:text-left">
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-4 xl:sticky xl:top-4">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+        <div className="flex flex-col items-center gap-4 p-5 text-center">
           <div className="relative shrink-0">
-            <div className="block h-24 w-24 overflow-hidden rounded-2xl border-2 border-background bg-accent/10 shadow-sm ring-1 ring-border sm:h-28 sm:w-28">
+            <div className="block h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-accent/10 shadow-sm ring-1 ring-border">
               {profile.photo_url ? (
                 <img
                   src={profile.photo_url}
@@ -915,16 +918,16 @@ function ProfilePage() {
             />
           </div>
 
-          <div className="min-w-0 flex-1">
-            <h1 className="break-words font-display text-xl font-semibold leading-tight text-foreground sm:text-2xl">
+           <div className="min-w-0 w-full">
+             <h1 className="break-words font-display text-xl font-semibold leading-tight text-foreground">
               {profile.full_name || "Unnamed"}
             </h1>
-            <p className="mt-1 break-words text-[13px] font-medium text-muted-foreground sm:text-sm">
+             <p className="mt-1 break-words text-[13px] font-medium text-muted-foreground">
               {lookups?.designation?.name || "—"}
               {lookups?.unit ? ` · ${lookups.unit.name}` : ""}
               {lookups?.unit?.city ? ` (${lookups.unit.city})` : ""}
             </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <Badge className="rounded-full border border-accent/15 bg-accent/10 px-3 py-1 capitalize text-accent hover:bg-accent/10">
                 {profile.status}
               </Badge>
@@ -942,7 +945,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 border-t border-border/60 bg-accent/5 p-4 sm:grid-cols-4 sm:gap-3 sm:px-7">
+        <div className="grid grid-cols-2 gap-2 border-t border-border/60 bg-accent/5 p-3">
           <InfoRow label="Employee Code" value={profile.employee_code || "—"} />
           <InfoRow
             label="Role"
@@ -960,10 +963,12 @@ function ProfilePage() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <LanguagePreferenceCard candidateId={profile.id} />
+      <LanguagePreferenceCard candidateId={profile.id} />
+      {bottomActions}
+      </aside>
+
+      <main className="min-w-0 space-y-4">
         {appleNativeCard}
-      </div>
 
 
 
@@ -1164,7 +1169,7 @@ function ProfilePage() {
         )}
       </Section>
 
-      <div className="grid items-start gap-5 lg:grid-cols-2">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2 [&>section]:h-full">
 
         <Section title="Contact" icon={PhoneIcon}>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1546,7 +1551,7 @@ function ProfilePage() {
         )}
       </div>
 
-      <div className="grid items-stretch gap-5 lg:grid-cols-3">
+      <div className="grid items-stretch gap-4 lg:grid-cols-3 [&>section]:h-full">
       <Section title="CTC" icon={Wallet} className="lg:col-span-2">
         {salaryQ.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1650,8 +1655,8 @@ function ProfilePage() {
         )}
       </Section>
       </div>
-
-      {bottomActions}
+      </main>
+      </div>
     </div>
   );
 }
@@ -1686,9 +1691,9 @@ function LanguagePreferenceCard({ candidateId }: { candidateId: string }) {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/15">
+    <section className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+      <div className="flex min-h-14 items-center gap-3 border-b border-border/60 px-4 py-3">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-inset ring-accent/15">
           <LanguagesIcon className="h-4 w-4" />
         </span>
         <div>
@@ -1696,7 +1701,7 @@ function LanguagePreferenceCard({ candidateId }: { candidateId: string }) {
           <p className="text-xs text-muted-foreground">Portal language</p>
         </div>
       </div>
-      <div className="p-4 sm:p-5">
+      <div className="p-4">
         <div className="flex flex-wrap gap-2">
           {enabled.map((code) => (
             <Button
