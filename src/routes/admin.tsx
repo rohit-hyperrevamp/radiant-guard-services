@@ -595,7 +595,7 @@ function AdminLayout() {
         {/* Brand */}
         <div className={cn("flex items-center px-4 pt-5 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-white text-black text-[13px] font-bold">
+            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-full bg-white text-black text-[13px] font-bold">
               R
             </Link>
           ) : (
@@ -1029,9 +1029,17 @@ function SidebarGroup({
   const itemActive =
     "bg-white text-black shadow-[0_10px_28px_-14px_rgba(0,0,0,0.6)]";
 
-  const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-xl transition-colors";
+  const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors";
   const iconSpanActive = "bg-black/10 text-black";
   const iconSpanIdle = "text-white/55 group-hover:text-white";
+  // Collapsed rail: item is a perfect circle, active state is a solid white circle
+  const collapsedItem = "h-11 w-11 mx-auto justify-center rounded-full p-0";
+  const collapsedIcon =
+    "grid h-11 w-11 place-items-center rounded-full transition-all duration-200";
+  const collapsedIconActive =
+    "bg-white text-black shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)]";
+  const collapsedIconIdle =
+    "text-white/55 hover:bg-white/[0.08] hover:text-white";
 
   if (!group.children || group.children.length === 0) {
     const link = (
@@ -1039,12 +1047,22 @@ function SidebarGroup({
         to={group.to!}
         aria-label={collapsed ? group.label : undefined}
         data-no-tip
-        className={cn(itemBase, groupActive ? itemActive : itemIdle, collapsed && "justify-center px-2")}
+        className={
+          collapsed
+            ? cn(collapsedIcon, "mx-auto flex", groupActive ? collapsedIconActive : collapsedIconIdle)
+            : cn(itemBase, groupActive ? itemActive : itemIdle)
+        }
       >
-        <span className={cn(iconSpanBase, groupActive ? iconSpanActive : iconSpanIdle)}>
-          <Icon className="h-4 w-4" />
-        </span>
-        {!collapsed && <span className="truncate">{t(group.label)}</span>}
+        {collapsed ? (
+          <Icon className="h-[18px] w-[18px]" />
+        ) : (
+          <>
+            <span className={cn(iconSpanBase, groupActive ? iconSpanActive : iconSpanIdle)}>
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="truncate">{t(group.label)}</span>
+          </>
+        )}
       </Link>
     );
     if (!collapsed) return link;
@@ -1287,11 +1305,14 @@ function CollapsedGroupPopover({
             setOpen(true);
           }}
           onBlur={scheduleClose}
-          className={cn(itemBase, "justify-center px-2", groupActive ? itemActive : itemIdle)}
+          className={cn(
+            "mx-auto grid h-11 w-11 place-items-center rounded-full transition-all duration-200",
+            groupActive
+              ? "bg-white text-black shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)]"
+              : "text-white/55 hover:bg-white/[0.08] hover:text-white",
+          )}
         >
-          <span className={cn(iconSpanBase, groupActive ? iconSpanActive : iconSpanIdle)}>
-            <Icon className="h-4 w-4" />
-          </span>
+          <Icon className="h-[18px] w-[18px]" />
         </button>
       </PopoverTrigger>
       {group.children && (
