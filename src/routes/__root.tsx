@@ -310,6 +310,7 @@ function RootComponent() {
     };
 
     const hide = () => {
+      if (!current && showTimer === null && pill.style.opacity === "0") return;
       current = null;
       if (showTimer) {
         window.clearTimeout(showTimer);
