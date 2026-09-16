@@ -29,3 +29,8 @@
 - [x] Standardize sections, fields, contacts, documents, and validation states.
 - [x] Verify narrow Android, iPhone, tablet, and desktop layouts.
 
+## Candidate guided workspace redesign
+- [x] Replace the desktop step strip with a persistent guided sidebar.
+- [x] Keep the mobile form focused with compact progress and anchored actions.
+- [x] Apply the selected Cloud White direction while retaining the current font and form rules.
+
