@@ -300,23 +300,24 @@ export function MarkAttendanceCard({
             distance: distanceMeters({ lat: geo!.lat, lng: geo!.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
           }))
           .sort((a, b) => a.distance - b.distance);
-        const within = withDist.filter((r) => r.distance <= proximityThresholdM);
-        if (within.length === 0) {
-          const nearest = withDist[0];
+
+        // More than one assigned unit → the person always chooses where they are.
+        if (withDist.length > 1) {
+          setNearby(withDist);
+          setPendingGeo({ geo, face });
+          setPickerOpen(true);
+          return null;
+        }
+
+        const only = withDist[0];
+        if (only.distance > proximityThresholdM) {
           throw new Error(
-            `You are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Move within ${proximityThresholdM}m of an assigned unit and try again.`,
+            `You are ${formatDistance(only.distance)} from ${only.unit.name}. Move within ${proximityThresholdM}m and try again.`,
           );
         }
-        if (within.length === 1) {
-          const confirmed = await confirmPunch("in", within[0].unit.name);
-          if (!confirmed) return null;
-          return await performCheckIn(within[0].unit.id, geo, face);
-        }
-        // Multiple within range → ask user to confirm.
-        setNearby(within);
-        setPendingGeo({ geo, face });
-        setPickerOpen(true);
-        return null;
+        const confirmed = await confirmPunch("in", only.unit.name);
+        if (!confirmed) return null;
+        return await performCheckIn(only.unit.id, geo, face);
       }
 
       const confirmed = await confirmPunch("in", "Current GPS location");
