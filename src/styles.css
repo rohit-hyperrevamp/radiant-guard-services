@@ -456,6 +456,43 @@
     .candidate-wizard-page label { font-size: 12px !important; }
     .candidate-wizard-page [data-slot="select-value"],
     .candidate-wizard-page [data-slot="select-item"] { font-size: 15px !important; }
+
+    .candidate-wizard-page section {
+      margin-inline: -0.75rem;
+      border-left: 0;
+      border-right: 0;
+    }
+  }
+
+  /* Candidate wizard: quiet, consistent data-entry surfaces. The form canvas
+     stays flat on phones while controls and actions retain the shared radius. */
+  .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]),
+  .candidate-wizard-page textarea,
+  .candidate-wizard-page button[data-slot="select-trigger"] {
+    border-color: color-mix(in oklab, var(--border) 78%, transparent);
+    background: var(--background);
+    box-shadow: none;
+  }
+
+  .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]):hover,
+  .candidate-wizard-page textarea:hover,
+  .candidate-wizard-page button[data-slot="select-trigger"]:hover {
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+  }
+
+  .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+  .candidate-wizard-page textarea:focus-visible,
+  .candidate-wizard-page button[data-slot="select-trigger"]:focus-visible {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 12%, transparent);
+  }
+
+  .candidate-wizard-page label {
+    line-height: 1.25;
+  }
+
+  .candidate-wizard-page [data-invalid="true"] {
+    scroll-margin-top: 12rem;
   }
 
   /* Flat neutral canvas — the reference uses one quiet grey field behind
