@@ -1298,13 +1298,20 @@ body {
   [data-table-scroll-shell],
   .keyboard-safe-form,
   [role="dialog"],
-  [role="tablist"],
   .overflow-auto,
-  .overflow-x-auto,
   .overflow-y-auto
 ) {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+/* Horizontal table/tab wrappers must never trap a vertical mouse wheel.
+   Containing both axes here prevented the Employees page from moving when
+   the pointer was over its table. */
+:where(.overflow-x-auto, [role="tablist"], [data-table-scroll-shell]) {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 
 /* Portal pages use translucent colours, but live backdrop blur forces a
