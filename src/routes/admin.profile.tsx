@@ -1159,7 +1159,8 @@ function ProfilePage() {
         )}
       </Section>
 
-      <div className="grid items-stretch gap-4 lg:grid-cols-2 [&>section]:h-full">
+      <div className="-mb-4 columns-1 gap-4 lg:columns-2 [&>section]:mb-4 [&>section]:break-inside-avoid [&>section]:w-full">
+
 
         <Section title="Contact" icon={PhoneIcon}>
           <div className="grid gap-4 sm:grid-cols-2">
