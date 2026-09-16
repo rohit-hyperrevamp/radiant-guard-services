@@ -362,16 +362,18 @@
   .animate-shake { animation: shake 0.4s ease-in-out; }
 
   @keyframes page-in {
-    0% { opacity: 0; transform: translateY(14px) scale(0.99); filter: blur(6px); }
-    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
-  .page-enter { animation: page-in 460ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+  /* `backwards` (not `both`): the page must not keep a filter/transform layer
+     after the animation ends, or every later scroll frame re-composites it. */
+  .page-enter { animation: page-in 320ms cubic-bezier(0.32, 0.72, 0, 1) backwards; }
 
   @keyframes reveal-up {
     0% { opacity: 0; transform: translateY(14px); }
     100% { opacity: 1; transform: translateY(0); }
   }
-  .reveal > * { animation: reveal-up 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .reveal > * { animation: reveal-up 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
   .reveal > *:nth-child(1) { animation-delay: 40ms; }
   .reveal > *:nth-child(2) { animation-delay: 90ms; }
   .reveal > *:nth-child(3) { animation-delay: 140ms; }
