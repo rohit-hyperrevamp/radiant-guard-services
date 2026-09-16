@@ -18,7 +18,7 @@ import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useDemandRequesters } from "@/lib/use-demand-requesters";
 import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 import { DataPagination, usePagination } from "@/components/DataPagination";
-import { GuidedForm, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, type GuidedFormStep } from "@/components/GuidedForm";
 
 
 
@@ -471,15 +471,16 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
   };
 
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>{initial ? `Transfer ${initial.transfer_number}` : "New Transfer"}</DialogTitle>
           <DialogDescription>{initial?.status === "completed" ? "Completed." : isDispatched ? "Initiated — awaiting delivery challan from branch." : "Pick a branch demand and initiate the transfer. Source inventory will be deducted immediately."}</DialogDescription>
         </DialogHeader>
 
-        <GuidedForm title={initial ? `Transfer ${initial.transfer_number}` : "New transfer"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void initiateTransfer()} saving={saving} submitLabel="Initiate transfer">
+        <GuidedForm closeGuardRef={closeGuard.ref} title={initial ? `Transfer ${initial.transfer_number}` : "New transfer"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSubmit={() => void initiateTransfer()} saving={saving} submitLabel="Initiate transfer">
         <div className="modern-business-form space-y-5">
           <div className={stepKey === "route" ? "space-y-5" : "hidden"}>
           <section className="modern-form-section">

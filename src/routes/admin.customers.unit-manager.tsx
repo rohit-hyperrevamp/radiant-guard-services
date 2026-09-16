@@ -55,7 +55,7 @@ import {
 } from "@/lib/admin-data";
 import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
-import { GuidedForm, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
+import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
 import { MONTH_NAMES, resolveLwf, useLwfRows } from "@/lib/lwf-lookup";
 import {
@@ -974,8 +974,9 @@ function UnitFormDialog({
   const meaningfulDraft = useCallback((value: Omit<Unit, "id">) => Boolean(value.name || value.customerId || value.billingAddress1), []);
   const draft = useGuidedFormDraft({ open, storageKey: editing ? null : "rg-wizard-draft-client", value: form, onRestore: restoreDraft, isMeaningful: meaningfulDraft });
 
+  const closeGuard = useGuidedFormCloseGuard(() => onOpenChange(false));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeGuard.onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle>{editing ? "Edit client" : "Add client"}</DialogTitle>
@@ -984,7 +985,7 @@ function UnitFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <GuidedForm title={editing ? "Edit client" : "New client"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveUnit()} saving={isSaving} submitLabel={editing ? "Save changes" : "Create client"}>
+        <GuidedForm closeGuardRef={closeGuard.ref} title={editing ? "Edit client" : "New client"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveUnit()} saving={isSaving} submitLabel={editing ? "Save changes" : "Create client"}>
           {draft.hasDraft && !editing && stepKey === "organization" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
         <div className="modern-business-form">
           <div className={stepKey === "organization" ? "block" : "hidden"}>
