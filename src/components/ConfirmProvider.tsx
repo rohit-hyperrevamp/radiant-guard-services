@@ -121,7 +121,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     <ConfirmContext.Provider value={confirm}>
       {children}
       <AlertDialog open={open} onOpenChange={(o) => !o && settle("cancel")}>
-        <AlertDialogContent className="rounded-2xl sm:max-w-md">
+        <AlertDialogContent overlayClassName="z-[300]" className="z-[300] rounded-2xl sm:max-w-md">
           <AlertDialogHeader>
             {tone !== "default" && (
               <span
