@@ -54,4 +54,4 @@
 - [x] Verify responsive form structure and project checks across phone, tablet, and desktop layouts.
 
 ## Field dashboard device card
-- [ ] Rebalance the My Device card so its status tiles and action fill the available height without a blank lower area.
+- [x] Rebalance the My Device card so its status tiles and action fill the available height without a blank lower area.

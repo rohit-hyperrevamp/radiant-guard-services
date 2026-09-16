@@ -109,7 +109,7 @@ export function MyLiveStatusCard() {
     : "—";
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-sm backdrop-blur-xl sm:rounded-3xl">
+    <section className="flex h-full min-h-[250px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-sm backdrop-blur-xl sm:rounded-3xl">
       <header className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -140,8 +140,8 @@ export function MyLiveStatusCard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-2 p-3">
-        <div className={cn("flex flex-col items-start gap-1 rounded-2xl p-2.5", batBg)}>
+      <div className="grid min-h-0 flex-1 grid-cols-3 items-stretch gap-2 p-3">
+        <div className={cn("flex min-h-[112px] flex-col items-start justify-between gap-2 rounded-2xl p-3", batBg)}>
           <div className={cn("inline-flex items-center gap-1", batTone)}>
             {snap.charging ? <BatteryCharging className="h-4 w-4" /> : <Battery className="h-4 w-4" />}
             <span className="text-[10px] font-bold uppercase tracking-wider">Battery</span>
@@ -154,7 +154,7 @@ export function MyLiveStatusCard() {
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-1 rounded-2xl bg-sky-500/10 p-2.5">
+        <div className="flex min-h-[112px] flex-col items-start justify-between gap-2 rounded-2xl bg-sky-500/10 p-3">
           <div className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-300">
             <NetIcon className="h-4 w-4" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Network</span>
@@ -167,7 +167,7 @@ export function MyLiveStatusCard() {
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-1 rounded-2xl bg-violet-500/10 p-2.5">
+        <div className="flex min-h-[112px] flex-col items-start justify-between gap-2 rounded-2xl bg-violet-500/10 p-3">
           <div className="inline-flex items-center gap-1 text-violet-700 dark:text-violet-300">
             <MapPin className="h-4 w-4" />
             <span className="text-[10px] font-bold uppercase tracking-wider">GPS</span>
@@ -181,7 +181,7 @@ export function MyLiveStatusCard() {
         </div>
       </div>
 
-      <div className="px-3 pb-3">
+      <div className="mt-auto px-3 pb-3">
         {url ? (
           <a
             href={url}
