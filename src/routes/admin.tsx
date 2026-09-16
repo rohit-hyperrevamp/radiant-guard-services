@@ -606,7 +606,7 @@ function AdminLayout() {
         </div>
 
         {/* Nav — grouped like the reference portal (Menu / Operations / Finance / Admin) */}
-        <nav className="scrollbar-hide flex-1 overflow-y-auto px-2.5 pb-3">
+        <nav className={cn("scrollbar-hide flex-1 overflow-y-auto pb-3", collapsed ? "px-2" : "px-2.5")}>
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
@@ -619,7 +619,7 @@ function AdminLayout() {
             ];
             const used = new Set<string>();
             return (
-              <div className="space-y-3">
+              <div className={collapsed ? "space-y-1.5" : "space-y-3"}>
                 {sections.map((s) => {
                   const items = visibleGroups.filter((g) => s.keys.includes(g.key));
                   if (items.length === 0) return null;
@@ -664,10 +664,13 @@ function AdminLayout() {
                 type="button"
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-2 text-sm font-semibold text-white transition hover:bg-white/10",
-                  collapsed && "justify-center p-1.5",
+                  collapsed && "mx-auto h-11 w-11 justify-center rounded-full border-0 bg-transparent p-0 hover:bg-white/10",
                 )}
               >
-                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white text-black text-[11px] font-bold">
+                <span className={cn(
+                  "relative grid shrink-0 place-items-center overflow-hidden bg-white text-black text-[11px] font-bold",
+                  collapsed ? "h-11 w-11 rounded-full ring-1 ring-white/15" : "h-9 w-9 rounded-xl",
+                )}>
                   {me.photoUrl ? (
                     <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
@@ -740,10 +743,10 @@ function AdminLayout() {
           <div
             className={cn(
               "mt-2 flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-2 py-1.5",
-              collapsed && "justify-center px-1.5",
+              collapsed && "mt-1.5 justify-center border-0 bg-transparent p-0",
             )}
           >
-            <NotificationBell triggerClassName="relative inline-flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-full border border-white/15 bg-white/10 text-white outline-none transition-colors focus-visible:outline-none hover:border-white/30 hover:bg-white/15" />
+            <NotificationBell triggerClassName="relative inline-flex h-11 w-11 shrink-0 aspect-square items-center justify-center rounded-full text-white/70 outline-none transition-colors focus-visible:outline-none hover:bg-white/[0.08] hover:text-white" />
             {!collapsed && (
               <span className="flex-1 truncate text-[12px] font-semibold text-white">
                 Notifications
@@ -756,10 +759,11 @@ function AdminLayout() {
             onClick={() => setCollapsed((v) => !v)}
             className={cn(
               "mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-white/50 hover:bg-white/10 hover:text-white",
+              collapsed && "mx-auto mt-1.5 h-11 w-11 rounded-full p-0",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" /> Collapse</>}
+            {collapsed ? <ChevronsRight className="h-[18px] w-[18px]" /> : <><ChevronsLeft className="h-4 w-4" /> Collapse</>}
           </button>
 
         </div>
