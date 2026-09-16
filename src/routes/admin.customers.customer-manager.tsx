@@ -4,7 +4,7 @@ import { ChevronRight, Download, Edit2, ExternalLink, List as ListIcon, MapPin, 
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { csvStatus, downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
-import { confirmAction } from "@/components/ConfirmProvider";
+import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -327,7 +327,7 @@ function CustomerManagerPage() {
           return { error: null, id: r.id };
         }}
         onSuccess={() => {
-          toast.success(editing ? "Organization updated" : "Organization added");
+          void notifySaved({ title: "Saved", description: editing ? "Organization updated" : "Organization added" });
         }}
       />
 
@@ -791,7 +791,7 @@ function CustomerFormDialog({
           {stepKey === "profile" && <section className="modern-form-section">
             <SectionHeading title="Organization profile" />
             <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Organisation ID">
+            <Field label="Organisation ID" required>
               <Input
                 value={form.code}
                 onChange={(e) => set("code", e.target.value.toUpperCase())}
@@ -799,7 +799,7 @@ function CustomerFormDialog({
                 className="font-mono"
               />
             </Field>
-            <Field label="Organisation name">
+            <Field label="Organisation name" required>
               <Input
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
@@ -853,7 +853,7 @@ function CustomerFormDialog({
             <SectionHeading title="Contact person" />
             <div className="grid gap-4 sm:grid-cols-2">
             {contactFields.map((f) => (
-              <Field key={f.key} label={f.label} full={f.full}>
+              <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                 <Input
                   value={(form[f.key] as string) ?? ""}
                   onChange={(e) => set(f.key, e.target.value as never)}
@@ -871,7 +871,7 @@ function CustomerFormDialog({
               const isPincode = f.key === "billingPincode";
               const isPhone = f.key === "billingPhone" || f.key === "billingFax";
               return (
-                <Field key={f.key} label={f.label} full={f.full}>
+                <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                   <Input
                     value={(form[f.key] as string) ?? ""}
                     onChange={(e) => {
@@ -907,7 +907,7 @@ function CustomerFormDialog({
                   const isPincode = f.key === "shippingPincode";
                   const isPhone = f.key === "shippingPhone" || f.key === "shippingFax";
                   return (
-                    <Field key={f.key} label={f.label} full={f.full}>
+                    <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
                       <Input
                         value={(form[f.key] as string) ?? ""}
                         onChange={(e) => {
@@ -1001,19 +1001,24 @@ function SectionHeading({ title, inline }: { title: string; inline?: boolean }) 
   );
 }
 
+const REQUIRED_ORG_FIELD_KEYS = new Set<string>(["billingName", "billingAddress1", "billingCity", "shippingAddress1", "shippingCity"]);
+
 function Field({
   label,
   children,
   full,
+  required,
 }: {
   label: string;
   children: React.ReactNode;
   full?: boolean;
+  required?: boolean;
 }) {
   return (
     <div className={cn("modern-form-field", full && "sm:col-span-2")}>
       <Label className="font-medium text-foreground">
         {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       {children}
     </div>
