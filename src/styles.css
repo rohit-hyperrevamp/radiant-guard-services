@@ -470,8 +470,10 @@
   .candidate-wizard-page textarea,
   .candidate-wizard-page button[data-slot="select-trigger"] {
     border-color: color-mix(in oklab, var(--border) 78%, transparent);
-    background: var(--background);
+    background: color-mix(in oklab, var(--secondary) 38%, var(--background));
     box-shadow: none;
+    border-radius: 0.75rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
   }
 
   .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]):hover,
@@ -484,6 +486,7 @@
   .candidate-wizard-page textarea:focus-visible,
   .candidate-wizard-page button[data-slot="select-trigger"]:focus-visible {
     border-color: var(--primary);
+    background: var(--background);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 12%, transparent);
   }
 

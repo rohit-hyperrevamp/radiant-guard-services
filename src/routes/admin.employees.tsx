@@ -6203,10 +6203,10 @@ function CandidateWizard({
   return (
     <InvalidFieldContext.Provider value={invalidField}>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 bg-background p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-5xl sm:overflow-hidden sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
+      <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 bg-background p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:overflow-hidden sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
-        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-14">
+        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -6306,8 +6306,8 @@ function CandidateWizard({
           )}
         </DialogHeader>
 
-        {/* Step rail + progress */}
-        <div className="shrink-0 border-b border-border/60 bg-card px-4 py-3 sm:px-6">
+        {/* Compact mobile progress */}
+        <div className="shrink-0 border-b border-border/60 bg-card px-4 py-3 sm:px-6 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium text-muted-foreground">
@@ -6396,10 +6396,77 @@ function CandidateWizard({
           )}
         </div>
 
-        <div ref={wizardBodyRef} className="shrink-0 bg-secondary/20 px-3 py-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-6 sm:py-5">
+        <div className="min-h-0 lg:grid lg:flex-1 lg:grid-cols-[17rem_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 flex-col justify-between border-r border-border/60 bg-secondary/35 px-7 py-8 lg:flex">
+            <div className="min-h-0">
+              <div className="mb-8">
+                <p className="text-xs font-semibold text-muted-foreground">Candidate</p>
+                <h2 className="mt-1 text-xl font-semibold text-foreground">
+                  {editing ? "Edit profile" : "New profile"}
+                </h2>
+                {(editing?.employee_code || editing?.candidate_code) && (
+                  <p className="mt-2 font-mono text-xs text-muted-foreground">
+                    {editing.employee_code || editing.candidate_code}
+                  </p>
+                )}
+              </div>
+              <nav aria-label="Candidate form steps" className="max-h-[58dvh] space-y-1 overflow-y-auto pr-1">
+                {steps.map((s, i) => {
+                  const done = isStepComplete(s.key);
+                  const active = i === stepIndex;
+                  return (
+                    <Button
+                      key={s.key}
+                      type="button"
+                      variant="ghost"
+                      onClick={() => requestStep(s.key)}
+                      aria-current={active ? "step" : undefined}
+                      className={cn(
+                        "h-auto w-full justify-start gap-3 rounded-lg px-2.5 py-2.5 text-left shadow-none",
+                        active && "bg-background text-primary shadow-xs hover:bg-background hover:text-primary",
+                        !active && done && "text-foreground hover:bg-background/70",
+                        !active && !done && i < stepIndex && "text-destructive hover:bg-destructive/5 hover:text-destructive",
+                        !active && !done && i >= stepIndex && "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn(
+                        "grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-semibold",
+                        active && "border-primary bg-primary text-primary-foreground ring-4 ring-primary/10",
+                        !active && done && "border-primary/30 bg-primary/10 text-primary",
+                        !active && !done && "border-border bg-background",
+                      )}>
+                        {done ? <Check className="h-3.5 w-3.5" /> : String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{s.label}</span>
+                        {active && <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">{s.caption}</span>}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </nav>
+            </div>
+            <div className="mt-6 rounded-xl border border-border/60 bg-background p-4 shadow-xs">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-muted-foreground">Completion</span>
+                <span className="font-semibold tabular-nums text-foreground">{completionPct}%</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${completionPct}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{completionDone} of {completionTotal} required fields</p>
+            </div>
+          </aside>
+
+        <div ref={wizardBodyRef} className="shrink-0 bg-background px-3 py-4 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+          <div className="mx-auto mb-7 hidden max-w-4xl lg:block">
+            <p className="text-xs font-medium text-primary">Step {stepIndex + 1} of {steps.length}</p>
+            <h3 className="mt-1 text-2xl font-semibold text-foreground">{currentStep.label}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{currentStep.caption}</p>
+          </div>
           {/* ----- Full form (single page) ----- */}
           {true && (
-            <div className="mx-auto max-w-4xl space-y-4 sm:space-y-5">
+            <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
               {/* Identity first — Aadhaar & PAN drive the rest of the profile */}
               {(at("aadhaar") || at("pan")) && (
               <Section title={at("aadhaar") ? "Aadhaar" : "PAN"}>
@@ -7583,6 +7650,7 @@ function CandidateWizard({
             </div>
           )}
         </div>
+        </div>
 
         <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/60 bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-3 sm:pb-3">
           {saveError && (
@@ -7689,8 +7757,8 @@ function CandidateWizard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border border-border/60 bg-card px-3 py-4 sm:rounded-xl sm:px-5 sm:py-5 sm:shadow-xs">
-      <div className="mb-4 text-sm font-semibold text-foreground">
+    <section className="border-b border-border/60 bg-background px-1 py-4 last:border-b-0 sm:rounded-xl sm:border sm:px-6 sm:py-6">
+      <div className="mb-5 text-base font-semibold text-foreground">
         {title}
       </div>
       <SectionHeaderContext.Provider value={{ hideHeader: true }}>
@@ -7721,7 +7789,7 @@ function Field({
       data-invalid={invalid ? "true" : undefined}
       className={cn("min-w-0", invalid && "rounded-lg bg-destructive/5 p-2 ring-2 ring-destructive/50 [&_input]:border-destructive [&_button]:border-destructive")}
     >
-      <Label className="mb-1.5 block text-sm font-medium text-foreground">
+      <Label className="mb-2 block text-[13px] font-medium text-foreground">
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
       {children}
