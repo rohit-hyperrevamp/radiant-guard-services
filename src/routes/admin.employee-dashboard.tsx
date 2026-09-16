@@ -489,7 +489,7 @@ function EmployeeDashboard() {
                   <h1 className="employee-profile-hero-title mt-5 text-2xl font-bold leading-tight text-field-hero sm:text-3xl">{me.full_name}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
-                    {unit && <span className="max-w-[190px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.name}</span>}
+                    {unit && <span className="max-w-[220px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">Primary · {unit.name}</span>}
                     {unit && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.is_billable === false ? "Non-billable" : "Billable"}</span>}
                   </div>
                 </div>
@@ -547,30 +547,30 @@ function EmployeeDashboard() {
         </div>
 
         <section className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-3xl border border-border/70 bg-[rgb(var(--tint-sky))] p-5 shadow-sm">
+          <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="h-5 w-5" /></span>
               <div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Today</div><h2 className="text-base font-bold text-foreground">My duty</h2></div>
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Starts</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{unit?.shift_start_time || "Not set"}</dd></div>
-              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Ends</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{unit?.shift_end_time || "Not set"}</dd></div>
-              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Extra duty</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{attStats.ot} hrs</dd></div>
-              <div className="rounded-2xl bg-background/80 p-3"><dt className="text-[10px] uppercase text-muted-foreground">Tenure</dt><dd className="mt-1 font-semibold text-foreground">{tenureYears == null ? "—" : `${tenureYears} yr${tenureYears === 1 ? "" : "s"}`}</dd></div>
+              <div className="rounded-2xl bg-[rgb(var(--tint-sky))] p-3"><dt className="text-[10px] uppercase text-muted-foreground">Starts</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{unit?.shift_start_time || "Not set"}</dd></div>
+              <div className="rounded-2xl bg-[rgb(var(--tint-blue))] p-3"><dt className="text-[10px] uppercase text-muted-foreground">Ends</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{unit?.shift_end_time || "Not set"}</dd></div>
+              <div className="rounded-2xl bg-[rgb(var(--tint-emerald))] p-3"><dt className="text-[10px] uppercase text-muted-foreground">Extra duty</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{attStats.ot} hrs</dd></div>
+              <div className="rounded-2xl bg-[rgb(var(--tint-amber))] p-3"><dt className="text-[10px] uppercase text-muted-foreground">Tenure</dt><dd className="mt-1 font-semibold text-foreground">{tenureYears == null ? "—" : `${tenureYears} yr${tenureYears === 1 ? "" : "s"}`}</dd></div>
             </dl>
           </div>
 
-          <div className="rounded-3xl border border-border/70 bg-[rgb(var(--tint-violet))] p-5 shadow-sm">
+          <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></span>
               <div><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Assignment</div><h2 className="text-base font-bold text-foreground">My units</h2></div>
               <span className="ml-auto rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground ring-1 ring-border">{myUnits.length}</span>
             </div>
-            {myUnits.length === 0 ? <div className="rounded-2xl bg-background/70 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
+            {myUnits.length === 0 ? <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">No unit assigned yet.</div> : (
               <ul className="space-y-2">
                 {[...myUnits].sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId)).map((u) => {
                   const isPrimary = u.id === primaryUnitId;
-                  return <li key={u.id} className="flex items-center gap-3 rounded-2xl bg-background/80 p-3 ring-1 ring-border/70">
+                  return <li key={u.id} className="flex items-center gap-3 rounded-2xl bg-[rgb(var(--tint-violet))] p-3 ring-1 ring-border/70">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-4 w-4" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-foreground">{u.name}</span>
