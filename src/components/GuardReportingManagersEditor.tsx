@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity-log";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
 type FieldOfficerRow = {
   id: string;
