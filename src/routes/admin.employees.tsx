@@ -4479,10 +4479,18 @@ function EmployeesPage() {
         units={scopedUnitsForWizard}
         unitsLoading={isFieldOfficer ? scopeStillLoading : unitsQuery.isLoading}
         unitsError={
-          unitsQuery.error instanceof Error
-            ? unitsQuery.error.message
-            : isFieldOfficer && !scopeStillLoading && scopedUnitsForWizard.length === 0
-              ? "You have no clients assigned. Ask your admin to assign a branch or client before onboarding."
+          // A field officer only needs their own clients, so a failure of the
+          // full client master is irrelevant once their own list has arrived.
+          isFieldOfficer
+            ? scopedUnitsForWizard.length > 0 || scopeStillLoading
+              ? null
+              : myUnitsQuery.error instanceof Error
+                ? myUnitsQuery.error.message
+                : unitsQuery.error instanceof Error
+                  ? unitsQuery.error.message
+                  : "You have no clients assigned. Ask your admin to assign a branch or client before onboarding."
+            : unitsQuery.error instanceof Error
+              ? unitsQuery.error.message
               : null
         }
         designations={designations}
