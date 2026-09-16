@@ -1159,7 +1159,7 @@ function ProfilePage() {
         )}
       </Section>
 
-      <div className="columns-1 gap-4 lg:columns-2 [&>section]:mb-4 [&>section]:break-inside-avoid [&>section]:w-full">
+      <div className="-mb-4 columns-1 gap-4 lg:columns-2 [&>section]:mb-4 [&>section]:break-inside-avoid [&>section]:w-full">
 
 
         <Section title="Contact" icon={PhoneIcon}>
