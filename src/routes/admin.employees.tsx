@@ -1188,7 +1188,8 @@ function useUnits() {
     queryKey: QK_UNITS,
     retry: false,
     refetchOnWindowFocus: false,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    placeholderData: () => readSnapshot<UnitLite[]>(SNAP_UNITS),
     queryFn: async (): Promise<UnitLite[]> => {
       const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
         await supabase
@@ -1212,7 +1213,9 @@ function useUnits() {
         );
         custMap = new Map(((cs ?? []) as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
       }
-      return units.map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }));
+      const withNames = units.map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }));
+      writeSnapshot(SNAP_UNITS, withNames);
+      return withNames;
     },
   });
 }
