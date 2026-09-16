@@ -6285,7 +6285,7 @@ function CandidateWizard({
   return (
     <InvalidFieldContext.Provider value={invalidField}>
     <Dialog open={open} onOpenChange={(o) => { if (o) onOpenChange(true); else void requestClose(); }}>
-      <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:overflow-hidden sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
+      <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
         <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
@@ -6478,7 +6478,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <div className="min-h-0 lg:grid lg:flex-1 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
           <aside className="hidden min-h-0 flex-col justify-between border-r border-border/60 bg-card px-7 py-8 lg:flex">
             <div className="min-h-0">
               <div className="mb-8">
@@ -6540,7 +6540,7 @@ function CandidateWizard({
             </div>
           </aside>
 
-        <div ref={wizardBodyRef} className="shrink-0 bg-card px-3 py-4 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+        <div ref={wizardBodyRef} data-candidate-form-scroll className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-4 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
           <div className="mx-auto mb-7 hidden max-w-4xl lg:block">
             <p className="text-xs font-medium text-accent">Step {stepIndex + 1} of {steps.length}</p>
             <h3 className="mt-1 text-2xl font-semibold text-foreground">{currentStep.label}</h3>
