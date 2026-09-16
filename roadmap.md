@@ -24,3 +24,8 @@
 - [x] Mark conditional requirements only when the condition applies.
 - [x] Verify all wizard steps and shared address fields.
 
+## Candidate form modernization
+- [x] Simplify the Candidate form header, progress, steps, and actions.
+- [x] Standardize sections, fields, contacts, documents, and validation states.
+- [ ] Verify narrow Android, iPhone, tablet, and desktop layouts.
+
