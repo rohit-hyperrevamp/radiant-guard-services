@@ -162,7 +162,14 @@ function elapsed(from: string | null, to?: string | null) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export type AllowedUnit = { id: string; name: string; latitude: number | null; longitude: number | null };
+export type AllowedUnit = {
+  id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  /** Present attendance is only accepted at the primary unit. */
+  isPrimary?: boolean;
+};
 
 export function MarkAttendanceCard({
   candidateId,
