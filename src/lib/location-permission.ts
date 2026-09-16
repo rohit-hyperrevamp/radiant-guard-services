@@ -3,11 +3,6 @@ import { isNativePlatform, logNativeEvent } from "@/lib/native";
 export type LocationPermissionState = "granted" | "denied" | "prompt" | "unavailable";
 
 /**
- * Ask the OS for foreground location access. On Android this shows the runtime
- * permission dialog (the same moment we ask for notifications), so GPS is not
- * left off by default after install.
- */
-/**
  * Browser location state without triggering a prompt. Chrome/Edge/Firefox
  * expose the Permissions API; Safari does not, so we fall back to "prompt".
  */
@@ -23,6 +18,11 @@ async function queryWebPermission(): Promise<LocationPermissionState> {
   }
 }
 
+/**
+ * Ask for foreground location access. On Android this shows the OS runtime
+ * dialog (the same moment we ask for notifications); in a browser it shows the
+ * browser's own location prompt.
+ */
 export async function requestLocationPermission(): Promise<LocationPermissionState> {
   if (!isNativePlatform()) {
     // On the web the only way to ask is to actually request a position — that
