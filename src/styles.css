@@ -138,6 +138,36 @@
   );
 }
 
+.employee-profile-hero-overlay {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--foreground) 94%, transparent) 0%,
+    color-mix(in oklab, var(--foreground) 78%, transparent) 42%,
+    color-mix(in oklab, var(--foreground) 24%, transparent) 68%,
+    transparent 100%
+  );
+}
+
+.employee-profile-hero-title {
+  text-shadow: 0 2px 14px color-mix(in oklab, var(--foreground) 70%, transparent);
+}
+
+.employee-profile-hero-details {
+  background: color-mix(in oklab, var(--foreground) 62%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--field-hero) 16%, transparent);
+}
+
+@media (max-width: 639px) {
+  .employee-profile-hero-overlay {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--foreground) 76%, transparent) 0%,
+      color-mix(in oklab, var(--foreground) 18%, transparent) 48%,
+      color-mix(in oklab, var(--foreground) 88%, transparent) 100%
+    );
+  }
+}
+
 
 
 .dark {

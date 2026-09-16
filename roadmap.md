@@ -67,3 +67,4 @@
 - [x] Match Guard, billable, and non-billable employee dashboards to the Field Officer bento layout.
 - [x] Preserve attendance, assignments, manager, team, device, and insights behavior.
 - [x] Verify responsive layout and project checks.
+- [x] Improve the profile-card image visibility and text contrast on mobile and desktop.

@@ -471,22 +471,22 @@ function EmployeeDashboard() {
     <DashboardShell rightExtras={insights} fixedRightRail>
       <div className="space-y-4">
         <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
+          <section className="relative isolate flex min-h-[300px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
             {me.photo_url ? (
-              <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center" />
+              <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center sm:object-right" />
             ) : (
               <div className="absolute inset-0 grid place-items-center bg-accent text-accent-foreground">
                 <UserRound className="h-28 w-28" strokeWidth={1.25} />
               </div>
             )}
-            {me.photo_url && <div className="field-officer-hero-overlay absolute inset-0" />}
+            {me.photo_url && <div className="employee-profile-hero-overlay absolute inset-0" />}
             <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-                <div className="min-w-0">
+                <div className="min-w-0 sm:max-w-[68%]">
                   <div className="inline-flex items-center gap-2 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground shadow-sm ring-1 ring-border">
                     <ShieldCheck className="h-3.5 w-3.5" /> {roleLabel}
                   </div>
-                  <h1 className="mt-5 truncate text-2xl font-bold text-field-hero sm:text-3xl">{me.full_name}</h1>
+                  <h1 className="employee-profile-hero-title mt-5 text-2xl font-bold leading-tight text-field-hero sm:text-3xl">{me.full_name}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
                     {unit && <span className="max-w-[190px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{unit.name}</span>}
@@ -497,7 +497,7 @@ function EmployeeDashboard() {
                   <ArrowUpRight className="h-5 w-5" />
                 </Link>
               </div>
-              <div className="mt-8 space-y-2 text-xs text-field-hero-muted">
+              <div className="employee-profile-hero-details mt-8 max-w-full space-y-2 rounded-2xl p-3 text-xs text-field-hero sm:max-w-[68%]">
                 {me.mobile && <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-field-hero" /><span className="tabular-nums">{me.mobile}</span></span>}
                 {(unit?.site_address || unit?.name) && <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-field-hero" /><span className="truncate">{unit?.site_address || unit?.name}</span></span>}
               </div>
