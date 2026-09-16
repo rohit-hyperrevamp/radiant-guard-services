@@ -796,7 +796,7 @@ function AddEntryDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
+        <div className="modern-form-section">
           {/* Mode tabs: Fuel vs Other Expense */}
           <div className="inline-flex rounded-lg border border-border bg-muted/40 p-1 w-full sm:w-auto">
             {([

@@ -388,9 +388,9 @@ function BranchFormDialog({
             if (err) setError(err);
             else onOpenChange(false);
           }}
-          className="space-y-4"
+          className="modern-business-form"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
+          <section className="modern-form-section grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="branch-code">Branch code</Label>
               <Input
@@ -432,9 +432,9 @@ function BranchFormDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </section>
 
-          <div className="space-y-2">
+          <div className="modern-form-field">
             <Label htmlFor="branch-desc">Description</Label>
             <Textarea
               id="branch-desc"

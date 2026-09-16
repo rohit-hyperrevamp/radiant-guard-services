@@ -415,7 +415,7 @@ function CompareView({ rows, vendorMap, itemMap }: { rows: RateCard[]; vendorMap
   }
 
   return (
-    <div className="space-y-4">
+    <div className="modern-business-form">
       {groups.map((g) => {
         const first = g.list[0];
         const item = itemMap.get(first.item_id);

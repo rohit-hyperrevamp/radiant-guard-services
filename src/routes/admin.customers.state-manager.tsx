@@ -327,9 +327,9 @@ function StateFormDialog({
               if (!initial) onOpenChange(false);
             }
           }}
-          className="space-y-4"
+          className="modern-business-form"
         >
-          <div className="space-y-2">
+          <section className="modern-form-section">
             <Label htmlFor="state-name">State name</Label>
             <Input
               id="state-name"
@@ -342,7 +342,7 @@ function StateFormDialog({
               autoFocus
             />
             {error && <p className="text-xs font-medium text-destructive">{error}</p>}
-          </div>
+          </section>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

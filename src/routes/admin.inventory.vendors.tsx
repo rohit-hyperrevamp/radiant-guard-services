@@ -409,7 +409,7 @@ function VendorFormDialog({ open, onOpenChange, title, initial, onSubmit }: { op
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>Vendor profile.</DialogDescription></DialogHeader>
-        <div className="grid max-h-[60vh] gap-3 overflow-y-auto py-2">
+        <div className="modern-form-section max-h-[60vh] overflow-y-auto">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Name *</Label><Input value={p.name} onChange={(e) => set("name", e.target.value)} /></div>
             <div className="grid gap-2"><Label>Contact Person</Label><Input value={p.contact_person} onChange={(e) => set("contact_person", e.target.value)} /></div>
@@ -426,7 +426,7 @@ function VendorFormDialog({ open, onOpenChange, title, initial, onSubmit }: { op
           </div>
           <PaymentTermsField value={p.payment_terms} onChange={(v) => set("payment_terms", v)} />
           <div className="grid gap-2"><Label>Notes</Label><Textarea rows={2} value={p.notes} onChange={(e) => set("notes", e.target.value)} /></div>
-          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2"><div className="text-sm font-medium">Enabled</div><Switch checked={p.enabled} onCheckedChange={(v) => set("enabled", v)} /></div>
+          <div className="modern-form-toggle"><div className="text-sm font-medium">Enabled</div><Switch checked={p.enabled} onCheckedChange={(v) => set("enabled", v)} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
