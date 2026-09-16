@@ -47,7 +47,7 @@
 - [x] Verify representative business forms at phone, tablet, and desktop widths.
 
 ## Convert all business forms to Candidate-style workflows
-- [ ] Inventory every create/edit form and classify wizard vs single-step.
+- [x] Inventory every create/edit form and classify wizard vs single-step.
 - [ ] Extract a reusable white-and-blue wizard shell with progress, completed steps, and mobile actions.
 - [ ] Convert organization, client/unit, state, branch, contract, uniform, item/product, vehicle, asset, and related forms.
 - [ ] Convert remaining operational forms while preserving validation, permissions, and saving.
