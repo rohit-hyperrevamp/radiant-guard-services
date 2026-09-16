@@ -125,101 +125,73 @@ function todayPunchDate(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-/** Load FO's assigned units with geo + address (aggregates candidate_units + esa + candidate.unit_id). */
-type RawUnit = {
-  id: string;
-  name: string;
-  code: string | null;
-  customer_id: string | null;
-  branch_id: string | null;
-  billing_address1: string | null;
-  billing_address2: string | null;
-  billing_city: string | null;
-  billing_state: string | null;
+/**
+ * Units come from the pre-joined `field_officer_scope` projection through
+ * `get_my_field_scope()` — one indexed lookup by candidate id, no master-table
+ * scans. The projection is kept current by database triggers on unit mappings,
+ * scope assignments, units and organizations, so reads never recompute scope.
+ */
+type ScopeRow = {
+  unit_id: string;
+  unit_name: string;
+  unit_code: string | null;
+  customer_name: string | null;
+  branch_name: string | null;
+  address: string | null;
   latitude: number | null;
   longitude: number | null;
-  is_billable: boolean | null;
 };
 
-const UNIT_COLUMNS =
-  "id,name,code,customer_id,branch_id,billing_address1,billing_address2,billing_city,billing_state,latitude,longitude,is_billable";
+const foUnitsCacheKey = (candidateId: string) => `radiant:fo-units:${candidateId}`;
+
+function readUnitsSnapshot(candidateId: string): FoUnit[] | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(foUnitsCacheKey(candidateId));
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as FoUnit[];
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeUnitsSnapshot(candidateId: string, units: FoUnit[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(foUnitsCacheKey(candidateId), JSON.stringify(units));
+  } catch {
+    /* storage full or unavailable — cache is best-effort */
+  }
+}
+
+function toFoUnits(rows: ScopeRow[]): FoUnit[] {
+  return rows.map((r) => ({
+    unit_id: r.unit_id,
+    unit_name: r.unit_name,
+    unit_code: r.unit_code,
+    customer_name: r.customer_name,
+    branch_name: r.branch_name,
+    address: r.address,
+    latitude: r.latitude,
+    longitude: r.longitude,
+  }));
+}
 
 async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
-  const [candRes, cuRes, esaRes] = await Promise.all([
-    supabase.from("candidates" as never).select("id,unit_id").eq("id", candidateId).maybeSingle(),
-    supabase.from("candidate_units" as never).select("unit_id").eq("candidate_id", candidateId),
-    supabase
-      .from("employee_scope_assignments" as never)
-      .select("scope_type,scope_id")
-      .eq("candidate_id", candidateId),
-  ]);
-
-  const cand = (candRes.data ?? null) as unknown as { unit_id: string | null } | null;
-  const cu = ((cuRes.data ?? []) as unknown) as Array<{ unit_id: string }>;
-  const esa = ((esaRes.data ?? []) as unknown) as Array<{ scope_type: string; scope_id: string }>;
-
-  // Explicitly mapped units. NOTE: branch scopes are the officer's *home
-  // branch* (payroll marker), never an operational scope — do not expand them.
-  const directIds = new Set<string>();
-  if (cand?.unit_id) directIds.add(cand.unit_id);
-  for (const r of cu) directIds.add(r.unit_id);
-  for (const s of esa) if (s.scope_type === "unit") directIds.add(s.scope_id);
-  const customerIds = [...new Set(esa.filter((s) => s.scope_type === "customer").map((s) => s.scope_id))];
-
-  // Fetch ONLY the scoped units. Selecting the whole units table here hit the
-  // Data API row cap and returned nothing for field officers.
-  const byId = new Map<string, RawUnit>();
-  if (directIds.size) {
-    const { data } = await supabase.from("units" as never).select(UNIT_COLUMNS).in("id", [...directIds]);
-    for (const u of ((data ?? []) as unknown as RawUnit[])) byId.set(u.id, u);
+  const { data, error } = await supabase.rpc("get_my_field_scope" as never);
+  let rows = ((data ?? []) as unknown) as ScopeRow[];
+  if (error) throw error;
+  // Self-heal a cold projection row (first login after a mapping import).
+  if (rows.length === 0) {
+    const fresh = await supabase.rpc("get_my_field_scope_fresh" as never);
+    rows = ((fresh.data ?? []) as unknown) as ScopeRow[];
   }
-  if (customerIds.length) {
-    const pageSize = 1000;
-    for (let from = 0; ; from += pageSize) {
-      const { data } = await supabase
-        .from("units" as never)
-        .select(UNIT_COLUMNS)
-        .in("customer_id", customerIds)
-        .order("id", { ascending: true })
-        .range(from, from + pageSize - 1);
-      const rows = ((data ?? []) as unknown as RawUnit[]);
-      for (const u of rows) byId.set(u.id, u);
-      if (rows.length < pageSize) break;
-    }
-  }
-
-  const scoped = [...byId.values()].filter((u) => u.is_billable !== false);
-  const custIds = [...new Set(scoped.map((u) => u.customer_id).filter(Boolean))] as string[];
-  const brIds = [...new Set(scoped.map((u) => u.branch_id).filter(Boolean))] as string[];
-  const [custRes, branchRes] = await Promise.all([
-    custIds.length
-      ? supabase.from("customers" as never).select("id,name").in("id", custIds)
-      : Promise.resolve({ data: [] as unknown }),
-    brIds.length
-      ? supabase.from("branches" as never).select("id,name").in("id", brIds)
-      : Promise.resolve({ data: [] as unknown }),
-  ]);
-  const customerMap = new Map(
-    ((custRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]),
-  );
-  const branchMap = new Map(
-    ((branchRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((b) => [b.id, b.name]),
-  );
-
-  const list: FoUnit[] = scoped.map((u) => ({
-    unit_id: u.id,
-    unit_name: u.name,
-    unit_code: u.code,
-    customer_name: u.customer_id ? customerMap.get(u.customer_id) ?? null : null,
-    branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
-    address:
-      [u.billing_address1, u.billing_address2, u.billing_city, u.billing_state].filter(Boolean).join(", ") || null,
-    latitude: u.latitude,
-    longitude: u.longitude,
-  }));
-  list.sort((a, b) => a.unit_name.localeCompare(b.unit_name));
-  return list;
+  const units = toFoUnits(rows);
+  writeUnitsSnapshot(candidateId, units);
+  return units;
 }
+
 
 
 export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId: string; viewDate?: string }) {
