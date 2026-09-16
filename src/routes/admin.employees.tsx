@@ -1887,39 +1887,98 @@ function EmployeesPage() {
   const isBillableCandidate = (c: Pick<CandidateListItem, "non_billable">) => !c.non_billable;
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
 
-  const scopedUnitsForWizard = useMemo(() => {
-    if (!isFieldOfficer) return units;
-    if (!currentCandidateId) return [] as typeof units;
+  /**
+   * A field officer's own scope, resolved from their scope assignments plus
+   * legacy candidate_units rows.
+   *
+   * NOTE: `scope_type='branch'` on a field officer is their **Home Branch**
+   * (payroll/employment marker — always Radiant's own branch). It is NOT an
+   * operational scope and must never be expanded into every unit of that
+   * branch, otherwise the FO sees the whole organisation's units.
+   */
+  const myScope = useMemo(() => {
+    if (!isFieldOfficer || !currentCandidateId) return { unitIds: [] as string[], customerIds: [] as string[] };
     const mine = scopeAssignments.filter((s) => s.candidate_id === currentCandidateId);
-    const unitIds = new Set(
-      mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id),
-    );
-    // NOTE: `scope_type='branch'` on a field officer is their **Home Branch**
-    // (payroll/employment marker — always Radiant's own branch). It is NOT an
-    // operational scope and must never be expanded into every unit of that
-    // branch, otherwise the FO sees the whole organisation's units.
-    const customerIds = new Set(
-      mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id),
-    );
-    // Legacy: candidate_units mappings also count as direct unit scope.
+    const unitIds = new Set(mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id));
+    const customerIds = new Set(mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id));
     for (const cu of candidateUnitsQuery.data ?? []) {
       if (cu.candidate_id === currentCandidateId && cu.unit_id) unitIds.add(cu.unit_id);
     }
     // Always include "No Man's Land" as a fallback unit for FO onboarding.
     unitIds.add(NOMANS_UNIT_ID);
-    return units.filter(
-      (u) =>
-        unitIds.has(u.id) ||
-        ((u as { customer_id?: string | null }).customer_id != null &&
-          customerIds.has((u as { customer_id?: string | null }).customer_id as string)),
-    );
-  }, [isFieldOfficer, currentCandidateId, scopeAssignments, units, candidateUnitsQuery.data]);
+    return { unitIds: Array.from(unitIds), customerIds: Array.from(customerIds) };
+  }, [isFieldOfficer, currentCandidateId, scopeAssignments, candidateUnitsQuery.data]);
+
+  /**
+   * Field officers get their handful of clients fetched directly instead of
+   * waiting on (and filtering) the ~4,000-row client master, which regularly
+   * exceeded the query timeout and made onboarding look unassigned.
+   */
+  const myUnitsQuery = useQuery({
+    queryKey: ["admin", "fo-scoped-units", myScope.unitIds, myScope.customerIds],
+    enabled: isFieldOfficer && (myScope.unitIds.length > 0 || myScope.customerIds.length > 0),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<UnitLite[]> => {
+      const cols = "id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable";
+      const results = await Promise.all([
+        myScope.unitIds.length
+          ? supabase.from("units" as never).select(cols).in("id", myScope.unitIds)
+          : Promise.resolve({ data: [], error: null }),
+        myScope.customerIds.length
+          ? supabase.from("units" as never).select(cols).in("customer_id", myScope.customerIds).limit(500)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      const rows = new Map<string, UnitLite>();
+      for (const res of results) {
+        if (res.error) throw res.error;
+        for (const u of ((res.data as unknown) as UnitLite[]) ?? []) rows.set(u.id, u);
+      }
+      const list = Array.from(rows.values());
+      const custIds = Array.from(new Set(list.map((u) => u.customer_id).filter(Boolean))) as string[];
+      let custMap = new Map<string, string>();
+      if (custIds.length) {
+        const { data: cs } = await supabase.from("customers" as never).select("id,name").in("id", custIds);
+        custMap = new Map(((cs ?? []) as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
+      }
+      return list
+        .map((u) => ({ ...u, customer_name: u.customer_id ? custMap.get(u.customer_id) ?? "" : "" }))
+        .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+    },
+  });
+
+  const scopedUnitsForWizard = useMemo(() => {
+    if (!isFieldOfficer) return units;
+    if (!currentCandidateId) return [] as typeof units;
+    const unitIds = new Set(myScope.unitIds);
+    const customerIds = new Set(myScope.customerIds);
+    const merged = new Map<string, UnitLite>();
+    for (const u of myUnitsQuery.data ?? []) merged.set(u.id, u);
+    for (const u of units) {
+      if (merged.has(u.id)) continue;
+      const custId = (u as { customer_id?: string | null }).customer_id ?? null;
+      if (unitIds.has(u.id) || (custId != null && customerIds.has(custId))) merged.set(u.id, u);
+    }
+    return Array.from(merged.values());
+  }, [isFieldOfficer, currentCandidateId, myScope, units, myUnitsQuery.data]);
   const scopedUnitIdSet = useMemo(
     () => new Set(scopedUnitsForWizard.map((u) => u.id)),
     [scopedUnitsForWizard],
   );
 
-  const scopeStillLoading = isFieldOfficer && (roleLoading || scopeQuery.isLoading || !currentCandidateId);
+  // "You have no clients assigned" must only appear once every source that can
+  // supply clients has actually settled — otherwise a slow client master reads
+  // as an unassigned field officer.
+  const scopeStillLoading =
+    isFieldOfficer &&
+    (roleLoading ||
+      scopeQuery.isLoading ||
+      !currentCandidateId ||
+      candidateUnitsQuery.isLoading ||
+      myUnitsQuery.isLoading ||
+      myUnitsQuery.isFetching ||
+      (unitsQuery.isLoading && (myUnitsQuery.data?.length ?? 0) === 0));
 
   const matchesSearch = (c: CandidateListItem) => {
     const q = search.trim().toLowerCase();
@@ -4418,12 +4477,20 @@ function EmployeesPage() {
         editing={editing}
         mode={wizardMode}
         units={scopedUnitsForWizard}
-        unitsLoading={unitsQuery.isLoading || scopeStillLoading}
+        unitsLoading={isFieldOfficer ? scopeStillLoading : unitsQuery.isLoading}
         unitsError={
-          unitsQuery.error instanceof Error
-            ? unitsQuery.error.message
-            : isFieldOfficer && !scopeStillLoading && scopedUnitsForWizard.length === 0
-              ? "You have no clients assigned. Ask your admin to assign a branch or client before onboarding."
+          // A field officer only needs their own clients, so a failure of the
+          // full client master is irrelevant once their own list has arrived.
+          isFieldOfficer
+            ? scopedUnitsForWizard.length > 0 || scopeStillLoading
+              ? null
+              : myUnitsQuery.error instanceof Error
+                ? myUnitsQuery.error.message
+                : unitsQuery.error instanceof Error
+                  ? unitsQuery.error.message
+                  : "You have no clients assigned. Ask your admin to assign a branch or client before onboarding."
+            : unitsQuery.error instanceof Error
+              ? unitsQuery.error.message
               : null
         }
         designations={designations}
