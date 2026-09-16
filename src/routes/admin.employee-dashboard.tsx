@@ -157,14 +157,19 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const [u, d] = await Promise.all([
         me?.unit_id
-          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,shift_start_time,shift_end_time,site_address,latitude,longitude").eq("id", me.unit_id).maybeSingle()
+          ? supabase.from("units").select("id,name,code,branch_id,customer_id,is_billable,location,latitude,longitude").eq("id", me.unit_id).maybeSingle()
           : Promise.resolve({ data: null }),
         me?.designation_id
           ? supabase.from("designations").select("id,name").eq("id", me.designation_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       return {
-        unit: (u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; shift_start_time: string | null; shift_end_time: string | null; site_address: string | null; latitude: number | null; longitude: number | null } | null),
+        unit: u.data ? {
+          ...(u.data as unknown as { id: string; name: string; code: string; branch_id: string | null; customer_id: string | null; is_billable: boolean | null; location: string | null; latitude: number | null; longitude: number | null }),
+          site_address: (u.data as unknown as { location: string | null }).location,
+          shift_start_time: null,
+          shift_end_time: null,
+        } : null,
         designation: (d.data as unknown as { id: string; name: string } | null),
       };
     },
