@@ -204,6 +204,7 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     start?: string;
     end?: string;
     highlight?: string;
+    action?: string;
   };
   const presetInput = (search.range as RangePreset | undefined) ?? "today";
   const validPreset: RangePreset = (
@@ -739,6 +740,14 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const handledActionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!search.action || handledActionRef.current === search.action) return;
+    if (search.action === "start-visit" && isOnDuty && !openVisit) setCheckInOpen(true);
+    if (search.action === "complete-visit" && openVisit) setCheckOutOpen(true);
+    handledActionRef.current = search.action;
+  }, [search.action, isOnDuty, openVisit]);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
 
@@ -753,10 +762,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   // Attendance checkout (from the map card)
   const attendanceOutMut = useMutation({
     mutationFn: async () => {
-      if (!punchQ.data?.id) throw new Error("No active check-in.");
+      if (!punchQ.data?.id) throw new Error("No active attendance login.");
+      if (openVisit) throw new Error("Complete your active client visit before logging out.");
       let face = false;
       try {
-        face = await verifyFaceForAttendance("Check out of duty");
+        face = await verifyFaceForAttendance("Attendance logout");
       } catch (err) {
         // Face ID is optional on web — on native, verifyFaceForAttendance throws which we rethrow.
         throw err;
@@ -769,7 +779,7 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
       void qc.invalidateQueries({ queryKey: ["fo-fs-punch", candidateId, todayPunchDate()] });
       void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-out failed"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
   });
 
 
@@ -1518,7 +1528,7 @@ function FieldSenseTimeline(props: {
             ) : (
               <LogOut className="mr-1.5 h-3.5 w-3.5" />
             )}
-            {openVisit ? "Complete visit to end duty" : "End duty & check out"}
+            {openVisit ? "Complete visit to log out" : "End duty & log out"}
           </Button>
         </div>
       )}

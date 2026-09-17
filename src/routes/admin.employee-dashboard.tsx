@@ -30,7 +30,6 @@ import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { DashboardShell } from "@/components/LiveFeed";
-import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
@@ -485,7 +484,7 @@ function EmployeeDashboard() {
   return (
     <DashboardShell rightExtras={insights} fixedRightRail>
       <div className="space-y-4">
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className="flex flex-col gap-4">
           <section className="relative isolate flex min-h-[300px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
             {me.photo_url ? (
               <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center" />
@@ -544,8 +543,7 @@ function EmployeeDashboard() {
           </div>
         </div>
 
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div className="min-w-0 [&>*]:h-full"><MyLiveStatusCard /></div>
+        <div className="flex flex-col gap-4">
           <section className="min-w-0">
             <div className="mb-3">
               <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>

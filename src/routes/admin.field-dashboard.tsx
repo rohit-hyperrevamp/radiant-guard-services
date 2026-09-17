@@ -13,36 +13,29 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
-  Mail,
-  MapPin,
-  Phone,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
   Minus,
   Warehouse,
-  Activity,
   ArrowUpRight,
   PackageCheck,
-  Sparkles,
-  UserRound,
+  Route as RouteIcon,
 } from "lucide-react";
 
 
 import { DashboardShell } from "@/components/LiveFeed";
-import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { readStoredAuthUser } from "@/lib/auth";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
-import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 import { ListSkeleton } from "@/components/Skeletons";
 import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
 import { UserCog, UserCheck } from "lucide-react";
-import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
+import { useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 
 
@@ -119,9 +112,6 @@ type FoBaseUnit = {
 };
 type FoBase = {
   meId: string | null;
-  meName: string;
-  meCode: string;
-  mePhoto: string;
   units: FoBaseUnit[];
 };
 
@@ -192,18 +182,15 @@ function FieldOfficerDashboard() {
     queryFn: async (): Promise<FoBase> => {
       const { data: me } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
+        .select("id,unit_id")
         .eq("mobile", phone)
         .maybeSingle();
       const meRow = me as
-        | { id?: string; full_name?: string; employee_code?: string; photo_url?: string; unit_id?: string | null }
+        | { id?: string; unit_id?: string | null }
         | null;
       const meId = meRow?.id ?? null;
       const base: FoBase = {
         meId,
-        meName: meRow?.full_name ?? "",
-        meCode: meRow?.employee_code ?? "",
-        mePhoto: meRow?.photo_url ?? "",
         units: [],
       };
       if (!meId) return base;
@@ -575,9 +562,6 @@ function FieldOfficerDashboard() {
   const data = useMemo(
     () => ({
       meId,
-      meName: baseQ.data?.meName ?? "",
-      meCode: baseQ.data?.meCode ?? "",
-      mePhoto: baseQ.data?.mePhoto ?? "",
       units,
       guardsTotal: stats?.guardsTotal ?? 0,
       joinedThisWeek: stats?.joinedThisWeek ?? 0,
@@ -591,7 +575,7 @@ function FieldOfficerDashboard() {
       myStockQty: stats?.myStockQty ?? 0,
       myStockSkus: stats?.myStockSkus ?? 0,
     }),
-    [meId, baseQ.data?.meName, baseQ.data?.meCode, baseQ.data?.mePhoto, units, stats],
+    [meId, units, stats],
   );
 
   const pendingIssuanceQ = useQuery({
@@ -623,9 +607,6 @@ function FieldOfficerDashboard() {
     ? rehireHolderLabel(rehirePending[0], rehireQ.data?.steps ?? [], rehireQ.data?.roleName ?? new Map())
     : `${rehireQ.data?.completedCount ?? 0} completed`;
 
-  const primaryUnit = units.find((u) => u.is_primary) ?? units[0];
-  const teamDelta = (data?.joinedThisWeek ?? 0) - (data?.joinedLastWeek ?? 0);
-  const attnDelta = (data?.attendanceRateToday ?? 0) - (data?.attendanceRateYesterday ?? 0);
   const onbDelta = (data?.pendingOnboardingTotal ?? 0) - (data?.pendingOnboardingLastWeek ?? 0);
   const totalListings = data?.guardsTotal ?? 0;
   const attnPresent = Math.round(((data?.attendanceRateToday ?? 0) / 100) * totalListings);
@@ -634,59 +615,14 @@ function FieldOfficerDashboard() {
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          {/* Identity anchors the workspace without repeating the profile photo. */}
-          <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
-            {data?.mePhoto ? (
-              <img
-                src={data.mePhoto}
-                alt={`${data.meName || "Field officer"} profile`}
-                className="absolute inset-0 h-full w-full object-cover object-center"
-              />
-            ) : (
-              <div className="absolute inset-0 grid place-items-center bg-accent text-accent-foreground">
-                <UserRound className="h-28 w-28" strokeWidth={1.25} />
-              </div>
-            )}
-            {data?.mePhoto && <div className="field-officer-hero-overlay absolute inset-0" />}
-            <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-                <div className="min-w-0">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground shadow-sm ring-1 ring-border">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Field Officer
-                  </div>
-                  <div className="mt-5 truncate text-2xl font-bold text-field-hero sm:text-3xl">
-                    {data?.meName || (isLoading ? "…" : "Welcome")}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {data?.meCode && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{data.meCode}</span>}
-                    {primaryUnit && <span className="max-w-[190px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{primaryUnit.name}</span>}
-                  </div>
-                </div>
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-foreground shadow-sm ring-1 ring-border">
-                  <Building2 className="h-5 w-5" />
-                </div>
-              </div>
-              {(phone || primaryUnit) && (
-                <div className="mt-8 space-y-2 text-xs text-field-hero-muted">
-                  {phone && <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-field-hero" /><span className="tabular-nums">+91 {phone}</span></span>}
-                  {primaryUnit && <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-field-hero" /><span className="truncate">{primaryUnit.customer_name}</span></span>}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="grid grid-cols-3 gap-4">
-              <HeroStat label="Team" value={totalListings} icon={ShieldCheck} tone="blue" />
-              <HeroStat label="Present" value={attnPresent} icon={UserCheck} tone="mint" />
-              <HeroStat label="Items" value={totalItems} icon={Warehouse} tone="violet" />
-            </div>
-            <div className="min-w-0 flex-1 [&>*]:h-full">
-              <MarkAttendanceCard candidateId={data?.meId ?? null} />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <HeroStat label="Team" value={totalListings} icon={ShieldCheck} tone="blue" to="/admin/my-reportees" />
+          <HeroStat label="Present" value={`${attnPresent} · ${data?.attendanceRateToday ?? 0}%`} icon={UserCheck} tone="mint" to="/admin/attendance" />
+          <HeroStat label="Items" value={totalItems} icon={Warehouse} tone="violet" to="/admin/inventory/items" />
         </div>
+
+        <MarkAttendanceCard candidateId={data?.meId ?? null} />
+        {data?.meId && <FieldSenseSummary candidateId={data.meId} />}
 
         {pendingIssuances.length > 0 && (
         <section className="rounded-3xl border border-primary/20 bg-primary/5 p-4 shadow-sm">
@@ -708,69 +644,35 @@ function FieldOfficerDashboard() {
         </section>
         )}
 
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div className="min-w-0 [&>*]:h-full"><MyLiveStatusCard /></div>
-          <section className="min-w-0">
-        <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>
-            <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
+        <section className="min-w-0">
+          <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>
+              <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
+            </div>
           </div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
-          <PastelTile
-            palette="lime"
-            className="sm:col-span-3"
-            label="Team size"
-            value={totalListings}
-            hint={`${data?.joinedThisWeek ?? 0} joined this week`}
-            delta={teamDelta} deltaSuffix=" new"
-            icon={ShieldCheck}
-            to="/admin/my-reportees"
-          />
-          <PastelTile
-            palette="teal"
-            className="sm:col-span-3"
-            label="Attendance today"
-            value={`${data?.attendanceRateToday ?? 0}%`}
-            hint={`Yesterday ${data?.attendanceRateYesterday ?? 0}%`}
-            delta={attnDelta} deltaSuffix="pp"
-            icon={Activity}
-          />
-          <PastelTile
-            palette="rose"
-            className="sm:col-span-2"
-            label="Pending onboarding"
-            value={data?.pendingOnboardingTotal ?? 0}
-            hint="vs last week"
-            delta={onbDelta} deltaSuffix="" invertColor
-            icon={ClipboardList}
-            to="/admin/employees"
-          />
-          <PastelTile
-            palette="violet"
-            className="sm:col-span-2"
-            label="Pending rehire"
-            value={rehirePending.length}
-            hint={rehireHint}
-            delta={0} deltaSuffix=""
-            icon={UserCheck}
-            to="/admin/employees"
-            search={{ tab: "candidate" }}
-          />
-          <PastelTile
-            palette="amber"
-            className="sm:col-span-2"
-            label="My stock available"
-            value={data?.myStockQty ?? 0}
-            hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
-            delta={0} deltaSuffix=""
-            icon={Warehouse}
-            to="/admin/inventory/items"
-          />
-        </div>
-          </section>
-        </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <PastelTile
+              palette="rose"
+              label="Pending onboarding"
+              value={data?.pendingOnboardingTotal ?? 0}
+              hint="vs last week"
+              delta={onbDelta} deltaSuffix="" invertColor
+              icon={ClipboardList}
+              to="/admin/employees"
+            />
+            <PastelTile
+              palette="violet"
+              label="Pending rehire"
+              value={rehirePending.length}
+              hint={rehireHint}
+              delta={0} deltaSuffix=""
+              icon={UserCheck}
+              to="/admin/employees"
+              search={{ tab: "candidate" }}
+            />
+          </div>
+        </section>
 
       <section className="overflow-hidden rounded-3xl border border-border/70 bg-[rgb(var(--tint-slate))] shadow-sm">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 px-5 py-4">
@@ -800,9 +702,6 @@ function FieldOfficerDashboard() {
       </section>
       </div>
 
-      <RehirePipelineCard mineOnly requestedByCandidateId={data?.meId ?? null} title="My rehire requests" />
-
-      {data?.meId && <FieldSenseSummary candidateId={data.meId} />}
     </DashboardShell>
   );
 }
@@ -811,7 +710,6 @@ function FoPeopleInsights() {
   const { isLoading, birthdays, anniversaries } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
-      <LiveFieldOfficersCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
     </div>
@@ -832,10 +730,9 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
       const [monthVisitsRes, punchRes, trackRes, candRes, cuRes, esaRes, rpcRes] = await Promise.all([
         supabase
           .from("field_visits" as never)
-          .select("id, unit_id, customer_rating, check_out_at")
+          .select("id, unit_id, visit_date, visit_seq, customer_rating, check_in_at, check_out_at")
           .eq("candidate_id", candidateId)
-          .gte("visit_date", firstOfMonth)
-          .not("check_out_at", "is", null),
+          .gte("visit_date", firstOfMonth),
         supabase
           .from("self_attendance_punches" as never)
           .select("check_in_at, check_out_at")
@@ -903,7 +800,10 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         visits: (monthVisitsRes.data ?? []) as Array<{
           id: string;
           unit_id: string;
+          visit_date: string;
+          visit_seq: number;
           customer_rating: number | null;
+          check_in_at: string;
           check_out_at: string | null;
         }>,
         punch: (punchRes.data as { check_in_at: string | null; check_out_at: string | null } | null) ?? null,
@@ -918,6 +818,11 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
   const scopedUnits = useMemo(() => q.data?.scopedUnits ?? [], [q.data?.scopedUnits]);
 
   const visits = q.data?.visits ?? [];
+  const todayVisits = visits.filter((visit) => visit.visit_date === todayStr);
+  const openVisit = todayVisits.find((visit) => !visit.check_out_at) ?? null;
+  const completedToday = todayVisits.filter((visit) => visit.check_out_at).length;
+  const isOnDuty = !!q.data?.punch?.check_in_at && !q.data?.punch?.check_out_at;
+  const nextVisitNumber = completedToday + 1;
   const monthCount = visits.length;
   const rated = visits.filter((v) => v.customer_rating != null);
   const avgRating = rated.length
@@ -964,12 +869,32 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
 
   return (
     <section>
-      <div className="mb-2 flex items-end justify-between">
-        <h2 className="font-display text-sm font-bold tracking-tight text-foreground sm:text-base">My site visits</h2>
+      <div className="mb-2 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Field work</div>
+          <h2 className="mt-1 font-display text-lg font-bold text-foreground">My client visits</h2>
+        </div>
         <Link to="/admin/field-sense" className="text-[11px] font-semibold text-primary underline-offset-2 hover:underline">
           Open Radar →
         </Link>
       </div>
+
+      {openVisit ? (
+        <Link to="/admin/field-sense" search={{ range: "today", action: "complete-visit" } as never} className="mb-3 flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 shadow-sm transition hover:border-amber-500/50">
+          <div className="min-w-0"><div className="text-sm font-bold text-foreground">Complete visit #{openVisit.visit_seq}</div><div className="mt-0.5 text-xs text-muted-foreground">Add notes, rating, signature and client photo.</div></div>
+          <ArrowUpRight className="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" />
+        </Link>
+      ) : isOnDuty ? (
+        <Link to="/admin/field-sense" search={{ range: "today", action: "start-visit" } as never} className="mb-3 flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 shadow-sm transition hover:border-primary/45 hover:bg-primary/10">
+          <div className="min-w-0"><div className="text-sm font-bold text-foreground">Start your {nextVisitNumber === 1 ? "first" : "next"} site visit</div><div className="mt-0.5 text-xs text-muted-foreground">Choose a client unit and confirm your GPS location.</div></div>
+          <RouteIcon className="h-5 w-5 shrink-0 text-primary" />
+        </Link>
+      ) : (
+        <div className="mb-3 flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 opacity-75">
+          <div className="min-w-0"><div className="text-sm font-bold text-foreground">Log in to start client visits</div><div className="mt-0.5 text-xs text-muted-foreground">My Client Visits unlocks after today’s attendance login.</div></div>
+          <RouteIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </div>
+      )}
 
       {/* Today strip */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1061,22 +986,23 @@ function StatBar({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function HeroStat({ label, value, icon: Icon, tone }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet" }) {
+function HeroStat({ label, value, icon: Icon, tone, to }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet"; to: string }) {
   const surface = {
     blue: "bg-[rgb(var(--tint-blue))]",
     mint: "bg-[rgb(var(--tint-emerald))]",
     violet: "bg-[rgb(var(--tint-violet))]",
   }[tone];
   return (
-    <div className={cn("flex min-h-[116px] min-w-0 flex-col justify-between rounded-3xl border border-border/50 p-4 shadow-sm sm:p-5", surface)}>
+    <Link to={to} className={cn("group relative flex min-h-[116px] min-w-0 flex-col justify-between rounded-3xl border border-border/50 p-4 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:p-5", surface)}>
       <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
         <Icon className="h-4 w-4" />
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
         <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
-        <span className="text-3xl font-bold tabular-nums leading-none text-foreground">{value}</span>
+        <span className="text-2xl font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</span>
       </div>
-    </div>
+      <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-primary opacity-0 transition group-hover:opacity-100" />
+    </Link>
   );
 }
 
