@@ -9640,9 +9640,9 @@ function MultiUnitPicker({
                                   <span>
                                     <b>{u.code}</b> · {u.name}
                                   </span>
-                                  {contractState && contractState[u.id] !== "active" ? (
+                                  {unitContractState && unitContractState[u.id] !== "active" ? (
                                     <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                                      {contractState[u.id] === "expired" ? "Contract expired" : "No contract"}
+                                      {unitContractState[u.id] === "expired" ? "Contract expired" : "No contract"}
                                     </span>
                                   ) : null}
                                 </div>
