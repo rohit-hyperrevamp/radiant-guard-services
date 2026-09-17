@@ -417,11 +417,20 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
     for (const row of stockQuery.data ?? []) map.set(`${row.item_id}|${row.size_value}`, Number(row.qty));
     return map;
   }, [stockQuery.data]);
+  // A field officer may only request what actually exists at the chosen source.
+  // Nothing about the catalogue is hardcoded — availability drives the list.
   const requestItems = useMemo(() => {
     if (!isFieldOfficer) return items;
+    if (!stockQuery.isSuccess) return items;
     const availableIds = new Set((stockQuery.data ?? []).map((row) => row.item_id));
-    return items.filter((item) => availableIds.has(item.id) && (item.item_code === "UNIFORM" || item.item_code === "SHOE"));
-  }, [isFieldOfficer, items, stockQuery.data]);
+    return items.filter((item) => availableIds.has(item.id));
+  }, [isFieldOfficer, items, stockQuery.data, stockQuery.isSuccess]);
+
+  // Pick a source as soon as one is known (base unit branch first, HQ second).
+  useEffect(() => {
+    if (!open || source || !defaultSource) return;
+    setSource(defaultSource);
+  }, [open, source, defaultSource]);
 
   useEffect(() => {
     if (!isFieldOfficer || !stockQuery.isSuccess) return;
@@ -629,6 +638,11 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                 );
               })}
               {!lines.length && <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">No lines yet. Tap “Add line”.</div>}
+            {isFieldOfficer && stockQuery.isSuccess && requestItems.length === 0 && (
+              <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3 text-center text-xs text-amber-700">
+                Nothing is in stock at this source right now — switch the source on the previous step.
+              </div>
+            )}
             </div>
 
             {/* Tablet/desktop: original table */}
