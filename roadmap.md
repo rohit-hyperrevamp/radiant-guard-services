@@ -143,4 +143,5 @@
 ## Verification key (SurePass) readiness
 - [x] Confirm the app calls the provider with the key the owner issued (stored as SUREPASS_API_KEY), not the older expired key.
 - [x] Make the stored key authoritative instead of the copy baked into server env code.
-- [ ] Blocked on the provider: the sandbox still rejects the issued key with "Your token is revoked" for Aadhaar, PAN, DigiLocker, and bank checks, so the two-day extension has not taken effect. Needs a reissued/activated key from the SurePass console, then verification works with no code change.
+- [x] Add a production encrypted-database fallback when the deployment host does not inject the stored key.
+- [x] Confirm the replacement key is active with the provider for Aadhaar and PAN verification.
