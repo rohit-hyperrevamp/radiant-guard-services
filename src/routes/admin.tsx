@@ -54,6 +54,7 @@ import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNa
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -577,6 +578,7 @@ function AdminLayout() {
       isFieldOfficer && "bg-white dark:bg-neutral-950",
     )}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
+      <WelcomeDialog />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
       {!isFieldOfficer && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
 
