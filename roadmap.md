@@ -124,5 +124,5 @@
 
 ## Issuance quantity validation
 - [x] Make the visibly entered issued quantity authoritative when moving to Review.
-- [ ] Verify the field-officer issuance flow and project checks.
+- [x] Verify the field-officer issuance flow and project checks.
 
