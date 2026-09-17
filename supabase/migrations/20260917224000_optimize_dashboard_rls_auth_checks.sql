@@ -10,7 +10,7 @@ using (
   (select public.is_admin_user())
   or (select public.current_user_is_inventory_manager())
   or coalesce((select public.current_user_role_key()), '') = any (array['hr','leadership','operations_manager','vp_operations'])
-  or id = any ((select public.current_user_unit_ids()))
+  or id in (select unnest((select public.current_user_unit_ids())))
   or not (select public.current_user_has_branch_scope())
   or branch_id is null
   or branch_id::text in (select public.current_user_branch_scope_ids())

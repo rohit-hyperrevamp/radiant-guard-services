@@ -163,3 +163,13 @@
 - [ ] Create and verify guard asset assignment guide.
 - [ ] Create and verify manual unit attendance guide.
 - [ ] Create and verify employee unit reassignment guide.
+
+## Finance dashboard loading
+- [ ] Remove the production dashboard timeout for Finance without widening RBAC access.
+- [ ] Verify Swapnil's dashboard count and finance-data requests with his signed-in identity.
+
+## Field officer client and reporting-head mapping
+- [ ] Review every row in the uploaded mapping workbook.
+- [ ] Match or create field officers only where the sheet provides a usable client ID/name.
+- [ ] Assign matched field officers to the corresponding units and reporting heads.
+- [ ] Verify all production mappings and produce a detailed PDF reconciliation report.
