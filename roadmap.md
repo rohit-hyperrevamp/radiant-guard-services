@@ -120,5 +120,5 @@
 - [x] Verify role scoping, navigation, and project checks.
 ## Field officer issuance guard scope
 - [x] Restrict the issuance guard picker to the signed-in field officer’s assigned/onboarded guards only.
-- [ ] Verify Rohit’s production guard scope and run project checks.
+- [x] Verify Rohit’s production guard scope and run project checks.
 
