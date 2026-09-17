@@ -67,7 +67,6 @@ AS $$
     AND (
       public.is_admin_user()
       OR v.role_key IN ('finance', 'accounts')
-      OR public.current_user_has_permission('contracts', '', 'view')
       OR (
         v.role_key = 'field_officer'
         AND (c.created_by = v.user_id OR c.reports_to = v.candidate_id)
@@ -165,7 +164,6 @@ AS $$
     AND (
       public.is_admin_user()
       OR v.role_key IN ('finance', 'accounts')
-      OR public.current_user_has_permission('contracts', '', 'view')
       OR (v.role_key = 'field_officer' AND (c.created_by = v.user_id OR c.reports_to = v.candidate_id))
     )
   ORDER BY COALESCE(cu.designation_assigned_at, cu.created_at) ASC, c.full_name ASC;
