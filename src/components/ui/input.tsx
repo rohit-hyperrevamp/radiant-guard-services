@@ -245,7 +245,6 @@ const bySlot = (slots: RegExp[], raw: string): string => {
 const PAN_SLOTS = [L, L, L, L, L, D, D, D, D, L];
 const GSTIN_SLOTS = [D, D, L, L, L, L, L, D, D, D, D, L, NZ_ALNUM, Z_ONLY, ALNUM];
 const IFSC_SLOTS = [L, L, L, L, ZERO_ONLY, ALNUM, ALNUM, ALNUM, ALNUM, ALNUM, ALNUM];
-const MOBILE_SLOTS = [MOB_FIRST, D, D, D, D, D, D, D, D, D];
 const AADHAAR_SLOTS = [AADH_FIRST, D, D, D, D, D, D, D, D, D, D, D];
 const PINCODE_SLOTS = [NZ_DIGIT, D, D, D, D, D];
 const UAN_SLOTS = Array.from({ length: 12 }, () => D);
