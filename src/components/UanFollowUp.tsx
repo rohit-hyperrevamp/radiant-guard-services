@@ -14,7 +14,9 @@ function dayAge(row: MissingUan) {
   const source = String(c.uan_missing_since ?? row.preferred_joining_date ?? row.created_at).slice(0, 10);
   const start = new Date(`${source}T00:00:00`).getTime();
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  return { source, days: Math.max(0, Math.floor((today.getTime() - start) / 86400000)) };
+  const days = Math.max(0, Math.floor((today.getTime() - start) / 86400000));
+  const due = new Date(start + 7 * 86400000).toISOString().slice(0, 10);
+  return { source, due, days };
 }
 
 export function UanFollowUp({ fieldOfficerUserId, fieldOfficerCandidateId, compact = false }: { fieldOfficerUserId?: string | null; fieldOfficerCandidateId?: string | null; compact?: boolean }) {
@@ -57,7 +59,7 @@ export function UanFollowUp({ fieldOfficerUserId, fieldOfficerCandidateId, compa
           <div className="space-y-2">
             {rows.length === 0 ? <div className="py-10 text-center text-sm text-muted-foreground">All UANs are complete.</div> : rows.map((row) => {
               const tone = row.days >= 7 ? "border-destructive/30 bg-destructive/5 text-destructive" : row.days >= 4 ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-              return <div key={row.id} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div className="min-w-0"><div className="font-semibold text-foreground">{row.full_name}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.employee_code || row.candidate_code || "Code pending"} · {row.unitName}</div><div className="mt-1 text-[11px] text-muted-foreground">Missing since {row.source}</div></div><div className="flex items-center justify-between gap-2 sm:justify-end"><span className={cn("rounded-full border px-2 py-1 text-[11px] font-semibold", tone)}>{row.days >= 7 ? `${row.days - 7}d overdue` : `${7 - row.days}d left`}</span><Button asChild size="icon" variant="ghost"><Link to="/admin/employees"><ArrowUpRight className="h-4 w-4" /></Link></Button></div></div>;
+              return <div key={row.id} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div className="min-w-0"><div className="font-semibold text-foreground">{row.full_name}</div><div className="mt-0.5 text-xs text-muted-foreground">{row.employee_code || row.candidate_code || "Code pending"} · {row.unitName}</div><div className="mt-1 text-[11px] text-muted-foreground">Missing since {row.source} · Due {row.due}</div></div><div className="flex items-center justify-between gap-2 sm:justify-end"><span className={cn("rounded-full border px-2 py-1 text-[11px] font-semibold", tone)}>{row.days >= 7 ? `${row.days - 7}d overdue` : `${7 - row.days}d left`}</span><Button asChild size="icon" variant="ghost"><Link to="/admin/employees"><ArrowUpRight className="h-4 w-4" /></Link></Button></div></div>;
             })}
           </div>
           {q.isError && <div className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4" />Could not load UAN follow-ups.</div>}
