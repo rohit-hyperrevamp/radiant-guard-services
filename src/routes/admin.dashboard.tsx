@@ -174,13 +174,15 @@ function DashboardPage() {
         fuelTotal?: number | string;
         items?: number;
         sheetCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
-        runCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
+        runCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number; open?: number; processed?: number };
       };
-      const buckets = (v?: { approved?: number; pending?: number; draft?: number; rejected?: number }) => ({
+      const buckets = (v?: { approved?: number; pending?: number; draft?: number; rejected?: number; open?: number; processed?: number }) => ({
         approved: v?.approved ?? 0,
         pending: v?.pending ?? 0,
         draft: v?.draft ?? 0,
         rejected: v?.rejected ?? 0,
+        open: v?.open ?? 0,
+        processed: v?.processed ?? 0,
       });
 
       return {
@@ -467,7 +469,7 @@ function DashboardPage() {
         <StatusTile icon={ClipboardList} label="Attendance" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending} draft={data.sheetCounts.draft} rejected={data.sheetCounts.rejected} accent="emerald" to="/admin/attendance" />
       )});
       if (can("payroll")) t.push({ key: "pay", module: "payroll", node: (
-        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.approved} pending={data.runCounts.pending} draft={data.runCounts.draft} rejected={data.runCounts.rejected} accent="sky" to="/admin/payroll" />
+        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.approved} pending={data.runCounts.pending} draft={data.runCounts.draft} rejected={data.runCounts.rejected} open={data.runCounts.open} openLabel="Open" accent="sky" to="/admin/payroll" />
       )});
       if (can("invoice")) t.push({ key: "inv2", module: "invoice", node: (
         <StatusTile icon={Receipt} label="Invoicing" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected} draft={0} rejected={0} accent="indigo" approvedLabel="Ready" pendingLabel="Awaiting" to="/admin/invoice" />
