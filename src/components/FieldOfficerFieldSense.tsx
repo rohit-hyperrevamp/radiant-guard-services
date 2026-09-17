@@ -1447,15 +1447,6 @@ function FieldSenseTimeline(props: {
       </div>
 
       <div className="flex-1 space-y-0 overflow-y-auto px-3 py-3">
-        {/* Punch-in */}
-        <TimelineRow
-          color="emerald"
-          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-          title="Punched in"
-          time={fmtTime(punchInAt)}
-          subtitle={punchInAt ? "Duty started" : "Not on duty yet"}
-        />
-
         {/* Completed visits */}
         {completedVisits.map((v) => {
           const u = unitFor(v.unit_id);
@@ -1496,20 +1487,9 @@ function FieldSenseTimeline(props: {
           />
         )}
 
-        {/* Punch-out (if done) */}
-        {punchOutAt && (
-          <TimelineRow
-            color="slate"
-            icon={<Clock className="h-3.5 w-3.5" />}
-            title="Punched out"
-            time={fmtTime(punchOutAt)}
-            subtitle="Duty ended"
-          />
-        )}
-
-        {!punchInAt && visits.length === 0 && (
+        {visits.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-[12px] text-muted-foreground">
-            Mark your attendance to start the day.
+            No site visits yet today.
           </div>
         )}
       </div>
