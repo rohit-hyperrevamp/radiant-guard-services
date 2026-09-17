@@ -55,17 +55,10 @@ export function yearsBetween(from: string, to: Date): number {
 }
 
 
-type Row = {
-  id: string;
-  full_name: string;
-  photo_url: string | null;
-  mobile: string | null;
-  date_of_birth: string | null;
-  approved_at: string | null;
-  created_at: string | null;
-  unit_id: string | null;
-  designation_id: string | null;
-  status: string | null;
+type InsightsPayload = {
+  birthdays?: Array<Omit<BirthdayEntry, "nextDate"> & { nextDate: string }>;
+  anniversaries?: Array<Omit<AnniversaryEntry, "nextDate"> & { nextDate: string }>;
+  sixtyPlus?: SixtyPlusEntry[];
 };
 
 export function usePeopleInsights() {
@@ -82,100 +75,53 @@ export function usePeopleInsights() {
   const q = useQuery({
     queryKey: [
       "people-insights",
-      { canAll, isBranchManager, isFieldOfficer, foUnits: Array.from(foScope.unitIds), branch: branchScope.branchId },
+      { canAll, isBranchManager, isFieldOfficer, showSixtyPlus, foUnits: Array.from(foScope.unitIds), branch: branchScope.branchId },
     ],
     enabled,
     staleTime: 5 * 60_000,
-    queryFn: async () => {
-      let query = supabase
-        .from("candidates")
-        .select("id,full_name,photo_url,mobile,date_of_birth,approved_at,created_at,unit_id,designation_id,status")
-        .in("status", ["approved", "active"])
-        .not("date_of_birth", "is", null);
-
+    queryFn: async (): Promise<InsightsPayload> => {
+      // Scope: field officers to their mapped units, branch managers to the
+      // units of their branch. Everyone else relies on row level security.
+      let unitIds: string[] | null = null;
       if (!canAll) {
         if (isFieldOfficer) {
-          const ids = Array.from(foScope.unitIds);
-          if (ids.length === 0) return { rows: [] as Row[], unitNameById: new Map<string, string>(), desigNameById: new Map<string, string>() };
-          query = query.in("unit_id", ids);
+          unitIds = Array.from(foScope.unitIds);
+          if (unitIds.length === 0) return {};
         } else if (isBranchManager) {
           const branchId = branchScope.branchId;
-          if (!branchId) return { rows: [] as Row[], unitNameById: new Map<string, string>(), desigNameById: new Map<string, string>() };
+          if (!branchId) return {};
           const { data: unitsInBranch } = await supabase
             .from("units")
             .select("id")
             .eq("branch_id", branchId);
-          const uIds = ((unitsInBranch as unknown) as Array<{ id: string }> ?? []).map((u) => u.id);
-          if (!uIds.length) return { rows: [] as Row[], unitNameById: new Map<string, string>(), desigNameById: new Map<string, string>() };
-          query = query.in("unit_id", uIds);
+          unitIds = (((unitsInBranch as unknown) as Array<{ id: string }>) ?? []).map((u) => u.id);
+          if (unitIds.length === 0) return {};
         }
-        // Other roles: no client-side filter — row level security already limits
-        // the records they may read.
       }
 
-      const { data, error } = await query.limit(5000);
+      // The whole rolling-12-month computation happens in the database: the
+      // browser only ever receives the upcoming entries, never the roster.
+      const { data, error } = await supabase.rpc("people_insights" as never, {
+        p_unit_ids: unitIds,
+        p_days: 366,
+        p_sixty: showSixtyPlus,
+        p_limit: 200,
+      } as never);
       if (error) throw error;
-      const rows = ((data as unknown) as Row[]) ?? [];
-
-      const unitIds = Array.from(new Set(rows.map((r) => r.unit_id).filter(Boolean))) as string[];
-      const desigIds = Array.from(new Set(rows.map((r) => r.designation_id).filter(Boolean))) as string[];
-      const [{ data: units }, { data: desigs }] = await Promise.all([
-        unitIds.length
-          ? supabase.from("units").select("id,name,code").in("id", unitIds)
-          : Promise.resolve({ data: [] as Array<{ id: string; name: string; code: string }> }),
-        desigIds.length
-          ? supabase.from("designations").select("id,name").in("id", desigIds)
-          : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
-      ]);
-      const unitNameById = new Map(
-        (((units as unknown) as Array<{ id: string; name: string; code: string }>) ?? []).map((u) => [u.id, u.name || u.code]),
-      );
-      const desigNameById = new Map(
-        (((desigs as unknown) as Array<{ id: string; name: string }>) ?? []).map((d) => [d.id, d.name]),
-      );
-      return { rows, unitNameById, desigNameById };
+      return ((data ?? {}) as unknown) as InsightsPayload;
     },
   });
 
   const derived = useMemo(() => {
-    const rows = q.data?.rows ?? [];
-    const unitNameById = q.data?.unitNameById ?? new Map<string, string>();
-    const desigNameById = q.data?.desigNameById ?? new Map<string, string>();
-
-    const enrich = (r: Row): InsightPerson => ({
-      ...r,
-      unit_name: r.unit_id ? unitNameById.get(r.unit_id) ?? "" : "",
-      designation_name: r.designation_id ? desigNameById.get(r.designation_id) ?? "" : "",
-    });
-
-    const birthdays: BirthdayEntry[] = [];
-    const anniversaries: AnniversaryEntry[] = [];
-    const sixtyPlus: SixtyPlusEntry[] = [];
-
-    for (const r of rows) {
-      const p = enrich(r);
-      if (r.date_of_birth) {
-        const { next, days } = nextOccurrence(r.date_of_birth);
-        if (days <= 366) {
-          birthdays.push({ ...p, daysUntil: days, nextDate: next, turningAge: yearsBetween(r.date_of_birth, next) });
-        }
-        const age = ageFrom(r.date_of_birth);
-        if (age >= 60) sixtyPlus.push({ ...p, age });
-      }
-      const startedAt = r.approved_at || r.created_at;
-      if (startedAt) {
-        const { next, days } = nextOccurrence(startedAt);
-        const years = yearsBetween(startedAt, next);
-        if (days <= 366 && years >= 1) {
-          anniversaries.push({ ...p, daysUntil: days, nextDate: next, years });
-        }
-      }
-    }
-
-    birthdays.sort((a, b) => a.daysUntil - b.daysUntil || a.full_name.localeCompare(b.full_name));
-    anniversaries.sort((a, b) => a.daysUntil - b.daysUntil || b.years - a.years);
-    sixtyPlus.sort((a, b) => b.age - a.age || a.full_name.localeCompare(b.full_name));
-
+    const birthdays: BirthdayEntry[] = (q.data?.birthdays ?? []).map((b) => ({
+      ...b,
+      nextDate: new Date(b.nextDate),
+    }));
+    const anniversaries: AnniversaryEntry[] = (q.data?.anniversaries ?? []).map((a) => ({
+      ...a,
+      nextDate: new Date(a.nextDate),
+    }));
+    const sixtyPlus: SixtyPlusEntry[] = q.data?.sixtyPlus ?? [];
     return { birthdays, anniversaries, sixtyPlus };
   }, [q.data]);
 
