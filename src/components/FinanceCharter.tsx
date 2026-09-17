@@ -166,6 +166,10 @@ export function FinanceCharter({
     [matchedUnits, safePage],
   );
   const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
+  // The stage tile reflects the whole charter, not just the visible page, so
+  // windows and period statuses are also fetched (ids + status only — cheap)
+  // for every matched unit.
+  const allUnitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
   const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
@@ -231,6 +235,27 @@ export function FinanceCharter({
     enabled: unitIds.length > 0 && !windowsQ.isLoading,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
+  });
+
+  const allWindowsQ = useQuery({
+    queryKey: ["charter-payroll-windows-all", allUnitIds.join(",")],
+    enabled: allUnitIds.length > 0,
+    queryFn: () => fetchPayrollWindowsByUnit(allUnitIds),
+  });
+  const allPeriodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, allWindowsQ.data?.get(unitId)));
+    return out;
+  }, [allUnitIds, year, monthIdx, allWindowsQ.data]);
+  const allPeriodKey = useMemo(
+    () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [allPeriodsByUnit],
+  );
+  const allStatusQ = useQuery({
+    queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
+    enabled: allUnitIds.length > 0 && !allWindowsQ.isLoading,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
   });
 
   const processMutation = useMutation({
@@ -377,20 +402,22 @@ export function FinanceCharter({
     };
   }, [rows]);
 
-  // Register counts for the selected month: how many unit registers exist and
-  // where each one sits in the open → ready → processed lifecycle.
+  // Register counts for the selected month across the WHOLE charter (not just
+  // the visible page): where every unit sits in the open → ready → processed
+  // lifecycle.
   const registers = useMemo(() => {
     let open = 0;
     let ready = 0;
     let processed = 0;
-    for (const r of rows) {
-      const st = mode === "invoice" ? r.status.invoice : r.status.payroll;
+    for (const u of matchedUnits) {
+      const status = allStatusQ.data?.get(u.id);
+      const st = mode === "invoice" ? status?.invoice : status?.payroll;
       if (st === "processed") processed += 1;
       else if (st === "ready") ready += 1;
       else open += 1;
     }
-    return { total: rows.length, open, ready, processed };
-  }, [rows, mode]);
+    return { total: matchedUnits.length, open, ready, processed };
+  }, [matchedUnits, allStatusQ.data, mode]);
 
 
   const exportCsv = () => {
@@ -454,7 +481,7 @@ export function FinanceCharter({
         />
         <CharterTile
           label={registerLabel}
-          sub="this page, by stage"
+          sub="all units, by stage"
           countTo={registers.total}
           icon={mode === "invoice" ? Receipt : Wallet}
           accent="lime"
