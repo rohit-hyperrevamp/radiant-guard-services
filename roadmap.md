@@ -106,6 +106,9 @@
 - [x] Refresh dashboard history immediately after completing a visit.
 - [x] Verify the dashboard visit history against production data.
 
+## Welcome popup removal
+- [x] Remove the automatic welcome popup from the admin interface.
+
 ## Field officer inventory catalogue and request sources
 - [ ] Add only Uniform and Shoe with approved sizes.
 - [ ] Seed test stock across Rohit Joshi's primary unit and Radiant headquarters.
