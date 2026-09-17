@@ -152,3 +152,6 @@
 - [x] Put Pending onboarding and Pending rehire together in one mobile row.
 - [x] Combine UAN and contract-designation follow-ups into one dashboard box.
 - [ ] Validate the live mobile dashboard after the automatic deployment completes; TypeScript validation passed.
+
+## Candidate UAN wording
+- [x] Replace the personal UAN question with candidate-focused wording in onboarding.
