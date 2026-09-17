@@ -58,6 +58,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
 import { AttendanceCharter } from "@/components/AttendanceCharter";
+import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
+
 
 
 export const Route = createFileRoute("/admin/attendance/")({
