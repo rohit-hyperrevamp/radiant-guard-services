@@ -113,8 +113,35 @@ DateInput.displayName = "DateInput";
 
 const DECIMAL_RE = /^-?\d*\.?\d*$/;
 
+// Types/modes where auto-capitalising the first letter would corrupt the value.
+const NO_CAP_TYPES = new Set(["email", "password", "tel", "url", "number", "search", "date", "hidden", "file", "time", "month", "week", "datetime-local", "color", "range", "checkbox", "radio"]);
+const NO_CAP_MODES = new Set(["numeric", "decimal", "tel", "email", "url"]);
+
+function shouldCapitalize(
+  type: string | undefined,
+  inputMode: React.HTMLAttributes<HTMLInputElement | HTMLTextAreaElement>["inputMode"],
+  autoCapitalize: string | undefined,
+): boolean {
+  if (autoCapitalize === "off" || autoCapitalize === "none") return false;
+  if (type && NO_CAP_TYPES.has(type)) return false;
+  if (inputMode && NO_CAP_MODES.has(inputMode)) return false;
+  return true;
+}
+
+// Uppercase the first letter as the user types (names, addresses, etc.).
+function capitalizeFirstLetter(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  const el = e.target;
+  const v = el.value;
+  if (!v) return;
+  const first = v.charAt(0);
+  const up = first.toUpperCase();
+  if (first !== up) {
+    el.value = up + v.slice(1);
+  }
+}
+
 const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, value, defaultValue, onChange, onBlur, ...props }, ref) => {
+  ({ className, value, defaultValue, onChange, onBlur, onFocus, ...props }, ref) => {
     const toStr = (v: unknown) =>
       v === undefined || v === null || (typeof v === "number" && Number.isNaN(v)) ? "" : String(v);
     const [draft, setDraft] = React.useState<string>(() =>
@@ -146,6 +173,15 @@ const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"inp
       onBlur?.(e);
     };
 
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      // A prefilled 0 is a placeholder, not data: select it so typing replaces it
+      // (typing "500" over "0" must give 500, not 0500).
+      if (draft !== "" && parseFloat(draft) === 0) {
+        e.target.select();
+      }
+      onFocus?.(e);
+    };
+
     return (
       <input
         data-slot="input"
@@ -156,6 +192,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"inp
         value={draft}
         onChange={handleChange}
         onBlur={handleBlur}
+        onFocus={handleFocus}
         className={cn(baseClasses, className)}
       />
     );
@@ -342,7 +379,7 @@ FormattedInput.displayName = "FormattedInput";
 const Input = React.forwardRef<
   HTMLInputElement,
   React.ComponentProps<"input"> & { format?: InputFormat }
->(({ className, type, format, ...props }, ref) => {
+>(({ className, type, format, onChange, inputMode, autoCapitalize, ...props }, ref) => {
   if (format) {
     return <FormattedInput className={className} format={format} {...props} ref={ref} />;
   }
@@ -352,7 +389,22 @@ const Input = React.forwardRef<
   if (type === "number") {
     return <NumberInput className={className} {...props} ref={ref} />;
   }
-  return <input data-slot="input" type={type} className={cn(baseClasses, className)} ref={ref} {...props} />;
+  const capOff = !shouldCapitalize(type, inputMode, autoCapitalize);
+  return (
+    <input
+      data-slot="input"
+      type={type}
+      inputMode={inputMode}
+      autoCapitalize={autoCapitalize ?? (capOff ? undefined : "sentences")}
+      onChange={(e) => {
+        if (!capOff) capitalizeFirstLetter(e);
+        onChange?.(e);
+      }}
+      className={cn(baseClasses, className)}
+      ref={ref}
+      {...props}
+    />
+  );
 });
 Input.displayName = "Input";
 
