@@ -500,6 +500,10 @@ function DashboardPage() {
   }
 
 
+  // RBAC: commercial figures never reach the render tree for roles without
+  // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
+  // any client-billing data, so no profit can be derived from what renders.
+  const canSeeCommercial = can("invoice");
   const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
     unit_id: r.unit_id,
     unit_code: r.unit_code,
@@ -510,8 +514,8 @@ function DashboardPage() {
     actual_strength: r.actual_strength,
     committed_payroll: r.committed_payroll,
     actual_payroll: r.payroll_cost,
-    committed_invoice: r.contract_value,
-    actual_invoice: r.invoice_amount,
+    committed_invoice: canSeeCommercial ? r.contract_value : 0,
+    actual_invoice: canSeeCommercial ? r.invoice_amount : 0,
   }));
 
   const insightsCharts = (() => {
