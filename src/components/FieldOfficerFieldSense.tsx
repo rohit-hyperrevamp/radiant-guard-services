@@ -759,30 +759,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     return Math.max(0, Math.round((end - start) / 60000));
   }, [punchQ.data?.check_in_at, punchQ.data?.check_out_at]);
 
-  // Attendance checkout (from the map card)
-  const attendanceOutMut = useMutation({
-    mutationFn: async () => {
-      if (!punchQ.data?.id) throw new Error("No active attendance login.");
-      if (openVisit) throw new Error("Complete your active client visit before logging out.");
-      let face = false;
-      try {
-        face = await verifyFaceForAttendance("Attendance logout");
-      } catch (err) {
-        // Face ID is optional on web — on native, verifyFaceForAttendance throws which we rethrow.
-        throw err;
-      }
-      const geo = await getCurrentPosition();
-      return await attendanceCheckOut(punchQ.data.id, geo, face);
-    },
-    onSuccess: () => {
-      toast.success("Duty ended for today");
-      void qc.invalidateQueries({ queryKey: ["fo-fs-punch", candidateId, todayPunchDate()] });
-      void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
-  });
-
-
   return (
     <div className="space-y-4">
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
