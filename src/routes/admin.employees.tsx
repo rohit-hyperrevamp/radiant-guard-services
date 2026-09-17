@@ -9634,8 +9634,15 @@ function MultiUnitPicker({
                                 {checked ? <Check className="h-3 w-3" /> : null}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium">
-                                  <b>{u.code}</b> · {u.name}
+                                <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+                                  <span>
+                                    <b>{u.code}</b> · {u.name}
+                                  </span>
+                                  {contractState && contractState[u.id] !== "active" ? (
+                                    <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                      {contractState[u.id] === "expired" ? "Contract expired" : "No contract"}
+                                    </span>
+                                  ) : null}
                                 </div>
                                 {u.customer_name ? (
                                   <div className="text-[11px] text-muted-foreground">{u.customer_name}</div>
