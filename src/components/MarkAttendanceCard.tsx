@@ -301,7 +301,7 @@ export function MarkAttendanceCard({
       if (!candidateId) throw new Error("Profile not ready.");
       let face = false;
       if (isNativePlatform()) {
-        face = await verifyFaceForAttendance("Mark attendance check-in");
+        face = await verifyFaceForAttendance("Attendance login");
       }
       // Location is MANDATORY for every attendance punch. Attendance cannot be
       // marked while GPS / location permission is off.
@@ -393,7 +393,7 @@ export function MarkAttendanceCard({
       if (openVisitQ.data?.id) throw new Error("Complete your active client visit before logging out.");
       let face = false;
       if (isNativePlatform()) {
-        face = await verifyFaceForAttendance("Mark attendance check-out");
+        face = await verifyFaceForAttendance("Attendance logout");
       }
       const geo = await getCurrentPosition();
       const nearest = (allowedUnits ?? [])
@@ -664,7 +664,7 @@ export function MarkAttendanceCard({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Select unit</div>
-            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">Where are you checking in?</h4>
+            <h4 className="mt-0.5 font-display text-base font-bold text-foreground">Where are you logging in?</h4>
             <p className="mt-1 text-xs text-muted-foreground">
               Pick your unit. You must be within {proximityThresholdM}m of it.
             </p>

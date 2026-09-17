@@ -740,10 +740,13 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const handledActionRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!search.action || handledActionRef.current === search.action) return;
     if (search.action === "start-visit" && isOnDuty && !openVisit) setCheckInOpen(true);
     if (search.action === "complete-visit" && openVisit) setCheckOutOpen(true);
+    handledActionRef.current = search.action;
   }, [search.action, isOnDuty, openVisit]);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;

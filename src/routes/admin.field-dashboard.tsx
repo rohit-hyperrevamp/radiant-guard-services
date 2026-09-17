@@ -741,8 +741,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           .from("field_visits" as never)
           .select("id, unit_id, visit_date, visit_seq, customer_rating, check_in_at, check_out_at")
           .eq("candidate_id", candidateId)
-          .gte("visit_date", firstOfMonth)
-          .not("check_out_at", "is", null),
+          .gte("visit_date", firstOfMonth),
         supabase
           .from("self_attendance_punches" as never)
           .select("check_in_at, check_out_at")
