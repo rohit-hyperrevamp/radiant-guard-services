@@ -109,6 +109,10 @@
 ## Welcome popup removal
 - [x] Remove the automatic welcome popup from the admin interface.
 
+## Field officer dashboard final cleanup
+- [x] Remove most visited, least visited, and not visited cards.
+- [x] Compact onboarding, rehire, and UAN tiles into one row above My Units.
+
 ## Field officer inventory catalogue and request sources
 - [ ] Add only Uniform and Shoe with approved sizes.
 - [ ] Seed test stock across Rohit Joshi's primary unit and Radiant headquarters.
