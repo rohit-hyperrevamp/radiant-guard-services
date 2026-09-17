@@ -454,7 +454,7 @@ export function FinanceCharter({
         />
         <CharterTile
           label={registerLabel}
-          sub="this month, by stage"
+          sub="this page, by stage"
           countTo={registers.total}
           icon={mode === "invoice" ? Receipt : Wallet}
           accent="lime"
