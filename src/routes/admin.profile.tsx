@@ -1653,6 +1653,7 @@ function ProfilePage() {
       </div>
       </main>
       </div>
+      <div className="lg:hidden">{bottomActions}</div>
     </div>
   );
 }
