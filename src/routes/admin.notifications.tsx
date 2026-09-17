@@ -14,6 +14,8 @@ import {
   type Notification,
 } from "@/lib/notifications";
 import { shouldRedirect } from "@/lib/notification-routing";
+import { filterNotificationsByAccess } from "@/lib/notification-access";
+import { useCurrentPermissions } from "@/lib/rbac";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
 
 export const Route = createFileRoute("/admin/notifications")({
@@ -27,12 +29,15 @@ function NotificationCenter() {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [detail, setDetail] = useState<Notification | null>(null);
-  const { data: items = [] } = useQuery({
+  const { can } = useCurrentPermissions();
+  const { data: raw = [] } = useQuery({
     queryKey: NQK,
     queryFn: listMyNotifications,
     refetchInterval: 30_000,
   });
 
+  // Only notifications for modules this role can access (RBAC-driven).
+  const items = filterNotificationsByAccess(raw, can);
   const filtered = filter === "unread" ? items.filter((n) => !n.readAt) : items;
   const unread = items.filter((n) => !n.readAt).length;
 
