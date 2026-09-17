@@ -3,6 +3,7 @@ import { useLocation, Link } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { RBAC_MODULES } from "@/lib/rbac-modules";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
 /**
  * Any authenticated employee may reach these — they are role-agnostic
@@ -88,16 +89,25 @@ export function RoutePermissionGuard({ children }: { children: React.ReactNode }
   const location = useLocation();
   const pathname = location.pathname;
   const { can, isSuperAdmin, isLoading } = useCurrentPermissions();
+  const role = useCurrentUserRole();
 
   const decision = useMemo(() => {
     if (isAlwaysAllowed(pathname)) return { allow: true as const };
+    if (role.isFieldOfficer && (
+      pathname === "/admin/inventory" ||
+      pathname === "/admin/inventory/" ||
+      pathname.startsWith("/admin/inventory/demands") ||
+      pathname.startsWith("/admin/inventory/goods-receipts") ||
+      pathname.startsWith("/admin/inventory/issuances") ||
+      pathname.startsWith("/admin/inventory/collections")
+    )) return { allow: true as const };
     if (isSuperAdmin) return { allow: true as const };
     const mod = resolveRequiredModule(pathname);
     if (!mod) return { allow: true as const, unmapped: true };
     return { allow: can(mod), module: mod };
-  }, [pathname, isSuperAdmin, can]);
+  }, [pathname, isSuperAdmin, can, role.isFieldOfficer]);
 
-  if (isLoading) {
+  if (isLoading || role.isLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/70" />

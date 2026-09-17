@@ -613,7 +613,7 @@ function FieldOfficerDashboard() {
   const onbDelta = (data?.pendingOnboardingTotal ?? 0) - (data?.pendingOnboardingLastWeek ?? 0);
   const totalListings = data?.guardsTotal ?? 0;
   const attnPresent = Math.round(((data?.attendanceRateToday ?? 0) / 100) * totalListings);
-  const totalItems = data?.inventoryItemsTotal ?? 0;
+  const totalItems = data?.myStockQty ?? 0;
 
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>

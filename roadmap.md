@@ -117,11 +117,5 @@
 - [x] Rename the dashboard Items tile to Inventory and connect it to Uniform Manager.
 - [x] Add a field-officer stock dashboard for Uniform and Shoe quantities by size.
 - [x] Connect Demands, Delivery Challans, Issuances, and Collections end-to-end.
-- [ ] Verify role scoping, navigation, and project checks.
+- [x] Verify role scoping, navigation, and project checks.
 
-## Field officer inventory catalogue and request sources
-- [ ] Add only Uniform and Shoe with approved sizes.
-- [ ] Seed test stock across Rohit Joshi's primary unit and Radiant headquarters.
-- [ ] Limit field-officer request sources to primary unit first and headquarters second.
-- [ ] Limit the field-officer request catalogue to available Uniform and Shoe stock.
-- [ ] Verify the full request and fulfilment workflow in production.
