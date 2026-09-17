@@ -5,9 +5,7 @@ import { toast } from "sonner";
 import {
   Camera,
   CheckCircle2,
-  Clock,
   Flag,
-  LogOut,
   Loader2,
   Map as MapIcon,
   MapPin,
@@ -29,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { capturePhoto } from "@/lib/native-camera";
 import { isNativePlatform } from "@/lib/native";
 import {
-  checkOut as attendanceCheckOut,
   distanceMeters,
   formatDistance,
   getCurrentPosition,
@@ -759,30 +756,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     return Math.max(0, Math.round((end - start) / 60000));
   }, [punchQ.data?.check_in_at, punchQ.data?.check_out_at]);
 
-  // Attendance checkout (from the map card)
-  const attendanceOutMut = useMutation({
-    mutationFn: async () => {
-      if (!punchQ.data?.id) throw new Error("No active attendance login.");
-      if (openVisit) throw new Error("Complete your active client visit before logging out.");
-      let face = false;
-      try {
-        face = await verifyFaceForAttendance("Attendance logout");
-      } catch (err) {
-        // Face ID is optional on web — on native, verifyFaceForAttendance throws which we rethrow.
-        throw err;
-      }
-      const geo = await getCurrentPosition();
-      return await attendanceCheckOut(punchQ.data.id, geo, face);
-    },
-    onSuccess: () => {
-      toast.success("Duty ended for today");
-      void qc.invalidateQueries({ queryKey: ["fo-fs-punch", candidateId, todayPunchDate()] });
-      void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
-  });
-
-
   return (
     <div className="space-y-4">
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
@@ -912,18 +885,13 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
 
         {/* Timeline column */}
         <FieldSenseTimeline
-          punchInAt={punchQ.data?.check_in_at ?? null}
-          punchOutAt={punchQ.data?.check_out_at ?? null}
           visits={visits}
           units={units}
           openVisit={openVisit}
           openVisitUnit={openVisitUnit}
           distanceToDest={distanceToDest}
           totalKmToday={totalKmToday}
-          isOnDuty={isOnDuty}
           onCompleteVisit={() => setCheckOutOpen(true)}
-          onCheckOutDuty={() => attendanceOutMut.mutate()}
-          checkingOutDuty={attendanceOutMut.isPending}
         />
       </div>
 
@@ -1404,32 +1372,22 @@ function fmtTime(iso: string | null | undefined): string {
 }
 
 function FieldSenseTimeline(props: {
-  punchInAt: string | null;
-  punchOutAt: string | null;
   visits: FieldVisit[];
   units: FoUnit[];
   openVisit: FieldVisit | null;
   openVisitUnit: FoUnit | null;
   distanceToDest: number | null;
   totalKmToday: number;
-  isOnDuty: boolean;
   onCompleteVisit: () => void;
-  onCheckOutDuty: () => void;
-  checkingOutDuty: boolean;
 }) {
   const {
-    punchInAt,
-    punchOutAt,
     visits,
     units,
     openVisit,
     openVisitUnit,
     distanceToDest,
     totalKmToday,
-    isOnDuty,
     onCompleteVisit,
-    onCheckOutDuty,
-    checkingOutDuty,
   } = props;
 
   const unitFor = (id: string) => units.find((u) => u.unit_id === id) ?? null;
@@ -1447,15 +1405,6 @@ function FieldSenseTimeline(props: {
       </div>
 
       <div className="flex-1 space-y-0 overflow-y-auto px-3 py-3">
-        {/* Punch-in */}
-        <TimelineRow
-          color="emerald"
-          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-          title="Punched in"
-          time={fmtTime(punchInAt)}
-          subtitle={punchInAt ? "Duty started" : "Not on duty yet"}
-        />
-
         {/* Completed visits */}
         {completedVisits.map((v) => {
           const u = unitFor(v.unit_id);
@@ -1496,43 +1445,13 @@ function FieldSenseTimeline(props: {
           />
         )}
 
-        {/* Punch-out (if done) */}
-        {punchOutAt && (
-          <TimelineRow
-            color="slate"
-            icon={<Clock className="h-3.5 w-3.5" />}
-            title="Punched out"
-            time={fmtTime(punchOutAt)}
-            subtitle="Duty ended"
-          />
-        )}
-
-        {!punchInAt && visits.length === 0 && (
+        {visits.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-[12px] text-muted-foreground">
-            Mark your attendance to start the day.
+            No site visits yet today.
           </div>
         )}
       </div>
 
-      {/* Attendance checkout */}
-      {isOnDuty && (
-        <div className="border-t border-border/50 bg-background/40 px-3 py-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 w-full rounded-lg border-rose-200 text-[12px] font-semibold text-rose-600 hover:bg-rose-50"
-            onClick={onCheckOutDuty}
-            disabled={checkingOutDuty || !!openVisit}
-          >
-            {checkingOutDuty ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <LogOut className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {openVisit ? "Complete visit to log out" : "End duty & log out"}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
