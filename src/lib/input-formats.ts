@@ -10,9 +10,9 @@ export const upperAlnum = (v: string, max?: number) => {
   return max ? u.slice(0, max) : u;
 };
 
-// Mobile / phone — 10 digits, leading 6-9 valid
+// Mobile / phone — any exactly 10 digits
 export const sanitizeMobile = (v: string) => digitsOnly(v, 10);
-export const isValidMobile = (v: string) => /^[6-9]\d{9}$/.test((v ?? "").trim());
+export const isValidMobile = (v: string) => /^\d{10}$/.test((v ?? "").trim());
 
 // Aadhaar — 12 digits, cannot start with 0 or 1 (UIDAI rule)
 export const sanitizeAadhaar = (v: string) => digitsOnly(v, 12);

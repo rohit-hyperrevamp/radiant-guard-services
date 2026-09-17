@@ -91,4 +91,4 @@
 - [x] Replace multi-request assignment loading with one authenticated assignment resolver.
 - [x] Keep the My Profile rail fixed while only profile details scroll on desktop.
 - [x] Clean field officer dashboard tiles, terminology, navigation, profile devices, and attendance-gated site visits end-to-end
-- [ ] Revise candidate onboarding contacts, automatic codes, optional ESIC family, UAN availability and seven-day compliance dashboards
+- [x] Revise candidate onboarding contacts, automatic codes, optional ESIC family, UAN availability and seven-day compliance dashboards
