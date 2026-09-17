@@ -5747,8 +5747,8 @@ function CandidateWizard({
   };
 
   const getEmergencyContactIssue = (): string | null => {
-    const contact = form.contacts.find((item) => item.is_emergency) ?? form.contacts[0];
-    if (!contact || ![contact.name, contact.relation, contact.mobile, contact.dob, contact.address].some((value) => String(value ?? "").trim())) return null;
+    const contact = form.contacts.find((item) => item.is_emergency);
+    if (!contact) return null;
     if (!contact?.name.trim()) return "Enter the contact's name";
     if (!contact.relation.trim()) return "Select the relationship";
     if (!/^\d{10}$/.test(contact.mobile.trim())) return "Enter a valid 10-digit mobile number";
@@ -5771,6 +5771,15 @@ function CandidateWizard({
       : [];
     if (nominees.length === 0) return "Add at least one nominee";
     if (nominees.some((entry) => !String(entry.contact ?? "").trim())) return "Select a contact for every nominee";
+    const contactsByKey = new Map(form.contacts.map((contact, index) => {
+      const name = contact.name.trim();
+      const mobile = contact.mobile.trim();
+      return [`${name}|${mobile}` || `idx:${index}`, contact] as const;
+    }));
+    for (const nominee of nominees) {
+      const contact = contactsByKey.get(String(nominee.contact ?? ""));
+      if (!contact?.name.trim() || !contact.relation.trim() || !/^\d{10}$/.test(contact.mobile.trim())) return "Complete the nominee's name, relationship and 10-digit mobile number";
+    }
     const total = nominees.reduce((sum, entry) => sum + (Number(entry.percent) || 0), 0);
     if (total !== 100) return "Nominee shares must total 100%";
     return null;
@@ -5823,7 +5832,7 @@ function CandidateWizard({
 
   // ----- Build payload helper ----- //
   const buildPayload = (status: string) => {
-    const emergencyContact = form.contacts.find((c) => c.is_emergency) ?? form.contacts[0] ?? null;
+    const emergencyContact = form.contacts.find((c) => c.is_emergency) ?? null;
     // Strip form-only assignment fields. Per-unit designations are persisted in
     // candidate_units, never on candidates (there is no unit_designations column).
     const { unit_ids, unit_designations: _unitDesignations, candidate_code: _candidateCode, ...rest } = form;
@@ -7031,13 +7040,21 @@ function CandidateWizard({
                 <div className="space-y-4">
 
                   {(() => {
-                    const ct: CandidateContact =
-                      form.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
+                    const emergencyIndex = form.contacts.findIndex((item) => item.is_emergency);
+                    const ct: CandidateContact = emergencyIndex >= 0
+                      ? form.contacts[emergencyIndex]
+                      : { name: "", relation: "", mobile: "", is_emergency: true };
                     const upd = (patch: Partial<CandidateContact>) =>
                       setForm((f) => {
-                        const base: CandidateContact =
-                          f.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
-                        return { ...f, contacts: [{ ...base, ...patch, is_emergency: true }] };
+                        const index = f.contacts.findIndex((item) => item.is_emergency);
+                        const base: CandidateContact = index >= 0
+                          ? f.contacts[index]
+                          : { name: "", relation: "", mobile: "", is_emergency: true };
+                        const next = [...f.contacts];
+                        const updated = { ...base, ...patch, is_emergency: true };
+                        if (index >= 0) next[index] = updated;
+                        else next.push(updated);
+                        return { ...f, contacts: next };
                       });
                     const presentAddress = [
                       form.present_address1,

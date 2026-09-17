@@ -47,10 +47,10 @@ export function UanFollowUp({ fieldOfficerUserId, fieldOfficerCandidateId, compa
   const overdue = useMemo(() => rows.filter((r) => r.days >= 7).length, [rows]);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={cn("group flex w-full min-w-0 items-center justify-between gap-3 border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:shadow-md", compact ? "min-h-[132px] rounded-3xl p-4 sm:p-5" : "min-h-[124px] rounded-2xl p-3 sm:min-h-[172px] sm:rounded-[26px] sm:p-5")}>
+      <Button type="button" variant="ghost" onClick={() => setOpen(true)} className={cn("group flex h-auto w-full min-w-0 items-center justify-between gap-3 whitespace-normal border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md", compact ? "min-h-[132px] rounded-3xl p-4 sm:p-5" : "min-h-[124px] rounded-2xl p-3 sm:min-h-[172px] sm:rounded-[26px] sm:p-5")}>
         <div className="min-w-0"><div className="text-sm font-semibold text-foreground">UAN follow-up</div><div className="mt-1 text-xs text-muted-foreground">{overdue ? `${overdue} overdue` : "Seven-day compliance"}</div><div className="mt-4 text-3xl font-bold tabular-nums text-foreground">{q.isLoading ? "—" : rows.length}</div></div>
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-card/80 text-amber-700 dark:text-amber-300"><CalendarClock className="h-5 w-5" /></span>
-      </button>
+      </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>UAN follow-up</DialogTitle><DialogDescription>Employees without a valid UAN, tracked from onboarding.</DialogDescription></DialogHeader>

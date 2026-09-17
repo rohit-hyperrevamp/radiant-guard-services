@@ -451,6 +451,7 @@ export function NomineeSection({ form, setSection, set }: { form: any; setSectio
   const total = entries.reduce((a, e) => a + (Number.isFinite(e.percent) ? e.percent : 0), 0);
   const balanced = entries.length > 0 && total === 100;
   const noContacts = contacts.length === 0;
+  const [newContact, setNewContact] = useState({ name: "", relation: "", mobile: "" });
 
   return (
     <div>
@@ -460,8 +461,19 @@ export function NomineeSection({ form, setSection, set }: { form: any; setSectio
       />
 
       {noContacts ? (
-        <div className="rounded-md border border-dashed border-amber-300 bg-amber-50 p-6 text-center text-sm text-amber-800">
-          Add a contact first.
+        <div className="space-y-3 rounded-md border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+          <p className="font-medium">Add the nominee’s contact first.</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Input placeholder="Full name" value={newContact.name} onChange={(e) => setNewContact((v) => ({ ...v, name: e.target.value }))} />
+            <Select value={newContact.relation || undefined} onValueChange={(relation) => setNewContact((v) => ({ ...v, relation }))}>
+              <SelectTrigger><SelectValue placeholder="Relationship" /></SelectTrigger>
+              <SelectContent>{ESIC_RELATIONS.map((relation) => <SelectItem key={relation} value={relation}>{relation}</SelectItem>)}</SelectContent>
+            </Select>
+            <Input format="mobile" placeholder="10-digit mobile" value={newContact.mobile} onChange={(e) => setNewContact((v) => ({ ...v, mobile: e.target.value }))} />
+          </div>
+          <Button type="button" size="sm" disabled={!set || !newContact.name.trim() || !newContact.relation || !/^\d{10}$/.test(newContact.mobile)} onClick={() => set?.("contacts", [{ ...newContact, is_emergency: false }])}>
+            <Plus className="mr-1 h-3 w-3" /> Add nominee contact
+          </Button>
         </div>
       ) : (
         <div className="rounded-md border p-3">
