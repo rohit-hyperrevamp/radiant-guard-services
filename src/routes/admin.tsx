@@ -577,6 +577,7 @@ function AdminLayout() {
       isFieldOfficer && "bg-white dark:bg-neutral-950",
     )}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
+      <WelcomeDialog />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
       {!isFieldOfficer && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
 
