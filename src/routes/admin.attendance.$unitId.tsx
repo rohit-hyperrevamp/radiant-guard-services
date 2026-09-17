@@ -46,6 +46,8 @@ import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-d
 
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
+
 
 const searchSchema = z.object({
   month: z.coerce.number().min(0).max(11).optional(),
