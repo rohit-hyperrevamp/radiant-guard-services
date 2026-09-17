@@ -1115,18 +1115,45 @@ function MusterRollPage() {
 
   const mapSearch = mapQuery.trim();
   const { data: mapResults, isFetching: mapSearching } = useQuery({
-    queryKey: ["attendance-map-lookup", unitId, mapSearch],
-    enabled: Boolean(mapSlot) && mapSearch.length >= 2,
+    queryKey: ["attendance-map-lookup", unitId, mapSearch, mapScopeKey],
+    enabled: Boolean(mapSlot) && mapSearch.length >= 2 && !mapScopeLoading,
     queryFn: async () => {
+      // A field officer may only place people he owns: the ones he onboarded
+      // (created_by / reports_to) or is recorded as reporting manager for.
+      // Everyone else in the company must stay invisible to him here.
+      let allowedIds: string[] | null = null;
+      if (restrictMapToOwnPeople) {
+        const [byManager, byReports, byCreator] = await Promise.all([
+          managerCandidateId
+            ? supabase
+                .from("candidate_reporting_managers")
+                .select("candidate_id")
+                .eq("manager_id", managerCandidateId)
+            : Promise.resolve({ data: [] as { candidate_id: string }[] }),
+          managerCandidateId
+            ? supabase.from("candidates").select("id").eq("reports_to", managerCandidateId)
+            : Promise.resolve({ data: [] as { id: string }[] }),
+          managerUserId
+            ? supabase.from("candidates").select("id").eq("created_by", managerUserId)
+            : Promise.resolve({ data: [] as { id: string }[] }),
+        ]);
+        const ids = new Set<string>();
+        for (const r of (byManager.data ?? []) as { candidate_id: string }[]) ids.add(r.candidate_id);
+        for (const r of (byReports.data ?? []) as { id: string }[]) ids.add(r.id);
+        for (const r of (byCreator.data ?? []) as { id: string }[]) ids.add(r.id);
+        allowedIds = Array.from(ids);
+        if (allowedIds.length === 0) return [];
+      }
+
       const like = mapSearch.replace(/[%,]/g, " ");
-      const { data, error } = await supabase
+      let query = supabase
         .from("candidates")
         .select("id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date")
         .eq("is_enabled", true)
         .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES])
-        .or(`full_name.ilike.%${like}%,employee_code.ilike.%${like}%,candidate_code.ilike.%${like}%`)
-        .order("full_name")
-        .limit(30);
+        .or(`full_name.ilike.%${like}%,employee_code.ilike.%${like}%,candidate_code.ilike.%${like}%`);
+      if (allowedIds) query = query.in("id", allowedIds);
+      const { data, error } = await query.order("full_name").limit(30);
       if (error) throw error;
       const rows = data ?? [];
       const desigIds = Array.from(new Set(rows.map((r) => r.designation_id).filter(Boolean))) as string[];
@@ -1145,6 +1172,7 @@ function MusterRollPage() {
       }));
     },
   });
+
 
   const rosterIds = useMemo(() => new Set((employees ?? []).map((e) => e.id)), [employees]);
 
