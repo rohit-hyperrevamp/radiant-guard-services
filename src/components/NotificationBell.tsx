@@ -23,6 +23,8 @@ import {
   setNotificationSoundMuted,
 } from "@/lib/notification-sound";
 import { shouldRedirect } from "@/lib/notification-routing";
+import { filterNotificationsByAccess } from "@/lib/notification-access";
+import { useCurrentPermissions } from "@/lib/rbac";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isNativePlatform } from "@/lib/native";
@@ -36,11 +38,14 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
   const [nativeShell, setNativeShell] = useState(false);
   const [drawerMode, setDrawerMode] = useState(false);
   const mobileSheet = isMobile || nativeShell || drawerMode;
-  const { data: items = [] } = useQuery({
+  const { can } = useCurrentPermissions();
+  const { data: raw = [] } = useQuery({
     queryKey: NQK,
     queryFn: listMyNotifications,
     refetchInterval: 10_000,
   });
+  // Only notifications for modules this role can access (RBAC-driven).
+  const items = filterNotificationsByAccess(raw, can);
   const unread = items.filter((n) => !n.readAt).length;
   const top = items.slice(0, 8);
 
