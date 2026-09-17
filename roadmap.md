@@ -100,6 +100,12 @@
 - [x] Limit the field-officer request catalogue to available Uniform and Shoe stock.
 - [x] Verify the full request and fulfilment workflow in production.
 
+## Field officer dashboard visit history
+- [x] Show today's completed site visits below the next-visit action.
+- [x] Link each visit and the next action to Radar.
+- [x] Refresh dashboard history immediately after completing a visit.
+- [ ] Verify the dashboard visit history against production data.
+
 ## Field officer inventory catalogue and request sources
 - [ ] Add only Uniform and Shoe with approved sizes.
 - [ ] Seed test stock across Rohit Joshi's primary unit and Radiant headquarters.
