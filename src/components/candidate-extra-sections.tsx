@@ -477,7 +477,7 @@ export function NomineeSection({ form, setSection, set }: { form: any; setSectio
             disabled={!set || !newContact.name.trim() || !newContact.relation || !/^\d{10}$/.test(newContact.mobile)}
             onClick={() => {
               set?.("contacts", [{ ...newContact, is_emergency: false }]);
-              setEntries([{ contact: "0", percent: 100 }]);
+              setEntries([{ contact: `${newContact.name.trim()}|${newContact.mobile.trim()}`, percent: 100 }]);
             }}
           >
             <Plus className="mr-1 h-3 w-3" /> Add nominee contact
