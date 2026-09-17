@@ -147,8 +147,8 @@
 - [x] Confirm the replacement key is active with the provider for Aadhaar and PAN verification.
 
 ## Field officer dashboard compaction and visit detail
-- [ ] Put Team and Present together in one mobile row while keeping Inventory full-width.
-- [ ] Show complete visit details from Radar on the dashboard, including feedback and proof details.
-- [ ] Put Pending onboarding and Pending rehire together in one mobile row.
-- [ ] Combine UAN and contract-designation follow-ups into one dashboard box.
-- [ ] Validate the live mobile dashboard and project checks.
+- [x] Put Team and Present together in one mobile row while keeping Inventory full-width.
+- [x] Show complete visit details from Radar on the dashboard, including feedback and proof details.
+- [x] Put Pending onboarding and Pending rehire together in one mobile row.
+- [x] Combine UAN and contract-designation follow-ups into one dashboard box.
+- [ ] Validate the live mobile dashboard after the automatic deployment completes; TypeScript validation passed.
