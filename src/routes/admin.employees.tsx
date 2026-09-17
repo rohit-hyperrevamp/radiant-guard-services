@@ -3322,6 +3322,15 @@ function EmployeesPage() {
                     <div className="truncate" title={unit?.name ?? ""}>
                       <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Client</span>
                       {unit?.name || "—"}
+                      {showSiteMap && (
+                        <button
+                          type="button"
+                          onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                          className="ml-1.5 font-semibold text-primary underline-offset-2 hover:underline"
+                        >
+                          +{siteCount - 1} more
+                        </button>
+                      )}
                     </div>
                   )}
                   {(mode === "candidate" || columnsVisible.designation) && (
