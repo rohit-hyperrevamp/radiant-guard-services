@@ -9448,12 +9448,14 @@ function MultiUnitPicker({
   onChange,
   disabled = false,
   emptyMessage = "No units found.",
+  contractState,
 }: {
   units: UnitLite[];
   value: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;
   emptyMessage?: string;
+  contractState?: Record<string, UnitContractState>;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
