@@ -18,7 +18,7 @@ function dayAge(row: MissingUan) {
   return { source, due, days };
 }
 
-export function UanFollowUp({ fieldOfficerUserId, fieldOfficerCandidateId, compact = false }: { fieldOfficerUserId?: string | null; fieldOfficerCandidateId?: string | null; compact?: boolean }) {
+export function UanFollowUp({ fieldOfficerUserId, fieldOfficerCandidateId, compact = false, className }: { fieldOfficerUserId?: string | null; fieldOfficerCandidateId?: string | null; compact?: boolean; className?: string }) {
   const [open, setOpen] = useState(false);
   const scoped = Boolean(fieldOfficerUserId || fieldOfficerCandidateId);
   const q = useQuery({
@@ -48,7 +48,7 @@ export function UanFollowUp({ fieldOfficerUserId, fieldOfficerCandidateId, compa
   const overdue = useMemo(() => rows.filter((r) => r.days >= 7).length, [rows]);
   return (
     <>
-      <Button type="button" variant="ghost" onClick={() => setOpen(true)} className={cn("group flex h-auto w-full min-w-0 items-center justify-between gap-3 whitespace-normal border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md", compact ? "min-h-[104px] rounded-2xl p-3.5" : "min-h-[124px] rounded-2xl p-3 sm:min-h-[172px] sm:rounded-[26px] sm:p-5")}>
+      <Button type="button" variant="ghost" onClick={() => setOpen(true)} className={cn("group flex h-auto w-full min-w-0 items-center justify-between gap-3 whitespace-normal border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md", compact ? "min-h-[104px] rounded-2xl p-3.5" : "min-h-[124px] rounded-2xl p-3 sm:min-h-[172px] sm:rounded-[26px] sm:p-5", className)}>
         <div className="min-w-0"><div className="text-sm font-semibold text-foreground">UAN follow-up</div><div className="mt-1 text-xs text-muted-foreground">{overdue ? `${overdue} overdue` : "Seven-day compliance"}</div><div className={cn("font-bold tabular-nums text-foreground", compact ? "mt-2 text-[25px] leading-none" : "mt-4 text-3xl")}>{q.isLoading ? "—" : rows.length}</div></div>
         <span className={cn("grid shrink-0 place-items-center bg-card/80 text-amber-700 dark:text-amber-300", compact ? "h-8 w-8 rounded-lg" : "h-10 w-10 rounded-xl")}><CalendarClock className={compact ? "h-4 w-4" : "h-5 w-5"} /></span>
       </Button>

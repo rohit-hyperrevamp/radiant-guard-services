@@ -53,10 +53,12 @@ export function ContractDesignationFollowUp({
   fieldOfficer = false,
   compact = false,
   actionable = false,
+  className,
 }: {
   fieldOfficer?: boolean;
   compact?: boolean;
   actionable?: boolean;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -94,7 +96,7 @@ export function ContractDesignationFollowUp({
 
   return (
     <>
-      <Button type="button" variant="ghost" onClick={() => setOpen(true)} className={cn("group flex h-auto w-full min-w-0 items-center justify-between gap-3 whitespace-normal border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md", compact ? "min-h-[104px] rounded-2xl p-3.5" : "min-h-[172px] rounded-2xl p-5")}>
+      <Button type="button" variant="ghost" onClick={() => setOpen(true)} className={cn("group flex h-auto w-full min-w-0 items-center justify-between gap-3 whitespace-normal border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md", compact ? "min-h-[104px] rounded-2xl p-3.5" : "min-h-[172px] rounded-2xl p-5", className)}>
         <div className="min-w-0"><div className="text-sm font-semibold text-foreground">Contract designation</div><div className="mt-1 text-xs text-muted-foreground">{overdue ? `${overdue} overdue` : "Seven-day follow-up"}</div><div className={cn("font-bold tabular-nums text-foreground", compact ? "mt-2 text-[25px] leading-none" : "mt-4 text-3xl")}>{query.isLoading ? "—" : rows.length}</div></div>
         <span className={cn("grid shrink-0 place-items-center bg-card/80 text-amber-700 dark:text-amber-300", compact ? "h-8 w-8 rounded-lg" : "h-10 w-10 rounded-xl")}><CalendarClock className={compact ? "h-4 w-4" : "h-5 w-5"} /></span>
       </Button>

@@ -41,6 +41,7 @@ import { useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelin
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
+import { VisitProofs } from "@/components/VisitProofs";
 
 
 
@@ -619,10 +620,10 @@ function FieldOfficerDashboard() {
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <HeroStat label="Team" value={totalListings} icon={ShieldCheck} tone="blue" to="/admin/my-reportees" />
           <HeroStat label="Present" value={`${attnPresent} (${data?.attendanceRateToday ?? 0}%)`} icon={UserCheck} tone="mint" to="/admin/attendance" badge="Today" />
-          <HeroStat label="Inventory" value={totalItems} icon={Warehouse} tone="violet" to="/admin/inventory" />
+          <HeroStat label="Inventory" value={totalItems} icon={Warehouse} tone="violet" to="/admin/inventory" className="col-span-2 sm:col-span-1" />
         </div>
 
         <MarkAttendanceCard candidateId={data?.meId ?? null} />
@@ -655,7 +656,7 @@ function FieldOfficerDashboard() {
               <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <PastelTile
               palette="rose"
               label="Pending onboarding"
@@ -675,8 +676,10 @@ function FieldOfficerDashboard() {
               to="/admin/employees"
               search={{ tab: "candidate" }}
             />
-            <UanFollowUp fieldOfficerUserId={userId} fieldOfficerCandidateId={data?.meId} compact />
-            <ContractDesignationFollowUp fieldOfficer compact />
+            <div className="col-span-2 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/50 bg-[rgb(var(--tint-amber))] shadow-sm sm:col-span-2">
+              <UanFollowUp fieldOfficerUserId={userId} fieldOfficerCandidateId={data?.meId} compact className="rounded-none border-0 border-r border-border/50 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none" />
+              <ContractDesignationFollowUp fieldOfficer compact className="rounded-none border-0 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none" />
+            </div>
           </div>
         </section>
 
@@ -736,7 +739,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
       const [monthVisitsRes, punchRes, trackRes, candRes, cuRes, esaRes, rpcRes] = await Promise.all([
         supabase
           .from("field_visits" as never)
-          .select("id, unit_id, visit_date, visit_seq, customer_rating, check_in_at, check_out_at")
+          .select("id, unit_id, visit_date, visit_seq, customer_rating, check_in_at, check_out_at, visit_notes, client_name, client_signature_url, client_photo_url")
           .eq("candidate_id", candidateId)
           .gte("visit_date", firstOfMonth),
         supabase
@@ -811,6 +814,10 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           customer_rating: number | null;
           check_in_at: string;
           check_out_at: string | null;
+          visit_notes: string | null;
+          client_name: string | null;
+          client_signature_url: string | null;
+          client_photo_url: string | null;
         }>,
         punch: (punchRes.data as { check_in_at: string | null; check_out_at: string | null } | null) ?? null,
         track: ((trackRes.data as unknown) as Array<{ lat: number; lng: number }>) ?? [],
@@ -917,34 +924,32 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
             {completedTodayVisits.map((visit) => {
               const unit = scopedUnits.find((row) => row.id === visit.unit_id);
               return (
-                <Link
+                <article
                   key={visit.id}
-                  to="/admin/field-sense"
-                  search={{ range: "today" }}
-                  className="group flex min-h-16 items-center gap-3 px-3 py-2.5 transition hover:bg-secondary/40"
+                  className="px-3 py-3"
                 >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <Flag className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-foreground">
-                      Visit #{visit.visit_seq} · {unit?.name ?? "Client site"}
-                    </span>
-                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                      {unit?.customer_name ?? unit?.name ?? "Client"}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="flex items-center justify-end gap-1 text-[11px] font-semibold tabular-nums text-foreground">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {formatVisitTime(visit.check_in_at)} → {formatVisitTime(visit.check_out_at)}
-                    </span>
-                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
-                      {visitDuration(visit.check_in_at, visit.check_out_at)}{visit.customer_rating != null ? ` · ★ ${visit.customer_rating}` : ""}
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
-                </Link>
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2.5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Flag className="h-4 w-4" /></span>
+                    <div className="min-w-0">
+                      <div className="text-[13px] font-semibold text-foreground">Visit #{visit.visit_seq} · {unit?.name ?? "Client site"}</div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">{unit?.customer_name ?? unit?.name ?? "Client"}</div>
+                    </div>
+                    <Link to="/admin/field-sense" search={{ range: "today" }} aria-label={`Open visit ${visit.visit_seq} in Radar`} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-secondary hover:text-primary"><ChevronRight className="h-4 w-4" /></Link>
+                  </div>
+                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-secondary/40 px-2.5 py-2">
+                    <div className="flex min-w-0 items-center gap-1 text-[11px] font-semibold tabular-nums text-foreground"><Clock className="h-3 w-3 shrink-0 text-muted-foreground" />{formatVisitTime(visit.check_in_at)} → {formatVisitTime(visit.check_out_at)}</div>
+                    <div className="text-[10px] text-muted-foreground">{visitDuration(visit.check_in_at, visit.check_out_at)}</div>
+                  </div>
+                  {(visit.client_name || visit.visit_notes) && <div className="mt-2 space-y-1.5 text-[11px]">
+                    {visit.client_name && <div><span className="font-semibold text-foreground">Met:</span> <span className="text-muted-foreground">{visit.client_name}</span></div>}
+                    {visit.visit_notes && <p className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2 leading-relaxed text-muted-foreground">“{visit.visit_notes}”</p>}
+                  </div>}
+                  {visit.customer_rating != null && <div className="mt-2 flex items-center gap-1" aria-label={`${visit.customer_rating} out of 5 stars`}>
+                    {Array.from({ length: 5 }, (_, index) => <span key={index} className={index < Number(visit.customer_rating) ? "text-amber-500" : "text-muted-foreground/30"}>★</span>)}
+                    <span className="ml-1 text-[10px] font-semibold text-muted-foreground">{visit.customer_rating}/5</span>
+                  </div>}
+                  <VisitProofs visitId={visit.id} signaturePath={visit.client_signature_url} photoPath={visit.client_photo_url} />
+                </article>
               );
             })}
           </div>
@@ -1005,14 +1010,14 @@ function StatBar({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function HeroStat({ label, value, icon: Icon, tone, to, badge }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet"; to: string; badge?: string }) {
+function HeroStat({ label, value, icon: Icon, tone, to, badge, className }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet"; to: string; badge?: string; className?: string }) {
   const surface = {
     blue: "bg-[rgb(var(--tint-blue))]",
     mint: "bg-[rgb(var(--tint-emerald))]",
     violet: "bg-[rgb(var(--tint-violet))]",
   }[tone];
   return (
-    <Link to={to} className={cn("group relative flex min-h-[116px] min-w-0 flex-col justify-between rounded-3xl border border-border/50 p-4 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:p-5", surface)}>
+    <Link to={to} className={cn("group relative flex min-h-[108px] min-w-0 flex-col justify-between rounded-2xl border border-border/50 p-3.5 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:min-h-[116px] sm:rounded-3xl sm:p-5", surface, className)}>
       <div className="flex items-start justify-between gap-2">
         <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
           <Icon className="h-4 w-4" />
@@ -1021,7 +1026,7 @@ function HeroStat({ label, value, icon: Icon, tone, to, badge }: { label: string
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
         <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
-        <span className="text-2xl font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</span>
+        <span className="text-lg font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</span>
       </div>
       {!badge ? <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-primary opacity-0 transition group-hover:opacity-100" /> : null}
     </Link>
