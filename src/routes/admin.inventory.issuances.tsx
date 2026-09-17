@@ -164,19 +164,19 @@ function IssuancesPage() {
   });
 
   // Open demands available to fulfil via an issuance.
-  // Branch managers see branch-bound demands for their branch.
-  // Warehouse-side users (admin / inventory manager / non-branch-scoped) see warehouse-bound demands.
+  // Branch managers see demands bound to their own branch.
+  // Warehouse-side users (admin / inventory manager) see every submitted demand,
+  // whether it was raised against a branch (base unit) or the warehouse.
   const { data: openDemands = [] } = useQuery({
     queryKey: ["inv", "open-demands-for-issuance", scope.branchId, isBranchManager],
     enabled: !isFieldOfficer,
+    refetchInterval: 20_000,
     queryFn: async () => {
       let q = supabase.from("inv_demands" as never)
         .select("id,demand_number,branch_id,warehouse_id,requester_candidate_id,requester_id,fulfillment_source,status")
         .eq("status", "submitted");
       if (isBranchManager && scope.branchId) {
-        q = q.eq("branch_id", scope.branchId).eq("fulfillment_source", "branch");
-      } else {
-        q = q.eq("fulfillment_source", "warehouse");
+        q = q.eq("branch_id", scope.branchId);
       }
       const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
@@ -206,6 +206,7 @@ function IssuancesPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Issuance | null>(null);
+  const [pendingDemandId, setPendingDemandId] = useState("");
 
   useEffect(() => {
     if (search.action !== "issue" || !search.candidate || pendingOnboarding.length === 0 || active || open) return;
@@ -290,6 +291,42 @@ function IssuancesPage() {
         />
       )}
 
+      {!isFieldOfficer && openDemands.length > 0 && (
+        <section className="mb-4 overflow-hidden rounded-2xl border border-blue-500/30 bg-blue-500/10 shadow-sm">
+          <div className="border-b border-blue-500/20 px-4 py-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-200">Demands awaiting issuance</div>
+            <div className="mt-0.5 text-sm font-bold text-foreground">
+              {openDemands.length} submitted demand{openDemands.length === 1 ? "" : "s"} to fulfil
+            </div>
+            <div className="text-xs text-muted-foreground">Issue the stock, then the requester confirms the delivery challan to accept it.</div>
+          </div>
+          <div className="divide-y divide-blue-500/15">
+            {openDemands.map((d) => {
+              const requester = d.requester_candidate_id ? candMap.get(d.requester_candidate_id) : null;
+              const from = d.warehouse_id ? (whMap.get(d.warehouse_id) ?? "Warehouse") : (d.branch_id ? (brMap.get(d.branch_id) ?? "Branch") : "—");
+              return (
+                <div key={d.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground">
+                      <span className="font-mono text-xs text-muted-foreground">{d.demand_number}</span>
+                      {requester ? ` · ${requester.full_name}` : ""}
+                    </div>
+                    <div className="mt-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">Requested from {from}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 shrink-0 rounded-full px-3 text-xs"
+                    onClick={() => { setPendingCandidateId(""); setActive(null); setPendingDemandId(d.id); setOpen(true); }}
+                  >
+                    Issue against demand
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="overflow-x-clip">
           <table className="ios-table w-full text-sm">
@@ -351,7 +388,7 @@ function IssuancesPage() {
 
 
 
-      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); } }} initial={active} initialCandidateId={pendingCandidateId} currentUserId={userId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
+      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); setPendingDemandId(""); } }} initial={active} initialCandidateId={pendingCandidateId} initialDemandId={pendingDemandId} currentUserId={userId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
     </div>
   );
 }
@@ -413,9 +450,10 @@ const ISSUANCE_TYPES = [
   { key: "warehouse_to_guard", label: "Warehouse → Guard", source: "warehouse", dest: "guard" },
 ] as const;
 
-function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, currentUserId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
+function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initialDemandId, currentUserId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
   open: boolean; onOpenChange: (o: boolean) => void; initial: Issuance | null;
   initialCandidateId: string;
+  initialDemandId: string;
   currentUserId: string | null;
   warehouses: Warehouse[]; branches: Branch[]; fos: Candidate[]; guards: Candidate[]; candidates: Candidate[]; items: Item[];
   onSaved: () => void;
@@ -565,6 +603,9 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
       setType("warehouse_to_fo"); setSourceId(""); setDestId("");
       setIssDate(new Date().toISOString().slice(0, 10));
       setNotes(""); setLines([]);
+    }
+    if (!initial && initialDemandId) {
+      await onPickDemand(initialDemandId);
     }
   });
 
