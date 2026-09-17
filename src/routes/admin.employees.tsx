@@ -4899,6 +4899,47 @@ function EmployeesPage() {
         docType={signTarget?.docType ?? "nda"}
       />
 
+      <Dialog open={!!siteMapTarget} onOpenChange={(o) => { if (!o) { setSiteMapTarget(null); setSiteMapSearch(""); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Site map — {siteMapTarget?.full_name || siteMapTarget?.employee_code}</DialogTitle>
+            <DialogDescription>
+              {siteCountOf(siteMapTarget?.id ?? "")} client sites covered. Base unit:{" "}
+              {siteMapTarget ? unitOfCandidate(siteMapTarget)?.name || "—" : "—"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={siteMapSearch}
+              onChange={(e) => setSiteMapSearch(e.target.value)}
+              placeholder="Search client, site or site code"
+              className="h-9 pl-9 text-sm"
+            />
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto rounded-xl border">
+            {siteMapRows.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No sites match this search.</div>
+            ) : (
+              <ul className="divide-y">
+                {siteMapRows.map((u) => (
+                  <li key={u.id} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">{u.customer_name || "—"}</div>
+                    </div>
+                    <span className="shrink-0 rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {u.code}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
       <EmployeeDocumentsExportDialog
         open={docsExportOpen}
         onOpenChange={setDocsExportOpen}
