@@ -945,7 +945,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
                     {visit.visit_notes && <p className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2 leading-relaxed text-muted-foreground">“{visit.visit_notes}”</p>}
                   </div>}
                   {visit.customer_rating != null && <div className="mt-2 flex items-center gap-1" aria-label={`${visit.customer_rating} out of 5 stars`}>
-                    {Array.from({ length: 5 }, (_, index) => <span key={index} className={index < visit.customer_rating ? "text-amber-500" : "text-muted-foreground/30"}>★</span>)}
+                    {Array.from({ length: 5 }, (_, index) => <span key={index} className={index < Number(visit.customer_rating) ? "text-amber-500" : "text-muted-foreground/30"}>★</span>)}
                     <span className="ml-1 text-[10px] font-semibold text-muted-foreground">{visit.customer_rating}/5</span>
                   </div>}
                   <VisitProofs visitId={visit.id} signaturePath={visit.client_signature_url} photoPath={visit.client_photo_url} />
