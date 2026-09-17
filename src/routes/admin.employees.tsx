@@ -3606,6 +3606,18 @@ function EmployeesPage() {
                   Enable
                 </Button>
               )}
+              {showSiteMap && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                  className="h-8 w-8 rounded-full border-primary/25 bg-primary/5 text-primary hover:bg-primary/10"
+                  title={`View site map — ${siteCount} client sites`}
+                  aria-label="View site map"
+                >
+                  <MapPin className="h-4 w-4" />
+                </Button>
+              )}
               {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
                 <>
                   <Button
