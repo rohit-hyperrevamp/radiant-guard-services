@@ -604,6 +604,9 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
       setIssDate(new Date().toISOString().slice(0, 10));
       setNotes(""); setLines([]);
     }
+    if (!initial && initialDemandId) {
+      await onPickDemand(initialDemandId);
+    }
   });
 
   async function onPickDemand(did: string) {
