@@ -122,3 +122,7 @@
 - [x] Restrict the issuance guard picker to the signed-in field officer’s assigned/onboarded guards only.
 - [x] Verify Rohit’s production guard scope and run project checks.
 
+## Issuance quantity validation
+- [x] Make the visibly entered issued quantity authoritative when moving to Review.
+- [x] Verify the field-officer issuance flow and project checks.
+
