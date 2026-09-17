@@ -450,9 +450,10 @@ const ISSUANCE_TYPES = [
   { key: "warehouse_to_guard", label: "Warehouse → Guard", source: "warehouse", dest: "guard" },
 ] as const;
 
-function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, currentUserId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
+function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initialDemandId, currentUserId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
   open: boolean; onOpenChange: (o: boolean) => void; initial: Issuance | null;
   initialCandidateId: string;
+  initialDemandId: string;
   currentUserId: string | null;
   warehouses: Warehouse[]; branches: Branch[]; fos: Candidate[]; guards: Candidate[]; candidates: Candidate[]; items: Item[];
   onSaved: () => void;
