@@ -34,11 +34,26 @@ type Branch = { id: string; name: string; code: string };
 type Warehouse = { id: string; name: string; warehouse_code: string; is_default: boolean };
 type Item = { id: string; name: string; item_code: string; is_sized: boolean };
 type Line = { id?: string; item_id: string; size_value: string; requested_qty: number; fulfilled_qty: number };
+type FieldScopeUnit = { unit_id: string; unit_name: string; unit_code: string; branch_id: string; is_primary: boolean };
 
 function DemandsPage() {
   const qc = useQueryClient();
   const scope = useUserBranchScope();
   const role = useCurrentUserRole();
+  const { data: fieldScope = [] } = useQuery({
+    queryKey: ["inv", "field-officer-request-scope", role.candidateId],
+    enabled: role.isFieldOfficer && !!role.candidateId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_field_scope" as never);
+      if (error) throw error;
+      return (data as unknown as FieldScopeUnit[]) ?? [];
+    },
+    staleTime: 60_000,
+  });
+  const primaryUnit = useMemo(
+    () => fieldScope.find((unit) => unit.is_primary) ?? fieldScope[0] ?? null,
+    [fieldScope],
+  );
 
   const { data: demandsRaw = [] } = useQuery({
     queryKey: ["inv", "demands"],
@@ -56,6 +71,7 @@ function DemandsPage() {
   );
   const { data: branches = [] } = useQuery({
     queryKey: ["branches-list"],
+    enabled: !role.isLoading && !role.isFieldOfficer,
     queryFn: async () => {
       const { data, error } = await supabase.from("branches" as never).select("id,name,code").order("name");
       if (error) throw error;
@@ -70,6 +86,10 @@ function DemandsPage() {
       return (data as unknown as Warehouse[]) ?? [];
     },
   });
+  const requestWarehouses = useMemo(
+    () => role.isFieldOfficer ? warehouses.filter((warehouse) => warehouse.is_default) : warehouses,
+    [role.isFieldOfficer, warehouses],
+  );
   const { data: items = [] } = useQuery({
     queryKey: ["inv", "items-list"],
     queryFn: async () => {
@@ -306,9 +326,10 @@ function DemandsPage() {
         branchLabel={scope.branchLabel}
         isFieldOfficer={role.isFieldOfficer}
         branches={branches}
-        warehouses={warehouses}
+        warehouses={requestWarehouses}
         items={items}
         itemSizes={sizeOptions}
+        primaryUnit={primaryUnit}
 
         onSaved={invalidate}
       />
@@ -317,11 +338,12 @@ function DemandsPage() {
   );
 }
 
-function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, branchId, branchLabel, isFieldOfficer, branches, warehouses, items, itemSizes, onSaved }: {
+function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, branchId, branchLabel, isFieldOfficer, branches, warehouses, items, itemSizes, primaryUnit, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; initial: Demand | null;
   requesterCandidateId: string | null;
   branchId: string; branchLabel: string; isFieldOfficer: boolean;
   branches: Branch[]; warehouses: Warehouse[]; items: Item[]; itemSizes: Map<string, ItemSizeOptions>; onSaved: () => void;
+  primaryUnit: FieldScopeUnit | null;
 }) {
 
   const [demandDate, setDemandDate] = useState(new Date().toISOString().slice(0, 10));
@@ -371,6 +393,37 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
   const isWarehouse = source.startsWith("wh:");
   const targetWarehouseId = isWarehouse ? source.slice(3) : "";
   const targetBranchId = !isWarehouse && source.startsWith("br:") ? source.slice(3) : "";
+  const sourceType = isWarehouse ? "warehouse" : "branch";
+  const sourceId = isWarehouse ? targetWarehouseId : targetBranchId;
+  const stockQuery = useQuery({
+    queryKey: ["inv", "demand-source-stock", sourceType, sourceId],
+    enabled: open && isFieldOfficer && !!sourceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inv_stock_balances" as never)
+        .select("item_id,size_value,qty")
+        .eq("location_type", sourceType)
+        .eq("location_id", sourceId)
+        .gt("qty", 0);
+      if (error) throw error;
+      return (data as unknown as Array<{ item_id: string; size_value: string; qty: number }>) ?? [];
+    },
+  });
+  const sourceStock = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of stockQuery.data ?? []) map.set(`${row.item_id}|${row.size_value}`, Number(row.qty));
+    return map;
+  }, [stockQuery.data]);
+  const requestItems = useMemo(() => {
+    if (!isFieldOfficer) return items;
+    const availableIds = new Set((stockQuery.data ?? []).map((row) => row.item_id));
+    return items.filter((item) => availableIds.has(item.id) && (item.item_code === "UNIFORM" || item.item_code === "SHOE"));
+  }, [isFieldOfficer, items, stockQuery.data]);
+
+  useEffect(() => {
+    if (!isFieldOfficer || !stockQuery.isSuccess) return;
+    setLines((current) => current.filter((line) => requestItems.some((item) => item.id === line.item_id)));
+  }, [isFieldOfficer, requestItems, source, stockQuery.isSuccess]);
 
   async function save(submit: boolean) {
     if (!source || (isWarehouse && !targetWarehouseId) || (!isWarehouse && !targetBranchId)) {
@@ -378,6 +431,12 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
     }
     if (!lines.length || lines.some((l) => !l.item_id || l.requested_qty <= 0)) {
       toast.error("Add at least one item with quantity"); return;
+    }
+    if (isFieldOfficer) {
+      const unavailable = lines.find((line) => line.requested_qty > (sourceStock.get(`${line.item_id}|${line.size_value}`) ?? 0));
+      if (unavailable) {
+        toast.error("Requested quantity exceeds the stock available at this source"); return;
+      }
     }
     if (submit) {
       const missingSize = lines.find((l) => {
@@ -470,7 +529,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border">
         <DialogHeader className="sr-only">
           <DialogTitle className="text-base sm:text-lg">{initial ? `Edit Demand ${initial.demand_number}` : "New Demand"}</DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">{isFieldOfficer ? "Request stock from a warehouse or any branch." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">{isFieldOfficer ? "Request available stock from your primary unit or Radiant Headquarters." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
         </DialogHeader>
 
         <GuidedForm closeGuardRef={closeGuard.ref} title={initial ? `Edit demand ${initial.demand_number}` : "New demand"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={() => void save(false)} onSubmit={() => void save(true)} saving={saving} submitLabel={submitLabel}>
@@ -491,9 +550,9 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                   {warehouses.map((w) => (
                     <SelectItem key={`wh-${w.id}`} value={`wh:${w.id}`}>{w.name} (Warehouse)</SelectItem>
                   ))}
-                  {isFieldOfficer && branches.map((b) => (
-                    <SelectItem key={`br-${b.id}`} value={`br:${b.id}`}>{b.name}{b.code ? ` (${b.code})` : ""}</SelectItem>
-                  ))}
+                   {isFieldOfficer && primaryUnit?.branch_id && (
+                     <SelectItem value={`br:${primaryUnit.branch_id}`}>{primaryUnit.unit_name} ({primaryUnit.unit_code}) · Primary</SelectItem>
+                   )}
                 </SelectContent>
               </Select>
               {!isFieldOfficer && <p className="text-[11px] text-muted-foreground break-words">From branch: <span className="font-medium">{branchLabel}</span></p>}
@@ -530,9 +589,9 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                     </div>
                     <div className="grid gap-1.5">
                       <Label className="text-[11px] font-semibold">Item</Label>
-                      <Select value={l.item_id} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, item_id: v } : x))}>
+                       <Select value={l.item_id} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, item_id: v, size_value: "" } : x))}>
                         <SelectTrigger className="h-10 w-full"><SelectValue placeholder="Pick item" /></SelectTrigger>
-                        <SelectContent>{items.map((x) => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                         <SelectContent>{requestItems.map((x) => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -541,7 +600,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                         {needsSize && sizes.length > 0 ? (
                           <Select value={l.size_value} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: v } : x))}>
                             <SelectTrigger className={`h-10 w-full ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder={sizePlaceholder(sizeOpt)} /></SelectTrigger>
-                            <SelectContent>{sizes.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                             <SelectContent>{sizes.filter((s) => !isFieldOfficer || sourceStock.has(`${l.item_id}|${s}`)).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                           </Select>
                         ) : (
                           <Input
@@ -581,9 +640,9 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                     return (
                       <tr key={idx}>
                         <td className="px-2 py-1.5">
-                          <Select value={l.item_id} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, item_id: v } : x))}>
+                           <Select value={l.item_id} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, item_id: v, size_value: "" } : x))}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Pick item" /></SelectTrigger>
-                            <SelectContent>{items.map((x) => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                             <SelectContent>{requestItems.map((x) => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
                           </Select>
                         </td>
                         <td className="px-2 py-1.5">
@@ -596,7 +655,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                               return (
                                 <Select value={l.size_value} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: v } : x))}>
                                   <SelectTrigger className={`h-9 ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder={sizePlaceholder(sizeOpt)} /></SelectTrigger>
-                                  <SelectContent>{sizes.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                   <SelectContent>{sizes.filter((s) => !isFieldOfficer || sourceStock.has(`${l.item_id}|${s}`)).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                                 </Select>
                               );
                             }
