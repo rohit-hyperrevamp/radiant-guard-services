@@ -128,8 +128,8 @@
 
 
 ## Collections and security guard dashboard cleanup
-- [ ] Hide guards and unit groups with no recoverable inventory from Collections.
-- [ ] Align Collections totals, pending indicators, search, and empty state with recoverable stock.
-- [ ] Remove the guard dashboard portrait and apply the field-officer dashboard cleanup pattern.
-- [ ] Remove duplicate guard My Profile and Notifications tabs while keeping My Attendance.
-- [ ] Verify guard profile/notification access and run project checks.
+- [x] Hide guards and unit groups with no recoverable inventory from Collections.
+- [x] Align Collections totals, pending indicators, search, and empty state with recoverable stock.
+- [x] Remove the guard dashboard portrait and apply the field-officer dashboard cleanup pattern.
+- [x] Remove duplicate guard My Profile and Notifications tabs while keeping My Attendance.
+- [x] Verify guard profile/notification access and run project checks.
