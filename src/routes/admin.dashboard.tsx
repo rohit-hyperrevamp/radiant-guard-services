@@ -201,7 +201,13 @@ function DashboardPage() {
   const pnlQuery = useQuery({
     queryKey: ["dashboard-pnl", year, month],
     // Phones stay on the light counts: the month P&L is a desktop view.
-    enabled: !permsLoading && !showInventoryDashboard && !lightMode,
+    // Commercial figures are RBAC-gated: skip the whole computation for roles
+    // (e.g. HR) that hold payroll access but no client-commercial access.
+    enabled:
+      !permsLoading &&
+      !showInventoryDashboard &&
+      !lightMode &&
+      (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
@@ -538,7 +544,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{(can("payroll") || can("invoice")) && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
 
 
       {/* Month hero — restrained slate panel */}
