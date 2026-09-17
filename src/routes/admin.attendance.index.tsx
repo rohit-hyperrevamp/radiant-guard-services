@@ -288,57 +288,7 @@ function AttendanceUnitsPage() {
               Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
-
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <FilterSelect
-              label="Client"
-              value={orgFilter}
-              onChange={setOrgFilter}
-              options={organizations.map((o) => ({
-                value: o.id,
-                label: o.code ? `${o.code} · ${o.name}` : o.name,
-              }))}
-              allLabel={`All clients (${organizations.length})`}
-            />
-            <FilterSelect
-              label="Client"
-              value={unitFilter}
-              onChange={setUnitFilter}
-              options={units.map((u) => ({
-                value: u.id,
-                label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
-              }))}
-              allLabel={`All units (${units.length})`}
-            />
-          </div>
-
-
-          {anyFilter && (
-            <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-              <span>
-                Showing <span className="font-bold text-foreground">{filtered.length}</span> of {units.length} units
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 text-xs"
-                onClick={() => {
-                  setQ("");
-                  setOrgFilter("all");
-                  setUnitFilter("all");
-                }}
-              >
-                <X className="h-3.5 w-3.5" /> Clear
-              </Button>
-            </div>
-          )}
-
         </div>
-
-
-
-
 
         <div className="px-4 py-4 sm:px-5 sm:py-5">
           {isLoading ? (
@@ -356,7 +306,54 @@ function AttendanceUnitsPage() {
               onQueryChange={setQ}
               organizationCount={summary.organizations}
               activeEmployees={summary.activeEmployees}
+              filters={
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <FilterSelect
+                      label="Client"
+                      value={orgFilter}
+                      onChange={setOrgFilter}
+                      options={organizations.map((o) => ({
+                        value: o.id,
+                        label: o.code ? `${o.code} · ${o.name}` : o.name,
+                      }))}
+                      allLabel={`All clients (${organizations.length})`}
+                    />
+                    <FilterSelect
+                      label="Client"
+                      value={unitFilter}
+                      onChange={setUnitFilter}
+                      options={units.map((u) => ({
+                        value: u.id,
+                        label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
+                      }))}
+                      allLabel={`All units (${units.length})`}
+                    />
+                  </div>
+                  {anyFilter && (
+                    <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+                      <span>
+                        Filtered to <span className="font-bold text-foreground">{filtered.length}</span> of{" "}
+                        {units.length} units
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs"
+                        onClick={() => {
+                          setQ("");
+                          setOrgFilter("all");
+                          setUnitFilter("all");
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" /> Clear
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              }
             />
+
           )}
         </div>
       </div>
