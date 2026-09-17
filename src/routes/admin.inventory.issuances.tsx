@@ -164,19 +164,19 @@ function IssuancesPage() {
   });
 
   // Open demands available to fulfil via an issuance.
-  // Branch managers see branch-bound demands for their branch.
-  // Warehouse-side users (admin / inventory manager / non-branch-scoped) see warehouse-bound demands.
+  // Branch managers see demands bound to their own branch.
+  // Warehouse-side users (admin / inventory manager) see every submitted demand,
+  // whether it was raised against a branch (base unit) or the warehouse.
   const { data: openDemands = [] } = useQuery({
     queryKey: ["inv", "open-demands-for-issuance", scope.branchId, isBranchManager],
     enabled: !isFieldOfficer,
+    refetchInterval: 20_000,
     queryFn: async () => {
       let q = supabase.from("inv_demands" as never)
         .select("id,demand_number,branch_id,warehouse_id,requester_candidate_id,requester_id,fulfillment_source,status")
         .eq("status", "submitted");
       if (isBranchManager && scope.branchId) {
-        q = q.eq("branch_id", scope.branchId).eq("fulfillment_source", "branch");
-      } else {
-        q = q.eq("fulfillment_source", "warehouse");
+        q = q.eq("branch_id", scope.branchId);
       }
       const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
