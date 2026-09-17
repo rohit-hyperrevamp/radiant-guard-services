@@ -888,15 +888,12 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
 
         {/* Timeline column */}
         <FieldSenseTimeline
-          punchInAt={punchQ.data?.check_in_at ?? null}
-          punchOutAt={punchQ.data?.check_out_at ?? null}
           visits={visits}
           units={units}
           openVisit={openVisit}
           openVisitUnit={openVisitUnit}
           distanceToDest={distanceToDest}
           totalKmToday={totalKmToday}
-          isOnDuty={isOnDuty}
           onCompleteVisit={() => setCheckOutOpen(true)}
         />
       </div>
@@ -1378,32 +1375,22 @@ function fmtTime(iso: string | null | undefined): string {
 }
 
 function FieldSenseTimeline(props: {
-  punchInAt: string | null;
-  punchOutAt: string | null;
   visits: FieldVisit[];
   units: FoUnit[];
   openVisit: FieldVisit | null;
   openVisitUnit: FoUnit | null;
   distanceToDest: number | null;
   totalKmToday: number;
-  isOnDuty: boolean;
   onCompleteVisit: () => void;
-  onCheckOutDuty: () => void;
-  checkingOutDuty: boolean;
 }) {
   const {
-    punchInAt,
-    punchOutAt,
     visits,
     units,
     openVisit,
     openVisitUnit,
     distanceToDest,
     totalKmToday,
-    isOnDuty,
     onCompleteVisit,
-    onCheckOutDuty,
-    checkingOutDuty,
   } = props;
 
   const unitFor = (id: string) => units.find((u) => u.unit_id === id) ?? null;
