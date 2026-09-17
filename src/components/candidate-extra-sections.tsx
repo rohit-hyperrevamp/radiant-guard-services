@@ -164,7 +164,7 @@ export function ComplianceSection({
     <div>
       <SectionHeader title="Compliance" desc="Statutory contributions applicable to the candidate" />
       <div className="space-y-3">
-        <Field label="Do you have a UAN?" required>
+        <Field label="Does the candidate have a UAN?" required>
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant={hasUan ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: true })}>Yes</Button>
             <Button type="button" variant={hasUan === false ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: false, uan: "", uan_missing_since: c.uan_missing_since || new Date().toISOString().slice(0, 10) })}>No</Button>
