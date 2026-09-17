@@ -227,7 +227,6 @@ const NZ_ALNUM = /[1-9A-Z]/;
 const Z_ONLY = /Z/;
 const ZERO_ONLY = /0/;
 const NZ_DIGIT = /[1-9]/;
-const MOB_FIRST = /[6-9]/;
 const AADH_FIRST = /[2-9]/;
 
 // Position-aware sanitiser: walks the input and only keeps chars that match
@@ -246,7 +245,6 @@ const bySlot = (slots: RegExp[], raw: string): string => {
 const PAN_SLOTS = [L, L, L, L, L, D, D, D, D, L];
 const GSTIN_SLOTS = [D, D, L, L, L, L, L, D, D, D, D, L, NZ_ALNUM, Z_ONLY, ALNUM];
 const IFSC_SLOTS = [L, L, L, L, ZERO_ONLY, ALNUM, ALNUM, ALNUM, ALNUM, ALNUM, ALNUM];
-const MOBILE_SLOTS = [MOB_FIRST, D, D, D, D, D, D, D, D, D];
 const AADHAAR_SLOTS = [AADH_FIRST, D, D, D, D, D, D, D, D, D, D, D];
 const PINCODE_SLOTS = [NZ_DIGIT, D, D, D, D, D];
 const UAN_SLOTS = Array.from({ length: 12 }, () => D);
@@ -300,13 +298,21 @@ const FORMAT_SPECS: Record<InputFormat, FormatSpec> = {
     title: "ESIC IP number must be exactly 17 digits",
   },
   mobile: {
-    sanitize: (v) => bySlot(MOBILE_SLOTS, v),
+    // Never block typing: accept digits freely and normalise common prefixes
+    // (+91 / 91 / leading 0) so pasting a full number "just works". The
+    // validator below still enforces the Indian 6-9 first-digit rule.
+    sanitize: (v) => {
+      let d = (v ?? "").replace(/\D/g, "");
+      if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
+      if (d.length > 10 && d.startsWith("0")) d = d.slice(1);
+      return d.slice(0, 10);
+    },
     validate: (v) => /^[6-9]\d{9}$/.test(v),
-    maxLength: 10,
+    maxLength: 12,
     inputMode: "tel",
     placeholder: "10-digit mobile",
     mono: false,
-    title: "Mobile must be 10 digits starting with 6-9",
+    title: "Indian mobiles are 10 digits and always begin with 6, 7, 8 or 9",
   },
   ifsc: {
     sanitize: (v) => bySlot(IFSC_SLOTS, v),
