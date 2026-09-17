@@ -113,8 +113,35 @@ DateInput.displayName = "DateInput";
 
 const DECIMAL_RE = /^-?\d*\.?\d*$/;
 
+// Types/modes where auto-capitalising the first letter would corrupt the value.
+const NO_CAP_TYPES = new Set(["email", "password", "tel", "url", "number", "search", "date", "hidden", "file", "time", "month", "week", "datetime-local", "color", "range", "checkbox", "radio"]);
+const NO_CAP_MODES = new Set(["numeric", "decimal", "tel", "email", "url"]);
+
+function shouldCapitalize(
+  type: string | undefined,
+  inputMode: React.HTMLAttributes<HTMLInputElement | HTMLTextAreaElement>["inputMode"],
+  autoCapitalize: string | undefined,
+): boolean {
+  if (autoCapitalize === "off" || autoCapitalize === "none") return false;
+  if (type && NO_CAP_TYPES.has(type)) return false;
+  if (inputMode && NO_CAP_MODES.has(inputMode)) return false;
+  return true;
+}
+
+// Uppercase the first letter as the user types (names, addresses, etc.).
+function capitalizeFirstLetter(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  const el = e.target;
+  const v = el.value;
+  if (!v) return;
+  const first = v.charAt(0);
+  const up = first.toUpperCase();
+  if (first !== up) {
+    el.value = up + v.slice(1);
+  }
+}
+
 const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, value, defaultValue, onChange, onBlur, ...props }, ref) => {
+  ({ className, value, defaultValue, onChange, onBlur, onFocus, ...props }, ref) => {
     const toStr = (v: unknown) =>
       v === undefined || v === null || (typeof v === "number" && Number.isNaN(v)) ? "" : String(v);
     const [draft, setDraft] = React.useState<string>(() =>
