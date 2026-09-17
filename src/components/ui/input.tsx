@@ -387,7 +387,16 @@ const Input = React.forwardRef<
   React.ComponentProps<"input"> & { format?: InputFormat }
 >(({ className, type, format, onChange, inputMode, autoCapitalize, ...props }, ref) => {
   if (format) {
-    return <FormattedInput className={className} format={format} {...props} ref={ref} />;
+    return (
+      <FormattedInput
+        className={className}
+        format={format}
+        inputMode={inputMode}
+        onChange={onChange}
+        {...props}
+        ref={ref}
+      />
+    );
   }
   if (type === "date") {
     return <DateInput className={className} {...props} ref={ref} />;
