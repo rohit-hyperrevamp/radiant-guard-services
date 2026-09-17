@@ -507,6 +507,10 @@ export function FinanceCharter({
         )}
       </CharterTileGrid>
 
+      {filters}
+
+
+
 
 
       <div className="flex flex-wrap items-center gap-2">
