@@ -470,6 +470,10 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
   const [issDate, setIssDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
+  // Keep the latest typed quantity outside React's render cycle as well. The
+  // shared number input maintains a display draft, so a fast Next click can
+  // otherwise validate the previous line state while the new number is visible.
+  const typedQtyRef = useRef<Map<string, number>>(new Map());
   const [saving, setSaving] = useState(false);
   const [demandId, setDemandId] = useState<string>("");
   const [stepKey, setStepKey] = useState("route");
@@ -511,6 +515,11 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
     },
   });
   const availableFor = (l: Line) => stockMap.get(`${l.item_id}|${l.size_value ?? ""}`) ?? 0;
+  const lineKey = (line: Line) => `${line.item_id}|${line.size_value ?? ""}`;
+  const effectiveLines = () => lines.map((line) => ({
+    ...line,
+    qty: typedQtyRef.current.get(lineKey(line)) ?? line.qty,
+  }));
 
   // FO → Guard has no demand: auto-load every item the FO has in stock so they can pick qty / remove.
   const isFreeIssue = type === "fo_to_guard" && !demandId;
@@ -573,6 +582,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
   }, [open, initial, isDraft, demandId, meta.dest, destId, candById, itemMap, stockMap, lines.length]);
 
   useResetOnOpen(open, async () => {
+    typedQtyRef.current.clear();
     setStepKey("route");
     setDemandId("");
     if (initial) {
@@ -618,6 +628,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
   });
 
   async function onPickDemand(did: string) {
+    typedQtyRef.current.clear();
     setDemandId(did);
     if (!did) return;
     const d = openDemands.find((x) => x.id === did);
@@ -677,7 +688,8 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
       setStepKey("route");
       return;
     }
-    const activeLines = isFreeIssue ? lines.filter((l) => l.qty > 0) : lines;
+    const currentLines = effectiveLines();
+    const activeLines = isFreeIssue ? currentLines.filter((l) => l.qty > 0) : currentLines;
     if (!activeLines.length || activeLines.some((l) => !l.item_id || l.qty <= 0)) { toast.error("Add items with qty"); return; }
     setSaving(true);
     try {
@@ -786,7 +798,11 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
   const validateStep = (key: string) => {
     if (key === "route" && (!sourceId || !destId)) return "Pick source and destination";
     if (key === "route" && isFieldOfficer && meta.dest === "guard" && !foScopedGuardIds.has(destId)) return "Pick a guard assigned to you";
-    if (key === "items" && (!activeLines.length || activeLines.some((line) => !line.item_id || line.qty <= 0))) return "Add items with quantity";
+    if (key === "items") {
+      const currentLines = effectiveLines();
+      const currentActiveLines = isFreeIssue ? currentLines.filter((line) => line.qty > 0) : currentLines;
+      if (!currentActiveLines.length || currentActiveLines.some((line) => !line.item_id || line.qty <= 0)) return "Add items with quantity";
+    }
     return null;
   };
   const isStepComplete = (key: string) => key === "review" ? !validateStep("route") && !validateStep("items") : !validateStep(key);
@@ -901,6 +917,14 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
                     const avail = availableFor(l);
                     const cap = isFreeIssue ? avail : Math.min(l.requested_qty, avail);
                     const over = isDraft && (l.qty > avail || (!isFreeIssue && l.qty > l.requested_qty));
+                    const updateQty = (rawValue: string) => {
+                      const raw = Number(rawValue) || 0;
+                      let v = Math.max(0, raw);
+                      if (!isFreeIssue && v > l.requested_qty) { v = l.requested_qty; toast.error(`Issued cannot exceed requested (${l.requested_qty})`); }
+                      if (sourceId && v > avail) { v = avail; toast.error(`Only ${avail} in stock for ${it?.name ?? "item"}`); }
+                      typedQtyRef.current.set(lineKey(l), v);
+                      setLines((current) => current.map((line, index) => index === idx ? { ...line, qty: v } : line));
+                    };
                     return (
                       <tr key={idx} className={over ? "bg-destructive/5" : undefined}>
                         <td className="px-3 py-2 font-medium">{it?.name ?? "—"}</td>
@@ -916,19 +940,14 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
                                 disabled={!sourceId}
                                 className={`h-9 text-right ${over ? "border-destructive text-destructive" : ""}`}
                                 value={l.qty}
-                                onChange={(e) => {
-                                  const raw = Number(e.target.value) || 0;
-                                  let v = Math.max(0, raw);
-                                  if (!isFreeIssue && v > l.requested_qty) { v = l.requested_qty; toast.error(`Issued cannot exceed requested (${l.requested_qty})`); }
-                                  if (sourceId && v > avail) { v = avail; toast.error(`Only ${avail} in stock for ${it?.name ?? "item"}`); }
-                                  setLines((ls) => ls.map((x, i) => i === idx ? { ...x, qty: v } : x));
-                                }}
+                                 onInput={(e) => updateQty(e.currentTarget.value)}
+                                 onChange={(e) => updateQty(e.target.value)}
                               />
                             : <div className="text-right tabular-nums">{l.qty}</div>}
                         </td>
                         {isDraft && isFreeIssue && (
                           <td className="px-2 py-1.5 text-right">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => setLines((ls) => ls.filter((_, i) => i !== idx))}><X className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => { typedQtyRef.current.delete(lineKey(l)); setLines((ls) => ls.filter((_, i) => i !== idx)); }}><X className="h-4 w-4" /></Button>
                           </td>
                         )}
                       </tr>
