@@ -180,7 +180,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u])), [units]);
 
   // 3. Stock at each guard
-  const { data: balances = [] } = useQuery({
+  const { data: balances = [], isLoading: balancesLoading } = useQuery({
     queryKey: ["collections", "balances", guardIds.join(",")],
     enabled: guardIds.length > 0,
     queryFn: async () => {
@@ -217,21 +217,23 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     return m;
   }, [balances]);
 
+  const recoverableGuards = useMemo(
+    () => guards.filter((guard) => (balByGuard.get(guard.id) ?? []).some((balance) => Number(balance.qty) > 0)),
+    [guards, balByGuard],
+  );
+
   // Group by unit — a guard appears in exactly ONE block (their primary unit),
   // never duplicated across unit groups.
   const grouped = useMemo(() => {
     const s = q.trim().toLowerCase();
     // Dedupe guards by id first (defensive: multi-unit joins can return repeats)
-    const uniqueGuards = Array.from(new Map(guards.map((g) => [g.id, g])).values());
+    const uniqueGuards = Array.from(new Map(recoverableGuards.map((g) => [g.id, g])).values());
     const filteredGuards = uniqueGuards.filter((g) => {
       if (!s) return true;
       return g.full_name.toLowerCase().includes(s) || (g.employee_code ?? "").toLowerCase().includes(s) || (g.mobile ?? "").includes(s);
     });
     const m = new Map<string, Candidate[]>();
     const UNASSIGNED = "__unassigned__";
-    if (!s) {
-      for (const uid of coveredUnitIds) m.set(uid, []);
-    }
     const placed = new Set<string>();
     for (const g of filteredGuards) {
       if (placed.has(g.id)) continue;
@@ -243,27 +245,28 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     }
     const out: { unit: Unit | null; guards: Candidate[] }[] = [];
     for (const [uid, arr] of m) {
+      if (arr.length === 0) continue;
       out.push({ unit: uid === UNASSIGNED ? null : unitMap.get(uid) ?? null, guards: arr });
     }
     out.sort((a, b) => (a.unit?.name ?? "zzz").localeCompare(b.unit?.name ?? "zzz"));
     return out;
-  }, [guards, guardUnitMap, unitMap, q, coveredUnitIds]);
+  }, [recoverableGuards, guardUnitMap, unitMap, q]);
 
 
-  const totalGuards = guards.length;
-  const guardsWithStock = useMemo(() => guards.filter((g) => (balByGuard.get(g.id)?.length ?? 0) > 0).length, [guards, balByGuard]);
+  const totalGuards = recoverableGuards.length;
+  const guardsWithStock = recoverableGuards.length;
   const pendingOffboardCount = useMemo(
     () =>
-      guards.filter(
+      recoverableGuards.filter(
         (g) =>
           g.offboarding_details?.collection_status === "pending" &&
           g.offboarding_details?.pending_collection_fo_id === me.id,
       ).length,
-    [guards, me.id],
+    [recoverableGuards, me.id],
   );
 
 
-  const activeGuard = openGuard ? guards.find((g) => g.id === openGuard) ?? null : null;
+  const activeGuard = openGuard ? recoverableGuards.find((g) => g.id === openGuard) ?? null : null;
   const activeBalances = openGuard ? balByGuard.get(openGuard) ?? [] : [];
 
   const collectMut = useMutation({
@@ -356,8 +359,8 @@ function CollectionsPanel({ me }: { me: Candidate }) {
   return (
     <div>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Warehouse} label="Clients covered" value={unitIds.length} accent="bg-cyan-600" />
-        <StatTile icon={ShieldCheck} label="Guards on duty" value={totalGuards} accent="bg-emerald-600" />
+        <StatTile icon={Warehouse} label="Units with recovery" value={grouped.length} accent="bg-cyan-600" />
+        <StatTile icon={ShieldCheck} label="Recoveries" value={totalGuards} accent="bg-emerald-600" />
         <StatTile icon={PackageCheck} label="Guards with stock" value={guardsWithStock} accent="bg-violet-600" />
         <StatTile icon={Inbox} label="Total items at guards" value={balances.reduce((s, b) => s + Number(b.qty || 0), 0)} accent="bg-amber-500" />
       </div>
@@ -385,12 +388,12 @@ function CollectionsPanel({ me }: { me: Candidate }) {
       </div>
 
 
-      {guardsLoading ? (
+      {guardsLoading || balancesLoading ? (
         <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading…</div>
       ) : grouped.length === 0 ? (
         <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
           <ShieldCheck className="mx-auto mb-2 h-8 w-8 opacity-40" />
-          No guards are reporting to you yet.
+          {q.trim() ? "No recoverable stock matches your search." : "No stock is currently due for recovery."}
         </div>
       ) : (
         <div className="modern-business-form">

@@ -505,9 +505,7 @@ function AdminLayout() {
   const guardGroups: GroupItem[] = useMemo(() => [
     { key: "dashboard", label: "My Dashboard", icon: LayoutGrid, to: "/admin/employee-dashboard", activePrefixes: ["/admin/employee-dashboard"] },
     { key: "my-inventory", label: "My Uniform", icon: Boxes, to: "/admin/my-inventory", activePrefixes: ["/admin/my-inventory"] },
-    { key: "notifications", label: "Notifications", icon: Bell, to: "/admin/notifications", activePrefixes: ["/admin/notifications"] },
     { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
-    { key: "profile", label: "My Profile", icon: Users, to: "/admin/profile", activePrefixes: ["/admin/profile"] },
   ], []);
 
   const visibleGroups = (() => {
@@ -624,7 +622,7 @@ function AdminLayout() {
         <nav className={cn("scrollbar-hide flex-1 overflow-y-auto pb-3", collapsed ? "px-2" : "px-2.5")}>
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
-              { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
+              { label: "Menu", keys: ["dashboard", "my-inventory", "my-attendance"] },
               { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "inventory", "vehicles", "assets"] },
               { label: "HR", keys: ["employees", "attendance", "payroll"] },
               { label: "Finance", keys: ["invoice"] },

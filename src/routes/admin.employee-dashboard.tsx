@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell,
   Building2,
   CalendarDays,
   Cake,
@@ -12,7 +11,6 @@ import {
   UserRound,
   Users,
   ArrowUpRight,
-  Phone,
   MapPin,
   TrendingUp,
   TrendingDown,
@@ -86,8 +84,6 @@ type Manager = {
   role_key: string | null;
   designation_id: string | null;
 };
-
-type Notif = { id: string; title: string; body: string | null; link: string | null; created_at: string; read_at: string | null };
 
 type AssignedUnit = {
   id: string;
@@ -378,23 +374,6 @@ function EmployeeDashboard() {
     },
   });
 
-  const notifQ = useQuery({
-    queryKey: ["me-notifs"],
-    queryFn: async () => {
-      const { data: { user: au } } = await supabase.auth.getUser();
-      if (!au) return [];
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id,title,body,link,created_at,read_at")
-        .eq("user_id", au.id)
-        .order("created_at", { ascending: false })
-        .limit(6);
-      if (error) throw error;
-      return (data as unknown as Notif[]) ?? [];
-    },
-  });
-  const notifs = notifQ.data ?? [];
-
   const HORIZON = useMemo(() => {
     const today = new Date();
     const eoy = new Date(today.getFullYear(), 11, 31);
@@ -424,7 +403,6 @@ function EmployeeDashboard() {
   if (meQ.isLoading) return <DashboardSkeleton />;
   if (!me) return <div className="p-4 text-sm text-muted-foreground">No employee profile found for this phone.</div>;
 
-  const age = me.date_of_birth ? ageFrom(me.date_of_birth) : null;
   const started = me.approved_at || me.created_at;
   const tenureYears = started ? yearsBetween(started, new Date()) : null;
 
@@ -485,45 +463,25 @@ function EmployeeDashboard() {
     <DashboardShell rightExtras={insights} fixedRightRail>
       <div className="space-y-4">
         <div className="flex flex-col gap-4">
-          <section className="relative isolate flex min-h-[300px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
-            {me.photo_url ? (
-              <img src={me.photo_url} alt={`${me.full_name} profile`} className="absolute inset-0 h-full w-full object-cover object-center" />
-            ) : (
-              <div className="absolute inset-0 grid place-items-center bg-accent text-accent-foreground">
-                <UserRound className="h-28 w-28" strokeWidth={1.25} />
+          <header className="flex min-w-0 flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+                <ShieldCheck className="h-3.5 w-3.5" /> {roleLabel}
+                {me.employee_code && <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">{me.employee_code}</span>}
               </div>
-            )}
-            {me.photo_url && <div className="employee-profile-hero-overlay absolute inset-0" />}
-            <div className="relative flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-7">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-                <div className="min-w-0 sm:max-w-[68%]">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground shadow-sm ring-1 ring-border">
-                    <ShieldCheck className="h-3.5 w-3.5" /> {roleLabel}
-                  </div>
-                  <h1 className="employee-profile-hero-title mt-5 text-2xl font-bold leading-tight text-field-hero sm:text-3xl">{me.full_name}</h1>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {me.employee_code && <span className="rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">{me.employee_code}</span>}
-                    {(myUnits.find((u) => u.id === primaryUnitId) ?? unit) && <span className="max-w-[220px] truncate rounded-full bg-background px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm ring-1 ring-border">Primary · {(myUnits.find((u) => u.id === primaryUnitId) ?? unit)?.name}</span>}
-                  </div>
-                </div>
-                <Link to="/admin/profile" aria-label="Open profile" className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-foreground shadow-sm ring-1 ring-border">
-                  <ArrowUpRight className="h-5 w-5" />
-                </Link>
-              </div>
-              <div className="employee-profile-hero-details mt-8 max-w-full space-y-2 rounded-2xl p-3 text-xs text-field-hero sm:max-w-[68%]">
-                {me.mobile && <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-field-hero" /><span className="tabular-nums">{me.mobile}</span></span>}
-                {(unit?.site_address || unit?.name) && <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-field-hero" /><span className="truncate">{unit?.site_address || unit?.name}</span></span>}
-              </div>
+              <h1 className="mt-1 truncate text-2xl font-bold text-foreground sm:text-3xl">{me.full_name}</h1>
+              {(myUnits.find((u) => u.id === primaryUnitId) ?? unit) && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">Primary · {(myUnits.find((u) => u.id === primaryUnitId) ?? unit)?.name}</p>
+              )}
             </div>
-          </section>
+          </header>
 
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="grid grid-cols-3 gap-3 sm:gap-4">
-              <HeroStat label="Present" value={attStats.present} icon={ClipboardCheck} tone="mint" />
-              <HeroStat label="ED hrs" value={attStats.ot} icon={CalendarDays} tone="blue" />
-              <HeroStat label="Team" value={guardTeam.length + 1} icon={Users} tone="amber" />
-            </div>
-            <div className="min-w-0 flex-1 [&>*]:h-full">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            <HeroStat label="Present" value={attStats.present} icon={ClipboardCheck} tone="mint" />
+            <HeroStat label="ED hrs" value={attStats.ot} icon={CalendarDays} tone="blue" />
+            <HeroStat label="Uniform" value={issQ.data?.total ?? 0} icon={Package} tone="amber" to="/admin/my-inventory" />
+          </div>
+          <div className="min-w-0 [&>*]:h-full">
               {isGuard ? (
                 <MarkAttendanceCard candidateId={me.id} allowedUnits={allowedUnits} proximityThresholdM={300} />
               ) : (
@@ -539,7 +497,6 @@ function EmployeeDashboard() {
                   </div>
                 </section>
               )}
-            </div>
           </div>
         </div>
 
@@ -549,11 +506,10 @@ function EmployeeDashboard() {
               <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Overview</div>
               <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
-              <PastelTile className="sm:col-span-3" palette="lime" label="Present days" value={attStats.present} hint={new Date().toLocaleString("en-IN", { month: "long" })} delta={0} deltaSuffix="" icon={ClipboardCheck} />
-              <PastelTile className="sm:col-span-3" palette="teal" label="Uniform items" value={issQ.data?.total ?? 0} hint={issQ.data?.pending ? `${issQ.data.pending} pending` : "In hand"} delta={0} deltaSuffix="" icon={Package} to="/admin/my-inventory" />
-              <PastelTile className="sm:col-span-3" palette="rose" label="Absent" value={attStats.absent} hint="This month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
-              <PastelTile className="sm:col-span-3" palette="amber" label="Leaves" value={attStats.leave} hint="This month" delta={0} deltaSuffix="" icon={CalendarDays} />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <PastelTile palette="teal" label="My attendance" value={attStats.total} hint={new Date().toLocaleString("en-IN", { month: "long" })} delta={0} deltaSuffix="" icon={ClipboardCheck} to="/admin/my-attendance" />
+              <PastelTile palette="rose" label="Absent" value={attStats.absent} hint="This month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
+              <PastelTile palette="amber" label="Leaves" value={attStats.leave} hint="This month" delta={0} deltaSuffix="" icon={CalendarDays} className="col-span-2 sm:col-span-1" />
             </div>
           </section>
         </div>
