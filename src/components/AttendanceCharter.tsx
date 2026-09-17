@@ -298,7 +298,7 @@ export function AttendanceCharter({
   }, [entriesQ.data, shiftQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
-    return units
+    return pageUnits
       .map((u) => {
         const cov = coverageByUnit.get(u.id);
         const committed = cov?.committed ?? 0;
@@ -336,16 +336,8 @@ export function AttendanceCharter({
           status,
           mtdPct: pct(actualHours, projectedHours),
         };
-      })
-      .filter((r) => {
-        const q = query.trim().toLowerCase();
-        if (!q) return true;
-        return [r.unit.name, r.unit.code, r.unit.customer_name, r.contractCode]
-          .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(q));
-      })
-      .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx, query]);
+      });
+  }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx]);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
