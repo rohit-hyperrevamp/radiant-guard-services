@@ -388,7 +388,7 @@ function IssuancesPage() {
 
 
 
-      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); } }} initial={active} initialCandidateId={pendingCandidateId} currentUserId={userId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
+      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); setPendingDemandId(""); } }} initial={active} initialCandidateId={pendingCandidateId} initialDemandId={pendingDemandId} currentUserId={userId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
     </div>
   );
 }
