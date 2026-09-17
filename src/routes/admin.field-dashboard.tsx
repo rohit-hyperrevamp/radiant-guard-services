@@ -112,9 +112,6 @@ type FoBaseUnit = {
 };
 type FoBase = {
   meId: string | null;
-  meName: string;
-  meCode: string;
-  mePhoto: string;
   units: FoBaseUnit[];
 };
 
@@ -185,18 +182,15 @@ function FieldOfficerDashboard() {
     queryFn: async (): Promise<FoBase> => {
       const { data: me } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,designation_id,photo_url,unit_id")
+        .select("id,unit_id")
         .eq("mobile", phone)
         .maybeSingle();
       const meRow = me as
-        | { id?: string; full_name?: string; employee_code?: string; photo_url?: string; unit_id?: string | null }
+        | { id?: string; unit_id?: string | null }
         | null;
       const meId = meRow?.id ?? null;
       const base: FoBase = {
         meId,
-        meName: meRow?.full_name ?? "",
-        meCode: meRow?.employee_code ?? "",
-        mePhoto: meRow?.photo_url ?? "",
         units: [],
       };
       if (!meId) return base;
@@ -568,9 +562,6 @@ function FieldOfficerDashboard() {
   const data = useMemo(
     () => ({
       meId,
-      meName: baseQ.data?.meName ?? "",
-      meCode: baseQ.data?.meCode ?? "",
-      mePhoto: baseQ.data?.mePhoto ?? "",
       units,
       guardsTotal: stats?.guardsTotal ?? 0,
       joinedThisWeek: stats?.joinedThisWeek ?? 0,
@@ -584,7 +575,7 @@ function FieldOfficerDashboard() {
       myStockQty: stats?.myStockQty ?? 0,
       myStockSkus: stats?.myStockSkus ?? 0,
     }),
-    [meId, baseQ.data?.meName, baseQ.data?.meCode, baseQ.data?.mePhoto, units, stats],
+    [meId, units, stats],
   );
 
   const pendingIssuanceQ = useQuery({

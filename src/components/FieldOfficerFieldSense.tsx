@@ -762,10 +762,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   // Attendance checkout (from the map card)
   const attendanceOutMut = useMutation({
     mutationFn: async () => {
-      if (!punchQ.data?.id) throw new Error("No active check-in.");
+      if (!punchQ.data?.id) throw new Error("No active attendance login.");
+      if (openVisit) throw new Error("Complete your active client visit before logging out.");
       let face = false;
       try {
-        face = await verifyFaceForAttendance("Check out of duty");
+        face = await verifyFaceForAttendance("Attendance logout");
       } catch (err) {
         // Face ID is optional on web — on native, verifyFaceForAttendance throws which we rethrow.
         throw err;
@@ -778,7 +779,7 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
       void qc.invalidateQueries({ queryKey: ["fo-fs-punch", candidateId, todayPunchDate()] });
       void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-out failed"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
   });
 
 
@@ -1527,7 +1528,7 @@ function FieldSenseTimeline(props: {
             ) : (
               <LogOut className="mr-1.5 h-3.5 w-3.5" />
             )}
-            {openVisit ? "Complete visit to end duty" : "End duty & check out"}
+            {openVisit ? "Complete visit to log out" : "End duty & log out"}
           </Button>
         </div>
       )}
