@@ -51,9 +51,11 @@ async function surepass<T>(
   path: string,
   init: { method: "GET" | "POST"; body?: unknown },
 ): Promise<SurepassEnvelope<T>> {
-  const token = process.env["SUREPASS_TOKEN"];
+  // The provider key the account owner issued is stored as SUREPASS_API_KEY.
+  // SUREPASS_TOKEN is kept as a fallback for older deployments only.
+  const token = process.env["SUREPASS_API_KEY"] ?? process.env["SUREPASS_TOKEN"];
   const baseUrl = (process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.io").replace(/\/+$/, "");
-  if (!token) throw new Error("SUREPASS_TOKEN is not configured");
+  if (!token) throw new Error("The Surepass verification key is not configured");
 
   const res = await fetch(`${baseUrl}${path}`, {
     method: init.method,
@@ -78,10 +80,10 @@ async function surepass<T>(
     console.error(`[surepass] ${path} failed [${res.status}] ${json.message_code ?? ""} ${detail}`);
     // An expired/revoked provider key is an account problem, not a candidate
     // data problem — say so instead of leaking the provider's raw code.
-    const code = (json.message_code ?? "").toLowerCase();
+    const code = `${json.message_code ?? ""} ${json.message ?? ""}`.toLowerCase();
     if (res.status === 401 || code.includes("token")) {
       throw new Error(
-        "Aadhaar/PAN verification key has expired. Update the verification key in settings, or turn verification off to continue with manual entry.",
+        "The Aadhaar/PAN verification key is no longer active with the provider (expired, revoked, or the sandbox period ended). Ask for a fresh key, or turn verification off in Platform Settings to continue with manual entry.",
       );
     }
     throw new Error(detail || `Verification request failed (${res.status})`);
