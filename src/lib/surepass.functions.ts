@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -47,13 +47,26 @@ type SurepassEnvelope<T> = {
   status_code?: number;
 };
 
+const readSurepassToken = createServerOnlyFn(async (): Promise<string> => {
+  const environmentToken = process.env["SUREPASS_API_KEY"] ?? process.env["SUREPASS_TOKEN"];
+  if (environmentToken) return environmentToken;
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("get_surepass_api_key" as never);
+  if (error) {
+    console.error("[surepass] secure key lookup failed", error.message);
+    return "";
+  }
+  return typeof data === "string" ? data : "";
+});
+
 async function surepass<T>(
   path: string,
   init: { method: "GET" | "POST"; body?: unknown },
 ): Promise<SurepassEnvelope<T>> {
-  // The provider key the account owner issued is stored as SUREPASS_API_KEY.
-  // SUREPASS_TOKEN is kept as a fallback for older deployments only.
-  const token = process.env["SUREPASS_API_KEY"] ?? process.env["SUREPASS_TOKEN"];
+  // Prefer deployment secrets. Production's encrypted database copy keeps
+  // verification available when a host does not inject those secrets.
+  const token = await readSurepassToken();
   const baseUrl = (process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.app").replace(/\/+$/, "");
   if (!token) throw new Error("The Surepass verification key is not configured");
 
