@@ -54,6 +54,7 @@ import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNa
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
