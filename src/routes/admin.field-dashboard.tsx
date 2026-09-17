@@ -37,6 +37,7 @@ import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
 import { UserCog, UserCheck } from "lucide-react";
 import { useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+import { UanFollowUp } from "@/components/UanFollowUp";
 
 
 
@@ -671,6 +672,7 @@ function FieldOfficerDashboard() {
               to="/admin/employees"
               search={{ tab: "candidate" }}
             />
+            <UanFollowUp fieldOfficerUserId={userId} fieldOfficerCandidateId={data?.meId} compact />
           </div>
         </section>
 

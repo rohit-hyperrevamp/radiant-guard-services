@@ -36,6 +36,7 @@ import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
+import { UanFollowUp } from "@/components/UanFollowUp";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
@@ -638,6 +639,7 @@ function DashboardPage() {
         <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
       )});
       if (can("employees")) t.push({ key: "emp", module: "employees", node: <MetricTile icon={UserPlus} label="Employees" value={data.employees} accent="lime" to="/admin/employees" /> });
+      if (can("employees")) t.push({ key: "uan", module: "employees", node: <UanFollowUp /> });
       if (can("vehicles")) t.push({ key: "veh", module: "vehicles", node: (
         <DualTile icon={Briefcase} label="Vehicles" primary={data.vehicles} primaryLabel="In fleet" secondary={fmtINR(data.fuelTotal)} secondaryLabel="Spend this month" accent="violet" to="/admin/vehicles/inventory" />
       )});

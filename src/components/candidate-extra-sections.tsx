@@ -149,7 +149,7 @@ export function ComplianceSection({
   const esic = c.esic_enabled ?? true;
   const pt = c.pt_enabled ?? true;
   const branches = esicBranches ?? [];
-  const hasUan = c.has_uan ?? Boolean(String(c.uan ?? "").trim());
+  const hasUan: boolean | undefined = typeof c.has_uan === "boolean" ? c.has_uan : (String(c.uan ?? "").trim() ? true : undefined);
   
   const toggleRow = (label: string, desc: string, checked: boolean, onChange: (v: boolean) => void) => (
     <div className="modern-form-toggle">
@@ -167,7 +167,7 @@ export function ComplianceSection({
         <Field label="Do you have a UAN?" required>
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant={hasUan ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: true })}>Yes</Button>
-            <Button type="button" variant={!hasUan ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: false, uan: "", uan_missing_since: c.uan_missing_since || new Date().toISOString().slice(0, 10) })}>No</Button>
+            <Button type="button" variant={hasUan === false ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: false, uan: "", uan_missing_since: c.uan_missing_since || new Date().toISOString().slice(0, 10) })}>No</Button>
           </div>
         </Field>
         {hasUan ? (
