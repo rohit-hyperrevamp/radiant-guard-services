@@ -98,7 +98,7 @@
 - [x] Seed test stock across Rohit Joshi's primary unit and Radiant headquarters.
 - [x] Limit field-officer request sources to primary unit first and headquarters second.
 - [x] Limit the field-officer request catalogue to available Uniform and Shoe stock.
-- [ ] Verify the full request and fulfilment workflow in production.
+- [x] Verify the full request and fulfilment workflow in production.
 
 ## Field officer inventory catalogue and request sources
 - [ ] Add only Uniform and Shoe with approved sizes.
