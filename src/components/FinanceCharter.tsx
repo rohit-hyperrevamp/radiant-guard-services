@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Building2, ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+import { CharterPagination } from "@/components/CharterPagination";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -115,6 +116,8 @@ function MarginChip({ value }: { value: number }) {
   );
 }
 
+const PAGE_SIZE = 25;
+
 export function FinanceCharter({
   mode,
   units,
@@ -124,6 +127,7 @@ export function FinanceCharter({
   onQueryChange,
   organizationCount,
   activeEmployees,
+  filters,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -133,10 +137,35 @@ export function FinanceCharter({
   onQueryChange: (v: string) => void;
   organizationCount?: number;
   activeEmployees?: number;
+  filters?: ReactNode;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+
+  // Search, then paginate, then load money for the visible page only. Contract
+  // rates, attendance entries and period statuses are all fetched for these 25
+  // units — never for the whole charter.
+  const matchedUnits = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    const list = term
+      ? units.filter((u) =>
+          [u.name, u.code, u.customer_name, ...u.contract_codes]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(term)),
+        )
+      : units.slice();
+    return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
+  }, [units, query]);
+
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  useEffect(() => setPage(0), [query, units.length, monthIdx, year]);
+  const pageUnits = useMemo(
+    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [matchedUnits, safePage],
+  );
+  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
   const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
@@ -285,7 +314,7 @@ export function FinanceCharter({
   }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
-    return units
+    return pageUnits
       .map((u) => {
         const finance: UnitFinance | undefined = financeQ.data?.get(u.id);
         const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
@@ -325,17 +354,8 @@ export function FinanceCharter({
           realisationPct: pct(invoiceAmount, contractedMtd),
           period,
         };
-      })
-
-      .filter((r) => {
-        const q = query.trim().toLowerCase();
-        if (!q) return true;
-        return [r.unit.name, r.unit.code, r.unit.customer_name, r.contractCode]
-          .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(q));
-      })
-      .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, query]);
+      });
+  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx]);
 
 
   const totals = useMemo(() => {
@@ -434,7 +454,7 @@ export function FinanceCharter({
         />
         <CharterTile
           label={registerLabel}
-          sub="this month, by stage"
+          sub="this page, by stage"
           countTo={registers.total}
           icon={mode === "invoice" ? Receipt : Wallet}
           accent="lime"
@@ -486,6 +506,10 @@ export function FinanceCharter({
           />
         )}
       </CharterTileGrid>
+
+      {filters}
+
+
 
 
 
@@ -770,9 +794,17 @@ export function FinanceCharter({
 
                       )}
                     </div>
-                  </div>
-                )}
-              </div>
+        </div>
+      )}
+
+      <CharterPagination
+        page={safePage}
+        pageCount={pageCount}
+        total={matchedUnits.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+    </div>
             );
           })}
         </div>

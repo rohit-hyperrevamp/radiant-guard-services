@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChevronDown, ClipboardList, Download, Gauge, MapPinned, Search, TrendingDown, UserCheck, Users } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+import { CharterPagination } from "@/components/CharterPagination";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -132,6 +133,8 @@ function Dial({ value }: { value: number }) {
   );
 }
 
+const PAGE_SIZE = 25;
+
 export function AttendanceCharter({
   units,
   monthIdx,
@@ -140,6 +143,7 @@ export function AttendanceCharter({
   onQueryChange,
   organizationCount,
   activeEmployees,
+  filters,
 }: {
   units: CharterUnit[];
   monthIdx: number;
@@ -148,10 +152,35 @@ export function AttendanceCharter({
   onQueryChange: (v: string) => void;
   organizationCount?: number;
   activeEmployees?: number;
+  filters?: ReactNode;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+
+  // Search first, then paginate, and only then load month-till-date attendance.
+  // Every heavy read below is scoped to the 25 units actually on screen, so the
+  // page never pulls thousands of units' entries in one shot.
+  const matchedUnits = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    const list = term
+      ? units.filter((u) =>
+          [u.name, u.code, u.customer_name, ...u.contract_codes]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(term)),
+        )
+      : units.slice();
+    return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
+  }, [units, query]);
+
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  useEffect(() => setPage(0), [query, units.length, monthIdx, year]);
+  const pageUnits = useMemo(
+    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [matchedUnits, safePage],
+  );
+  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
 
   // Any attendance / OT edit anywhere refreshes this charter instantly.
   useAttendanceMoneyRealtime();
@@ -270,7 +299,7 @@ export function AttendanceCharter({
   }, [entriesQ.data, shiftQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
-    return units
+    return pageUnits
       .map((u) => {
         const cov = coverageByUnit.get(u.id);
         const committed = cov?.committed ?? 0;
@@ -308,16 +337,8 @@ export function AttendanceCharter({
           status,
           mtdPct: pct(actualHours, projectedHours),
         };
-      })
-      .filter((r) => {
-        const q = query.trim().toLowerCase();
-        if (!q) return true;
-        return [r.unit.name, r.unit.code, r.unit.customer_name, r.contractCode]
-          .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(q));
-      })
-      .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx, query]);
+      });
+  }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx]);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
@@ -391,7 +412,7 @@ export function AttendanceCharter({
         />
         <CharterTile
           label="Attendance sheets"
-          sub="this month, by stage"
+          sub="this page, by stage"
           countTo={sheets.total}
           icon={ClipboardList}
           accent="lime"
@@ -403,33 +424,35 @@ export function AttendanceCharter({
         />
         <CharterTile
           label="Deployment"
-          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance · this page`}
           value={`${totals.actual}/${totals.committed}`}
           icon={Users}
           accent="indigo"
         />
         <CharterTile
           label="Actual man-hours"
-          sub={`of ${fmtHours(totals.projectedHours)} projected`}
+          sub={`of ${fmtHours(totals.projectedHours)} projected · this page`}
           value={fmtHours(totals.actualHours)}
           icon={UserCheck}
           accent="emerald"
         />
         <CharterTile
           label="Extra duty"
-          sub="month till date"
+          sub="month till date · this page"
           value={fmtHours(totals.otHours)}
           icon={TrendingDown}
           accent="amber"
         />
         <CharterTile
           label="MTD attendance"
-          sub="current payroll periods"
+          sub="current payroll periods · this page"
           value={`${totals.mtdPct}%`}
           icon={Gauge}
           accent="rose"
         />
       </CharterTileGrid>
+
+      {filters}
 
 
       <div className="flex flex-wrap items-center gap-2">
@@ -615,6 +638,14 @@ export function AttendanceCharter({
           })}
         </div>
       )}
+
+      <CharterPagination
+        page={safePage}
+        pageCount={pageCount}
+        total={matchedUnits.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
