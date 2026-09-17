@@ -417,11 +417,14 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
     for (const row of stockQuery.data ?? []) map.set(`${row.item_id}|${row.size_value}`, Number(row.qty));
     return map;
   }, [stockQuery.data]);
+  // A field officer may only request what actually exists at the chosen source.
+  // Nothing about the catalogue is hardcoded — availability drives the list.
   const requestItems = useMemo(() => {
     if (!isFieldOfficer) return items;
+    if (!stockQuery.isSuccess) return items;
     const availableIds = new Set((stockQuery.data ?? []).map((row) => row.item_id));
-    return items.filter((item) => availableIds.has(item.id) && (item.item_code === "UNIFORM" || item.item_code === "SHOE"));
-  }, [isFieldOfficer, items, stockQuery.data]);
+    return items.filter((item) => availableIds.has(item.id));
+  }, [isFieldOfficer, items, stockQuery.data, stockQuery.isSuccess]);
 
   useEffect(() => {
     if (!isFieldOfficer || !stockQuery.isSuccess) return;
