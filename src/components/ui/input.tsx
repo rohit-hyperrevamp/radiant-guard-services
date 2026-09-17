@@ -298,21 +298,13 @@ const FORMAT_SPECS: Record<InputFormat, FormatSpec> = {
     title: "ESIC IP number must be exactly 17 digits",
   },
   mobile: {
-    // Never block typing: accept digits freely and normalise common prefixes
-    // (+91 / 91 / leading 0) so pasting a full number "just works". The
-    // validator below still enforces the Indian 6-9 first-digit rule.
-    sanitize: (v) => {
-      let d = (v ?? "").replace(/\D/g, "");
-      if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
-      if (d.length > 10 && d.startsWith("0")) d = d.slice(1);
-      return d.slice(0, 10);
-    },
-    validate: (v) => /^[6-9]\d{9}$/.test(v),
-    maxLength: 12,
+    sanitize: (v) => (v ?? "").replace(/\D/g, "").slice(0, 10),
+    validate: (v) => /^\d{10}$/.test(v),
+    maxLength: 10,
     inputMode: "tel",
     placeholder: "10-digit mobile",
     mono: false,
-    title: "Indian mobiles are 10 digits and always begin with 6, 7, 8 or 9",
+    title: "Mobile numbers must contain exactly 10 digits",
   },
   ifsc: {
     sanitize: (v) => bySlot(IFSC_SLOTS, v),

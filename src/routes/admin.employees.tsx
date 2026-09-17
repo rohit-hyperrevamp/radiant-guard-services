@@ -12,7 +12,6 @@ import {
   OtherSection,
   ListSection,
   NomineeSection,
-  esicFamilyAadhaarComplete,
 
   SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
@@ -5748,10 +5747,11 @@ function CandidateWizard({
   };
 
   const getEmergencyContactIssue = (): string | null => {
-    const contact = form.contacts.find((item) => item.is_emergency) ?? form.contacts[0];
+    const contact = form.contacts.find((item) => item.is_emergency);
+    if (!contact) return null;
     if (!contact?.name.trim()) return "Enter the contact's name";
     if (!contact.relation.trim()) return "Select the relationship";
-    if (!/^[6-9]\d{9}$/.test(contact.mobile.trim())) return "Enter a valid 10-digit mobile number";
+    if (!/^\d{10}$/.test(contact.mobile.trim())) return "Enter a valid 10-digit mobile number";
     if (!contact.dob) return "Select the contact's date of birth";
     const birthDate = new Date(contact.dob);
     if (!Number.isFinite(birthDate.getTime()) || birthDate > new Date()) return "Select a valid date of birth";
@@ -5759,9 +5759,29 @@ function CandidateWizard({
     const age = Math.floor((Date.now() - birthDate.getTime()) / 31557600000);
     if (age < 18) {
       if (!(contact.guardian_name ?? "").trim()) return "Enter the guardian's name";
-      if (!/^[6-9]\d{9}$/.test((contact.guardian_mobile ?? "").trim())) return "Enter the guardian's valid mobile number";
+      if (!/^\d{10}$/.test((contact.guardian_mobile ?? "").trim())) return "Enter the guardian's valid mobile number";
       if (!(contact.guardian_address ?? "").trim()) return "Enter the guardian's address";
     }
+    return null;
+  };
+
+  const getNomineeIssue = (): string | null => {
+    const nominees = Array.isArray((form.compliance as Record<string, unknown> | undefined)?.nominees)
+      ? ((form.compliance as Record<string, unknown>).nominees as Array<{ contact?: string; percent?: number }>)
+      : [];
+    if (nominees.length === 0) return "Add at least one nominee";
+    if (nominees.some((entry) => !String(entry.contact ?? "").trim())) return "Select a contact for every nominee";
+    const contactsByKey = new Map(form.contacts.map((contact, index) => {
+      const name = contact.name.trim();
+      const mobile = contact.mobile.trim();
+      return [`${name}|${mobile}` || `idx:${index}`, contact] as const;
+    }));
+    for (const nominee of nominees) {
+      const contact = contactsByKey.get(String(nominee.contact ?? ""));
+      if (!contact?.name.trim() || !contact.relation.trim() || !/^\d{10}$/.test(contact.mobile.trim())) return "Complete the nominee's name, relationship and 10-digit mobile number";
+    }
+    const total = nominees.reduce((sum, entry) => sum + (Number(entry.percent) || 0), 0);
+    if (total !== 100) return "Nominee shares must total 100%";
     return null;
   };
 
@@ -5773,7 +5793,7 @@ function CandidateWizard({
     { key: "PAN upload", ok: !!form.pan_image_url },
     { key: "Signature", ok: !!form.signature_url },
     { key: "Full name", ok: !!form.full_name.trim() },
-    { key: "Mobile", ok: /^[6-9]\d{9}$/.test(form.mobile.trim()) },
+    { key: "Mobile", ok: /^\d{10}$/.test(form.mobile.trim()) },
     { key: "Aadhaar number", ok: digilockerVerified || /^\d{12}$/.test(form.aadhaar_number) },
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
@@ -5787,12 +5807,12 @@ function CandidateWizard({
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
     { key: "District", ok: !!form.permanent_district.trim() && (form.same_as_permanent || !!form.present_district.trim()) },
     {
-      key: "UAN",
-      ok: /^1\d{11}$/.test(String(((form.compliance ?? {}) as Record<string, unknown>).uan ?? "").trim()),
+      key: "UAN declaration",
+      ok: ((form.compliance ?? {}) as Record<string, unknown>).has_uan === false || /^1\d{11}$/.test(String(((form.compliance ?? {}) as Record<string, unknown>).uan ?? "").trim()),
     },
     {
-      key: "Emergency contact",
-      ok: getEmergencyContactIssue() === null,
+      key: "Nominee",
+      ok: getNomineeIssue() === null,
     },
 
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
@@ -5800,7 +5820,6 @@ function CandidateWizard({
     { key: "PAN verified", ok: panVerified || (!verificationEnabled && /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase())) },
     { key: "Client assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!(form.designation_id ?? editing?.designation_id) },
-    { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
 
   ];
   const completionDone = completionChecks.filter((c) => c.ok).length;
@@ -5813,17 +5832,24 @@ function CandidateWizard({
 
   // ----- Build payload helper ----- //
   const buildPayload = (status: string) => {
-    const emergencyContact = form.contacts.find((c) => c.is_emergency) ?? form.contacts[0] ?? null;
+    const emergencyContact = form.contacts.find((c) => c.is_emergency) ?? null;
     // Strip form-only assignment fields. Per-unit designations are persisted in
     // candidate_units, never on candidates (there is no unit_designations column).
-    const { unit_ids, unit_designations: _unitDesignations, ...rest } = form;
+    const { unit_ids, unit_designations: _unitDesignations, candidate_code: _candidateCode, ...rest } = form;
     void _unitDesignations;
+    void _candidateCode;
     const mirroredPrimary = unit_ids[0] ?? null;
     // Non-billable employees are billed against their home unit, not a client unit.
     const billingUnitId = isEmployeeMode && homeUnitId ? homeUnitId : mirroredPrimary;
     const basePayload = form.same_as_permanent
       ? {
           ...rest,
+          compliance: {
+            ...(form.compliance ?? {}),
+            ...(((form.compliance ?? {}) as Record<string, unknown>).has_uan === false
+              ? { uan: "", uan_missing_since: ((form.compliance ?? {}) as Record<string, unknown>).uan_missing_since || form.preferred_joining_date || form.application_date }
+              : { uan_missing_since: null }),
+          },
           unit_id: billingUnitId,
           present_address1: form.permanent_address1,
           present_address2: form.permanent_address2,
@@ -5835,7 +5861,16 @@ function CandidateWizard({
           present_country: form.permanent_country,
           present_police_station: form.permanent_police_station,
         }
-      : { ...rest, unit_id: billingUnitId };
+      : {
+          ...rest,
+          compliance: {
+            ...(form.compliance ?? {}),
+            ...(((form.compliance ?? {}) as Record<string, unknown>).has_uan === false
+              ? { uan: "", uan_missing_since: ((form.compliance ?? {}) as Record<string, unknown>).uan_missing_since || form.preferred_joining_date || form.application_date }
+              : { uan_missing_since: null }),
+          },
+          unit_id: billingUnitId,
+        };
     return {
       ...basePayload,
       status,
@@ -6160,7 +6195,7 @@ function CandidateWizard({
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
       if (isEmployeeMode && !String(form.role_key ?? "").trim())
         return failValidation("Role is required for non-billable employees — pick a role (e.g. Operations) in the Employment section", "role_key");
-      if (!/^[6-9]\d{9}$/.test(form.mobile.trim()))
+      if (!/^\d{10}$/.test(form.mobile.trim()))
         return failValidation("A valid 10-digit mobile number is required (Basic Information) — it is also the login ID", "mobile");
       // Email is optional, but when supplied it must be well formed so posting
       // orders and company documents actually deliver.
@@ -6180,10 +6215,14 @@ function CandidateWizard({
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address", "permanent_district");
       if (!form.same_as_permanent && !form.present_district.trim())
         return failValidation("District is required in the present address", "present_district");
-      const uanValue = String(((form.compliance ?? {}) as Record<string, unknown>).uan ?? "").trim();
-      if (!uanValue) return failValidation("UAN is required (Compliance section)");
-      if (!/^1\d{11}$/.test(uanValue))
+      const complianceRecord = (form.compliance ?? {}) as Record<string, unknown>;
+      const hasUan = complianceRecord.has_uan ?? (String(complianceRecord.uan ?? "").trim() ? true : undefined);
+      const uanValue = String(complianceRecord.uan ?? "").trim();
+      if (typeof hasUan !== "boolean") return failValidation("Select whether the candidate has a UAN (Compliance section)");
+      if (hasUan && !/^1\d{11}$/.test(uanValue))
         return failValidation("UAN must be 12 digits and must start with 1");
+      const nomineeIssue = getNomineeIssue();
+      if (nomineeIssue) return failValidation(`Nominee: ${nomineeIssue}`);
       const emergencyContactIssue = getEmergencyContactIssue();
       if (emergencyContactIssue) return failValidation(`Emergency contact: ${emergencyContactIssue}`);
       const compliance = (form.compliance ?? {}) as Record<string, unknown>;
@@ -6303,7 +6342,7 @@ function CandidateWizard({
     }
     if (key === "basic") {
       if (!form.full_name.trim()) return "Full name is required";
-      if (!/^[6-9]\d{9}$/.test((form.mobile ?? "").trim())) return "A valid 10-digit mobile number is required";
+      if (!/^\d{10}$/.test((form.mobile ?? "").trim())) return "A valid 10-digit mobile number is required";
     }
     if (key === "address" && !form.permanent_district.trim())
       return "District is required in the permanent address";
@@ -6313,13 +6352,15 @@ function CandidateWizard({
       if (!acc) return "Bank account number is required";
       if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return "A valid IFSC code is required";
     }
-    if (key === "contacts") return getEmergencyContactIssue();
+    if (key === "contacts") return getNomineeIssue() ?? getEmergencyContactIssue();
     if (key === "assignment" && form.unit_ids.length === 0 && !form.unit_id)
       return "Select the posting unit to continue";
     if (key === "records") {
       const c = (form.compliance ?? {}) as Record<string, unknown>;
+      const hasUan = c.has_uan ?? (String(c.uan ?? "").trim() ? true : undefined);
       const uan = String(c.uan ?? "").trim();
-      if (!/^1\d{11}$/.test(uan)) return "Enter a valid 12-digit UAN starting with 1";
+      if (typeof hasUan !== "boolean") return "Select whether the candidate has a UAN";
+      if (hasUan && !/^1\d{11}$/.test(uan)) return "Enter a valid 12-digit UAN starting with 1";
       const blood = String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim();
       if (!blood) return "Select the blood group";
       const esicOn = (c.esic_enabled ?? true) as boolean;
@@ -6984,15 +7025,13 @@ function CandidateWizard({
                     <Input value={form.birthplace} onChange={(e) => set("birthplace", e.target.value)} />
                   </Field>
 
-                  <Field label={isEmployeeMode ? "Employee Code" : "Candidate Number"}>
-                    <Input
-                      value={isEmployeeMode ? form.employee_code : form.candidate_code}
-                      placeholder={isEmployeeMode ? "EMP-001" : "CAN-001"}
-                      className="font-mono"
-                      onChange={(e) => set(isEmployeeMode ? "employee_code" : "candidate_code", e.target.value)}
-                    />
-                  </Field>
                 </div>
+              </Section>
+              )}
+
+              {at("contacts") && (
+              <Section title="Nominee">
+                <NomineeSection form={form} setSection={setSection} set={(k, v) => set(k as never, v as never)} />
               </Section>
               )}
 
@@ -7001,13 +7040,21 @@ function CandidateWizard({
                 <div className="space-y-4">
 
                   {(() => {
-                    const ct: CandidateContact =
-                      form.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
+                    const emergencyIndex = form.contacts.findIndex((item) => item.is_emergency);
+                    const ct: CandidateContact = emergencyIndex >= 0
+                      ? form.contacts[emergencyIndex]
+                      : { name: "", relation: "", mobile: "", is_emergency: true };
                     const upd = (patch: Partial<CandidateContact>) =>
                       setForm((f) => {
-                        const base: CandidateContact =
-                          f.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
-                        return { ...f, contacts: [{ ...base, ...patch, is_emergency: true }] };
+                        const index = f.contacts.findIndex((item) => item.is_emergency);
+                        const base: CandidateContact = index >= 0
+                          ? f.contacts[index]
+                          : { name: "", relation: "", mobile: "", is_emergency: true };
+                        const next = [...f.contacts];
+                        const updated = { ...base, ...patch, is_emergency: true };
+                        if (index >= 0) next[index] = updated;
+                        else next.push(updated);
+                        return { ...f, contacts: next };
                       });
                     const presentAddress = [
                       form.present_address1,
@@ -7030,26 +7077,26 @@ function CandidateWizard({
                               <HeartHandshake className="h-4.5 w-4.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-foreground">Primary contact</p>
-                              <p className="text-[11px] text-muted-foreground">Used only in an emergency</p>
+                              <p className="truncate text-sm font-semibold text-foreground">Emergency contact</p>
+                              <p className="text-[11px] text-muted-foreground">Optional · used only in an emergency</p>
                             </div>
                           </div>
                           <div className={cn(
                             "flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold",
                             contactIssue ? "bg-secondary text-muted-foreground" : "bg-primary/10 text-primary",
                           )}>
-                            {contactIssue ? "Incomplete" : <><CheckCircle2 className="h-3.5 w-3.5" /> Complete</>}
+                            {contactIssue ? "Incomplete" : ct.name ? <><CheckCircle2 className="h-3.5 w-3.5" /> Complete</> : "Optional"}
                           </div>
                         </div>
                         <div className="pt-4">
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
                             <div className="sm:col-span-2">
-                            <Field label="Name" required>
+                            <Field label="Name">
                               <Input value={ct.name} placeholder="Full name" autoComplete="name" onChange={(e) => upd({ name: e.target.value })} />
                             </Field>
                             </div>
                             <div className="sm:col-span-2">
-                            <Field label="Relationship" required>
+                            <Field label="Relationship">
                               <Select value={ct.relation || undefined} onValueChange={(v) => upd({ relation: v })}>
                                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                                 <SelectContent>
@@ -7059,7 +7106,7 @@ function CandidateWizard({
                             </Field>
                             </div>
                             <div className="sm:col-span-2">
-                            <Field label="Mobile" required>
+                            <Field label="Mobile">
                               <Input
                                 format="mobile"
                                 value={ct.mobile}
@@ -7069,7 +7116,7 @@ function CandidateWizard({
                             </Field>
                             </div>
                             <div className="sm:col-span-2">
-                            <Field label="Date of Birth" required>
+                            <Field label="Date of Birth">
                               <DatePickerInput
                                 value={ct.dob ?? ""}
                                 onChange={(v) => upd({ dob: v ?? "" })}
@@ -7082,7 +7129,7 @@ function CandidateWizard({
                             </div>
                             <div className="sm:col-span-4">
                               <div className="mb-1.5 flex items-center justify-between gap-2">
-                                <Label>Address <span className="text-destructive">*</span></Label>
+                                <Label>Address</Label>
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -7732,11 +7779,6 @@ function CandidateWizard({
                 </Section>
               )}
 
-              {at("contacts") && (
-              <Section title="Nominee">
-                <NomineeSection form={form} setSection={setSection} set={(k, v) => set(k as never, v as never)} />
-              </Section>
-              )}
 
               {at("wages") && (
               <Section title="Wages">
