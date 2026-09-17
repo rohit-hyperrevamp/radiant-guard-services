@@ -583,11 +583,11 @@ function AdminLayout() {
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
     <div className={cn(
       "relative flex min-h-[100dvh] min-w-0 flex-col lg:block lg:min-h-screen",
-      isFieldOfficer && "bg-white dark:bg-neutral-950",
+      (isFieldOfficer || isGuard) && "bg-white dark:bg-neutral-950",
     )}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
-      {!isFieldOfficer && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
+      {!isFieldOfficer && !isGuard && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
 
 
 
@@ -896,9 +896,9 @@ function AdminLayout() {
                   tiles.push({ to, label: g.label, icon: g.icon, active: isGroupActive(g) });
                 }
                 const has = (to: string) => tiles.some((t) => t.to === to);
-                if (!has("/admin/profile")) tiles.push({ to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
+                if (!isGuard && !has("/admin/profile")) tiles.push({ to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
                 if (!has("/admin/my-attendance") && !has("/admin/attendance")) tiles.push({ to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
-                if (!has("/admin/notifications")) tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
+                if (!isGuard && !has("/admin/notifications")) tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
 
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
