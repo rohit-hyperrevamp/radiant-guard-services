@@ -1929,6 +1929,37 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
+  /**
+   * Every client site a person covers. A Field Officer's `unit_id` is only their
+   * Radiant home/base unit — their real coverage lives in `candidate_units`.
+   */
+  const siteIdsByCandidate = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const cu of candidateUnitsQuery.data ?? []) {
+      if (!cu.unit_id) continue;
+      const list = m.get(cu.candidate_id);
+      if (list) { if (!list.includes(cu.unit_id)) list.push(cu.unit_id); }
+      else m.set(cu.candidate_id, [cu.unit_id]);
+    }
+    return m;
+  }, [candidateUnitsQuery.data]);
+  const siteCountOf = (candidateId: string) => siteIdsByCandidate.get(candidateId)?.length ?? 0;
+  const [siteMapTarget, setSiteMapTarget] = useState<CandidateListItem | null>(null);
+  const [siteMapSearch, setSiteMapSearch] = useState("");
+  const siteMapRows = useMemo(() => {
+    if (!siteMapTarget) return [];
+    const q = siteMapSearch.trim().toLowerCase();
+    return (siteIdsByCandidate.get(siteMapTarget.id) ?? [])
+      .map((id) => unitMap.get(id))
+      .filter((u): u is NonNullable<typeof u> => !!u)
+      .filter((u) =>
+        !q ||
+        (u.name ?? "").toLowerCase().includes(q) ||
+        (u.code ?? "").toLowerCase().includes(q) ||
+        (u.customer_name ?? "").toLowerCase().includes(q),
+      )
+      .sort((a, b) => (a.customer_name ?? "").localeCompare(b.customer_name ?? "") || (a.name ?? "").localeCompare(b.name ?? ""));
+  }, [siteMapTarget, siteMapSearch, siteIdsByCandidate, unitMap]);
   /** The saved employee classification is authoritative; unit mappings are operational scope. */
   const isBillableCandidate = (c: Pick<CandidateListItem, "non_billable">) => !c.non_billable;
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
