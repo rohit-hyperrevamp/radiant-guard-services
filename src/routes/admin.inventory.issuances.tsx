@@ -206,6 +206,7 @@ function IssuancesPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Issuance | null>(null);
+  const [pendingDemandId, setPendingDemandId] = useState("");
 
   useEffect(() => {
     if (search.action !== "issue" || !search.candidate || pendingOnboarding.length === 0 || active || open) return;
