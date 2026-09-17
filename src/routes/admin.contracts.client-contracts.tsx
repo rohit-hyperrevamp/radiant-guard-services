@@ -93,10 +93,11 @@ import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
-  validateSearch: (search: Record<string, unknown>): { status?: string; tab?: "prospect" | "client"; renewals?: true } => ({
+  validateSearch: (search: Record<string, unknown>): { status?: string; tab?: "prospect" | "client"; renewals?: true; unit?: string } => ({
     status: typeof search.status === "string" ? search.status : undefined,
     tab: search.tab === "prospect" || search.tab === "client" ? search.tab : undefined,
     renewals: search.renewals === true || search.renewals === "true" ? true : undefined,
+    unit: typeof search.unit === "string" ? search.unit : undefined,
   }),
   component: ClientContractsPage,
 });
@@ -2262,7 +2263,11 @@ function ClientContractsPage() {
       setStatusFilter("all");
       setRenewalOnly(true);
     }
-  }, [search.status, search.tab, search.renewals]);
+    if (search.unit) {
+      setTab("client");
+      setUnitFilter(search.unit);
+    }
+  }, [search.status, search.tab, search.renewals, search.unit]);
 
 
   const enriched = useMemo(() => {

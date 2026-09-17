@@ -2,7 +2,7 @@ import { useUnitDesignations } from "@/lib/unit-designations";
 
 /**
  * Choose which contracted designation (role slot) a person fills at a unit.
- * Options come from the unit's active client contract resources.
+ * Contracted options come first; all other enabled designations remain selectable.
  */
 export function UnitDesignationSelect({
   unitId,
@@ -32,18 +32,15 @@ export function UnitDesignationSelect({
           {q.isLoading
             ? "Loading designations…"
             : options.length === 0
-              ? "No designations on this unit's contract"
+              ? "No enabled designations available"
               : "Select designation…"}
         </option>
-        {options.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
+        {options.some((d) => d.inContract) && <optgroup label="On this unit's contract">{options.filter((d) => d.inContract).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>}
+        {options.some((d) => !d.inContract) && <optgroup label="Other designations — contract follow-up">{options.filter((d) => !d.inContract).map((d) => <option key={d.id} value={d.id}>{d.name} — not on contract</option>)}</optgroup>}
       </select>
-      {!q.isLoading && options.length === 0 && (
+      {!q.isLoading && value && options.some((d) => d.id === value && !d.inContract) && (
         <p className="mt-1 text-[10px] font-medium text-amber-600">
-          This unit's contract has no resources — ask an admin to add designations before deploying anyone here.
+          This designation is not yet in the unit contract. It will be followed up with Finance for seven days.
         </p>
       )}
     </div>
