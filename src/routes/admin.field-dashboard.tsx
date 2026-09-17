@@ -655,7 +655,7 @@ function FieldOfficerDashboard() {
               <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <PastelTile
               palette="rose"
               label="Pending onboarding"

@@ -2877,6 +2877,7 @@ function ClientContractsPage() {
             }
             await persistResources(contractId, resources);
             await qc.invalidateQueries({ queryKey: ["admin", "contract-resources", contractId] });
+            await qc.invalidateQueries({ queryKey: ["contract-designation-follow-up"] });
             void notifySaved({ title: "Saved", description: editing ? "Contract updated" : "Contract created" });
             return null;
           } catch (e) {

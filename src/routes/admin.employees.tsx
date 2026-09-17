@@ -7617,7 +7617,16 @@ function CandidateWizard({
                     <DesignationPicker
                       designations={filteredDesignations}
                       value={form.designation_id}
-                      onChange={(id) => set("designation_id", id)}
+                      onChange={(id) => {
+                        setForm((current) => ({
+                          ...current,
+                          designation_id: id,
+                          unit_designations: current.unit_ids[0]
+                            ? { ...(current.unit_designations ?? {}), [current.unit_ids[0]]: id }
+                            : current.unit_designations,
+                        }));
+                        markDirty();
+                      }}
                       disabled={
                         designationsLoading ||
                         !!designationsError ||
@@ -7634,6 +7643,11 @@ function CandidateWizard({
                               : "No enabled designations are available."
                       }
                     />
+                    {!isEmployeeMode && form.designation_id && !contractDesigQuery.isLoading && !allowedDesignationIds.includes(form.designation_id) && (
+                      <p className="mt-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                        This designation is not yet in the primary unit contract. Finance will receive a seven-day follow-up after onboarding.
+                      </p>
+                    )}
                   </Field>
                   {isEmployeeMode && (
                     <Field label="Department">
