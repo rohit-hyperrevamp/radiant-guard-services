@@ -12,6 +12,9 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { loadDashboardBase } from "@/lib/dashboard-base";
+import { Pager, usePaged } from "@/components/Pager";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -77,61 +80,26 @@ function todayIso() {
 }
 
 async function fetchTodayAttendance(day: string): Promise<UnitAttendance[]> {
-  const [contractsRes, unitsRes, customersRes, desigRes, candidatesRes, mapRes, codesRes] =
-    await Promise.all([
-      supabase
-        .from("client_contracts" as never)
-        .select("id,contract_code,unit_id,status,record_type")
-        .eq("record_type", "client")
-        .eq("status", "active"),
-      supabase.from("units" as never).select("id,name,customer_id"),
-      supabase.from("customers" as never).select("id,name"),
-      supabase.from("designations" as never).select("id,name"),
-      supabase
-        .from("candidates" as never)
-        .select("id,full_name,designation_id,role_key,status,non_billable,unit_id")
-        .eq("status", "active"),
-      supabase.from("candidate_units" as never).select("candidate_id,unit_id"),
-      supabase
-        .from("attendance_codes" as never)
-        .select("code,counts_as_present,is_leave,is_paid,day_value"),
-    ]);
+  // Shared, fully paged base lookups — read once for both coverage cards.
+  const base = await loadDashboardBase();
 
-  const contracts = (contractsRes.data as unknown as Record<string, unknown>[]) ?? [];
+  const contracts = base.contracts;
   if (contracts.length === 0) return [];
 
-  const resourcesRes = await supabase
-    .from("contract_resources" as never)
-    .select("contract_id,quantity")
-    .in("contract_id", contracts.map((c) => String(c.id)));
-
-  const entriesRes = await supabase
-    .from("attendance_entries" as never)
-    .select("unit_id,candidate_id,code,ot_hours,entry_date")
-    .eq("entry_date", day);
-
-  const unitById = new Map(
-    ((unitsRes.data as unknown as Record<string, unknown>[]) ?? []).map((u) => [String(u.id), u]),
-  );
-  const custName = new Map(
-    ((customersRes.data as unknown as Record<string, unknown>[]) ?? []).map((c) => [
-      String(c.id),
-      String(c.name ?? "—"),
-    ]),
-  );
-  const desigName = new Map(
-    ((desigRes.data as unknown as Record<string, unknown>[]) ?? []).map((d) => [
-      String(d.id),
-      String(d.name ?? "—"),
-    ]),
+  const entries = await fetchAllPages<Record<string, unknown>>((from, to) =>
+    supabase
+      .from("attendance_entries" as never)
+      .select("unit_id,candidate_id,code,ot_hours,entry_date")
+      .eq("entry_date", day)
+      .order("id", { ascending: true })
+      .range(from, to),
   );
 
-  const codeMeta = new Map(
-    ((codesRes.data as unknown as Record<string, unknown>[]) ?? []).map((c) => [
-      String(c.code),
-      c,
-    ]),
-  );
+  const unitById = new Map(base.units.map((u) => [String(u.id), u]));
+  const custName = new Map(base.customers.map((c) => [String(c.id), String(c.name ?? "—")]));
+  const desigName = new Map(base.designations.map((d) => [String(d.id), String(d.name ?? "—")]));
+
+  const codeMeta = new Map(base.attendanceCodes.map((c) => [String(c.code), c]));
 
   const classify = (code: string | null): PersonStatus => {
     if (!code) return "unmarked";
@@ -147,7 +115,7 @@ async function fetchTodayAttendance(day: string): Promise<UnitAttendance[]> {
     return "present";
   };
 
-  const candidates = ((candidatesRes.data as unknown as Record<string, unknown>[]) ?? []).filter(
+  const candidates = base.candidates.filter(
     (c) => !c.non_billable && !EXCLUDED_ROLE_KEYS.has(String(c.role_key ?? "")),
   );
   const candById = new Map(candidates.map((c) => [String(c.id), c]));
@@ -158,20 +126,20 @@ async function fetchTodayAttendance(day: string): Promise<UnitAttendance[]> {
     if (!unitMembers.has(unitId)) unitMembers.set(unitId, new Set());
     unitMembers.get(unitId)!.add(candId);
   };
-  for (const m of (mapRes.data as unknown as Record<string, unknown>[]) ?? []) {
+  for (const m of base.candidateUnits) {
     push(String(m.unit_id ?? ""), String(m.candidate_id ?? ""));
   }
   for (const c of candidates) push(String(c.unit_id ?? ""), String(c.id));
 
   const committedByContract = new Map<string, number>();
-  for (const r of (resourcesRes.data as unknown as Record<string, unknown>[]) ?? []) {
+  for (const r of base.resources) {
     const k = String(r.contract_id);
     committedByContract.set(k, (committedByContract.get(k) ?? 0) + (Number(r.quantity ?? 0) || 0));
   }
 
   // unit -> candidate -> entry
   const entryByUnitCand = new Map<string, Record<string, unknown>>();
-  for (const e of (entriesRes.data as unknown as Record<string, unknown>[]) ?? []) {
+  for (const e of entries) {
     entryByUnitCand.set(`${String(e.unit_id)}::${String(e.candidate_id)}`, e);
   }
 
@@ -452,6 +420,8 @@ function AttendanceCharterDialog({
     });
   }, [rows, query, onlyGaps]);
 
+  const paged = usePaged(filtered, `${query}|${onlyGaps}|${rows.length}`);
+
   const totals = useMemo(
     () => ({
       committed: filtered.reduce((s, r) => s + r.committed, 0),
@@ -529,7 +499,7 @@ function AttendanceCharterDialog({
             </div>
           ) : (
             <div className="space-y-2">
-              {filtered.map((r) => {
+              {paged.pageRows.map((r) => {
                 const isOpen = !!expanded[r.unitId];
                 const tone = attendanceTone(r.committed, r.present);
                 return (
@@ -658,6 +628,14 @@ function AttendanceCharterDialog({
               })}
             </div>
           )}
+          <Pager
+            page={paged.page}
+            pageCount={paged.pageCount}
+            from={paged.from}
+            to={paged.to}
+            total={paged.total}
+            onPage={paged.setPage}
+          />
         </div>
       </DialogContent>
     </Dialog>

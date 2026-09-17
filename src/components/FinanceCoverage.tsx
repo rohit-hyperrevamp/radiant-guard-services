@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Banknote,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Gauge,
   PiggyBank,
@@ -30,6 +32,13 @@ import { cn } from "@/lib/utils";
 // Mirrors the deployment (workforce) charter format exactly: four headline
 // tiles (committed / actual / variance / coverage) plus a drill-down dialog
 // listing every unit.
+// ---------------------------------------------------------------------------
+//
+// Both lists page through their rows: with several hundred client units,
+// rendering every row at once was the slowest part of painting the dashboard.
+
+import { Pager, usePaged } from "@/components/Pager";
+
 // ---------------------------------------------------------------------------
 
 export type UnitFinanceRow = {
@@ -293,6 +302,8 @@ function CharterDialog({
     );
   }, [query, rows]);
 
+  const paged = usePaged(filtered, `${query}|${rows.length}`);
+
   const totals = useMemo(
     () => ({
       committed: filtered.reduce((s, r) => s + pick(r).committed, 0),
@@ -356,7 +367,7 @@ function CharterDialog({
             </div>
           ) : (
             <div className="space-y-2">
-              {filtered.map((r) => {
+              {paged.pageRows.map((r) => {
                 const m = pick(r);
                 const isOpen = !!expanded[r.unit_id];
                 const st = strengthOf?.(r);
@@ -440,6 +451,14 @@ function CharterDialog({
               })}
             </div>
           )}
+          <Pager
+            page={paged.page}
+            pageCount={paged.pageCount}
+            from={paged.from}
+            to={paged.to}
+            total={paged.total}
+            onPage={paged.setPage}
+          />
         </div>
       </DialogContent>
     </Dialog>
@@ -526,6 +545,8 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       (a, b) => b.actual_invoice - b.actual_payroll - (a.actual_invoice - a.actual_payroll),
     );
   }, [rows, query]);
+
+  const paged = usePaged(filtered, `${query}|${rows.length}`);
 
   const exportCsv = () =>
     downloadCsv(
@@ -620,7 +641,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
                 </td>
               </tr>
             )}
-            {filtered.map((r) => {
+            {paged.pageRows.map((r) => {
               const profit = r.actual_invoice - r.actual_payroll;
               const margin = r.actual_invoice > 0 ? (profit / r.actual_invoice) * 100 : 0;
               return (
@@ -662,6 +683,14 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
             })}
           </tbody>
         </table>
+        <Pager
+          page={paged.page}
+          pageCount={paged.pageCount}
+          from={paged.from}
+          to={paged.to}
+          total={paged.total}
+          onPage={paged.setPage}
+        />
       </div>
     </div>
   );

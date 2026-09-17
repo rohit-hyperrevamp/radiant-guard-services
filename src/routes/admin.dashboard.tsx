@@ -21,14 +21,9 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
 import {
   fmtINR,
-  computeAttendanceTotals,
   computeWages,
-  type AttendanceCodeLike,
-  type AttendanceEntryLike,
   type ContractResourceLike,
 } from "@/lib/payroll-calc";
-import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchAllPages } from "@/lib/supabase-batch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
@@ -159,201 +154,85 @@ function DashboardPage() {
       const sixtyStr = sixtyDaysOut.toISOString().slice(0, 10);
       const todayStr = new Date().toISOString().slice(0, 10);
 
-      const [
-        { count: orgsCount },
-        { count: unitsCount },
-        { count: empCount },
-        { count: contractsActive },
-        { data: contractsExpiring },
-        { count: vehiclesCount },
-        { data: fuelMonth },
-        { count: itemsCount },
-        { data: sheetsMonth },
-        { data: runsMonth },
-      ] = await Promise.all([
-        supabase.from("customers").select("id", { count: "exact", head: true }),
-        supabase.from("units").select("id", { count: "exact", head: true }),
-        supabase.from("candidates").select("id", { count: "exact", head: true }).eq("is_enabled", true).in("status", ["active", "approved"]),
-        supabase.from("client_contracts").select("id", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("client_contracts")
-          .select("id, contract_code, end_date, unit_id, status")
-          .eq("status", "active")
-          .gte("end_date", todayStr)
-          .lte("end_date", sixtyStr)
-          .order("end_date", { ascending: true })
-          .limit(10),
-        supabase.from("vehicles").select("id", { count: "exact", head: true }),
-        supabase.from("vehicle_fuel_entries").select("amount").gte("entry_date", monthStart).lte("entry_date", monthEnd),
-        supabase.from("inv_items").select("id", { count: "exact", head: true }),
-        supabase.from("attendance_sheets" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
-        supabase.from("payroll_runs" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
-      ]);
+      // Single round trip: the counts, the month status buckets and the
+      // expiring-contract list are all aggregated in the database.
+      const { data, error } = await supabase.rpc("dashboard_counts" as never, {
+        p_start: monthStart,
+        p_end: monthEnd,
+        p_today: todayStr,
+        p_horizon: sixtyStr,
+      } as never);
+      if (error) throw error;
 
-      const sheets = (sheetsMonth ?? []) as Array<{ status: string | null }>;
-      const sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
-      for (const s of sheets) {
-        const v = (s.status || "").toLowerCase();
-        if (v === "approved") sheetCounts.approved += 1;
-        else if (v === "submitted" || v === "pending") sheetCounts.pending += 1;
-        else if (v === "rejected") sheetCounts.rejected += 1;
-        else sheetCounts.draft += 1;
-      }
-      const runs = (runsMonth ?? []) as Array<{ status: string | null }>;
-      const runCounts = { approved: 0, pending: 0, draft: 0, rejected: 0 };
-      for (const r of runs) {
-        const v = (r.status || "").toLowerCase();
-        if (v === "approved") runCounts.approved += 1;
-        else if (v === "submitted") runCounts.pending += 1;
-        else if (v === "rejected") runCounts.rejected += 1;
-        else runCounts.draft += 1;
-      }
-      const fuelTotal = (fuelMonth ?? []).reduce((s: number, e: { amount: number | null }) => s + (Number(e.amount) || 0), 0);
+      const d = (data ?? {}) as {
+        orgs?: number;
+        units?: number;
+        employees?: number;
+        contractsActive?: number;
+        contractsExpiring?: Array<{ id: string; contract_code: string; end_date: string; unit_id: string; status: string }>;
+        vehicles?: number;
+        fuelTotal?: number | string;
+        items?: number;
+        sheetCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
+        runCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
+      };
+      const buckets = (v?: { approved?: number; pending?: number; draft?: number; rejected?: number }) => ({
+        approved: v?.approved ?? 0,
+        pending: v?.pending ?? 0,
+        draft: v?.draft ?? 0,
+        rejected: v?.rejected ?? 0,
+      });
 
       return {
-        orgs: orgsCount ?? 0,
-        units: unitsCount ?? 0,
-        employees: empCount ?? 0,
-        contractsActive: contractsActive ?? 0,
-        contractsExpiring: contractsExpiring ?? [],
-        vehicles: vehiclesCount ?? 0,
-        fuelTotal,
-        items: itemsCount ?? 0,
-        sheetCounts,
-        runCounts,
+        orgs: d.orgs ?? 0,
+        units: d.units ?? 0,
+        employees: d.employees ?? 0,
+        contractsActive: d.contractsActive ?? 0,
+        contractsExpiring: d.contractsExpiring ?? [],
+        vehicles: d.vehicles ?? 0,
+        fuelTotal: Number(d.fuelTotal ?? 0),
+        items: d.items ?? 0,
+        sheetCounts: buckets(d.sheetCounts),
+        runCounts: buckets(d.runCounts),
       };
     },
   });
 
   const pnlQuery = useQuery({
     queryKey: ["dashboard-pnl", year, month],
-    // Phones cannot hold the whole-month profitability computation in memory
-    // (it loads every contract, roster and attendance row).
+    // Phones stay on the light counts: the month P&L is a desktop view.
     enabled: !permsLoading && !showInventoryDashboard && !lightMode,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const todayStr = new Date().toISOString().slice(0, 10);
+      const selectedMonthIsCurrent = year === now.getFullYear() && month === now.getMonth();
+      const attendanceEnd = selectedMonthIsCurrent && todayStr < monthEnd ? todayStr : monthEnd;
 
-      const [contractsForPnl, unitsForPnl] = await Promise.all([
-        fetchAllPages<Record<string, unknown>>((from, to) =>
-          supabase
-            .from("client_contracts")
-            .select("id, unit_id, status, start_date, end_date, is_internal")
-            .eq("status", "active")
-            .lte("start_date", monthEnd)
-            .or(`end_date.is.null,end_date.gte.${monthStart}`)
-            .order("id", { ascending: true })
-            .range(from, to),
-        ),
-        fetchAllPages<{ id: string; code: string; name: string; customer_id: string | null; epf_cap_enabled: boolean | null }>(
-          (from, to) =>
-            supabase
-              .from("units")
-              .select("id, code, name, customer_id, epf_cap_enabled")
-              .order("id", { ascending: true })
-              .range(from, to),
-        ),
-      ]);
+      // One round trip. The database picks the current contract per unit,
+      // resolves the roster (primary unit + mapped units) and collapses every
+      // attendance row of the month into per (unit, employee, designation)
+      // duty totals. Previously this screen paged through every unit,
+      // customer, contract line, employee and attendance row and reduced them
+      // in the browser.
+      const { data, error } = await supabase.rpc("dashboard_pnl_inputs" as never, {
+        p_start: monthStart,
+        p_end: monthEnd,
+        p_att_end: attendanceEnd,
+      } as never);
+      if (error) throw error;
 
-
-
-
-      // ── P&L from actual attendance ────────────────────────────────────
-      // Mirrors the Invoice and Payroll modules: per (candidate × designation)
-      // we compute T-Days from attendance, then scale the contract resource by
-      // earnedGross/contractGross. Payroll cost is gross wages + benefits;
-      // invoice billable adds employer contributions on top of that cost.
-      //
-      // Internal contracts (own offices / non-billable staff) are a pure cost
-      // centre: they contribute payroll cost but never contract value or
-      // invoice revenue, otherwise the P&L overstates both.
-      const activeContracts = (contractsForPnl) as unknown as Array<{
-        id: string;
-        unit_id: string | null;
+      type UnitRow = {
+        unit_id: string;
+        unit_code: string;
+        unit_name: string;
+        customer_name: string;
+        epf_cap_enabled: boolean | null;
+        contract_id: string;
         is_internal: boolean | null;
-        start_date: string;
-      }>;
-
-      // A unit can briefly have overlapping active contracts during renewal.
-      // The finance registers use one current contract, so the dashboard must
-      // do the same instead of pricing the same attendance more than once.
-      const currentContractByUnit = new Map<string, (typeof activeContracts)[number]>();
-      for (const contract of activeContracts) {
-        if (!contract.unit_id) continue;
-        const current = currentContractByUnit.get(contract.unit_id);
-        if (!current || contract.start_date > current.start_date) {
-          currentContractByUnit.set(contract.unit_id, contract);
-        }
-      }
-      const currentContracts = Array.from(currentContractByUnit.values());
-
-      const contractIds = currentContracts.map((c) => c.id);
-      const unitIdsInScope = Array.from(
-        new Set(currentContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
-      );
-      const unitsById = new Map((unitsForPnl ?? []).map((u) => [u.id, u]));
-      const customerIds = Array.from(
-        new Set(
-          (unitsForPnl ?? [])
-            .filter((u) => unitIdsInScope.includes(u.id))
-            .map((u) => u.customer_id)
-            .filter((v): v is string => !!v),
-        ),
-      );
-      const contractIdSet = new Set(contractIds);
-      const unitScopeSet = new Set(unitIdsInScope);
-
-      // Bulk fetch customers, resources, attendance codes, roster — one
-      // paginated read per table in parallel instead of many id-filtered
-      // round trips (that chunking is what made the dashboard slow).
-      const emptyUuid = "00000000-0000-0000-0000-000000000000";
-      const [allCustomers, allResources, codesRaw, allRoster, allRoleLinks] = await Promise.all([
-        fetchAllPages<{ id: string; name: string }>((from, to) =>
-          supabase.from("customers").select("id, name").order("id", { ascending: true }).range(from, to),
-        ),
-        fetchAllPages<Record<string, unknown>>((from, to) =>
-          supabase
-            .from("contract_resources")
-            .select(
-              "contract_id, designation_id, quantity, components, benefits, deductions, employer_contributions, payroll_day_base_id",
-            )
-            .order("contract_id", { ascending: true })
-            .range(from, to),
-        ),
-        fetchAllPages<AttendanceCodeLike>((from, to) =>
-          supabase
-            .from("attendance_codes")
-            .select("code, counts_as_present, is_paid")
-            .eq("enabled", true)
-            .range(from, to),
-        ),
-        fetchAllPages<Record<string, unknown>>((from, to) =>
-          supabase
-            .from("candidates")
-            .select("id, full_name, designation_id, unit_id")
-            .eq("is_enabled", true)
-            .in("status", ["active", "approved"])
-            .order("id", { ascending: true })
-            .range(from, to),
-        ),
-        fetchAllPages<Record<string, unknown>>((from, to) =>
-          supabase
-            .from("candidate_units")
-            .select("candidate_id, unit_id")
-            .order("candidate_id", { ascending: true })
-            .range(from, to),
-        ),
-      ]);
-
-      const custNameById = new Map(
-        allCustomers.filter((c) => customerIds.includes(c.id)).map((c) => [c.id, c.name as string]),
-      );
-      const resourcesRaw = allResources.filter((r) => contractIdSet.has(String(r.contract_id)));
-      const primaryRoster = allRoster.filter((c) => unitScopeSet.has(String(c.unit_id)));
-      const roleLinks = allRoleLinks.filter((l) => unitScopeSet.has(String(l.unit_id)));
-
-
+        actual_strength: number | null;
+      };
       type ResourceRow = {
         contract_id: string;
         designation_id: string | null;
@@ -364,84 +243,46 @@ function DashboardPage() {
         employer_contributions: unknown;
         payroll_day_base_id: string | null;
       };
-      type AttRow = {
+      type PairRow = {
         unit_id: string;
         candidate_id: string;
-        designation_id: string | null;
-        entry_date: string;
-        code: string;
-        ot_hours: number | string | null;
+        designation_id: string;
+        p_days: number | string;
+        ph_days: number | string;
+        other_paid_days: number | string;
+        ot_days: number | string;
       };
-      const resources = (resourcesRaw ?? []) as ResourceRow[];
-      const selectedMonthIsCurrent = year === now.getFullYear() && month === now.getMonth();
-      const attendanceEnd = selectedMonthIsCurrent && todayStr < monthEnd ? todayStr : monthEnd;
-      const attendance = await fetchAttendanceEntriesForPeriod({ unitIds: unitIdsInScope, start: monthStart, end: attendanceEnd, includeUnitId: true }) as AttRow[];
-      const codes = (codesRaw ?? []) as AttendanceCodeLike[];
-      const primaryCands = (primaryRoster ?? []) as Array<{
-        id: string; full_name: string | null; designation_id: string | null; unit_id: string | null;
-      }>;
-      const links = (roleLinks ?? []) as Array<{ candidate_id: string; unit_id: string }>;
+      type DayBaseRow = {
+        id: string;
+        method: string;
+        fixed_days: number | null;
+        weekly_off_day: number | null;
+        included_weekdays: unknown;
+      };
 
-      // Payroll day bases.
-      const pdbIds = Array.from(
-        new Set(resources.map((r) => r.payroll_day_base_id).filter((v): v is string => !!v)),
-      );
-      const { data: pdbs } = pdbIds.length
-        ? await supabase
-            .from("payroll_day_bases")
-            .select("id, method, fixed_days, weekly_off_day, included_weekdays")
-            .in("id", pdbIds)
-        : { data: [] as Array<{ id: string; method: string; fixed_days: number | null; weekly_off_day: number | null }> };
+      const payload = (data ?? {}) as {
+        units?: UnitRow[];
+        resources?: ResourceRow[];
+        pairs?: PairRow[];
+        day_bases?: DayBaseRow[];
+      };
+      const unitRows = payload.units ?? [];
+      const resources = payload.resources ?? [];
+      const pairRows = payload.pairs ?? [];
+
       const pdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
-        (pdbs ?? []).map((p) => [
+        (payload.day_bases ?? []).map((p) => [
           p.id,
           {
             method: p.method as "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average",
             fixedDays: p.fixed_days,
             weeklyOffDay: p.weekly_off_day,
-            includedWeekdays: Array.isArray((p as unknown as { included_weekdays?: unknown }).included_weekdays)
-              ? (p as unknown as { included_weekdays: unknown[] }).included_weekdays.map(Number)
+            includedWeekdays: Array.isArray(p.included_weekdays)
+              ? (p.included_weekdays as unknown[]).map(Number)
               : null,
           },
         ]),
       );
-
-      // Need to load secondary roster (candidates referenced via candidate_units).
-      const secondaryIds = Array.from(
-        new Set(links.map((l) => l.candidate_id).filter((id) => !primaryCands.some((c) => c.id === id))),
-      );
-      const { data: secondaryCands } = secondaryIds.length
-        ? await supabase
-            .from("candidates")
-            .select("id, full_name, designation_id")
-            .in("id", secondaryIds)
-            .eq("is_enabled", true)
-            .in("status", ["active", "approved"])
-        : { data: [] as Array<{ id: string; full_name: string | null; designation_id: string | null }> };
-      const candById = new Map<string, { id: string; full_name: string | null; designation_id: string | null }>();
-      for (const c of primaryCands) candById.set(c.id, c);
-      for (const c of (secondaryCands ?? [])) candById.set(c.id, c);
-
-      // Roster grouped by unit.
-      const rosterByUnit = new Map<string, Set<string>>();
-      for (const c of primaryCands) {
-        if (!c.unit_id) continue;
-        if (!rosterByUnit.has(c.unit_id)) rosterByUnit.set(c.unit_id, new Set());
-        rosterByUnit.get(c.unit_id)!.add(c.id);
-      }
-      for (const l of links) {
-        if (!candById.has(l.candidate_id)) continue;
-        if (!rosterByUnit.has(l.unit_id)) rosterByUnit.set(l.unit_id, new Set());
-        rosterByUnit.get(l.unit_id)!.add(l.candidate_id);
-      }
-
-      // Resources grouped by (contract_id → designation_id → resource).
-      const resByContractDesig = new Map<string, Map<string, ResourceRow>>();
-      for (const r of resources) {
-        if (!r.designation_id) continue;
-        if (!resByContractDesig.has(r.contract_id)) resByContractDesig.set(r.contract_id, new Map());
-        resByContractDesig.get(r.contract_id)!.set(r.designation_id, r);
-      }
 
       const toResource = (r: ResourceRow): ContractResourceLike => ({
         designationId: r.designation_id ?? "",
@@ -453,6 +294,14 @@ function DashboardPage() {
           : [],
         payrollDayBase: r.payroll_day_base_id ? pdbMap.get(r.payroll_day_base_id) ?? null : null,
       });
+
+      // Resources grouped by (contract_id → designation_id).
+      const resByContractDesig = new Map<string, Map<string, ResourceRow>>();
+      for (const r of resources) {
+        if (!r.designation_id) continue;
+        if (!resByContractDesig.has(r.contract_id)) resByContractDesig.set(r.contract_id, new Map());
+        resByContractDesig.get(r.contract_id)!.set(r.designation_id, r);
+      }
 
       const hydratedResources = (await hydrateFormulasFromMaster(resources.map(toResource))).map(refreshBillingAddOns);
       const hydratedByContractDesignation = new Map(
@@ -473,18 +322,23 @@ function DashboardPage() {
           periodDates.push(d.toISOString().slice(0, 10));
         }
       }
+      const periodDateObjects = periodDates.map((date) => new Date(`${date}T00:00:00`));
+
+      const pairsByUnit = new Map<string, PairRow[]>();
+      for (const p of pairRows) {
+        const list = pairsByUnit.get(p.unit_id);
+        if (list) list.push(p);
+        else pairsByUnit.set(p.unit_id, [p]);
+      }
+
+      const round2 = (n: number) => Math.round(n * 100) / 100;
 
       const pnlByUnit = new Map<string, PnLRow>();
-      for (const contract of currentContracts) {
-        if (!contract.unit_id) continue;
-        const u = unitsById.get(contract.unit_id);
-        if (!u) continue;
-        const resMap = resByContractDesig.get(contract.id) ?? new Map();
-        const isInternal = contract.is_internal === true;
+      for (const u of unitRows) {
+        const resMap = resByContractDesig.get(u.contract_id) ?? new Map<string, ResourceRow>();
+        const isInternal = u.is_internal === true;
 
         // Contract value reference: full-month projected per resource × quantity.
-        // Payroll = wage components + benefits. Invoice = payroll + employer
-        // contributions. Internal contracts remain payroll-only cost centres.
         let contractValue = 0;
         let committedPayroll = 0;
         let committedStrength = 0;
@@ -503,58 +357,34 @@ function DashboardPage() {
             0,
           );
           committedPayroll += qty * payrollPerHead;
-          if (!isInternal) {
-            contractValue += qty * invoicePerHead;
-          }
+          if (!isInternal) contractValue += qty * invoicePerHead;
         }
 
-
-        // Actuals from attendance.
-        const unitRoster = rosterByUnit.get(contract.unit_id) ?? new Set<string>();
-        const unitAtt = attendance.filter((a) => a.unit_id === contract.unit_id);
-
-        // Build (candidate, designation) pairs the same way the Invoice page does.
-        const pairs = new Map<string, { candidateId: string; designationId: string | null }>();
-        const pairKey = (cid: string, did: string | null) => `${cid}|${did ?? "_"}`;
-        for (const cid of unitRoster) {
-          const c = candById.get(cid);
-          if (!c) continue;
-          pairs.set(pairKey(cid, c.designation_id ?? null), {
-            candidateId: cid,
-            designationId: c.designation_id ?? null,
-          });
-        }
-        for (const e of unitAtt) {
-          if (!unitRoster.has(e.candidate_id)) continue;
-          pairs.set(pairKey(e.candidate_id, e.designation_id), {
-            candidateId: e.candidate_id,
-            designationId: e.designation_id,
-          });
-        }
-
+        // Actuals: duty totals already aggregated per employee × designation.
         let invoiceAmount = 0;
         let payrollCost = 0;
-        for (const p of pairs.values()) {
-          if (!p.designationId) continue;
-          const resRow = resMap.get(p.designationId);
+        for (const p of pairsByUnit.get(u.unit_id) ?? []) {
+          const resRow = resMap.get(p.designation_id);
           if (!resRow) continue;
-          const lineEntries = unitAtt
-            .filter((e) => e.candidate_id === p.candidateId && (e.designation_id ?? null) === p.designationId)
-            .map((e) => ({
-              candidate_id: e.candidate_id,
-              entry_date: e.entry_date,
-              code: e.code,
-              ot_hours: e.ot_hours,
-            })) as AttendanceEntryLike[];
-          const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
+          const pDays = round2(Number(p.p_days) || 0);
+          const phDays = round2(Number(p.ph_days) || 0);
+          const otDays = round2(Number(p.ot_days) || 0);
+          const otherPaidDays = round2(Number(p.other_paid_days) || 0);
+          const totals = {
+            pDays,
+            otHours: otDays,
+            otDays,
+            phDays,
+            otherPaidDays,
+            tDays: round2(pDays + phDays + otDays),
+          };
           const resource = hydratedByContractDesignation.get(
-            `${contract.id}|${p.designationId}`,
+            `${u.contract_id}|${p.designation_id}`,
           ) ?? toResource(resRow);
           const wages = computeWages(totals, resource, periodDates.length, {
-            periodDates: periodDates.map((date) => new Date(`${date}T00:00:00`)),
+            periodDates: periodDateObjects,
             epfCapEnabled: u.epf_cap_enabled ?? true,
           });
-          const earnedPayroll = wages.earnedGross;
           const contractedInvoice = resource.components.reduce(
             (sum, item) => sum + (Number(item.amount) || 0),
             0,
@@ -563,49 +393,30 @@ function DashboardPage() {
             0,
           );
           const payrollDays = resolvePayrollDayCount(resource.payrollDayBase, periodDates) ?? wages.baseDays;
-          const earnedInvoice = payrollDays > 0
-            ? (contractedInvoice / payrollDays) * totals.tDays
-            : 0;
+          const earnedInvoice = payrollDays > 0 ? (contractedInvoice / payrollDays) * totals.tDays : 0;
           if (!isInternal) invoiceAmount += earnedInvoice;
-          payrollCost += earnedPayroll;
+          payrollCost += wages.earnedGross;
         }
 
-        const actualStrength = unitRoster.size;
         const variance = invoiceAmount - payrollCost;
-        const variancePct = invoiceAmount > 0 ? (variance / invoiceAmount) * 100 : 0;
-        const existing = pnlByUnit.get(u.id);
-        if (existing) {
-          existing.contract_value += contractValue;
-          existing.invoice_amount += invoiceAmount;
-          existing.payroll_cost += payrollCost;
-          existing.committed_payroll += committedPayroll;
-          existing.committed_strength += committedStrength;
-          existing.internal = existing.internal && isInternal;
-          existing.variance = existing.invoice_amount - existing.payroll_cost;
-          existing.variance_pct = existing.invoice_amount > 0
-            ? (existing.variance / existing.invoice_amount) * 100
-            : 0;
-        } else {
-          pnlByUnit.set(u.id, {
-            unit_id: u.id,
-            unit_code: u.code,
-            unit_name: u.name,
-            customer_name: (u.customer_id && custNameById.get(u.customer_id)) || "—",
-            contract_value: contractValue,
-            invoice_amount: invoiceAmount,
-            payroll_cost: payrollCost,
-            variance,
-            variance_pct: variancePct,
-            internal: isInternal,
-            committed_payroll: committedPayroll,
-            committed_strength: committedStrength,
-            actual_strength: actualStrength,
-          });
-        }
+        pnlByUnit.set(u.unit_id, {
+          unit_id: u.unit_id,
+          unit_code: u.unit_code,
+          unit_name: u.unit_name,
+          customer_name: u.customer_name || "—",
+          contract_value: contractValue,
+          invoice_amount: invoiceAmount,
+          payroll_cost: payrollCost,
+          variance,
+          variance_pct: invoiceAmount > 0 ? (variance / invoiceAmount) * 100 : 0,
+          internal: isInternal,
+          committed_payroll: committedPayroll,
+          committed_strength: committedStrength,
+          actual_strength: Number(u.actual_strength) || 0,
+        });
       }
-      void emptyUuid;
-      const pnlRows = Array.from(pnlByUnit.values()).sort((a, b) => b.contract_value - a.contract_value);
 
+      const pnlRows = Array.from(pnlByUnit.values()).sort((a, b) => b.contract_value - a.contract_value);
       const pnlTotals = pnlRows.reduce(
         (s, r) => ({ contract: s.contract + r.contract_value, invoice: s.invoice + r.invoice_amount, payroll: s.payroll + r.payroll_cost }),
         { contract: 0, invoice: 0, payroll: 0 },
