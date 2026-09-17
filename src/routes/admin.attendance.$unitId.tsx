@@ -3139,10 +3139,14 @@ function MusterRollPage() {
                                 setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
                               }}
                               className="flex items-center gap-1 rounded border border-dashed border-slate-300 px-1.5 py-0.5 text-[11px] italic text-slate-400 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                              title="Search and map an employee to this slot"
+                              title={
+                                mr.beyondAgreed
+                                  ? "Agreed deployment is already filled — you can still deploy more (billing is on actuals)"
+                                  : "Search and map an employee to this slot"
+                              }
                             >
                               <Search className="h-3 w-3" />
-                              Unassigned
+                              {mr.beyondAgreed ? "Add deployment" : "Unassigned"}
                             </button>
                           ) : (
                             <span>{mr.emp.full_name || "—"}</span>
