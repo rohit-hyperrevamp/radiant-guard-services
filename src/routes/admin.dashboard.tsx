@@ -174,13 +174,15 @@ function DashboardPage() {
         fuelTotal?: number | string;
         items?: number;
         sheetCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
-        runCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
+        runCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number; open?: number; processed?: number };
       };
-      const buckets = (v?: { approved?: number; pending?: number; draft?: number; rejected?: number }) => ({
+      const buckets = (v?: { approved?: number; pending?: number; draft?: number; rejected?: number; open?: number; processed?: number }) => ({
         approved: v?.approved ?? 0,
         pending: v?.pending ?? 0,
         draft: v?.draft ?? 0,
         rejected: v?.rejected ?? 0,
+        open: v?.open ?? 0,
+        processed: v?.processed ?? 0,
       });
 
       return {
@@ -467,7 +469,7 @@ function DashboardPage() {
         <StatusTile icon={ClipboardList} label="Attendance" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending} draft={data.sheetCounts.draft} rejected={data.sheetCounts.rejected} accent="emerald" to="/admin/attendance" />
       )});
       if (can("payroll")) t.push({ key: "pay", module: "payroll", node: (
-        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.approved} pending={data.runCounts.pending} draft={data.runCounts.draft} rejected={data.runCounts.rejected} accent="sky" to="/admin/payroll" />
+        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.approved} pending={data.runCounts.pending} draft={data.runCounts.draft} rejected={data.runCounts.rejected} open={data.runCounts.open} openLabel="Open" accent="sky" to="/admin/payroll" />
       )});
       if (can("invoice")) t.push({ key: "inv2", module: "invoice", node: (
         <StatusTile icon={Receipt} label="Invoicing" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected} draft={0} rejected={0} accent="indigo" approvedLabel="Ready" pendingLabel="Awaiting" to="/admin/invoice" />
@@ -720,16 +722,17 @@ function DualTile({ icon, label, primary, primaryLabel, secondary, secondaryLabe
   );
 }
 
-function StatusTile({ icon, label, approved, pending, draft, rejected, approvedLabel = "Approved", pendingLabel = "Pending", to, accent = "emerald" }: {
+function StatusTile({ icon, label, approved, pending, draft, rejected, open, approvedLabel = "Approved", pendingLabel = "Pending", openLabel = "Open", to, accent = "emerald" }: {
   icon: React.ComponentType<{ className?: string }>; label: string;
   approved: number; pending: number; draft: number; rejected: number;
-  accent?: Accent; approvedLabel?: string; pendingLabel?: string; to: string;
+  open?: number;
+  accent?: Accent; approvedLabel?: string; pendingLabel?: string; openLabel?: string; to: string;
 }) {
   const total = Math.max(approved + pending + draft + rejected, 1);
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
-      <div className="relative mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3">
+      <div className={`relative mt-2 grid gap-2 sm:mt-3 sm:gap-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}>
         <div>
           <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{approved}</div>
           <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{approvedLabel}</div>
@@ -738,6 +741,12 @@ function StatusTile({ icon, label, approved, pending, draft, rejected, approvedL
           <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{pending}</div>
           <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{pendingLabel}</div>
         </div>
+        {open != null && (
+          <div>
+            <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{open}</div>
+            <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{openLabel}</div>
+          </div>
+        )}
       </div>
       <div className="relative mt-auto flex h-1.5 overflow-hidden rounded-full bg-card/60">
         {approved > 0 && <div className={ACCENT_BAR[accent]} style={{ width: `${(approved / total) * 100}%` }} />}
