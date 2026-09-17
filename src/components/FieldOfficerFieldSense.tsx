@@ -5,9 +5,7 @@ import { toast } from "sonner";
 import {
   Camera,
   CheckCircle2,
-  Clock,
   Flag,
-  LogOut,
   Loader2,
   Map as MapIcon,
   MapPin,
@@ -29,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { capturePhoto } from "@/lib/native-camera";
 import { isNativePlatform } from "@/lib/native";
 import {
-  checkOut as attendanceCheckOut,
   distanceMeters,
   formatDistance,
   getCurrentPosition,
