@@ -338,16 +338,16 @@ function AdminLayout() {
       return;
 
     }
-    // Field officers must never land on the Inventory Command Center hub.
-    if (roleKey === "field_officer" && !isSuperAdmin) {
-      if (pathname === "/admin/inventory" || pathname === "/admin/inventory/" || pathname.startsWith("/admin/inventory/dashboard")) {
-        navigate({ to: "/admin/field-dashboard", replace: true });
-        return;
-      }
-    }
     const hit = pathToModule.find((p) => pathname === p.prefix || pathname.startsWith(p.prefix + "/"));
     if (!hit) return;
-    if (hit.module === "inventory" && roleKey === "field_officer" && (pathname.startsWith("/admin/inventory/collections") || pathname.startsWith("/admin/inventory/issuances"))) {
+    if (hit.module === "inventory" && roleKey === "field_officer" && (
+      pathname === "/admin/inventory" ||
+      pathname === "/admin/inventory/" ||
+      pathname.startsWith("/admin/inventory/demands") ||
+      pathname.startsWith("/admin/inventory/goods-receipts") ||
+      pathname.startsWith("/admin/inventory/collections") ||
+      pathname.startsWith("/admin/inventory/issuances")
+    )) {
       return;
     }
     if (!can(hit.module)) {
@@ -483,8 +483,13 @@ function AdminLayout() {
         if (c.to === "/admin/inventory/issuances" && isFO) return true;
         return !c.sub || canSub("inventory", c.sub);
       });
-      // Field officers do not see the Inventory Command Center dashboard.
-      if (isFO) return list.filter((c) => c.to !== "/admin/inventory");
+      if (isFO) return list.filter((c) => [
+        "/admin/inventory",
+        "/admin/inventory/demands",
+        "/admin/inventory/goods-receipts",
+        "/admin/inventory/issuances",
+        "/admin/inventory/collections",
+      ].includes(c.to));
       return list;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
