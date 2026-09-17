@@ -1003,7 +1003,7 @@ function StatBar({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function HeroStat({ label, value, icon: Icon, tone, to }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet"; to: string }) {
+function HeroStat({ label, value, icon: Icon, tone, to, badge }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet"; to: string; badge?: string }) {
   const surface = {
     blue: "bg-[rgb(var(--tint-blue))]",
     mint: "bg-[rgb(var(--tint-emerald))]",
@@ -1011,8 +1011,11 @@ function HeroStat({ label, value, icon: Icon, tone, to }: { label: string; value
   }[tone];
   return (
     <Link to={to} className={cn("group relative flex min-h-[116px] min-w-0 flex-col justify-between rounded-3xl border border-border/50 p-4 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:p-5", surface)}>
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
-        <Icon className="h-4 w-4" />
+      <div className="flex items-start justify-between gap-2">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
+          <Icon className="h-4 w-4" />
+        </div>
+        {badge ? <span className="rounded-full bg-card/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary shadow-sm">{badge}</span> : null}
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
         <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
