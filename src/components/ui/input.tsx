@@ -379,7 +379,7 @@ FormattedInput.displayName = "FormattedInput";
 const Input = React.forwardRef<
   HTMLInputElement,
   React.ComponentProps<"input"> & { format?: InputFormat }
->(({ className, type, format, ...props }, ref) => {
+>(({ className, type, format, onChange, inputMode, autoCapitalize, ...props }, ref) => {
   if (format) {
     return <FormattedInput className={className} format={format} {...props} ref={ref} />;
   }
@@ -389,7 +389,22 @@ const Input = React.forwardRef<
   if (type === "number") {
     return <NumberInput className={className} {...props} ref={ref} />;
   }
-  return <input data-slot="input" type={type} className={cn(baseClasses, className)} ref={ref} {...props} />;
+  const capOff = !shouldCapitalize(type, inputMode, autoCapitalize);
+  return (
+    <input
+      data-slot="input"
+      type={type}
+      inputMode={inputMode}
+      autoCapitalize={autoCapitalize ?? (capOff ? undefined : "sentences")}
+      onChange={(e) => {
+        if (!capOff) capitalizeFirstLetter(e);
+        onChange?.(e);
+      }}
+      className={cn(baseClasses, className)}
+      ref={ref}
+      {...props}
+    />
+  );
 });
 Input.displayName = "Input";
 
