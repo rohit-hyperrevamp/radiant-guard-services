@@ -37,7 +37,6 @@ import { readStoredAuthUser } from "@/lib/auth";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
-import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 import { ListSkeleton } from "@/components/Skeletons";
 import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
@@ -634,7 +633,7 @@ function FieldOfficerDashboard() {
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className="flex flex-col gap-4">
           {/* Identity anchors the workspace without repeating the profile photo. */}
           <section className="relative isolate flex min-h-[280px] overflow-hidden rounded-3xl border border-border/70 bg-accent shadow-sm">
             {data?.mePhoto ? (
@@ -708,8 +707,7 @@ function FieldOfficerDashboard() {
         </section>
         )}
 
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div className="min-w-0 [&>*]:h-full"><MyLiveStatusCard /></div>
+        <div className="flex flex-col gap-4">
           <section className="min-w-0">
         <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
           <div>

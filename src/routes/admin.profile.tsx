@@ -1,3 +1,4 @@
+import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -853,7 +854,7 @@ function ProfilePage() {
       />
 
       <div className="grid min-h-0 min-w-0 flex-1 items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-4 lg:h-full lg:overflow-hidden">
+        <aside className="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:pr-1">
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col items-center gap-4 p-5 text-center">
           <div className="relative shrink-0">
@@ -957,6 +958,7 @@ function ProfilePage() {
         </div>
       </div>
 
+      <div className="shrink-0"><MyLiveStatusCard /></div>
       <LanguagePreferenceCard candidateId={profile.id} />
       {bottomActions}
       </aside>
