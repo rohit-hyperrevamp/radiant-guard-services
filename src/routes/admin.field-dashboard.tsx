@@ -613,7 +613,7 @@ function FieldOfficerDashboard() {
   const onbDelta = (data?.pendingOnboardingTotal ?? 0) - (data?.pendingOnboardingLastWeek ?? 0);
   const totalListings = data?.guardsTotal ?? 0;
   const attnPresent = Math.round(((data?.attendanceRateToday ?? 0) / 100) * totalListings);
-  const totalItems = data?.inventoryItemsTotal ?? 0;
+  const totalItems = data?.myStockQty ?? 0;
 
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
@@ -621,7 +621,7 @@ function FieldOfficerDashboard() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <HeroStat label="Team" value={totalListings} icon={ShieldCheck} tone="blue" to="/admin/my-reportees" />
           <HeroStat label="Present" value={`${attnPresent} · ${data?.attendanceRateToday ?? 0}%`} icon={UserCheck} tone="mint" to="/admin/attendance" />
-          <HeroStat label="Items" value={totalItems} icon={Warehouse} tone="violet" to="/admin/inventory/items" />
+          <HeroStat label="Inventory" value={totalItems} icon={Warehouse} tone="violet" to="/admin/inventory" />
         </div>
 
         <MarkAttendanceCard candidateId={data?.meId ?? null} />
