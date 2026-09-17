@@ -48,6 +48,7 @@ import {
   IdCard,
   LayoutList,
   Loader2,
+  MapPin,
   Network,
   Plus,
   Search,
@@ -1928,6 +1929,37 @@ function EmployeesPage() {
     const id = c.unit_id || primaryUnitIdByCandidate.get(c.id) || null;
     return id ? unitMap.get(id) : undefined;
   };
+  /**
+   * Every client site a person covers. A Field Officer's `unit_id` is only their
+   * Radiant home/base unit — their real coverage lives in `candidate_units`.
+   */
+  const siteIdsByCandidate = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const cu of candidateUnitsQuery.data ?? []) {
+      if (!cu.unit_id) continue;
+      const list = m.get(cu.candidate_id);
+      if (list) { if (!list.includes(cu.unit_id)) list.push(cu.unit_id); }
+      else m.set(cu.candidate_id, [cu.unit_id]);
+    }
+    return m;
+  }, [candidateUnitsQuery.data]);
+  const siteCountOf = (candidateId: string) => siteIdsByCandidate.get(candidateId)?.length ?? 0;
+  const [siteMapTarget, setSiteMapTarget] = useState<CandidateListItem | null>(null);
+  const [siteMapSearch, setSiteMapSearch] = useState("");
+  const siteMapRows = useMemo(() => {
+    if (!siteMapTarget) return [];
+    const q = siteMapSearch.trim().toLowerCase();
+    return (siteIdsByCandidate.get(siteMapTarget.id) ?? [])
+      .map((id) => unitMap.get(id))
+      .filter((u): u is NonNullable<typeof u> => !!u)
+      .filter((u) =>
+        !q ||
+        (u.name ?? "").toLowerCase().includes(q) ||
+        (u.code ?? "").toLowerCase().includes(q) ||
+        (u.customer_name ?? "").toLowerCase().includes(q),
+      )
+      .sort((a, b) => (a.customer_name ?? "").localeCompare(b.customer_name ?? "") || (a.name ?? "").localeCompare(b.name ?? ""));
+  }, [siteMapTarget, siteMapSearch, siteIdsByCandidate, unitMap]);
   /** The saved employee classification is authoritative; unit mappings are operational scope. */
   const isBillableCandidate = (c: Pick<CandidateListItem, "non_billable">) => !c.non_billable;
   const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
@@ -3235,6 +3267,8 @@ function EmployeesPage() {
       const unit = unitOfCandidate(c);
       const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
       const deptName = (c.department_id && deptMap.get(c.department_id)) || "";
+      const siteCount = siteCountOf(c.id);
+      const showSiteMap = siteCount > 1;
       const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
       const isDisabled = mode === "employee" && !c.is_enabled;
       const isPendingOffboarding =
@@ -3288,6 +3322,15 @@ function EmployeesPage() {
                     <div className="truncate" title={unit?.name ?? ""}>
                       <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Client</span>
                       {unit?.name || "—"}
+                      {showSiteMap && (
+                        <button
+                          type="button"
+                          onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                          className="ml-1.5 font-semibold text-primary underline-offset-2 hover:underline"
+                        >
+                          +{siteCount - 1} more
+                        </button>
+                      )}
                     </div>
                   )}
                   {(mode === "candidate" || columnsVisible.designation) && (
@@ -3319,7 +3362,7 @@ function EmployeesPage() {
             <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
-            <td className="hidden max-w-[150px] px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden max-w-[170px] px-2.5 py-2.5 2xl:table-cell">
               {unit ? (
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-foreground" title={unit.name}>{unit.name}</div>
@@ -3327,6 +3370,17 @@ function EmployeesPage() {
                 </div>
               ) : (
                 "—"
+              )}
+              {showSiteMap && (
+                <button
+                  type="button"
+                  onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                  className="mt-1 inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+                  title="View all client sites this person covers"
+                >
+                  <MapPin className="h-3 w-3" />
+                  {siteCount} sites
+                </button>
               )}
             </td>
           )}
@@ -3550,6 +3604,18 @@ function EmployeesPage() {
                   title="Enable this rehire and issue a new employee ID"
                 >
                   Enable
+                </Button>
+              )}
+              {showSiteMap && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                  className="h-8 w-8 rounded-full border-primary/25 bg-primary/5 text-primary hover:bg-primary/10"
+                  title={`View site map — ${siteCount} client sites`}
+                  aria-label="View site map"
+                >
+                  <MapPin className="h-4 w-4" />
                 </Button>
               )}
               {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
@@ -4832,6 +4898,47 @@ function EmployeesPage() {
         candidateId={signTarget?.id ?? null}
         docType={signTarget?.docType ?? "nda"}
       />
+
+      <Dialog open={!!siteMapTarget} onOpenChange={(o) => { if (!o) { setSiteMapTarget(null); setSiteMapSearch(""); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Site map — {siteMapTarget?.full_name || siteMapTarget?.employee_code}</DialogTitle>
+            <DialogDescription>
+              {siteCountOf(siteMapTarget?.id ?? "")} client sites covered. Base unit:{" "}
+              {siteMapTarget ? unitOfCandidate(siteMapTarget)?.name || "—" : "—"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={siteMapSearch}
+              onChange={(e) => setSiteMapSearch(e.target.value)}
+              placeholder="Search client, site or site code"
+              className="h-9 pl-9 text-sm"
+            />
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto rounded-xl border">
+            {siteMapRows.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No sites match this search.</div>
+            ) : (
+              <ul className="divide-y">
+                {siteMapRows.map((u) => (
+                  <li key={u.id} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">{u.customer_name || "—"}</div>
+                    </div>
+                    <span className="shrink-0 rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {u.code}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <EmployeeDocumentsExportDialog
         open={docsExportOpen}
