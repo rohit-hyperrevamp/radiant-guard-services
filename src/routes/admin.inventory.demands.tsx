@@ -354,6 +354,9 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
     () => warehouses.find((w) => w.is_default)?.id ?? warehouses[0]?.id ?? "",
     [warehouses],
   );
+  const defaultSource = isFieldOfficer && primaryUnit?.branch_id
+    ? `br:${primaryUnit.branch_id}`
+    : (defaultWarehouseId ? `wh:${defaultWarehouseId}` : "");
   const [source, setSource] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [stepKey, setStepKey] = useState("request");
@@ -371,7 +374,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       } else if (initial.branch_id) {
         setSource(`br:${initial.branch_id}`);
       } else {
-        setSource(defaultWarehouseId ? `wh:${defaultWarehouseId}` : "");
+        setSource(defaultSource);
       }
       const { data } = await supabase.from("inv_demand_lines" as never).select("*").eq("demand_id", initial.id).order("sort_order");
       setLines(((data as unknown as Record<string, unknown>[]) ?? []).map((r) => ({
@@ -385,7 +388,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       setDemandDate(new Date().toISOString().slice(0, 10));
       setNotes("");
       setLines([]);
-      setSource(defaultWarehouseId ? `wh:${defaultWarehouseId}` : "");
+      setSource(defaultSource);
     }
     setStepKey("request");
   });
@@ -486,9 +489,11 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       const { error: linesErr } = await supabase.from("inv_demand_lines" as never).insert(payload as never);
       if (linesErr) throw linesErr;
       await logActivity({ module: MODULE, action: submit ? "post" : (initial ? "update" : "create"), entityType: ENTITY, entityId: id!, entityLabel: initial?.demand_number ?? "Demand" });
-      const destLabel = isWarehouse
+       const destLabel = isWarehouse
         ? `${warehouseMap.get(targetWarehouseId)?.name ?? "warehouse"} (Warehouse)`
-        : (branchMap.get(targetBranchId)?.name ?? "branch");
+         : (primaryUnit?.branch_id === targetBranchId
+           ? `${primaryUnit.unit_name} (${primaryUnit.unit_code})`
+           : (branchMap.get(targetBranchId)?.name ?? "branch"));
       void notifySaved({ title: "Saved", description: submit ? `Demand submitted to ${destLabel}` : "Draft saved" });
       onSaved(); onOpenChange(false);
     } catch (e) {
@@ -500,7 +505,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
 
   const submitLabel = isWarehouse
     ? `Submit to ${warehouseMap.get(targetWarehouseId)?.name ?? "Warehouse"}`
-    : `Submit to ${branchMap.get(targetBranchId)?.name ?? "Branch"}`;
+    : `Submit to ${primaryUnit?.branch_id === targetBranchId ? primaryUnit.unit_name : (branchMap.get(targetBranchId)?.name ?? "Branch")}`;
   const steps: GuidedFormStep[] = [
     { key: "request", label: "Request", caption: "Date and fulfilment source" },
     { key: "items", label: "Items", caption: "Products, sizes and quantities" },
@@ -547,12 +552,15 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
               <Select value={source} onValueChange={(v) => setSource(v)}>
                 <SelectTrigger className="h-10 w-full"><SelectValue placeholder="Choose source" /></SelectTrigger>
                 <SelectContent>
-                  {warehouses.map((w) => (
-                    <SelectItem key={`wh-${w.id}`} value={`wh:${w.id}`}>{w.name} (Warehouse)</SelectItem>
-                  ))}
                    {isFieldOfficer && primaryUnit?.branch_id && (
                      <SelectItem value={`br:${primaryUnit.branch_id}`}>{primaryUnit.unit_name} ({primaryUnit.unit_code}) · Primary</SelectItem>
                    )}
+                  {warehouses.map((w) => (
+                     <SelectItem key={`wh-${w.id}`} value={`wh:${w.id}`}>{w.name}{isFieldOfficer ? " · Secondary" : " (Warehouse)"}</SelectItem>
+                  ))}
+                   {!isFieldOfficer && branches.map((b) => (
+                     <SelectItem key={`br-${b.id}`} value={`br:${b.id}`}>{b.name}{b.code ? ` (${b.code})` : ""}</SelectItem>
+                   ))}
                 </SelectContent>
               </Select>
               {!isFieldOfficer && <p className="text-[11px] text-muted-foreground break-words">From branch: <span className="font-medium">{branchLabel}</span></p>}
