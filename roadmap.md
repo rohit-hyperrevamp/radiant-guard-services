@@ -104,7 +104,7 @@
 - [x] Show today's completed site visits below the next-visit action.
 - [x] Link each visit and the next action to Radar.
 - [x] Refresh dashboard history immediately after completing a visit.
-- [ ] Verify the dashboard visit history against production data.
+- [x] Verify the dashboard visit history against production data.
 
 ## Field officer inventory catalogue and request sources
 - [ ] Add only Uniform and Shoe with approved sizes.
