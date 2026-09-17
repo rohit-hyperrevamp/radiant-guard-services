@@ -1340,7 +1340,11 @@ function MusterRollPage() {
     for (const d of contractDesignations) {
       const filled = filledByDesignation.get(d.designationId) ?? 0;
       const vacantCount = Math.max(0, (d.quantity ?? 1) - filled);
-      for (let i = 0; i < vacantCount; i += 1) {
+      // Agreed deployment is a commitment, not a cap — billing runs on actuals.
+      // Once the agreed count is filled we still offer one open line so more
+      // people can be deployed on the same designation.
+      const extraSlots = vacantCount === 0 ? 1 : 0;
+      for (let i = 0; i < vacantCount + extraSlots; i += 1) {
         out.push({
           key: `vacant|${d.designationId}|${i}`,
           candidateId: "",
@@ -1356,6 +1360,7 @@ function MusterRollPage() {
           } as unknown as NonNullable<typeof employees>[number],
           isPrimary: true,
           vacant: true,
+          beyondAgreed: vacantCount === 0,
         });
       }
     }
