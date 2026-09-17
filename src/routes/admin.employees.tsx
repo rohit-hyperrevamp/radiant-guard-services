@@ -5504,9 +5504,10 @@ function CandidateWizard({
     queryFn: async (): Promise<string[]> => {
       const { data: contracts, error: cErr } = await supabase
         .from("client_contracts" as never)
+        // Expired / inactive contracts still define the valid designations for a
+        // unit: deployment may continue while a fresh contract is being drawn up.
         .select("id,unit_id,status")
-        .in("unit_id", desigLookupUnitIds)
-        .eq("status", "active");
+        .in("unit_id", desigLookupUnitIds);
       if (cErr) throw cErr;
       const contractIds = ((contracts ?? []) as { id: string }[]).map((c) => c.id);
       if (contractIds.length === 0) return [];
