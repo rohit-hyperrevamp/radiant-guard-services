@@ -21,6 +21,8 @@ import {
   ArrowUpRight,
   PackageCheck,
   Route as RouteIcon,
+  Flag,
+  Clock,
 } from "lucide-react";
 
 
@@ -823,6 +825,9 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
   const todayVisits = visits.filter((visit) => visit.visit_date === todayStr);
   const openVisit = todayVisits.find((visit) => !visit.check_out_at) ?? null;
   const completedToday = todayVisits.filter((visit) => visit.check_out_at).length;
+  const completedTodayVisits = todayVisits
+    .filter((visit) => visit.check_out_at)
+    .sort((a, b) => new Date(b.check_out_at ?? b.check_in_at).getTime() - new Date(a.check_out_at ?? a.check_in_at).getTime());
   const isOnDuty = !!q.data?.punch?.check_in_at && !q.data?.punch?.check_out_at;
   const nextVisitNumber = completedToday + 1;
   const monthCount = visits.length;
@@ -868,6 +873,14 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
   })();
 
   const monthLink = { to: "/admin/field-sense", search: { range: "this_month" } } as const;
+  const formatVisitTime = (value: string | null) => value
+    ? new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const visitDuration = (checkIn: string, checkOut: string | null) => {
+    if (!checkOut) return "In progress";
+    const minutes = Math.max(0, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60_000));
+    return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`;
+  };
 
   return (
     <section>
@@ -895,6 +908,52 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         <div className="mb-3 flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 opacity-75">
           <div className="min-w-0"><div className="text-sm font-bold text-foreground">Log in to start client visits</div><div className="mt-0.5 text-xs text-muted-foreground">My Client Visits unlocks after today’s attendance login.</div></div>
           <RouteIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </div>
+      )}
+
+      {completedTodayVisits.length > 0 && (
+        <div className="mb-3 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/50 px-3 py-2.5">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Today's visit history</div>
+            <Link to="/admin/field-sense" search={{ range: "today" }} className="text-[10px] font-semibold text-primary hover:underline">
+              View in Radar
+            </Link>
+          </div>
+          <div className="divide-y divide-border/50">
+            {completedTodayVisits.map((visit) => {
+              const unit = scopedUnits.find((row) => row.id === visit.unit_id);
+              return (
+                <Link
+                  key={visit.id}
+                  to="/admin/field-sense"
+                  search={{ range: "today" }}
+                  className="group flex min-h-16 items-center gap-3 px-3 py-2.5 transition hover:bg-secondary/40"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <Flag className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-foreground">
+                      Visit #{visit.visit_seq} · {unit?.name ?? "Client site"}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                      {unit?.customer_name ?? unit?.name ?? "Client"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="flex items-center justify-end gap-1 text-[11px] font-semibold tabular-nums text-foreground">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      {formatVisitTime(visit.check_in_at)} → {formatVisitTime(visit.check_out_at)}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                      {visitDuration(visit.check_in_at, visit.check_out_at)}{visit.customer_rating != null ? ` · ★ ${visit.customer_rating}` : ""}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 

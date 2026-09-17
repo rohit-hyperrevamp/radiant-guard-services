@@ -1057,6 +1057,7 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           onDone={() => {
             setCheckOutOpen(false);
             void qc.invalidateQueries({ queryKey: ["fo-fs-visits", candidateId, todayPunchDate()] });
+            void qc.invalidateQueries({ queryKey: ["fo-dashboard-visits-v2", candidateId] });
             void qc.invalidateQueries({ queryKey: ["fo-fs-track", candidateId, todayPunchDate()] });
             void qc.invalidateQueries({ queryKey: ["fo-fs-month-counts", candidateId, todayPunchDate().slice(0, 7)] });
             void qc.invalidateQueries({ queryKey: ["fo-fs-last-visit", candidateId] });
