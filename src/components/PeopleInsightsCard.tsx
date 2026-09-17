@@ -49,9 +49,9 @@ export function PeopleInsightsCard(props: Variant & { isLoading?: boolean }) {
   const { kind, isLoading } = props;
   const meta =
     kind === "birthdays"
-      ? { title: "Upcoming Birthdays", subtitle: "This year", Icon: Cake, empty: "No more birthdays this year." }
+      ? { title: "Upcoming Birthdays", subtitle: "Next 12 months", Icon: Cake, empty: "No birthdays yet — add dates of birth to employee records." }
       : kind === "anniversaries"
-        ? { title: "Work Anniversaries", subtitle: "This year", Icon: PartyPopper, empty: "No more anniversaries this year." }
+        ? { title: "Work Anniversaries", subtitle: "Next 12 months", Icon: PartyPopper, empty: "No anniversaries yet — needs at least one completed year." }
         : { title: "Employees 60+", subtitle: "Sorted by age", Icon: ShieldAlert, empty: "No employees aged 60 or above." };
 
   return (
