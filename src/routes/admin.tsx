@@ -979,9 +979,9 @@ function AdminLayout() {
               }));
           }
           // Build primary destinations in priority order, filtered by permissions.
-          // FO gets exactly 3 tiles (Dashboard, Attendance, Uniform); others get up to 4.
+          // FO gets exactly 3 tiles (Dashboard, Radar, Candidates) + More.
           const priorityKeys = isFieldOfficer
-            ? ["dashboard", "attendance", "inventory"]
+            ? ["dashboard", "field-sense", "employees"]
             : ["dashboard", "employees", "attendance", "payroll", "invoice", "inventory", "organizations"];
           const cap = isFieldOfficer ? 3 : 4;
           const byKey = new Map(visibleGroups.map((g) => [g.key, g]));

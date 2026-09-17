@@ -960,7 +960,7 @@ function ProfilePage() {
 
       <div className="shrink-0"><MyLiveStatusCard /></div>
       <LanguagePreferenceCard candidateId={profile.id} />
-      {bottomActions}
+      <div className="hidden lg:block">{bottomActions}</div>
       </aside>
 
       <main className="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
@@ -1653,6 +1653,7 @@ function ProfilePage() {
       </div>
       </main>
       </div>
+      <div className="lg:hidden">{bottomActions}</div>
     </div>
   );
 }
