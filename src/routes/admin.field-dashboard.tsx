@@ -654,7 +654,7 @@ function FieldOfficerDashboard() {
               <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <PastelTile
               palette="rose"
               label="Pending onboarding"
@@ -836,14 +836,6 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
     ? rated.reduce((s, v) => s + (v.customer_rating ?? 0), 0) / rated.length
     : 0;
 
-  const perUnit = new Map<string, number>();
-  for (const v of visits) perUnit.set(v.unit_id, (perUnit.get(v.unit_id) ?? 0) + 1);
-  const scopedCounts = scopedUnits.map((u) => ({ u, count: perUnit.get(u.id) ?? 0 }));
-  const visited = scopedCounts.filter((r) => r.count > 0);
-  const most = visited.length ? [...visited].sort((a, b) => b.count - a.count)[0] : null;
-  const least = visited.length ? [...visited].sort((a, b) => a.count - b.count)[0] : null;
-  const unvisitedCount = scopedCounts.filter((r) => r.count === 0).length;
-
   // Hours today
   const hoursLabel = (() => {
     const p = q.data?.punch;
@@ -995,42 +987,6 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         </Link>
       </div>
 
-      {/* Client insights this month */}
-      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <Link
-          to="/admin/field-sense"
-          search={{ range: "this_month", highlight: "most" }}
-          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-emerald-200/50 dark:ring-emerald-400/15"
-        >
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Most visited</div>
-          <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{most?.u.customer_name ?? "—"}</div>
-          <div className="text-[10px] text-muted-foreground">
-            {most ? `${most.count} visit${most.count === 1 ? "" : "s"}` : "no visits yet"}
-          </div>
-        </Link>
-        <Link
-          to="/admin/field-sense"
-          search={{ range: "this_month", highlight: "least" }}
-          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-rose-200/50 dark:ring-rose-400/15"
-        >
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Least visited</div>
-          <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{least?.u.customer_name ?? "—"}</div>
-          <div className="text-[10px] text-muted-foreground">
-            {least ? `${least.count} visit${least.count === 1 ? "" : "s"}` : "no visits yet"}
-          </div>
-        </Link>
-        <Link
-          to="/admin/field-sense"
-          search={{ range: "this_month", highlight: "unvisited" }}
-          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-slate-200/60 dark:ring-slate-400/15"
-        >
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Not visited</div>
-          <div className="mt-0.5 font-display text-base font-bold tabular-nums text-foreground sm:text-lg">
-            {unvisitedCount}
-            <span className="ml-1 text-[10px] font-medium text-muted-foreground">of {scopedUnits.length}</span>
-          </div>
-        </Link>
-      </div>
     </section>
   );
 }
@@ -1097,18 +1053,18 @@ function PastelTile({
 
 
   const inner = (
-    <div className={cn("relative flex h-full min-h-[132px] min-w-0 flex-col justify-between overflow-hidden rounded-3xl border border-border/50 p-4 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md sm:p-5", surface)}>
+    <div className={cn("relative flex h-full min-h-[104px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-border/50 p-3.5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md", surface)}>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
           <div className="text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">{label}</div>
           <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div>
         </div>
-        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl", iconTone)}>
+        <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", iconTone)}>
           <Icon className="h-4 w-4" />
         </span>
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
-        <div className="text-[26px] font-bold leading-none tabular-nums text-foreground sm:text-[34px]">
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <div className="text-[25px] font-bold leading-none tabular-nums text-foreground">
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
