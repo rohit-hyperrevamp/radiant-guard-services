@@ -149,6 +149,7 @@ export function ComplianceSection({
   const esic = c.esic_enabled ?? true;
   const pt = c.pt_enabled ?? true;
   const branches = esicBranches ?? [];
+  const hasUan = c.has_uan ?? Boolean(String(c.uan ?? "").trim());
   
   const toggleRow = (label: string, desc: string, checked: boolean, onChange: (v: boolean) => void) => (
     <div className="modern-form-toggle">
@@ -163,15 +164,23 @@ export function ComplianceSection({
     <div>
       <SectionHeader title="Compliance" desc="Statutory contributions applicable to the candidate" />
       <div className="space-y-3">
-        <Field label="UAN (Universal Account Number)" required>
-          <Input format="uan" value={c.uan ?? ""} onChange={(e) => setSection("compliance", { uan: e.target.value })} />
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Mandatory · 12 digits and must start with 1.
-            {c.uan && !/^1\d{11}$/.test(String(c.uan).trim()) ? (
-              <span className="ml-1 font-medium text-rose-500">Invalid UAN</span>
-            ) : null}
-          </p>
+        <Field label="Do you have a UAN?" required>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant={hasUan ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: true })}>Yes</Button>
+            <Button type="button" variant={!hasUan ? "default" : "outline"} onClick={() => setSection("compliance", { has_uan: false, uan: "", uan_missing_since: c.uan_missing_since || new Date().toISOString().slice(0, 10) })}>No</Button>
+          </div>
         </Field>
+        {hasUan ? (
+          <Field label="UAN (Universal Account Number)" required>
+            <Input format="uan" value={c.uan ?? ""} onChange={(e) => setSection("compliance", { uan: e.target.value, has_uan: true })} />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              12 digits and must start with 1.
+              {c.uan && !/^1\d{11}$/.test(String(c.uan).trim()) ? <span className="ml-1 font-medium text-rose-500">Invalid UAN</span> : null}
+            </p>
+          </Field>
+        ) : (
+          <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">UAN can be added later and is due within seven days of onboarding.</p>
+        )}
         {toggleRow("Provident Fund (PF)", "Enable PF contributions for this candidate", pf, (v) => setSection("compliance", { pf_enabled: v }))}
         {toggleRow("Employees' Pension Scheme (EPS)", "Enable EPS contributions", eps, (v) => setSection("compliance", { eps_enabled: v }))}
         {toggleRow("Employees' State Insurance (ESIC)", "Enable ESIC coverage", esic, (v) => setSection("compliance", { esic_enabled: v }))}
@@ -567,7 +576,7 @@ export async function uploadCandidateFile(file: File, folder: string, keyHint?: 
 
 export function esicFamilyAadhaarComplete(compliance: any): boolean {
   const list = Array.isArray(compliance?.esic_family) ? compliance.esic_family : [];
-  if (list.length === 0) return false;
+  if (list.length === 0) return true;
   return list.every((m: any) => !!m?.aadhaar_front_url && !!m?.aadhaar_back_url);
 }
 
@@ -664,7 +673,7 @@ export function EsicFamilySection({
       <div className="mb-4 border-b pb-3">
         <h2 className="text-base font-semibold sm:text-lg">Family Members for ESIC</h2>
         <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-          {`Assign family members for ESIC benefit. Minimum 1 and maximum ${MAX_ESIC_FAMILY} family members are required. With a single member the full 100% share applies; with more, the share is distributed equally. Aadhaar front and back are mandatory for every family member and are filed under the employee's documents.`}
+          {`Optional. Add up to ${MAX_ESIC_FAMILY} family members for ESIC benefit. Aadhaar front and back are required only for members you add.`}
         </p>
       </div>
       <div className="rounded-md border p-3">
@@ -753,9 +762,9 @@ export function EsicFamilySection({
           >
             <Plus className="mr-1 h-3 w-3" /> Add family member
           </Button>
-          <span className={`text-xs ${members.length === 0 || missingAadhaar ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
+          <span className={`text-xs ${missingAadhaar ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
             {members.length === 0
-              ? "At least one family member is required"
+              ? "Optional"
               : missingAadhaar
                 ? "Aadhaar front and back required for every family member"
                 : `${members.length} member${members.length > 1 ? "s" : ""} · shares total 100%`}
