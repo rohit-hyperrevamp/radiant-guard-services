@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/lib/auth";
 import { useCountUp } from "@/hooks/useCountUp";
-import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
+import { nextOccurrence, yearsBetween } from "@/lib/people-insights";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { DashboardShell } from "@/components/LiveFeed";
@@ -650,18 +650,19 @@ function MetricTile({
 
 }
 
-function HeroStat({ label, value, icon: Icon, tone }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "amber" }) {
+function HeroStat({ label, value, icon: Icon, tone, to }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "amber"; to?: string }) {
   const surface = {
     blue: "bg-[rgb(var(--tint-blue))]",
     mint: "bg-[rgb(var(--tint-emerald))]",
     amber: "bg-[rgb(var(--tint-amber))]",
   }[tone];
-  return (
-    <div className={cn("flex min-w-0 flex-col justify-between rounded-2xl border border-border/60 p-3 shadow-sm sm:min-h-[96px] sm:p-4", surface)}>
+  const content = (
+    <div className={cn("flex min-w-0 flex-col justify-between rounded-2xl border border-border/60 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[96px] sm:p-4", surface)}>
       <div className="flex items-start justify-between gap-2"><span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span><Icon className="h-4 w-4 shrink-0 text-primary" /></div>
       <div className="mt-2 font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</div>
     </div>
   );
+  return to ? <Link to={to} className="block">{content}</Link> : content;
 }
 
 function PastelTile({
