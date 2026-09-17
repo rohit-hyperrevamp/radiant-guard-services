@@ -1514,25 +1514,6 @@ function FieldSenseTimeline(props: {
         )}
       </div>
 
-      {/* Attendance checkout */}
-      {isOnDuty && (
-        <div className="border-t border-border/50 bg-background/40 px-3 py-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 w-full rounded-lg border-rose-200 text-[12px] font-semibold text-rose-600 hover:bg-rose-50"
-            onClick={onCheckOutDuty}
-            disabled={checkingOutDuty || !!openVisit}
-          >
-            {checkingOutDuty ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <LogOut className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {openVisit ? "Complete visit to log out" : "End duty & log out"}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
