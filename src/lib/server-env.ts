@@ -14,10 +14,8 @@ const PRODUCTION_SUPABASE: Record<string, string> = {
   // Radiant production service-role key (server-only; never bundled to the browser).
   SUPABASE_SERVICE_ROLE_KEY:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXB4YXdxb2FycHJodHhhcGllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzc1ODIzNiwiZXhwIjoyMTAzMzM0MjM2fQ.bKutUzXNVuFCZA2erF79oII_cwTzMvh3vrLwsne25Xw",
-  // Surepass (Aadhaar validation + DigiLocker). Sandbox token, valid to 01 Oct 2026.
-  SUREPASS_BASE_URL: "https://sandbox.surepass.io",
-  SUREPASS_TOKEN:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc4ODI2Mjg3MSwianRpIjoiNWJjZTVmYTctMDZlMi00Njk5LWE2MTMtZDAwZTdjMmY3ZjQ0IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmhoeXBlcnJldmFtcEBzdXJlcGFzcy5pbyIsIm5iZiI6MTc4ODI2Mjg3MSwiZXhwIjoxNzkwODU0ODcxLCJlbWFpbCI6ImhoeXBlcnJldmFtcEBzdXJlcGFzcy5pbyIsInRlbmFudF9pZCI6Im1haW4iLCJ1c2VyX2NsYWltcyI6eyJzY29wZXMiOlsidXNlciJdfX0.S7FMqvifH7hLN1fczXrrGhlupU45y2Lq85wY4ebVJoc",
+  // Surepass credentials are NOT pinned here: they rotate, so they live only in
+  // the encrypted secret store (SUREPASS_API_KEY, SUREPASS_BASE_URL).
 };
 
 
