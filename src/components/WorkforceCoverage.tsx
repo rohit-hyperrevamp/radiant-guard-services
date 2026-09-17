@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { loadDashboardBase } from "@/lib/dashboard-base";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -58,52 +59,20 @@ const EXCLUDED_ROLE_KEYS = new Set([
 ]);
 
 async function fetchCoverage(): Promise<UnitCoverage[]> {
-  const [contractsRes, desigRes, unitsRes, customersRes, candidatesRes, mapRes] =
-    await Promise.all([
-      supabase
-        .from("client_contracts" as never)
-        .select("id,contract_code,unit_id,status,record_type,approval_status")
-        .eq("record_type", "client")
-        .eq("status", "active"),
-      supabase.from("designations" as never).select("id,name"),
-      supabase.from("units" as never).select("id,name,customer_id"),
-      supabase.from("customers" as never).select("id,name"),
-      supabase
-        .from("candidates" as never)
-        .select("id,full_name,designation_id,role_key,status,non_billable,unit_id")
-        .eq("status", "active"),
-      supabase.from("candidate_units" as never).select("candidate_id,unit_id"),
-    ]);
+  // Shared, fully paged base lookups — read once for both coverage cards.
+  const base = await loadDashboardBase();
 
-  const contracts = (contractsRes.data as unknown as Record<string, unknown>[]) ?? [];
+  const contracts = base.contracts;
   if (contracts.length === 0) return [];
 
-  const resourcesRes = await supabase
-    .from("contract_resources" as never)
-    .select("contract_id,designation_id,role_key,quantity")
-    .in("contract_id", contracts.map((c) => String(c.id)));
-
   const desigName = new Map(
-    ((desigRes.data as unknown as Record<string, unknown>[]) ?? []).map((d) => [
-      String(d.id),
-      String(d.name ?? "—"),
-    ]),
+    base.designations.map((d) => [String(d.id), String(d.name ?? "—")]),
   );
-  const unitById = new Map(
-    ((unitsRes.data as unknown as Record<string, unknown>[]) ?? []).map((u) => [
-      String(u.id),
-      u,
-    ]),
-  );
-  const custName = new Map(
-    ((customersRes.data as unknown as Record<string, unknown>[]) ?? []).map((c) => [
-      String(c.id),
-      String(c.name ?? "—"),
-    ]),
-  );
+  const unitById = new Map(base.units.map((u) => [String(u.id), u]));
+  const custName = new Map(base.customers.map((c) => [String(c.id), String(c.name ?? "—")]));
 
   // Deployable candidates only (site staff, billable, active).
-  const candidates = ((candidatesRes.data as unknown as Record<string, unknown>[]) ?? []).filter(
+  const candidates = base.candidates.filter(
     (c) => !c.non_billable && !EXCLUDED_ROLE_KEYS.has(String(c.role_key ?? "")),
   );
   const candById = new Map(candidates.map((c) => [String(c.id), c]));
@@ -115,13 +84,13 @@ async function fetchCoverage(): Promise<UnitCoverage[]> {
     if (!unitMembers.has(unitId)) unitMembers.set(unitId, new Set());
     unitMembers.get(unitId)!.add(candId);
   };
-  for (const m of (mapRes.data as unknown as Record<string, unknown>[]) ?? []) {
+  for (const m of base.candidateUnits) {
     push(String(m.unit_id ?? ""), String(m.candidate_id ?? ""));
   }
   for (const c of candidates) push(String(c.unit_id ?? ""), String(c.id));
 
   const resourcesByContract = new Map<string, Record<string, unknown>[]>();
-  for (const r of (resourcesRes.data as unknown as Record<string, unknown>[]) ?? []) {
+  for (const r of base.resources) {
     const key = String(r.contract_id);
     if (!resourcesByContract.has(key)) resourcesByContract.set(key, []);
     resourcesByContract.get(key)!.push(r);
