@@ -119,6 +119,6 @@
 - [x] Connect Demands, Delivery Challans, Issuances, and Collections end-to-end.
 - [x] Verify role scoping, navigation, and project checks.
 ## Field officer issuance guard scope
-- [ ] Restrict the issuance guard picker to the signed-in field officer’s assigned/onboarded guards only.
+- [x] Restrict the issuance guard picker to the signed-in field officer’s assigned/onboarded guards only.
 - [ ] Verify Rohit’s production guard scope and run project checks.
 
