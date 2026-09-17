@@ -1219,6 +1219,40 @@ function useUnits() {
   });
 }
 
+/**
+ * Contract health per unit, used to label (never hide) units in the picker.
+ * A unit whose contract has expired stays fully selectable — deployment often
+ * continues while a renewal is being drawn up.
+ */
+type UnitContractState = "active" | "expired" | "none";
+
+function useUnitContractState() {
+  return useQuery({
+    queryKey: ["admin", "unit-contract-state"],
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Record<string, UnitContractState>> => {
+      const { data, error } = await supabase
+        .from("client_contracts" as never)
+        .select("unit_id,status,end_date")
+        .not("unit_id", "is", null)
+        .limit(20000);
+      if (error) throw error;
+      const rows = ((data ?? []) as Array<{ unit_id: string; status: string | null; end_date: string | null }>);
+      const today = new Date().toISOString().slice(0, 10);
+      const out: Record<string, UnitContractState> = {};
+      for (const r of rows) {
+        const live = r.status === "active" && (!r.end_date || r.end_date >= today);
+        if (live) out[r.unit_id] = "active";
+        else if (out[r.unit_id] !== "active") out[r.unit_id] = "expired";
+      }
+      return out;
+    },
+  });
+}
+
+
 const QK_HOME_UNITS = ["admin", "home-units"] as const;
 
 /**
@@ -5504,9 +5538,10 @@ function CandidateWizard({
     queryFn: async (): Promise<string[]> => {
       const { data: contracts, error: cErr } = await supabase
         .from("client_contracts" as never)
+        // Expired / inactive contracts still define the valid designations for a
+        // unit: deployment may continue while a fresh contract is being drawn up.
         .select("id,unit_id,status")
-        .in("unit_id", desigLookupUnitIds)
-        .eq("status", "active");
+        .in("unit_id", desigLookupUnitIds);
       if (cErr) throw cErr;
       const contractIds = ((contracts ?? []) as { id: string }[]).map((c) => c.id);
       if (contractIds.length === 0) return [];
@@ -9413,16 +9448,20 @@ function MultiUnitPicker({
   onChange,
   disabled = false,
   emptyMessage = "No units found.",
+  contractState,
 }: {
   units: UnitLite[];
   value: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;
   emptyMessage?: string;
+  contractState?: Record<string, UnitContractState>;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const contractStateQuery = useUnitContractState();
+  const unitContractState = contractState ?? contractStateQuery.data;
 
   const selectedSet = useMemo(() => new Set(value), [value]);
   const selectedUnits = useMemo(
@@ -9597,8 +9636,15 @@ function MultiUnitPicker({
                                 {checked ? <Check className="h-3 w-3" /> : null}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium">
-                                  <b>{u.code}</b> · {u.name}
+                                <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+                                  <span>
+                                    <b>{u.code}</b> · {u.name}
+                                  </span>
+                                  {unitContractState && unitContractState[u.id] !== "active" ? (
+                                    <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                      {unitContractState[u.id] === "expired" ? "Contract expired" : "No contract"}
+                                    </span>
+                                  ) : null}
                                 </div>
                                 {u.customer_name ? (
                                   <div className="text-[11px] text-muted-foreground">{u.customer_name}</div>
