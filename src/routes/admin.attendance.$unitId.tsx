@@ -1653,10 +1653,13 @@ function MusterRollPage() {
       // These are "virtual" musterRow stand-ins used purely for OCR resolution
       // + upsert; the real row block appears after entries are saved and
       // musterRows re-derives.
-      const candidatesById = new Map(musterRows.map((m) => [m.candidateId, m]));
+      // Vacant (unmapped) slots carry no candidate id — they must never be sent
+      // to the reader, otherwise the payload fails uuid validation.
+      const namedRows = musterRows.filter((m) => !m.vacant && Boolean(m.candidateId));
+      const candidatesById = new Map(namedRows.map((m) => [m.candidateId, m]));
       const employeesPayload: Array<{ id: string; name: string; employee_code: string | null; designation: string | null; designation_id: string }> = [];
       const seenPair = new Set<string>();
-      for (const mr of musterRows) {
+      for (const mr of namedRows) {
         const k = `${mr.candidateId}|${mr.designationId ?? ""}`;
         if (seenPair.has(k)) continue;
         seenPair.add(k);
@@ -1667,6 +1670,11 @@ function MusterRollPage() {
           designation: mr.designationName ?? null,
           designation_id: mr.designationId ?? "",
         });
+      }
+      if (!employeesPayload.length) {
+        toast.error("Map at least one person to a slot before reading a sheet");
+        setProcessingOcr(false);
+        return;
       }
       for (const [candidateId, anyMr] of candidatesById) {
         for (const d of contractDesignations) {
