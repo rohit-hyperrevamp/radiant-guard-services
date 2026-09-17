@@ -1219,6 +1219,40 @@ function useUnits() {
   });
 }
 
+/**
+ * Contract health per unit, used to label (never hide) units in the picker.
+ * A unit whose contract has expired stays fully selectable — deployment often
+ * continues while a renewal is being drawn up.
+ */
+type UnitContractState = "active" | "expired" | "none";
+
+function useUnitContractState() {
+  return useQuery({
+    queryKey: ["admin", "unit-contract-state"],
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Record<string, UnitContractState>> => {
+      const { data, error } = await supabase
+        .from("client_contracts" as never)
+        .select("unit_id,status,end_date")
+        .not("unit_id", "is", null)
+        .limit(20000);
+      if (error) throw error;
+      const rows = ((data ?? []) as Array<{ unit_id: string; status: string | null; end_date: string | null }>);
+      const today = new Date().toISOString().slice(0, 10);
+      const out: Record<string, UnitContractState> = {};
+      for (const r of rows) {
+        const live = r.status === "active" && (!r.end_date || r.end_date >= today);
+        if (live) out[r.unit_id] = "active";
+        else if (out[r.unit_id] !== "active") out[r.unit_id] = "expired";
+      }
+      return out;
+    },
+  });
+}
+
+
 const QK_HOME_UNITS = ["admin", "home-units"] as const;
 
 /**
