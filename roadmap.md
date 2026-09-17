@@ -155,3 +155,11 @@
 
 ## Candidate UAN wording
 - [x] Replace the personal UAN question with candidate-focused wording in onboarding.
+## Operations documentation suite
+- [x] Finalize attendance guide nomenclature and remove “Field Guide”.
+- [ ] Create and verify site visit guide.
+- [ ] Create and verify candidate onboarding guide.
+- [ ] Create and verify inventory request and approval guide.
+- [ ] Create and verify guard asset assignment guide.
+- [ ] Create and verify manual unit attendance guide.
+- [ ] Create and verify employee unit reassignment guide.
