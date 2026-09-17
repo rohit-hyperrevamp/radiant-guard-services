@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChevronDown, ClipboardList, Download, Gauge, MapPinned, Search, TrendingDown, UserCheck, Users } from "lucide-react";
@@ -132,6 +132,8 @@ function Dial({ value }: { value: number }) {
   );
 }
 
+const PAGE_SIZE = 25;
+
 export function AttendanceCharter({
   units,
   monthIdx,
@@ -140,6 +142,7 @@ export function AttendanceCharter({
   onQueryChange,
   organizationCount,
   activeEmployees,
+  filters,
 }: {
   units: CharterUnit[];
   monthIdx: number;
@@ -148,10 +151,35 @@ export function AttendanceCharter({
   onQueryChange: (v: string) => void;
   organizationCount?: number;
   activeEmployees?: number;
+  filters?: ReactNode;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+
+  // Search first, then paginate, and only then load month-till-date attendance.
+  // Every heavy read below is scoped to the 25 units actually on screen, so the
+  // page never pulls thousands of units' entries in one shot.
+  const matchedUnits = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    const list = term
+      ? units.filter((u) =>
+          [u.name, u.code, u.customer_name, ...u.contract_codes]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(term)),
+        )
+      : units.slice();
+    return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
+  }, [units, query]);
+
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  useEffect(() => setPage(0), [query, units.length, monthIdx, year]);
+  const pageUnits = useMemo(
+    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [matchedUnits, safePage],
+  );
+  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
 
   // Any attendance / OT edit anywhere refreshes this charter instantly.
   useAttendanceMoneyRealtime();
