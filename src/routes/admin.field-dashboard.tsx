@@ -620,7 +620,7 @@ function FieldOfficerDashboard() {
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <HeroStat label="Team" value={totalListings} icon={ShieldCheck} tone="blue" to="/admin/my-reportees" />
-          <HeroStat label="Present" value={`${attnPresent} · ${data?.attendanceRateToday ?? 0}%`} icon={UserCheck} tone="mint" to="/admin/attendance" />
+          <HeroStat label="Present" value={`${attnPresent} (${data?.attendanceRateToday ?? 0}%)`} icon={UserCheck} tone="mint" to="/admin/attendance" badge="Today" />
           <HeroStat label="Inventory" value={totalItems} icon={Warehouse} tone="violet" to="/admin/inventory" />
         </div>
 
