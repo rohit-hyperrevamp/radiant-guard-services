@@ -6314,7 +6314,8 @@ function CandidateWizard({
       if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return "A valid IFSC code is required";
     }
     if (key === "contacts") return getEmergencyContactIssue();
-    if (key === "assignment" && !form.unit_id) return "Select the posting unit to continue";
+    if (key === "assignment" && form.unit_ids.length === 0 && !form.unit_id)
+      return "Select the posting unit to continue";
     if (key === "records") {
       const c = (form.compliance ?? {}) as Record<string, unknown>;
       const uan = String(c.uan ?? "").trim();
