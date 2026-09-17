@@ -471,7 +471,15 @@ export function NomineeSection({ form, setSection, set }: { form: any; setSectio
             </Select>
             <Input format="mobile" placeholder="10-digit mobile" value={newContact.mobile} onChange={(e) => setNewContact((v) => ({ ...v, mobile: e.target.value }))} />
           </div>
-          <Button type="button" size="sm" disabled={!set || !newContact.name.trim() || !newContact.relation || !/^\d{10}$/.test(newContact.mobile)} onClick={() => set?.("contacts", [{ ...newContact, is_emergency: false }])}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!set || !newContact.name.trim() || !newContact.relation || !/^\d{10}$/.test(newContact.mobile)}
+            onClick={() => {
+              set?.("contacts", [{ ...newContact, is_emergency: false }]);
+              setEntries([{ contact: "0", percent: 100 }]);
+            }}
+          >
             <Plus className="mr-1 h-3 w-3" /> Add nominee contact
           </Button>
         </div>
