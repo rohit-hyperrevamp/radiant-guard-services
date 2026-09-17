@@ -51,9 +51,11 @@ async function surepass<T>(
   path: string,
   init: { method: "GET" | "POST"; body?: unknown },
 ): Promise<SurepassEnvelope<T>> {
-  const token = process.env["SUREPASS_TOKEN"];
+  // The provider key the account owner issued is stored as SUREPASS_API_KEY.
+  // SUREPASS_TOKEN is kept as a fallback for older deployments only.
+  const token = process.env["SUREPASS_API_KEY"] ?? process.env["SUREPASS_TOKEN"];
   const baseUrl = (process.env["SUREPASS_BASE_URL"] ?? "https://sandbox.surepass.io").replace(/\/+$/, "");
-  if (!token) throw new Error("SUREPASS_TOKEN is not configured");
+  if (!token) throw new Error("The Surepass verification key is not configured");
 
   const res = await fetch(`${baseUrl}${path}`, {
     method: init.method,
