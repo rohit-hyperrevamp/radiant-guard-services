@@ -3362,7 +3362,7 @@ function EmployeesPage() {
             <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
-            <td className="hidden max-w-[150px] px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden max-w-[170px] px-2.5 py-2.5 2xl:table-cell">
               {unit ? (
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-foreground" title={unit.name}>{unit.name}</div>
@@ -3370,6 +3370,17 @@ function EmployeesPage() {
                 </div>
               ) : (
                 "—"
+              )}
+              {showSiteMap && (
+                <button
+                  type="button"
+                  onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                  className="mt-1 inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+                  title="View all client sites this person covers"
+                >
+                  <MapPin className="h-3 w-3" />
+                  {siteCount} sites
+                </button>
               )}
             </td>
           )}
