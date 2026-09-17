@@ -173,6 +173,15 @@ const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"inp
       onBlur?.(e);
     };
 
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      // A prefilled 0 is a placeholder, not data: select it so typing replaces it
+      // (typing "500" over "0" must give 500, not 0500).
+      if (draft !== "" && parseFloat(draft) === 0) {
+        e.target.select();
+      }
+      onFocus?.(e);
+    };
+
     return (
       <input
         data-slot="input"
@@ -183,6 +192,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"inp
         value={draft}
         onChange={handleChange}
         onBlur={handleBlur}
+        onFocus={handleFocus}
         className={cn(baseClasses, className)}
       />
     );
