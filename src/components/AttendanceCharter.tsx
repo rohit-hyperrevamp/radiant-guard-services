@@ -411,7 +411,7 @@ export function AttendanceCharter({
         />
         <CharterTile
           label="Attendance sheets"
-          sub="this month, by stage"
+          sub="this page, by stage"
           countTo={sheets.total}
           icon={ClipboardList}
           accent="lime"
@@ -423,33 +423,35 @@ export function AttendanceCharter({
         />
         <CharterTile
           label="Deployment"
-          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance · this page`}
           value={`${totals.actual}/${totals.committed}`}
           icon={Users}
           accent="indigo"
         />
         <CharterTile
           label="Actual man-hours"
-          sub={`of ${fmtHours(totals.projectedHours)} projected`}
+          sub={`of ${fmtHours(totals.projectedHours)} projected · this page`}
           value={fmtHours(totals.actualHours)}
           icon={UserCheck}
           accent="emerald"
         />
         <CharterTile
           label="Extra duty"
-          sub="month till date"
+          sub="month till date · this page"
           value={fmtHours(totals.otHours)}
           icon={TrendingDown}
           accent="amber"
         />
         <CharterTile
           label="MTD attendance"
-          sub="current payroll periods"
+          sub="current payroll periods · this page"
           value={`${totals.mtdPct}%`}
           icon={Gauge}
           accent="rose"
         />
       </CharterTileGrid>
+
+      {filters}
 
 
       <div className="flex flex-wrap items-center gap-2">
