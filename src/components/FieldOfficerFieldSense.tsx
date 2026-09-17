@@ -898,8 +898,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           totalKmToday={totalKmToday}
           isOnDuty={isOnDuty}
           onCompleteVisit={() => setCheckOutOpen(true)}
-          onCheckOutDuty={() => attendanceOutMut.mutate()}
-          checkingOutDuty={attendanceOutMut.isPending}
         />
       </div>
 
