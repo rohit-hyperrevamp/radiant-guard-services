@@ -16,11 +16,12 @@ import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequest
 
 export const Route = createFileRoute("/admin/field-sense/")({
   component: FieldSensePage,
-  validateSearch: (search: Record<string, unknown>): { range?: string; start?: string; end?: string; highlight?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { range?: string; start?: string; end?: string; highlight?: string; action?: string } => ({
     range: (search.range as string | undefined) ?? undefined,
     start: (search.start as string | undefined) ?? undefined,
     end: (search.end as string | undefined) ?? undefined,
     highlight: (search.highlight as string | undefined) ?? undefined,
+    action: (search.action as string | undefined) ?? undefined,
   }),
   head: () => ({
     meta: [

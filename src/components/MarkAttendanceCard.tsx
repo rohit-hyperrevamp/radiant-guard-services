@@ -4,6 +4,7 @@ import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, Alert
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import {
   checkIn,
@@ -247,16 +248,33 @@ export function MarkAttendanceCard({
 
   const gated = Array.isArray(allowedUnits);
 
+  const openVisitQ = useQuery({
+    queryKey: ["fo-open-visit", candidateId],
+    enabled: !!candidateId,
+    queryFn: async () => {
+      if (!candidateId) return null;
+      const { data, error } = await supabase
+        .from("field_visits" as never)
+        .select("id")
+        .eq("candidate_id", candidateId)
+        .is("check_out_at", null)
+        .limit(1)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      return (data as { id: string } | null) ?? null;
+    },
+  });
+
   const confirmPunch = (action: "in" | "out", location: string) => confirmAction({
-    title: action === "in" ? "Confirm check-in" : "Confirm check-out",
+    title: action === "in" ? "Confirm log in" : "Confirm log out",
     description: `${currentTimeStr()} · ${location}`,
-    confirmText: action === "in" ? "Check in" : "Check out",
+    confirmText: action === "in" ? "Log in" : "Log out",
     cancelText: "Not now",
   });
 
   const showPunchError = (action: "in" | "out", error: unknown) => confirmAction({
-    title: action === "in" ? "Unable to check in" : "Unable to check out",
-    description: error instanceof Error ? error.message : `${action === "in" ? "Check-in" : "Check-out"} could not be completed.`,
+    title: action === "in" ? "Unable to log in" : "Unable to log out",
+    description: error instanceof Error ? error.message : `${action === "in" ? "Login" : "Logout"} could not be completed.`,
     confirmText: "Got it",
     hideCancel: true,
     tone: "warning",
@@ -372,6 +390,7 @@ export function MarkAttendanceCard({
   const outMut = useMutation({
     mutationFn: async () => {
       if (!punch?.id) throw new Error("No active check-in.");
+      if (openVisitQ.data?.id) throw new Error("Complete your active client visit before logging out.");
       let face = false;
       if (isNativePlatform()) {
         face = await verifyFaceForAttendance("Mark attendance check-out");
@@ -392,7 +411,7 @@ export function MarkAttendanceCard({
       if (!row) return;
       const location = (allowedUnits ?? []).find((unit) => unit.id === punch?.unit_id)?.name ?? "Current GPS location";
       void notifySaved({
-        title: "Checked out",
+        title: "Logged out",
         description: `${timeStr(row.check_out_at)} · ${location}`,
         actionText: "Done",
       });
@@ -460,7 +479,7 @@ export function MarkAttendanceCard({
           </span>
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Today</div>
-            <h3 className="mt-0.5 text-lg font-bold text-foreground sm:text-xl">Mark my attendance</h3>
+            <h3 className="mt-0.5 text-lg font-bold text-foreground sm:text-xl">My attendance</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {isNativePlatform() ? "Biometric and GPS check." : "GPS check. Biometric is available in the app."}
             </p>
@@ -479,7 +498,7 @@ export function MarkAttendanceCard({
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
         <div className="rounded-xl border border-border/50 bg-background/40 p-2.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Check-in</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Log in</div>
           <div className="mt-0.5 font-display text-base font-bold tabular-nums text-foreground sm:text-lg">
             {timeStr(punch?.check_in_at ?? null)}
           </div>
@@ -490,7 +509,7 @@ export function MarkAttendanceCard({
           )}
         </div>
         <div className="rounded-xl border border-border/50 bg-background/40 p-2.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Check-out</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Log out</div>
           <div className="mt-0.5 font-display text-base font-bold tabular-nums text-foreground sm:text-lg">
             {timeStr(punch?.check_out_at ?? null)}
           </div>
@@ -615,7 +634,7 @@ export function MarkAttendanceCard({
             onClick={() => { setBusy("in"); inMut.mutate(); }}
           >
             {inMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-            Check in now
+            Log in now
           </Button>
         )}
         {state === "in" && (
@@ -625,7 +644,7 @@ export function MarkAttendanceCard({
             onClick={() => { setBusy("out"); outMut.mutate(); }}
           >
             {outMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-            Check out
+            Log out
           </Button>
         )}
         {state === "done" && (

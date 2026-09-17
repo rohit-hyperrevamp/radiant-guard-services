@@ -90,4 +90,4 @@
 - [x] Resolve dashboard units directly from the signed-in employee's authoritative unit list.
 - [x] Replace multi-request assignment loading with one authenticated assignment resolver.
 - [x] Keep the My Profile rail fixed while only profile details scroll on desktop.
-- [ ] Clean field officer dashboard tiles, terminology, navigation, profile devices, and attendance-gated site visits end-to-end
+- [x] Clean field officer dashboard tiles, terminology, navigation, profile devices, and attendance-gated site visits end-to-end

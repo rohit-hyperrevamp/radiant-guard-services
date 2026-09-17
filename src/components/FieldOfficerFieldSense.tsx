@@ -204,6 +204,7 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     start?: string;
     end?: string;
     highlight?: string;
+    action?: string;
   };
   const presetInput = (search.range as RangePreset | undefined) ?? "today";
   const validPreset: RangePreset = (
@@ -739,6 +740,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+
+  useEffect(() => {
+    if (search.action === "start-visit" && isOnDuty && !openVisit) setCheckInOpen(true);
+    if (search.action === "complete-visit" && openVisit) setCheckOutOpen(true);
+  }, [search.action, isOnDuty, openVisit]);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
 

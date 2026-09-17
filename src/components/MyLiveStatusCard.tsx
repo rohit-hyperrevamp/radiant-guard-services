@@ -17,6 +17,7 @@ import {
   readNetworkType,
 } from "@/lib/self-attendance";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type Snapshot = {
   lat: number | null;
@@ -128,15 +129,17 @@ export function MyLiveStatusCard() {
             </span>
             Live · {seen}
           </span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => void refresh()}
             disabled={loading}
             aria-label="Refresh"
             className="grid h-8 w-8 place-items-center rounded-full bg-muted/60 text-foreground/70 transition hover:bg-muted disabled:opacity-50"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-          </button>
+          </Button>
         </div>
       </header>
 
