@@ -227,7 +227,6 @@ const NZ_ALNUM = /[1-9A-Z]/;
 const Z_ONLY = /Z/;
 const ZERO_ONLY = /0/;
 const NZ_DIGIT = /[1-9]/;
-const MOB_FIRST = /[6-9]/;
 const AADH_FIRST = /[2-9]/;
 
 // Position-aware sanitiser: walks the input and only keeps chars that match
