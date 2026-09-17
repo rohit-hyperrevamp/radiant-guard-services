@@ -291,6 +291,42 @@ function IssuancesPage() {
         />
       )}
 
+      {!isFieldOfficer && openDemands.length > 0 && (
+        <section className="mb-4 overflow-hidden rounded-2xl border border-blue-500/30 bg-blue-500/10 shadow-sm">
+          <div className="border-b border-blue-500/20 px-4 py-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-200">Demands awaiting issuance</div>
+            <div className="mt-0.5 text-sm font-bold text-foreground">
+              {openDemands.length} submitted demand{openDemands.length === 1 ? "" : "s"} to fulfil
+            </div>
+            <div className="text-xs text-muted-foreground">Issue the stock, then the requester confirms the delivery challan to accept it.</div>
+          </div>
+          <div className="divide-y divide-blue-500/15">
+            {openDemands.map((d) => {
+              const requester = d.requester_candidate_id ? candMap.get(d.requester_candidate_id) : null;
+              const from = d.warehouse_id ? (whMap.get(d.warehouse_id) ?? "Warehouse") : (d.branch_id ? (brMap.get(d.branch_id) ?? "Branch") : "—");
+              return (
+                <div key={d.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground">
+                      <span className="font-mono text-xs text-muted-foreground">{d.demand_number}</span>
+                      {requester ? ` · ${requester.full_name}` : ""}
+                    </div>
+                    <div className="mt-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">Requested from {from}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 shrink-0 rounded-full px-3 text-xs"
+                    onClick={() => { setPendingCandidateId(""); setActive(null); setPendingDemandId(d.id); setOpen(true); }}
+                  >
+                    Issue against demand
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="overflow-x-clip">
           <table className="ios-table w-full text-sm">
