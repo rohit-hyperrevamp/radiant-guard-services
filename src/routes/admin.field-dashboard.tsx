@@ -40,6 +40,7 @@ import { UserCog, UserCheck } from "lucide-react";
 import { useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { UanFollowUp } from "@/components/UanFollowUp";
+import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
 
 
 
@@ -654,7 +655,7 @@ function FieldOfficerDashboard() {
               <h2 className="mt-1 text-xl font-bold text-foreground">My workspace</h2>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <PastelTile
               palette="rose"
               label="Pending onboarding"
@@ -675,6 +676,7 @@ function FieldOfficerDashboard() {
               search={{ tab: "candidate" }}
             />
             <UanFollowUp fieldOfficerUserId={userId} fieldOfficerCandidateId={data?.meId} compact />
+            <ContractDesignationFollowUp fieldOfficer compact />
           </div>
         </section>
 

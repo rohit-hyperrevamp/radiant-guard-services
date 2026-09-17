@@ -5522,9 +5522,8 @@ function CandidateWizard({
   const primaryUnitId = form.unit_ids[0] ?? null;
   const unit = primaryUnitId ? units.find((u) => u.id === primaryUnitId) : undefined;
 
-  // Restrict the Designation dropdown to designations present in the contracts
-  // of the selected units. Field officer or not — a unit's contract resources
-  // define the valid designations for that unit.
+  // Contract designations remain identified for guidance, but every enabled
+  // designation is selectable so urgent deployment never waits for billing.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
     if (isEmployeeMode && homeUnitId) ids.add(homeUnitId);
@@ -5570,27 +5569,10 @@ function CandidateWizard({
       // Internal onboarding must never offer a client-billable designation.
       return base.filter((designation) => !designation.billable);
     }
-    if (desigLookupUnitIds.length === 0) return base;
-    if (contractDesigQuery.isLoading) return base;
+    if (desigLookupUnitIds.length === 0 || contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
-    return base.filter((d) => allow.has(d.id));
+    return [...base].sort((a, b) => Number(allow.has(b.id)) - Number(allow.has(a.id)) || a.name.localeCompare(b.name));
   }, [designations, desigLookupUnitIds.length, contractDesigQuery.isLoading, allowedDesignationIds, isEmployeeMode]);
-
-  // If the currently selected designation is no longer allowed by the units'
-  // contracts, clear it so the user picks a valid one.
-  useEffect(() => {
-    if (isEmployeeMode) return;
-    // Never destroy a designation already saved on an existing profile while
-    // contract/designation lookups are settling during dialog open.
-    if (editing) return;
-    if (form.unit_ids.length === 0) return;
-    if (contractDesigQuery.isLoading) return;
-    if (!form.designation_id) return;
-    if (!allowedDesignationIds.includes(form.designation_id)) {
-      setForm((f) => ({ ...f, designation_id: null }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, selectedUnitIdsKey, contractDesigQuery.isLoading, allowedDesignationIds.join(",")]);
 
   // ----- Non-billable: departments + per-employee wage sheet ----- //
   const departmentsQuery = useQuery({
@@ -7635,7 +7617,16 @@ function CandidateWizard({
                     <DesignationPicker
                       designations={filteredDesignations}
                       value={form.designation_id}
-                      onChange={(id) => set("designation_id", id)}
+                      onChange={(id) => {
+                        setForm((current) => ({
+                          ...current,
+                          designation_id: id,
+                          unit_designations: current.unit_ids[0]
+                            ? { ...(current.unit_designations ?? {}), [current.unit_ids[0]]: id }
+                            : current.unit_designations,
+                        }));
+                        markDirty();
+                      }}
                       disabled={
                         designationsLoading ||
                         !!designationsError ||
@@ -7646,12 +7637,17 @@ function CandidateWizard({
                         designationsError
                           ? `Could not load designations: ${designationsError}`
                           : form.unit_ids.length === 0
-                            ? "Select a unit above to see the designations available in that unit's contract."
+                            ? "Select a client first."
                             : contractDesigQuery.isLoading
                               ? "Loading designations from unit contract…"
-                              : "No designations found in the selected unit's contract. Ask an admin to add resources to the contract."
+                              : "No enabled designations are available."
                       }
                     />
+                    {!isEmployeeMode && form.designation_id && !contractDesigQuery.isLoading && !allowedDesignationIds.includes(form.designation_id) && (
+                      <p className="mt-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                        This designation is not yet in the primary unit contract. Finance will receive a seven-day follow-up after onboarding.
+                      </p>
+                    )}
                   </Field>
                   {isEmployeeMode && (
                     <Field label="Department">

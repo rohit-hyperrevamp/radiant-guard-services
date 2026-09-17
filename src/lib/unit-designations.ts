@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type UnitDesignation = { id: string; name: string; quantity: number };
+export type UnitDesignation = { id: string; name: string; quantity: number; inContract: boolean };
 
 /**
  * Designations (contracted role slots) available on a unit.
@@ -22,31 +22,30 @@ export async function fetchUnitDesignations(unitId: string): Promise<UnitDesigna
     .limit(1);
   if (cErr) throw cErr;
   const contractId = contracts?.[0]?.id;
-  if (!contractId) return [];
-
-  const { data: resources, error: rErr } = await supabase
-    .from("contract_resources")
-    .select("designation_id, quantity, sort_order")
-    .eq("contract_id", contractId)
-    .order("sort_order", { ascending: true });
-  if (rErr) throw rErr;
+  const resources = contractId
+    ? await supabase.from("contract_resources").select("designation_id, quantity, sort_order").eq("contract_id", contractId).order("sort_order", { ascending: true })
+    : { data: [], error: null };
+  if (resources.error) throw resources.error;
 
   const qty = new Map<string, number>();
   const ordered: string[] = [];
-  for (const row of (resources ?? []) as Array<{ designation_id: string | null; quantity: number | null }>) {
+  for (const row of (resources.data ?? []) as Array<{ designation_id: string | null; quantity: number | null }>) {
     if (!row.designation_id) continue;
     if (!qty.has(row.designation_id)) ordered.push(row.designation_id);
     qty.set(row.designation_id, (qty.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1));
   }
-  if (!ordered.length) return [];
-
   const { data: desigs, error: dErr } = await supabase
     .from("designations")
     .select("id, name")
-    .in("id", ordered);
+    .eq("enabled", true)
+    .order("name", { ascending: true });
   if (dErr) throw dErr;
-  const nameById = new Map((desigs ?? []).map((d) => [d.id, d.name as string]));
-  return ordered.map((id) => ({ id, name: nameById.get(id) ?? "—", quantity: qty.get(id) ?? 1 }));
+  const all = (desigs ?? []) as Array<{ id: string; name: string }>;
+  const nameById = new Map(all.map((d) => [d.id, d.name]));
+  const contracted = ordered.map((id) => ({ id, name: nameById.get(id) ?? "—", quantity: qty.get(id) ?? 1, inContract: true }));
+  const contractedIds = new Set(ordered);
+  const other = all.filter((d) => !contractedIds.has(d.id)).map((d) => ({ ...d, quantity: 0, inContract: false }));
+  return [...contracted, ...other];
 }
 
 export function useUnitDesignations(unitId: string | null | undefined) {

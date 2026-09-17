@@ -133,3 +133,9 @@
 - [x] Remove the guard dashboard portrait and apply the field-officer dashboard cleanup pattern.
 - [x] Remove duplicate guard My Profile and Notifications tabs while keeping My Attendance.
 - [x] Verify guard profile/notification access and run project checks.
+
+## Missing contract designation follow-up
+- [x] Show every enabled designation during client-unit onboarding and label out-of-contract choices.
+- [x] Add a secure live seven-day exception feed scoped to Field Officers and Finance.
+- [x] Add compact follow-up tiles and actionable detail lists to both dashboards.
+- [x] Apply and verify the production migration, automatic resolution, and project checks.

@@ -37,6 +37,7 @@ import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { UanFollowUp } from "@/components/UanFollowUp";
+import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
@@ -638,6 +639,7 @@ function DashboardPage() {
       if (can("contracts")) t.push({ key: "contracts", module: "contracts", node: (
         <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
       )});
+      if (can("contracts")) t.push({ key: "contract-designations", module: "contracts", node: <ContractDesignationFollowUp actionable /> });
       if (can("employees")) t.push({ key: "emp", module: "employees", node: <MetricTile icon={UserPlus} label="Employees" value={data.employees} accent="lime" to="/admin/employees" /> });
       if (can("employees")) t.push({ key: "uan", module: "employees", node: <UanFollowUp /> });
       if (can("vehicles")) t.push({ key: "veh", module: "vehicles", node: (
