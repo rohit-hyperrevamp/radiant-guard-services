@@ -314,7 +314,7 @@ export function FinanceCharter({
   }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
-    return units
+    return pageUnits
       .map((u) => {
         const finance: UnitFinance | undefined = financeQ.data?.get(u.id);
         const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
@@ -354,17 +354,8 @@ export function FinanceCharter({
           realisationPct: pct(invoiceAmount, contractedMtd),
           period,
         };
-      })
-
-      .filter((r) => {
-        const q = query.trim().toLowerCase();
-        if (!q) return true;
-        return [r.unit.name, r.unit.code, r.unit.customer_name, r.contractCode]
-          .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(q));
-      })
-      .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, query]);
+      });
+  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx]);
 
 
   const totals = useMemo(() => {
