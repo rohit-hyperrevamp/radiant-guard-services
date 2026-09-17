@@ -538,31 +538,39 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
     return [];
   }
 
+  // Seed the pending-onboarding kit ONCE per receiver. It must never re-run over
+  // typed quantities, otherwise every keystroke gets reset back to 0 and the
+  // "Add items with quantity" guard blocks the step.
+  const seededForRef = useRef<string>("");
   useEffect(() => {
-    if (!open || initial || !isDraft || demandId || meta.dest !== "guard" || !destId) return;
+    if (!open) { seededForRef.current = ""; return; }
+    if (initial || !isDraft || demandId || meta.dest !== "guard" || !destId) return;
+    if (seededForRef.current === destId || lines.length > 0) return;
     const guard = candById.get(destId);
     if (!guard || guard.status !== "approved" || guard.onboarding_details?.issuance_status !== "pending") return;
     const ids = normalizeIdArray(guard.onboarding_details.issuance_asset_ids ?? guard.assigned_asset_ids)
       .filter((id) => itemMap.has(id));
     if (ids.length === 0) return;
     const next: Line[] = ids.map((id) => {
-      const inStock = stockMap.get(`${id}|`) ?? 0;
+      // Prefer a size that actually has stock at the source (uniform S/M/L, shoe 6-10).
+      let size = "";
+      let inStock = stockMap.get(`${id}|`) ?? 0;
+      if (inStock <= 0) {
+        for (const [key, qty] of stockMap.entries()) {
+          const [sItem, sSize] = key.split("|");
+          if (sItem === id && Number(qty) > 0) { size = sSize ?? ""; inStock = Number(qty); break; }
+        }
+      }
       return {
         item_id: id,
-        size_value: "",
+        size_value: size,
         qty: inStock > 0 ? 1 : 0,
         requested_qty: 1,
       };
     });
-    // Bail out when nothing actually changes — otherwise every render would
-    // set a brand-new array and loop forever ("Maximum update depth exceeded").
-    setLines((prev) => {
-      const same =
-        prev.length === next.length &&
-        prev.every((p, idx) => p.item_id === next[idx].item_id && p.qty === next[idx].qty && p.size_value === next[idx].size_value);
-      return same ? prev : next;
-    });
-  }, [open, initial, isDraft, demandId, meta.dest, destId, candById, itemMap, stockMap]);
+    seededForRef.current = destId;
+    setLines(next);
+  }, [open, initial, isDraft, demandId, meta.dest, destId, candById, itemMap, stockMap, lines.length]);
 
   useResetOnOpen(open, async () => {
     setStepKey("route");
