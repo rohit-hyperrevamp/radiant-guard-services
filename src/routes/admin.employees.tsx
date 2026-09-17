@@ -1190,16 +1190,28 @@ function useUnits() {
     staleTime: 5 * 60_000,
     placeholderData: () => readSnapshot<UnitLite[]>(SNAP_UNITS),
     queryFn: async (): Promise<UnitLite[]> => {
-      const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
-        await supabase
-          .from("units" as never)
-          .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
-          .order("name", { ascending: true })
-          .limit(5000)
-          .abortSignal(signal),
-      );
-      if (error) throw error;
-      const units = ((data as unknown) as UnitLite[]) ?? [];
+      /**
+       * PostgREST caps a single response at its `max-rows` limit (1000), so a
+       * plain `.limit(5000)` silently truncates and unit lookups by id miss
+       * every site past the cap. Page explicitly until a short page arrives.
+       */
+      const PAGE = 1000;
+      const units: UnitLite[] = [];
+      for (let page = 0; page < 20; page++) {
+        const { data, error } = await runWithQueryTimeout("Clients", async (signal) =>
+          await supabase
+            .from("units" as never)
+            .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable")
+            .order("name", { ascending: true })
+            .order("id", { ascending: true })
+            .range(page * PAGE, page * PAGE + PAGE - 1)
+            .abortSignal(signal),
+        );
+        if (error) throw error;
+        const rows = ((data as unknown) as UnitLite[]) ?? [];
+        units.push(...rows);
+        if (rows.length < PAGE) break;
+      }
       const custIds = Array.from(new Set(units.map((u) => u.customer_id).filter(Boolean))) as string[];
       let custMap = new Map<string, string>();
       if (custIds.length) {
