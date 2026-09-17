@@ -345,7 +345,7 @@ export function MarkAttendanceCard({
     onSuccess: (row) => {
       if (!row) return; // waiting for user to pick unit
       void notifySaved({
-        title: "Checked in",
+        title: "Logged in",
         description: `${timeStr(row.check_in_at)} · ${(allowedUnits ?? []).find((u) => u.id === row.unit_id)?.name ?? "Current GPS location"}`,
         actionText: "Done",
       });
@@ -373,7 +373,7 @@ export function MarkAttendanceCard({
     onSuccess: (row) => {
       if (!row) return;
       void notifySaved({
-        title: "Checked in",
+        title: "Logged in",
         description: `${timeStr(row.check_in_at)} · ${nearby.find((item) => item.unit.id === row.unit_id)?.unit.name ?? "Assigned unit"}`,
         actionText: "Done",
       });
@@ -389,7 +389,7 @@ export function MarkAttendanceCard({
 
   const outMut = useMutation({
     mutationFn: async () => {
-      if (!punch?.id) throw new Error("No active check-in.");
+      if (!punch?.id) throw new Error("No active attendance login.");
       if (openVisitQ.data?.id) throw new Error("Complete your active client visit before logging out.");
       let face = false;
       if (isNativePlatform()) {

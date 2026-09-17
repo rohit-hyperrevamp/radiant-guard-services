@@ -1009,9 +1009,10 @@ function HeroStat({ label, value, icon: Icon, tone, to }: { label: string; value
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
         <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
-        <span className="text-3xl font-bold tabular-nums leading-none text-foreground">{value}</span>
+        <span className="text-2xl font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</span>
       </div>
-    </div>
+      <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-primary opacity-0 transition group-hover:opacity-100" />
+    </Link>
   );
 }
 
