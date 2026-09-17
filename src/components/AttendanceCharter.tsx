@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChevronDown, ClipboardList, Download, Gauge, MapPinned, Search, TrendingDown, UserCheck, Users } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
+import { CharterPagination } from "@/components/CharterPagination";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -637,6 +638,14 @@ export function AttendanceCharter({
           })}
         </div>
       )}
+
+      <CharterPagination
+        page={safePage}
+        pageCount={pageCount}
+        total={matchedUnits.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
