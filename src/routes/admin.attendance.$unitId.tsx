@@ -1113,6 +1113,14 @@ function MusterRollPage() {
   const [mapQuery, setMapQuery] = useState("");
   const [mapSaving, setMapSaving] = useState(false);
 
+  const currentRole = useCurrentUserRole();
+  const restrictMapToOwnPeople = currentRole.isFieldOfficer;
+  const managerCandidateId = currentRole.candidateId;
+  const managerUserId = currentRole.userId;
+  const mapScopeLoading = currentRole.isLoading;
+  const mapScopeKey = restrictMapToOwnPeople ? `own:${managerCandidateId ?? managerUserId ?? "none"}` : "all";
+
+
   const mapSearch = mapQuery.trim();
   const { data: mapResults, isFetching: mapSearching } = useQuery({
     queryKey: ["attendance-map-lookup", unitId, mapSearch, mapScopeKey],
