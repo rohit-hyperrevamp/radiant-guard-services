@@ -82,9 +82,7 @@ export function usePeopleInsights() {
   const showSixtyPlus = isSuperAdmin || roleKey === "leadership";
 
   const enabled =
-    canAll ||
-    (isBranchManager && !branchScope.isLoading) ||
-    (isFieldOfficer && !foScope.isLoading);
+    isBranchManager ? !branchScope.isLoading : isFieldOfficer ? !foScope.isLoading : true;
 
   const q = useQuery({
     queryKey: [
@@ -115,9 +113,9 @@ export function usePeopleInsights() {
           const uIds = ((unitsInBranch as unknown) as Array<{ id: string }> ?? []).map((u) => u.id);
           if (!uIds.length) return { rows: [] as Row[], unitNameById: new Map<string, string>(), desigNameById: new Map<string, string>() };
           query = query.in("unit_id", uIds);
-        } else {
-          return { rows: [] as Row[], unitNameById: new Map<string, string>(), desigNameById: new Map<string, string>() };
         }
+        // Other roles: no client-side filter — row level security already limits
+        // the records they may read.
       }
 
       const { data, error } = await query.limit(5000);
