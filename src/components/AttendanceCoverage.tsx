@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadDashboardBase } from "@/lib/dashboard-base";
+import { Pager, usePaged } from "@/components/Pager";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -419,6 +420,8 @@ function AttendanceCharterDialog({
     });
   }, [rows, query, onlyGaps]);
 
+  const paged = usePaged(filtered, `${query}|${onlyGaps}|${rows.length}`);
+
   const totals = useMemo(
     () => ({
       committed: filtered.reduce((s, r) => s + r.committed, 0),
@@ -496,7 +499,7 @@ function AttendanceCharterDialog({
             </div>
           ) : (
             <div className="space-y-2">
-              {filtered.map((r) => {
+              {paged.pageRows.map((r) => {
                 const isOpen = !!expanded[r.unitId];
                 const tone = attendanceTone(r.committed, r.present);
                 return (
@@ -625,6 +628,14 @@ function AttendanceCharterDialog({
               })}
             </div>
           )}
+          <Pager
+            page={paged.page}
+            pageCount={paged.pageCount}
+            from={paged.from}
+            to={paged.to}
+            total={paged.total}
+            onPage={paged.setPage}
+          />
         </div>
       </DialogContent>
     </Dialog>
