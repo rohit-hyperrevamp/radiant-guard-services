@@ -359,7 +359,7 @@ function AdminLayout() {
     // Sub-module gating: enforce canSub for any known sub-module path.
     const subHit = subPathList.find((p) => pathname === p.prefix || pathname.startsWith(p.prefix + "/"));
     if (subHit) {
-      if (subHit.module === "inventory" && (subHit.sub === "collections" || subHit.sub === "issuances") && roleKey === "field_officer") return;
+      if (subHit.module === "inventory" && ["demands", "goods_receipts", "collections", "issuances"].includes(subHit.sub) && roleKey === "field_officer") return;
       if (!canSub(subHit.module, subHit.sub)) {
         // Fall back to the module hub or first allowed path.
         const modulePath = pathToModule.find((p) => p.module === subHit.module)?.prefix;
@@ -478,9 +478,14 @@ function AdminLayout() {
       if (isSuperAdmin) return visibleInventoryChildren.filter((c) => !c.adminOnly || isInvAdmin);
       const list = inventoryChildren.filter((c) => {
         if (c.adminOnly) return isInvAdmin;
-        // Collections and guard issuances are field-officer workflows — bypass sub-permission gating for FOs.
-        if (c.to === "/admin/inventory/collections") return isFO;
-        if (c.to === "/admin/inventory/issuances" && isFO) return true;
+        // These are field-officer workflows — bypass sub-permission gating for FOs.
+        if (isFO && [
+          "/admin/inventory",
+          "/admin/inventory/demands",
+          "/admin/inventory/goods-receipts",
+          "/admin/inventory/collections",
+          "/admin/inventory/issuances",
+        ].includes(c.to)) return true;
         return !c.sub || canSub("inventory", c.sub);
       });
       if (isFO) return list.filter((c) => [
