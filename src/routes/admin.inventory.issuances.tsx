@@ -487,10 +487,10 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
     if (!isFieldOfficer || !me) return guards;
     return guards.filter((g) =>
       g.reports_to === me.id ||
-      (me.unit_id && g.unit_id === me.unit_id) ||
       (!!currentUserId && g.onboarding_details?.pending_issuance_fo_id === currentUserId),
     );
   }, [guards, isFieldOfficer, me, currentUserId]);
+  const foScopedGuardIds = useMemo(() => new Set(foScopedGuards.map((guard) => guard.id)), [foScopedGuards]);
 
   // Available stock at the source location
   const { data: stockMap = EMPTY_STOCK_MAP } = useQuery({
@@ -671,6 +671,12 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
 
   async function saveOrIssue(target: "draft" | "issue") {
     if (!sourceId || !destId) { toast.error("Pick source and destination"); return; }
+    if (isFieldOfficer && meta.dest === "guard" && !foScopedGuardIds.has(destId)) {
+      toast.error("You can only issue inventory to guards assigned to you");
+      setDestId("");
+      setStepKey("route");
+      return;
+    }
     const activeLines = isFreeIssue ? lines.filter((l) => l.qty > 0) : lines;
     if (!activeLines.length || activeLines.some((l) => !l.item_id || l.qty <= 0)) { toast.error("Add items with qty"); return; }
     setSaving(true);
@@ -779,6 +785,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, initi
   const activeLines = isFreeIssue ? lines.filter((line) => line.qty > 0) : lines;
   const validateStep = (key: string) => {
     if (key === "route" && (!sourceId || !destId)) return "Pick source and destination";
+    if (key === "route" && isFieldOfficer && meta.dest === "guard" && !foScopedGuardIds.has(destId)) return "Pick a guard assigned to you";
     if (key === "items" && (!activeLines.length || activeLines.some((line) => !line.item_id || line.qty <= 0))) return "Add items with quantity";
     return null;
   };
