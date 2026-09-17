@@ -426,6 +426,12 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
     return items.filter((item) => availableIds.has(item.id));
   }, [isFieldOfficer, items, stockQuery.data, stockQuery.isSuccess]);
 
+  // Pick a source as soon as one is known (base unit branch first, HQ second).
+  useEffect(() => {
+    if (!open || source || !defaultSource) return;
+    setSource(defaultSource);
+  }, [open, source, defaultSource]);
+
   useEffect(() => {
     if (!isFieldOfficer || !stockQuery.isSuccess) return;
     setLines((current) => current.filter((line) => requestItems.some((item) => item.id === line.item_id)));
@@ -632,6 +638,11 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                 );
               })}
               {!lines.length && <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">No lines yet. Tap “Add line”.</div>}
+            {isFieldOfficer && stockQuery.isSuccess && requestItems.length === 0 && (
+              <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3 text-center text-xs text-amber-700">
+                Nothing is in stock at this source right now — switch the source on the previous step.
+              </div>
+            )}
             </div>
 
             {/* Tablet/desktop: original table */}
