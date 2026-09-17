@@ -9460,6 +9460,8 @@ function MultiUnitPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const contractStateQuery = useUnitContractState();
+  const unitContractState = contractState ?? contractStateQuery.data;
 
   const selectedSet = useMemo(() => new Set(value), [value]);
   const selectedUnits = useMemo(
