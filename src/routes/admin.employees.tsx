@@ -48,6 +48,7 @@ import {
   IdCard,
   LayoutList,
   Loader2,
+  MapPin,
   Network,
   Plus,
   Search,
