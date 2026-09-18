@@ -1751,12 +1751,19 @@ function MusterRollPage() {
         : [];
     if (!pages.length) { toast.error("Choose an image first"); return; }
     const summaries: string[] = [];
-    for (let i = 0; i < pages.length; i++) {
-      setScanStep({ index: i + 1, total: pages.length });
-      const summary = await processAttendanceImage(pages[i]!.dataUrl);
-      if (summary) summaries.push(pages.length > 1 ? `${pages[i]!.name}: ${summary}` : summary);
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        setScanStep({ index: i + 1, total: pages.length });
+        const summary = await processAttendanceImage(pages[i]!.dataUrl);
+        // A failed page is terminal. Continuing would repeat an account or
+        // quota error for every remaining photo and could partially import a
+        // multi-page muster.
+        if (!summary) break;
+        summaries.push(pages.length > 1 ? `${pages[i]!.name}: ${summary}` : summary);
+      }
+    } finally {
+      setScanStep(null);
     }
-    setScanStep(null);
     if (summaries.length > 1) setOcrSummary(summaries.join(" — "));
   };
 
