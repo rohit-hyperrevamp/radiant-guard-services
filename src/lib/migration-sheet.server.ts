@@ -6,7 +6,7 @@ import type {
   MigrationSheetInput,
   MigrationSheetResult,
 } from "./sheet-ocr-types";
-import { createVisionModel } from "./ai-provider.server";
+import { runVision } from "./ai-provider.server";
 
 /**
  * Migration Utility sheet reader.
@@ -59,9 +59,6 @@ function num(value: unknown) {
 export async function runMigrationSheetExtraction(
   data: MigrationSheetInput,
 ): Promise<MigrationSheetResult> {
-  // Company Google Gemini key first (billed to the company's Google account),
-  // Lovable AI gateway only as a fallback.
-  const { model } = await createVisionModel();
 
   const prompt = [
     `Allowed attendance codes: ${data.codes.map((c) => `${c.code} = ${c.label}`).join(", ")}`,
@@ -100,12 +97,14 @@ export async function runMigrationSheetExtraction(
         },
       ];
 
-  const { text } = await generateText({
-    model,
-    system: SYSTEM_PROMPT,
-    temperature: 0,
-    messages: [{ role: "user", content }],
-  });
+  const { text } = await runVision((model) =>
+    generateText({
+      model,
+      system: SYSTEM_PROMPT,
+      temperature: 0,
+      messages: [{ role: "user", content }],
+    }),
+  );
 
   const out = parseJson(text);
   const validDates = new Set(data.dates);

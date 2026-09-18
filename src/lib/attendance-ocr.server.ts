@@ -6,7 +6,7 @@ import type {
   AttendanceOcrRow,
   AttendanceOcrRowSummary,
 } from "./sheet-ocr-types";
-import { aiKeyConfigured, createVisionModel } from "./ai-provider.server";
+import { aiKeyConfigured, runVision } from "./ai-provider.server";
 
 const SYSTEM_PROMPT = `You are a FAST, careful OCR engine reading a hand-written or printed monthly attendance / muster-roll sheet from India.
 You will be given the exact list of employees (id, name, employee_code, designation) and the exact list of period dates.
@@ -156,30 +156,31 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
 
   const promptText = `Allowed attendance codes:\n${codeList}\n\nPeriod dates (ONLY emit rows for dates whose day-of-month is actually visible as a column on the sheet):\n${dateList}\n\nEmployees — each line is ONE allowed (candidate_id, designation_id) pair. The SAME person may appear multiple times with DIFFERENT designation_id values when they worked under more than one role this period. Match each printed muster row to the pair whose name/code AND printed designation column best match what is written on the sheet:\n${employeeList}\n\nIn output rows and row_summaries, ALWAYS include BOTH candidate_id AND designation_id from the matched pair above (copy the designation_id verbatim, or use empty string "" if the pair line shows designation_id=""). If the sheet shows a person under a designation that does NOT appear in any pair for that candidate, add the visible name to unmatched_names instead of guessing. Return ONLY a JSON object in this shape:\n{"rows":[{"candidate_id":"uuid","designation_id":"uuid-or-empty","entry_date":"YYYY-MM-DD","code":"P","ot_hours":0,"confident":true}],"row_summaries":[{"candidate_id":"uuid","designation_id":"uuid-or-empty","p_days":26.5,"ot_days":18.5,"t_days":45,"confident":true}],"unmatched_names":[],"notes":"visible_days=NN"}`;
 
-  const { model } = await createVisionModel();
 
-  const { text } = await generateText({
-    model,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text" as const, text: promptText },
-          {
-            type: "image" as const,
-            image: (() => {
-              const m = data.imageDataUrl.match(/^data:[^;]+;base64,(.+)$/);
-              if (!m) return new URL(data.imageDataUrl);
-              const b64 = m[1]!;
-              return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-            })(),
-          },
-        ],
-      },
-    ],
-    temperature: 0,
-  });
+  const { text } = await runVision((model) =>
+    generateText({
+      model,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text" as const, text: promptText },
+            {
+              type: "image" as const,
+              image: (() => {
+                const m = data.imageDataUrl.match(/^data:[^;]+;base64,(.+)$/);
+                if (!m) return new URL(data.imageDataUrl);
+                const b64 = m[1]!;
+                return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+              })(),
+            },
+          ],
+        },
+      ],
+      temperature: 0,
+    }),
+  );
 
   const output = extractJsonObject(text);
 
