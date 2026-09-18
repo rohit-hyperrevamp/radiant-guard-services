@@ -360,6 +360,6 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
     rows: cleanedRows,
     row_summaries: summaries,
     unmatched_names: unmatched,
-    notes: notesStr,
+    notes: [notesStr, ...reconcileNotes].filter(Boolean).join(" | "),
   };
 }
