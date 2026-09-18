@@ -34,10 +34,15 @@ export function activeAiKeySource(): AiKeySource | null {
   return personalGeminiKey() ? "gemini" : null;
 }
 
+function isOverloaded(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /503|overload|unavailable|high demand|429|rate limit/i.test(message);
+}
+
 /**
  * Run one attendance-sheet read against the company Gemini account, direct to
- * Google. Fail visibly rather than silently replaying the same large image on a
- * second model; duplicate model calls make a single upload take several minutes.
+ * Google. Only retry when Google reports the model as overloaded/rate limited —
+ * a genuine failure surfaces instead of being masked by a weaker model.
  */
 export async function runVision<T>(
   run: (model: LanguageModel) => Promise<T>,
@@ -57,5 +62,19 @@ export async function runVision<T>(
     apiKey: geminiKey,
   });
 
-  return run(provider(ATTENDANCE_VISION_MODEL));
+  let lastError: unknown = null;
+  for (const modelId of ATTENDANCE_VISION_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await run(provider(modelId));
+      } catch (error) {
+        lastError = error;
+        if (!isOverloaded(error)) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Sheet reading failed: the reader is busy, please retry.");
 }
