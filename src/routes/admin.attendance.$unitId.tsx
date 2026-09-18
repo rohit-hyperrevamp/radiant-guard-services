@@ -1610,6 +1610,10 @@ function MusterRollPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadKind, setUploadKind] = useState<"image" | "excel" | null>(null);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  // Several photos of the same muster (page 1, page 2, …) are read one after
+  // another so a multi-page sheet can be uploaded in one go.
+  const [uploadImages, setUploadImages] = useState<Array<{ name: string; dataUrl: string }>>([]);
+  const [scanStep, setScanStep] = useState<{ index: number; total: number } | null>(null);
   const [processingOcr, setProcessingOcr] = useState(false);
   const [uncertainCells, setUncertainCells] = useState<Set<string>>(new Set());
   const [ocrSummary, setOcrSummary] = useState<string | null>(null);
@@ -1682,36 +1686,86 @@ function MusterRollPage() {
     return null;
   };
 
-  const onPickUploadFile = (file: File | null) => {
-    setUploadFile(file);
-    setUploadPreview(null);
-    setUploadKind(null);
-    setOcrSummary(null);
-    setUploadReadyToContinue(false);
-    if (!file) return;
-    const kind = detectKind(file);
-    if (!kind) { toast.error("Unsupported file. Choose an image or Excel/CSV file."); return; }
-    setUploadKind(kind);
-    if (kind === "image") {
-      // Keep handwriting legible: attendance accuracy depends on cell detail, so
-      // only very large photos are scaled down, at high JPEG quality.
-      downscaleImage(file, 2200, 0.92)
-        .then((dataUrl) => setUploadPreview(dataUrl))
-        .catch(() => {
-          const reader = new FileReader();
-          reader.onload = () => setUploadPreview(String(reader.result));
-          reader.readAsDataURL(file);
-        });
-    } else {
-      setUploadPreview(file.name);
+  const readImageDataUrl = async (file: File) => {
+    // Keep handwriting legible: attendance accuracy depends on cell detail, so
+    // only very large photos are scaled down, at high JPEG quality.
+    try {
+      return await downscaleImage(file, 2200, 0.92);
+    } catch {
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read image"));
+        reader.readAsDataURL(file);
+      });
     }
   };
 
-  const processAttendanceImage = async () => {
-    if (!uploadPreview) { toast.error("Choose an image first"); return; }
-    if (!editable) { toast.error("Sheet is locked"); return; }
-    if (!musterRows.length) { toast.error("No employees in this muster"); return; }
-    if (!codes.length) { toast.error("No attendance codes configured"); return; }
+  const onPickUploadFiles = (files: File[]) => {
+    setUploadFile(files[0] ?? null);
+    setUploadPreview(null);
+    setUploadImages([]);
+    setUploadKind(null);
+    setOcrSummary(null);
+    setUploadReadyToContinue(false);
+    if (!files.length) return;
+
+    const kinds = files.map(detectKind);
+    if (kinds.some((k) => k === null)) {
+      toast.error("Unsupported file. Choose images or an Excel/CSV file.");
+      return;
+    }
+    const images = files.filter((_, i) => kinds[i] === "image");
+    if (images.length && images.length !== files.length) {
+      toast.error("Upload photos together, or one Excel/CSV file — not both at once.");
+      return;
+    }
+    if (!images.length && files.length > 1) {
+      toast.error("Only one Excel/CSV file can be imported at a time.");
+      setUploadFile(files[0] ?? null);
+      setUploadKind("excel");
+      setUploadPreview(files[0]?.name ?? null);
+      return;
+    }
+
+    if (images.length) {
+      setUploadKind("image");
+      void Promise.all(images.map(async (f) => ({ name: f.name, dataUrl: await readImageDataUrl(f) })))
+        .then((list) => {
+          setUploadImages(list);
+          setUploadPreview(list[0]?.dataUrl ?? null);
+        })
+        .catch(() => toast.error("Could not read the selected photos."));
+    } else {
+      setUploadKind("excel");
+      setUploadPreview(files[0]!.name);
+    }
+  };
+
+  /** Read every selected photo one after another into this muster. */
+  const processAttendanceImages = async () => {
+    const pages = uploadImages.length
+      ? uploadImages
+      : uploadPreview
+        ? [{ name: uploadFile?.name ?? "sheet", dataUrl: uploadPreview }]
+        : [];
+    if (!pages.length) { toast.error("Choose an image first"); return; }
+    const summaries: string[] = [];
+    for (let i = 0; i < pages.length; i++) {
+      setScanStep({ index: i + 1, total: pages.length });
+      const summary = await processAttendanceImage(pages[i]!.dataUrl);
+      if (summary) summaries.push(pages.length > 1 ? `${pages[i]!.name}: ${summary}` : summary);
+    }
+    setScanStep(null);
+    if (summaries.length > 1) setOcrSummary(summaries.join(" — "));
+  };
+
+  const processAttendanceImage = async (imageDataUrl?: string): Promise<string | null> => {
+    const sheetImage = imageDataUrl ?? uploadPreview;
+    if (!sheetImage) { toast.error("Choose an image first"); return null; }
+    if (!editable) { toast.error("Sheet is locked"); return null; }
+    if (!musterRows.length) { toast.error("No employees in this muster"); return null; }
+    if (!codes.length) { toast.error("No attendance codes configured"); return null; }
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
@@ -1758,7 +1812,7 @@ function MusterRollPage() {
         toast.error("Map at least one person to a slot before reading a sheet");
         setProcessingOcr(false);
         await endScanProgress({ error: "No mapped employees" }, startedAt);
-        return;
+        return null;
       }
       // Speed guard: on contracts with many designations the candidate ×
       // designation cross-product makes the prompt enormous and the read very
@@ -1789,7 +1843,7 @@ function MusterRollPage() {
       }
 
       const result = await extractAttendanceViaApi({
-        imageDataUrl: uploadPreview,
+        imageDataUrl: sheetImage,
         dates: periodCells.map((c) => c.date),
         employees: employeesPayload,
         codes: codes.map((c) => ({ code: c.code, label: c.label })),
@@ -1958,10 +2012,12 @@ function MusterRollPage() {
         action: "Upload attendance image (OCR)",
         details: { confidentCount, uncertainCount, unit_id: unitId },
       }).catch(() => {});
+      return summary;
     } catch (e) {
       const message = e instanceof Error ? e.message : "OCR failed";
       toast.error(message);
       await endScanProgress({ error: message }, startedAt);
+      return null;
     } finally {
       setProcessingOcr(false);
     }
@@ -2227,7 +2283,7 @@ function MusterRollPage() {
       return;
     }
     if (uploadKind === "excel") return processAttendanceExcel();
-    return processAttendanceImage();
+    return processAttendanceImages();
   };
 
 
@@ -2627,21 +2683,22 @@ function MusterRollPage() {
 
 
       {/* Upload Attendance dialog */}
-      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); } }}>
+      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload attendance sheet</DialogTitle>
             <DialogDescription>
-              Photo, Excel or CSV. Unclear cells are left blank and marked in red.
+              Photos (several at once), Excel or CSV. Unclear cells are left blank and marked in red.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <input
               ref={uploadInputRef}
               type="file"
+              multiple
               accept="image/*,.xlsx,.xls,.xlsm,.csv,.ods"
               className="hidden"
-              onChange={(e) => onPickUploadFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => onPickUploadFiles(Array.from(e.target.files ?? []))}
             />
             {!uploadFile ? (
               <button
@@ -2650,18 +2707,32 @@ function MusterRollPage() {
                 className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
               >
                 <Upload className="h-6 w-6" />
-                <span>Upload image or Excel</span>
-                <span className="text-xs">PNG, JPG, HEIC · XLSX, XLS, CSV</span>
+                <span>Upload images or Excel</span>
+                <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
               </button>
             ) : uploadKind === "image" && uploadPreview ? (
               <div className="space-y-2">
-                <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                  <img src={uploadPreview} alt="Attendance preview" className="max-h-80 w-full object-contain" />
-                </div>
+                {uploadImages.length > 1 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {uploadImages.map((img, i) => (
+                      <div key={`${img.name}-${i}`} className="overflow-hidden rounded-lg border border-border bg-muted/20">
+                        <img src={img.dataUrl} alt={img.name} className="h-28 w-full object-cover" />
+                        <div className="truncate px-2 py-1 text-[10px] text-muted-foreground">{i + 1}. {img.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
+                    <img src={uploadPreview} alt="Attendance preview" className="max-h-80 w-full object-contain" />
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> {uploadFile.name}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
+                  </span>
                   <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
-                    Choose a different file
+                    Choose different files
                   </button>
                 </div>
               </div>
@@ -2688,7 +2759,9 @@ function MusterRollPage() {
                 <div className="flex items-center justify-between text-xs font-medium">
                   <span className="inline-flex items-center gap-1.5">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Reading {Math.round(scanPct)}%
+                    {scanStep && scanStep.total > 1
+                      ? `Reading photo ${scanStep.index} of ${scanStep.total} · ${Math.round(scanPct)}%`
+                      : `Reading ${Math.round(scanPct)}%`}
                   </span>
                   <span className="tabular-nums text-muted-foreground">{formatRemaining(scanRemaining)}</span>
                 </div>
@@ -2720,7 +2793,7 @@ function MusterRollPage() {
               disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr}
               className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
             >
-              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : "Read sheet")}
+              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : uploadImages.length > 1 ? `Read ${uploadImages.length} sheets` : "Read sheet")}
             </Button>
           </div>
         </DialogContent>
