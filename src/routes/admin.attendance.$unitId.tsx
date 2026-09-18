@@ -1634,8 +1634,12 @@ function MusterRollPage() {
     let beats = 0;
     scanTimerRef.current = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
-      const pct = Math.min(96, (elapsed / estimate) * 96);
-      const remaining = Math.max(1, estimate - elapsed);
+      // Google does not expose token-level progress for image reads. Move only
+      // through the reading portion of the bar and switch to an honest
+      // "finishing" state if the learned estimate is exceeded; never claim
+      // 96% and leave it stuck there for minutes.
+      const pct = Math.min(90, 5 + (elapsed / estimate) * 80);
+      const remaining = elapsed < estimate ? estimate - elapsed : -1;
       setScanPct(pct);
       setScanRemaining(remaining);
       beats += 1;

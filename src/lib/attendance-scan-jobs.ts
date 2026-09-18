@@ -9,8 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const SCAN_JOBS_QK = "attendance-scan-jobs";
 
-const ESTIMATE_KEY = "attendance.scanEstimateSeconds.v1";
-const DEFAULT_ESTIMATE_SECONDS = 55;
+const ESTIMATE_KEY = "attendance.scanEstimateSeconds.v2";
+const DEFAULT_ESTIMATE_SECONDS = 35;
 const STALE_AFTER_SECONDS = 150;
 
 export type ScanJob = {
@@ -130,6 +130,7 @@ export async function fetchRunningScanJobs(unitIds: string[]): Promise<Map<strin
 
 export function formatRemaining(seconds: number | null | undefined) {
   if (seconds == null) return "calculating…";
+  if (seconds < 0) return "finishing…";
   const s = Math.max(0, Math.round(seconds));
   if (s < 60) return `~${s}s left`;
   const m = Math.floor(s / 60);
