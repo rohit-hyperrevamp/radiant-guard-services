@@ -36,6 +36,8 @@ import { ContractDesignationFollowUp } from "@/components/ContractDesignationFol
 import { OperationsRadarSummary, useOperationsRadarLive } from "@/components/OperationsRadarSummary";
 import { OperationsDeployments } from "@/components/OperationsDeployments";
 import { OperationsOrgTree } from "@/components/OperationsOrgTree";
+import { DepartmentOrgTree } from "@/components/DepartmentOrgTree";
+import { ROLE_KEYS } from "@/lib/role-keys";
 import { OperationsClientLocations, useOperationsOverview, VisitInsightTile } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
