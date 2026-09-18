@@ -433,7 +433,7 @@ function SwitchOfficerDialog({
   }, [fos, term]);
 
   return (
-    <Dialog open={!!unit} onOpenChange={(o) => { if (!o) { setTerm(""); setPicked(null); onClose(); } }}>
+    <Dialog open={!!units?.length} onOpenChange={(o) => { if (!o) { setTerm(""); setPicked(null); onClose(); } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Switch field officer</DialogTitle>
