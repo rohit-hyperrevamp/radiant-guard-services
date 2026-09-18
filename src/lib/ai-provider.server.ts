@@ -53,6 +53,7 @@ function isOverloaded(error: unknown): boolean {
  */
 export async function runVision<T>(
   run: (model: LanguageModel) => Promise<T>,
+  modelIds: readonly string[] = ATTENDANCE_VISION_MODELS,
 ): Promise<T> {
   const geminiKey = personalGeminiKey();
 
@@ -70,7 +71,7 @@ export async function runVision<T>(
   });
 
   let lastError: unknown = null;
-  for (const modelId of ATTENDANCE_VISION_MODELS) {
+  for (const modelId of modelIds) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         return await run(provider(modelId));

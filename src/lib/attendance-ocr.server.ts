@@ -142,6 +142,7 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
 async function runAttendanceOcrInternal(
   data: AttendanceOcrInput,
   retryConflictingRows: boolean,
+  modelIds?: readonly string[],
 ): Promise<AttendanceOcrResult> {
   // Company Google Gemini key only — billed to the company's Google account.
   if (!aiKeyConfigured()) {
@@ -197,6 +198,7 @@ async function runAttendanceOcrInternal(
       // not silently replay the same busy model for minutes first.
       maxRetries: 0,
     }),
+    modelIds,
   );
 
   const output = extractJsonObject(text);
@@ -367,40 +369,45 @@ async function runAttendanceOcrInternal(
   // a much smaller prompt, then accept the correction only if it reconciles.
   // This preserves accuracy without doubling the cost and time for every row.
   if (retryConflictingRows && conflictingCandidateIds.size > 0) {
-    try {
-      const retry = await runAttendanceOcrInternal(
-        {
-          ...data,
-          employees: data.employees.filter((employee) =>
-            conflictingCandidateIds.has(employee.id),
-          ),
-        },
-        false,
-      );
-
-      for (const candidateId of conflictingCandidateIds) {
-        const correctedRows = retry.rows.filter(
-          (row) => row.candidate_id === candidateId && row.confident,
+    const unresolved = new Set(conflictingCandidateIds);
+    for (const retryModelIds of [["gemini-3.6-flash"], ["gemini-3.5-flash"]] as const) {
+      if (unresolved.size === 0) break;
+      try {
+        const retry = await runAttendanceOcrInternal(
+          {
+            ...data,
+            employees: data.employees.filter((employee) =>
+              unresolved.has(employee.id),
+            ),
+          },
+          false,
+          retryModelIds,
         );
-        const correctionFailed = retry.notes.includes(
-          `row_check_failed candidate=${candidateId}`,
-        );
-        if (correctedRows.length === 0 || correctionFailed) continue;
 
-        for (let index = cleanedRows.length - 1; index >= 0; index -= 1) {
-          if (cleanedRows[index]?.candidate_id === candidateId) {
-            cleanedRows.splice(index, 1);
+        for (const candidateId of Array.from(unresolved)) {
+          const correctedRows = retry.rows.filter(
+            (row) => row.candidate_id === candidateId && row.confident,
+          );
+          const correctionFailed = retry.notes.includes(
+            `row_check_failed candidate=${candidateId}`,
+          );
+          if (correctedRows.length === 0 || correctionFailed) continue;
+
+          for (let index = cleanedRows.length - 1; index >= 0; index -= 1) {
+            if (cleanedRows[index]?.candidate_id === candidateId) {
+              cleanedRows.splice(index, 1);
+            }
           }
+          cleanedRows.push(...correctedRows);
+          const noteIndex = reconcileNotes.findIndex((note) =>
+            note.includes(`candidate=${candidateId}`),
+          );
+          if (noteIndex >= 0) reconcileNotes.splice(noteIndex, 1);
+          unresolved.delete(candidateId);
         }
-        cleanedRows.push(...correctedRows);
-        const noteIndex = reconcileNotes.findIndex((note) =>
-          note.includes(`candidate=${candidateId}`),
-        );
-        if (noteIndex >= 0) reconcileNotes.splice(noteIndex, 1);
+      } catch {
+        // Try the other full-quality reader. If both fail, keep the row flagged.
       }
-    } catch {
-      // Keep the original row flagged for review; never downgrade accuracy or
-      // fail the correctly reconciled rows because a focused retry was busy.
     }
   }
 
