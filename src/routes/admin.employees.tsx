@@ -3663,7 +3663,7 @@ function EmployeesPage() {
             </td>
           )}
           {mode === "employee" && columnsVisible.active && (
-            <td className="hidden px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden w-[92px] px-2.5 py-2.5 align-middle md:table-cell">
               <Switch
                 checked={c.is_enabled && c.status !== "inactive"}
                 onCheckedChange={async (v) => {
@@ -3729,37 +3729,6 @@ function EmployeesPage() {
                     <span className="hidden sm:inline">Awaiting issuance</span>
                   </span>
                 )}
-                {mode === "employee" && columnsVisible.active && (
-                  <Switch
-                    className="2xl:hidden"
-                    checked={c.is_enabled && c.status !== "inactive"}
-                    onCheckedChange={async (v) => {
-                      if (!v) {
-                        setOffboardTarget(c);
-                        setOffboardReasonId("");
-                        return;
-                      }
-                      if (c.no_hire) {
-                        toast.error("This employee is flagged Do not re-hire and cannot be reactivated.");
-                        return;
-                      }
-                      const wasOffboarded = !!c.offboarding_reason_id || !!c.offboarded_at;
-                      if (wasOffboarded) {
-                        setReactivateTarget(c);
-                        return;
-                      }
-
-                      const ok = await confirmAction({
-                        title: "Activate employee?",
-                        description: `${c.full_name || c.employee_code} will be marked active again.`,
-                        confirmText: "Activate",
-                      });
-                      if (!ok) return;
-                      toggleEnabledMut.mutate({ candidate: c, enabled: true });
-                    }}
-                    disabled={!c.is_enabled && c.no_hire}
-                  />
-                )}
               </div>
               {c.status === "rejected" && c.rejection_reason && (
                 <div className="max-w-[220px] truncate text-right text-xs text-muted-foreground" title={c.rejection_reason}>
@@ -3787,7 +3756,7 @@ function EmployeesPage() {
             </div>
           </td>
 
-          <td className="w-[200px] min-w-[180px] whitespace-nowrap px-3 py-2.5 align-middle" data-col="actions">
+          <td className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-2.5 align-middle" data-col="employee-actions">
             <div className="flex flex-nowrap items-center justify-end gap-1.5">
 
 
@@ -4310,7 +4279,7 @@ function EmployeesPage() {
               <th className="w-[110px] min-w-[100px] whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground" data-col="status">
                 Status
               </th>
-              <th className="w-[200px] min-w-[180px] whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground" data-col="actions">
+              <th className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-3 !text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground" data-col="employee-actions">
                 Actions
               </th>
             </tr>
