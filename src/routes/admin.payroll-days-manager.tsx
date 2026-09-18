@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import {
   CalendarCheck2,
@@ -483,6 +484,11 @@ function PayrollDaysManagerPage() {
                     </td>
                     <td className="px-5 py-3 text-right">
                       <div className="inline-flex gap-1">
+                        <RecordViewButton
+                          record={i}
+                          title="Payroll Day details"
+                          onEdit={() => setEditing(i)}
+                        />
                         <Button
                           size="sm"
                           variant="ghost"

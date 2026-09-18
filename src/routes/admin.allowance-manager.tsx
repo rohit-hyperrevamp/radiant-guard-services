@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Coins, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -382,6 +383,11 @@ function AllowanceManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={i}
+                        title="Allowance details"
+                        onEdit={() => setEditing(i)}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

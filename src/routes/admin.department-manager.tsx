@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, Network } from "lucide-react";
@@ -210,6 +211,11 @@ function DepartmentManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={i}
+                        title="Department details"
+                        onEdit={() => setEditing(i)}
+                      />
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={() => setEditing(i)} aria-label="Edit">
                         <Edit2 className="h-4 w-4" />
                       </Button>

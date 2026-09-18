@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Download, Edit2, ExternalLink, List as ListIcon, MapPin, Network, Plus, Search, Users, Warehouse } from "lucide-react";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
@@ -268,6 +269,12 @@ function CustomerManagerPage() {
                       >
                         <Network className="h-4 w-4" />
                       </Button>
+                      <RecordViewButton
+                        record={c}
+                        title="Customer details"
+                        onEdit={() => { setEditing(c);
+                          setFormOpen(true); }}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

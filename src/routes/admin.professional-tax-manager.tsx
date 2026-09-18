@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState, useEffect } from "react";
 import {
   Download,
@@ -365,6 +366,11 @@ function ProfessionalTaxManagerPage() {
                   <td className="px-5 py-3 text-xs text-muted-foreground">{s.period}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={s}
+                        title="Professional Tax details"
+                        onEdit={() => setEditing(s)}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"
