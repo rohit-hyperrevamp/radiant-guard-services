@@ -2759,7 +2759,9 @@ function MusterRollPage() {
                 <div className="flex items-center justify-between text-xs font-medium">
                   <span className="inline-flex items-center gap-1.5">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Reading {Math.round(scanPct)}%
+                    {scanStep && scanStep.total > 1
+                      ? `Reading photo ${scanStep.index} of ${scanStep.total} · ${Math.round(scanPct)}%`
+                      : `Reading ${Math.round(scanPct)}%`}
                   </span>
                   <span className="tabular-nums text-muted-foreground">{formatRemaining(scanRemaining)}</span>
                 </div>
