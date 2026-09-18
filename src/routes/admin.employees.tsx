@@ -4581,6 +4581,7 @@ function EmployeesPage() {
                     <div className="pt-2 mt-2 border-t border-border/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show columns</div>
                     {([
                       ["mobile", "Mobile"], ["email", "Email"], ["unit", "Client"], ["designation", "Designation"], ["department", "Department"],
+                      ["reportsTo", "Reporting manager"],
                       ["dob", "Date of Birth"], ["doj", "Date of Joining"], ["role", "Role"], ["active", "Active toggle"],
                     ] as const).map(([k, label]) => (
                       <label key={`col-${k}`} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
