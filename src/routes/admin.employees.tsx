@@ -1158,6 +1158,74 @@ const SNAP_UNITS = "radiant.snapshot.units.v1";
 
 const CANDIDATE_LIST_COLUMNS = "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
 
+type InlinePickerOption = { id: string; label: string; hint?: string };
+
+/** Compact searchable cell editor used for designation / department / reporting manager. */
+function InlinePicker({
+  value,
+  options,
+  onChange,
+  placeholder,
+  searchPlaceholder,
+}: {
+  value: string | null;
+  options: InlinePickerOption[];
+  onChange: (id: string | null) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = value ? options.find((o) => o.id === value) : undefined;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 w-[150px] justify-start rounded-lg border-border/60 bg-card px-2 text-left text-xs font-normal"
+          title={current?.label ?? placeholder}
+        >
+          <span className={cn("truncate", !current && "text-muted-foreground")}>{current?.label ?? placeholder}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[268px] p-0">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
+          <CommandList>
+            <CommandEmpty>No match found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="__clear__"
+                className="text-xs"
+                onSelect={() => {
+                  setOpen(false);
+                  if (value !== null) onChange(null);
+                }}
+              >
+                {placeholder}
+              </CommandItem>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={`${o.label} ${o.hint ?? ""}`}
+                  className="text-xs"
+                  onSelect={() => {
+                    setOpen(false);
+                    if (o.id !== value) onChange(o.id);
+                  }}
+                >
+                  <span className="truncate">{o.label}</span>
+                  {o.hint && <span className="ml-auto font-mono text-[10px] text-muted-foreground">{o.hint}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function useCandidates() {
   return useQuery({
     queryKey: QK,
