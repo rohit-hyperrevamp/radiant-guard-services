@@ -1123,6 +1123,20 @@ function CheckInDialog({
           });
         } catch { /* noop */ }
       }
+      // Site has no coordinates on record yet: store this on-site reading so
+      // every future visit to this site can be geofenced against it.
+      let capturedSiteLocation = false;
+      if (!geo && pos.accuracy <= MAX_CAPTURE_ACCURACY_M) {
+        try {
+          const { data } = await supabase.rpc("capture_unit_coordinates" as never, {
+            _unit_id: selectedId,
+            _lat: pos.lat,
+            _lng: pos.lng,
+            _accuracy: Math.round(pos.accuracy),
+          } as never);
+          capturedSiteLocation = data === true;
+        } catch { /* noop */ }
+      }
       // Auto-complete any open admin request for this FO+unit
       try {
         await completeFieldVisitRequestForUnit({
@@ -1131,9 +1145,14 @@ function CheckInDialog({
           visitId: visit.id,
         });
       } catch { /* noop */ }
+      return { capturedSiteLocation };
     },
-    onSuccess: () => {
-      toast.success("Checked in");
+    onSuccess: (res) => {
+      toast.success(
+        res?.capturedSiteLocation
+          ? "Checked in — site location saved for future visits"
+          : "Checked in",
+      );
       onDone();
     },
     onError: (err) => {
