@@ -389,14 +389,23 @@ export function OperationsDeployments() {
       </footer>
 
       <SwitchOfficerDialog
-        unit={switchUnit}
-        unitLabel={switchUnit ? unitLabel(switchUnit) : ""}
-        current={(switchUnit ? dir?.foByUnit.get(switchUnit.id) ?? [] : []).map(foName)}
+        units={switchUnits}
+        unitLabel={
+          switchUnits && switchUnits.length === 1
+            ? unitLabel(switchUnits[0])
+            : `${switchUnits?.length ?? 0} sites selected`
+        }
+        current={
+          switchUnits && switchUnits.length === 1
+            ? (dir?.foByUnit.get(switchUnits[0].id) ?? []).map(foName)
+            : []
+        }
         fos={dir?.fos ?? []}
         saving={switchMut.isPending}
-        onClose={() => setSwitchUnit(null)}
-        onSave={(foId) => switchUnit && switchMut.mutate({ unit: switchUnit, foId })}
+        onClose={() => setSwitchUnits(null)}
+        onSave={(foId) => switchUnits && switchMut.mutate({ units: switchUnits, foId })}
       />
+
     </section>
   );
 }
