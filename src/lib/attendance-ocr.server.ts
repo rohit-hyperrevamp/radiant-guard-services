@@ -206,21 +206,32 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
   const visibleMatch = notesStr.match(/visible_days\s*=\s*(\d{1,2})/i);
   const visibleDays = visibleMatch ? Math.min(31, Math.max(1, parseInt(visibleMatch[1]!, 10))) : null;
 
+  /** Resolve an employee number (1-based) back to its candidate + designation. */
+  const resolveNumber = (value: unknown) => {
+    const num = Math.round(toNumber(value));
+    if (!Number.isFinite(num) || num < 1 || num > numberedEmployees.length) return null;
+    return numberedEmployees[num - 1] ?? null;
+  };
+
   const compactGroups = Array.isArray(output.r) ? output.r : [];
   const compactRows: Array<Record<string, unknown>> = [];
   for (const group of compactGroups) {
-    if (!Array.isArray(group)) continue;
-    const [candidateId, designationId, cells] = group;
-    if (!Array.isArray(cells)) continue;
+    const numberValue = Array.isArray(group)
+      ? group[0]
+      : (group as { e?: unknown } | null)?.e;
+    const cells = Array.isArray(group) ? group[1] : (group as { c?: unknown } | null)?.c;
+    const resolved = resolveNumber(numberValue);
+    if (!resolved || !Array.isArray(cells)) continue;
     for (const cell of cells) {
-      if (!Array.isArray(cell)) continue;
+      const isArr = Array.isArray(cell);
+      const c = cell as { entry_date?: unknown; code?: unknown; ot?: unknown; confident?: unknown };
       compactRows.push({
-        candidate_id: candidateId,
-        designation_id: designationId,
-        entry_date: cell[0],
-        code: cell[1],
-        ot_hours: cell[2],
-        confident: cell[3],
+        candidate_id: resolved.id,
+        designation_id: resolved.designation_id ?? "",
+        entry_date: isArr ? (cell as unknown[])[0] : c?.entry_date,
+        code: isArr ? (cell as unknown[])[1] : c?.code,
+        ot_hours: isArr ? (cell as unknown[])[2] : c?.ot,
+        confident: isArr ? (cell as unknown[])[3] : c?.confident,
       });
     }
   }
