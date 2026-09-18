@@ -1990,17 +1990,19 @@ function EmployeesPage() {
     doj: false,
     active: true,
   };
+  // v2 key: drops stale saved prefs so new default columns (designation, department, reporting manager) always appear
+  const COLUMN_PREFS_KEY = "employees.columnPrefs.v2";
   const [columnsVisible, setColumnsVisible] = useState<typeof DEFAULT_COLUMNS_VIS>(() => {
     if (typeof window === "undefined") return DEFAULT_COLUMNS_VIS;
     try {
-      const raw = localStorage.getItem("employees.columnPrefs");
+      const raw = localStorage.getItem(COLUMN_PREFS_KEY);
       if (raw) return { ...DEFAULT_COLUMNS_VIS, ...JSON.parse(raw) };
     } catch {}
     return DEFAULT_COLUMNS_VIS;
   });
   useEffect(() => {
     try {
-      localStorage.setItem("employees.columnPrefs", JSON.stringify(columnsVisible));
+      localStorage.setItem(COLUMN_PREFS_KEY, JSON.stringify(columnsVisible));
     } catch {}
   }, [columnsVisible]);
 
