@@ -241,27 +241,74 @@ export function OperationsDeployments() {
         <div className="px-4 py-8 text-center text-xs text-muted-foreground">Loading deployments…</div>
       ) : view === "unit" ? (
         <ul className="divide-y divide-border/50">
+          <li className="flex flex-wrap items-center justify-between gap-2 bg-muted/40 px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 accent-foreground"
+                checked={slice(unitRows).length > 0 && slice(unitRows).every((u) => selected.has(u.id))}
+                onChange={(e) => {
+                  const ids = slice(unitRows).map((u) => u.id);
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    if (e.target.checked) ids.forEach((id) => next.add(id));
+                    else ids.forEach((id) => next.delete(id));
+                    return next;
+                  });
+                }}
+              />
+              Select all on this page
+            </label>
+            <span className="flex items-center gap-2">
+              {selected.size > 0 && <span>{selected.size} selected</span>}
+              {selected.size > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    className="h-7 gap-1 text-[11px]"
+                    onClick={() =>
+                      setSwitchUnits((dir?.units ?? []).filter((u) => selected.has(u.id)))
+                    }
+                  >
+                    <Repeat className="h-3 w-3" /> Assign officer
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setSelected(new Set())}>
+                    Clear
+                  </Button>
+                </>
+              )}
+            </span>
+          </li>
           {slice(unitRows).map((u) => {
             const officers = dir?.foByUnit.get(u.id) ?? [];
             return (
               <li key={u.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <div className="min-w-0">
-                  <div className="truncate text-[13px] font-semibold text-foreground">{unitLabel(u)}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                    {u.code ?? "—"} ·{" "}
-                    {officers.length ? (
-                      officers.map(foName).join(", ")
-                    ) : (
-                      <span className="font-semibold text-rose-600 dark:text-rose-400">No field officer</span>
-                    )}
+                <div className="flex min-w-0 items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 shrink-0 accent-foreground"
+                    checked={selected.has(u.id)}
+                    onChange={() => toggleSelected(u.id)}
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-semibold text-foreground">{unitLabel(u)}</div>
+                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {u.code ?? "—"} ·{" "}
+                      {officers.length ? (
+                        officers.map(foName).join(", ")
+                      ) : (
+                        <span className="font-semibold text-rose-600 dark:text-rose-400">No field officer</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-[11px]" onClick={() => setSwitchUnit(u)}>
+                <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-[11px]" onClick={() => setSwitchUnits([u])}>
                   <Repeat className="h-3 w-3" /> Switch officer
                 </Button>
               </li>
             );
           })}
+
           {unitRows.length === 0 && (
             <li className="px-4 py-8 text-center text-xs text-muted-foreground">No sites match.</li>
           )}
