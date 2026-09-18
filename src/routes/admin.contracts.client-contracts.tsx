@@ -2217,9 +2217,11 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
 function ClientContractsPage() {
   const qc = useQueryClient();
   const { items, addMut, updateMut, deleteMut, duplicateMut, updateStageMut, resubmitMut } = useContracts();
-  const { can } = useCurrentPermissions();
+  const { can, roleKey } = useCurrentPermissions();
   const canApprove = can("contracts", "approve");
   const canEdit = can("contracts", "edit");
+  const canDelete = can("contracts", "delete");
+  const isHrReadOnly = roleKey === "hr";
   const { units } = useUnits();
   const { customers } = useCustomers();
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -2256,7 +2258,7 @@ function ClientContractsPage() {
     if (appliedDeepLink.current) return;
     if (!search.status && !search.tab && !search.renewals) return;
     appliedDeepLink.current = true;
-    if (search.tab) setTab(search.tab);
+    if (search.tab && !isHrReadOnly) setTab(search.tab);
     if (search.status) setStatusFilter(search.status);
     if (search.renewals) {
       setTab("client");
@@ -2387,7 +2389,7 @@ function ClientContractsPage() {
       <PageHeader
         title="Client Contracts"
         eyebrow="Contracts"
-        description="Manage contracts across organisations and clients."
+        description={isHrReadOnly ? "View contracts across organisations and clients." : "Manage contracts across organisations and clients."}
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         kpis={
           <>
@@ -2460,9 +2462,11 @@ function ClientContractsPage() {
           <TabsTrigger value="client">
             Clients <span className="ml-1.5 text-xs text-muted-foreground">({tabCounts.clients})</span>
           </TabsTrigger>
-          <TabsTrigger value="prospect">
-            Prospects <span className="ml-1.5 text-xs text-muted-foreground">({tabCounts.prospects})</span>
-          </TabsTrigger>
+          {!isHrReadOnly && (
+            <TabsTrigger value="prospect">
+              Prospects <span className="ml-1.5 text-xs text-muted-foreground">({tabCounts.prospects})</span>
+            </TabsTrigger>
+          )}
         </TabsList>
       </Tabs>
 
@@ -2500,12 +2504,13 @@ function ClientContractsPage() {
           <Download className="mr-1.5 h-4 w-4" />
           Export Contracts
         </Button>
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          className="hidden"
-          onChange={async (e) => {
+        {canEdit && (
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="hidden"
+            onChange={async (e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
             if (!file) return;
@@ -2534,26 +2539,31 @@ function ClientContractsPage() {
               toast.error(importErrorMessage(err));
 
             }
-          }}
-        />
-        <Button
-          variant="outline"
-          onClick={() => importInputRef.current?.click()}
-          className="h-10 rounded-lg"
-        >
-          <Upload className="mr-1.5 h-4 w-4" />
-          Import Contract
-        </Button>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-          className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="mr-1.5 h-4 w-4" />
-          Create Contract
-        </Button>
+            }}
+          />
+        )}
+        {canEdit && (
+          <>
+            <Button
+              variant="outline"
+              onClick={() => importInputRef.current?.click()}
+              className="h-10 rounded-lg"
+            >
+              <Upload className="mr-1.5 h-4 w-4" />
+              Import Contract
+            </Button>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+              className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Create Contract
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Filters */}
@@ -2791,19 +2801,21 @@ function ClientContractsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          setEditing(c);
-                          setFormOpen(true);
-                        }}
-                        aria-label="Edit"
-                        title="Edit"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setEditing(c);
+                            setFormOpen(true);
+                          }}
+                          aria-label="Edit"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       {canEdit && (
                         <Button
                           size="sm"
@@ -2827,14 +2839,16 @@ function ClientContractsPage() {
 
 
 
-                      <DeleteGuardButton
-                        id={c.id}
-                        entityLabel="contract"
-                        checks={[
-                          { table: "contract_resources", column: "contract_id", label: "resource lines" },
-                        ]}
-                        onDelete={() => setDeleting(c)}
-                      />
+                      {canDelete && (
+                        <DeleteGuardButton
+                          id={c.id}
+                          entityLabel="contract"
+                          checks={[
+                            { table: "contract_resources", column: "contract_id", label: "resource lines" },
+                          ]}
+                          onDelete={() => setDeleting(c)}
+                        />
+                      )}
 
                     </div>
                   </td>
