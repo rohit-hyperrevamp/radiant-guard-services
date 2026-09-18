@@ -821,19 +821,19 @@ export function FinanceCharter({
 
                       )}
                     </div>
-        </div>
-      )}
-
-      <CharterPagination
-        page={safePage}
-        pageCount={pageCount}
-        total={matchedUnits.length}
-        pageSize={PAGE_SIZE}
-        onPageChange={setPage}
-      />
-    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
+
+          <CharterPagination
+            page={safePage}
+            pageCount={pageCount}
+            total={matchedUnits.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>
