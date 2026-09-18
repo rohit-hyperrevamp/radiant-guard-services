@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
+import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
 export const Route = createFileRoute("/admin/attendance/employee")({
   component: EmployeeAttendanceLookupPage,
