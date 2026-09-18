@@ -274,7 +274,12 @@ export function OperationsOrgTree() {
       ROLE_KEYS.OPERATIONS,
     ];
     return {
-      leadership: all.filter((person) => person.role_key === ROLE_KEYS.VP_OPERATIONS).sort(byName),
+      executive: all
+        .filter((person) => person.role_key === ROLE_KEYS.VP_OPERATIONS && !person.reports_to)
+        .sort(byName),
+      leadership: all
+        .filter((person) => person.role_key === ROLE_KEYS.VP_OPERATIONS && Boolean(person.reports_to))
+        .sort(byName),
       managers: all.filter((person) => managerRoles.includes(person.role_key ?? "")).sort(byName),
       officers: all.filter((person) => person.role_key === ROLE_KEYS.FIELD_OFFICER).sort(byName),
     };
@@ -352,7 +357,8 @@ export function OperationsOrgTree() {
         ) : (
           <div className="overflow-x-auto pb-2">
             <div className={`min-w-[900px] ${ZOOM_CLASSES[zoom]}`}>
-              <LevelRow label="Operations leadership" people={levels.leadership} tree={data} emphasis="top" />
+              <LevelRow label="Operations executive" people={levels.executive} tree={data} emphasis="top" />
+              <LevelRow label="Operations leadership" people={levels.leadership} tree={data} emphasis="head" />
               <LevelRow label="Operations managers & branch heads" people={levels.managers} tree={data} emphasis="head" />
               <LevelRow label="Field officers" people={levels.officers} tree={data} emphasis="officer" />
             </div>
