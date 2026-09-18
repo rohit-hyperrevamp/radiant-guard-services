@@ -411,9 +411,10 @@ export function OperationsDeployments() {
 }
 
 function SwitchOfficerDialog({
-  unit, unitLabel, current, fos, saving, onClose, onSave,
+  units, unitLabel, current, fos, saving, onClose, onSave,
 }: {
-  unit: UnitRow | null;
+  units: UnitRow[] | null;
+
   unitLabel: string;
   current: string[];
   fos: FoRow[];
