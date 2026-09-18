@@ -2676,24 +2676,44 @@ function MusterRollPage() {
                 </div>
               </div>
             )}
+            {processingOcr && (
+              <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Reading {Math.round(scanPct)}%
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{formatRemaining(scanRemaining)}</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width] duration-700"
+                    style={{ width: `${Math.max(2, Math.min(100, scanPct))}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  You can close this window — reading continues and the progress shows on the attendance list.
+                </p>
+              </div>
+            )}
             {ocrSummary && (
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                 {ocrSummary}
               </div>
             )}
             <p className="text-[11px] text-muted-foreground">
-              Allowed codes: {codes.map((c) => c.code).join(", ") || "—"} · Period {periodStart} → {periodEnd}
+              Codes: {codes.map((c) => c.code).join(", ") || "—"} · {periodStart} → {periodEnd}
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setUploadOpen(false)} disabled={processingOcr}>Close</Button>
+            <Button variant="ghost" onClick={() => setUploadOpen(false)}>Close</Button>
             <Button
               type="button"
               onClick={processUpload}
               disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr}
               className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
             >
-              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {uploadKind === "excel" ? "Importing…" : "Reading…"}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import & Fill" : "Process & Fill")}
+              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : "Read sheet")}
             </Button>
           </div>
         </DialogContent>
