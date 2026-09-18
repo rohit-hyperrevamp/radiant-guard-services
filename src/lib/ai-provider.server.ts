@@ -46,6 +46,14 @@ function isOverloaded(error: unknown): boolean {
   );
 }
 
+function isFreeTierQuota(error: unknown): boolean {
+  const message = [
+    error instanceof Error ? error.message : String(error ?? ""),
+    String((error as { responseBody?: unknown } | null)?.responseBody ?? ""),
+  ].join(" ");
+  return /free_tier_requests|FreeTier|free tier/i.test(message);
+}
+
 /**
  * Run one attendance-sheet read against the company Gemini account, direct to
  * Google. Only retry when Google reports the model as overloaded/rate limited —
@@ -53,6 +61,7 @@ function isOverloaded(error: unknown): boolean {
  */
 export async function runVision<T>(
   run: (model: LanguageModel) => Promise<T>,
+  modelIds: readonly string[] = ATTENDANCE_VISION_MODELS,
 ): Promise<T> {
   const geminiKey = personalGeminiKey();
 
@@ -70,7 +79,7 @@ export async function runVision<T>(
   });
 
   let lastError: unknown = null;
-  for (const modelId of ATTENDANCE_VISION_MODELS) {
+  for (const modelId of modelIds) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         return await run(provider(modelId));
@@ -80,6 +89,11 @@ export async function runVision<T>(
         await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
       }
     }
+  }
+  if (isFreeTierQuota(lastError)) {
+    throw new Error(
+      "Google is still treating this Gemini API project as Free Tier (20 reads/day). Enable billing on the Google project that owns this API key, then retry.",
+    );
   }
   throw lastError instanceof Error
     ? lastError

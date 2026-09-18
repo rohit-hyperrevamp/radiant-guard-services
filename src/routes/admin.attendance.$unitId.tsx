@@ -1899,14 +1899,6 @@ function MusterRollPage() {
         }
       }
 
-      for (const pk of totalsMismatchPairs) {
-        const mr = pairByKey.get(pk);
-        if (!mr) continue;
-        for (const cell of periodCells) {
-          uncertainNext.add(`${mr.key}|${cell.date}`);
-        }
-      }
-
       if (byPair.size === 0) {
         throw new Error(
           "No attendance cells passed the accuracy checks. Existing attendance was left unchanged.",
