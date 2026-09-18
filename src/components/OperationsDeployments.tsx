@@ -72,6 +72,16 @@ async function loadDirectory(): Promise<Directory> {
  * reverse view by officer. Sites with no officer are the red flag operations
  * cares about.
  */
+/** Keyword match: every word in the query must appear somewhere in the haystack. */
+function matchesKeywords(haystack: string, query: string): boolean {
+  const hay = haystack.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .every((token) => hay.includes(token));
+}
+
 export function OperationsDeployments() {
   const qc = useQueryClient();
   const [view, setView] = useState<"unit" | "officer">("unit");
