@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
 import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
 import { InsuranceHeadTiles } from "@/components/InsuranceHeadTiles";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
