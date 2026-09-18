@@ -332,6 +332,30 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
     ? unmatchedRaw.map((n) => String(n)).slice(0, 50)
     : [];
 
+  // Safety net for invoicing: reconcile the read cells against the printed
+  // P Days total for each person. Any row that does not reconcile has ALL of its
+  // cells marked unconfident so it is flagged in red for human correction rather
+  // than silently saved as fact.
+  const reconcileNotes: string[] = [];
+  for (const summary of summaries) {
+    if (!summary.confident || summary.p_days == null) continue;
+    const cells = cleanedRows.filter((r) => r.candidate_id === summary.candidate_id);
+    if (cells.length === 0) continue;
+    const counted = cells.reduce((total, cell) => {
+      const code = cell.code.trim().toUpperCase();
+      if (!code) return total;
+      if (code.startsWith("H")) return total + 0.5;
+      if (code.startsWith("P") || code.startsWith("D") || code.startsWith("E")) return total + 1;
+      return total;
+    }, 0);
+    if (Math.abs(counted - summary.p_days) > 0.01) {
+      reconcileNotes.push(
+        `row_check_failed candidate=${summary.candidate_id} read=${counted} printed=${summary.p_days}`,
+      );
+      for (const cell of cells) cell.confident = false;
+    }
+  }
+
   return {
     rows: cleanedRows,
     row_summaries: summaries,
