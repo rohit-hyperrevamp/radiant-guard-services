@@ -89,7 +89,9 @@ export function OperationsDeployments() {
   const [page, setPage] = useState(0);
   const [onlyUnassigned, setOnlyUnassigned] = useState(false);
   const [openFo, setOpenFo] = useState<string | null>(null);
-  const [switchUnit, setSwitchUnit] = useState<UnitRow | null>(null);
+  const [switchUnits, setSwitchUnits] = useState<UnitRow[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
 
   const dirQ = useQuery({ queryKey: ["ops-deployments"], staleTime: 2 * 60_000, queryFn: loadDirectory });
   const dir = dirQ.data;
@@ -134,36 +136,52 @@ export function OperationsDeployments() {
   );
 
   const switchMut = useMutation({
-    mutationFn: async ({ unit, foId }: { unit: UnitRow; foId: string }) => {
-      const previous = dir?.foByUnit.get(unit.id) ?? [];
-      if (previous.length) {
-        const { error } = await supabase
+    mutationFn: async ({ units, foId }: { units: UnitRow[]; foId: string }) => {
+      for (const unit of units) {
+        const previous = dir?.foByUnit.get(unit.id) ?? [];
+        if (previous.length) {
+          const { error } = await supabase
+            .from("candidate_units")
+            .delete()
+            .eq("unit_id", unit.id)
+            .in("candidate_id", previous);
+          if (error) throw error;
+        }
+        const { error: insErr } = await supabase
           .from("candidate_units")
-          .delete()
-          .eq("unit_id", unit.id)
-          .in("candidate_id", previous);
-        if (error) throw error;
+          .insert({ candidate_id: foId, unit_id: unit.id, is_primary: false, is_reliever: false });
+        if (insErr && !String(insErr.message).includes("duplicate")) throw insErr;
+        await logActivity({
+          module: MODULE,
+          action: "update",
+          entityType: "unit",
+          entityId: unit.id,
+          entityLabel: unitLabel(unit),
+          details: { from: previous.map(foName), to: foName(foId) },
+        });
       }
-      const { error: insErr } = await supabase
-        .from("candidate_units")
-        .insert({ candidate_id: foId, unit_id: unit.id, is_primary: false, is_reliever: false });
-      if (insErr && !String(insErr.message).includes("duplicate")) throw insErr;
-      await logActivity({
-        module: MODULE,
-        action: "update",
-        entityType: "unit",
-        entityId: unit.id,
-        entityLabel: unitLabel(unit),
-        details: { from: previous.map(foName), to: foName(foId) },
-      });
     },
-    onSuccess: () => {
-      toast.success("Field officer reassigned");
-      setSwitchUnit(null);
+    onSuccess: (_d, vars) => {
+      toast.success(
+        vars.units.length > 1
+          ? `Field officer assigned to ${vars.units.length} sites`
+          : "Field officer reassigned",
+      );
+      setSwitchUnits(null);
+      setSelected(new Set());
       void qc.invalidateQueries({ queryKey: ["ops-deployments"] });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not reassign"),
   });
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card/90 shadow-sm sm:rounded-3xl">
@@ -223,27 +241,74 @@ export function OperationsDeployments() {
         <div className="px-4 py-8 text-center text-xs text-muted-foreground">Loading deployments…</div>
       ) : view === "unit" ? (
         <ul className="divide-y divide-border/50">
+          <li className="flex flex-wrap items-center justify-between gap-2 bg-muted/40 px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 accent-foreground"
+                checked={slice(unitRows).length > 0 && slice(unitRows).every((u) => selected.has(u.id))}
+                onChange={(e) => {
+                  const ids = slice(unitRows).map((u) => u.id);
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    if (e.target.checked) ids.forEach((id) => next.add(id));
+                    else ids.forEach((id) => next.delete(id));
+                    return next;
+                  });
+                }}
+              />
+              Select all on this page
+            </label>
+            <span className="flex items-center gap-2">
+              {selected.size > 0 && <span>{selected.size} selected</span>}
+              {selected.size > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    className="h-7 gap-1 text-[11px]"
+                    onClick={() =>
+                      setSwitchUnits((dir?.units ?? []).filter((u) => selected.has(u.id)))
+                    }
+                  >
+                    <Repeat className="h-3 w-3" /> Assign officer
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setSelected(new Set())}>
+                    Clear
+                  </Button>
+                </>
+              )}
+            </span>
+          </li>
           {slice(unitRows).map((u) => {
             const officers = dir?.foByUnit.get(u.id) ?? [];
             return (
               <li key={u.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <div className="min-w-0">
-                  <div className="truncate text-[13px] font-semibold text-foreground">{unitLabel(u)}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                    {u.code ?? "—"} ·{" "}
-                    {officers.length ? (
-                      officers.map(foName).join(", ")
-                    ) : (
-                      <span className="font-semibold text-rose-600 dark:text-rose-400">No field officer</span>
-                    )}
+                <div className="flex min-w-0 items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 shrink-0 accent-foreground"
+                    checked={selected.has(u.id)}
+                    onChange={() => toggleSelected(u.id)}
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-semibold text-foreground">{unitLabel(u)}</div>
+                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {u.code ?? "—"} ·{" "}
+                      {officers.length ? (
+                        officers.map(foName).join(", ")
+                      ) : (
+                        <span className="font-semibold text-rose-600 dark:text-rose-400">No field officer</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-[11px]" onClick={() => setSwitchUnit(u)}>
+                <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-[11px]" onClick={() => setSwitchUnits([u])}>
                   <Repeat className="h-3 w-3" /> Switch officer
                 </Button>
               </li>
             );
           })}
+
           {unitRows.length === 0 && (
             <li className="px-4 py-8 text-center text-xs text-muted-foreground">No sites match.</li>
           )}
@@ -324,22 +389,32 @@ export function OperationsDeployments() {
       </footer>
 
       <SwitchOfficerDialog
-        unit={switchUnit}
-        unitLabel={switchUnit ? unitLabel(switchUnit) : ""}
-        current={(switchUnit ? dir?.foByUnit.get(switchUnit.id) ?? [] : []).map(foName)}
+        units={switchUnits}
+        unitLabel={
+          switchUnits && switchUnits.length === 1
+            ? unitLabel(switchUnits[0])
+            : `${switchUnits?.length ?? 0} sites selected`
+        }
+        current={
+          switchUnits && switchUnits.length === 1
+            ? (dir?.foByUnit.get(switchUnits[0].id) ?? []).map(foName)
+            : []
+        }
         fos={dir?.fos ?? []}
         saving={switchMut.isPending}
-        onClose={() => setSwitchUnit(null)}
-        onSave={(foId) => switchUnit && switchMut.mutate({ unit: switchUnit, foId })}
+        onClose={() => setSwitchUnits(null)}
+        onSave={(foId) => switchUnits && switchMut.mutate({ units: switchUnits, foId })}
       />
+
     </section>
   );
 }
 
 function SwitchOfficerDialog({
-  unit, unitLabel, current, fos, saving, onClose, onSave,
+  units, unitLabel, current, fos, saving, onClose, onSave,
 }: {
-  unit: UnitRow | null;
+  units: UnitRow[] | null;
+
   unitLabel: string;
   current: string[];
   fos: FoRow[];
@@ -358,7 +433,7 @@ function SwitchOfficerDialog({
   }, [fos, term]);
 
   return (
-    <Dialog open={!!unit} onOpenChange={(o) => { if (!o) { setTerm(""); setPicked(null); onClose(); } }}>
+    <Dialog open={!!units?.length} onOpenChange={(o) => { if (!o) { setTerm(""); setPicked(null); onClose(); } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Switch field officer</DialogTitle>
@@ -400,8 +475,13 @@ function SwitchOfficerDialog({
             Cancel
           </Button>
           <Button disabled={!picked || saving} onClick={() => picked && onSave(picked)}>
-            {saving ? "Saving…" : "Assign to this site"}
+            {saving
+              ? "Saving…"
+              : (units?.length ?? 0) > 1
+              ? `Assign to ${units?.length} sites`
+              : "Assign to this site"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
