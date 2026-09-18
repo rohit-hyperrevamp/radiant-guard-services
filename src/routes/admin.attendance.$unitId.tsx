@@ -1705,6 +1705,7 @@ function MusterRollPage() {
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
+    const { startedAt } = await beginScanProgress("image");
     try {
       // Build the set of allowed (candidate × designation) pairs. The roster
       // sent to OCR includes EVERY designation on this unit's active contract
