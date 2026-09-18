@@ -21,6 +21,7 @@ import {
 } from "@/lib/period-status";
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { SCAN_JOBS_QK, fetchRunningScanJobs, formatRemaining } from "@/lib/attendance-scan-jobs";
 
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
