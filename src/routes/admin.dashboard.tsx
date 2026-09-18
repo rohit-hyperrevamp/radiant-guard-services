@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   Building2, Briefcase, CalendarDays, ChevronLeft, ChevronRight,
   ClipboardList, Files, Fuel, PackageOpen, Receipt, TrendingDown, TrendingUp,
-  UserPlus, Wallet, Warehouse, AlertTriangle, ArrowRight, ArrowUpRight, Sparkles,
+  UserPlus, Users, Wallet, Warehouse, AlertTriangle, ArrowRight, ArrowUpRight, Sparkles,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -33,6 +33,10 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
+import { OperationsRadarSummary } from "@/components/OperationsRadarSummary";
+import { OperationsDeployments } from "@/components/OperationsDeployments";
+import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
+import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
@@ -46,11 +50,17 @@ import {
 } from "@/components/FinanceCoverage";
 
 
-function PeopleInsightsSection({ compact }: { compact?: boolean }) {
-  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
+function PeopleInsightsSection({
+  compact, hideLive, roleKeys,
+}: {
+  compact?: boolean;
+  hideLive?: boolean;
+  roleKeys?: readonly string[];
+}) {
+  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights({ roleKeys });
   return (
     <div className="flex flex-col gap-4">
-      <LiveFieldOfficersCard />
+      {!hideLive && <LiveFieldOfficersCard />}
       {!compact && (
         <>
           <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
@@ -61,6 +71,25 @@ function PeopleInsightsSection({ compact }: { compact?: boolean }) {
         </>
       )}
     </div>
+  );
+}
+
+/** Active field officers — the operations headcount that matters. */
+function FieldOfficerTile() {
+  const q = useQuery({
+    queryKey: ["dashboard-fo-count"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const res = await supabase
+        .from("candidates" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("role_key", "field_officer")
+        .in("status", ["approved", "active"]);
+      return res.count ?? 0;
+    },
+  });
+  return (
+    <MetricTile icon={Users} label="Field officers" value={q.data ?? 0} accent="lime" to="/admin/field-sense/team" />
   );
 }
 
@@ -128,6 +157,9 @@ function DashboardPage() {
     !can("attendance") &&
     !can("payroll") &&
     !can("invoice");
+  // Operations focus: Radar access without payroll/invoicing. Their homepage is
+  // field deployment, not money.
+  const opsFocus = useOperationsFocus();
 
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const monthEnd = (() => {
@@ -208,6 +240,7 @@ function DashboardPage() {
     enabled:
       !permsLoading &&
       !showInventoryDashboard &&
+      !opsFocus &&
       !lightMode &&
       (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 5 * 60_000,
@@ -452,6 +485,17 @@ function DashboardPage() {
 
   const tiles = useMemo(() => {
     const t: { key: string; module: string; node: React.ReactNode }[] = [];
+    if (data && opsFocus) {
+      // Operations homepage: organizations, clients, contracts and field
+      // officers. No designation follow-up, no employees, no money.
+      if (can("organizations")) t.push({ key: "orgs", module: "organizations", node: <MetricTile icon={Building2} label="Organizations" value={data.orgs} accent="rose" to="/admin/customers/customer-manager" /> });
+      if (can("organizations")) t.push({ key: "units", module: "organizations", node: <MetricTile icon={Warehouse} label="Clients" value={data.units} accent="cyan" to="/admin/customers/unit-manager" /> });
+      if (can("contracts")) t.push({ key: "contracts", module: "contracts", node: (
+        <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
+      )});
+      t.push({ key: "fo", module: "field_sense", node: <FieldOfficerTile /> });
+      return t;
+    }
     if (data) {
       if (can("organizations")) t.push({ key: "orgs", module: "organizations", node: <MetricTile icon={Building2} label="Organizations" value={data.orgs} accent="rose" to="/admin/customers/customer-manager" /> });
       if (can("organizations")) t.push({ key: "units", module: "organizations", node: <MetricTile icon={Warehouse} label="Clients" value={data.units} accent="cyan" to="/admin/customers/unit-manager" /> });
@@ -476,7 +520,7 @@ function DashboardPage() {
       )});
     }
     return t;
-  }, [data, can]);
+  }, [data, can, opsFocus]);
 
   if (permsLoading) {
     return (
@@ -550,7 +594,26 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={can("employees") ? <PeopleInsightsSection compact /> : null} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
+      <DashboardShell
+        rightExtras={
+          opsFocus ? (
+            <PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} />
+          ) : can("employees") ? (
+            <PeopleInsightsSection compact />
+          ) : null
+        }
+        fullWidthBelow={
+          opsFocus ? (
+            <>
+              <OperationsRadarSummary />
+              <AdminVisitProgressCard />
+              <OperationsDeployments />
+            </>
+          ) : (
+            <>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>
+          )
+        }
+      >
 
 
       {/* Month hero — restrained slate panel */}

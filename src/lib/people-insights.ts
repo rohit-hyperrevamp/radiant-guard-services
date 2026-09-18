@@ -61,10 +61,13 @@ type InsightsPayload = {
   sixtyPlus?: SixtyPlusEntry[];
 };
 
-export function usePeopleInsights() {
+export function usePeopleInsights(options?: { roleKeys?: readonly string[] }) {
   const { isSuperAdmin, roleKey, isFieldOfficer, isBranchManager } = useCurrentUserRole();
   const foScope = useFieldOfficerUnitScope();
   const branchScope = useUserBranchScope();
+  // Operations leaders only follow their own chain: field officers and the
+  // managers they report to.
+  const roleKeys = options?.roleKeys ? Array.from(options.roleKeys) : null;
 
   const canAll = isSuperAdmin || roleKey === "leadership" || roleKey === "hr" || roleKey === "admin";
   const showSixtyPlus = isSuperAdmin || roleKey === "leadership";
@@ -75,7 +78,7 @@ export function usePeopleInsights() {
   const q = useQuery({
     queryKey: [
       "people-insights",
-      { canAll, isBranchManager, isFieldOfficer, showSixtyPlus, foUnits: Array.from(foScope.unitIds), branch: branchScope.branchId },
+      { canAll, isBranchManager, isFieldOfficer, showSixtyPlus, foUnits: Array.from(foScope.unitIds), branch: branchScope.branchId, roleKeys },
     ],
     enabled,
     staleTime: 5 * 60_000,
@@ -106,6 +109,7 @@ export function usePeopleInsights() {
         p_days: 366,
         p_sixty: showSixtyPlus,
         p_limit: 200,
+        p_role_keys: roleKeys,
       } as never);
       if (error) throw error;
       return ((data ?? {}) as unknown) as InsightsPayload;

@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
+import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
 export const Route = createFileRoute("/admin/attendance/employee")({
   component: EmployeeAttendanceLookupPage,
@@ -72,6 +73,7 @@ function EmployeeAttendanceLookupPage() {
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const foScope = useFieldOfficerUnitScope();
+  const opsFocus = useOperationsFocus();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedTerm(term.trim()), 250);
@@ -80,19 +82,21 @@ function EmployeeAttendanceLookupPage() {
   const search = debouncedTerm;
 
   const searchQ = useQuery({
-    queryKey: ["attendance-employee-search", search],
+    queryKey: ["attendance-employee-search", search, opsFocus],
     enabled: search.length >= 2,
     staleTime: 15_000,
     queryFn: async (): Promise<CandidateHit[]> => {
       const like = `%${search}%`;
-      const { data, error } = await supabase
+      let qb = supabase
         .from("candidates")
         .select("id, full_name, employee_code, candidate_code, mobile, status, is_enabled, unit_id")
         .or(
           `full_name.ilike.${like},employee_code.ilike.${like},candidate_code.ilike.${like},mobile.ilike.${like}`,
-        )
-        .order("full_name")
-        .limit(25);
+        );
+      // Operations leaders only look up field officers and the managers they
+      // report to — never the guard roster.
+      if (opsFocus) qb = qb.in("role_key", Array.from(OPS_PEOPLE_ROLE_KEYS));
+      const { data, error } = await qb.order("full_name").limit(25);
       if (error) throw error;
       return (data ?? []) as CandidateHit[];
     },
