@@ -1685,7 +1685,7 @@ function MusterRollPage() {
     setUploadKind(kind);
     if (kind === "image") {
       // Downscale large photos so OCR upload stays fast and request body small
-      downscaleImage(file, 1600, 0.85)
+      downscaleImage(file, 1400, 0.78)
         .then((dataUrl) => setUploadPreview(dataUrl))
         .catch(() => {
           const reader = new FileReader();
@@ -1925,14 +1925,14 @@ function MusterRollPage() {
       confidentCount = Array.from(byPair.values()).reduce((sum, rows) => sum + rows.length, 0);
       uncertainCount = uncertainNext.size;
 
-      for (const [pk, rows] of byPair.entries()) {
+      await Promise.all(Array.from(byPair.entries()).map(async ([pk, rows]) => {
         const mr = pairByKey.get(pk)!;
         await upsertEntries(
           mr.candidateId,
           mr.designationId,
           rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
         );
-      }
+      }));
       await queryClient.invalidateQueries({ queryKey: entriesQK });
 
       setUncertainCells((prev) => {

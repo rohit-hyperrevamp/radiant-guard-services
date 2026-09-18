@@ -9,8 +9,13 @@
 
 import type { LanguageModel } from "ai";
 
-/** Models tried, in order, when calling Google directly with the company key. */
-const DIRECT_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"];
+/**
+ * The attendance reader is a high-volume OCR task, not a reasoning task.
+ * Flash Lite has materially lower vision latency and is available on the
+ * company's Google account. Keep this to one model: silently trying a second
+ * model can double the wait after a slow/failed first request.
+ */
+const ATTENDANCE_VISION_MODEL = "gemini-3.1-flash-lite";
 
 export type AiKeySource = "gemini";
 
@@ -30,8 +35,8 @@ export function activeAiKeySource(): AiKeySource | null {
 
 /**
  * Run one attendance-sheet read against the company Gemini account, direct to
- * Google. Google occasionally throttles a single model, so each candidate model
- * gets its own attempt before the error is surfaced.
+ * Google. Fail visibly rather than silently replaying the same large image on a
+ * second model; duplicate model calls make a single upload take several minutes.
  */
 export async function runVision<T>(
   run: (model: LanguageModel) => Promise<T>,
@@ -51,13 +56,5 @@ export async function runVision<T>(
     apiKey: geminiKey,
   });
 
-  let lastError: unknown;
-  for (const name of DIRECT_MODELS) {
-    try {
-      return await run(provider(name));
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError;
+  return run(provider(ATTENDANCE_VISION_MODEL));
 }
