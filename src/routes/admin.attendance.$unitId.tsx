@@ -1686,36 +1686,86 @@ function MusterRollPage() {
     return null;
   };
 
-  const onPickUploadFile = (file: File | null) => {
-    setUploadFile(file);
-    setUploadPreview(null);
-    setUploadKind(null);
-    setOcrSummary(null);
-    setUploadReadyToContinue(false);
-    if (!file) return;
-    const kind = detectKind(file);
-    if (!kind) { toast.error("Unsupported file. Choose an image or Excel/CSV file."); return; }
-    setUploadKind(kind);
-    if (kind === "image") {
-      // Keep handwriting legible: attendance accuracy depends on cell detail, so
-      // only very large photos are scaled down, at high JPEG quality.
-      downscaleImage(file, 2200, 0.92)
-        .then((dataUrl) => setUploadPreview(dataUrl))
-        .catch(() => {
-          const reader = new FileReader();
-          reader.onload = () => setUploadPreview(String(reader.result));
-          reader.readAsDataURL(file);
-        });
-    } else {
-      setUploadPreview(file.name);
+  const readImageDataUrl = async (file: File) => {
+    // Keep handwriting legible: attendance accuracy depends on cell detail, so
+    // only very large photos are scaled down, at high JPEG quality.
+    try {
+      return await downscaleImage(file, 2200, 0.92);
+    } catch {
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read image"));
+        reader.readAsDataURL(file);
+      });
     }
   };
 
-  const processAttendanceImage = async () => {
-    if (!uploadPreview) { toast.error("Choose an image first"); return; }
-    if (!editable) { toast.error("Sheet is locked"); return; }
-    if (!musterRows.length) { toast.error("No employees in this muster"); return; }
-    if (!codes.length) { toast.error("No attendance codes configured"); return; }
+  const onPickUploadFiles = (files: File[]) => {
+    setUploadFile(files[0] ?? null);
+    setUploadPreview(null);
+    setUploadImages([]);
+    setUploadKind(null);
+    setOcrSummary(null);
+    setUploadReadyToContinue(false);
+    if (!files.length) return;
+
+    const kinds = files.map(detectKind);
+    if (kinds.some((k) => k === null)) {
+      toast.error("Unsupported file. Choose images or an Excel/CSV file.");
+      return;
+    }
+    const images = files.filter((_, i) => kinds[i] === "image");
+    if (images.length && images.length !== files.length) {
+      toast.error("Upload photos together, or one Excel/CSV file — not both at once.");
+      return;
+    }
+    if (!images.length && files.length > 1) {
+      toast.error("Only one Excel/CSV file can be imported at a time.");
+      setUploadFile(files[0] ?? null);
+      setUploadKind("excel");
+      setUploadPreview(files[0]?.name ?? null);
+      return;
+    }
+
+    if (images.length) {
+      setUploadKind("image");
+      void Promise.all(images.map(async (f) => ({ name: f.name, dataUrl: await readImageDataUrl(f) })))
+        .then((list) => {
+          setUploadImages(list);
+          setUploadPreview(list[0]?.dataUrl ?? null);
+        })
+        .catch(() => toast.error("Could not read the selected photos."));
+    } else {
+      setUploadKind("excel");
+      setUploadPreview(files[0]!.name);
+    }
+  };
+
+  /** Read every selected photo one after another into this muster. */
+  const processAttendanceImages = async () => {
+    const pages = uploadImages.length
+      ? uploadImages
+      : uploadPreview
+        ? [{ name: uploadFile?.name ?? "sheet", dataUrl: uploadPreview }]
+        : [];
+    if (!pages.length) { toast.error("Choose an image first"); return; }
+    const summaries: string[] = [];
+    for (let i = 0; i < pages.length; i++) {
+      setScanStep({ index: i + 1, total: pages.length });
+      const summary = await processAttendanceImage(pages[i]!.dataUrl);
+      if (summary) summaries.push(pages.length > 1 ? `${pages[i]!.name}: ${summary}` : summary);
+    }
+    setScanStep(null);
+    if (summaries.length > 1) setOcrSummary(summaries.join(" — "));
+  };
+
+  const processAttendanceImage = async (imageDataUrl?: string): Promise<string | null> => {
+    const sheetImage = imageDataUrl ?? uploadPreview;
+    if (!sheetImage) { toast.error("Choose an image first"); return null; }
+    if (!editable) { toast.error("Sheet is locked"); return null; }
+    if (!musterRows.length) { toast.error("No employees in this muster"); return null; }
+    if (!codes.length) { toast.error("No attendance codes configured"); return null; }
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
