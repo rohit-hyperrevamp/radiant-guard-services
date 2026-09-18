@@ -199,19 +199,32 @@ function TreeCard({
   );
 }
 
-/** Centred branch: a head with its field officers fanned out underneath. */
-function HeadBranch({ head, tree }: { head: Person; tree: Tree }) {
-  const officers = tree.childrenOf.get(head.id) ?? [];
+/**
+ * Centred branch, rendered recursively so every level of the chain shows:
+ * VP -> VPs / heads -> managers -> field officers -> (guards inside the card).
+ */
+function Branch({ person, tree, depth }: { person: Person; tree: Tree; depth: number }) {
+  const children = tree.childrenOf.get(person.id) ?? [];
+  const emphasis: "top" | "head" | "officer" = depth === 0 ? "top" : depth === 1 ? "head" : "officer";
+  const wide = children.length > 3;
+
   return (
-    <div className="flex flex-col items-center">
-      <span className="h-4 w-px bg-border" />
-      <TreeCard person={head} guards={tree.guardsOf.get(head.id) ?? []} emphasis="head" />
-      {officers.length > 0 && (
+    <div className="flex min-w-0 flex-col items-center">
+      {depth > 0 && <span className="h-4 w-px bg-border" />}
+      <div className="w-full max-w-xs">
+        <TreeCard person={person} guards={tree.guardsOf.get(person.id) ?? []} emphasis={emphasis} />
+      </div>
+      {children.length > 0 && (
         <>
           <span className="h-4 w-px bg-border" />
-          <div className="w-full space-y-1.5 rounded-xl border border-dashed border-border/60 p-2">
-            {officers.map((officer) => (
-              <TreeCard key={officer.id} person={officer} guards={tree.guardsOf.get(officer.id) ?? []} emphasis="officer" />
+          <div className="w-full border-t border-border/60" />
+          <div
+            className={`flex w-full flex-wrap justify-center gap-x-4 gap-y-2 ${wide ? "" : "sm:flex-nowrap"}`}
+          >
+            {children.map((child) => (
+              <div key={child.id} className="min-w-[220px] flex-1 basis-[240px]">
+                <Branch person={child} tree={tree} depth={depth + 1} />
+              </div>
             ))}
           </div>
         </>
@@ -281,26 +294,10 @@ export function OperationsOrgTree() {
         ) : !data || data.roots.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No operations hierarchy recorded yet.</p>
         ) : (
-          <div className="space-y-6">
-            {data.roots.map((root) => {
-              const heads = data.childrenOf.get(root.id) ?? [];
-              return (
-                <div key={root.id} className="flex flex-col items-center">
-                  <TreeCard person={root} guards={data.guardsOf.get(root.id) ?? []} emphasis="top" />
-                  {heads.length > 0 && (
-                    <>
-                      <span className="h-5 w-px bg-border" />
-                      <div className="w-full border-t border-border/70" />
-                      <div className="grid w-full grid-cols-1 justify-center gap-4 pt-0 sm:grid-cols-2 xl:grid-cols-3">
-                        {heads.map((head) => (
-                          <HeadBranch key={head.id} head={head} tree={data} />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+          <div className="space-y-8 overflow-x-auto">
+            {data.roots.map((root) => (
+              <Branch key={root.id} person={root} tree={data} depth={0} />
+            ))}
           </div>
         )}
 
