@@ -268,13 +268,14 @@ export function OperationsOrgTree() {
   const levels = useMemo(() => {
     const all = data ? [...data.people.values()] : [];
     const byName = (a: Person, b: Person) => (a.full_name ?? "").localeCompare(b.full_name ?? "");
+    const managerRoles: readonly string[] = [
+      ROLE_KEYS.OPERATIONS_MANAGER,
+      ROLE_KEYS.BRANCH_MANAGER,
+      ROLE_KEYS.OPERATIONS,
+    ];
     return {
       leadership: all.filter((person) => person.role_key === ROLE_KEYS.VP_OPERATIONS).sort(byName),
-      managers: all
-        .filter((person) =>
-          [ROLE_KEYS.OPERATIONS_MANAGER, ROLE_KEYS.BRANCH_MANAGER, ROLE_KEYS.OPERATIONS].includes(person.role_key ?? ""),
-        )
-        .sort(byName),
+      managers: all.filter((person) => managerRoles.includes(person.role_key ?? "")).sort(byName),
       officers: all.filter((person) => person.role_key === ROLE_KEYS.FIELD_OFFICER).sort(byName),
     };
   }, [data]);
