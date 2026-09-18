@@ -180,6 +180,9 @@ function AdminLayout() {
   const { user, logout, isReady } = useAuth();
   const me = useMe();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Live location beacon: streams an on-duty field officer's position from every
+  // screen, so Radar viewers see them move in real time.
+  useLiveLocationBeacon();
   const { can, canSub, isLoading: permsLoading, isSuperAdmin: isRbacSuperAdmin, roleKey } = useCurrentPermissions();
   // useAuth and RBAC hydrate in separate hook instances. Preserve the explicit
   // authenticated role during that hand-off so the route guard cannot issue a
