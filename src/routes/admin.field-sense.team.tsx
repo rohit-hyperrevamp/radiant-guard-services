@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FieldSenseAdminGuard } from "@/components/FieldSenseAdminGuard";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { subscribeLivePunches } from "@/lib/use-live-location-beacon";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -71,11 +72,17 @@ function timeShort(iso: string | null) {
 
 function MyTeamPage() {
   const search = Route.useSearch();
+  const qc = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<string>(search.date || todayIso());
+
+  // Live: refresh the moment any officer's telemetry changes.
+  useEffect(() => subscribeLivePunches(() => {
+    void qc.invalidateQueries({ queryKey: ["field-sense-team", selectedDate] });
+  }), [qc, selectedDate]);
 
   const dataQ = useQuery({
     queryKey: ["field-sense-team", selectedDate],
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
     staleTime: 15_000,
     queryFn: async (): Promise<{ rows: Row[]; total: number }> => {
       const [foRes, punchRes, visitsRes, tracksRes, unitsRes] = await Promise.all([
