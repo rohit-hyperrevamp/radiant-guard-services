@@ -98,7 +98,7 @@ export const extractAadhaar = createServerFn({ method: "POST" })
 
     const parts: Array<Record<string, unknown>> = [{ text: promptText }, ...mediaParts];
 
-    const model = "gemini-2.5-pro";
+    const model = process.env["GEMINI_IDENTITY_MODEL"]?.trim() || "gemini-3.6-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const res = await fetch(url, {

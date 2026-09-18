@@ -6,6 +6,7 @@ import type {
   MigrationSheetInput,
   MigrationSheetResult,
 } from "./sheet-ocr-types";
+import { createVisionModel } from "./ai-provider.server";
 
 /**
  * Migration Utility sheet reader.
