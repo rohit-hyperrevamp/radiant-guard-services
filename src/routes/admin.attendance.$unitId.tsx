@@ -130,7 +130,12 @@ function nearlyEqual(a: number | null, b: number | null, epsilon = 0.01) {
 
 function isSummaryClose(actual: OcrRowSummary, expected: OcrRowSummary) {
   const pOk = expected.p_days == null || nearlyEqual(actual.p_days, roundHalf(expected.p_days), 1);
-  const otOk = expected.ot_days == null || nearlyEqual(actual.ot_days, roundHalf(expected.ot_days), 1);
+  // Printed muster rolls commonly total Extra Duty in hours (8, 16, 32),
+  // while attendance_entries stores Extra Duty as days (1, 2, 4). Accept
+  // either representation so a correct row is never rejected on units alone.
+  const otOk = expected.ot_days == null
+    || nearlyEqual(actual.ot_days, roundHalf(expected.ot_days), 1)
+    || nearlyEqual(actual.ot_days, roundHalf(expected.ot_days / 8), 0.25);
   const tOk = expected.t_days == null || nearlyEqual(actual.t_days, roundHalf(expected.t_days), 1.5);
   return { pOk, otOk, tOk, ok: pOk && otOk && tOk };
 }
@@ -1902,8 +1907,13 @@ function MusterRollPage() {
         }
       }
 
+      if (byPair.size === 0) {
+        throw new Error(
+          "No attendance cells passed the accuracy checks. Existing attendance was left unchanged.",
+        );
+      }
+
       const sheetPairKeys = new Set<string>([
-        ...summaryByPair.keys(),
         ...byPair.keys(),
       ]);
 

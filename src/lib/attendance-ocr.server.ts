@@ -25,7 +25,7 @@ ABSOLUTE RULES:
 {"r":[{"e":1,"c":[["YYYY-MM-DD","P",0,true]]}],"s":[{"e":1,"p":26,"o":8,"t":27,"k":true}],"u":[],"n":"visible_days=NN"}
    - r = per-employee cells; c items are [entry_date, code, ot, confident].
    - s = printed right-side totals per employee: p=P Days, o=OT total, t=T Days, k=true only when those totals are clearly legible. Use null for an unreadable total.
-   - u = visible names that matched no employee. n = largest visible day number.`;
+   - u = visible names that matched no employee. n = number of visible day columns.`;
 
 function stripMarkdownFences(text: string) {
   const trimmed = text.trim();
@@ -206,8 +206,6 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
   const validCodeMap = new Map(data.codes.map((c) => [c.code.trim().toUpperCase(), c.code]));
 
   const notesStr = String(output.n ?? output.notes ?? "");
-  const visibleMatch = notesStr.match(/visible_days\s*=\s*(\d{1,2})/i);
-  const visibleDays = visibleMatch ? Math.min(31, Math.max(1, parseInt(visibleMatch[1]!, 10))) : null;
 
   /** Resolve an employee number (1-based) back to its candidate + designation. */
   const resolveNumber = (value: unknown) => {
@@ -256,10 +254,6 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
       designation_id = null;
     } else {
       designation_id = primaryDesigByCand.get(candidate_id) ?? null;
-    }
-    if (visibleDays !== null) {
-      const dayNum = parseInt(entry_date.slice(8, 10), 10);
-      if (Number.isFinite(dayNum) && dayNum > visibleDays) continue;
     }
     const code = codeRaw === "" ? "" : (validCodeMap.get(codeRaw.toUpperCase()) ?? "");
     const codeValid = codeRaw === "" || code !== "";
