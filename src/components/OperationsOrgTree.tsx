@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, MapPin, Network, Shield, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, MapPin, Network, RotateCcw, Shield, Users, ZoomIn, ZoomOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { Button } from "@/components/ui/button";
 
 /** Roles that make up the operations chain, top to bottom. */
 const OPS_TREE_ROLES: readonly string[] = [
@@ -33,6 +34,16 @@ type Tree = {
   orphans: Person[];
   guardsOf: Map<string, Guard[]>;
   guardTotal: number;
+};
+
+type ZoomLevel = 75 | 90 | 100 | 110;
+
+const ZOOM_LEVELS: ZoomLevel[] = [75, 90, 100, 110];
+const ZOOM_CLASSES: Record<ZoomLevel, string> = {
+  75: "[zoom:.75]",
+  90: "[zoom:.9]",
+  100: "[zoom:1]",
+  110: "[zoom:1.1]",
 };
 
 async function loadTree(): Promise<Tree> {
@@ -173,13 +184,19 @@ function TreeCard({
           </Chip>
         )}
         {guards.length > 0 && (
-          <button type="button" onClick={() => setOpen((v) => !v)} className="focus:outline-none">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen((v) => !v)}
+            className="h-auto rounded-full p-0 focus-visible:ring-1"
+            aria-label={`${open ? "Hide" : "Show"} guards reporting to ${person.full_name ?? "field officer"}`}
+          >
             <Chip tone="sky">
               <Shield className="h-2.5 w-2.5" />
               {guards.length} guards
               {open ? <ChevronDown className="h-2.5 w-2.5" /> : <ChevronRight className="h-2.5 w-2.5" />}
             </Chip>
-          </button>
+          </Button>
         )}
       </div>
       {person.designation && (
@@ -199,36 +216,41 @@ function TreeCard({
   );
 }
 
-/**
- * Centred branch, rendered recursively so every level of the chain shows:
- * VP -> VPs / heads -> managers -> field officers -> (guards inside the card).
- */
-function Branch({ person, tree, depth }: { person: Person; tree: Tree; depth: number }) {
-  const children = tree.childrenOf.get(person.id) ?? [];
-  const emphasis: "top" | "head" | "officer" = depth === 0 ? "top" : depth === 1 ? "head" : "officer";
-  const wide = children.length > 3;
+function LevelRow({
+  label,
+  people,
+  tree,
+  emphasis,
+}: {
+  label: string;
+  people: Person[];
+  tree: Tree;
+  emphasis: "top" | "head" | "officer";
+}) {
+  if (people.length === 0) return null;
 
   return (
-    <div className="flex min-w-0 flex-col items-center">
-      {depth > 0 && <span className="h-4 w-px bg-border" />}
-      <div className="w-full max-w-xs">
-        <TreeCard person={person} guards={tree.guardsOf.get(person.id) ?? []} emphasis={emphasis} />
+    <div className="pt-6 first:pt-0">
+      <div className="mb-2 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border/60" />
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
+        <span className="h-px flex-1 bg-border/60" />
       </div>
-      {children.length > 0 && (
-        <>
-          <span className="h-4 w-px bg-border" />
-          <div className="w-full border-t border-border/60" />
-          <div
-            className={`flex w-full flex-wrap justify-center gap-x-4 gap-y-2 ${wide ? "" : "sm:flex-nowrap"}`}
-          >
-            {children.map((child) => (
-              <div key={child.id} className="min-w-[220px] flex-1 basis-[240px]">
-                <Branch person={child} tree={tree} depth={depth + 1} />
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-2">
+        {people.map((person) => {
+          const manager = person.reports_to ? tree.people.get(person.reports_to) : undefined;
+          return (
+            <div key={person.id} className="min-w-0">
+              <TreeCard person={person} guards={tree.guardsOf.get(person.id) ?? []} emphasis={emphasis} />
+              {manager && (
+                <div className="mt-1 truncate text-center text-[9px] text-muted-foreground">
+                  Reports to {manager.full_name ?? "—"}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -239,8 +261,29 @@ function Branch({ person, tree, depth }: { person: Person; tree: Tree; depth: nu
  * officer expandable to the guards reporting into them.
  */
 export function OperationsOrgTree() {
-  const q = useQuery({ queryKey: ["ops-org-tree"], staleTime: 5 * 60_000, queryFn: loadTree });
+  const q = useQuery({ queryKey: ["ops-org-tree", "levelled-v2"], staleTime: 5 * 60_000, queryFn: loadTree });
   const data = q.data;
+  const [zoom, setZoom] = useState<ZoomLevel>(90);
+
+  const levels = useMemo(() => {
+    const all = data ? [...data.people.values()] : [];
+    const byName = (a: Person, b: Person) => (a.full_name ?? "").localeCompare(b.full_name ?? "");
+    return {
+      leadership: all.filter((person) => person.role_key === ROLE_KEYS.VP_OPERATIONS).sort(byName),
+      managers: all
+        .filter((person) =>
+          [ROLE_KEYS.OPERATIONS_MANAGER, ROLE_KEYS.BRANCH_MANAGER, ROLE_KEYS.OPERATIONS].includes(person.role_key ?? ""),
+        )
+        .sort(byName),
+      officers: all.filter((person) => person.role_key === ROLE_KEYS.FIELD_OFFICER).sort(byName),
+    };
+  }, [data]);
+
+  const changeZoom = (direction: -1 | 1) => {
+    const current = ZOOM_LEVELS.indexOf(zoom);
+    const next = Math.min(ZOOM_LEVELS.length - 1, Math.max(0, current + direction));
+    setZoom(ZOOM_LEVELS[next]);
+  };
 
   const totals = useMemo(() => {
     if (!data) return { fos: 0, heads: 0, unattached: 0, guards: 0 };
@@ -256,7 +299,7 @@ export function OperationsOrgTree() {
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card/90 shadow-sm sm:rounded-3xl">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 px-4 py-3 sm:flex sm:flex-wrap sm:justify-between">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
             Organizational tree
@@ -266,7 +309,7 @@ export function OperationsOrgTree() {
             Operations
           </h3>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-[11px] font-semibold text-muted-foreground">
           <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5">
             <Users className="h-3 w-3" />
             {totals.fos} field officers
@@ -281,6 +324,18 @@ export function OperationsOrgTree() {
               {totals.unattached} without a head
             </span>
           )}
+          <div className="ml-1 inline-flex shrink-0 items-center rounded-lg border border-border/60 bg-background p-0.5">
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => changeZoom(-1)} disabled={zoom === ZOOM_LEVELS[0]} aria-label="Zoom out organizational tree" title="Zoom out">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <span className="w-9 text-center text-[10px] tabular-nums">{zoom}%</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => changeZoom(1)} disabled={zoom === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]} aria-label="Zoom in organizational tree" title="Zoom in">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setZoom(90)} disabled={zoom === 90} aria-label="Reset organizational tree zoom" title="Reset zoom">
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -294,10 +349,12 @@ export function OperationsOrgTree() {
         ) : !data || data.roots.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No operations hierarchy recorded yet.</p>
         ) : (
-          <div className="space-y-8 overflow-x-auto">
-            {data.roots.map((root) => (
-              <Branch key={root.id} person={root} tree={data} depth={0} />
-            ))}
+          <div className="overflow-x-auto pb-2">
+            <div className={`min-w-[900px] ${ZOOM_CLASSES[zoom]}`}>
+              <LevelRow label="Operations leadership" people={levels.leadership} tree={data} emphasis="top" />
+              <LevelRow label="Operations managers & branch heads" people={levels.managers} tree={data} emphasis="head" />
+              <LevelRow label="Field officers" people={levels.officers} tree={data} emphasis="officer" />
+            </div>
           </div>
         )}
 
