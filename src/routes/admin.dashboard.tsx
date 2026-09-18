@@ -594,7 +594,26 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={can("employees") ? <PeopleInsightsSection compact /> : null} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
+      <DashboardShell
+        rightExtras={
+          opsFocus ? (
+            <PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} />
+          ) : can("employees") ? (
+            <PeopleInsightsSection compact />
+          ) : null
+        }
+        fullWidthBelow={
+          opsFocus ? (
+            <>
+              <OperationsRadarSummary />
+              <AdminVisitProgressCard />
+              <OperationsDeployments />
+            </>
+          ) : (
+            <>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>
+          )
+        }
+      >
 
 
       {/* Month hero — restrained slate panel */}
