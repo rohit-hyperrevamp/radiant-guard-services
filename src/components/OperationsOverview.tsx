@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronLeft, ChevronRight, MapPinned, Search } from "lucide-react";
+import { ArrowUpRight, Building2, ChevronLeft, ChevronRight, MapPinned, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ActiveUnit = {
   id: string;
@@ -19,13 +20,15 @@ type ActiveUnit = {
 
 type VisitRow = { unit_id: string; visit_date: string; check_out_at: string | null };
 
+export type RankedSite = { id: string; label: string; code: string | null; count: number };
+
 export type OperationsOverviewData = {
   fieldOfficers: number;
   activeSites: number;
   sitesVisitedToday: number;
-  mostVisited: { id: string; label: string; count: number } | null;
-  leastVisited: { id: string; label: string; count: number } | null;
-  locations: Array<{ label: string; city: string; state: string }>;
+  topVisited: RankedSite[];
+  bottomVisited: RankedSite[];
+  locations: Array<{ label: string; code: string | null; city: string; state: string }>;
 };
 
 function localDate(d = new Date()) {
@@ -74,22 +77,24 @@ async function loadOperationsOverview(): Promise<OperationsOverviewData> {
     if (!visit.check_out_at || !activeIds.has(visit.unit_id)) continue;
     counts.set(visit.unit_id, (counts.get(visit.unit_id) ?? 0) + 1);
   }
-  const ranked = units
-    .map((u) => ({
-      id: u.id,
-      label: [u.customer?.name, u.name || u.code].filter(Boolean).join(" — ") || "Unnamed client site",
-      count: counts.get(u.id) ?? 0,
-    }))
-    .sort((a, b) => a.count - b.count || a.label.localeCompare(b.label));
+  const ranked: RankedSite[] = units.map((u) => ({
+    id: u.id,
+    code: u.code,
+    label: [u.customer?.name, u.name || u.code].filter(Boolean).join(" — ") || "Unnamed client site",
+    count: counts.get(u.id) ?? 0,
+  }));
+  const ascending = [...ranked].sort((a, b) => a.count - b.count || a.label.localeCompare(b.label));
+  const descending = [...ranked].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 
   return {
     fieldOfficers: foCount.count ?? 0,
     activeSites: units.length,
     sitesVisitedToday,
-    leastVisited: ranked[0] ?? null,
-    mostVisited: ranked.length ? [...ranked].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))[0] : null,
+    topVisited: descending.slice(0, 5),
+    bottomVisited: ascending.slice(0, 5),
     locations: units.map((u) => ({
       label: [u.customer?.name, u.name || u.code].filter(Boolean).join(" — ") || "Unnamed client site",
+      code: u.code,
       city: u.billing_city?.trim() || "Not recorded",
       state: u.billing_state?.trim() || "Not recorded",
     })),
@@ -111,6 +116,8 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
   const [mode, setMode] = useState<"city" | "state">("city");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
   const rows = useMemo(() => {
     const groups = new Map<string, number>();
     for (const item of data?.locations ?? []) {
@@ -122,6 +129,14 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
       .filter((row) => !term || row.label.toLowerCase().includes(term))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   }, [data, mode, search]);
+
+  const groupClients = useMemo(() => {
+    if (!openGroup) return [];
+    return (data?.locations ?? [])
+      .filter((item) => (mode === "city" ? item.city : item.state) === openGroup)
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [data, mode, openGroup]);
+
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const current = Math.min(page, pageCount - 1);
   const visible = rows.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
@@ -164,7 +179,7 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
       </div>
       <ul className="divide-y divide-border/50 px-4">
         {visible.map((row) => (
-          <li key={row.label} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+          <li key={row.label} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 py-2.5">
             <div className="min-w-0">
               <div className="truncate text-[13px] font-semibold text-foreground">{row.label}</div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -175,6 +190,9 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
               <div className="font-display text-lg font-bold tabular-nums text-foreground">{row.count}</div>
               <div className="text-[9px] uppercase tracking-wider text-muted-foreground">sites</div>
             </div>
+            <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => setOpenGroup(row.label)}>
+              View clients
+            </Button>
           </li>
         ))}
         {visible.length === 0 && <li className="py-8 text-center text-xs text-muted-foreground">No locations match.</li>}
@@ -191,18 +209,31 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
           </Button>
         </div>
       </footer>
+
+      <Dialog open={openGroup !== null} onOpenChange={(open) => !open && setOpenGroup(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              {openGroup} · {groupClients.length} active client site{groupClients.length === 1 ? "" : "s"}
+            </DialogTitle>
+          </DialogHeader>
+          <ul className="max-h-[60vh] divide-y divide-border/50 overflow-y-auto">
+            {groupClients.map((item, index) => (
+              <li key={`${item.code ?? item.label}-${index}`} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0 truncate text-[13px] text-foreground">{item.label}</span>
+                {item.code && <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{item.code}</span>}
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
-export function VisitInsightTile({
-  kind,
-  item,
-}: {
-  kind: "most" | "least";
-  item: OperationsOverviewData["mostVisited"];
-}) {
+export function VisitInsightTile({ kind, items }: { kind: "most" | "least"; items: RankedSite[] }) {
   const most = kind === "most";
+  const total = items.reduce((sum, item) => sum + item.count, 0);
   return (
     <Link
       to="/admin/field-sense"
@@ -211,14 +242,28 @@ export function VisitInsightTile({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-display text-[13px] font-semibold text-foreground sm:text-[15px]">{most ? "Most visited client" : "Least visited client"}</div>
+          <div className="font-display text-[13px] font-semibold text-foreground sm:text-[15px]">
+            {most ? "Top 5 most visited" : "Bottom 5 least visited"}
+          </div>
           <div className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">This month · all field officers</div>
         </div>
-        <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
-      <div className="mt-auto">
-        <div className="line-clamp-2 text-sm font-bold leading-snug text-foreground sm:text-base">{item?.label ?? "No client visits yet"}</div>
-        <div className="mt-1 text-[11px] font-semibold text-muted-foreground">{item ? `${item.count} completed visit${item.count === 1 ? "" : "s"}` : "Open Radar"}</div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="font-display text-2xl font-bold tabular-nums text-foreground sm:text-3xl">{total}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">visits</span>
+      </div>
+      <ul className="mt-2 space-y-1">
+        {items.slice(0, 5).map((item) => (
+          <li key={item.id} className="flex items-center justify-between gap-2 text-[11px]">
+            <span className="min-w-0 truncate text-foreground/90">{item.label}</span>
+            <span className="shrink-0 font-semibold tabular-nums text-muted-foreground">{item.count}</span>
+          </li>
+        ))}
+        {items.length === 0 && <li className="text-[11px] text-muted-foreground">No visits recorded yet</li>}
+      </ul>
+      <div className="mt-auto pt-2 text-[10px] font-semibold text-muted-foreground">
+        <Building2 className="mr-1 inline h-3 w-3" /> Open filtered list in Radar
       </div>
     </Link>
   );

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, MapPin, Network, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, MapPin, Network, Shield, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
@@ -24,8 +24,16 @@ type PersonRow = {
 };
 
 type Person = PersonRow & { designation: string | null; sites: number };
+type Guard = { id: string; full_name: string | null; employee_code: string | null; reports_to: string | null };
 
-type Tree = { people: Map<string, Person>; roots: Person[]; childrenOf: Map<string, Person[]>; orphans: Person[] };
+type Tree = {
+  people: Map<string, Person>;
+  roots: Person[];
+  childrenOf: Map<string, Person[]>;
+  orphans: Person[];
+  guardsOf: Map<string, Guard[]>;
+  guardTotal: number;
+};
 
 async function loadTree(): Promise<Tree> {
   const [rows, designations, activeUnits] = await Promise.all([
@@ -51,6 +59,26 @@ async function loadTree(): Promise<Tree> {
     (chunk, from, to) =>
       supabase.from("candidate_units").select("candidate_id, unit_id").in("candidate_id", chunk).range(from, to),
   );
+
+  const fieldOfficerIds = rows.filter((r) => r.role_key === ROLE_KEYS.FIELD_OFFICER).map((r) => r.id);
+  const guards = fieldOfficerIds.length
+    ? await fetchInChunks<Guard>(fieldOfficerIds, (chunk, from, to) =>
+        supabase
+          .from("candidates")
+          .select("id, full_name, employee_code, reports_to")
+          .eq("role_key", ROLE_KEYS.GUARD)
+          .eq("status", "active")
+          .in("reports_to", chunk)
+          .order("full_name")
+          .range(from, to),
+      )
+    : [];
+
+  const guardsOf = new Map<string, Guard[]>();
+  for (const g of guards) {
+    if (!g.reports_to) continue;
+    guardsOf.set(g.reports_to, [...(guardsOf.get(g.reports_to) ?? []), g]);
+  }
 
   const activeIds = new Set(activeUnits.map((u) => u.id));
   const siteCount = new Map<string, Set<string>>();
@@ -92,84 +120,117 @@ async function loadTree(): Promise<Tree> {
   roots.sort(sortFn);
   orphans.sort(sortFn);
 
-  return { people, roots, childrenOf, orphans };
+  return { people, roots, childrenOf, orphans, guardsOf, guardTotal: guards.length };
 }
 
-function Node({
+function Chip({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "sky" }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${
+        tone === "sky"
+          ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+          : "border-border/60 bg-muted/50 text-muted-foreground"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** A card in the centred tree. Field officers can expand to reveal their guards. */
+function TreeCard({
   person,
-  childrenOf,
-  depth,
+  guards,
+  emphasis,
 }: {
   person: Person;
-  childrenOf: Map<string, Person[]>;
-  depth: number;
+  guards: Guard[];
+  emphasis: "top" | "head" | "officer";
 }) {
-  const kids = childrenOf.get(person.id) ?? [];
-  const [open, setOpen] = useState(depth < 2);
-  const isFo = person.role_key === ROLE_KEYS.FIELD_OFFICER;
+  const [open, setOpen] = useState(false);
+  const size =
+    emphasis === "top"
+      ? "px-4 py-3 text-sm"
+      : emphasis === "head"
+        ? "px-3 py-2 text-[13px]"
+        : "px-2.5 py-1.5 text-[12px]";
+  const shell =
+    emphasis === "top"
+      ? "border-foreground/25 bg-foreground/[0.04] shadow-sm"
+      : emphasis === "head"
+        ? "border-border/70 bg-card"
+        : "border-border/50 bg-background";
 
   return (
-    <li className="relative pl-4 before:absolute before:left-0 before:top-0 before:h-full before:w-px before:bg-border/70 last:before:h-4">
-      <div className="relative flex items-start gap-2 py-1.5 before:absolute before:-left-4 before:top-4 before:h-px before:w-4 before:bg-border/70">
-        {kids.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="mt-0.5 rounded-md border border-border/60 bg-background p-0.5 text-muted-foreground hover:text-foreground"
-            aria-label={open ? "Collapse" : "Expand"}
-          >
-            {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          </button>
-        ) : (
-          <span className="mt-2 ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-border" />
+    <div className={`rounded-xl border ${shell} ${size}`}>
+      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-center">
+        <span className="font-semibold text-foreground">{person.full_name ?? "—"}</span>
+        {person.employee_code && <span className="text-[11px] tabular-nums text-muted-foreground">{person.employee_code}</span>}
+        {person.sites > 0 && (
+          <Chip>
+            <MapPin className="h-2.5 w-2.5" />
+            {person.sites}
+          </Chip>
         )}
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className={isFo ? "text-sm text-foreground" : "text-sm font-semibold text-foreground"}>
-              {person.full_name ?? "—"}
-            </span>
-            {person.employee_code && (
-              <span className="text-[11px] tabular-nums text-muted-foreground">{person.employee_code}</span>
-            )}
-            {person.sites > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                <MapPin className="h-2.5 w-2.5" />
-                {person.sites}
-              </span>
-            )}
-            {kids.length > 0 && (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {kids.length} reporting
-              </span>
-            )}
-          </div>
-          {person.designation && (
-            <div className="text-[11px] text-muted-foreground">{person.designation}</div>
-          )}
-        </div>
+        {guards.length > 0 && (
+          <button type="button" onClick={() => setOpen((v) => !v)} className="focus:outline-none">
+            <Chip tone="sky">
+              <Shield className="h-2.5 w-2.5" />
+              {guards.length} guards
+              {open ? <ChevronDown className="h-2.5 w-2.5" /> : <ChevronRight className="h-2.5 w-2.5" />}
+            </Chip>
+          </button>
+        )}
       </div>
-      {open && kids.length > 0 && (
-        <ul className="ml-2">
-          {kids.map((k) => (
-            <Node key={k.id} person={k} childrenOf={childrenOf} depth={depth + 1} />
+      {person.designation && (
+        <div className="mt-0.5 text-center text-[11px] text-muted-foreground">{person.designation}</div>
+      )}
+      {open && guards.length > 0 && (
+        <ul className="mt-2 max-h-52 space-y-0.5 overflow-y-auto rounded-lg bg-muted/40 p-2 text-left">
+          {guards.map((g) => (
+            <li key={g.id} className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="min-w-0 truncate text-foreground/90">{g.full_name ?? "—"}</span>
+              {g.employee_code && <span className="shrink-0 tabular-nums text-muted-foreground">{g.employee_code}</span>}
+            </li>
           ))}
         </ul>
       )}
-    </li>
+    </div>
+  );
+}
+
+/** Centred branch: a head with its field officers fanned out underneath. */
+function HeadBranch({ head, tree }: { head: Person; tree: Tree }) {
+  const officers = tree.childrenOf.get(head.id) ?? [];
+  return (
+    <div className="flex flex-col items-center">
+      <span className="h-4 w-px bg-border" />
+      <TreeCard person={head} guards={tree.guardsOf.get(head.id) ?? []} emphasis="head" />
+      {officers.length > 0 && (
+        <>
+          <span className="h-4 w-px bg-border" />
+          <div className="w-full space-y-1.5 rounded-xl border border-dashed border-border/60 p-2">
+            {officers.map((officer) => (
+              <TreeCard key={officer.id} person={officer} guards={tree.guardsOf.get(officer.id) ?? []} emphasis="officer" />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
 /**
- * Operations org chart — AVP / VP Operations on top, their reporting heads with
- * designation, and each head's field officers underneath with the count of
- * active client sites they cover.
+ * Operations org chart — VP Operations centred at the top, reporting heads
+ * fanned out left and right beneath, then their field officers, and each field
+ * officer expandable to the guards reporting into them.
  */
 export function OperationsOrgTree() {
   const q = useQuery({ queryKey: ["ops-org-tree"], staleTime: 5 * 60_000, queryFn: loadTree });
   const data = q.data;
 
   const totals = useMemo(() => {
-    if (!data) return { fos: 0, heads: 0, unattached: 0 };
+    if (!data) return { fos: 0, heads: 0, unattached: 0, guards: 0 };
     let fos = 0;
     let heads = 0;
     for (const p of data.people.values()) {
@@ -177,7 +238,7 @@ export function OperationsOrgTree() {
       else heads += 1;
     }
     const unattached = data.orphans.filter((p) => p.role_key === ROLE_KEYS.FIELD_OFFICER).length;
-    return { fos, heads, unattached };
+    return { fos, heads, unattached, guards: data.guardTotal };
   }, [data]);
 
   return (
@@ -192,13 +253,15 @@ export function OperationsOrgTree() {
             Operations
           </h3>
         </div>
-        <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
           <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5">
             <Users className="h-3 w-3" />
             {totals.fos} field officers
           </span>
-          <span className="rounded-full border border-border/60 bg-muted/50 px-2 py-0.5">
-            {totals.heads} heads
+          <span className="rounded-full border border-border/60 bg-muted/50 px-2 py-0.5">{totals.heads} heads</span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-700 dark:text-sky-300">
+            <Shield className="h-3 w-3" />
+            {totals.guards} guards linked
           </span>
           {totals.unattached > 0 && (
             <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-rose-600">
@@ -208,7 +271,7 @@ export function OperationsOrgTree() {
         </div>
       </header>
 
-      <div className="px-4 py-3">
+      <div className="px-4 py-4">
         {q.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -218,15 +281,31 @@ export function OperationsOrgTree() {
         ) : !data || data.roots.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No operations hierarchy recorded yet.</p>
         ) : (
-          <ul className="-ml-4">
-            {data.roots.map((r) => (
-              <Node key={r.id} person={r} childrenOf={data.childrenOf} depth={0} />
-            ))}
-          </ul>
+          <div className="space-y-6">
+            {data.roots.map((root) => {
+              const heads = data.childrenOf.get(root.id) ?? [];
+              return (
+                <div key={root.id} className="flex flex-col items-center">
+                  <TreeCard person={root} guards={data.guardsOf.get(root.id) ?? []} emphasis="top" />
+                  {heads.length > 0 && (
+                    <>
+                      <span className="h-5 w-px bg-border" />
+                      <div className="w-full border-t border-border/70" />
+                      <div className="grid w-full grid-cols-1 justify-center gap-4 pt-0 sm:grid-cols-2 xl:grid-cols-3">
+                        {heads.map((head) => (
+                          <HeadBranch key={head.id} head={head} tree={data} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {data && data.orphans.length > 0 && (
-          <div className="mt-3 rounded-xl border border-dashed border-border/70 bg-muted/30 p-3">
+          <div className="mt-4 rounded-xl border border-dashed border-border/70 bg-muted/30 p-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Not attached to a reporting head
             </div>

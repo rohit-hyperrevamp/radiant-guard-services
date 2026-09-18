@@ -482,8 +482,8 @@ function DashboardPage() {
       t.push({ key: "fo", module: "field_sense", node: <MetricTile icon={Users} label="Field officers" value={operationsOverview?.fieldOfficers ?? 0} accent="lime" to="/admin/field-sense/team" sub="Operations workforce" /> });
       t.push({ key: "fo-live", module: "field_sense", node: <MetricTile icon={Radio} label="Live on duty today" value={liveOfficerCount} accent="emerald" to="/admin/field-sense" sub={`of ${operationsOverview?.fieldOfficers ?? 0} field officers`} /> });
       t.push({ key: "sites-today", module: "field_sense", node: <MetricTile icon={MapPin} label="Sites visited today" value={operationsOverview?.sitesVisitedToday ?? 0} accent="sky" to="/admin/field-sense" sub="Distinct active client sites" /> });
-      t.push({ key: "most-visited", module: "field_sense", node: <VisitInsightTile kind="most" item={operationsOverview?.mostVisited ?? null} /> });
-      t.push({ key: "least-visited", module: "field_sense", node: <VisitInsightTile kind="least" item={operationsOverview?.leastVisited ?? null} /> });
+      t.push({ key: "most-visited", module: "field_sense", node: <VisitInsightTile kind="most" items={operationsOverview?.topVisited ?? []} /> });
+      t.push({ key: "least-visited", module: "field_sense", node: <VisitInsightTile kind="least" items={operationsOverview?.bottomVisited ?? []} /> });
       return t;
     }
     if (data) {
