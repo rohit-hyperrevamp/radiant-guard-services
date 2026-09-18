@@ -1843,7 +1843,7 @@ function MusterRollPage() {
       }
 
       const result = await extractAttendanceViaApi({
-        imageDataUrl: uploadPreview,
+        imageDataUrl: sheetImage,
         dates: periodCells.map((c) => c.date),
         employees: employeesPayload,
         codes: codes.map((c) => ({ code: c.code, label: c.label })),
