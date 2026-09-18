@@ -30,7 +30,7 @@ type Directory = {
 async function loadDirectory(): Promise<Directory> {
   const [units, customers, fos] = await Promise.all([
     fetchAllPages<UnitRow>((from, to) =>
-      supabase.from("units").select("id, code, name, customer_id, status").range(from, to).order("name"),
+      supabase.from("units").select("id, code, name, customer_id, status").eq("status", "active").range(from, to).order("name"),
     ),
     fetchAllPages<{ id: string; name: string | null }>((from, to) =>
       supabase.from("customers").select("id, name").range(from, to),
@@ -52,9 +52,11 @@ async function loadDirectory(): Promise<Directory> {
       supabase.from("candidate_units").select("candidate_id, unit_id").in("candidate_id", chunk).range(from, to),
   );
 
+  const activeUnitIds = new Set(units.map((u) => u.id));
   const foByUnit = new Map<string, string[]>();
   const unitsByFo = new Map<string, string[]>();
   for (const l of links) {
+    if (!activeUnitIds.has(l.unit_id)) continue;
     foByUnit.set(l.unit_id, [...(foByUnit.get(l.unit_id) ?? []), l.candidate_id]);
     unitsByFo.set(l.candidate_id, [...(unitsByFo.get(l.candidate_id) ?? []), l.unit_id]);
   }
@@ -184,7 +186,7 @@ export function OperationsDeployments() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Stat icon={<MapPin className="h-3.5 w-3.5" />} tone="sky" label="Total sites" value={totalUnits} />
+          <Stat icon={<MapPin className="h-3.5 w-3.5" />} tone="sky" label="Active sites" value={totalUnits} />
           <Stat icon={<Users className="h-3.5 w-3.5" />} tone="emerald" label="Field officers" value={totalFos} />
           <button type="button" onClick={() => { setView("unit"); setOnlyUnassigned((v) => !v); setPage(0); }} className="text-left">
             <Stat
