@@ -766,10 +766,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
 
   useEffect(() => {
     if (!search.action || handledActionRef.current === search.action) return;
+    if (!canRecord) return;
     if (search.action === "start-visit" && isOnDuty && !openVisit) setCheckInOpen(true);
     if (search.action === "complete-visit" && openVisit) setCheckOutOpen(true);
     handledActionRef.current = search.action;
-  }, [search.action, isOnDuty, openVisit]);
+  }, [search.action, isOnDuty, openVisit, canRecord]);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
 
@@ -806,6 +807,10 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           }
         }}
         onStartVisit={(unitId: string) => {
+          if (!canRecord) {
+            toast.error("Only this field officer can mark their own visit.");
+            return;
+          }
           setPreselectUnitId(unitId);
           setCheckInOpen(true);
         }}
@@ -1174,7 +1179,14 @@ function CheckInDialog({
       onDone();
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Failed to check in");
+      const msg = (err as { message?: string } | null)?.message;
+      toast.error(
+        msg
+          ? /row-level security|permission/i.test(msg)
+            ? "Only this field officer can mark their own visit."
+            : msg
+          : "Failed to check in",
+      );
     },
   });
 
