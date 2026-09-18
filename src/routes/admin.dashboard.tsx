@@ -138,6 +138,9 @@ function DashboardPage() {
     !can("attendance") &&
     !can("payroll") &&
     !can("invoice");
+  // Operations focus: Radar access without payroll/invoicing. Their homepage is
+  // field deployment, not money.
+  const opsFocus = useOperationsFocus();
 
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const monthEnd = (() => {
@@ -218,6 +221,7 @@ function DashboardPage() {
     enabled:
       !permsLoading &&
       !showInventoryDashboard &&
+      !opsFocus &&
       !lightMode &&
       (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 5 * 60_000,
