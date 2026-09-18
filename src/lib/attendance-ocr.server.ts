@@ -186,6 +186,9 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
         },
       ],
       temperature: 0,
+      // Our own runVision loop owns retries and model fallback, so the SDK must
+      // not silently replay the same busy model for minutes first.
+      maxRetries: 0,
     }),
   );
 
