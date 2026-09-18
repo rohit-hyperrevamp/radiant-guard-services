@@ -1945,13 +1945,16 @@ function MusterRollPage() {
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
+      await endScanProgress({ summary }, startedAt);
       logActivity({
         module: "Attendance",
         action: "Upload attendance image (OCR)",
         details: { confidentCount, uncertainCount, unit_id: unitId },
       }).catch(() => {});
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "OCR failed");
+      const message = e instanceof Error ? e.message : "OCR failed";
+      toast.error(message);
+      await endScanProgress({ error: message }, startedAt);
     } finally {
       setProcessingOcr(false);
     }
@@ -1965,6 +1968,7 @@ function MusterRollPage() {
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
+    const { startedAt } = await beginScanProgress("excel");
     try {
       const buf = await uploadFile.arrayBuffer();
       const wb = XLSX.read(buf, { cellDates: true });
