@@ -2793,7 +2793,7 @@ function MusterRollPage() {
               disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr}
               className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
             >
-              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : "Read sheet")}
+              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : uploadImages.length > 1 ? `Read ${uploadImages.length} sheets` : "Read sheet")}
             </Button>
           </div>
         </DialogContent>
