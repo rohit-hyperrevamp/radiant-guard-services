@@ -1634,8 +1634,12 @@ function MusterRollPage() {
     let beats = 0;
     scanTimerRef.current = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
-      const pct = Math.min(96, (elapsed / estimate) * 96);
-      const remaining = Math.max(1, estimate - elapsed);
+      // Google does not expose token-level progress for image reads. Move only
+      // through the reading portion of the bar and switch to an honest
+      // "finishing" state if the learned estimate is exceeded; never claim
+      // 96% and leave it stuck there for minutes.
+      const pct = Math.min(90, 5 + (elapsed / estimate) * 80);
+      const remaining = elapsed < estimate ? estimate - elapsed : -1;
       setScanPct(pct);
       setScanRemaining(remaining);
       beats += 1;
@@ -1685,7 +1689,7 @@ function MusterRollPage() {
     setUploadKind(kind);
     if (kind === "image") {
       // Downscale large photos so OCR upload stays fast and request body small
-      downscaleImage(file, 1600, 0.85)
+      downscaleImage(file, 1400, 0.78)
         .then((dataUrl) => setUploadPreview(dataUrl))
         .catch(() => {
           const reader = new FileReader();
@@ -1925,14 +1929,14 @@ function MusterRollPage() {
       confidentCount = Array.from(byPair.values()).reduce((sum, rows) => sum + rows.length, 0);
       uncertainCount = uncertainNext.size;
 
-      for (const [pk, rows] of byPair.entries()) {
+      await Promise.all(Array.from(byPair.entries()).map(async ([pk, rows]) => {
         const mr = pairByKey.get(pk)!;
         await upsertEntries(
           mr.candidateId,
           mr.designationId,
           rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
         );
-      }
+      }));
       await queryClient.invalidateQueries({ queryKey: entriesQK });
 
       setUncertainCells((prev) => {

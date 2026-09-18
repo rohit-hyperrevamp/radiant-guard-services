@@ -20,13 +20,13 @@ ABSOLUTE RULES:
 6. "ot_hours" is the OVERTIME-DAYS number for that day cell (OT sub-row under each day belongs to the same date). 0.5 means HALF an OT day, 1 means ONE OT day, 1.5 means one-and-a-half OT days. It is NOT hours. Typical max is 2. 0 if blank. If the digit is unclear, set confident=false for that cell.
    SPECIAL CASE — handwritten muster shorthand: a cell value of "D" or "ED" (optionally followed by a comma and a number, e.g. "D ,1" or "ED ,1") means the person was PRESENT that day AND worked the trailing number as OT days. Emit code="P" with ot_hours=<the number> (default 1 if no number is written). Never emit code="D" or code="ED" — always normalize to "P".
 7. Cross-check each matched employee row against the handwritten/printed totals on the RIGHT side of the same row (P Days, OT, T Days). Use those totals as a validation hint, but DO NOT discard a clearly visible day cell only because the totals are slightly hard to read or do not fully reconcile.
-8. Return ONLY a single JSON object with exactly these top-level keys: rows, row_summaries, unmatched_names, notes. No markdown fences, no prose.
-9. Each row_summaries item uses keys: candidate_id, p_days, ot_days, t_days, confident.
+8. Return ONLY a single compact JSON object with exactly these top-level keys: r, s, u, n. No markdown fences, no prose.
+9. Each s item is [candidate_id, designation_id_or_empty, p_days, ot_days, t_days, confident].
    - Output numeric DAY values, not text. Examples: "8:4" means 8.5 days, "44:8" means 45 days.
    - Set row_summaries[].confident=true ONLY when the right-side totals are clearly legible for that employee row.
    - If a total is unreadable, use null for that field.
-10. Each row item uses keys: candidate_id, entry_date, code, ot_hours, confident. ot_hours is a number; confident is true or false.
-11. In "notes", state the largest visible day number N you saw on the sheet header (e.g. "visible_days=30").`;
+10. Group visible attendance cells by person. Each r item is [candidate_id, designation_id_or_empty, [[entry_date,code,ot_hours,confident],...]]. Do not repeat candidate_id or designation_id for every day.
+11. u is the unmatched visible names array. n states the largest visible day number, e.g. "visible_days=30".`;
 
 function stripMarkdownFences(text: string) {
   const trimmed = text.trim();
@@ -153,7 +153,7 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
   const codeList = data.codes.map((c) => `${c.code} = ${c.label}`).join(", ");
   const dateList = data.dates.join(", ");
 
-  const promptText = `Allowed attendance codes:\n${codeList}\n\nPeriod dates (ONLY emit rows for dates whose day-of-month is actually visible as a column on the sheet):\n${dateList}\n\nEmployees — each line is ONE allowed (candidate_id, designation_id) pair. The SAME person may appear multiple times with DIFFERENT designation_id values when they worked under more than one role this period. Match each printed muster row to the pair whose name/code AND printed designation column best match what is written on the sheet:\n${employeeList}\n\nIn output rows and row_summaries, ALWAYS include BOTH candidate_id AND designation_id from the matched pair above (copy the designation_id verbatim, or use empty string "" if the pair line shows designation_id=""). If the sheet shows a person under a designation that does NOT appear in any pair for that candidate, add the visible name to unmatched_names instead of guessing. Return ONLY a JSON object in this shape:\n{"rows":[{"candidate_id":"uuid","designation_id":"uuid-or-empty","entry_date":"YYYY-MM-DD","code":"P","ot_hours":0,"confident":true}],"row_summaries":[{"candidate_id":"uuid","designation_id":"uuid-or-empty","p_days":26.5,"ot_days":18.5,"t_days":45,"confident":true}],"unmatched_names":[],"notes":"visible_days=NN"}`;
+  const promptText = `Codes: ${codeList}\nDates: ${dateList}\nEmployees (allowed candidate/designation pairs):\n${employeeList}\n\nMatch each printed row by code/name/designation. Copy IDs exactly. If its designation is not an allowed pair, put the visible name in u. Return compact JSON only:\n{"r":[["candidate-uuid","designation-uuid-or-empty",[["YYYY-MM-DD","P",0,true]]]],"s":[["candidate-uuid","designation-uuid-or-empty",26.5,18.5,45,true]],"u":[],"n":"visible_days=NN"}`;
 
 
   const { text } = await runVision((model) =>
@@ -194,11 +194,29 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
   const validDates = new Set(data.dates);
   const validCodeMap = new Map(data.codes.map((c) => [c.code.trim().toUpperCase(), c.code]));
 
-  const notesStr = String(output.notes ?? "");
+  const notesStr = String(output.n ?? output.notes ?? "");
   const visibleMatch = notesStr.match(/visible_days\s*=\s*(\d{1,2})/i);
   const visibleDays = visibleMatch ? Math.min(31, Math.max(1, parseInt(visibleMatch[1]!, 10))) : null;
 
-  const rows = Array.isArray(output.rows) ? output.rows : [];
+  const compactGroups = Array.isArray(output.r) ? output.r : [];
+  const compactRows: Array<Record<string, unknown>> = [];
+  for (const group of compactGroups) {
+    if (!Array.isArray(group)) continue;
+    const [candidateId, designationId, cells] = group;
+    if (!Array.isArray(cells)) continue;
+    for (const cell of cells) {
+      if (!Array.isArray(cell)) continue;
+      compactRows.push({
+        candidate_id: candidateId,
+        designation_id: designationId,
+        entry_date: cell[0],
+        code: cell[1],
+        ot_hours: cell[2],
+        confident: cell[3],
+      });
+    }
+  }
+  const rows = compactRows.length > 0 ? compactRows : Array.isArray(output.rows) ? output.rows : [];
   const cleanedRows: AttendanceOcrRow[] = [];
   for (const r of rows) {
     const candidate_id = String((r as { candidate_id?: unknown }).candidate_id ?? "");
@@ -235,8 +253,23 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
     });
   }
 
-  const summaries = Array.isArray(output.row_summaries)
-    ? output.row_summaries
+  const compactSummaries = Array.isArray(output.s)
+    ? output.s
+        .filter((item): item is unknown[] => Array.isArray(item))
+        .map((item) => ({
+          candidate_id: item[0],
+          designation_id: item[1],
+          p_days: item[2],
+          ot_days: item[3],
+          t_days: item[4],
+          confident: item[5],
+        }))
+    : [];
+  const summaryItems = compactSummaries.length > 0
+    ? compactSummaries
+    : Array.isArray(output.row_summaries) ? output.row_summaries : [];
+  const summaries = summaryItems.length > 0
+    ? summaryItems
         .map((item) => {
           const summary = item as {
             candidate_id?: unknown;
@@ -269,8 +302,9 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
         .filter((item): item is AttendanceOcrRowSummary => item !== null)
     : [];
 
-  const unmatched = Array.isArray(output.unmatched_names)
-    ? output.unmatched_names.map((n) => String(n)).slice(0, 50)
+  const unmatchedRaw = Array.isArray(output.u) ? output.u : output.unmatched_names;
+  const unmatched = Array.isArray(unmatchedRaw)
+    ? unmatchedRaw.map((n) => String(n)).slice(0, 50)
     : [];
 
   return {
