@@ -520,7 +520,7 @@ function DashboardPage() {
       )});
     }
     return t;
-  }, [data, can]);
+  }, [data, can, opsFocus]);
 
   if (permsLoading) {
     return (
