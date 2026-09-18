@@ -337,10 +337,9 @@ async function runAttendanceOcrInternal(
     ? unmatchedRaw.map((n) => String(n)).slice(0, 50)
     : [];
 
-  // Safety net for invoicing: reconcile the read cells against the printed
-  // P Days total for each person. Any row that does not reconcile has ALL of its
-  // cells marked unconfident so it is flagged in red for human correction rather
-  // than silently saved as fact.
+  // Reconcile visible cells against the handwritten total. Preserve the actual
+  // cells when the paper contradicts itself and report the row-level conflict;
+  // never replace visible attendance with blanks to force a handwritten total.
   const reconcileNotes: string[] = [];
   for (const summary of summaries) {
     if (!summary.confident || summary.p_days == null) continue;
