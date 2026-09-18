@@ -1747,6 +1747,7 @@ function MusterRollPage() {
       if (!employeesPayload.length) {
         toast.error("Map at least one person to a slot before reading a sheet");
         setProcessingOcr(false);
+        await endScanProgress({ error: "No mapped employees" }, startedAt);
         return;
       }
       for (const [candidateId, anyMr] of candidatesById) {
