@@ -42,7 +42,7 @@ as $$
     )
     or (
       _unit_id is not null
-      and _unit_id = any ((select public.current_user_unit_ids()))
+      and _unit_id = any (coalesce((select public.current_user_unit_ids()), array[]::uuid[]))
     )
     or _candidate_id in (select public.current_user_assigned_guard_ids());
 $$;
