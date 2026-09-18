@@ -136,6 +136,13 @@ function toDayNumber(value: unknown) {
 }
 
 export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<AttendanceOcrResult> {
+  return runAttendanceOcrInternal(data, true);
+}
+
+async function runAttendanceOcrInternal(
+  data: AttendanceOcrInput,
+  retryConflictingRows: boolean,
+): Promise<AttendanceOcrResult> {
   // Company Google Gemini key only — billed to the company's Google account.
   if (!aiKeyConfigured()) {
     throw new Error(
@@ -334,6 +341,7 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
   // cells marked unconfident so it is flagged in red for human correction rather
   // than silently saved as fact.
   const reconcileNotes: string[] = [];
+  const conflictingCandidateIds = new Set<string>();
   for (const summary of summaries) {
     if (!summary.confident || summary.p_days == null) continue;
     const cells = cleanedRows.filter((r) => r.candidate_id === summary.candidate_id);
@@ -346,10 +354,53 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
       return total;
     }, 0);
     if (Math.abs(counted - summary.p_days) > 0.01) {
+      conflictingCandidateIds.add(summary.candidate_id);
       reconcileNotes.push(
         `row_check_failed candidate=${summary.candidate_id} read=${counted} printed=${summary.p_days}`,
       );
       for (const cell of cells) cell.confident = false;
+    }
+  }
+
+  // A full-sheet read can occasionally misread one faint cell even though the
+  // printed row total is legible. Re-read only those conflicting employees with
+  // a much smaller prompt, then accept the correction only if it reconciles.
+  // This preserves accuracy without doubling the cost and time for every row.
+  if (retryConflictingRows && conflictingCandidateIds.size > 0) {
+    try {
+      const retry = await runAttendanceOcrInternal(
+        {
+          ...data,
+          employees: data.employees.filter((employee) =>
+            conflictingCandidateIds.has(employee.id),
+          ),
+        },
+        false,
+      );
+
+      for (const candidateId of conflictingCandidateIds) {
+        const correctedRows = retry.rows.filter(
+          (row) => row.candidate_id === candidateId && row.confident,
+        );
+        const correctionFailed = retry.notes.includes(
+          `row_check_failed candidate=${candidateId}`,
+        );
+        if (correctedRows.length === 0 || correctionFailed) continue;
+
+        for (let index = cleanedRows.length - 1; index >= 0; index -= 1) {
+          if (cleanedRows[index]?.candidate_id === candidateId) {
+            cleanedRows.splice(index, 1);
+          }
+        }
+        cleanedRows.push(...correctedRows);
+        const noteIndex = reconcileNotes.findIndex((note) =>
+          note.includes(`candidate=${candidateId}`),
+        );
+        if (noteIndex >= 0) reconcileNotes.splice(noteIndex, 1);
+      }
+    } catch {
+      // Keep the original row flagged for review; never downgrade accuracy or
+      // fail the correctly reconciled rows because a focused retry was busy.
     }
   }
 
