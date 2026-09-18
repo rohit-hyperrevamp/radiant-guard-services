@@ -67,6 +67,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { downloadCsv, csvJoin, csvDate, csvYesNo, csvStatus } from "@/lib/csv-export";
 import { SignDocumentDialog } from "@/components/SignDocumentDialog";
 import type { DocType } from "@/lib/company-documents";
@@ -3454,13 +3455,15 @@ function EmployeesPage() {
           (isPendingOffboarding || isPendingIssuance) && "bg-amber-500/[0.04] hover:bg-amber-500/[0.07]"
         )}>
 
-          <td className="px-2.5 py-2.5 align-top">
+          <td className="px-2.5 py-2 align-middle">
             <span className="inline-flex items-center whitespace-nowrap rounded-md bg-secondary px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide tabular-nums text-muted-foreground">
               {code}
             </span>
           </td>
-          <td className="px-2.5 py-2.5 align-top">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
+          <td className="px-2.5 py-2 align-middle">
+            <HoverCard openDelay={250} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="grid cursor-default grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5">
               {c.photo_url ? (
                 <img
                   src={c.photo_url}
@@ -3474,57 +3477,31 @@ function EmployeesPage() {
               )}
 
               <div className="min-w-0">
-                {/* inline styles beat the global .ios-table wrap override so names stay on one line */}
                 <div
                   style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                   className="font-semibold leading-tight text-foreground group-hover:text-amber-900 dark:group-hover:text-amber-300"
                 >
                   {c.full_name || "—"}
                 </div>
-                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} className="text-xs text-muted-foreground">{c.email || "—"}</div>
-                <div className="mt-1 hidden gap-x-5 gap-y-1 text-xs text-muted-foreground">
-                  {(mode === "candidate" || columnsVisible.mobile) && (
-                    <div className="truncate">
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Mobile</span>
-                      {c.mobile || "—"}
-                    </div>
-                  )}
-                  {(mode === "candidate" || columnsVisible.unit) && (
-                    <div className="truncate" title={unit?.name ?? ""}>
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Client</span>
-                      {unit?.name || "—"}
-                      {showSiteMap && (
-                        <button
-                          type="button"
-                          onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
-                          className="ml-1.5 font-semibold text-primary underline-offset-2 hover:underline"
-                        >
-                          +{siteCount - 1} more
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {(mode === "candidate" || columnsVisible.designation) && (
-                    <div className="truncate" title={desig?.name ?? ""}>
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Designation</span>
-                      {desig?.name || "—"}
-                    </div>
-                  )}
-                  {(mode === "candidate" || columnsVisible.department) && (
-                    <div className="truncate" title={deptName}>
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Department</span>
-                      {deptName || "—"}
-                    </div>
-                  )}
-                  {mode === "employee" && columnsVisible.role && (
-                    <div className="truncate">
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Role</span>
-                      {rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "—"}
-                    </div>
-                  )}
-                </div>
               </div>
-            </div>
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent align="start" className="w-80 rounded-xl p-0 shadow-xl">
+                <div className="border-b border-border/60 px-4 py-3">
+                  <div className="font-semibold text-foreground">{c.full_name || "—"}</div>
+                  <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{code}</div>
+                </div>
+                <dl className="grid grid-cols-[92px_minmax(0,1fr)] gap-x-3 gap-y-2 px-4 py-3 text-xs">
+                  <dt className="text-muted-foreground">Mobile</dt><dd className="truncate font-medium">{c.mobile || "—"}</dd>
+                  <dt className="text-muted-foreground">Email</dt><dd className="truncate font-medium" title={c.email ?? ""}>{c.email || "—"}</dd>
+                  <dt className="text-muted-foreground">Client sites</dt><dd className="font-medium">{siteCount || "—"}</dd>
+                  <dt className="text-muted-foreground">Designation</dt><dd className="truncate font-medium">{desig?.name || "—"}</dd>
+                  <dt className="text-muted-foreground">Department</dt><dd className="truncate font-medium">{deptName || "—"}</dd>
+                  <dt className="text-muted-foreground">Reports to</dt><dd className="truncate font-medium">{managerName(c.reports_to) || "—"}</dd>
+                  <dt className="text-muted-foreground">Role</dt><dd className="truncate font-medium">{roleNameOf(c.role_key) || "—"}</dd>
+                </dl>
+              </HoverCardContent>
+            </HoverCard>
           </td>
           {(mode === "candidate" || columnsVisible.mobile) && (
             <td className="hidden px-2.5 py-2.5 text-center text-sm font-medium text-muted-foreground md:table-cell">{c.mobile || "—"}</td>
@@ -3533,25 +3510,24 @@ function EmployeesPage() {
             <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground md:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
-            <td className="hidden max-w-[170px] px-2.5 py-2.5 md:table-cell">
+            <td className="hidden max-w-[170px] px-2.5 py-2 md:table-cell">
               {unit ? (
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-foreground" title={unit.name}>{unit.name}</div>
-                  <div className="truncate text-xs text-muted-foreground" title={unit.customer_name}>{unit.customer_name}</div>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="block min-w-0 truncate text-sm font-medium text-foreground" title={`${unit.name}${unit.customer_name ? ` · ${unit.customer_name}` : ""}`}>{unit.name}</span>
+                  {showSiteMap && (
+                    <button
+                      type="button"
+                      onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-1.5 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+                      title={`View all ${siteCount} client sites`}
+                    >
+                      <MapPin className="h-3 w-3" />
+                      {siteCount}
+                    </button>
+                  )}
                 </div>
               ) : (
                 "—"
-              )}
-              {showSiteMap && (
-                <button
-                  type="button"
-                  onClick={() => { setSiteMapSearch(""); setSiteMapTarget(c); }}
-                  className="mt-1 inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
-                  title="View all client sites this person covers"
-                >
-                  <MapPin className="h-3 w-3" />
-                  {siteCount} sites
-                </button>
               )}
             </td>
           )}
@@ -3696,9 +3672,8 @@ function EmployeesPage() {
               />
             </td>
           )}
-          <td className="w-[110px] min-w-[100px] whitespace-nowrap px-2.5 py-2.5 align-middle" data-col="status">
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex flex-nowrap items-center justify-end gap-2">
+          <td className="w-[110px] min-w-[100px] whitespace-nowrap px-2.5 py-2 align-middle" data-col="status">
+            <div className="flex flex-nowrap items-center justify-end gap-1.5" title={c.status === "rejected" ? c.rejection_reason ?? "Rejected" : c.status === "inactive" && c.offboarding_reason_id ? `${offboardReasons.find((x) => x.id === c.offboarding_reason_id)?.name || "Offboarded"}${c.offboarded_at ? ` · ${new Date(c.offboarded_at).toLocaleDateString()}` : ""}` : isPendingOffboarding ? `Offboarding in progress${pendingFoName ? ` · ${pendingFoName}` : ""}` : isPendingIssuance ? `Awaiting issuance${pendingIssuanceFoName ? ` · ${pendingIssuanceFoName}` : ""}` : undefined}>
                 <StatusBadge status={c.status} />
                 {rehire && (
                   <span
@@ -3729,30 +3704,6 @@ function EmployeesPage() {
                     <span className="hidden sm:inline">Awaiting issuance</span>
                   </span>
                 )}
-              </div>
-              {c.status === "rejected" && c.rejection_reason && (
-                <div className="max-w-[220px] truncate text-right text-xs text-muted-foreground" title={c.rejection_reason}>
-                  {c.rejection_reason}
-                </div>
-              )}
-              {c.status === "inactive" && c.offboarding_reason_id && (() => {
-                const r = offboardReasons.find((x) => x.id === c.offboarding_reason_id);
-                const date = c.offboarded_at ? new Date(c.offboarded_at).toLocaleDateString() : null;
-                const label = r?.name || "Offboarded";
-                return (
-                  <div className="max-w-[220px] truncate text-right text-xs text-muted-foreground" title={`${label}${date ? " · " + date : ""}`}>
-                    {label}{date ? ` · ${date}` : ""}
-                  </div>
-                );
-              })()}
-              {isPendingOffboarding && (
-                <div
-                  className="max-w-[220px] truncate text-right text-[11px] text-amber-700 dark:text-amber-300"
-                  title={`Offboarding in progress — awaiting inventory collection${pendingFoName ? ` by ${pendingFoName}` : ""}. Employee stays active until the Field Officer confirms recovery.`}
-                >
-                  Offboarding in progress
-                </div>
-              )}
             </div>
           </td>
 
