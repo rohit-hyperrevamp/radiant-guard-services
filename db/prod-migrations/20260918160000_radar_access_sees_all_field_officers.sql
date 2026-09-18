@@ -38,7 +38,7 @@ as $$
     or exists (
       select 1 from public.candidate_reporting_managers crm
       where crm.candidate_id = _candidate_id
-        and crm.manager_candidate_id = (select public.current_user_candidate_id())
+        and crm.manager_id = (select public.current_user_candidate_id())
     )
     or (
       _unit_id is not null
