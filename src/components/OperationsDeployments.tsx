@@ -136,36 +136,52 @@ export function OperationsDeployments() {
   );
 
   const switchMut = useMutation({
-    mutationFn: async ({ unit, foId }: { unit: UnitRow; foId: string }) => {
-      const previous = dir?.foByUnit.get(unit.id) ?? [];
-      if (previous.length) {
-        const { error } = await supabase
+    mutationFn: async ({ units, foId }: { units: UnitRow[]; foId: string }) => {
+      for (const unit of units) {
+        const previous = dir?.foByUnit.get(unit.id) ?? [];
+        if (previous.length) {
+          const { error } = await supabase
+            .from("candidate_units")
+            .delete()
+            .eq("unit_id", unit.id)
+            .in("candidate_id", previous);
+          if (error) throw error;
+        }
+        const { error: insErr } = await supabase
           .from("candidate_units")
-          .delete()
-          .eq("unit_id", unit.id)
-          .in("candidate_id", previous);
-        if (error) throw error;
+          .insert({ candidate_id: foId, unit_id: unit.id, is_primary: false, is_reliever: false });
+        if (insErr && !String(insErr.message).includes("duplicate")) throw insErr;
+        await logActivity({
+          module: MODULE,
+          action: "update",
+          entityType: "unit",
+          entityId: unit.id,
+          entityLabel: unitLabel(unit),
+          details: { from: previous.map(foName), to: foName(foId) },
+        });
       }
-      const { error: insErr } = await supabase
-        .from("candidate_units")
-        .insert({ candidate_id: foId, unit_id: unit.id, is_primary: false, is_reliever: false });
-      if (insErr && !String(insErr.message).includes("duplicate")) throw insErr;
-      await logActivity({
-        module: MODULE,
-        action: "update",
-        entityType: "unit",
-        entityId: unit.id,
-        entityLabel: unitLabel(unit),
-        details: { from: previous.map(foName), to: foName(foId) },
-      });
     },
-    onSuccess: () => {
-      toast.success("Field officer reassigned");
-      setSwitchUnit(null);
+    onSuccess: (_d, vars) => {
+      toast.success(
+        vars.units.length > 1
+          ? `Field officer assigned to ${vars.units.length} sites`
+          : "Field officer reassigned",
+      );
+      setSwitchUnits(null);
+      setSelected(new Set());
       void qc.invalidateQueries({ queryKey: ["ops-deployments"] });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not reassign"),
   });
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card/90 shadow-sm sm:rounded-3xl">
