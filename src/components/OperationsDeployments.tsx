@@ -475,8 +475,13 @@ function SwitchOfficerDialog({
             Cancel
           </Button>
           <Button disabled={!picked || saving} onClick={() => picked && onSave(picked)}>
-            {saving ? "Saving…" : "Assign to this site"}
+            {saving
+              ? "Saving…"
+              : (units?.length ?? 0) > 1
+              ? `Assign to ${units?.length} sites`
+              : "Assign to this site"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
