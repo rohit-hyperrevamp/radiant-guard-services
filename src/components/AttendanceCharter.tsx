@@ -209,6 +209,16 @@ export function AttendanceCharter({
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
 
+  // Sheet reads that are still running in the background (dialog may be closed).
+  const scanJobsQ = useQuery({
+    queryKey: [SCAN_JOBS_QK, unitIds.join(",")],
+    enabled: unitIds.length > 0,
+    refetchInterval: 5000,
+    queryFn: () => fetchRunningScanJobs(unitIds),
+  });
+
+
+
 
   const { data: coverage = [] } = useWorkforceCoverage();
   const coverageByUnit = useMemo(() => {
