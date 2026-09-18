@@ -76,7 +76,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/lib/use-theme";
 import { isNativePlatform } from "@/lib/native";
 import { toast } from "sonner";
-import { isAdminConsoleRole, isFieldOfficerRole } from "@/lib/role-keys";
+import { isAdminConsoleRole, isFieldOfficerRole, OPERATIONS_ROLES } from "@/lib/role-keys";
 
 
 
