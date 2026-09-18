@@ -744,6 +744,20 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     return () => clearTimeout(timer);
   }, [totalKmToday, punchQ.data?.id, isHistorical]);
 
+  // Only the officer themselves can record a visit (enforced in the database
+  // too). Viewers with Radar access see the same day read-only.
+  const myCandidateQ = useQuery({
+    queryKey: ["my-candidate-id"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("current_user_candidate_id" as never);
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+  });
+  const isSelf = !myCandidateQ.isLoading && myCandidateQ.data === candidateId;
+  const canRecord = isSelf && !isHistorical;
+
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
@@ -752,10 +766,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
 
   useEffect(() => {
     if (!search.action || handledActionRef.current === search.action) return;
+    if (!canRecord) return;
     if (search.action === "start-visit" && isOnDuty && !openVisit) setCheckInOpen(true);
     if (search.action === "complete-visit" && openVisit) setCheckOutOpen(true);
     handledActionRef.current = search.action;
-  }, [search.action, isOnDuty, openVisit]);
+  }, [search.action, isOnDuty, openVisit, canRecord]);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
 
@@ -792,6 +807,10 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           }
         }}
         onStartVisit={(unitId: string) => {
+          if (!canRecord) {
+            toast.error("Only this field officer can mark their own visit.");
+            return;
+          }
           setPreselectUnitId(unitId);
           setCheckInOpen(true);
         }}
@@ -822,7 +841,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           )}
           {posError && <div className="mt-0.5 text-[11px] font-semibold text-rose-600">{posError}</div>}
         </div>
-        {openVisit ? (
+        {!canRecord ? (
+          <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+            View only — visits can only be marked by the officer on their own device.
+          </div>
+        ) : openVisit ? (
           <Button
             size="lg"
             className="h-11 w-full sm:w-auto"
@@ -1156,7 +1179,14 @@ function CheckInDialog({
       onDone();
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Failed to check in");
+      const msg = (err as { message?: string } | null)?.message;
+      toast.error(
+        msg
+          ? /row-level security|permission/i.test(msg)
+            ? "Only this field officer can mark their own visit."
+            : msg
+          : "Failed to check in",
+      );
     },
   });
 
