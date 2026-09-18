@@ -1,15 +1,12 @@
 /**
  * Single source of truth for which AI account reads a document.
  *
- * Priority:
- *   1. GEMINI_API_KEY — the company's own Google Gemini key. All usage is
- *      billed directly to the company's Google account and never consumes
- *      Lovable credits.
- *   2. LOVABLE_API_KEY — Lovable's AI gateway, kept only as a fallback so the
- *      app still works if the company key is ever removed.
+ * All document reading goes directly to Google Gemini using the company's own
+ * GEMINI_API_KEY. Nothing is routed through the Lovable AI gateway, so usage is
+ * billed only to the company's Google account.
  *
- * Every document-reading feature must go through runVision() so the ordering
- * and the retry behaviour stay in one place.
+ * Every document-reading feature must go through runVision() so the model
+ * ordering and retry behaviour stay in one place.
  */
 
 import type { LanguageModel } from "ai";
@@ -20,34 +17,24 @@ const DIRECT_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"];
 /** Identity documents prefer the stronger model, then drop to the flash models. */
 const IDENTITY_MODELS = ["gemini-3.1-pro-preview", ...DIRECT_MODELS];
 
-/** Model used when falling back to the Lovable AI gateway. */
-const GATEWAY_MODEL = "google/gemini-3.7-flash";
-
-export type AiKeySource = "gemini" | "gateway";
+export type AiKeySource = "gemini";
 
 function personalGeminiKey(): string {
   return process.env["GEMINI_API_KEY"]?.trim() || "";
 }
 
-function lovableGatewayKey(): string {
-  return process.env["LOVABLE_API_KEY"]?.trim() || "";
-}
-
-/** True when at least one AI account is configured. */
+/** True when the company Gemini account is configured. */
 export function aiKeyConfigured(): boolean {
-  return Boolean(personalGeminiKey() || lovableGatewayKey());
+  return Boolean(personalGeminiKey());
 }
 
 /** Which account would be used right now. */
 export function activeAiKeySource(): AiKeySource | null {
-  if (personalGeminiKey()) return "gemini";
-  if (lovableGatewayKey()) return "gateway";
-  return null;
+  return personalGeminiKey() ? "gemini" : null;
 }
 
 /**
- * Run one AI call against the company Gemini account, falling back to the
- * Lovable gateway only when no company key is configured.
+ * Run one AI call against the company Gemini account, direct to Google.
  *
  * Google occasionally returns "high demand" or throttles a single model, so
  * each candidate model gets its own attempt before the error is surfaced.
@@ -63,14 +50,9 @@ export async function runVision<T>(
   const geminiKey = personalGeminiKey();
 
   if (!geminiKey) {
-    const gatewayKey = lovableGatewayKey();
-    if (!gatewayKey) {
-      throw new Error(
-        "Sheet reading is not available on this deployment (missing AI key). Please contact support.",
-      );
-    }
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-    return run(createLovableAiGatewayProvider(gatewayKey)(GATEWAY_MODEL));
+    throw new Error(
+      "Document reading is not available: the Google Gemini key is not configured.",
+    );
   }
 
   const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
