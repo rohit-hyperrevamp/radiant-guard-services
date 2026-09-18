@@ -36,8 +36,16 @@ import {
   type Severity,
 } from "@/lib/compliance";
 
+function CompliancePageGated() {
+  return (
+    <ComplianceAccessGate>
+      <CompliancePage />
+    </ComplianceAccessGate>
+  );
+}
+
 export const Route = createFileRoute("/admin/compliance")({
-  component: CompliancePage,
+  component: CompliancePageGated,
   head: () => ({
     meta: [
       { title: "Compliance Command Center — Radiant Guard" },
