@@ -41,6 +41,9 @@ import { ROLE_KEYS } from "@/lib/role-keys";
 import { OperationsClientLocations, useOperationsOverview, VisitInsightTile } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
+import { fetchCharterUnits } from "@/lib/charter-units";
+import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { fetchPeriodStatusesForUnitPeriods } from "@/lib/period-status";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
@@ -192,12 +195,15 @@ function DashboardPage() {
 
       // Single round trip: the counts, the month status buckets and the
       // expiring-contract list are all aggregated in the database.
-      const { data, error } = await supabase.rpc("dashboard_counts" as never, {
-        p_start: monthStart,
-        p_end: monthEnd,
-        p_today: todayStr,
-        p_horizon: sixtyStr,
-      } as never);
+      const [{ data, error }, charter] = await Promise.all([
+        supabase.rpc("dashboard_counts" as never, {
+          p_start: monthStart,
+          p_end: monthEnd,
+          p_today: todayStr,
+          p_horizon: sixtyStr,
+        } as never),
+        can("attendance") || can("payroll") ? fetchCharterUnits() : Promise.resolve(null),
+      ]);
       if (error) throw error;
 
       const d = (data ?? {}) as {
@@ -221,6 +227,30 @@ function DashboardPage() {
         processed: v?.processed ?? 0,
       });
 
+      let sheetCounts = buckets(d.sheetCounts);
+      let runCounts = buckets(d.runCounts);
+      if (charter) {
+        const unitIds = charter.units.map((unit) => unit.id);
+        const windows = await fetchPayrollWindowsByUnit(unitIds);
+        const periods = new Map(
+          unitIds.map((unitId) => [unitId, payrollPeriodForMonth(year, month, windows.get(unitId))]),
+        );
+        const statuses = await fetchPeriodStatusesForUnitPeriods(periods);
+        sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
+        runCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
+        for (const unitId of unitIds) {
+          const status = statuses.get(unitId);
+          if (status?.attendance === "approved") sheetCounts.approved += 1;
+          else if (status?.attendance === "submitted") sheetCounts.pending += 1;
+          else if (status?.attendance === "rejected") sheetCounts.rejected += 1;
+          else sheetCounts.open += 1;
+
+          if (status?.payroll === "processed") runCounts.processed += 1;
+          else if (status?.payroll === "ready") runCounts.pending += 1;
+          else runCounts.open += 1;
+        }
+      }
+
       return {
         orgs: d.orgs ?? 0,
         units: d.units ?? 0,
@@ -230,8 +260,8 @@ function DashboardPage() {
         vehicles: d.vehicles ?? 0,
         fuelTotal: Number(d.fuelTotal ?? 0),
         items: d.items ?? 0,
-        sheetCounts: buckets(d.sheetCounts),
-        runCounts: buckets(d.runCounts),
+        sheetCounts,
+        runCounts,
       };
     },
   });
@@ -518,10 +548,10 @@ function DashboardPage() {
       )});
       if (can("inventory")) t.push({ key: "inv", module: "inventory", node: <MetricTile icon={PackageOpen} label="Inventory SKUs" value={data.items} accent="amber" to="/admin/inventory/stock" /> });
       if (can("attendance")) t.push({ key: "att", module: "attendance", node: (
-        <StatusTile icon={ClipboardList} label="Attendance" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending} draft={data.sheetCounts.draft} rejected={data.sheetCounts.rejected} accent="emerald" to="/admin/attendance" />
+        <StatusTile icon={ClipboardList} label="Attendance" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending} draft={data.sheetCounts.draft} rejected={data.sheetCounts.rejected} open={data.sheetCounts.open} approvedLabel="Approved" pendingLabel="Submitted" openLabel="Open" accent="emerald" to="/admin/attendance" />
       )});
       if (can("payroll")) t.push({ key: "pay", module: "payroll", node: (
-        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.approved} pending={data.runCounts.pending} draft={data.runCounts.draft} rejected={data.runCounts.rejected} open={data.runCounts.open} openLabel="Open" accent="sky" to="/admin/payroll" />
+        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.processed} pending={data.runCounts.pending} draft={0} rejected={0} open={data.runCounts.open} approvedLabel="Processed" pendingLabel="Ready" openLabel="Open" accent="sky" to="/admin/payroll" />
       )});
       if (can("invoice")) t.push({ key: "inv2", module: "invoice", node: (
         <StatusTile icon={Receipt} label="Invoicing" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected} draft={0} rejected={0} accent="indigo" approvedLabel="Ready" pendingLabel="Awaiting" to="/admin/invoice" />
@@ -801,7 +831,7 @@ function StatusTile({ icon, label, approved, pending, draft, rejected, open, app
   open?: number;
   accent?: Accent; approvedLabel?: string; pendingLabel?: string; openLabel?: string; to: string;
 }) {
-  const total = Math.max(approved + pending + draft + rejected, 1);
+  const total = Math.max(approved + pending + draft + rejected + (open ?? 0), 1);
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
@@ -826,6 +856,7 @@ function StatusTile({ icon, label, approved, pending, draft, rejected, open, app
         {pending > 0 && <div className="bg-muted-foreground/50" style={{ width: `${(pending / total) * 100}%` }} />}
         {draft > 0 && <div className="bg-muted-foreground/30" style={{ width: `${(draft / total) * 100}%` }} />}
         {rejected > 0 && <div className="bg-rose-400/70" style={{ width: `${(rejected / total) * 100}%` }} />}
+        {(open ?? 0) > 0 && <div className="bg-muted-foreground/20" style={{ width: `${((open ?? 0) / total) * 100}%` }} />}
       </div>
     </Shell>
   );
