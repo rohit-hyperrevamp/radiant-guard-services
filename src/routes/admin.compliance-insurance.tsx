@@ -17,6 +17,8 @@ import {
   type InsuranceHeadKey,
 } from "@/components/InsuranceHeadTiles";
 
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
 function InsuranceRegisterPageGated() {
   return (
     <ComplianceAccessGate>

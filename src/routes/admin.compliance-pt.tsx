@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
 
 function PtRegisterPageGated() {
   return (

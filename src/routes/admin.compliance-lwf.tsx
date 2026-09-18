@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { MONTH_NAMES, type LwfRow as LwfMaster } from "@/lib/lwf-lookup";
 
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
 function LwfRegisterPageGated() {
   return (
     <ComplianceAccessGate>

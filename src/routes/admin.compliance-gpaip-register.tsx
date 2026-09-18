@@ -29,6 +29,8 @@ export function cohortForRole(roleKey: string | null | undefined): CohortKey {
   return "staff";
 }
 
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
 function GpaipRegisterPageGated() {
   return (
     <ComplianceAccessGate>
