@@ -940,18 +940,21 @@
     background: color-mix(in oklab, var(--accent) 18%, white);
     border-color: color-mix(in oklab, var(--accent) 38%, transparent);
   }
-  .ios-table [data-col="actions"] {
+  .ios-table [data-col="actions"],
+  .ios-table [data-col="employee-actions"] {
     width: auto;
     min-width: 180px;
-    white-space: normal;
+    white-space: nowrap;
     text-align: left !important;
   }
   /* Action cells are left-aligned globally so CTAs stay predictable and visible. */
-  .ios-table thead th[data-col="actions"] {
+  .ios-table thead th[data-col="actions"],
+  .ios-table thead th[data-col="employee-actions"] {
     text-align: left !important;
     padding-right: 20px;
   }
-  .ios-table thead th[data-col="actions"] > * {
+  .ios-table thead th[data-col="actions"] > *,
+  .ios-table thead th[data-col="employee-actions"] > * {
     display: inline-flex;
     justify-content: flex-start;
     width: 100%;
@@ -959,16 +962,18 @@
   /* The wrapper div inside an actions cell becomes the flex row. We do NOT
      use display:contents anymore — it broke alignment when authors nested
      more than one wrapper. Instead, allow one wrapper to lay out children. */
-  .ios-table [data-col="actions"] > div {
+  .ios-table [data-col="actions"] > div,
+  .ios-table [data-col="employee-actions"] > div {
     display: inline-flex !important;
     align-items: center;
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 6px;
     width: 100%;
   }
   /* Nested wrappers inside the row collapse so siblings share the same gap. */
-  .ios-table [data-col="actions"] > div > div {
+  .ios-table [data-col="actions"] > div > div,
+  .ios-table [data-col="employee-actions"] > div > div {
     display: contents;
   }
   /* Fallback when action buttons are direct children of the td (no wrapper). */
@@ -1059,15 +1064,24 @@
   /* Action columns (edit / delete / etc.) must never clip. Keep buttons on
      one row, don't shrink icons, and give the cell enough breathing room. */
   .ios-table [data-col="actions"],
+  .ios-table [data-col="employee-actions"],
   .bg-card table [data-col="actions"] {
     white-space: nowrap;
   }
   .ios-table [data-col="actions"] > *,
+  .ios-table [data-col="employee-actions"] > *,
   .bg-card table [data-col="actions"] > * {
     white-space: nowrap;
   }
   .ios-table [data-col="actions"] svg,
+  .ios-table [data-col="employee-actions"] svg,
   .bg-card table [data-col="actions"] svg { flex-shrink: 0; }
+
+  /* Employee rows stay as a single scan line; richer values are available
+     from the employee hover card and native control tooltips. */
+  .ios-table tbody td {
+    white-space: nowrap;
+  }
 
   /* Data tables may need horizontal scroll on narrow screens to avoid
      wrapping numbers/labels. Individual pages can still opt into clip. */
