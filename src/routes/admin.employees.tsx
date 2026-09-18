@@ -3474,10 +3474,14 @@ function EmployeesPage() {
               )}
 
               <div className="min-w-0">
-                <div className="truncate font-semibold leading-tight text-foreground group-hover:text-amber-900 dark:group-hover:text-amber-300">
+                {/* inline styles beat the global .ios-table wrap override so names stay on one line */}
+                <div
+                  style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                  className="font-semibold leading-tight text-foreground group-hover:text-amber-900 dark:group-hover:text-amber-300"
+                >
                   {c.full_name || "—"}
                 </div>
-                <div className="truncate text-xs text-muted-foreground">{c.email || "—"}</div>
+                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} className="text-xs text-muted-foreground">{c.email || "—"}</div>
                 <div className="mt-1 hidden gap-x-5 gap-y-1 text-xs text-muted-foreground">
                   {(mode === "candidate" || columnsVisible.mobile) && (
                     <div className="truncate">
@@ -4249,7 +4253,7 @@ function EmployeesPage() {
               <th className="w-[112px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 {mode === "employee" ? "Emp ID" : "Code"}
               </th>
-              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <th className="w-[240px] min-w-[220px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 {mode === "employee" ? "Employee" : "Candidate"}
               </th>
               {(mode === "candidate" || columnsVisible.mobile) && (
