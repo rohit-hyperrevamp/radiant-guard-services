@@ -11,6 +11,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
+import {
+  SCAN_JOBS_QK,
+  failScanJob,
+  finishScanJob,
+  formatRemaining,
+  heartbeatScanJob,
+  readScanEstimateSeconds,
+  recordScanDuration,
+  startScanJob,
+} from "@/lib/attendance-scan-jobs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
