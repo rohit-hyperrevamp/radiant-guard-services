@@ -957,6 +957,7 @@ function AdminLayout() {
           >
             {isReady && user && !permsLoading ? (
               <RoutePermissionGuard>
+                <SaveConfirmGuard />
                 <Outlet />
               </RoutePermissionGuard>
             ) : (
