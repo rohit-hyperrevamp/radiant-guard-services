@@ -4090,37 +4090,42 @@ function EmployeesPage() {
                 {mode === "employee" ? "Employee" : "Candidate"}
               </th>
               {(mode === "candidate" || columnsVisible.mobile) && (
-                <th className="hidden w-[132px] px-3 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[132px] px-3 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Mobile
                 </th>
               )}
               {mode === "employee" && columnsVisible.email && (
-                <th className="hidden w-[176px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[176px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Email
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.unit) && (
-                <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Client
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.designation) && (
-                <th className="hidden w-[154px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[168px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Designation
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.department) && (
-                <th className="hidden w-[140px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[160px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Department
                 </th>
               )}
+              {mode === "employee" && columnsVisible.reportsTo && (
+                <th className="hidden w-[168px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
+                  Reporting manager
+                </th>
+              )}
               {mode === "employee" && columnsVisible.dob && (
-                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Date of Birth
                 </th>
               )}
               {mode === "employee" && columnsVisible.doj && (
-                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Date of Joining
                 </th>
               )}
@@ -4131,7 +4136,7 @@ function EmployeesPage() {
               )}
 
               {mode === "employee" && columnsVisible.active && (
-                <th className="hidden w-[92px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[92px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Active
                 </th>
               )}
