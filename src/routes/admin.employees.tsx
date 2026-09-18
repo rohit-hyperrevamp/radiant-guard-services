@@ -3350,7 +3350,7 @@ function EmployeesPage() {
                   {c.full_name || "—"}
                 </div>
                 <div className="truncate text-xs text-muted-foreground">{c.email || "—"}</div>
-                <div className="mt-1 grid gap-x-5 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2 2xl:hidden">
+                <div className="mt-1 hidden gap-x-5 gap-y-1 text-xs text-muted-foreground">
                   {(mode === "candidate" || columnsVisible.mobile) && (
                     <div className="truncate">
                       <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Mobile</span>
