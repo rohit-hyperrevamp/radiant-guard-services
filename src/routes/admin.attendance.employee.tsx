@@ -73,6 +73,7 @@ function EmployeeAttendanceLookupPage() {
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const foScope = useFieldOfficerUnitScope();
+  const opsFocus = useOperationsFocus();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedTerm(term.trim()), 250);
