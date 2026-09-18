@@ -74,6 +74,25 @@ function PeopleInsightsSection({
   );
 }
 
+/** Active field officers — the operations headcount that matters. */
+function FieldOfficerTile() {
+  const q = useQuery({
+    queryKey: ["dashboard-fo-count"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const res = await supabase
+        .from("candidates" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("role_key", "field_officer")
+        .in("status", ["approved", "active"]);
+      return res.count ?? 0;
+    },
+  });
+  return (
+    <MetricTile icon={Users} label="Field officers" value={q.data ?? 0} accent="lime" to="/admin/field-sense/team" />
+  );
+}
+
 
 
 function DashboardErrorState({ error }: { error: Error }) {
@@ -466,6 +485,17 @@ function DashboardPage() {
 
   const tiles = useMemo(() => {
     const t: { key: string; module: string; node: React.ReactNode }[] = [];
+    if (data && opsFocus) {
+      // Operations homepage: organizations, clients, contracts and field
+      // officers. No designation follow-up, no employees, no money.
+      if (can("organizations")) t.push({ key: "orgs", module: "organizations", node: <MetricTile icon={Building2} label="Organizations" value={data.orgs} accent="rose" to="/admin/customers/customer-manager" /> });
+      if (can("organizations")) t.push({ key: "units", module: "organizations", node: <MetricTile icon={Warehouse} label="Clients" value={data.units} accent="cyan" to="/admin/customers/unit-manager" /> });
+      if (can("contracts")) t.push({ key: "contracts", module: "contracts", node: (
+        <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
+      )});
+      t.push({ key: "fo", module: "field_sense", node: <FieldOfficerTile /> });
+      return t;
+    }
     if (data) {
       if (can("organizations")) t.push({ key: "orgs", module: "organizations", node: <MetricTile icon={Building2} label="Organizations" value={data.orgs} accent="rose" to="/admin/customers/customer-manager" /> });
       if (can("organizations")) t.push({ key: "units", module: "organizations", node: <MetricTile icon={Warehouse} label="Clients" value={data.units} accent="cyan" to="/admin/customers/unit-manager" /> });
