@@ -294,26 +294,10 @@ export function OperationsOrgTree() {
         ) : !data || data.roots.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No operations hierarchy recorded yet.</p>
         ) : (
-          <div className="space-y-6">
-            {data.roots.map((root) => {
-              const heads = data.childrenOf.get(root.id) ?? [];
-              return (
-                <div key={root.id} className="flex flex-col items-center">
-                  <TreeCard person={root} guards={data.guardsOf.get(root.id) ?? []} emphasis="top" />
-                  {heads.length > 0 && (
-                    <>
-                      <span className="h-5 w-px bg-border" />
-                      <div className="w-full border-t border-border/70" />
-                      <div className="grid w-full grid-cols-1 justify-center gap-4 pt-0 sm:grid-cols-2 xl:grid-cols-3">
-                        {heads.map((head) => (
-                          <HeadBranch key={head.id} head={head} tree={data} />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+          <div className="space-y-8 overflow-x-auto">
+            {data.roots.map((root) => (
+              <Branch key={root.id} person={root} tree={data} depth={0} />
+            ))}
           </div>
         )}
 
