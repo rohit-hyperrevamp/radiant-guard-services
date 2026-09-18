@@ -77,6 +77,17 @@ type FoUnit = {
 
 const TRACK_INTERVAL_MS = 15_000;
 const NEAREST_MAX_METERS = 500;
+/** How close a field officer must be to a known site to mark a visit. */
+const SITE_GEOFENCE_METERS = 300;
+/** GPS drift allowance added on top of the geofence, capped so it can't be abused. */
+const MAX_ACCURACY_ALLOWANCE_M = 150;
+/** Above this GPS uncertainty we do not trust the reading enough to save it on the site. */
+const MAX_CAPTURE_ACCURACY_M = 200;
+
+function geofenceAllowanceMeters(accuracy: number | null | undefined): number {
+  const acc = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.max(0, accuracy) : 0;
+  return SITE_GEOFENCE_METERS + Math.min(acc, MAX_ACCURACY_ALLOWANCE_M);
+}
 
 type RouteCoord = {
   lat: number;
