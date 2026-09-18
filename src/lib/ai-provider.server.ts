@@ -35,8 +35,15 @@ export function activeAiKeySource(): AiKeySource | null {
 }
 
 function isOverloaded(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? "");
-  return /503|overload|unavailable|high demand|429|rate limit/i.test(message);
+  const status = (error as { statusCode?: number } | null)?.statusCode;
+  if (status === 429 || status === 503 || status === 500) return true;
+  const message = [
+    error instanceof Error ? error.message : String(error ?? ""),
+    String((error as { responseBody?: unknown } | null)?.responseBody ?? ""),
+  ].join(" ");
+  return /\b(429|500|503)\b|overload|unavailable|high demand|rate limit|quota|exceeded|RESOURCE_EXHAUSTED/i.test(
+    message,
+  );
 }
 
 /**
