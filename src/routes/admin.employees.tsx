@@ -3756,7 +3756,7 @@ function EmployeesPage() {
             </div>
           </td>
 
-          <td className="w-[188px] min-w-[188px] whitespace-nowrap px-3 py-2.5 align-middle" data-col="employee-actions">
+          <td className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-2.5 align-middle" data-col="employee-actions">
             <div className="flex flex-nowrap items-center justify-end gap-1.5">
 
 
@@ -4279,7 +4279,7 @@ function EmployeesPage() {
               <th className="w-[110px] min-w-[100px] whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground" data-col="status">
                 Status
               </th>
-              <th className="w-[188px] min-w-[188px] whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground" data-col="employee-actions">
+              <th className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-3 !text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground" data-col="employee-actions">
                 Actions
               </th>
             </tr>
