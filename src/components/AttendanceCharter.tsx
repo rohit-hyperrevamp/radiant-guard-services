@@ -523,7 +523,21 @@ export function AttendanceCharter({
                         <AttendanceStatusBadge status={r.status.attendance} />
                         <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
                         <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
+                        {scan && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                            Reading {Math.round(Number(scan.progress) || 0)}% · {formatRemaining(scan.eta_seconds)}
+                          </span>
+                        )}
                       </div>
+                      {scan && (
+                        <div className="mt-1.5 h-1 w-full max-w-[220px] overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary transition-[width] duration-700"
+                            style={{ width: `${Math.max(2, Math.min(100, Number(scan.progress) || 0))}%` }}
+                          />
+                        </div>
+                      )}
                       <div className="truncate text-xs text-muted-foreground">
                         {r.unit.customer_name} · {r.contractCode}
                       </div>
