@@ -1072,11 +1072,34 @@ function CheckInDialog({
     preselectUnitId ?? nearest?.unit.unit_id ?? units[0]?.unit_id ?? "",
   );
 
+  const selectedUnit = useMemo(
+    () => units.find((u) => u.unit_id === selectedId) ?? null,
+    [units, selectedId],
+  );
+  const selectedGeo = unitGeo(selectedUnit);
+  const distanceToSelected = useMemo(
+    () => (pos && selectedGeo ? distanceMeters(pos, selectedGeo) : null),
+    [pos, selectedGeo],
+  );
+  const allowance = geofenceAllowanceMeters(pos?.accuracy);
+  const atSite = distanceToSelected != null && distanceToSelected <= allowance;
+  const willCaptureSiteLocation = !selectedGeo && !!pos;
+  const blocked = !!selectedGeo && distanceToSelected != null && !atSite;
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!pos) throw new Error("Location not available.");
       if (!selectedId) throw new Error("Select a unit.");
       const unit = units.find((u) => u.unit_id === selectedId) ?? null;
+      const geo = unitGeo(unit);
+      if (geo) {
+        const d = distanceMeters(pos, geo);
+        if (d == null || d > geofenceAllowanceMeters(pos.accuracy)) {
+          throw new Error(
+            `You are ${d == null ? "away from" : formatDistance(d) + " away from"} ${unit?.unit_name ?? "this site"}. Check in only after you reach the site.`,
+          );
+        }
+      }
       const visit = await createVisit({
         candidateId,
         unitId: selectedId,
