@@ -562,7 +562,7 @@ function DashboardPage() {
         <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.processed} pending={data.runCounts.pending} draft={0} rejected={0} open={data.runCounts.open} approvedLabel="Processed" pendingLabel="Ready" openLabel="Open" accent="sky" to="/admin/payroll" />
       )});
       if (can("invoice")) t.push({ key: "inv2", module: "invoice", node: (
-        <StatusTile icon={Receipt} label="Invoicing" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected} draft={0} rejected={0} accent="indigo" approvedLabel="Ready" pendingLabel="Awaiting" to="/admin/invoice" />
+        <StatusTile icon={Receipt} label="Invoicing" approved={data.invoiceCounts.processed} pending={data.invoiceCounts.pending} draft={0} rejected={0} open={data.invoiceCounts.open} approvedLabel="Invoiced" pendingLabel="Ready" openLabel="Open" accent="indigo" to="/admin/invoice" />
       )});
     }
     return t;
