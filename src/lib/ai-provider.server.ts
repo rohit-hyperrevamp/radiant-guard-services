@@ -10,12 +10,13 @@
 import type { LanguageModel } from "ai";
 
 /**
- * The attendance reader is a high-volume OCR task, not a reasoning task.
- * Flash Lite has materially lower vision latency and is available on the
- * company's Google account. Keep this to one model: silently trying a second
- * model can double the wait after a slow/failed first request.
+ * Attendance data feeds invoicing, so accuracy outranks latency here. The
+ * lite-tier vision model transcribes acceptably but is unreliable at copying
+ * identifiers and following an exact output shape, which silently drops rows.
+ * Use the full Flash model, and only fall back when Google itself is
+ * overloaded (503) — never as a silent quality downgrade on a good response.
  */
-const ATTENDANCE_VISION_MODEL = "gemini-3.1-flash-lite";
+const ATTENDANCE_VISION_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"] as const;
 
 export type AiKeySource = "gemini";
 
