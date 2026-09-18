@@ -229,6 +229,7 @@ function DashboardPage() {
 
       let sheetCounts = buckets(d.sheetCounts);
       let runCounts = buckets(d.runCounts);
+      let invoiceCounts = buckets(undefined);
       if (charter) {
         const unitIds = charter.units.map((unit) => unit.id);
         const windows = await fetchPayrollWindowsByUnit(unitIds);
@@ -238,6 +239,7 @@ function DashboardPage() {
         const statuses = await fetchPeriodStatusesForUnitPeriods(periods);
         sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
         runCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
+        invoiceCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
         for (const unitId of unitIds) {
           const status = statuses.get(unitId);
           if (status?.attendance === "approved") sheetCounts.approved += 1;
@@ -248,6 +250,11 @@ function DashboardPage() {
           if (status?.payroll === "processed") runCounts.processed += 1;
           else if (status?.payroll === "ready") runCounts.pending += 1;
           else runCounts.open += 1;
+
+          // Invoicing shares the same client-by-client lifecycle as payroll.
+          if (status?.invoice === "processed") invoiceCounts.processed += 1;
+          else if (status?.invoice === "ready") invoiceCounts.pending += 1;
+          else invoiceCounts.open += 1;
         }
       }
 
@@ -262,6 +269,7 @@ function DashboardPage() {
         items: d.items ?? 0,
         sheetCounts,
         runCounts,
+        invoiceCounts,
       };
     },
   });
