@@ -2199,13 +2199,16 @@ function MusterRollPage() {
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
+      await endScanProgress({ summary }, startedAt);
       logActivity({
         module: "Attendance",
         action: "Upload attendance Excel",
         details: { filled, clearedStale, candidates: Array.from(candidatesInSheet), unmatched: unmatchedNames.length, secondaryDesigRowCount, notOnContract: Array.from(designationsNotOnContract), unit_id: unitId, file: uploadFile.name },
       }).catch(() => {});
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Excel import failed");
+      const message = e instanceof Error ? e.message : "Excel import failed";
+      toast.error(message);
+      await endScanProgress({ error: message }, startedAt);
     } finally {
       setProcessingOcr(false);
     }
