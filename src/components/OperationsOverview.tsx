@@ -124,9 +124,9 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
       const key = mode === "city" ? item.city : item.state;
       groups.set(key, (groups.get(key) ?? 0) + 1);
     }
-    const term = search.trim().toLowerCase();
+    const tokens = search.trim().toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     return Array.from(groups, ([label, count]) => ({ label, count }))
-      .filter((row) => !term || row.label.toLowerCase().includes(term))
+      .filter((row) => tokens.length === 0 || tokens.every((t) => row.label.toLowerCase().includes(t)))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   }, [data, mode, search]);
 

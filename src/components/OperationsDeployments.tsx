@@ -72,6 +72,16 @@ async function loadDirectory(): Promise<Directory> {
  * reverse view by officer. Sites with no officer are the red flag operations
  * cares about.
  */
+/** Keyword match: every word in the query must appear somewhere in the haystack. */
+function matchesKeywords(haystack: string, query: string): boolean {
+  const hay = haystack.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .every((token) => hay.includes(token));
+}
+
 export function OperationsDeployments() {
   const qc = useQueryClient();
   const [view, setView] = useState<"unit" | "officer">("unit");
@@ -93,21 +103,21 @@ export function OperationsDeployments() {
 
   const unitRows = useMemo(() => {
     if (!dir) return [] as UnitRow[];
-    const term = search.trim().toLowerCase();
+    const term = search.trim();
     return dir.units.filter((u) => {
       const assigned = (dir.foByUnit.get(u.id) ?? []).length > 0;
       if (onlyUnassigned && assigned) return false;
       if (!term) return true;
       const officers = (dir.foByUnit.get(u.id) ?? []).map(foName).join(" ");
-      return `${unitLabel(u)} ${u.code ?? ""} ${officers}`.toLowerCase().includes(term);
+      return matchesKeywords(`${unitLabel(u)} ${u.code ?? ""} ${officers}`, term);
     });
   }, [dir, search, onlyUnassigned]);
 
   const officerRows = useMemo(() => {
     if (!dir) return [] as FoRow[];
-    const term = search.trim().toLowerCase();
+    const term = search.trim();
     return dir.fos.filter((f) =>
-      !term ? true : `${f.full_name ?? ""} ${f.employee_code ?? ""}`.toLowerCase().includes(term),
+      !term ? true : matchesKeywords(`${f.full_name ?? ""} ${f.employee_code ?? ""}`, term),
     );
   }, [dir, search]);
 
@@ -340,10 +350,10 @@ function SwitchOfficerDialog({
   const [term, setTerm] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const list = useMemo(() => {
-    const t = term.trim().toLowerCase();
+    const t = term.trim();
     const filtered = !t
       ? fos
-      : fos.filter((f) => `${f.full_name ?? ""} ${f.employee_code ?? ""}`.toLowerCase().includes(t));
+      : fos.filter((f) => matchesKeywords(`${f.full_name ?? ""} ${f.employee_code ?? ""}`, t));
     return filtered.slice(0, 60);
   }, [fos, term]);
 
