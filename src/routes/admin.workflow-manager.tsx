@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Edit2, Plus, Trash2, Workflow as WorkflowIcon } from "lucide-react";
@@ -316,6 +317,7 @@ function WorkflowManagerPage() {
                             >
                               <ArrowDown className="h-4 w-4" />
                             </Button>
+                            <RecordViewButton record={s} title="Workflow step details" />
                             <Button
                               size="sm"
                               variant="ghost"
