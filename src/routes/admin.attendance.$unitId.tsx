@@ -2683,21 +2683,22 @@ function MusterRollPage() {
 
 
       {/* Upload Attendance dialog */}
-      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); } }}>
+      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload attendance sheet</DialogTitle>
             <DialogDescription>
-              Photo, Excel or CSV. Unclear cells are left blank and marked in red.
+              Photos (several at once), Excel or CSV. Unclear cells are left blank and marked in red.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <input
               ref={uploadInputRef}
               type="file"
+              multiple
               accept="image/*,.xlsx,.xls,.xlsm,.csv,.ods"
               className="hidden"
-              onChange={(e) => onPickUploadFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => onPickUploadFiles(Array.from(e.target.files ?? []))}
             />
             {!uploadFile ? (
               <button
@@ -2706,18 +2707,32 @@ function MusterRollPage() {
                 className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
               >
                 <Upload className="h-6 w-6" />
-                <span>Upload image or Excel</span>
-                <span className="text-xs">PNG, JPG, HEIC · XLSX, XLS, CSV</span>
+                <span>Upload images or Excel</span>
+                <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
               </button>
             ) : uploadKind === "image" && uploadPreview ? (
               <div className="space-y-2">
-                <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                  <img src={uploadPreview} alt="Attendance preview" className="max-h-80 w-full object-contain" />
-                </div>
+                {uploadImages.length > 1 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {uploadImages.map((img, i) => (
+                      <div key={`${img.name}-${i}`} className="overflow-hidden rounded-lg border border-border bg-muted/20">
+                        <img src={img.dataUrl} alt={img.name} className="h-28 w-full object-cover" />
+                        <div className="truncate px-2 py-1 text-[10px] text-muted-foreground">{i + 1}. {img.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
+                    <img src={uploadPreview} alt="Attendance preview" className="max-h-80 w-full object-contain" />
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> {uploadFile.name}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
+                  </span>
                   <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
-                    Choose a different file
+                    Choose different files
                   </button>
                 </div>
               </div>
