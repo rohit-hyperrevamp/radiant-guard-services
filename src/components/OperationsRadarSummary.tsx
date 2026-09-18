@@ -5,7 +5,7 @@ import { ArrowUpRight, BatteryCharging, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ROLE_KEYS } from "@/lib/role-keys";
 
-type LivePunch = {
+export type LivePunch = {
   id: string;
   candidate_id: string;
   check_in_at: string | null;
@@ -34,15 +34,8 @@ function batteryTone(pct: number | null) {
  * Radar, consumed on the operations homepage: live field-officer map with the
  * day's ping counts. The full Radar screen stays one click away.
  */
-export function OperationsRadarSummary() {
-  const qc = useQueryClient();
-  const mapEl = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<Map<string, any>>(new Map());
-  const LRef = useRef<any>(null);
-  const [ready, setReady] = useState(false);
-
-  const liveQ = useQuery({
+export function useOperationsRadarLive() {
+  return useQuery({
     queryKey: ["ops-radar-live", today()],
     refetchInterval: 20_000,
     queryFn: async (): Promise<LivePunch[]> => {
@@ -60,6 +53,17 @@ export function OperationsRadarSummary() {
       return (data ?? []) as unknown as LivePunch[];
     },
   });
+}
+
+export function OperationsRadarSummary() {
+  const qc = useQueryClient();
+  const mapEl = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<Map<string, any>>(new Map());
+  const LRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+
+  const liveQ = useOperationsRadarLive();
 
   const totalsQ = useQuery({
     queryKey: ["ops-radar-totals"],

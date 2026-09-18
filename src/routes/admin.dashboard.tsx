@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   Building2, Briefcase, CalendarDays, ChevronLeft, ChevronRight,
   ClipboardList, Files, Fuel, PackageOpen, Receipt, TrendingDown, TrendingUp,
-  UserPlus, Users, Wallet, Warehouse, AlertTriangle, ArrowRight, ArrowUpRight, Sparkles,
+  UserPlus, Users, Wallet, Warehouse, AlertTriangle, ArrowRight, ArrowUpRight, Sparkles, MapPin, Radio,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -33,9 +33,10 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
-import { OperationsRadarSummary } from "@/components/OperationsRadarSummary";
+import { OperationsRadarSummary, useOperationsRadarLive } from "@/components/OperationsRadarSummary";
 import { OperationsDeployments } from "@/components/OperationsDeployments";
 import { OperationsOrgTree } from "@/components/OperationsOrgTree";
+import { OperationsClientLocations, useOperationsOverview, VisitInsightTile } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
@@ -76,26 +77,6 @@ function PeopleInsightsSection({
 }
 
 /** Active field officers — the operations headcount that matters. */
-function FieldOfficerTile() {
-  const q = useQuery({
-    queryKey: ["dashboard-fo-count"],
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const res = await supabase
-        .from("candidates" as never)
-        .select("id", { count: "exact", head: true })
-        .eq("role_key", "field_officer")
-        .in("status", ["approved", "active"]);
-      return res.count ?? 0;
-    },
-  });
-  return (
-    <MetricTile icon={Users} label="Field officers" value={q.data ?? 0} accent="lime" to="/admin/field-sense/team" />
-  );
-}
-
-
-
 function DashboardErrorState({ error }: { error: Error }) {
   return (
     <div className="mx-auto max-w-md p-6 text-center">
@@ -161,6 +142,10 @@ function DashboardPage() {
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();
+  const operationsOverviewQ = useOperationsOverview();
+  const operationsLiveQ = useOperationsRadarLive();
+  const operationsOverview = operationsOverviewQ.data;
+  const liveOfficerCount = new Set((operationsLiveQ.data ?? []).map((row) => row.candidate_id)).size;
 
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const monthEnd = (() => {
@@ -494,7 +479,11 @@ function DashboardPage() {
       if (can("contracts")) t.push({ key: "contracts", module: "contracts", node: (
         <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
       )});
-      t.push({ key: "fo", module: "field_sense", node: <FieldOfficerTile /> });
+      t.push({ key: "fo", module: "field_sense", node: <MetricTile icon={Users} label="Field officers" value={operationsOverview?.fieldOfficers ?? 0} accent="lime" to="/admin/field-sense/team" sub="Operations workforce" /> });
+      t.push({ key: "fo-live", module: "field_sense", node: <MetricTile icon={Radio} label="Live on duty today" value={liveOfficerCount} accent="emerald" to="/admin/field-sense" sub={`of ${operationsOverview?.fieldOfficers ?? 0} field officers`} /> });
+      t.push({ key: "sites-today", module: "field_sense", node: <MetricTile icon={MapPin} label="Sites visited today" value={operationsOverview?.sitesVisitedToday ?? 0} accent="sky" to="/admin/field-sense" sub="Distinct active client sites" /> });
+      t.push({ key: "most-visited", module: "field_sense", node: <VisitInsightTile kind="most" item={operationsOverview?.mostVisited ?? null} /> });
+      t.push({ key: "least-visited", module: "field_sense", node: <VisitInsightTile kind="least" item={operationsOverview?.leastVisited ?? null} /> });
       return t;
     }
     if (data) {
@@ -521,7 +510,7 @@ function DashboardPage() {
       )});
     }
     return t;
-  }, [data, can, opsFocus]);
+  }, [data, can, opsFocus, operationsOverview, liveOfficerCount]);
 
   if (permsLoading) {
     return (
@@ -606,10 +595,11 @@ function DashboardPage() {
         fullWidthBelow={
           opsFocus ? (
             <>
-              <OperationsOrgTree />
               <OperationsRadarSummary />
               <AdminVisitProgressCard />
+              <OperationsClientLocations data={operationsOverview} />
               <OperationsDeployments />
+              <OperationsOrgTree />
             </>
           ) : (
             <>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>
@@ -656,7 +646,7 @@ function DashboardPage() {
       </div>
 
       {/* Tiles */}
-      <div className="grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+      <div className={`grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}>
         {isLoading ? (
           Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card" />
