@@ -2876,6 +2876,63 @@ function EmployeesPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set manager"),
   });
 
+  const managerOptions = useMemo(
+    () =>
+      candidates
+        .filter((c) => isEmployeeStatus(c.status) && c.role_key !== "guard")
+        .map((c) => ({ id: c.id, label: c.full_name || c.employee_code || "—", hint: c.employee_code || "" }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [candidates],
+  );
+
+  const assignDesignationMut = useMutation({
+    mutationFn: async ({ candidate, designationId }: { candidate: CandidateListItem; designationId: string | null }) => {
+      const { error } = await supabase
+        .from("candidates" as never)
+        .update({ designation_id: designationId } as unknown as never)
+        .eq("id", candidate.id);
+      if (error) throw error;
+      await logActivity({
+        module: "Employees",
+        action: "assign_designation",
+        entityType: "candidate",
+        entityId: candidate.id,
+        entityLabel: candidate.full_name || candidate.employee_code,
+        before: { designation_id: candidate.designation_id },
+        after: { designation_id: designationId },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Designation updated");
+      qc.invalidateQueries({ queryKey: QK });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set designation"),
+  });
+
+  const assignDepartmentMut = useMutation({
+    mutationFn: async ({ candidate, departmentId }: { candidate: CandidateListItem; departmentId: string | null }) => {
+      const { error } = await supabase
+        .from("candidates" as never)
+        .update({ department_id: departmentId } as unknown as never)
+        .eq("id", candidate.id);
+      if (error) throw error;
+      await logActivity({
+        module: "Employees",
+        action: "assign_department",
+        entityType: "candidate",
+        entityId: candidate.id,
+        entityLabel: candidate.full_name || candidate.employee_code,
+        before: { department_id: candidate.department_id },
+        after: { department_id: departmentId },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Department updated");
+      qc.invalidateQueries({ queryKey: QK });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set department"),
+  });
+
   const addScopeMut = useMutation({
     mutationFn: async (input: { candidate: CandidateListItem; scope_type: ScopeType; scope_id: string; scope_label: string }) => {
       const { error } = await supabase
