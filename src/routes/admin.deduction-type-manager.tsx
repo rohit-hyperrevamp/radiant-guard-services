@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { Coins, Edit2, Plus, Search, Trash2 } from "lucide-react";
@@ -122,6 +123,11 @@ function DeductionTypeManagerPage() {
                 </td>
                 <td className="px-5 py-3 text-right">
                   <div className="inline-flex gap-1">
+                    <RecordViewButton
+                      record={i}
+                      title="Deduction Type details"
+                      onEdit={() => setEditing(i)}
+                    />
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditing(i)}><Edit2 className="h-4 w-4" /></Button>
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={() => setDeleting(i)}><Trash2 className="h-4 w-4" /></Button>
                   </div>

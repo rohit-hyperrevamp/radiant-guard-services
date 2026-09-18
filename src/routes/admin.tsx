@@ -68,6 +68,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { readStoredAuthUser, useAuth } from "@/lib/auth";
 import { useMe } from "@/lib/use-me";
 import { useLiveLocationBeacon } from "@/lib/use-live-location-beacon";
+import { SaveConfirmGuard } from "@/components/SaveConfirmGuard";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { RoutePermissionGuard } from "@/components/RoutePermissionGuard";
 import { RBAC_MODULES } from "@/lib/rbac-modules";
@@ -957,6 +958,7 @@ function AdminLayout() {
           >
             {isReady && user && !permsLoading ? (
               <RoutePermissionGuard>
+                <SaveConfirmGuard />
                 <Outlet />
               </RoutePermissionGuard>
             ) : (

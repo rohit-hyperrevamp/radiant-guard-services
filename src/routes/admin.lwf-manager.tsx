@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
 import {
   Download,
@@ -368,6 +369,11 @@ function LwfManagerPage() {
                     </td>
                     <td className="px-5 py-3 text-right">
                       <div className="inline-flex gap-1">
+                        <RecordViewButton
+                          record={i}
+                          title="Lwf details"
+                          onEdit={() => setEditing(i)}
+                        />
                         <Button
                           size="sm"
                           variant="ghost"

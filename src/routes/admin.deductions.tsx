@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { Coins, Download, Edit2, Plus, Search, Trash2, ChevronLeft, ChevronsUpDown, Check, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -634,6 +635,7 @@ function DeductionList() {
                   <td className="px-5 py-3 text-right">
                     {r.record ? (
                       <div className="inline-flex gap-1">
+                        <RecordViewButton record={r.record} title="Deduction details" />
                         <Link to="/admin/deductions" search={{ mode: "edit", id: r.record.id }}>
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0"><Edit2 className="h-4 w-4" /></Button>
                         </Link>

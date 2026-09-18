@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { downloadCsv } from "@/lib/csv-export";
@@ -206,6 +207,11 @@ function BranchManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={b}
+                        title="Branch details"
+                        onEdit={() => openEdit(b)}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { NOMANS_UNIT_ID as NOMANS_UNIT_ID_CONST } from "@/lib/business-constants";
@@ -3821,6 +3822,11 @@ function EmployeesPage() {
                         </Link>
                       </Button>
 
+                      <RecordViewButton
+                        record={c}
+                        title="Employee details"
+                        onEdit={() => void openEditor(c.id)}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -4141,6 +4147,11 @@ function EmployeesPage() {
                   ><FileText className="h-4 w-4" /></Link>
                 </Button>
 
+                <RecordViewButton
+                  record={c}
+                  title="Employee details"
+                  onEdit={() => void openEditor(c.id)}
+                />
                 <Button variant="ghost" size="icon" onClick={() => void openEditor(c.id)} disabled={openingCandidateId === c.id || editLocked} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50" title={editLocked ? lockedTitle : "Quick edit"} aria-label={editLocked ? lockedTitle : "Quick edit"}>
                   {openingCandidateId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
                 </Button>

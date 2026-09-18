@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Search, Wrench } from "lucide-react";
@@ -188,6 +189,11 @@ function ServiceManagerPage() {
                     </div>
                   )}
                 </div>
+                <RecordViewButton
+                  record={r}
+                  title="Service details"
+                  onEdit={() => setEditing(r.v)}
+                />
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r.v)} aria-label="Edit service interval">
                   <Pencil className="h-4 w-4" />
                 </Button>

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, Shield } from "lucide-react";
@@ -235,6 +236,11 @@ function ExServiceManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={i}
+                        title="Ex Service details"
+                        onEdit={() => setEditing(i)}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

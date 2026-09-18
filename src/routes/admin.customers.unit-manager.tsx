@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { notifySaved } from "@/components/ConfirmProvider";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -450,6 +451,12 @@ function UnitManagerPage() {
                       >
                         <Users className="h-4 w-4" />
                       </Button>
+                      <RecordViewButton
+                        record={u}
+                        title="Unit details"
+                        onEdit={() => { setEditing(u);
+                          setFormOpen(true); }}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

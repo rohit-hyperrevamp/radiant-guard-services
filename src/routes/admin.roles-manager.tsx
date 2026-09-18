@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Edit2, Lock, Plus, Search, ShieldCheck, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -204,6 +205,11 @@ function RolesManagerPage() {
                 <div className="truncate text-sm text-muted-foreground">{r.description || "—"}</div>
                 <div className="text-center text-sm tabular-nums text-foreground">{r.sort_order}</div>
                 <div className="flex justify-end gap-1">
+                  <RecordViewButton
+                    record={r}
+                    title="Role details"
+                    onEdit={() => handleEdit(r)}
+                  />
                   <Button size="sm" variant="ghost" onClick={() => handleEdit(r)} title="Edit">
                     <Edit2 className="h-4 w-4" />
                   </Button>

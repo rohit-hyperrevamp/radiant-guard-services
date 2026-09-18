@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Edit2, FileText, Plus, Search, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -351,6 +352,11 @@ function PolicyManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={i}
+                        title="Policy details"
+                        onEdit={() => setEditing(i)}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, Briefcase } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -233,6 +234,11 @@ function ServiceTypeManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <RecordViewButton
+                        record={i}
+                        title="Service Type details"
+                        onEdit={() => setEditing(i)}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"

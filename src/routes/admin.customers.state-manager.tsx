@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Link2, MapPin, Plus, Search } from "lucide-react";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
@@ -183,6 +184,11 @@ function StateManagerPage() {
                     </td>
                     <td className="px-5 py-3 text-right" data-col="actions">
                       <div className="inline-flex gap-1">
+                        <RecordViewButton
+                          record={s}
+                          title="State details"
+                          onEdit={() => setEditing(s)}
+                        />
                         <Button
                           size="sm"
                           variant="ghost"

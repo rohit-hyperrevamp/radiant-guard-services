@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -475,6 +476,12 @@ function ExpenseManagerPage() {
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <RecordViewButton
+                        record={e}
+                        title="Expense details"
+                        onEdit={() => { setEditing(e);
+                          setOpen(true); }}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
