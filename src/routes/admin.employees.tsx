@@ -1916,6 +1916,7 @@ function EmployeesPage() {
     unit: true,
     designation: true,
     department: true,
+    reportsTo: true,
     role: true,
     dob: false,
     doj: false,
