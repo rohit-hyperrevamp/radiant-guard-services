@@ -109,6 +109,7 @@ export function usePeopleInsights(options?: { roleKeys?: readonly string[] }) {
         p_days: 366,
         p_sixty: showSixtyPlus,
         p_limit: 200,
+        p_role_keys: roleKeys,
       } as never);
       if (error) throw error;
       return ((data ?? {}) as unknown) as InsightsPayload;

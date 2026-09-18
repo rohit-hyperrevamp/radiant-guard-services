@@ -46,11 +46,17 @@ import {
 } from "@/components/FinanceCoverage";
 
 
-function PeopleInsightsSection({ compact }: { compact?: boolean }) {
-  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
+function PeopleInsightsSection({
+  compact, hideLive, roleKeys,
+}: {
+  compact?: boolean;
+  hideLive?: boolean;
+  roleKeys?: readonly string[];
+}) {
+  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights({ roleKeys });
   return (
     <div className="flex flex-col gap-4">
-      <LiveFieldOfficersCard />
+      {!hideLive && <LiveFieldOfficersCard />}
       {!compact && (
         <>
           <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
