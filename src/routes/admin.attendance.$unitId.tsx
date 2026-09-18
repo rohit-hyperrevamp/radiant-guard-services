@@ -1601,6 +1601,61 @@ function MusterRollPage() {
   const [uploadReadyToContinue, setUploadReadyToContinue] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
+  // ---- Reading progress (keeps running after the dialog is closed) ----
+  const [scanPct, setScanPct] = useState(0);
+  const [scanRemaining, setScanRemaining] = useState<number | null>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scanJobIdRef = useRef<string | null>(null);
+
+  const beginScanProgress = async (kind: "image" | "excel") => {
+    const estimate = kind === "excel" ? 10 : readScanEstimateSeconds();
+    const startedAt = Date.now();
+    setScanPct(2);
+    setScanRemaining(estimate);
+    const jobId = await startScanJob({
+      unitId,
+      periodStart,
+      periodEnd,
+      kind,
+      estimateSeconds: estimate,
+    });
+    scanJobIdRef.current = jobId;
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    let beats = 0;
+    scanTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      const pct = Math.min(96, (elapsed / estimate) * 96);
+      const remaining = Math.max(1, estimate - elapsed);
+      setScanPct(pct);
+      setScanRemaining(remaining);
+      beats += 1;
+      if (jobId && beats % 3 === 0) heartbeatScanJob(jobId, pct, remaining).catch(() => {});
+    }, 1000);
+    return { startedAt, estimate };
+  };
+
+  const endScanProgress = async (outcome: { summary?: string; error?: string }, startedAt: number) => {
+    if (scanTimerRef.current) {
+      clearInterval(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+    const jobId = scanJobIdRef.current;
+    scanJobIdRef.current = null;
+    setScanPct(outcome.error ? 0 : 100);
+    setScanRemaining(0);
+    if (outcome.error) {
+      if (jobId) await failScanJob(jobId, outcome.error).catch(() => {});
+    } else {
+      recordScanDuration((Date.now() - startedAt) / 1000);
+      if (jobId) await finishScanJob(jobId, outcome.summary ?? "Sheet read").catch(() => {});
+    }
+    await queryClient.invalidateQueries({ queryKey: [SCAN_JOBS_QK] });
+  };
+
+  useEffect(() => () => {
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+  }, []);
+
   const detectKind = (file: File): "image" | "excel" | null => {
     const name = file.name.toLowerCase();
     if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|heic|heif|bmp|gif)$/.test(name)) return "image";
