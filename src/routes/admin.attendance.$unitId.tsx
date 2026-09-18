@@ -1750,8 +1750,13 @@ function MusterRollPage() {
         await endScanProgress({ error: "No mapped employees" }, startedAt);
         return;
       }
+      // Speed guard: on contracts with many designations the candidate ×
+      // designation cross-product makes the prompt enormous and the read very
+      // slow. Beyond a handful of designations we send only the real muster
+      // pairs; the reader still falls back to each person's primary row.
+      const synthDesignations = contractDesignations.length <= 8 ? contractDesignations : [];
       for (const [candidateId, anyMr] of candidatesById) {
-        for (const d of contractDesignations) {
+        for (const d of synthDesignations) {
           const k = `${candidateId}|${d.designationId}`;
           if (seenPair.has(k)) continue;
           seenPair.add(k);
