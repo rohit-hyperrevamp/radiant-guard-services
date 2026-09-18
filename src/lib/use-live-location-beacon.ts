@@ -60,7 +60,7 @@ export function useLiveLocationBeacon() {
         /* telemetry is best-effort */
       }
       const prev = lastRef.current;
-      const moved = prev ? distanceMeters(prev.lat, prev.lng, geo.lat, geo.lng) : null;
+      const moved = prev ? distanceMeters(prev, geo) : null;
       if (!prev || (moved != null && moved >= MIN_MOVE_METERS)) {
         try {
           await insertTrackPoint({
