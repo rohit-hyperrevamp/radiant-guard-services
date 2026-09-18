@@ -77,6 +77,17 @@ type FoUnit = {
 
 const TRACK_INTERVAL_MS = 15_000;
 const NEAREST_MAX_METERS = 500;
+/** How close a field officer must be to a known site to mark a visit. */
+const SITE_GEOFENCE_METERS = 300;
+/** GPS drift allowance added on top of the geofence, capped so it can't be abused. */
+const MAX_ACCURACY_ALLOWANCE_M = 150;
+/** Above this GPS uncertainty we do not trust the reading enough to save it on the site. */
+const MAX_CAPTURE_ACCURACY_M = 200;
+
+function geofenceAllowanceMeters(accuracy: number | null | undefined): number {
+  const acc = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.max(0, accuracy) : 0;
+  return SITE_GEOFENCE_METERS + Math.min(acc, MAX_ACCURACY_ALLOWANCE_M);
+}
 
 type RouteCoord = {
   lat: number;
@@ -1061,11 +1072,34 @@ function CheckInDialog({
     preselectUnitId ?? nearest?.unit.unit_id ?? units[0]?.unit_id ?? "",
   );
 
+  const selectedUnit = useMemo(
+    () => units.find((u) => u.unit_id === selectedId) ?? null,
+    [units, selectedId],
+  );
+  const selectedGeo = unitGeo(selectedUnit);
+  const distanceToSelected = useMemo(
+    () => (pos && selectedGeo ? distanceMeters(pos, selectedGeo) : null),
+    [pos, selectedGeo],
+  );
+  const allowance = geofenceAllowanceMeters(pos?.accuracy);
+  const atSite = distanceToSelected != null && distanceToSelected <= allowance;
+  const willCaptureSiteLocation = !selectedGeo && !!pos;
+  const blocked = !!selectedGeo && distanceToSelected != null && !atSite;
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!pos) throw new Error("Location not available.");
       if (!selectedId) throw new Error("Select a unit.");
       const unit = units.find((u) => u.unit_id === selectedId) ?? null;
+      const geo = unitGeo(unit);
+      if (geo) {
+        const d = distanceMeters(pos, geo);
+        if (d == null || d > geofenceAllowanceMeters(pos.accuracy)) {
+          throw new Error(
+            `You are ${d == null ? "away from" : formatDistance(d) + " away from"} ${unit?.unit_name ?? "this site"}. Check in only after you reach the site.`,
+          );
+        }
+      }
       const visit = await createVisit({
         candidateId,
         unitId: selectedId,
@@ -1089,6 +1123,20 @@ function CheckInDialog({
           });
         } catch { /* noop */ }
       }
+      // Site has no coordinates on record yet: store this on-site reading so
+      // every future visit to this site can be geofenced against it.
+      let capturedSiteLocation = false;
+      if (!geo && pos.accuracy <= MAX_CAPTURE_ACCURACY_M) {
+        try {
+          const { data } = await supabase.rpc("capture_unit_coordinates" as never, {
+            _unit_id: selectedId,
+            _lat: pos.lat,
+            _lng: pos.lng,
+            _accuracy: Math.round(pos.accuracy),
+          } as never);
+          capturedSiteLocation = data === true;
+        } catch { /* noop */ }
+      }
       // Auto-complete any open admin request for this FO+unit
       try {
         await completeFieldVisitRequestForUnit({
@@ -1097,9 +1145,14 @@ function CheckInDialog({
           visitId: visit.id,
         });
       } catch { /* noop */ }
+      return { capturedSiteLocation };
     },
-    onSuccess: () => {
-      toast.success("Checked in");
+    onSuccess: (res) => {
+      toast.success(
+        res?.capturedSiteLocation
+          ? "Checked in — site location saved for future visits"
+          : "Checked in",
+      );
       onDone();
     },
     onError: (err) => {
@@ -1136,6 +1189,24 @@ function CheckInDialog({
               </option>
             ))}
           </select>
+          {blocked && (
+            <div className="rounded-xl border border-rose-300/60 bg-rose-50 p-3 text-xs text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+              You are {distanceToSelected != null ? formatDistance(distanceToSelected) : ""} away from{" "}
+              <span className="font-bold">{selectedUnit?.unit_name}</span>. Check in only after you reach the site.
+            </div>
+          )}
+          {!blocked && atSite && (
+            <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+              You are at <span className="font-bold">{selectedUnit?.unit_name}</span>
+              {distanceToSelected != null ? ` (${formatDistance(distanceToSelected)} away)` : ""}.
+            </div>
+          )}
+          {willCaptureSiteLocation && (
+            <div className="rounded-xl border border-sky-300/60 bg-sky-50 p-3 text-xs text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200">
+              This site has no saved location yet. Check in only from inside the site — your current location will
+              be saved as this site's location for all future visits.
+            </div>
+          )}
           {pos && (
             <div className="text-[11px] text-muted-foreground">
               Location: {pos.lat.toFixed(5)}, {pos.lng.toFixed(5)} (±{Math.round(pos.accuracy)}m)
@@ -1146,7 +1217,7 @@ function CheckInDialog({
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !pos || !selectedId}>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !pos || !selectedId || blocked}>
             {mutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Confirm check-in
           </Button>
