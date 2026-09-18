@@ -4079,7 +4079,7 @@ function EmployeesPage() {
         {renderMobileCards(pg.pageRows, mode)}
       </div>
       <div className="hidden w-full overflow-x-auto md:block">
-        <table className="ios-table w-full table-auto text-sm 2xl:min-w-[1480px]">
+        <table className="ios-table w-full table-auto text-sm min-w-[1180px] 2xl:min-w-[1480px]">
 
           <thead className="border-b border-border/60 bg-secondary/40">
             <tr>
