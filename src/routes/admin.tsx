@@ -527,9 +527,11 @@ function AdminLayout() {
           // Other roles need RBAC access to the field_sense module.
           return isFieldOfficer || isSuperAdmin || can("field_sense");
         }
-        // Leadership-only analytics surfaces — hidden from field officers.
+        // Leadership-only analytics surfaces — hidden from field officers and
+        // the operations team (their scope is sites, visits and deployments).
         if (g.key === "compliance") {
-          return !isFieldOfficer && (isSuperAdmin || can("contracts") || can("employees"));
+          if (isFieldOfficer || (roleKey && OPERATIONS_ROLES.has(roleKey))) return false;
+          return isSuperAdmin || can("contracts") || can("employees");
         }
         // Client/organization masters are leadership surfaces — never for field officers.
         if (g.key === "org-manager" || g.key === "unit-manager") {
