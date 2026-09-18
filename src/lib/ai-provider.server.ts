@@ -85,15 +85,15 @@ export async function runVision<T>(
         return await run(provider(modelId));
       } catch (error) {
         lastError = error;
+        if (isFreeTierQuota(error)) {
+          throw new Error(
+            "The saved Gemini key is attached to a Google project that is still returning Free Tier quota. Replace it with an API key created inside the paid Gemini project, then retry.",
+          );
+        }
         if (!isOverloaded(error)) throw error;
         await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
       }
     }
-  }
-  if (isFreeTierQuota(lastError)) {
-    throw new Error(
-      "Google is still treating this Gemini API project as Free Tier (20 reads/day). Enable billing on the Google project that owns this API key, then retry.",
-    );
   }
   throw lastError instanceof Error
     ? lastError
