@@ -744,6 +744,20 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     return () => clearTimeout(timer);
   }, [totalKmToday, punchQ.data?.id, isHistorical]);
 
+  // Only the officer themselves can record a visit (enforced in the database
+  // too). Viewers with Radar access see the same day read-only.
+  const myCandidateQ = useQuery({
+    queryKey: ["my-candidate-id"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("current_user_candidate_id" as never);
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+  });
+  const isSelf = !myCandidateQ.isLoading && myCandidateQ.data === candidateId;
+  const canRecord = isSelf && !isHistorical;
+
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
