@@ -129,7 +129,23 @@ function DashboardPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const { can, isLoading: permsLoading } = useCurrentPermissions();
+  const { can, isLoading: permsLoading, roleKey } = useCurrentPermissions();
+  // People-function dashboards close with their own reporting structure, the
+  // same way operations closes with its org tree.
+  const departmentTree =
+    roleKey === ROLE_KEYS.HR ? (
+      <DepartmentOrgTree
+        title="Human resources"
+        departments={["HR"]}
+        labels={["HR head", "Managers", "Assistant managers & seniors", "Executives"]}
+      />
+    ) : roleKey === ROLE_KEYS.FINANCE || roleKey === ROLE_KEYS.ACCOUNTS ? (
+      <DepartmentOrgTree
+        title="Finance & accounts"
+        departments={["Accounts", "Finance"]}
+        labels={["Finance leadership", "Managers", "Executives"]}
+      />
+    ) : null;
   const showInventoryDashboard =
     can("inventory") &&
     !can("organizations") &&
