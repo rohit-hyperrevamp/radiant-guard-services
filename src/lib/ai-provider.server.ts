@@ -52,7 +52,7 @@ export async function runVision<T>(
   });
 
   let lastError: unknown;
-  for (const name of options.identity ? IDENTITY_MODELS : DIRECT_MODELS) {
+  for (const name of DIRECT_MODELS) {
     try {
       return await run(provider(name));
     } catch (error) {
