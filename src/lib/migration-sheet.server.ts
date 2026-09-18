@@ -58,26 +58,9 @@ function num(value: unknown) {
 export async function runMigrationSheetExtraction(
   data: MigrationSheetInput,
 ): Promise<MigrationSheetResult> {
-  const gatewayKey = process.env["LOVABLE_API_KEY"]?.trim();
-  const geminiKey = process.env["GEMINI_API_KEY"]?.trim();
-  if (!gatewayKey && !geminiKey) {
-    throw new Error(
-      "Sheet reading is not available on this deployment (missing AI key). Please contact support.",
-    );
-  }
-
-  let model;
-  if (gatewayKey) {
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-    model = createLovableAiGatewayProvider(gatewayKey)("google/gemini-3.7-flash");
-  } else {
-    const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
-    model = createOpenAICompatible({
-      name: "google",
-      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-      apiKey: geminiKey,
-    })("gemini-2.5-flash");
-  }
+  // Company Google Gemini key first (billed to the company's Google account),
+  // Lovable AI gateway only as a fallback.
+  const { model } = await createVisionModel();
 
   const prompt = [
     `Allowed attendance codes: ${data.codes.map((c) => `${c.code} = ${c.label}`).join(", ")}`,

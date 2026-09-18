@@ -136,9 +136,9 @@ function toDayNumber(value: unknown) {
 }
 
 export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<AttendanceOcrResult> {
-  const key = process.env["LOVABLE_API_KEY"]?.trim();
-  const geminiKey = process.env["GEMINI_API_KEY"]?.trim();
-  if (!key && !geminiKey) {
+  // Company Google Gemini key first (billed to the company's Google account),
+  // Lovable AI gateway only as a fallback.
+  if (!aiKeyConfigured()) {
     throw new Error(
       "Sheet reading is not available on this deployment (missing AI key). Please contact support.",
     );
