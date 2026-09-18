@@ -1189,6 +1189,24 @@ function CheckInDialog({
               </option>
             ))}
           </select>
+          {blocked && (
+            <div className="rounded-xl border border-rose-300/60 bg-rose-50 p-3 text-xs text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+              You are {distanceToSelected != null ? formatDistance(distanceToSelected) : ""} away from{" "}
+              <span className="font-bold">{selectedUnit?.unit_name}</span>. Check in only after you reach the site.
+            </div>
+          )}
+          {!blocked && atSite && (
+            <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+              You are at <span className="font-bold">{selectedUnit?.unit_name}</span>
+              {distanceToSelected != null ? ` (${formatDistance(distanceToSelected)} away)` : ""}.
+            </div>
+          )}
+          {willCaptureSiteLocation && (
+            <div className="rounded-xl border border-sky-300/60 bg-sky-50 p-3 text-xs text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200">
+              This site has no saved location yet. Check in only from inside the site — your current location will
+              be saved as this site's location for all future visits.
+            </div>
+          )}
           {pos && (
             <div className="text-[11px] text-muted-foreground">
               Location: {pos.lat.toFixed(5)}, {pos.lng.toFixed(5)} (±{Math.round(pos.accuracy)}m)
@@ -1199,7 +1217,7 @@ function CheckInDialog({
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !pos || !selectedId}>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !pos || !selectedId || blocked}>
             {mutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Confirm check-in
           </Button>
