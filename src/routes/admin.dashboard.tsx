@@ -35,6 +35,7 @@ import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
 import { OperationsRadarSummary } from "@/components/OperationsRadarSummary";
 import { OperationsDeployments } from "@/components/OperationsDeployments";
+import { OperationsOrgTree } from "@/components/OperationsOrgTree";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
@@ -605,6 +606,7 @@ function DashboardPage() {
         fullWidthBelow={
           opsFocus ? (
             <>
+              <OperationsOrgTree />
               <OperationsRadarSummary />
               <AdminVisitProgressCard />
               <OperationsDeployments />
