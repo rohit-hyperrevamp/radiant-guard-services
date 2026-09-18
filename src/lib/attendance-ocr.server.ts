@@ -8,25 +8,24 @@ import type {
 } from "./sheet-ocr-types";
 import { aiKeyConfigured, runVision } from "./ai-provider.server";
 
-const SYSTEM_PROMPT = `You are a FAST, careful OCR engine reading a hand-written or printed monthly attendance / muster-roll sheet from India.
-You will be given the exact list of employees (id, name, employee_code, designation) and the exact list of period dates.
+const SYSTEM_PROMPT = `You are a meticulous OCR engine reading a hand-written or printed monthly attendance / muster-roll sheet from India. This data drives payroll and client invoicing: a single wrong cell causes a financial error, so accuracy matters far more than speed.
+You will be given a NUMBERED list of employees (each with a number, name, employee_code, designation) and the exact list of period dates.
 
 ABSOLUTE RULES:
-1. VISIBLE DAYS ONLY — First, look at the day-number column headers printed on the sheet (e.g. "1 2 3 ... 30"). Note the LARGEST visible day number N. Do NOT emit any row whose entry_date day-of-month is greater than N, even if the period list contains later dates. If the sheet shows 30 days, never emit day 31.
-2. NEVER EXTRAPOLATE — Only emit a row for a cell you can actually SEE filled in on the paper. Empty/blank cells = no row. Do not pattern-fill or assume continuation.
-3. PRACTICAL CONFIDENCE — Extract as much real data as you can from visible cells. Set "confident": true when the code is the most likely reading and not meaningfully ambiguous. If the mark is visible but slightly messy, still extract it. Use "confident": false only when the symbol is genuinely unclear, contradictory, or too faint.
-4. Match each visible row to one employee in the list by name OR employee_code. Use candidate_id (UUID) in output, NEVER the name. Minor spelling differences, line breaks, or handwriting variation are OK if one employee is clearly the same person. If you truly cannot match a row, add the visible name to unmatched_names and DO NOT guess a candidate_id.
-5. "code" MUST correspond to one of the provided code strings. Prefer the closest exact code from the allowed list rather than leaving the cell blank, but only if the written mark clearly points to that code. If still unsure, set code to "" and confident to false.
-6. "ot_hours" is the OVERTIME-DAYS number for that day cell (OT sub-row under each day belongs to the same date). 0.5 means HALF an OT day, 1 means ONE OT day, 1.5 means one-and-a-half OT days. It is NOT hours. Typical max is 2. 0 if blank. If the digit is unclear, set confident=false for that cell.
-   SPECIAL CASE — handwritten muster shorthand: a cell value of "D" or "ED" (optionally followed by a comma and a number, e.g. "D ,1" or "ED ,1") means the person was PRESENT that day AND worked the trailing number as OT days. Emit code="P" with ot_hours=<the number> (default 1 if no number is written). Never emit code="D" or code="ED" — always normalize to "P".
-7. Cross-check each matched employee row against the handwritten/printed totals on the RIGHT side of the same row (P Days, OT, T Days). Use those totals as a validation hint, but DO NOT discard a clearly visible day cell only because the totals are slightly hard to read or do not fully reconcile.
-8. Return ONLY a single compact JSON object with exactly these top-level keys: r, s, u, n. No markdown fences, no prose.
-9. Each s item is [candidate_id, designation_id_or_empty, p_days, ot_days, t_days, confident].
-   - Output numeric DAY values, not text. Examples: "8:4" means 8.5 days, "44:8" means 45 days.
-   - Set row_summaries[].confident=true ONLY when the right-side totals are clearly legible for that employee row.
-   - If a total is unreadable, use null for that field.
-10. Group visible attendance cells by person. Each r item is [candidate_id, designation_id_or_empty, [[entry_date,code,ot_hours,confident],...]]. Do not repeat candidate_id or designation_id for every day.
-11. u is the unmatched visible names array. n states the largest visible day number, e.g. "visible_days=30".`;
+1. DAY COLUMN HEADERS FIRST — Read the day-number headers printed across the top of the grid (they often run e.g. 21,22,...,30 then 1,2,...,20 for a 21st-to-20th period). Map every cell you read to the correct date from the provided Dates list by matching that column's day number. Never shift a row left or right: count columns carefully, including blank ones.
+2. VISIBLE DAYS ONLY — Do not emit a cell for a day column that is not printed on the sheet.
+3. NEVER EXTRAPOLATE — Only emit a cell you can actually SEE filled in. Blank cell = no entry. Never pattern-fill or assume continuation. A row that ends early (struck through with a line) stops there.
+4. Identify each printed row by matching its name AND employee_code to the numbered employee list, and output that employee's NUMBER in "e". Never output names or UUIDs. Minor spelling/handwriting differences are fine when the person is clearly the same. If a printed row matches no employee, put its visible name in "u" and emit no cells for it.
+5. "code" MUST be one of the provided code strings. If a mark is visible but you cannot decide which code it is, output code "" with confident=false so a human corrects it — never guess.
+6. "ot" is the OVERTIME-DAYS number written in the sub-row under that same day cell. 0.5 = half an OT day, 1 = one OT day. It is NOT hours: a written "8" in an OT sub-row means one 8-hour duty, i.e. 1 OT day. 0 when blank. Typical max is 2.
+   SPECIAL CASE — shorthand "D" or "ED" (optionally with a trailing number, e.g. "D ,1") means PRESENT that day plus that many OT days. Emit code "P" with ot = the number (default 1). Never emit code "D" or "ED".
+7. SELF-CHECK BEFORE ANSWERING — For every row, count your own emitted present-type cells and compare with the handwritten totals on the RIGHT of that row (P Days, OT, T Days). If your count does not match P Days, re-read that row's columns and correct it before answering. Report those printed totals in "s" exactly as written.
+8. Confidence — set confident=true when the mark is legible and unambiguous, false when messy, faint or contradictory. Do not mark a cell confident just to finish.
+9. Return ONLY a single JSON object, no markdown fences, no prose, with exactly these keys:
+{"r":[{"e":1,"c":[["YYYY-MM-DD","P",0,true]]}],"s":[{"e":1,"p":26,"o":8,"t":27,"k":true}],"u":[],"n":"visible_days=NN"}
+   - r = per-employee cells; c items are [entry_date, code, ot, confident].
+   - s = printed right-side totals per employee: p=P Days, o=OT total, t=T Days, k=true only when those totals are clearly legible. Use null for an unreadable total.
+   - u = visible names that matched no employee. n = largest visible day number.`;
 
 function stripMarkdownFences(text: string) {
   const trimmed = text.trim();
