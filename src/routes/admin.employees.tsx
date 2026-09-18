@@ -1157,29 +1157,66 @@ function writeSnapshot(key: string, rows: unknown) {
 const SNAP_CANDIDATES = "radiant.snapshot.candidates.v1";
 const SNAP_UNITS = "radiant.snapshot.units.v1";
 
+const CANDIDATE_LIST_COLUMNS = "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
+
 function useCandidates() {
   return useQuery({
     queryKey: QK,
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 60_000,
-    placeholderData: () => readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES),
     queryFn: async (): Promise<CandidateListItem[]> => {
-      const rows = await runWithQueryTimeout("Employees", async (signal) =>
-        await fetchAllPages<CandidateListItem>((from, to) =>
-          supabase
-            .from("candidates" as never)
-            .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
-            .order("created_at", { ascending: false })
-            .range(from, to)
-            .abortSignal(signal),
-        ),
-        20_000,
-      );
-      writeSnapshot(SNAP_CANDIDATES, rows);
-      return rows;
+      return runWithQueryTimeout("Employees", async (signal) => {
+        const countResult = await supabase
+          .from("candidates" as never)
+          .select("id", { count: "exact", head: true })
+          .abortSignal(signal);
+        if (countResult.error) throw countResult.error;
+
+        const pageSize = 1000;
+        const pageCount = Math.ceil((countResult.count ?? 0) / pageSize);
+        const results = await Promise.all(
+          Array.from({ length: pageCount }, (_, page) =>
+            supabase
+              .from("candidates" as never)
+              .select(CANDIDATE_LIST_COLUMNS)
+              .order("created_at", { ascending: false })
+              .order("id", { ascending: true })
+              .range(page * pageSize, (page + 1) * pageSize - 1)
+              .abortSignal(signal),
+          ),
+        );
+
+        const rows: CandidateListItem[] = [];
+        for (const result of results) {
+          if (result.error) throw result.error;
+          rows.push(...((((result.data ?? []) as unknown) as CandidateListItem[])));
+        }
+        return rows;
+      }, 30_000);
     },
 
+  });
+}
+
+function useCandidateSearch(query: string) {
+  const safeQuery = query.trim().replace(/[%_,().]/g, " ").replace(/\s+/g, " ");
+  return useQuery({
+    queryKey: ["admin", "candidate-search", safeQuery.toLowerCase()],
+    enabled: safeQuery.length >= 2,
+    retry: false,
+    staleTime: 30_000,
+    queryFn: async (): Promise<CandidateListItem[]> => {
+      const pattern = `%${safeQuery}%`;
+      const { data, error } = await supabase
+        .from("candidates" as never)
+        .select(CANDIDATE_LIST_COLUMNS)
+        .or(`full_name.ilike.${pattern},employee_code.ilike.${pattern},candidate_code.ilike.${pattern},mobile.ilike.${pattern},email.ilike.${pattern},aadhaar_number.ilike.${pattern}`)
+        .order("created_at", { ascending: false })
+        .limit(250);
+      if (error) throw error;
+      return (((data ?? []) as unknown) as CandidateListItem[]);
+    },
   });
 }
 
@@ -1651,7 +1688,9 @@ function useRolesLite() {
 
 function EmployeesPage() {
   const routeSearch = useSearch({ from: "/admin/employees" });
+  const [search, setSearch] = useState("");
   const candidatesQuery = useCandidates();
+  const candidateSearchQuery = useCandidateSearch(search);
   const unitsQuery = useUnits();
   const designationsQuery = useDesignations();
   const exServicesQuery = useExServices();
@@ -1660,14 +1699,16 @@ function EmployeesPage() {
   const esicBranchesQuery = useEsicBranchesLite();
   const signedDocsQuery = useSignedDocsSummary();
   const candidates = candidatesQuery.data ?? [];
+  const hasRemoteSearch = search.trim().length >= 2;
+  const rowCandidates = hasRemoteSearch ? candidateSearchQuery.data ?? [] : candidates;
   const units = unitsQuery.data ?? [];
   const designations = designationsQuery.data ?? [];
   const exServices = exServicesQuery.data ?? [];
   const languagesList = languagesQuery.data ?? [];
   const rolesList = rolesQuery.data ?? [];
   const esicBranches = esicBranchesQuery.data ?? [];
-  const isLoading = candidatesQuery.isLoading;
-  const candidatesError = candidatesQuery.error;
+  const isLoading = hasRemoteSearch ? candidateSearchQuery.isLoading : candidatesQuery.isLoading;
+  const candidatesError = hasRemoteSearch ? candidateSearchQuery.error : candidatesQuery.error;
   const qc = useQueryClient();
 
   // Self-heal: an approved/active person must carry an EMP-### employee ID.
@@ -1705,7 +1746,6 @@ function EmployeesPage() {
     void supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
-  const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"employee" | "candidate">("employee");
   useEffect(() => { if (isFieldOfficer) setTab("candidate"); }, [isFieldOfficer]);
   useEffect(() => {
@@ -2134,7 +2174,7 @@ function EmployeesPage() {
   }, [candidates]);
 
   const employees = useMemo(
-    () => candidates.filter((c) => {
+    () => rowCandidates.filter((c) => {
       if (!isEmployeeStatus(c.status)) return false;
       if (rehireByCandidate.has(c.id)) return false;
       if (supersededEmployeeIds.has(c.id)) return false;
@@ -2150,10 +2190,10 @@ function EmployeesPage() {
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, filterDepartment, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
+    [rowCandidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, filterDepartment, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
   );
   const candidateRows = useMemo(
-    () => candidates.filter((c) => {
+    () => rowCandidates.filter((c) => {
       const hasRehire = rehireByCandidate.has(c.id);
       if (isEmployeeStatus(c.status) && !hasRehire) return false;
       if (!matchesSearch(c)) return false;
@@ -2168,7 +2208,7 @@ function EmployeesPage() {
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, rehireByCandidate, search, isFieldOfficer, currentUserId, scopedUnitIdSet],
+    [rowCandidates, rehireByCandidate, search, isFieldOfficer, currentUserId, scopedUnitIdSet],
   );
 
   const pgEmployees = usePagination(employees);
