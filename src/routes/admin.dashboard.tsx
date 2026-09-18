@@ -33,6 +33,10 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
+import { OperationsRadarSummary } from "@/components/OperationsRadarSummary";
+import { OperationsDeployments } from "@/components/OperationsDeployments";
+import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
+import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
