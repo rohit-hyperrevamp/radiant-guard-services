@@ -67,6 +67,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { readStoredAuthUser, useAuth } from "@/lib/auth";
 import { useMe } from "@/lib/use-me";
+import { useLiveLocationBeacon } from "@/lib/use-live-location-beacon";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { RoutePermissionGuard } from "@/components/RoutePermissionGuard";
 import { RBAC_MODULES } from "@/lib/rbac-modules";
