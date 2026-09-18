@@ -130,7 +130,7 @@ export async function fetchRunningScanJobs(unitIds: string[]): Promise<Map<strin
 
 export function formatRemaining(seconds: number | null | undefined) {
   if (seconds == null) return "calculating…";
-  if (seconds < 0) return "finishing…";
+  if (seconds <= 0) return "finishing…";
   const s = Math.max(0, Math.round(seconds));
   if (s < 60) return `~${s}s left`;
   const m = Math.floor(s / 60);
