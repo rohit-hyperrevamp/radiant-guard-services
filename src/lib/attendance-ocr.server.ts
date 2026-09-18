@@ -8,25 +8,24 @@ import type {
 } from "./sheet-ocr-types";
 import { aiKeyConfigured, runVision } from "./ai-provider.server";
 
-const SYSTEM_PROMPT = `You are a FAST, careful OCR engine reading a hand-written or printed monthly attendance / muster-roll sheet from India.
-You will be given the exact list of employees (id, name, employee_code, designation) and the exact list of period dates.
+const SYSTEM_PROMPT = `You are a meticulous OCR engine reading a hand-written or printed monthly attendance / muster-roll sheet from India. This data drives payroll and client invoicing: a single wrong cell causes a financial error, so accuracy matters far more than speed.
+You will be given a NUMBERED list of employees (each with a number, name, employee_code, designation) and the exact list of period dates.
 
 ABSOLUTE RULES:
-1. VISIBLE DAYS ONLY — First, look at the day-number column headers printed on the sheet (e.g. "1 2 3 ... 30"). Note the LARGEST visible day number N. Do NOT emit any row whose entry_date day-of-month is greater than N, even if the period list contains later dates. If the sheet shows 30 days, never emit day 31.
-2. NEVER EXTRAPOLATE — Only emit a row for a cell you can actually SEE filled in on the paper. Empty/blank cells = no row. Do not pattern-fill or assume continuation.
-3. PRACTICAL CONFIDENCE — Extract as much real data as you can from visible cells. Set "confident": true when the code is the most likely reading and not meaningfully ambiguous. If the mark is visible but slightly messy, still extract it. Use "confident": false only when the symbol is genuinely unclear, contradictory, or too faint.
-4. Match each visible row to one employee in the list by name OR employee_code. Use candidate_id (UUID) in output, NEVER the name. Minor spelling differences, line breaks, or handwriting variation are OK if one employee is clearly the same person. If you truly cannot match a row, add the visible name to unmatched_names and DO NOT guess a candidate_id.
-5. "code" MUST correspond to one of the provided code strings. Prefer the closest exact code from the allowed list rather than leaving the cell blank, but only if the written mark clearly points to that code. If still unsure, set code to "" and confident to false.
-6. "ot_hours" is the OVERTIME-DAYS number for that day cell (OT sub-row under each day belongs to the same date). 0.5 means HALF an OT day, 1 means ONE OT day, 1.5 means one-and-a-half OT days. It is NOT hours. Typical max is 2. 0 if blank. If the digit is unclear, set confident=false for that cell.
-   SPECIAL CASE — handwritten muster shorthand: a cell value of "D" or "ED" (optionally followed by a comma and a number, e.g. "D ,1" or "ED ,1") means the person was PRESENT that day AND worked the trailing number as OT days. Emit code="P" with ot_hours=<the number> (default 1 if no number is written). Never emit code="D" or code="ED" — always normalize to "P".
-7. Cross-check each matched employee row against the handwritten/printed totals on the RIGHT side of the same row (P Days, OT, T Days). Use those totals as a validation hint, but DO NOT discard a clearly visible day cell only because the totals are slightly hard to read or do not fully reconcile.
-8. Return ONLY a single compact JSON object with exactly these top-level keys: r, s, u, n. No markdown fences, no prose.
-9. Each s item is [candidate_id, designation_id_or_empty, p_days, ot_days, t_days, confident].
-   - Output numeric DAY values, not text. Examples: "8:4" means 8.5 days, "44:8" means 45 days.
-   - Set row_summaries[].confident=true ONLY when the right-side totals are clearly legible for that employee row.
-   - If a total is unreadable, use null for that field.
-10. Group visible attendance cells by person. Each r item is [candidate_id, designation_id_or_empty, [[entry_date,code,ot_hours,confident],...]]. Do not repeat candidate_id or designation_id for every day.
-11. u is the unmatched visible names array. n states the largest visible day number, e.g. "visible_days=30".`;
+1. DAY COLUMN HEADERS FIRST — Read the day-number headers printed across the top of the grid (they often run e.g. 21,22,...,30 then 1,2,...,20 for a 21st-to-20th period). Map every cell you read to the correct date from the provided Dates list by matching that column's day number. Never shift a row left or right: count columns carefully, including blank ones.
+2. VISIBLE DAYS ONLY — Do not emit a cell for a day column that is not printed on the sheet.
+3. NEVER EXTRAPOLATE — Only emit a cell you can actually SEE filled in. Blank cell = no entry. Never pattern-fill or assume continuation. A row that ends early (struck through with a line) stops there.
+4. Identify each printed row by matching its name AND employee_code to the numbered employee list, and output that employee's NUMBER in "e". Never output names or UUIDs. Minor spelling/handwriting differences are fine when the person is clearly the same. If a printed row matches no employee, put its visible name in "u" and emit no cells for it.
+5. "code" MUST be one of the provided code strings. If a mark is visible but you cannot decide which code it is, output code "" with confident=false so a human corrects it — never guess.
+6. "ot" is the OVERTIME-DAYS number written in the sub-row under that same day cell. 0.5 = half an OT day, 1 = one OT day. It is NOT hours: a written "8" in an OT sub-row means one 8-hour duty, i.e. 1 OT day. 0 when blank. Typical max is 2.
+   SPECIAL CASE — shorthand "D" or "ED" (optionally with a trailing number, e.g. "D ,1") means PRESENT that day plus that many OT days. Emit code "P" with ot = the number (default 1). Never emit code "D" or "ED".
+7. SELF-CHECK BEFORE ANSWERING — For every row, count your own emitted present-type cells and compare with the handwritten totals on the RIGHT of that row (P Days, OT, T Days). If your count does not match P Days, re-read that row's columns and correct it before answering. Report those printed totals in "s" exactly as written.
+8. Confidence — set confident=true when the mark is legible and unambiguous, false when messy, faint or contradictory. Do not mark a cell confident just to finish.
+9. Return ONLY a single JSON object, no markdown fences, no prose, with exactly these keys:
+{"r":[{"e":1,"c":[["YYYY-MM-DD","P",0,true]]}],"s":[{"e":1,"p":26,"o":8,"t":27,"k":true}],"u":[],"n":"visible_days=NN"}
+   - r = per-employee cells; c items are [entry_date, code, ot, confident].
+   - s = printed right-side totals per employee: p=P Days, o=OT total, t=T Days, k=true only when those totals are clearly legible. Use null for an unreadable total.
+   - u = visible names that matched no employee. n = largest visible day number.`;
 
 function stripMarkdownFences(text: string) {
   const trimmed = text.trim();
@@ -144,16 +143,25 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
     );
   }
 
-  const employeeList = data.employees
-    .map(
-      (e) =>
-        `- candidate_id=${e.id} | designation_id=${e.designation_id ?? ""} | ${e.name}${e.employee_code ? ` | code=${e.employee_code}` : ""}${e.designation ? ` | designation=${e.designation}` : ""}`,
-    )
-    .join("\n");
+  // One numbered entry per distinct person. The model outputs the NUMBER, never
+  // an identifier, so no row can be lost to a mis-copied UUID.
+  const numberedEmployees: Array<{ id: string; designation_id: string | null }> = [];
+  const numberByCandidate = new Map<string, number>();
+  const employeeLines: string[] = [];
+  for (const e of data.employees) {
+    if (numberByCandidate.has(e.id)) continue;
+    numberedEmployees.push({ id: e.id, designation_id: e.designation_id ?? null });
+    const number = numberedEmployees.length;
+    numberByCandidate.set(e.id, number);
+    employeeLines.push(
+      `${number}. ${e.name}${e.employee_code ? ` | code=${e.employee_code}` : ""}${e.designation ? ` | designation=${e.designation}` : ""}`,
+    );
+  }
+  const employeeList = employeeLines.join("\n");
   const codeList = data.codes.map((c) => `${c.code} = ${c.label}`).join(", ");
   const dateList = data.dates.join(", ");
 
-  const promptText = `Codes: ${codeList}\nDates: ${dateList}\nEmployees (allowed candidate/designation pairs):\n${employeeList}\n\nMatch each printed row by code/name/designation. Copy IDs exactly. If its designation is not an allowed pair, put the visible name in u. Return compact JSON only:\n{"r":[["candidate-uuid","designation-uuid-or-empty",[["YYYY-MM-DD","P",0,true]]]],"s":[["candidate-uuid","designation-uuid-or-empty",26.5,18.5,45,true]],"u":[],"n":"visible_days=NN"}`;
+  const promptText = `Codes: ${codeList}\nDates (in day-column order as printed): ${dateList}\nEmployees (use the leading number in "e"):\n${employeeList}\n\nRead every visible cell for the rows printed on this sheet, map columns to dates by their printed day number, self-check each row against its printed P Days / OT / T Days totals, then return the JSON object described in your instructions. JSON only.`;
 
 
   const { text } = await runVision((model) =>
@@ -178,6 +186,9 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
         },
       ],
       temperature: 0,
+      // Our own runVision loop owns retries and model fallback, so the SDK must
+      // not silently replay the same busy model for minutes first.
+      maxRetries: 0,
     }),
   );
 
@@ -198,21 +209,32 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
   const visibleMatch = notesStr.match(/visible_days\s*=\s*(\d{1,2})/i);
   const visibleDays = visibleMatch ? Math.min(31, Math.max(1, parseInt(visibleMatch[1]!, 10))) : null;
 
+  /** Resolve an employee number (1-based) back to its candidate + designation. */
+  const resolveNumber = (value: unknown) => {
+    const num = Math.round(toNumber(value));
+    if (!Number.isFinite(num) || num < 1 || num > numberedEmployees.length) return null;
+    return numberedEmployees[num - 1] ?? null;
+  };
+
   const compactGroups = Array.isArray(output.r) ? output.r : [];
   const compactRows: Array<Record<string, unknown>> = [];
   for (const group of compactGroups) {
-    if (!Array.isArray(group)) continue;
-    const [candidateId, designationId, cells] = group;
-    if (!Array.isArray(cells)) continue;
+    const numberValue = Array.isArray(group)
+      ? group[0]
+      : (group as { e?: unknown } | null)?.e;
+    const cells = Array.isArray(group) ? group[1] : (group as { c?: unknown } | null)?.c;
+    const resolved = resolveNumber(numberValue);
+    if (!resolved || !Array.isArray(cells)) continue;
     for (const cell of cells) {
-      if (!Array.isArray(cell)) continue;
+      const isArr = Array.isArray(cell);
+      const c = cell as { entry_date?: unknown; code?: unknown; ot?: unknown; confident?: unknown };
       compactRows.push({
-        candidate_id: candidateId,
-        designation_id: designationId,
-        entry_date: cell[0],
-        code: cell[1],
-        ot_hours: cell[2],
-        confident: cell[3],
+        candidate_id: resolved.id,
+        designation_id: resolved.designation_id ?? "",
+        entry_date: isArr ? (cell as unknown[])[0] : c?.entry_date,
+        code: isArr ? (cell as unknown[])[1] : c?.code,
+        ot_hours: isArr ? (cell as unknown[])[2] : c?.ot,
+        confident: isArr ? (cell as unknown[])[3] : c?.confident,
       });
     }
   }
@@ -255,15 +277,21 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
 
   const compactSummaries = Array.isArray(output.s)
     ? output.s
-        .filter((item): item is unknown[] => Array.isArray(item))
-        .map((item) => ({
-          candidate_id: item[0],
-          designation_id: item[1],
-          p_days: item[2],
-          ot_days: item[3],
-          t_days: item[4],
-          confident: item[5],
-        }))
+        .map((item) => {
+          const isArr = Array.isArray(item);
+          const o = item as { e?: unknown; p?: unknown; o?: unknown; t?: unknown; k?: unknown } | null;
+          const resolved = resolveNumber(isArr ? (item as unknown[])[0] : o?.e);
+          if (!resolved) return null;
+          return {
+            candidate_id: resolved.id,
+            designation_id: resolved.designation_id ?? "",
+            p_days: isArr ? (item as unknown[])[1] : o?.p,
+            ot_days: isArr ? (item as unknown[])[2] : o?.o,
+            t_days: isArr ? (item as unknown[])[3] : o?.t,
+            confident: isArr ? (item as unknown[])[4] : o?.k,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
     : [];
   const summaryItems = compactSummaries.length > 0
     ? compactSummaries
@@ -307,10 +335,34 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
     ? unmatchedRaw.map((n) => String(n)).slice(0, 50)
     : [];
 
+  // Safety net for invoicing: reconcile the read cells against the printed
+  // P Days total for each person. Any row that does not reconcile has ALL of its
+  // cells marked unconfident so it is flagged in red for human correction rather
+  // than silently saved as fact.
+  const reconcileNotes: string[] = [];
+  for (const summary of summaries) {
+    if (!summary.confident || summary.p_days == null) continue;
+    const cells = cleanedRows.filter((r) => r.candidate_id === summary.candidate_id);
+    if (cells.length === 0) continue;
+    const counted = cells.reduce((total, cell) => {
+      const code = cell.code.trim().toUpperCase();
+      if (!code) return total;
+      if (code.startsWith("H")) return total + 0.5;
+      if (code.startsWith("P") || code.startsWith("D") || code.startsWith("E")) return total + 1;
+      return total;
+    }, 0);
+    if (Math.abs(counted - summary.p_days) > 0.01) {
+      reconcileNotes.push(
+        `row_check_failed candidate=${summary.candidate_id} read=${counted} printed=${summary.p_days}`,
+      );
+      for (const cell of cells) cell.confident = false;
+    }
+  }
+
   return {
     rows: cleanedRows,
     row_summaries: summaries,
     unmatched_names: unmatched,
-    notes: notesStr,
+    notes: [notesStr, ...reconcileNotes].filter(Boolean).join(" | "),
   };
 }
