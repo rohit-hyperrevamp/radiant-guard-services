@@ -2283,7 +2283,7 @@ function MusterRollPage() {
       return;
     }
     if (uploadKind === "excel") return processAttendanceExcel();
-    return processAttendanceImage();
+    return processAttendanceImages();
   };
 
 
