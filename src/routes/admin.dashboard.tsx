@@ -36,6 +36,8 @@ import { ContractDesignationFollowUp } from "@/components/ContractDesignationFol
 import { OperationsRadarSummary, useOperationsRadarLive } from "@/components/OperationsRadarSummary";
 import { OperationsDeployments } from "@/components/OperationsDeployments";
 import { OperationsOrgTree } from "@/components/OperationsOrgTree";
+import { DepartmentOrgTree } from "@/components/DepartmentOrgTree";
+import { ROLE_KEYS } from "@/lib/role-keys";
 import { OperationsClientLocations, useOperationsOverview, VisitInsightTile } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
@@ -129,7 +131,23 @@ function DashboardPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const { can, isLoading: permsLoading } = useCurrentPermissions();
+  const { can, isLoading: permsLoading, roleKey } = useCurrentPermissions();
+  // People-function dashboards close with their own reporting structure, the
+  // same way operations closes with its org tree.
+  const departmentTree =
+    roleKey === ROLE_KEYS.HR ? (
+      <DepartmentOrgTree
+        title="Human resources"
+        departments={["HR"]}
+        labels={["HR head", "Managers", "Assistant managers & seniors", "Executives"]}
+      />
+    ) : roleKey === ROLE_KEYS.FINANCE || roleKey === ROLE_KEYS.ACCOUNTS ? (
+      <DepartmentOrgTree
+        title="Finance & accounts"
+        departments={["Accounts", "Finance"]}
+        labels={["Finance leadership", "Managers", "Executives"]}
+      />
+    ) : null;
   const showInventoryDashboard =
     can("inventory") &&
     !can("organizations") &&
@@ -602,7 +620,7 @@ function DashboardPage() {
               <OperationsOrgTree />
             </>
           ) : (
-            <>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>
+            <>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}{departmentTree}</>
           )
         }
       >
