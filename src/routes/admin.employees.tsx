@@ -3663,7 +3663,7 @@ function EmployeesPage() {
             </td>
           )}
           {mode === "employee" && columnsVisible.active && (
-            <td className="hidden px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden w-[92px] px-2.5 py-2.5 align-middle md:table-cell">
               <Switch
                 checked={c.is_enabled && c.status !== "inactive"}
                 onCheckedChange={async (v) => {
@@ -3728,37 +3728,6 @@ function EmployeesPage() {
                     <Clock className="h-3 w-3" />
                     <span className="hidden sm:inline">Awaiting issuance</span>
                   </span>
-                )}
-                {mode === "employee" && columnsVisible.active && (
-                  <Switch
-                    className="2xl:hidden"
-                    checked={c.is_enabled && c.status !== "inactive"}
-                    onCheckedChange={async (v) => {
-                      if (!v) {
-                        setOffboardTarget(c);
-                        setOffboardReasonId("");
-                        return;
-                      }
-                      if (c.no_hire) {
-                        toast.error("This employee is flagged Do not re-hire and cannot be reactivated.");
-                        return;
-                      }
-                      const wasOffboarded = !!c.offboarding_reason_id || !!c.offboarded_at;
-                      if (wasOffboarded) {
-                        setReactivateTarget(c);
-                        return;
-                      }
-
-                      const ok = await confirmAction({
-                        title: "Activate employee?",
-                        description: `${c.full_name || c.employee_code} will be marked active again.`,
-                        confirmText: "Activate",
-                      });
-                      if (!ok) return;
-                      toggleEnabledMut.mutate({ candidate: c, enabled: true });
-                    }}
-                    disabled={!c.is_enabled && c.no_hire}
-                  />
                 )}
               </div>
               {c.status === "rejected" && c.rejection_reason && (
