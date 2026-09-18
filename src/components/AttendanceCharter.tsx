@@ -493,6 +493,7 @@ export function AttendanceCharter({
         <div className="space-y-2">
           {rows.map((r) => {
             const isOpen = !!expanded[r.unit.id];
+            const scan = scanJobsQ.data?.get(r.unit.id);
             return (
               <div
                 key={r.unit.id}
