@@ -1688,8 +1688,9 @@ function MusterRollPage() {
     if (!kind) { toast.error("Unsupported file. Choose an image or Excel/CSV file."); return; }
     setUploadKind(kind);
     if (kind === "image") {
-      // Downscale large photos so OCR upload stays fast and request body small
-      downscaleImage(file, 1400, 0.78)
+      // Keep handwriting legible: attendance accuracy depends on cell detail, so
+      // only very large photos are scaled down, at high JPEG quality.
+      downscaleImage(file, 2200, 0.92)
         .then((dataUrl) => setUploadPreview(dataUrl))
         .catch(() => {
           const reader = new FileReader();
