@@ -2623,10 +2623,9 @@ function MusterRollPage() {
       <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Upload Attendance Sheet</DialogTitle>
+            <DialogTitle>Upload attendance sheet</DialogTitle>
             <DialogDescription>
-              Upload a photo/scan (AI reads each cell) or an Excel/CSV file (matched by employee name or code).
-              Cells the AI cannot read confidently are left blank and flagged in red so you can correct them manually.
+              Photo, Excel or CSV. Unclear cells are left blank and marked in red.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
