@@ -836,7 +836,11 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           )}
           {posError && <div className="mt-0.5 text-[11px] font-semibold text-rose-600">{posError}</div>}
         </div>
-        {openVisit ? (
+        {!canRecord ? (
+          <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+            View only — visits can only be marked by the officer on their own device.
+          </div>
+        ) : openVisit ? (
           <Button
             size="lg"
             className="h-11 w-full sm:w-auto"
