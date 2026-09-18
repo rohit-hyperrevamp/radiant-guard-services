@@ -2012,10 +2012,12 @@ function MusterRollPage() {
         action: "Upload attendance image (OCR)",
         details: { confidentCount, uncertainCount, unit_id: unitId },
       }).catch(() => {});
+      return summary;
     } catch (e) {
       const message = e instanceof Error ? e.message : "OCR failed";
       toast.error(message);
       await endScanProgress({ error: message }, startedAt);
+      return null;
     } finally {
       setProcessingOcr(false);
     }
