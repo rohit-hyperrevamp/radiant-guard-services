@@ -1154,7 +1154,6 @@ function writeSnapshot(key: string, rows: unknown) {
   }
 }
 
-const SNAP_CANDIDATES = "radiant.snapshot.candidates.v1";
 const SNAP_UNITS = "radiant.snapshot.units.v1";
 
 const CANDIDATE_LIST_COLUMNS = "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
