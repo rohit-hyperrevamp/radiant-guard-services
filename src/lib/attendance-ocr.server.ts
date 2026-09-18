@@ -143,16 +143,25 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
     );
   }
 
-  const employeeList = data.employees
-    .map(
-      (e) =>
-        `- candidate_id=${e.id} | designation_id=${e.designation_id ?? ""} | ${e.name}${e.employee_code ? ` | code=${e.employee_code}` : ""}${e.designation ? ` | designation=${e.designation}` : ""}`,
-    )
-    .join("\n");
+  // One numbered entry per distinct person. The model outputs the NUMBER, never
+  // an identifier, so no row can be lost to a mis-copied UUID.
+  const numberedEmployees: Array<{ id: string; designation_id: string | null }> = [];
+  const numberByCandidate = new Map<string, number>();
+  const employeeLines: string[] = [];
+  for (const e of data.employees) {
+    if (numberByCandidate.has(e.id)) continue;
+    numberedEmployees.push({ id: e.id, designation_id: e.designation_id ?? null });
+    const number = numberedEmployees.length;
+    numberByCandidate.set(e.id, number);
+    employeeLines.push(
+      `${number}. ${e.name}${e.employee_code ? ` | code=${e.employee_code}` : ""}${e.designation ? ` | designation=${e.designation}` : ""}`,
+    );
+  }
+  const employeeList = employeeLines.join("\n");
   const codeList = data.codes.map((c) => `${c.code} = ${c.label}`).join(", ");
   const dateList = data.dates.join(", ");
 
-  const promptText = `Codes: ${codeList}\nDates: ${dateList}\nEmployees (allowed candidate/designation pairs):\n${employeeList}\n\nMatch each printed row by code/name/designation. Copy IDs exactly. If its designation is not an allowed pair, put the visible name in u. Return compact JSON only:\n{"r":[["candidate-uuid","designation-uuid-or-empty",[["YYYY-MM-DD","P",0,true]]]],"s":[["candidate-uuid","designation-uuid-or-empty",26.5,18.5,45,true]],"u":[],"n":"visible_days=NN"}`;
+  const promptText = `Codes: ${codeList}\nDates (in day-column order as printed): ${dateList}\nEmployees (use the leading number in "e"):\n${employeeList}\n\nRead every visible cell for the rows printed on this sheet, map columns to dates by their printed day number, self-check each row against its printed P Days / OT / T Days totals, then return the JSON object described in your instructions. JSON only.`;
 
 
   const { text } = await runVision((model) =>
