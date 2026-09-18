@@ -89,7 +89,9 @@ export function OperationsDeployments() {
   const [page, setPage] = useState(0);
   const [onlyUnassigned, setOnlyUnassigned] = useState(false);
   const [openFo, setOpenFo] = useState<string | null>(null);
-  const [switchUnit, setSwitchUnit] = useState<UnitRow | null>(null);
+  const [switchUnits, setSwitchUnits] = useState<UnitRow[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
 
   const dirQ = useQuery({ queryKey: ["ops-deployments"], staleTime: 2 * 60_000, queryFn: loadDirectory });
   const dir = dirQ.data;
