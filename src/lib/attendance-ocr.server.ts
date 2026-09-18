@@ -274,15 +274,21 @@ export async function runAttendanceOcr(data: AttendanceOcrInput): Promise<Attend
 
   const compactSummaries = Array.isArray(output.s)
     ? output.s
-        .filter((item): item is unknown[] => Array.isArray(item))
-        .map((item) => ({
-          candidate_id: item[0],
-          designation_id: item[1],
-          p_days: item[2],
-          ot_days: item[3],
-          t_days: item[4],
-          confident: item[5],
-        }))
+        .map((item) => {
+          const isArr = Array.isArray(item);
+          const o = item as { e?: unknown; p?: unknown; o?: unknown; t?: unknown; k?: unknown } | null;
+          const resolved = resolveNumber(isArr ? (item as unknown[])[0] : o?.e);
+          if (!resolved) return null;
+          return {
+            candidate_id: resolved.id,
+            designation_id: resolved.designation_id ?? "",
+            p_days: isArr ? (item as unknown[])[1] : o?.p,
+            ot_days: isArr ? (item as unknown[])[2] : o?.o,
+            t_days: isArr ? (item as unknown[])[3] : o?.t,
+            confident: isArr ? (item as unknown[])[4] : o?.k,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
     : [];
   const summaryItems = compactSummaries.length > 0
     ? compactSummaries
