@@ -18,8 +18,18 @@ import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { MONTH_NAMES, type LwfRow as LwfMaster } from "@/lib/lwf-lookup";
 
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
+function LwfRegisterPageGated() {
+  return (
+    <ComplianceAccessGate>
+      <LwfRegisterPage />
+    </ComplianceAccessGate>
+  );
+}
+
 export const Route = createFileRoute("/admin/compliance-lwf")({
-  component: LwfRegisterPage,
+  component: LwfRegisterPageGated,
   validateSearch: (search: Record<string, unknown>): { ym?: string } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
   }),

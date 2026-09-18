@@ -17,8 +17,18 @@ import {
   type InsuranceHeadKey,
 } from "@/components/InsuranceHeadTiles";
 
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
+function InsuranceRegisterPageGated() {
+  return (
+    <ComplianceAccessGate>
+      <InsuranceRegisterPage />
+    </ComplianceAccessGate>
+  );
+}
+
 export const Route = createFileRoute("/admin/compliance-insurance")({
-  component: InsuranceRegisterPage,
+  component: InsuranceRegisterPageGated,
   validateSearch: (search: Record<string, unknown>): { ym?: string; head?: string } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
     head: typeof search.head === "string" ? search.head : undefined,

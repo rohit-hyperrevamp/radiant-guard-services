@@ -45,6 +45,13 @@ export const ADMIN_CONSOLE_ROLES: ReadonlySet<string> = new Set([
   ROLE_KEYS.VP_OPERATIONS,
 ]);
 
+/** Operations leadership team — the shared ops dashboard/RBAC subset. */
+export const OPERATIONS_ROLES: ReadonlySet<string> = new Set([
+  ROLE_KEYS.OPERATIONS,
+  ROLE_KEYS.OPERATIONS_MANAGER,
+  ROLE_KEYS.VP_OPERATIONS,
+]);
+
 /** Frontline / mobile-first roles. */
 export const FIELD_ROLES: ReadonlySet<string> = new Set([
   ROLE_KEYS.FIELD_OFFICER,

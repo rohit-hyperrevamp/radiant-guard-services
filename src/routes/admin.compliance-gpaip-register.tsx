@@ -29,8 +29,18 @@ export function cohortForRole(roleKey: string | null | undefined): CohortKey {
   return "staff";
 }
 
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
+function GpaipRegisterPageGated() {
+  return (
+    <ComplianceAccessGate>
+      <GpaipRegisterPage />
+    </ComplianceAccessGate>
+  );
+}
+
 export const Route = createFileRoute("/admin/compliance-gpaip-register")({
-  component: GpaipRegisterPage,
+  component: GpaipRegisterPageGated,
   validateSearch: (search: Record<string, unknown>): { ym?: string; view?: string } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
     view: typeof search.view === "string" ? search.view : undefined,

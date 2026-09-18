@@ -16,9 +16,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
+
+function PtRegisterPageGated() {
+  return (
+    <ComplianceAccessGate>
+      <PtRegisterPage />
+    </ComplianceAccessGate>
+  );
+}
 
 export const Route = createFileRoute("/admin/compliance-pt")({
-  component: PtRegisterPage,
+  component: PtRegisterPageGated,
   validateSearch: (search: Record<string, unknown>): { ym?: string } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
   }),

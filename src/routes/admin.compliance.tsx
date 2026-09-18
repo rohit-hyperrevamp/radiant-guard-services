@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
 import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
 import { InsuranceHeadTiles } from "@/components/InsuranceHeadTiles";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
@@ -36,8 +37,16 @@ import {
   type Severity,
 } from "@/lib/compliance";
 
+function CompliancePageGated() {
+  return (
+    <ComplianceAccessGate>
+      <CompliancePage />
+    </ComplianceAccessGate>
+  );
+}
+
 export const Route = createFileRoute("/admin/compliance")({
-  component: CompliancePage,
+  component: CompliancePageGated,
   head: () => ({
     meta: [
       { title: "Compliance Command Center — Radiant Guard" },
