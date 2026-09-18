@@ -3395,13 +3395,13 @@ function EmployeesPage() {
             </div>
           </td>
           {(mode === "candidate" || columnsVisible.mobile) && (
-            <td className="hidden px-2.5 py-2.5 text-center text-sm font-medium text-muted-foreground 2xl:table-cell">{c.mobile || "—"}</td>
+            <td className="hidden px-2.5 py-2.5 text-center text-sm font-medium text-muted-foreground md:table-cell">{c.mobile || "—"}</td>
           )}
           {mode === "employee" && columnsVisible.email && (
-            <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
+            <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground md:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
-            <td className="hidden max-w-[170px] px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden max-w-[170px] px-2.5 py-2.5 md:table-cell">
               {unit ? (
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-foreground" title={unit.name}>{unit.name}</div>
@@ -3424,16 +3424,51 @@ function EmployeesPage() {
             </td>
           )}
           {(mode === "candidate" || columnsVisible.designation) && (
-            <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={desig?.name ?? ""}>{desig?.name ?? "—"}</span></td>
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+              {mode === "employee" ? (
+                <InlinePicker
+                  value={c.designation_id}
+                  placeholder="No designation"
+                  searchPlaceholder="Search designation…"
+                  options={designations.map((d) => ({ id: d.id, label: d.name }))}
+                  onChange={(id) => assignDesignationMut.mutate({ candidate: c, designationId: id })}
+                />
+              ) : (
+                <span className="block max-w-[130px] truncate text-sm text-muted-foreground" title={desig?.name ?? ""}>{desig?.name ?? "—"}</span>
+              )}
+            </td>
           )}
           {(mode === "candidate" || columnsVisible.department) && (
-            <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={deptName}>{deptName || "—"}</span></td>
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+              {mode === "employee" ? (
+                <InlinePicker
+                  value={c.department_id}
+                  placeholder="No department"
+                  searchPlaceholder="Search department…"
+                  options={departmentsList.map((d) => ({ id: d.id, label: d.name }))}
+                  onChange={(id) => assignDepartmentMut.mutate({ candidate: c, departmentId: id })}
+                />
+              ) : (
+                <span className="block max-w-[130px] truncate text-sm text-muted-foreground" title={deptName}>{deptName || "—"}</span>
+              )}
+            </td>
+          )}
+          {mode === "employee" && columnsVisible.reportsTo && (
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+              <InlinePicker
+                value={c.reports_to}
+                placeholder="No manager"
+                searchPlaceholder="Search manager…"
+                options={managerOptions}
+                onChange={(id) => assignManagerMut.mutate({ candidate: c, managerId: id })}
+              />
+            </td>
           )}
           {mode === "employee" && columnsVisible.dob && (
-            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.date_of_birth)}</td>
+            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground md:table-cell">{fmtDate(c.date_of_birth)}</td>
           )}
           {mode === "employee" && columnsVisible.doj && (
-            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.approved_at ?? c.preferred_joining_date)}</td>
+            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground md:table-cell">{fmtDate(c.approved_at ?? c.preferred_joining_date)}</td>
           )}
           {mode === "employee" && columnsVisible.role && (
             <td className="hidden px-2.5 py-2.5 md:table-cell">
