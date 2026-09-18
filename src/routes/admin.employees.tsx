@@ -1158,6 +1158,74 @@ const SNAP_UNITS = "radiant.snapshot.units.v1";
 
 const CANDIDATE_LIST_COLUMNS = "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
 
+type InlinePickerOption = { id: string; label: string; hint?: string };
+
+/** Compact searchable cell editor used for designation / department / reporting manager. */
+function InlinePicker({
+  value,
+  options,
+  onChange,
+  placeholder,
+  searchPlaceholder,
+}: {
+  value: string | null;
+  options: InlinePickerOption[];
+  onChange: (id: string | null) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = value ? options.find((o) => o.id === value) : undefined;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 w-[150px] justify-start rounded-lg border-border/60 bg-card px-2 text-left text-xs font-normal"
+          title={current?.label ?? placeholder}
+        >
+          <span className={cn("truncate", !current && "text-muted-foreground")}>{current?.label ?? placeholder}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[268px] p-0">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
+          <CommandList>
+            <CommandEmpty>No match found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="__clear__"
+                className="text-xs"
+                onSelect={() => {
+                  setOpen(false);
+                  if (value !== null) onChange(null);
+                }}
+              >
+                {placeholder}
+              </CommandItem>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={`${o.label} ${o.hint ?? ""}`}
+                  className="text-xs"
+                  onSelect={() => {
+                    setOpen(false);
+                    if (o.id !== value) onChange(o.id);
+                  }}
+                >
+                  <span className="truncate">{o.label}</span>
+                  {o.hint && <span className="ml-auto font-mono text-[10px] text-muted-foreground">{o.hint}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function useCandidates() {
   return useQuery({
     queryKey: QK,
@@ -1916,6 +1984,7 @@ function EmployeesPage() {
     unit: true,
     designation: true,
     department: true,
+    reportsTo: true,
     role: true,
     dob: false,
     doj: false,
@@ -2876,6 +2945,63 @@ function EmployeesPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set manager"),
   });
 
+  const managerOptions = useMemo(
+    () =>
+      candidates
+        .filter((c) => isEmployeeStatus(c.status) && c.role_key !== "guard")
+        .map((c) => ({ id: c.id, label: c.full_name || c.employee_code || "—", hint: c.employee_code || "" }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [candidates],
+  );
+
+  const assignDesignationMut = useMutation({
+    mutationFn: async ({ candidate, designationId }: { candidate: CandidateListItem; designationId: string | null }) => {
+      const { error } = await supabase
+        .from("candidates" as never)
+        .update({ designation_id: designationId } as unknown as never)
+        .eq("id", candidate.id);
+      if (error) throw error;
+      await logActivity({
+        module: "Employees",
+        action: "assign_designation",
+        entityType: "candidate",
+        entityId: candidate.id,
+        entityLabel: candidate.full_name || candidate.employee_code,
+        before: { designation_id: candidate.designation_id },
+        after: { designation_id: designationId },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Designation updated");
+      qc.invalidateQueries({ queryKey: QK });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set designation"),
+  });
+
+  const assignDepartmentMut = useMutation({
+    mutationFn: async ({ candidate, departmentId }: { candidate: CandidateListItem; departmentId: string | null }) => {
+      const { error } = await supabase
+        .from("candidates" as never)
+        .update({ department_id: departmentId } as unknown as never)
+        .eq("id", candidate.id);
+      if (error) throw error;
+      await logActivity({
+        module: "Employees",
+        action: "assign_department",
+        entityType: "candidate",
+        entityId: candidate.id,
+        entityLabel: candidate.full_name || candidate.employee_code,
+        before: { department_id: candidate.department_id },
+        after: { department_id: departmentId },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Department updated");
+      qc.invalidateQueries({ queryKey: QK });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set department"),
+  });
+
   const addScopeMut = useMutation({
     mutationFn: async (input: { candidate: CandidateListItem; scope_type: ScopeType; scope_id: string; scope_label: string }) => {
       const { error } = await supabase
@@ -3350,7 +3476,7 @@ function EmployeesPage() {
                   {c.full_name || "—"}
                 </div>
                 <div className="truncate text-xs text-muted-foreground">{c.email || "—"}</div>
-                <div className="mt-1 grid gap-x-5 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2 2xl:hidden">
+                <div className="mt-1 hidden gap-x-5 gap-y-1 text-xs text-muted-foreground">
                   {(mode === "candidate" || columnsVisible.mobile) && (
                     <div className="truncate">
                       <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Mobile</span>
@@ -3395,13 +3521,13 @@ function EmployeesPage() {
             </div>
           </td>
           {(mode === "candidate" || columnsVisible.mobile) && (
-            <td className="hidden px-2.5 py-2.5 text-center text-sm font-medium text-muted-foreground 2xl:table-cell">{c.mobile || "—"}</td>
+            <td className="hidden px-2.5 py-2.5 text-center text-sm font-medium text-muted-foreground md:table-cell">{c.mobile || "—"}</td>
           )}
           {mode === "employee" && columnsVisible.email && (
-            <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
+            <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground md:table-cell"><span className="block truncate" title={c.email ?? ""}>{c.email || "—"}</span></td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
-            <td className="hidden max-w-[170px] px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden max-w-[170px] px-2.5 py-2.5 md:table-cell">
               {unit ? (
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-foreground" title={unit.name}>{unit.name}</div>
@@ -3424,16 +3550,51 @@ function EmployeesPage() {
             </td>
           )}
           {(mode === "candidate" || columnsVisible.designation) && (
-            <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={desig?.name ?? ""}>{desig?.name ?? "—"}</span></td>
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+              {mode === "employee" ? (
+                <InlinePicker
+                  value={c.designation_id}
+                  placeholder="No designation"
+                  searchPlaceholder="Search designation…"
+                  options={designations.map((d) => ({ id: d.id, label: d.name }))}
+                  onChange={(id) => assignDesignationMut.mutate({ candidate: c, designationId: id })}
+                />
+              ) : (
+                <span className="block max-w-[130px] truncate text-sm text-muted-foreground" title={desig?.name ?? ""}>{desig?.name ?? "—"}</span>
+              )}
+            </td>
           )}
           {(mode === "candidate" || columnsVisible.department) && (
-            <td className="hidden max-w-[130px] px-2.5 py-2.5 text-sm text-muted-foreground 2xl:table-cell"><span className="block truncate" title={deptName}>{deptName || "—"}</span></td>
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+              {mode === "employee" ? (
+                <InlinePicker
+                  value={c.department_id}
+                  placeholder="No department"
+                  searchPlaceholder="Search department…"
+                  options={departmentsList.map((d) => ({ id: d.id, label: d.name }))}
+                  onChange={(id) => assignDepartmentMut.mutate({ candidate: c, departmentId: id })}
+                />
+              ) : (
+                <span className="block max-w-[130px] truncate text-sm text-muted-foreground" title={deptName}>{deptName || "—"}</span>
+              )}
+            </td>
+          )}
+          {mode === "employee" && columnsVisible.reportsTo && (
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+              <InlinePicker
+                value={c.reports_to}
+                placeholder="No manager"
+                searchPlaceholder="Search manager…"
+                options={managerOptions}
+                onChange={(id) => assignManagerMut.mutate({ candidate: c, managerId: id })}
+              />
+            </td>
           )}
           {mode === "employee" && columnsVisible.dob && (
-            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.date_of_birth)}</td>
+            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground md:table-cell">{fmtDate(c.date_of_birth)}</td>
           )}
           {mode === "employee" && columnsVisible.doj && (
-            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.approved_at ?? c.preferred_joining_date)}</td>
+            <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground md:table-cell">{fmtDate(c.approved_at ?? c.preferred_joining_date)}</td>
           )}
           {mode === "employee" && columnsVisible.role && (
             <td className="hidden px-2.5 py-2.5 md:table-cell">
@@ -4079,7 +4240,7 @@ function EmployeesPage() {
         {renderMobileCards(pg.pageRows, mode)}
       </div>
       <div className="hidden w-full overflow-x-auto md:block">
-        <table className="ios-table w-full table-auto text-sm 2xl:min-w-[1480px]">
+        <table className="ios-table w-full table-auto text-sm min-w-[1180px] 2xl:min-w-[1480px]">
 
           <thead className="border-b border-border/60 bg-secondary/40">
             <tr>
@@ -4090,37 +4251,42 @@ function EmployeesPage() {
                 {mode === "employee" ? "Employee" : "Candidate"}
               </th>
               {(mode === "candidate" || columnsVisible.mobile) && (
-                <th className="hidden w-[132px] px-3 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[132px] px-3 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Mobile
                 </th>
               )}
               {mode === "employee" && columnsVisible.email && (
-                <th className="hidden w-[176px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[176px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Email
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.unit) && (
-                <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Client
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.designation) && (
-                <th className="hidden w-[154px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[168px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Designation
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.department) && (
-                <th className="hidden w-[140px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[160px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Department
                 </th>
               )}
+              {mode === "employee" && columnsVisible.reportsTo && (
+                <th className="hidden w-[168px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
+                  Reporting manager
+                </th>
+              )}
               {mode === "employee" && columnsVisible.dob && (
-                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Date of Birth
                 </th>
               )}
               {mode === "employee" && columnsVisible.doj && (
-                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[124px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Date of Joining
                 </th>
               )}
@@ -4131,7 +4297,7 @@ function EmployeesPage() {
               )}
 
               {mode === "employee" && columnsVisible.active && (
-                <th className="hidden w-[92px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[92px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Active
                 </th>
               )}
@@ -4581,6 +4747,7 @@ function EmployeesPage() {
                     <div className="pt-2 mt-2 border-t border-border/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Show columns</div>
                     {([
                       ["mobile", "Mobile"], ["email", "Email"], ["unit", "Client"], ["designation", "Designation"], ["department", "Department"],
+                      ["reportsTo", "Reporting manager"],
                       ["dob", "Date of Birth"], ["doj", "Date of Joining"], ["role", "Role"], ["active", "Active toggle"],
                     ] as const).map(([k, label]) => (
                       <label key={`col-${k}`} className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-secondary">
