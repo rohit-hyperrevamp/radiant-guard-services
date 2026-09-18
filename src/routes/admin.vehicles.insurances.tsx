@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, ShieldCheck, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -365,6 +366,11 @@ function InsuranceManagerPage() {
                 </div>
 
                 <div className="mt-auto flex items-center justify-end gap-1 border-t border-border/60 pt-2">
+                  <RecordViewButton
+                    record={i}
+                    title="Insurance details"
+                    onEdit={() => setEditing(i)}
+                  />
                   <Button size="sm" variant="ghost" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditing(i)}>
                     <Edit2 className="h-3.5 w-3.5" /> Edit
                   </Button>

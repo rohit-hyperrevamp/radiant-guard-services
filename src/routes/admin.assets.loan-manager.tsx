@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Banknote, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -267,6 +268,11 @@ function LoanManagerPage() {
                   <td className="px-5 py-3"><Switch checked={it.enabled} onCheckedChange={(v) => toggleMut.mutate({ id: it.id, enabled: v, label: it.lender_name })} /></td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex items-center gap-1">
+                      <RecordViewButton
+                        record={it}
+                        title="Loan details"
+                        onEdit={() => openEdit(it)}
+                      />
                       <Button variant="ghost" size="icon" onClick={() => openEdit(it)}><Edit2 className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => onDelete(it)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>

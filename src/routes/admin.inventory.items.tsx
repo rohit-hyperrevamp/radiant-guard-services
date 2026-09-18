@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useCallback, useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, PackageOpen, History, PackagePlus } from "lucide-react";
 import { postMovements } from "@/lib/inv-helpers";
@@ -217,6 +218,11 @@ function ItemsPage() {
                     <div className="inline-flex items-center gap-1 whitespace-nowrap">
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800" title="Add stock" onClick={() => setStockFor(i)}><PackagePlus className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Price history" onClick={() => setHistoryFor(i)}><History className="h-4 w-4" /></Button>
+                      <RecordViewButton
+                        record={i}
+                        title="Item details"
+                        onEdit={() => setEditing(i)}
+                      />
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit" onClick={() => setEditing(i)}><Edit2 className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" title="Delete" onClick={() => setDeleting(i)}><Trash2 className="h-4 w-4" /></Button>
                     </div>

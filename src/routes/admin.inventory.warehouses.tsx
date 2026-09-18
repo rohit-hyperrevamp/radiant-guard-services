@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, Warehouse, Star } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -139,7 +140,12 @@ function WarehousesPage() {
                   <td className="px-5 py-3">{w.city || "—"}</td>
                   <td className="px-5 py-3">{w.is_default && <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600"><Star className="h-3 w-3" />Default</span>}</td>
                   <td className="px-5 py-3"><Switch checked={w.enabled} onCheckedChange={(v) => toggleMut.mutate({ id: w.id, enabled: v }, { onSuccess: () => toast.success(v ? "Enabled" : "Disabled") })} /></td>
-                  <td className="px-5 py-3 text-right"><div className="inline-flex gap-1"><Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditing(w)}><Edit2 className="h-4 w-4" /></Button><Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={() => setDeleting(w)}><Trash2 className="h-4 w-4" /></Button></div></td>
+                  <td className="px-5 py-3 text-right"><div className="inline-flex gap-1"><RecordViewButton
+                    record={w}
+                    title="Warehouse details"
+                    onEdit={() => setEditing(w)}
+                  />
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditing(w)}><Edit2 className="h-4 w-4" /></Button><Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={() => setDeleting(w)}><Trash2 className="h-4 w-4" /></Button></div></td>
                 </tr>
               ))}
               {!filtered.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">No warehouses yet.</td></tr>}
