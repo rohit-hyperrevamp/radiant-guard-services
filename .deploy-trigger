@@ -1,2 +1,2 @@
-build: 2026-09-10T17:17:00Z
-reason: preserve source-locked contract wage components in editor calculations
+build: 2026-09-18T15:54:00Z
+reason: reload the paid company Gemini key for attendance sheet reading
