@@ -11,6 +11,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
+import {
+  SCAN_JOBS_QK,
+  failScanJob,
+  finishScanJob,
+  formatRemaining,
+  heartbeatScanJob,
+  readScanEstimateSeconds,
+  recordScanDuration,
+  startScanJob,
+} from "@/lib/attendance-scan-jobs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -1601,6 +1611,61 @@ function MusterRollPage() {
   const [uploadReadyToContinue, setUploadReadyToContinue] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
+  // ---- Reading progress (keeps running after the dialog is closed) ----
+  const [scanPct, setScanPct] = useState(0);
+  const [scanRemaining, setScanRemaining] = useState<number | null>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scanJobIdRef = useRef<string | null>(null);
+
+  const beginScanProgress = async (kind: "image" | "excel") => {
+    const estimate = kind === "excel" ? 10 : readScanEstimateSeconds();
+    const startedAt = Date.now();
+    setScanPct(2);
+    setScanRemaining(estimate);
+    const jobId = await startScanJob({
+      unitId,
+      periodStart,
+      periodEnd,
+      kind,
+      estimateSeconds: estimate,
+    });
+    scanJobIdRef.current = jobId;
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    let beats = 0;
+    scanTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      const pct = Math.min(96, (elapsed / estimate) * 96);
+      const remaining = Math.max(1, estimate - elapsed);
+      setScanPct(pct);
+      setScanRemaining(remaining);
+      beats += 1;
+      if (jobId && beats % 3 === 0) heartbeatScanJob(jobId, pct, remaining).catch(() => {});
+    }, 1000);
+    return { startedAt, estimate };
+  };
+
+  const endScanProgress = async (outcome: { summary?: string; error?: string }, startedAt: number) => {
+    if (scanTimerRef.current) {
+      clearInterval(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+    const jobId = scanJobIdRef.current;
+    scanJobIdRef.current = null;
+    setScanPct(outcome.error ? 0 : 100);
+    setScanRemaining(0);
+    if (outcome.error) {
+      if (jobId) await failScanJob(jobId, outcome.error).catch(() => {});
+    } else {
+      recordScanDuration((Date.now() - startedAt) / 1000);
+      if (jobId) await finishScanJob(jobId, outcome.summary ?? "Sheet read").catch(() => {});
+    }
+    await queryClient.invalidateQueries({ queryKey: [SCAN_JOBS_QK] });
+  };
+
+  useEffect(() => () => {
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+  }, []);
+
   const detectKind = (file: File): "image" | "excel" | null => {
     const name = file.name.toLowerCase();
     if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|heic|heif|bmp|gif)$/.test(name)) return "image";
@@ -1640,6 +1705,7 @@ function MusterRollPage() {
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
+    const { startedAt } = await beginScanProgress("image");
     try {
       // Build the set of allowed (candidate × designation) pairs. The roster
       // sent to OCR includes EVERY designation on this unit's active contract
@@ -1681,10 +1747,16 @@ function MusterRollPage() {
       if (!employeesPayload.length) {
         toast.error("Map at least one person to a slot before reading a sheet");
         setProcessingOcr(false);
+        await endScanProgress({ error: "No mapped employees" }, startedAt);
         return;
       }
+      // Speed guard: on contracts with many designations the candidate ×
+      // designation cross-product makes the prompt enormous and the read very
+      // slow. Beyond a handful of designations we send only the real muster
+      // pairs; the reader still falls back to each person's primary row.
+      const synthDesignations = contractDesignations.length <= 8 ? contractDesignations : [];
       for (const [candidateId, anyMr] of candidatesById) {
-        for (const d of contractDesignations) {
+        for (const d of synthDesignations) {
           const k = `${candidateId}|${d.designationId}`;
           if (seenPair.has(k)) continue;
           seenPair.add(k);
@@ -1873,13 +1945,16 @@ function MusterRollPage() {
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
+      await endScanProgress({ summary }, startedAt);
       logActivity({
         module: "Attendance",
         action: "Upload attendance image (OCR)",
         details: { confidentCount, uncertainCount, unit_id: unitId },
       }).catch(() => {});
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "OCR failed");
+      const message = e instanceof Error ? e.message : "OCR failed";
+      toast.error(message);
+      await endScanProgress({ error: message }, startedAt);
     } finally {
       setProcessingOcr(false);
     }
@@ -1893,6 +1968,7 @@ function MusterRollPage() {
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
+    const { startedAt } = await beginScanProgress("excel");
     try {
       const buf = await uploadFile.arrayBuffer();
       const wb = XLSX.read(buf, { cellDates: true });
@@ -2123,13 +2199,16 @@ function MusterRollPage() {
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
+      await endScanProgress({ summary }, startedAt);
       logActivity({
         module: "Attendance",
         action: "Upload attendance Excel",
         details: { filled, clearedStale, candidates: Array.from(candidatesInSheet), unmatched: unmatchedNames.length, secondaryDesigRowCount, notOnContract: Array.from(designationsNotOnContract), unit_id: unitId, file: uploadFile.name },
       }).catch(() => {});
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Excel import failed");
+      const message = e instanceof Error ? e.message : "Excel import failed";
+      toast.error(message);
+      await endScanProgress({ error: message }, startedAt);
     } finally {
       setProcessingOcr(false);
     }
@@ -2544,10 +2623,9 @@ function MusterRollPage() {
       <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Upload Attendance Sheet</DialogTitle>
+            <DialogTitle>Upload attendance sheet</DialogTitle>
             <DialogDescription>
-              Upload a photo/scan (AI reads each cell) or an Excel/CSV file (matched by employee name or code).
-              Cells the AI cannot read confidently are left blank and flagged in red so you can correct them manually.
+              Photo, Excel or CSV. Unclear cells are left blank and marked in red.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2598,24 +2676,44 @@ function MusterRollPage() {
                 </div>
               </div>
             )}
+            {processingOcr && (
+              <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Reading {Math.round(scanPct)}%
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{formatRemaining(scanRemaining)}</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width] duration-700"
+                    style={{ width: `${Math.max(2, Math.min(100, scanPct))}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  You can close this window — reading continues and the progress shows on the attendance list.
+                </p>
+              </div>
+            )}
             {ocrSummary && (
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                 {ocrSummary}
               </div>
             )}
             <p className="text-[11px] text-muted-foreground">
-              Allowed codes: {codes.map((c) => c.code).join(", ") || "—"} · Period {periodStart} → {periodEnd}
+              Codes: {codes.map((c) => c.code).join(", ") || "—"} · {periodStart} → {periodEnd}
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setUploadOpen(false)} disabled={processingOcr}>Close</Button>
+            <Button variant="ghost" onClick={() => setUploadOpen(false)}>Close</Button>
             <Button
               type="button"
               onClick={processUpload}
               disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr}
               className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
             >
-              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {uploadKind === "excel" ? "Importing…" : "Reading…"}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import & Fill" : "Process & Fill")}
+              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : "Read sheet")}
             </Button>
           </div>
         </DialogContent>
