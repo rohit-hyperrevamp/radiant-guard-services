@@ -142,9 +142,9 @@ function AttendanceUnitsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <HeroTile
-        eyebrow="Attendance payroll period"
-        title={formatPayrollPeriod(selectedPeriod)}
-        subtitle={selectedWindow?.label ?? "Contract window"}
+        eyebrow="Attendance"
+        title="Attendance"
+        subtitle="Contract payroll periods"
         description="Open a client’s attendance for this exact contract period."
       />
 

@@ -78,9 +78,9 @@ function PayrollUnitsPage() {
       <PayrollTabs />
 
       <HeroTile
-        eyebrow="Payroll period"
-        title={formatPayrollPeriod(selectedPeriod)}
-        subtitle={selectedWindow?.label ?? "Contract window"}
+        eyebrow="Payroll"
+        title="Payroll"
+        subtitle="Contract payroll periods"
         description="Payroll from approved attendance."
       />
 

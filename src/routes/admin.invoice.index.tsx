@@ -75,9 +75,9 @@ function InvoiceUnitsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <HeroTile
-        eyebrow="Invoice period"
-        title={formatPayrollPeriod(selectedPeriod)}
-        subtitle={selectedWindow?.label ?? "Contract window"}
+        eyebrow="Invoice"
+        title="Invoice"
+        subtitle="Contract payroll periods"
         description="Invoices from approved attendance."
       />
 
