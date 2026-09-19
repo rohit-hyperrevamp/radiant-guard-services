@@ -5043,8 +5043,8 @@ UPDATE public.candidates c SET
 FROM sheet_emp s
 WHERE c.employee_code = s.employee_code;
 
-INSERT INTO public.candidates (employee_code, full_name, email, mobile, gender, date_of_birth, preferred_joining_date, unit_id, designation_id, status, is_enabled, application_date)
-SELECT s.employee_code, s.full_name, s.email,
+INSERT INTO public.candidates (candidate_code, employee_code, full_name, email, mobile, gender, date_of_birth, preferred_joining_date, unit_id, designation_id, status, is_enabled, application_date)
+SELECT 'CAN-E' || s.employee_code, s.employee_code, s.full_name, s.email,
        CASE WHEN s.mobile <> '' AND NOT EXISTS (SELECT 1 FROM public.candidates c2 WHERE c2.mobile = s.mobile) THEN s.mobile ELSE '' END,
        s.gender, s.dob, s.doj, s.unit_id,
        (SELECT id FROM public.designations WHERE lower(name) = 'security guard' LIMIT 1),
