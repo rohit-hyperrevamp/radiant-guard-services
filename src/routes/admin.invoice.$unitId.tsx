@@ -213,13 +213,30 @@ function PayrollUnitPage() {
     queryKey: ["payroll-unit", unitId],
     queryFn: async () => {
       await supabaseSessionReady();
-      const { data } = await supabase
+      const { data: rawUnit } = await supabase
         .from("units")
         .select(
-          "id, code, name, customer_id, epf_cap_enabled, gst_number, zone, branch_sap_code, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
+          "id, code, name, customer_id, epf_cap_enabled, gst_number, zone, branch_sap_code, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country" as never,
         )
         .eq("id", unitId)
         .maybeSingle();
+      const data = (rawUnit ?? null) as {
+        id: string;
+        code: string | null;
+        name: string | null;
+        customer_id: string | null;
+        epf_cap_enabled: boolean | null;
+        gst_number: string | null;
+        zone: string | null;
+        branch_sap_code: string | null;
+        billing_address1: string | null;
+        billing_address2: string | null;
+        billing_city: string | null;
+        billing_district: string | null;
+        billing_state: string | null;
+        billing_pincode: string | null;
+        billing_country: string | null;
+      } | null;
       if (!data) return null;
       const { data: cust } = await supabase
         .from("customers")
