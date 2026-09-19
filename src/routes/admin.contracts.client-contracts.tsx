@@ -584,15 +584,38 @@ function useContracts() {
       const controller = new AbortController();
       const timer = window.setTimeout(() => controller.abort(), 12_000);
       try {
-        const { data, error } = await supabase
-          .from("client_contracts" as never)
-          .select(
-            "id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,units!client_contracts_unit_id_fkey(id,code,name,customer_id,customers(id,name))",
-          )
-          .order("created_at", { ascending: false })
-          .abortSignal(controller.signal);
-        if (error) throw error;
-        return (data as unknown as Record<string, unknown>[]).map(rowToContract);
+        // Keep the register request flat. The former nested
+        // contracts -> units -> customers relationship intermittently stalled
+        // in PostgREST, leaving every organisation/client cell blank even
+        // though the contract rows had arrived. A flat register read plus the
+        // narrow directory RPC is deterministic and avoids full unit records.
+        const [contractRows, directoryResult] = await Promise.all([
+          fetchAllPages<Record<string, unknown>>((from, to) =>
+            supabase
+              .from("client_contracts" as never)
+              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,created_at")
+              .order("created_at", { ascending: false })
+              .range(from, to)
+              .abortSignal(controller.signal),
+          ),
+          supabase.rpc("contract_register_directory" as never).abortSignal(controller.signal),
+        ]);
+        if (directoryResult.error) throw directoryResult.error;
+        const directoryRows = (directoryResult.data ?? []) as unknown as Record<string, unknown>[];
+        const unitsById = new Map(directoryRows.map((row) => [String(row.unit_id), row]));
+        return contractRows.map((row) => {
+          const unit = unitsById.get(String(row.unit_id ?? ""));
+          return rowToContract({
+            ...row,
+            units: unit ? {
+              id: unit.unit_id,
+              code: unit.unit_code,
+              name: unit.unit_name,
+              customer_id: unit.customer_id,
+              customers: unit.customer_id ? { id: unit.customer_id, name: unit.customer_name } : null,
+            } : null,
+          });
+        });
       } catch (error) {
         if (controller.signal.aborted) {
           throw new Error("Contracts took too long to load. Please try again.");

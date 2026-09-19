@@ -286,7 +286,6 @@ function DashboardPage() {
       !showInventoryDashboard &&
       !opsFocus &&
       !lightMode &&
-      !!countsQuery.data &&
       (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
@@ -677,7 +676,7 @@ function DashboardPage() {
               <OperationsOrgTree />
             </>
           ) : (
-            <>{!isLoading && data && (<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}{departmentTree}</>)}</>
+          <>{!isLoading && data && (<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{(can("payroll") || can("invoice")) && pnlQuery.isLoading && <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading payroll and invoice totals…</div>}{pnlQuery.error && <div className="mb-4 rounded-2xl border border-destructive/30 bg-card p-6"><p className="text-sm font-medium text-destructive">Payroll and invoice totals could not load.</p><Button className="mt-3" variant="outline" onClick={() => void pnlQuery.refetch()}>Try again</Button></div>}{pnlQuery.data && can("payroll") && <PayrollCoverageCard rows={financeRows} />}{pnlQuery.data && can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{pnlQuery.data && can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}{departmentTree}</>)}</>
           )
         }
       >
