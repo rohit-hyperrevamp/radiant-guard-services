@@ -14,6 +14,12 @@ export type PayrollPeriod = {
   totalDays: number;
 };
 
+export type PayrollWindowOption = PayrollWindow & {
+  key: string;
+  label: string;
+  unitCount: number;
+};
+
 function pad(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -70,6 +76,57 @@ export function payrollPeriodForMonth(
     elapsedDays: todayDate < start ? 0 : inclusiveDays(start, capped),
     totalDays: inclusiveDays(start, end),
   };
+}
+
+export function payrollWindowKey(window: PayrollWindow) {
+  return `${window.windowStartDay}-${window.windowEndDay}`;
+}
+
+export function payrollWindowLabel(window: PayrollWindow) {
+  return window.windowStartDay <= 1
+    ? `1 to month end`
+    : `${window.windowStartDay} to ${window.windowEndDay}`;
+}
+
+export function payrollAnchorForDate(window: PayrollWindow, date = new Date()) {
+  const spanning = window.windowStartDay > 1 && window.windowEndDay > 0 && window.windowEndDay < window.windowStartDay;
+  const anchor = spanning && date.getDate() > window.windowEndDay
+    ? new Date(date.getFullYear(), date.getMonth() + 1, 1)
+    : new Date(date.getFullYear(), date.getMonth(), 1);
+  return { year: anchor.getFullYear(), monthIdx: anchor.getMonth() };
+}
+
+export function shiftPayrollAnchor(year: number, monthIdx: number, delta: number) {
+  const shifted = new Date(year, monthIdx + delta, 1);
+  return { year: shifted.getFullYear(), monthIdx: shifted.getMonth() };
+}
+
+export function formatPayrollPeriod(period: Pick<PayrollPeriod, "start" | "end">) {
+  const format = (value: string, includeYear: boolean) => {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Intl.DateTimeFormat("en-IN", {
+      day: "numeric",
+      month: "short",
+      ...(includeYear ? { year: "numeric" as const } : {}),
+    }).format(new Date(year, month - 1, day));
+  };
+  const sameYear = period.start.slice(0, 4) === period.end.slice(0, 4);
+  return `${format(period.start, !sameYear)} – ${format(period.end, true)}`;
+}
+
+export function buildPayrollWindowOptions(
+  unitIds: string[],
+  windowsByUnit: Map<string, PayrollWindow>,
+): PayrollWindowOption[] {
+  const counts = new Map<string, PayrollWindowOption>();
+  for (const unitId of unitIds) {
+    const window = windowsByUnit.get(unitId) ?? { windowStartDay: 1, windowEndDay: 31 };
+    const key = payrollWindowKey(window);
+    const existing = counts.get(key);
+    if (existing) existing.unitCount += 1;
+    else counts.set(key, { ...window, key, label: payrollWindowLabel(window), unitCount: 1 });
+  }
+  return Array.from(counts.values()).sort((a, b) => a.windowStartDay - b.windowStartDay || a.windowEndDay - b.windowEndDay);
 }
 
 
