@@ -1151,7 +1151,15 @@ function PayrollUnitPage() {
       invoiceSheetData?.invoiceNumber ??
       `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(unit?.code ?? "").toUpperCase()}`;
     const entity = orgSettings?.company_name || "Radiant";
-    const branchName = [unit?.customer_name, unit?.name || unit?.code].filter(Boolean).join(", ");
+    const siteLabel = unit?.name || unit?.code || "";
+    const clientLabel = unit?.customer_name ?? "";
+    // The client's own MIS prints "<entity>, <branch>". Avoid repeating the client
+    // name when the site name already carries it.
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const branchName =
+      clientLabel && !norm(siteLabel).includes(norm(clientLabel))
+        ? [clientLabel, siteLabel].filter(Boolean).join(", ")
+        : siteLabel;
     const stateName = unit?.billing_state ?? "";
     const sapCode = (unit as { branch_sap_code?: string | null } | null | undefined)?.branch_sap_code ?? "";
     const zone = (unit as { zone?: string | null } | null | undefined)?.zone ?? "";
