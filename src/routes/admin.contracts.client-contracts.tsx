@@ -584,15 +584,47 @@ function useContracts() {
       const controller = new AbortController();
       const timer = window.setTimeout(() => controller.abort(), 12_000);
       try {
-        const { data, error } = await supabase
-          .from("client_contracts" as never)
-          .select(
-            "id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,units!client_contracts_unit_id_fkey(id,code,name,customer_id,customers(id,name))",
-          )
-          .order("created_at", { ascending: false })
-          .abortSignal(controller.signal);
-        if (error) throw error;
-        return (data as unknown as Record<string, unknown>[]).map(rowToContract);
+        // Keep the register request flat. The former nested
+        // contracts -> units -> customers relationship intermittently stalled
+        // in PostgREST, leaving every organisation/client cell blank even
+        // though the contract rows had arrived. Three compact reads are both
+        // faster and deterministic, and avoid loading the full unit records.
+        const [contractRows, unitRows, customerRows] = await Promise.all([
+          fetchAllPages<Record<string, unknown>>((from, to) =>
+            supabase
+              .from("client_contracts" as never)
+              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,created_at")
+              .order("created_at", { ascending: false })
+              .range(from, to)
+              .abortSignal(controller.signal),
+          ),
+          fetchAllPages<Record<string, unknown>>((from, to) =>
+            supabase
+              .from("units" as never)
+              .select("id,code,name,customer_id")
+              .order("id", { ascending: true })
+              .range(from, to)
+              .abortSignal(controller.signal),
+          ),
+          fetchAllPages<Record<string, unknown>>((from, to) =>
+            supabase
+              .from("customers" as never)
+              .select("id,name")
+              .order("id", { ascending: true })
+              .range(from, to)
+              .abortSignal(controller.signal),
+          ),
+        ]);
+        const customersById = new Map(customerRows.map((row) => [String(row.id), row]));
+        const unitsById = new Map(unitRows.map((row) => [String(row.id), row]));
+        return contractRows.map((row) => {
+          const unit = unitsById.get(String(row.unit_id ?? ""));
+          const customer = unit ? customersById.get(String(unit.customer_id ?? "")) : undefined;
+          return rowToContract({
+            ...row,
+            units: unit ? { ...unit, customers: customer ?? null } : null,
+          });
+        });
       } catch (error) {
         if (controller.signal.aborted) {
           throw new Error("Contracts took too long to load. Please try again.");
