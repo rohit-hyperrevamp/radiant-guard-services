@@ -56,10 +56,9 @@ function InvoiceUnitsPage() {
   }, [monthIdx, navigate, selectedKey, year]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
-    if (!foScope.isFieldOfficer) return all;
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
     return all.filter((o) => allowed.has(o.id));
-  }, [data?.organizations, foScope.isFieldOfficer, windowUnits]);
+  }, [data?.organizations, windowUnits]);
 
   const summary = {
     organizations: organizations.length,
@@ -109,7 +108,7 @@ function InvoiceUnitsPage() {
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <FilterSelect
-              label="Client"
+              label="Unit"
               value={orgFilter}
               onChange={setOrgFilter}
               options={organizations.map((o) => ({

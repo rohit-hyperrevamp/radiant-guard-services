@@ -1,22 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { type ComponentType, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import {
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  ClipboardList,
-  Clock3,
-  IndianRupee,
-  MapPinned,
-  RotateCcw,
-  Search,
-  Users,
-  X,
-} from "lucide-react";
-import { useCurrentPermissions } from "@/lib/rbac";
-import { fetchAllPages } from "@/lib/supabase-batch";
+import { Search, X } from "lucide-react";
 
 import { HeroTile } from "@/components/HeroTile";
 import { Input } from "@/components/ui/input";
@@ -28,8 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
-import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
 import { AttendanceCharter } from "@/components/AttendanceCharter";
@@ -125,20 +109,9 @@ function AttendanceUnitsPage() {
   }, [monthIdx, navigate, selectedKey, year]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
-    if (!foScope.isFieldOfficer) return all;
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
     return all.filter((o) => allowed.has(o.id));
-  }, [data?.organizations, foScope.isFieldOfficer, windowUnits]);
-  const employeesByCustomer = useMemo(() => {
-    const src = data?.employeesByCustomer ?? {};
-    if (!foScope.isFieldOfficer) return src;
-    const out: Record<string, typeof src[string]> = {};
-    for (const [cid, emps] of Object.entries(src)) {
-      const filtered = emps.filter((e) => foScope.unitIds.has(e.unit_id));
-      if (filtered.length) out[cid] = filtered;
-    }
-    return out;
-  }, [data?.employeesByCustomer, foScope.isFieldOfficer, foScope.unitIds]);
+  }, [data?.organizations, windowUnits]);
   const summary = useMemo(
     () => (foScope.isFieldOfficer
       ? { organizations: organizations.length, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }
@@ -233,7 +206,7 @@ function AttendanceUnitsPage() {
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <FilterSelect
-                      label="Client"
+                       label="Unit"
                       value={orgFilter}
                       onChange={setOrgFilter}
                       options={organizations.map((o) => ({

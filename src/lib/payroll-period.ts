@@ -146,7 +146,7 @@ export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<
         .in("unit_id", chunk)
         .eq("record_type", "client")
         .eq("status", "active")
-        .order("start_date", { ascending: true })
+        .order("start_date", { ascending: false })
         .range(from, to),
   );
 

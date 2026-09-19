@@ -12,9 +12,10 @@ export function usePayrollWindowSelection(
   unitIds: string[],
   initial?: { window?: string; month?: number; year?: number },
 ) {
-  const stableIds = useMemo(() => Array.from(new Set(unitIds)).sort(), [unitIds]);
+  const unitKey = Array.from(new Set(unitIds)).sort().join(",");
+  const stableIds = useMemo(() => unitKey ? unitKey.split(",") : [], [unitKey]);
   const windowsQ = useQuery({
-    queryKey: ["charter-payroll-windows-all", stableIds.join(",")],
+    queryKey: ["charter-payroll-windows-all", unitKey],
     enabled: stableIds.length > 0,
     queryFn: () => fetchPayrollWindowsByUnit(stableIds),
   });

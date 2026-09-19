@@ -441,8 +441,8 @@ function MusterRollPage() {
   const { data: contractInfo } = useQuery({
     queryKey: ["attendance-contract", unitId, year, monthIdx],
     queryFn: async () => {
-      const viewedMonthStart = ymd(year, monthIdx, 1);
-      const viewedMonthEnd = ymd(year, monthIdx, daysInMonth(year, monthIdx));
+      const viewedMonthStart = search.start ?? ymd(year, monthIdx, 1);
+      const viewedMonthEnd = search.end ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
       const { data: contracts, error } = await supabase
         .from("client_contracts")
         .select("id, payroll_window_id, start_date, end_date, status, record_type")
