@@ -200,9 +200,9 @@ function AttendanceUnitsPage() {
               filters={
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <FilterSelect
+                    <LabeledMultiSelectFilter
                        label="Unit"
-                      value={orgFilter}
+                      selected={orgFilter}
                       onChange={setOrgFilter}
                       options={organizations.map((o) => ({
                         value: o.id,
@@ -210,9 +210,9 @@ function AttendanceUnitsPage() {
                       }))}
                       allLabel={`All clients (${organizations.length})`}
                     />
-                    <FilterSelect
+                    <LabeledMultiSelectFilter
                       label="Client"
-                      value={unitFilter}
+                      selected={unitFilter}
                       onChange={setUnitFilter}
                       options={windowUnits.map((u) => ({
                         value: u.id,
@@ -233,8 +233,8 @@ function AttendanceUnitsPage() {
                         className="h-7 gap-1.5 text-xs"
                         onClick={() => {
                           setQ("");
-                          setOrgFilter("all");
-                          setUnitFilter("all");
+                          setOrgFilter([]);
+                          setUnitFilter([]);
                         }}
                       >
                         <X className="h-3.5 w-3.5" /> Clear
