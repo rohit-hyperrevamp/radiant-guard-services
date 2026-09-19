@@ -184,3 +184,4 @@
 - [x] Filter units, totals, lifecycle counts, searches, exports, and pagination to the selected window.
 - [x] Pass exact period dates into Attendance, Payroll, and Invoice registers.
 - [x] Validate production window assignments and TypeScript.
+- [x] Multi-select filters (org/client/status) via shared MultiSelectFilter on Contracts, Attendance, Payroll, Invoicing

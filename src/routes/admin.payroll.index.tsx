@@ -7,13 +7,7 @@ import { z } from "zod";
 import { PayrollTabs } from "@/components/PayrollTabs";
 import { HeroTile } from "@/components/HeroTile";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { LabeledMultiSelectFilter } from "@/components/MultiSelectFilter";
 import { ListSkeleton } from "@/components/Skeletons";
 import { FinanceCharter } from "@/components/FinanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
@@ -32,8 +26,8 @@ export const Route = createFileRoute("/admin/payroll/")({
 function PayrollUnitsPage() {
   const search = Route.useSearch();
   const [q, setQ] = useState("");
-  const [orgFilter, setOrgFilter] = useState<string>("all");
-  const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
+  const [unitFilter, setUnitFilter] = useState<string[]>([]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: CHARTER_UNITS_QK,
@@ -65,8 +59,8 @@ function PayrollUnitsPage() {
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return windowUnits.filter((u) => {
-      if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
-      if (unitFilter !== "all" && u.id !== unitFilter) return false;
+      if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
+      if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
       if (term) {
         const hay = [u.customer_name, u.customer_code, u.name, u.code, u.location, ...u.contract_codes]
           .join(" ")
@@ -77,7 +71,7 @@ function PayrollUnitsPage() {
     });
   }, [q, orgFilter, unitFilter, windowUnits]);
 
-  const anyFilter = orgFilter !== "all" || unitFilter !== "all" || q.trim().length > 0;
+  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || q.trim().length > 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -128,9 +122,9 @@ function PayrollUnitsPage() {
               filters={
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <FilterSelect
+                    <LabeledMultiSelectFilter
                        label="Unit"
-                      value={orgFilter}
+                      selected={orgFilter}
                       onChange={setOrgFilter}
                       options={organizations.map((o) => ({
                         value: o.id,
@@ -138,9 +132,9 @@ function PayrollUnitsPage() {
                       }))}
                       allLabel={`All clients (${organizations.length})`}
                     />
-                    <FilterSelect
+                    <LabeledMultiSelectFilter
                       label="Client"
-                      value={unitFilter}
+                      selected={unitFilter}
                       onChange={setUnitFilter}
                       options={windowUnits.map((u) => ({
                         value: u.id,
@@ -161,8 +155,8 @@ function PayrollUnitsPage() {
                         className="h-7 gap-1.5 text-xs"
                         onClick={() => {
                           setQ("");
-                          setOrgFilter("all");
-                          setUnitFilter("all");
+                          setOrgFilter([]);
+                          setUnitFilter([]);
                         }}
                       >
                         <X className="h-3.5 w-3.5" /> Clear
@@ -180,35 +174,3 @@ function PayrollUnitsPage() {
   );
 }
 
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-  allLabel,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  allLabel: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="max-h-[320px]">
-          <SelectItem value="all">{allLabel}</SelectItem>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
