@@ -148,14 +148,17 @@ function AttendanceUnitsPage() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
-        <MonthYearPicker
-          value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
-          onChange={(ym) => {
-            const [y, m] = ym.split("-").map(Number);
-            periodSelection.setPeriod(y, m - 1);
-          }}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
+          <MonthYearPicker
+            className="h-10 rounded-lg"
+            value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
+            onChange={(ym) => {
+              const [y, m] = ym.split("-").map(Number);
+              periodSelection.setPeriod(y, m - 1);
+            }}
+          />
+        </div>
         <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 rounded-full text-xs">
           <Link to="/admin/attendance/employee">
             <Search className="h-3.5 w-3.5" /> Employee lookup
