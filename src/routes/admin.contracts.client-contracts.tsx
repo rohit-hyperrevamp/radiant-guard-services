@@ -2348,9 +2348,9 @@ function ClientContractsPage() {
   );
 
   const [query, setQuery] = useState("");
-  const [orgFilter, setOrgFilter] = useState<string>("all");
-  const [unitFilter, setUnitFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
+  const [unitFilter, setUnitFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [windowFilter, setWindowFilter] = useState<string>("all");
   const payrollWindows = usePayrollWindows();
 
@@ -2423,9 +2423,9 @@ function ClientContractsPage() {
     return enriched.filter((c) => {
       if (c.recordType !== tab) return false;
       if (renewalOnly && !isUpForRenewal(c)) return false;
-      if (statusFilter !== "all" && deriveStatus(c) !== statusFilter) return false;
-      if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
-      if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
+      if (statusFilter.length > 0 && !statusFilter.includes(deriveStatus(c))) return false;
+      if (orgFilter.length > 0 && !orgFilter.includes(c.orgId)) return false;
+      if (unitFilter.length > 0 && !unitFilter.includes(c.unitId)) return false;
       if (windowFilter !== "all" && (c.payrollWindowId ?? "") !== windowFilter) return false;
       if (!q) return true;
       return (
@@ -2449,7 +2449,7 @@ function ClientContractsPage() {
   );
 
   const hasFilters =
-    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || windowFilter !== "all" || renewalOnly;
+    !!query || orgFilter.length > 0 || unitFilter.length > 0 || statusFilter.length > 0 || windowFilter !== "all" || renewalOnly;
 
 
   const tabCounts = useMemo(() => {
@@ -2487,8 +2487,8 @@ function ClientContractsPage() {
   // actually holds those records.
   const applyStatusTile = (s: UnifiedStatus) => {
     setRenewalOnly(false);
-    setStatusFilter((prev) => (prev === s ? "all" : s));
-    if (statusFilter === s) return;
+    setStatusFilter((prev) => (prev.length === 1 && prev[0] === s ? [] : [s]));
+    if (statusFilter.length === 1 && statusFilter[0] === s) return;
     if (statusCounts[tab][s] === 0) {
       const other: RecordType = tab === "client" ? "prospect" : "client";
       if (statusCounts[other][s] > 0) setTab(other);
