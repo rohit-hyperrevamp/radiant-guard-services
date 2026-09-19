@@ -89,7 +89,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { cn } from "@/lib/utils";
 
@@ -2565,7 +2564,6 @@ function ClientContractsPage() {
         }
       />
 
-      <WorkforceCoverageCard />
 
 
 
