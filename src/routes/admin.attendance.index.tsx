@@ -142,17 +142,14 @@ function AttendanceUnitsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <HeroTile
-        eyebrow="Attendance payroll period"
-        title={formatPayrollPeriod(selectedPeriod)}
-        subtitle={selectedWindow?.label ?? "Contract window"}
+        eyebrow="Attendance"
+        title="Attendance"
+        subtitle="Contract payroll periods"
         description="Open a client’s attendance for this exact contract period."
-        right={
-          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
-        }
       />
 
-
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
         <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 rounded-full text-xs">
           <Link to="/admin/attendance/employee">
             <Search className="h-3.5 w-3.5" /> Employee lookup
