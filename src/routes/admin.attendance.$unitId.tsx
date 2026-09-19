@@ -62,6 +62,8 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 const searchSchema = z.object({
   month: z.coerce.number().min(0).max(11).optional(),
   year: z.coerce.number().min(2000).max(2100).optional(),
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export const Route = createFileRoute("/admin/attendance/$unitId")({
@@ -206,6 +208,17 @@ function buildPeriodCells(
   const endDay = Math.min(endDayRaw, daysInMonth(year, monthIdx));
   for (let day = 1; day <= endDay; day += 1) {
     cells.push({ date: ymd(year, monthIdx, day), dayNum: day, monthIdx, year });
+  }
+  return cells;
+}
+
+function buildExactPeriodCells(start: string, end: string) {
+  const cells: Array<{ date: string; dayNum: number; monthIdx: number; year: number }> = [];
+  const cursor = new Date(`${start}T12:00:00`);
+  const last = new Date(`${end}T12:00:00`);
+  while (cursor <= last && cells.length < 62) {
+    cells.push({ date: ymd(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()), dayNum: cursor.getDate(), monthIdx: cursor.getMonth(), year: cursor.getFullYear() });
+    cursor.setDate(cursor.getDate() + 1);
   }
   return cells;
 }
@@ -525,8 +538,8 @@ function MusterRollPage() {
   const contractDesignations = contractInfo?.resources ?? [];
 
   const periodCells = useMemo(
-    () => buildPeriodCells(year, monthIdx, payrollWindow ?? null),
-    [year, monthIdx, payrollWindow],
+    () => search.start && search.end ? buildExactPeriodCells(search.start, search.end) : buildPeriodCells(year, monthIdx, payrollWindow ?? null),
+    [year, monthIdx, payrollWindow, search.start, search.end],
   );
   const dayCount = periodCells.length;
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
