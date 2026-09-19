@@ -454,6 +454,8 @@ function UnitManagerPage() {
                 <th className="px-5 py-3">Client ID</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Location</th>
+                <th className="px-5 py-3">State</th>
+                <th className="px-5 py-3">City</th>
                 <th className="px-5 py-3">Branch</th>
                 <th className="px-5 py-3">Organisation</th>
                 <th className="px-5 py-3">Status</th>
@@ -482,6 +484,8 @@ function UnitManagerPage() {
                       )}
                     </div>
                   </td>
+                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.stateLabel || <span className="italic opacity-60">—</span>}</td>
+                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.cityLabel || <span className="italic opacity-60">—</span>}</td>
                   <td className="px-5 py-3 text-foreground" data-wrap="true">{u.branchLabel}</td>
                   <td className="px-5 py-3 text-foreground" data-wrap="true">{u.customerLabel}</td>
                   <td className="px-5 py-3">
