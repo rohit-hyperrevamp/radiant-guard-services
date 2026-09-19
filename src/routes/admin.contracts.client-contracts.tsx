@@ -3043,6 +3043,21 @@ function ContractViewDialog({
   const serviceTypes = useServiceTypes();
   const payrollWindows = usePayrollWindows();
   const billingTypes = useBillingTypes();
+  const payrollDayBases = usePayrollDayBases();
+  const costComponents = useCostComponentOptions();
+  const allowanceTypes = useAllowanceTypes();
+
+  const componentDescriptions = useMemo(() => {
+    const descriptions: Record<string, string> = {};
+    for (const component of costComponents) {
+      if (component.description) descriptions[component.id] = String(component.description);
+    }
+    for (const allowance of allowanceTypes) {
+      const description = (allowance as { description?: string | null }).description;
+      if (description) descriptions[allowance.id] = String(description);
+    }
+    return descriptions;
+  }, [allowanceTypes, costComponents]);
 
   const designationName = (id: string) =>
     designations.find((d) => d.id === id)?.name ?? "—";
@@ -3055,7 +3070,7 @@ function ContractViewDialog({
 
   return (
     <Dialog open={!!contract} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[94dvh] overflow-y-auto sm:w-[calc(100vw-3rem)] sm:max-w-6xl xl:max-w-7xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="font-mono">
@@ -3103,67 +3118,27 @@ function ContractViewDialog({
               No resource lines on this contract.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-5">
               {resources.map((r, idx) => {
-                const gross = (r.components ?? []).reduce(
-                  (s, c) => s + (Number(c.amount) || 0),
-                  0,
-                );
                 return (
-                  <div key={r.id ?? idx} className="rounded-2xl border border-border bg-card p-3">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div key={r.id ?? idx} className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
                       <div className="text-sm font-semibold text-foreground">
                         {designationName(r.designationId)}
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          Qty {r.quantity} · {serviceTypeName(r.serviceTypeId)}
+                          Qty {r.quantity} · {serviceTypeName(r.serviceTypeId)} · {r.shiftHours}-hour shift
                         </span>
                       </div>
-                      <div className="text-sm font-semibold tabular-nums text-accent">
-                        {money(gross)}
-                      </div>
                     </div>
-                    <div className="grid gap-1 sm:grid-cols-2">
-                      {(r.components ?? []).map((c, i) => (
-                        <div
-                          key={`${c.allowanceId}-${i}`}
-                          className="flex items-center justify-between rounded-lg bg-secondary/40 px-2.5 py-1.5 text-xs"
-                        >
-                          <span className="truncate text-muted-foreground">{c.name}</span>
-                          <span className="ml-2 shrink-0 font-medium tabular-nums text-foreground">
-                            {money(c.amount)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {[
-                      { label: "Benefits", list: r.benefits },
-                      { label: "Deductions", list: r.deductions },
-                      { label: "Employer contributions", list: r.employerContributions },
-                    ]
-                      .filter((g) => (g.list ?? []).length > 0)
-                      .map((g) => (
-                        <div key={g.label} className="mt-2">
-                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                            {g.label}
-                          </div>
-                          <div className="grid gap-1 sm:grid-cols-2">
-                            {(g.list ?? []).map((b, i) => (
-                              <div
-                                key={`${b.costComponentId}-${i}`}
-                                className="flex items-center justify-between rounded-lg bg-secondary/30 px-2.5 py-1.5 text-xs"
-                              >
-                                <span className="truncate text-muted-foreground">
-                                  {b.name}
-                                  {b.calcType === "percentage" ? ` (${b.percentage}%)` : ""}
-                                </span>
-                                <span className="ml-2 shrink-0 font-medium tabular-nums text-foreground">
-                                  {money(b.amount)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                    <SalaryBreakdownTable
+                      designationName={designationName(r.designationId)}
+                      payrollDayBase={payrollDayBases.find((base) => base.id === r.payrollDayBaseId)}
+                      components={r.components ?? []}
+                      benefits={r.benefits ?? []}
+                      deductions={r.deductions ?? []}
+                      employerContributions={r.employerContributions ?? []}
+                      componentDescriptions={componentDescriptions}
+                    />
                   </div>
                 );
               })}
