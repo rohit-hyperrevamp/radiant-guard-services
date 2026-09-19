@@ -25,27 +25,27 @@ export function PayrollWindowPeriodPicker({
   const selected = options.find((option) => option.key === selectedKey) ?? options[0];
   const period = payrollPeriodForMonth(year, monthIdx, selected);
   return (
-    <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[410px]">
+    <div className="flex flex-wrap items-center gap-2">
       <Select value={selected?.key ?? ""} onValueChange={onWindowChange} disabled={!selected}>
-        <SelectTrigger className="h-9 w-full rounded-xl bg-background/80 sm:w-[190px]">
-          <SelectValue placeholder="Loading windows…" />
+        <SelectTrigger className="h-10 w-[220px] rounded-lg">
+          <SelectValue placeholder="All payroll windows" />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
             <SelectItem key={option.key} value={option.key}>
-              {option.label} · {option.unitCount} {option.unitCount === 1 ? "unit" : "units"}
+              {option.label} ({option.unitCount} {option.unitCount === 1 ? "unit" : "units"})
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/80 p-1">
-        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Previous payroll period" onClick={() => onCycleChange(-1)}>
+      <div className="flex items-center gap-1">
+        <Button type="button" variant="outline" size="icon" className="h-10 w-9 rounded-lg" aria-label="Previous payroll period" onClick={() => onCycleChange(-1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="min-w-0 flex-1 text-center text-sm font-semibold tabular-nums text-foreground">
+        <span className="min-w-[170px] text-center text-sm font-semibold tabular-nums text-foreground">
           {selected ? formatPayrollPeriod(period) : "No payroll windows"}
         </span>
-        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Next payroll period" onClick={() => onCycleChange(1)}>
+        <Button type="button" variant="outline" size="icon" className="h-10 w-9 rounded-lg" aria-label="Next payroll period" onClick={() => onCycleChange(1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
