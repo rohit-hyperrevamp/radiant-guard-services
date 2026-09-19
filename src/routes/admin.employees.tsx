@@ -6693,10 +6693,12 @@ function CandidateWizard({
     return null;
   };
   const goNext = () => {
-    const problem = validateStep(stepKey);
-    if (problem) {
-      toast.error(problem);
-      return;
+    if (!canSkipSteps) {
+      const problem = validateStep(stepKey);
+      if (problem) {
+        toast.error(problem);
+        return;
+      }
     }
     const next = steps[stepIndex + 1];
     if (next) goToStep(next.key);
@@ -6705,10 +6707,11 @@ function CandidateWizard({
     const prev = steps[stepIndex - 1];
     if (prev) goToStep(prev.key);
   };
-  // Jumping backwards is always allowed; jumping ahead needs the earlier steps done.
+  // Jumping backwards is always allowed; jumping ahead needs the earlier steps done
+  // for everyone except Super Admin, who can move to any step at any time.
   const requestStep = (key: string) => {
     const targetIndex = steps.findIndex((s) => s.key === key);
-    if (targetIndex < 0 || targetIndex <= stepIndex) {
+    if (targetIndex < 0 || targetIndex <= stepIndex || canSkipSteps) {
       goToStep(key);
       return;
     }
