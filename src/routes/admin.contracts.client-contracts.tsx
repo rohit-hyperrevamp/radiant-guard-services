@@ -577,43 +577,28 @@ function useContracts() {
   const qc = useQueryClient();
   const contractsQuery = useQuery({
     queryKey: QK,
+    retry: false,
     queryFn: async (): Promise<ClientContract[]> => {
-      const { data, error } = await supabase
-        .from("client_contracts" as never)
-        .select(
-          "id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,units!client_contracts_unit_id_fkey(id,code,name,customer_id,customers(id,name))",
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const rows = data as unknown as Record<string, unknown>[];
-      // Auto-expire: any approved+active client contract whose end_date has passed → expired
-      const today = new Date().toISOString().slice(0, 10);
-      const toExpire = rows.filter(
-        (r) =>
-          (r.record_type ?? "prospect") === "client" &&
-          (r.status ?? "inactive") === "active" &&
-          (r.approval_status ?? "pending") === "approved" &&
-          r.end_date &&
-          String(r.end_date) < today,
-      );
-      if (toExpire.length > 0) {
-        const ids = toExpire.map((r) => String(r.id));
-        await supabase
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), 12_000);
+      try {
+        const { data, error } = await supabase
           .from("client_contracts" as never)
-          .update({ status: "expired" } as never)
-          .in("id", ids);
-        for (const r of toExpire) {
-          r.status = "expired";
-          void logActivity({
-            module: "Client Contracts",
-            action: "auto-expire",
-            entityType: "client_contracts",
-            entityId: String(r.id),
-            entityLabel: String(r.contract_code ?? ""),
-          });
+          .select(
+            "id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,units!client_contracts_unit_id_fkey(id,code,name,customer_id,customers(id,name))",
+          )
+          .order("created_at", { ascending: false })
+          .abortSignal(controller.signal);
+        if (error) throw error;
+        return (data as unknown as Record<string, unknown>[]).map(rowToContract);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error("Contracts took too long to load. Please try again.");
         }
+        throw error;
+      } finally {
+        window.clearTimeout(timer);
       }
-      return rows.map(rowToContract);
     },
   });
   const items = contractsQuery.data ?? [];
