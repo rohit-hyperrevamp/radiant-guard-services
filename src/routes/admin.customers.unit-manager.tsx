@@ -334,6 +334,10 @@ function UnitManagerPage() {
                   customer: u.customerLabel,
                   branch: u.branchLabel,
                   location: u.location,
+                  state: u.stateLabel,
+                  city: u.cityLabel,
+                  zone: u.zone,
+                  branchSapCode: u.branchSapCode,
                   description: u.description,
                   status: csvStatus(u.status),
                   contractStartDate: csvDate(u.contractStartDate),
@@ -528,7 +532,7 @@ function UnitManagerPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     <Warehouse className="mx-auto mb-2 h-6 w-6 opacity-50" />
                     {units.length === 0
                       ? "No clients yet. Add your first client to get started."
