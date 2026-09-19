@@ -2853,6 +2853,78 @@ function ClientContractsPage() {
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                        onClick={() => setViewing(c)}
+                        aria-label="View contract"
+                        title="View contract"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setEditing(c);
+                            setFormOpen(true);
+                          }}
+                          aria-label="Edit"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                        onClick={async () => {
+                          try {
+                            await exportContractToXlsx(c);
+                            toast.success(`Exported ${c.contractCode || c.prospectCode}.xlsx`);
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Export failed");
+                          }
+                        }}
+                        aria-label="Export to Excel"
+                        title="Export to Excel"
+                      >
+                        <FileSpreadsheet className="h-4 w-4" />
+                      </Button>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                          disabled={duplicateMut.isPending}
+                          onClick={async () => {
+                            try {
+                              const res = await duplicateMut.mutateAsync(c.id);
+                              toast.success(`Duplicated as ${res.code} (inactive)`);
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Duplicate failed");
+                            }
+                          }}
+                          aria-label="Duplicate contract"
+                          title="Duplicate contract"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <DeleteGuardButton
+                          id={c.id}
+                          entityLabel="contract"
+                          checks={[
+                            { table: "contract_resources", column: "contract_id", label: "resource lines" },
+                          ]}
+                          onDelete={() => setDeleting(c)}
+                        />
+                      )}
                       {tab === "prospect" &&
                         c.approvalStatus === "pending" &&
                         c.prospectStage !== "lost" &&
@@ -2923,82 +2995,6 @@ function ClientContractsPage() {
                           <Flag className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
-                        onClick={async () => {
-                          try {
-                            await exportContractToXlsx(c);
-                            toast.success(`Exported ${c.contractCode || c.prospectCode}.xlsx`);
-                          } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Export failed");
-                          }
-                        }}
-                        aria-label="Export to Excel"
-                        title="Export to Excel"
-                      >
-                        <FileSpreadsheet className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
-                        onClick={() => setViewing(c)}
-                        aria-label="View contract"
-                        title="View contract"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {canEdit && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                          onClick={() => {
-                            setEditing(c);
-                            setFormOpen(true);
-                          }}
-                          aria-label="Edit"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canEdit && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
-                          disabled={duplicateMut.isPending}
-                          onClick={async () => {
-                            try {
-                              const res = await duplicateMut.mutateAsync(c.id);
-                              toast.success(`Duplicated as ${res.code} (inactive)`);
-                            } catch (err) {
-                              toast.error(err instanceof Error ? err.message : "Duplicate failed");
-                            }
-                          }}
-                          aria-label="Duplicate contract"
-                          title="Duplicate contract"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      )}
-
-
-
-                      {canDelete && (
-                        <DeleteGuardButton
-                          id={c.id}
-                          entityLabel="contract"
-                          checks={[
-                            { table: "contract_resources", column: "contract_id", label: "resource lines" },
-                          ]}
-                          onDelete={() => setDeleting(c)}
-                        />
-                      )}
-
                     </div>
                   </td>
                 </tr>
