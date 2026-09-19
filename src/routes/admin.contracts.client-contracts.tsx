@@ -2351,6 +2351,8 @@ function ClientContractsPage() {
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [windowFilter, setWindowFilter] = useState<string>("all");
+  const payrollWindows = usePayrollWindows();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ClientContract | null>(null);
@@ -2424,6 +2426,7 @@ function ClientContractsPage() {
       if (statusFilter !== "all" && deriveStatus(c) !== statusFilter) return false;
       if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
       if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
+      if (windowFilter !== "all" && (c.payrollWindowId ?? "") !== windowFilter) return false;
       if (!q) return true;
       return (
         c.contractCode.toLowerCase().includes(q) ||
