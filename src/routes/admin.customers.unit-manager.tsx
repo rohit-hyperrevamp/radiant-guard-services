@@ -89,6 +89,8 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     location: "",
     description: "",
     status: "active",
+    zone: "",
+    branchSapCode: "",
     isBillable: true,
     branchId: null,
     customerId: null,

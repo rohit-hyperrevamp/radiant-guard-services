@@ -710,6 +710,8 @@ function rowToUnit(r: UnitRow): Unit {
     location: r.location ?? "",
     description: r.description ?? "",
     status: r.status,
+    zone: r.zone ?? "",
+    branchSapCode: r.branch_sap_code ?? "",
     branchId: r.branch_id,
     customerId: r.customer_id,
     onboardingDate: r.onboarding_date ?? "",
