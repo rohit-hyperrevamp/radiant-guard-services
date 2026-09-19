@@ -1182,7 +1182,10 @@ function PayrollUnitPage() {
       const otDays = Math.round((r.totals.otDays ?? 0) * 100) / 100;
       const workingDays = Math.round(Math.max(0, (m.billedDays ?? 0) - otDays) * 100) / 100;
       const otHours = Math.round((r.totals.otHours ?? 0) * 100) / 100;
-      const otAmount = r2(m.perHour * otHours);
+      // The client MIS always derives the OT rate from an 8-hour day, regardless
+      // of the contracted shift length.
+      const otRate = r2(m.perDay / 8);
+      const otAmount = r2(otRate * otHours);
       const regular = r2(m.perDay * workingDays);
       const otBilling = r2(m.perDay * otDays);
       const totalBilling = r2(regular + otBilling + otAmount);
