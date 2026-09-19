@@ -41,9 +41,6 @@ import { ROLE_KEYS } from "@/lib/role-keys";
 import { OperationsClientLocations, useOperationsOverview, VisitInsightTile } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
-import { fetchCharterUnits } from "@/lib/charter-units";
-import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
-import { fetchPeriodStatusesForUnitPeriods } from "@/lib/period-status";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
@@ -195,16 +192,22 @@ function DashboardPage() {
 
       // Single round trip: the counts, the month status buckets and the
       // expiring-contract list are all aggregated in the database.
-      const [{ data, error }, charter] = await Promise.all([
+      const [{ data, error }, { data: lifecycleData, error: lifecycleError }] = await Promise.all([
         supabase.rpc("dashboard_counts" as never, {
           p_start: monthStart,
           p_end: monthEnd,
           p_today: todayStr,
           p_horizon: sixtyStr,
         } as never),
-        can("attendance") || can("payroll") ? fetchCharterUnits() : Promise.resolve(null),
+        can("attendance") || can("payroll") || can("invoice")
+          ? supabase.rpc("dashboard_lifecycle_counts" as never, {
+              p_year: year,
+              p_month: month + 1,
+            } as never)
+          : Promise.resolve({ data: null, error: null }),
       ]);
       if (error) throw error;
+      if (lifecycleError) throw lifecycleError;
 
       const d = (data ?? {}) as {
         orgs?: number;
@@ -227,36 +230,20 @@ function DashboardPage() {
         processed: v?.processed ?? 0,
       });
 
-      let sheetCounts = buckets(d.sheetCounts);
-      let runCounts = buckets(d.runCounts);
-      let invoiceCounts = buckets(undefined);
-      if (charter) {
-        const unitIds = charter.units.map((unit) => unit.id);
-        const windows = await fetchPayrollWindowsByUnit(unitIds);
-        const periods = new Map(
-          unitIds.map((unitId) => [unitId, payrollPeriodForMonth(year, month, windows.get(unitId))]),
-        );
-        const statuses = await fetchPeriodStatusesForUnitPeriods(periods);
-        sheetCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
-        runCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
-        invoiceCounts = { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
-        for (const unitId of unitIds) {
-          const status = statuses.get(unitId);
-          if (status?.attendance === "approved") sheetCounts.approved += 1;
-          else if (status?.attendance === "submitted") sheetCounts.pending += 1;
-          else if (status?.attendance === "rejected") sheetCounts.rejected += 1;
-          else sheetCounts.open += 1;
-
-          if (status?.payroll === "processed") runCounts.processed += 1;
-          else if (status?.payroll === "ready") runCounts.pending += 1;
-          else runCounts.open += 1;
-
-          // Invoicing shares the same client-by-client lifecycle as payroll.
-          if (status?.invoice === "processed") invoiceCounts.processed += 1;
-          else if (status?.invoice === "ready") invoiceCounts.pending += 1;
-          else invoiceCounts.open += 1;
-        }
-      }
+      const lifecycle = (lifecycleData ?? {}) as {
+        attendance?: { approved?: number; submitted?: number; rejected?: number; open?: number };
+        payroll?: { processed?: number; ready?: number; open?: number };
+        invoice?: { processed?: number; ready?: number; open?: number };
+      };
+      const sheetCounts = lifecycleData
+        ? { approved: lifecycle.attendance?.approved ?? 0, pending: lifecycle.attendance?.submitted ?? 0, draft: 0, rejected: lifecycle.attendance?.rejected ?? 0, open: lifecycle.attendance?.open ?? 0, processed: 0 }
+        : buckets(d.sheetCounts);
+      const runCounts = lifecycleData
+        ? { approved: 0, pending: lifecycle.payroll?.ready ?? 0, draft: 0, rejected: 0, open: lifecycle.payroll?.open ?? 0, processed: lifecycle.payroll?.processed ?? 0 }
+        : buckets(d.runCounts);
+      const invoiceCounts = lifecycleData
+        ? { approved: 0, pending: lifecycle.invoice?.ready ?? 0, draft: 0, rejected: 0, open: lifecycle.invoice?.open ?? 0, processed: lifecycle.invoice?.processed ?? 0 }
+        : buckets(undefined);
 
       return {
         orgs: d.orgs ?? 0,

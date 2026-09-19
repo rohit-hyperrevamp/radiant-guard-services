@@ -88,8 +88,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useCustomers, useUnits } from "@/lib/admin-data";
 import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
@@ -375,6 +375,69 @@ const QK_PDB = ["admin", "payroll-day-bases", "enabled"] as const;
 const QK_BDB = ["admin", "billing-day-bases", "enabled"] as const;
 const QK_CC = ["admin", "cost-components", "enabled"] as const;
 const QK_ESIC = ["admin", "esic-branches", "enabled"] as const;
+const QK_CONTRACT_DIRECTORY = ["admin", "contract-directory"] as const;
+
+type ContractDirectoryUnit = {
+  id: string;
+  code: string;
+  name: string;
+  customerId: string | null;
+  contractStartDate: string;
+  contractEndDate: string;
+  panNumber: string;
+  gstPayable: boolean;
+  gstType: string;
+  gstNumber: string;
+};
+
+type ContractDirectoryCustomer = { id: string; name: string };
+
+function useContractDirectory() {
+  const { data } = useQuery({
+    queryKey: QK_CONTRACT_DIRECTORY,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<{
+      units: ContractDirectoryUnit[];
+      customers: ContractDirectoryCustomer[];
+    }> => {
+      const [unitRows, customerRows] = await Promise.all([
+        fetchAllPages<Record<string, unknown>>((from, to) =>
+          supabase
+            .from("units" as never)
+            .select("id,code,name,customer_id,contract_start_date,contract_end_date,pan_number,gst_payable,gst_type,gst_number")
+            .order("code", { ascending: true })
+            .range(from, to),
+        ),
+        fetchAllPages<Record<string, unknown>>((from, to) =>
+          supabase
+            .from("customers" as never)
+            .select("id,name")
+            .order("name", { ascending: true })
+            .range(from, to),
+        ),
+      ]);
+      return {
+        units: unitRows.map((row) => ({
+          id: String(row.id),
+          code: String(row.code ?? ""),
+          name: String(row.name ?? ""),
+          customerId: row.customer_id ? String(row.customer_id) : null,
+          contractStartDate: row.contract_start_date ? String(row.contract_start_date) : "",
+          contractEndDate: row.contract_end_date ? String(row.contract_end_date) : "",
+          panNumber: String(row.pan_number ?? ""),
+          gstPayable: Boolean(row.gst_payable),
+          gstType: String(row.gst_type ?? ""),
+          gstNumber: String(row.gst_number ?? ""),
+        })),
+        customers: customerRows.map((row) => ({
+          id: String(row.id),
+          name: String(row.name ?? ""),
+        })),
+      };
+    },
+  });
+  return { units: data?.units ?? [], customers: data?.customers ?? [] };
+}
 
 
 function rowToContract(r: Record<string, unknown>): ClientContract {
@@ -2222,8 +2285,7 @@ function ClientContractsPage() {
   const canEdit = can("contracts", "edit");
   const canDelete = can("contracts", "delete");
   const isHrReadOnly = roleKey === "hr";
-  const { units } = useUnits();
-  const { customers } = useCustomers();
+  const { units, customers } = useContractDirectory();
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const unitById = useMemo(() => new Map(units.map((u) => [u.id, u])), [units]);
@@ -3181,8 +3243,7 @@ function ContractFormDialog({
   ) => Promise<string | null>;
   canManageApproval: boolean;
 }) {
-  const { units } = useUnits();
-  const { customers } = useCustomers();
+  const { units, customers } = useContractDirectory();
   const serviceTypes = useServiceTypes();
   const payrollWindows = usePayrollWindows();
   const billingTypes = useBillingTypes();
