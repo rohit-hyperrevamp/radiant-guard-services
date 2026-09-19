@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { notifySaved } from "@/components/ConfirmProvider";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +90,8 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     location: "",
     description: "",
     status: "active",
+    zone: "",
+    branchSapCode: "",
     isBillable: true,
     branchId: null,
     customerId: null,
@@ -169,6 +172,8 @@ function UnitManagerPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
@@ -186,6 +191,8 @@ function UnitManagerPage() {
           ...u,
           branchLabel: br ? `${br.code} – ${stName}` : "—",
           customerLabel: u.customerId ? customerById.get(u.customerId)?.name ?? "—" : "—",
+          stateLabel: (u.billingState || "").trim(),
+          cityLabel: (u.billingCity || "").trim(),
         };
       })
       .sort((a, b) => {
@@ -193,9 +200,13 @@ function UnitManagerPage() {
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
       });
+    const stateSet = new Set(stateFilter);
+    const citySet = new Set(cityFilter);
     const filtered = list.filter((u) => {
       if (statusFilter !== "all" && u.status !== statusFilter) return false;
       if (orgFilter !== "all" && u.customerId !== orgFilter) return false;
+      if (stateSet.size && !stateSet.has(u.stateLabel)) return false;
+      if (citySet.size && !citySet.has(u.cityLabel)) return false;
       return true;
     });
     if (!query.trim()) return filtered;
@@ -206,9 +217,13 @@ function UnitManagerPage() {
         u.name.toLowerCase().includes(q) ||
         u.location.toLowerCase().includes(q) ||
         u.branchLabel.toLowerCase().includes(q) ||
-        u.customerLabel.toLowerCase().includes(q),
+        u.customerLabel.toLowerCase().includes(q) ||
+        u.stateLabel.toLowerCase().includes(q) ||
+        u.cityLabel.toLowerCase().includes(q) ||
+        u.zone.toLowerCase().includes(q) ||
+        u.branchSapCode.toLowerCase().includes(q),
     );
-  }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter]);
+  }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter, stateFilter, cityFilter]);
 
   const pg = usePagination(rows);
 
@@ -216,6 +231,24 @@ function UnitManagerPage() {
     () => [...scopedCustomers].sort((a, b) => a.name.localeCompare(b.name)),
     [scopedCustomers],
   );
+
+  // State / city come from the client's billing address, which is already
+  // populated for almost every client.
+  const stateOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const u of scopedUnits) if (u.billingState?.trim()) set.add(u.billingState.trim());
+    return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
+  }, [scopedUnits]);
+
+  const cityOptions = useMemo(() => {
+    const picked = new Set(stateFilter);
+    const set = new Set<string>();
+    for (const u of scopedUnits) {
+      if (picked.size && !picked.has((u.billingState || "").trim())) continue;
+      if (u.billingCity?.trim()) set.add(u.billingCity.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
+  }, [scopedUnits, stateFilter]);
 
   const activeCount = scopedUnits.filter((u) => u.status === "active").length;
 
@@ -261,6 +294,23 @@ function UnitManagerPage() {
               ))}
             </SelectContent>
           </Select>
+          <MultiSelectFilter
+            options={stateOptions}
+            selected={stateFilter}
+            onChange={(next) => {
+              setStateFilter(next);
+              setCityFilter([]);
+            }}
+            allLabel="All states"
+            className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[180px]"
+          />
+          <MultiSelectFilter
+            options={cityOptions}
+            selected={cityFilter}
+            onChange={setCityFilter}
+            allLabel="All cities"
+            className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[180px]"
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[140px]">
               <SelectValue placeholder="Status" />
@@ -284,6 +334,10 @@ function UnitManagerPage() {
                   customer: u.customerLabel,
                   branch: u.branchLabel,
                   location: u.location,
+                  state: u.stateLabel,
+                  city: u.cityLabel,
+                  zone: u.zone,
+                  branchSapCode: u.branchSapCode,
                   description: u.description,
                   status: csvStatus(u.status),
                   contractStartDate: csvDate(u.contractStartDate),
@@ -350,6 +404,10 @@ function UnitManagerPage() {
                   { key: "customer", header: "Organization" },
                   { key: "branch", header: "Branch" },
                   { key: "location", header: "Location" },
+                  { key: "state", header: "State" },
+                  { key: "city", header: "City" },
+                  { key: "zone", header: "Zone" },
+                  { key: "branchSapCode", header: "Branch SAP code" },
                   { key: "description", header: "Description" },
                   { key: "status", header: "Status" },
                   { key: "contractStartDate", header: "Contract start" },
@@ -404,6 +462,8 @@ function UnitManagerPage() {
                 <th className="px-5 py-3">Client ID</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Location</th>
+                <th className="px-5 py-3">State</th>
+                <th className="px-5 py-3">City</th>
                 <th className="px-5 py-3">Branch</th>
                 <th className="px-5 py-3">Organisation</th>
                 <th className="px-5 py-3">Status</th>
@@ -432,6 +492,8 @@ function UnitManagerPage() {
                       )}
                     </div>
                   </td>
+                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.stateLabel || <span className="italic opacity-60">—</span>}</td>
+                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.cityLabel || <span className="italic opacity-60">—</span>}</td>
                   <td className="px-5 py-3 text-foreground" data-wrap="true">{u.branchLabel}</td>
                   <td className="px-5 py-3 text-foreground" data-wrap="true">{u.customerLabel}</td>
                   <td className="px-5 py-3">
@@ -474,7 +536,7 @@ function UnitManagerPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     <Warehouse className="mx-auto mb-2 h-6 w-6 opacity-50" />
                     {units.length === 0
                       ? "No clients yet. Add your first client to get started."
@@ -1017,6 +1079,12 @@ function UnitFormDialog({
               </Field>
               <Field label="Client location">
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+              </Field>
+              <Field label="Zone">
+                <Input value={form.zone} onChange={(e) => set("zone", e.target.value)} placeholder="Optional" />
+              </Field>
+              <Field label="Branch SAP code">
+                <Input value={form.branchSapCode} onChange={(e) => set("branchSapCode", e.target.value)} placeholder="Optional" />
               </Field>
               <Field label="Status">
                 <div className="modern-form-toggle">

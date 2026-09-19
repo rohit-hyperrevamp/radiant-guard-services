@@ -535,6 +535,10 @@ export type Unit = {
   location: string;
   description: string;
   status: CustomerStatus;
+  /** Optional operational zone label. */
+  zone: string;
+  /** Optional client-side SAP code for this branch/site. */
+  branchSapCode: string;
   branchId: string | null;
   customerId: string | null;
   onboardingDate: string;
@@ -629,6 +633,8 @@ type UnitRow = {
   location: string | null;
   description: string | null;
   status: CustomerStatus;
+  zone?: string | null;
+  branch_sap_code?: string | null;
   branch_id: string | null;
   customer_id: string | null;
   onboarding_date: string | null;
@@ -704,6 +710,8 @@ function rowToUnit(r: UnitRow): Unit {
     location: r.location ?? "",
     description: r.description ?? "",
     status: r.status,
+    zone: r.zone ?? "",
+    branchSapCode: r.branch_sap_code ?? "",
     branchId: r.branch_id,
     customerId: r.customer_id,
     onboardingDate: r.onboarding_date ?? "",
@@ -775,6 +783,8 @@ function unitToRow(data: Omit<Unit, "id">) {
     location: data.location.trim(),
     description: data.description.trim(),
     status: data.status,
+    zone: data.zone?.trim() || null,
+    branch_sap_code: data.branchSapCode?.trim() || null,
     branch_id: data.branchId || null,
     customer_id: data.customerId || null,
     onboarding_date: data.onboardingDate || null,
