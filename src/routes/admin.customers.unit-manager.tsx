@@ -1020,6 +1020,12 @@ function UnitFormDialog({
               <Field label="Client location">
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
               </Field>
+              <Field label="Zone">
+                <Input value={form.zone} onChange={(e) => set("zone", e.target.value)} placeholder="Optional" />
+              </Field>
+              <Field label="Branch SAP code">
+                <Input value={form.branchSapCode} onChange={(e) => set("branchSapCode", e.target.value)} placeholder="Optional" />
+              </Field>
               <Field label="Status">
                 <div className="modern-form-toggle">
                   <span className="text-sm font-medium text-foreground">
