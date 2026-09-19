@@ -23,14 +23,14 @@ export function usePayrollWindowSelection(
     () => buildPayrollWindowOptions(stableIds, windowsQ.data ?? new Map()),
     [stableIds, windowsQ.data],
   );
-  const [selectedKey, setSelectedKey] = useState(initial?.window ?? "");
+  const [selectedKey, setSelectedKey] = useState(initial?.window ?? "all");
   const [anchor, setAnchor] = useState(() => ({
     monthIdx: initial?.month ?? new Date().getMonth(),
     year: initial?.year ?? new Date().getFullYear(),
   }));
 
   useEffect(() => {
-    if (!options.length || options.some((option) => option.key === selectedKey)) return;
+    if (!options.length || selectedKey === "all" || options.some((option) => option.key === selectedKey)) return;
     const today = new Date();
     const containing = options
       .map((option) => {
@@ -52,19 +52,20 @@ export function usePayrollWindowSelection(
     setSelectedKey(key);
   };
   const shiftCycle = (delta: number) => setAnchor((current) => shiftPayrollAnchor(current.year, current.monthIdx, delta));
-  const selectedWindow = options.find((option) => option.key === selectedKey) ?? options[0];
+  const selectedWindow = options.find((option) => option.key === selectedKey);
   const unitIdsForWindow = useMemo(() => {
+    if (selectedKey === "all") return new Set(stableIds);
     if (!selectedWindow) return new Set<string>();
     return new Set(stableIds.filter((id) => {
       const window = windowsQ.data?.get(id) ?? { windowStartDay: 1, windowEndDay: 31 };
       return `${window.windowStartDay}-${window.windowEndDay}` === selectedWindow.key;
     }));
-  }, [selectedWindow, stableIds, windowsQ.data]);
+  }, [selectedKey, selectedWindow, stableIds, windowsQ.data]);
 
   return {
     ...anchor,
     options,
-    selectedKey: selectedWindow?.key ?? "",
+    selectedKey: selectedKey === "all" ? "all" : (selectedWindow?.key ?? "all"),
     selectedWindow,
     windowsByUnit: windowsQ.data ?? new Map(),
     unitIdsForWindow,

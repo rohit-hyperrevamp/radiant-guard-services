@@ -13,7 +13,6 @@ import { ListSkeleton } from "@/components/Skeletons";
 import { AttendanceCharter } from "@/components/AttendanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
-import { formatPayrollPeriod, payrollPeriodForMonth } from "@/lib/payroll-period";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 
 
@@ -93,9 +92,8 @@ function AttendanceUnitsPage() {
     [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
-  const { monthIdx, year, selectedKey, selectedWindow, windowsByUnit, unitIdsForWindow } = periodSelection;
+  const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
-  const selectedPeriod = payrollPeriodForMonth(year, monthIdx, selectedWindow);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
@@ -149,7 +147,7 @@ function AttendanceUnitsPage() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
+        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
         <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 rounded-full text-xs">
           <Link to="/admin/attendance/employee">
             <Search className="h-3.5 w-3.5" /> Employee lookup

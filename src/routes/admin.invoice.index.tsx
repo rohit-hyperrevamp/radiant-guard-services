@@ -11,7 +11,6 @@ import { ListSkeleton } from "@/components/Skeletons";
 import { FinanceCharter } from "@/components/FinanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
-import { formatPayrollPeriod, payrollPeriodForMonth } from "@/lib/payroll-period";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
@@ -40,9 +39,8 @@ function InvoiceUnitsPage() {
     [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
-  const { monthIdx, year, selectedKey, selectedWindow, windowsByUnit, unitIdsForWindow } = periodSelection;
+  const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
-  const selectedPeriod = payrollPeriodForMonth(year, monthIdx, selectedWindow);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
@@ -82,7 +80,7 @@ function InvoiceUnitsPage() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
+        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
