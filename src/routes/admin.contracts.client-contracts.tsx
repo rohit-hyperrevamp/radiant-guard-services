@@ -2898,7 +2898,7 @@ function ClientContractsPage() {
                             <RefreshCcw className="h-4 w-4" />
                           </Button>
                         )}
-                      {canEdit && (
+                      {tab === "prospect" && canEdit && (
                         <Button
                           size="icon"
                           variant="ghost"
