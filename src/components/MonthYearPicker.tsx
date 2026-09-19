@@ -52,7 +52,7 @@ export function MonthYearPicker({
   return (
     <div
       className={cn(
-        "grid w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-1 rounded-2xl border border-border/70 bg-background/60 p-1 backdrop-blur sm:inline-flex sm:w-auto",
+        "grid h-10 w-full grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto] items-center gap-1 rounded-lg border border-input bg-card px-1.5 shadow-sm sm:inline-flex sm:w-auto",
         className,
       )}
     >
@@ -68,7 +68,7 @@ export function MonthYearPicker({
       <CalendarDays className="ml-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 
       <Select value={String(monthIdx)} onValueChange={(v) => emit(year, Number(v))}>
-        <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 text-[12px] font-semibold shadow-none hover:bg-muted focus:ring-0 sm:w-[124px]">
+        <SelectTrigger className="h-8 min-w-0 rounded-md border-0 bg-transparent px-2 text-sm font-semibold shadow-none hover:bg-muted focus:ring-0 sm:w-[124px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -83,7 +83,7 @@ export function MonthYearPicker({
       <div className="h-5 w-px bg-border/70" />
 
       <Select value={String(year)} onValueChange={(v) => emit(Number(v), monthIdx)}>
-        <SelectTrigger className="h-8 w-[72px] rounded-xl border-0 bg-transparent px-2 text-[12px] font-semibold tabular-nums shadow-none hover:bg-muted focus:ring-0 sm:w-[86px]">
+        <SelectTrigger className="h-8 w-[72px] rounded-md border-0 bg-transparent px-2 text-sm font-semibold tabular-nums shadow-none hover:bg-muted focus:ring-0 sm:w-[86px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
