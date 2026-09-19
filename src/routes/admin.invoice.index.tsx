@@ -10,6 +10,7 @@ import { LabeledMultiSelectFilter } from "@/components/MultiSelectFilter";
 import { ListSkeleton } from "@/components/Skeletons";
 import { FinanceCharter } from "@/components/FinanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
+import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
@@ -81,6 +82,14 @@ function InvoiceUnitsPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
+        <MonthYearPicker
+          className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
+          value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
+          onChange={(ym) => {
+            const [y, m] = ym.split("-").map(Number);
+            periodSelection.setPeriod(y, m - 1);
+          }}
+        />
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">

@@ -185,3 +185,4 @@
 - [x] Pass exact period dates into Attendance, Payroll, and Invoice registers.
 - [x] Validate production window assignments and TypeScript.
 - [x] Multi-select filters (org/client/status) via shared MultiSelectFilter on Contracts, Attendance, Payroll, Invoicing
+- [x] Show the highlighted month/year selector beside the payroll-window selector on all three screens.
