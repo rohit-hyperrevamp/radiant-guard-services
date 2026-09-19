@@ -182,6 +182,10 @@ type ClientContract = {
   rejectionReason: string;
   createdBy: string | null;
   promotedAt: string | null;
+  unitName?: string;
+  unitCode?: string;
+  orgName?: string;
+  orgId?: string;
 };
 
 // Add N months to an ISO yyyy-mm-dd date string. Returns "" on empty input.
@@ -392,9 +396,10 @@ type ContractDirectoryUnit = {
 
 type ContractDirectoryCustomer = { id: string; name: string };
 
-function useContractDirectory() {
+function useContractDirectory(enabled = true) {
   const { data } = useQuery({
     queryKey: QK_CONTRACT_DIRECTORY,
+    enabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<{
       units: ContractDirectoryUnit[];
@@ -441,6 +446,12 @@ function useContractDirectory() {
 
 
 function rowToContract(r: Record<string, unknown>): ClientContract {
+  const unit = r.units && typeof r.units === "object" && !Array.isArray(r.units)
+    ? (r.units as Record<string, unknown>)
+    : null;
+  const customer = unit?.customers && typeof unit.customers === "object" && !Array.isArray(unit.customers)
+    ? (unit.customers as Record<string, unknown>)
+    : null;
   return {
     id: String(r.id),
     contractCode: String(r.contract_code ?? ""),
@@ -464,6 +475,10 @@ function rowToContract(r: Record<string, unknown>): ClientContract {
     rejectionReason: String(r.rejection_reason ?? ""),
     createdBy: r.created_by ? String(r.created_by) : null,
     promotedAt: r.promoted_at ? String(r.promoted_at) : null,
+    unitName: String(unit?.name ?? "—"),
+    unitCode: String(unit?.code ?? ""),
+    orgName: String(customer?.name ?? "—"),
+    orgId: customer?.id ? String(customer.id) : "",
   };
 }
 
@@ -566,7 +581,7 @@ function useContracts() {
       const { data, error } = await supabase
         .from("client_contracts" as never)
         .select(
-          "id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by",
+          "id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,units!client_contracts_unit_id_fkey(id,code,name,customer_id,customers(id,name))",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -2285,7 +2300,22 @@ function ClientContractsPage() {
   const canEdit = can("contracts", "edit");
   const canDelete = can("contracts", "delete");
   const isHrReadOnly = roleKey === "hr";
-  const { units, customers } = useContractDirectory();
+  const units = useMemo(
+    () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
+      id: item.unitId,
+      code: item.unitCode ?? "",
+      name: item.unitName ?? "—",
+      customerId: item.orgId || null,
+    }])).values()),
+    [items],
+  );
+  const customers = useMemo(
+    () => Array.from(new Map(items.filter((item) => item.orgId).map((item) => [item.orgId, {
+      id: item.orgId ?? "",
+      name: item.orgName ?? "—",
+    }])).values()).sort((a, b) => a.name.localeCompare(b.name)),
+    [items],
+  );
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const unitById = useMemo(() => new Map(units.map((u) => [u.id, u])), [units]);
@@ -2340,10 +2370,10 @@ function ClientContractsPage() {
       const org = unit?.customerId ? customerById.get(unit.customerId) : undefined;
       return {
         ...c,
-        unitName: unit?.name ?? "—",
-        unitCode: unit?.code ?? "",
-        orgName: org?.name ?? "—",
-        orgId: org?.id ?? "",
+        unitName: c.unitName ?? unit?.name ?? "—",
+        unitCode: c.unitCode ?? unit?.code ?? "",
+        orgName: c.orgName ?? org?.name ?? "—",
+        orgId: c.orgId ?? org?.id ?? "",
       };
     });
   }, [items, unitById, customerById]);
@@ -3243,7 +3273,7 @@ function ContractFormDialog({
   ) => Promise<string | null>;
   canManageApproval: boolean;
 }) {
-  const { units, customers } = useContractDirectory();
+  const { units, customers } = useContractDirectory(open);
   const serviceTypes = useServiceTypes();
   const payrollWindows = usePayrollWindows();
   const billingTypes = useBillingTypes();
