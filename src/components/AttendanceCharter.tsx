@@ -20,7 +20,7 @@ import {
   type PeriodStatus,
 } from "@/lib/period-status";
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
-import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { SCAN_JOBS_QK, fetchRunningScanJobs, formatRemaining } from "@/lib/attendance-scan-jobs";
 
 // ---------------------------------------------------------------------------
@@ -145,6 +145,7 @@ export function AttendanceCharter({
   organizationCount,
   activeEmployees,
   filters,
+  windowsByUnit,
 }: {
   units: CharterUnit[];
   monthIdx: number;
@@ -154,6 +155,7 @@ export function AttendanceCharter({
   organizationCount?: number;
   activeEmployees?: number;
   filters?: ReactNode;
+  windowsByUnit: Map<string, PayrollWindow>;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -186,17 +188,11 @@ export function AttendanceCharter({
   // Any attendance / OT edit anywhere refreshes this charter instantly.
   useAttendanceMoneyRealtime();
 
-  const windowsQ = useQuery({
-    queryKey: ["charter-payroll-windows", unitIds.join(",")],
-    enabled: unitIds.length > 0,
-    queryFn: () => fetchPayrollWindowsByUnit(unitIds),
-  });
-
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsQ.data?.get(unitId)));
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
     return out;
-  }, [unitIds, year, monthIdx, windowsQ.data]);
+  }, [unitIds, year, monthIdx, windowsByUnit]);
   const periodKey = useMemo(
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
@@ -204,7 +200,7 @@ export function AttendanceCharter({
 
   const statusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
@@ -245,7 +241,7 @@ export function AttendanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["attendance-charter-entries", periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -388,7 +384,7 @@ export function AttendanceCharter({
     );
   };
 
-  const loading = entriesQ.isLoading || shiftQ.isLoading || windowsQ.isLoading;
+  const loading = entriesQ.isLoading || shiftQ.isLoading;
 
   // Attendance sheets for the selected month, by lifecycle stage.
   const sheets = useMemo(() => {
@@ -449,7 +445,7 @@ export function AttendanceCharter({
         />
         <CharterTile
           label="Extra duty"
-          sub="month till date · this page"
+          sub="period till date · this page"
           value={fmtHours(totals.otHours)}
           icon={TrendingDown}
           accent="amber"
@@ -483,7 +479,7 @@ export function AttendanceCharter({
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          Loading month-till-date attendance…
+            Loading period-to-date attendance…
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -508,7 +504,7 @@ export function AttendanceCharter({
                   <Link
                     to="/admin/attendance/$unitId"
                     params={{ unitId: r.unit.id }}
-                    search={{ month: monthIdx, year }}
+                    search={{ month: monthIdx, year, start: r.period.start, end: r.period.end }}
                     className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
                   >
                     <Dial value={r.mtdPct} />
@@ -614,11 +610,11 @@ export function AttendanceCharter({
 
                     <div>
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        Month-till-date per employee
+                          Period-to-date per employee
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                          No attendance marked for this unit yet this month.
+                          No attendance marked for this unit yet this period.
                         </p>
                       ) : (
                         <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">

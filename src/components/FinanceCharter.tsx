@@ -23,7 +23,7 @@ import {
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
-import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 
 
 // ---------------------------------------------------------------------------
@@ -128,6 +128,7 @@ export function FinanceCharter({
   organizationCount,
   activeEmployees,
   filters,
+  windowsByUnit,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -138,6 +139,7 @@ export function FinanceCharter({
   organizationCount?: number;
   activeEmployees?: number;
   filters?: ReactNode;
+  windowsByUnit: Map<string, PayrollWindow>;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -178,16 +180,11 @@ export function FinanceCharter({
   // numbers — no refresh, no stale cache.
   useAttendanceMoneyRealtime();
 
-  const windowsQ = useQuery({
-    queryKey: ["charter-payroll-windows", unitIds.join(",")],
-    enabled: unitIds.length > 0,
-    queryFn: () => fetchPayrollWindowsByUnit(unitIds),
-  });
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsQ.data?.get(unitId)));
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
     return out;
-  }, [unitIds, year, monthIdx, windowsQ.data]);
+  }, [unitIds, year, monthIdx, windowsByUnit]);
   const periodKey = useMemo(
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
@@ -211,7 +208,7 @@ export function FinanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -232,28 +229,23 @@ export function FinanceCharter({
 
   const statusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
 
-  const allWindowsQ = useQuery({
-    queryKey: ["charter-payroll-windows-all", allUnitIds.join(",")],
-    enabled: allUnitIds.length > 0,
-    queryFn: () => fetchPayrollWindowsByUnit(allUnitIds),
-  });
   const allPeriodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, allWindowsQ.data?.get(unitId)));
+    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
     return out;
-  }, [allUnitIds, year, monthIdx, allWindowsQ.data]);
+  }, [allUnitIds, year, monthIdx, windowsByUnit]);
   const allPeriodKey = useMemo(
     () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [allPeriodsByUnit],
   );
   const allStatusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
-    enabled: allUnitIds.length > 0 && !allWindowsQ.isLoading,
+    enabled: allUnitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
   });
@@ -451,7 +443,7 @@ export function FinanceCharter({
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
-  const loading = entriesQ.isLoading || financeQ.isLoading || windowsQ.isLoading;
+  const loading = entriesQ.isLoading || financeQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
 
@@ -557,7 +549,7 @@ export function FinanceCharter({
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          Loading month-till-date {mode === "invoice" ? "invoice" : "payroll"} values…
+            Loading period-to-date {mode === "invoice" ? "invoice" : "payroll"} values…
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -724,11 +716,11 @@ export function FinanceCharter({
 
                     <div>
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        Month-till-date per employee
+                         Period-to-date per employee
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                          No attendance marked for this unit yet this month.
+                           No attendance marked for this unit yet this period.
                         </p>
                       ) : (
                         <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">
