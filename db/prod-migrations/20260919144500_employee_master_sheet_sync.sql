@@ -5031,7 +5031,9 @@ INSERT INTO sheet_emp VALUES
 UPDATE public.candidates c SET
   full_name = s.full_name,
   email = s.email,
-  mobile = CASE WHEN s.mobile <> '' THEN s.mobile ELSE c.mobile END,
+  mobile = CASE WHEN s.mobile <> '' AND NOT EXISTS (
+      SELECT 1 FROM public.candidates c2 WHERE c2.mobile = s.mobile AND c2.employee_code <> s.employee_code
+    ) THEN s.mobile ELSE c.mobile END,
   gender = CASE WHEN s.gender <> '' THEN s.gender ELSE c.gender END,
   date_of_birth = COALESCE(s.dob, c.date_of_birth),
   preferred_joining_date = COALESCE(s.doj, c.preferred_joining_date),
@@ -5042,7 +5044,9 @@ FROM sheet_emp s
 WHERE c.employee_code = s.employee_code;
 
 INSERT INTO public.candidates (employee_code, full_name, email, mobile, gender, date_of_birth, preferred_joining_date, unit_id, designation_id, status, is_enabled, application_date)
-SELECT s.employee_code, s.full_name, s.email, s.mobile, s.gender, s.dob, s.doj, s.unit_id,
+SELECT s.employee_code, s.full_name, s.email,
+       CASE WHEN s.mobile <> '' AND NOT EXISTS (SELECT 1 FROM public.candidates c2 WHERE c2.mobile = s.mobile) THEN s.mobile ELSE '' END,
+       s.gender, s.dob, s.doj, s.unit_id,
        (SELECT id FROM public.designations WHERE lower(name) = 'security guard' LIMIT 1),
        'active', true, COALESCE(s.doj, CURRENT_DATE)
 FROM sheet_emp s
