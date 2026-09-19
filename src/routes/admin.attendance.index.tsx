@@ -151,7 +151,7 @@ function AttendanceUnitsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
           <MonthYearPicker
-            className="h-10 rounded-lg"
+            className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
             value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
             onChange={(ym) => {
               const [y, m] = ym.split("-").map(Number);
