@@ -188,6 +188,8 @@ type ClientContract = {
   unitCode?: string;
   orgName?: string;
   orgId?: string;
+  stateLabel?: string;
+  cityLabel?: string;
 };
 
 // Add N months to an ISO yyyy-mm-dd date string. Returns "" on empty input.
@@ -481,6 +483,8 @@ function rowToContract(r: Record<string, unknown>): ClientContract {
     unitCode: String(unit?.code ?? ""),
     orgName: String(customer?.name ?? "—"),
     orgId: customer?.id ? String(customer.id) : "",
+    stateLabel: String(unit?.billing_state ?? "").trim(),
+    cityLabel: String(unit?.billing_city ?? "").trim(),
   };
 }
 
@@ -612,6 +616,8 @@ function useContracts() {
               code: unit.unit_code,
               name: unit.unit_name,
               customer_id: unit.customer_id,
+              billing_state: unit.unit_state ?? "",
+              billing_city: unit.unit_city ?? "",
               customers: unit.customer_id ? { id: unit.customer_id, name: unit.customer_name } : null,
             } : null,
           });
@@ -2361,6 +2367,8 @@ function ClientContractsPage() {
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
   const [windowFilter, setWindowFilter] = useState<string>("all");
   const payrollWindows = usePayrollWindows();
 
@@ -2428,14 +2436,43 @@ function ClientContractsPage() {
     return due >= renewalWindow.from && due <= renewalWindow.to;
   };
 
+  const stateOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const c of enriched) {
+      const label = (c.stateLabel ?? "").trim();
+      if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => a.localeCompare(b))
+      .map((label) => ({ value: label, label }));
+  }, [enriched]);
+
+  const cityOptions = useMemo(() => {
+    const selected = new Set(stateFilter.map((s) => s.toLowerCase()));
+    const seen = new Map<string, string>();
+    for (const c of enriched) {
+      const state = (c.stateLabel ?? "").trim();
+      if (selected.size && !selected.has(state.toLowerCase())) continue;
+      const label = (c.cityLabel ?? "").trim();
+      if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => a.localeCompare(b))
+      .map((label) => ({ value: label, label }));
+  }, [enriched, stateFilter]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const stateSet = new Set(stateFilter.map((s) => s.toLowerCase()));
+    const citySet = new Set(cityFilter.map((s) => s.toLowerCase()));
     return enriched.filter((c) => {
       if (c.recordType !== tab) return false;
       if (renewalOnly && !isUpForRenewal(c)) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(deriveStatus(c))) return false;
       if (orgFilter.length > 0 && !orgFilter.includes(c.orgId)) return false;
       if (unitFilter.length > 0 && !unitFilter.includes(c.unitId)) return false;
+      if (stateSet.size && !stateSet.has((c.stateLabel ?? "").trim().toLowerCase())) return false;
+      if (citySet.size && !citySet.has((c.cityLabel ?? "").trim().toLowerCase())) return false;
       if (windowFilter !== "all" && (c.payrollWindowId ?? "") !== windowFilter) return false;
       if (!q) return true;
       return (
@@ -2444,11 +2481,13 @@ function ClientContractsPage() {
         c.unitName.toLowerCase().includes(q) ||
         c.unitCode.toLowerCase().includes(q) ||
         c.orgName.toLowerCase().includes(q) ||
+        (c.stateLabel ?? "").toLowerCase().includes(q) ||
+        (c.cityLabel ?? "").toLowerCase().includes(q) ||
         c.description.toLowerCase().includes(q)
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enriched, query, statusFilter, orgFilter, unitFilter, windowFilter, tab, renewalOnly, renewalWindow]);
+  }, [enriched, query, statusFilter, orgFilter, unitFilter, stateFilter, cityFilter, windowFilter, tab, renewalOnly, renewalWindow]);
 
   const pg = usePagination(filtered);
 
@@ -2459,7 +2498,7 @@ function ClientContractsPage() {
   );
 
   const hasFilters =
-    !!query || orgFilter.length > 0 || unitFilter.length > 0 || statusFilter.length > 0 || windowFilter !== "all" || renewalOnly;
+    !!query || orgFilter.length > 0 || unitFilter.length > 0 || statusFilter.length > 0 || stateFilter.length > 0 || cityFilter.length > 0 || windowFilter !== "all" || renewalOnly;
 
 
   const tabCounts = useMemo(() => {
@@ -2716,7 +2755,7 @@ function ClientContractsPage() {
 
       {/* Filters */}
       <div className="mb-4 rounded-2xl border border-border bg-card p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,200px))_auto]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,180px))_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -2744,6 +2783,21 @@ function ClientContractsPage() {
             allLabel="All units"
           />
           <MultiSelectFilter
+            selected={stateFilter}
+            onChange={(v) => {
+              setStateFilter(v);
+              setCityFilter([]);
+            }}
+            options={stateOptions}
+            allLabel="All states"
+          />
+          <MultiSelectFilter
+            selected={cityFilter}
+            onChange={setCityFilter}
+            options={cityOptions}
+            allLabel="All cities"
+          />
+          <MultiSelectFilter
             selected={statusFilter}
             onChange={setStatusFilter}
             options={STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
@@ -2757,6 +2811,8 @@ function ClientContractsPage() {
               setQuery("");
               setOrgFilter([]);
               setUnitFilter([]);
+              setStateFilter([]);
+              setCityFilter([]);
               setStatusFilter([]);
               setWindowFilter("all");
               setRenewalOnly(false);
