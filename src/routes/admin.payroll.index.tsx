@@ -105,7 +105,7 @@ function PayrollUnitsPage() {
               Payroll charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Month-till-date payroll by unit. Open any unit for the full payroll register.
+              Period-to-date payroll by unit. Open any unit for the full payroll register.
             </p>
           </div>
 

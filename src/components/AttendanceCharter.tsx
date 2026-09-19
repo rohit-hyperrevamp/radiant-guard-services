@@ -26,7 +26,7 @@ import { SCAN_JOBS_QK, fetchRunningScanJobs, formatRemaining } from "@/lib/atten
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
 // Reads exactly like the deployment charter (committed / actual / variance /
-// coverage) but adds month-till-date attendance: projected man-hours from the
+// coverage) but adds period-to-date attendance: projected man-hours from the
 // contract vs actual man-hours worked (including overtime).
 // ---------------------------------------------------------------------------
 
@@ -99,7 +99,7 @@ function VarianceChip({ committed, actual }: { committed: number; actual: number
   );
 }
 
-/** Circular MTD gauge used as the row's visual anchor. */
+/** Circular period-to-date gauge used as the row's visual anchor. */
 function Dial({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(value, 130));
   const tone = toneFor(value);
@@ -160,7 +160,7 @@ export function AttendanceCharter({
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // Search first, then paginate, and only then load month-till-date attendance.
+  // Search first, then paginate, and only then load period-to-date attendance.
   // Every heavy read below is scoped to the 25 units actually on screen, so the
   // page never pulls thousands of units' entries in one shot.
   const matchedUnits = useMemo(() => {
@@ -376,17 +376,17 @@ export function AttendanceCharter({
         Committed: r.committed,
         Actual: r.actual,
         Variance: r.actual - r.committed,
-        "Projected man-hours (MTD)": Math.round(r.projectedHours),
-        "Actual man-hours (MTD)": Math.round(r.actualHours),
-        "Extra duty hours (MTD)": Math.round(r.otHours),
-        "MTD attendance %": r.mtdPct,
+        "Projected man-hours (period to date)": Math.round(r.projectedHours),
+        "Actual man-hours (period to date)": Math.round(r.actualHours),
+        "Extra duty hours (period to date)": Math.round(r.otHours),
+        "Period-to-date attendance %": r.mtdPct,
       })),
     );
   };
 
   const loading = entriesQ.isLoading || shiftQ.isLoading;
 
-  // Attendance sheets for the selected month, by lifecycle stage.
+  // Attendance sheets for the selected payroll period, by lifecycle stage.
   const sheets = useMemo(() => {
     let open = 0;
     let submitted = 0;
@@ -451,7 +451,7 @@ export function AttendanceCharter({
           accent="amber"
         />
         <CharterTile
-          label="MTD attendance"
+          label="Period attendance"
           sub="current payroll periods · this page"
           value={`${totals.mtdPct}%`}
           icon={Gauge}
@@ -558,7 +558,7 @@ export function AttendanceCharter({
                       </div>
                       <VarianceChip committed={r.committed} actual={r.actual} />
                       <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">MTD hours</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Period hours</div>
                         <div className="font-semibold">
                           {fmtHours(r.actualHours)}
                           <span className="text-muted-foreground"> / {fmtHours(r.projectedHours)}</span>
@@ -627,7 +627,7 @@ export function AttendanceCharter({
                                 <th className="px-2 py-2 text-right font-medium">ED hrs</th>
                                 <th className="px-2 py-2 text-right font-medium">Actual</th>
                                 <th className="px-2 py-2 text-right font-medium">Projected</th>
-                                <th className="px-3 py-2 text-right font-medium">MTD</th>
+                                <th className="px-3 py-2 text-right font-medium">Period</th>
                               </tr>
                             </thead>
                             <tbody>

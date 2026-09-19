@@ -29,7 +29,7 @@ import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period"
 // ---------------------------------------------------------------------------
 // Finance charter — the shared Invoice / Payroll landing view.
 // Reads exactly like the attendance charter, but the currency is money instead
-// of days: contracted value, month-till-date invoice value, and the payroll
+// of days: contracted value, period-to-date invoice value, and the payroll
 // (gross) that sits behind it, so the margin is visible on both surfaces.
 // ---------------------------------------------------------------------------
 
@@ -394,7 +394,7 @@ export function FinanceCharter({
     };
   }, [rows]);
 
-  // Register counts for the selected month across the WHOLE charter (not just
+  // Register counts for the selected payroll period across the WHOLE charter (not just
   // the visible page): where every unit sits in the open → ready → processed
   // lifecycle.
   const registers = useMemo(() => {
@@ -420,24 +420,24 @@ export function FinanceCharter({
         Unit: r.unit.name || r.unit.code,
         Committed: r.committed,
         Deployed: r.actual,
-        "Payroll gross (MTD)": Math.round(r.payrollAmount),
+        "Payroll gross (period to date)": Math.round(r.payrollAmount),
       };
       if (mode === "invoice") {
         return {
           ...base,
-          "Contracted value (month)": Math.round(r.monthlyContracted),
-          "Contracted value (MTD)": Math.round(r.contractedMtd),
-          "Invoice value (MTD)": Math.round(r.invoiceAmount),
-          "Deductions (MTD)": Math.round(r.deductionAmount),
-          "Net payable (MTD)": Math.round(r.netPayrollAmount),
+          "Contracted value (period)": Math.round(r.monthlyContracted),
+          "Contracted value (period to date)": Math.round(r.contractedMtd),
+          "Invoice value (period to date)": Math.round(r.invoiceAmount),
+          "Deductions (period to date)": Math.round(r.deductionAmount),
+          "Net payable (period to date)": Math.round(r.netPayrollAmount),
           Margin: Math.round(r.margin),
           "Margin %": r.marginPct,
         };
       }
       return {
         ...base,
-        "Deductions (MTD)": Math.round(r.deductionAmount),
-        "Net payable (MTD)": Math.round(r.netPayrollAmount),
+        "Deductions (period to date)": Math.round(r.deductionAmount),
+        "Net payable (period to date)": Math.round(r.netPayrollAmount),
       };
     });
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
@@ -452,7 +452,7 @@ export function FinanceCharter({
       <CharterTileGrid>
         <CharterTile
           label="Organizations"
-          sub={mode === "invoice" ? "clients billed this month" : "clients with payroll this month"}
+          sub={mode === "invoice" ? "clients billed this period" : "clients with payroll this period"}
           countTo={organizationCount ?? new Set(units.map((u) => u.customer_id || u.customer_name)).size}
           icon={Building2}
           accent="violet"
@@ -493,14 +493,14 @@ export function FinanceCharter({
               accent="indigo"
             />
             <CharterTile
-              label="Invoice value (MTD)"
+              label="Invoice value to date"
               sub={`${totals.realisationPct}% of contracted till date`}
               value={fmtMoneyCompact(totals.invoiceAmount)}
               icon={Receipt}
               accent="emerald"
             />
             <CharterTile
-              label="Payroll gross (MTD)"
+              label="Payroll gross to date"
               sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
               value={fmtMoneyCompact(totals.payrollAmount)}
               icon={Wallet}
@@ -517,7 +517,7 @@ export function FinanceCharter({
         )}
         {mode === "payroll" && (
           <CharterTile
-            label="Payroll gross (MTD)"
+            label="Payroll gross to date"
             sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
             value={fmtMoneyCompact(totals.payrollAmount)}
             icon={Wallet}
@@ -601,7 +601,7 @@ export function FinanceCharter({
                             <span className="whitespace-nowrap">{r.marginPct}% margin</span>
                           </>
                         ) : (
-                          <span className="whitespace-nowrap">Payroll MTD {fmtMoneyCompact(r.payrollAmount)}</span>
+                            <span className="whitespace-nowrap">Payroll to date {fmtMoneyCompact(r.payrollAmount)}</span>
                         )}
                       </div>
                     </div>
@@ -614,13 +614,13 @@ export function FinanceCharter({
                             <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.monthlyContracted)}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice MTD</div>
+                             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice to date</div>
                             <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.invoiceAmount)}</div>
                           </div>
                         </>
                       )}
                       <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll MTD</div>
+                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll to date</div>
                         <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.payrollAmount)}</div>
                       </div>
                       {mode === "invoice" && <MarginChip value={r.marginPct} />}

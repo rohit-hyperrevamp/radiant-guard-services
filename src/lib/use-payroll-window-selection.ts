@@ -50,8 +50,6 @@ export function usePayrollWindowSelection(
 
   const selectWindow = (key: string) => {
     setSelectedKey(key);
-    const option = options.find((item) => item.key === key);
-    if (option) setAnchor(payrollAnchorForDate(option));
   };
   const shiftCycle = (delta: number) => setAnchor((current) => shiftPayrollAnchor(current.year, current.monthIdx, delta));
   const selectedWindow = options.find((option) => option.key === selectedKey) ?? options[0];

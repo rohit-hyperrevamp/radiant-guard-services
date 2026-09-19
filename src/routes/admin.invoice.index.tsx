@@ -102,7 +102,7 @@ function InvoiceUnitsPage() {
               Invoice charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Contracted value vs month-till-date invoice and payroll. Open any unit for the full invoice register.
+              Contracted value vs period-to-date invoice and payroll. Open any unit for the full invoice register.
             </p>
           </div>
 

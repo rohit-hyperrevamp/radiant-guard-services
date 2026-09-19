@@ -180,7 +180,7 @@ function AttendanceUnitsPage() {
               Attendance charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
+               Committed vs actual deployment with period-to-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
         </div>
