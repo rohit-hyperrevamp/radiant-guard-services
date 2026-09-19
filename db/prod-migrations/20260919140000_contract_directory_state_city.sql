@@ -1,6 +1,8 @@
 -- Extend contract_register_directory with the unit's billing state/city so the
 -- Contracts register can filter by state and city without extra round-trips.
-create or replace function public.contract_register_directory()
+drop function if exists public.contract_register_directory();
+
+create function public.contract_register_directory()
 returns table (
   unit_id uuid,
   unit_code text,
