@@ -52,6 +52,7 @@ export function usePayrollWindowSelection(
     setSelectedKey(key);
   };
   const shiftCycle = (delta: number) => setAnchor((current) => shiftPayrollAnchor(current.year, current.monthIdx, delta));
+  const setPeriod = (year: number, monthIdx: number) => setAnchor({ year, monthIdx });
   const selectedWindow = options.find((option) => option.key === selectedKey);
   const unitIdsForWindow = useMemo(() => {
     if (selectedKey === "all") return new Set(stableIds);
