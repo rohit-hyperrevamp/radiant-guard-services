@@ -2752,11 +2752,36 @@ function ClientContractsPage() {
               setOrgFilter("all");
               setUnitFilter("all");
               setStatusFilter("all");
+              setWindowFilter("all");
               setRenewalOnly(false);
             }}
           >
             <X className="mr-1.5 h-4 w-4" /> Clear
           </Button>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border/60 pt-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Payroll window
+          </span>
+          <Select value={windowFilter} onValueChange={setWindowFilter}>
+            <SelectTrigger className="h-9 w-[220px] rounded-lg">
+              <SelectValue placeholder="All windows" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All windows</SelectItem>
+              {payrollWindows.map((w) => (
+                <SelectItem key={w.id} value={w.id}>
+                  {w.label} ({w.windowStartDay}–{w.windowEndDay})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {windowFilter !== "all" && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {filtered.length} contract{filtered.length === 1 ? "" : "s"} in this window — matches
+              Attendance, Payroll &amp; Invoicing scope
+            </span>
+          )}
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
           {isLoading ? (
