@@ -20,13 +20,13 @@ import {
   type PeriodStatus,
 } from "@/lib/period-status";
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
-import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { SCAN_JOBS_QK, fetchRunningScanJobs, formatRemaining } from "@/lib/attendance-scan-jobs";
 
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
 // Reads exactly like the deployment charter (committed / actual / variance /
-// coverage) but adds month-till-date attendance: projected man-hours from the
+// coverage) but adds period-to-date attendance: projected man-hours from the
 // contract vs actual man-hours worked (including overtime).
 // ---------------------------------------------------------------------------
 
@@ -99,7 +99,7 @@ function VarianceChip({ committed, actual }: { committed: number; actual: number
   );
 }
 
-/** Circular MTD gauge used as the row's visual anchor. */
+/** Circular period-to-date gauge used as the row's visual anchor. */
 function Dial({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(value, 130));
   const tone = toneFor(value);
@@ -145,6 +145,7 @@ export function AttendanceCharter({
   organizationCount,
   activeEmployees,
   filters,
+  windowsByUnit,
 }: {
   units: CharterUnit[];
   monthIdx: number;
@@ -154,11 +155,12 @@ export function AttendanceCharter({
   organizationCount?: number;
   activeEmployees?: number;
   filters?: ReactNode;
+  windowsByUnit: Map<string, PayrollWindow>;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // Search first, then paginate, and only then load month-till-date attendance.
+  // Search first, then paginate, and only then load period-to-date attendance.
   // Every heavy read below is scoped to the 25 units actually on screen, so the
   // page never pulls thousands of units' entries in one shot.
   const matchedUnits = useMemo(() => {
@@ -186,17 +188,11 @@ export function AttendanceCharter({
   // Any attendance / OT edit anywhere refreshes this charter instantly.
   useAttendanceMoneyRealtime();
 
-  const windowsQ = useQuery({
-    queryKey: ["charter-payroll-windows", unitIds.join(",")],
-    enabled: unitIds.length > 0,
-    queryFn: () => fetchPayrollWindowsByUnit(unitIds),
-  });
-
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsQ.data?.get(unitId)));
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
     return out;
-  }, [unitIds, year, monthIdx, windowsQ.data]);
+  }, [unitIds, year, monthIdx, windowsByUnit]);
   const periodKey = useMemo(
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
@@ -204,7 +200,7 @@ export function AttendanceCharter({
 
   const statusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
@@ -245,7 +241,7 @@ export function AttendanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["attendance-charter-entries", periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -380,17 +376,17 @@ export function AttendanceCharter({
         Committed: r.committed,
         Actual: r.actual,
         Variance: r.actual - r.committed,
-        "Projected man-hours (MTD)": Math.round(r.projectedHours),
-        "Actual man-hours (MTD)": Math.round(r.actualHours),
-        "Extra duty hours (MTD)": Math.round(r.otHours),
-        "MTD attendance %": r.mtdPct,
+        "Projected man-hours (period to date)": Math.round(r.projectedHours),
+        "Actual man-hours (period to date)": Math.round(r.actualHours),
+        "Extra duty hours (period to date)": Math.round(r.otHours),
+        "Period-to-date attendance %": r.mtdPct,
       })),
     );
   };
 
-  const loading = entriesQ.isLoading || shiftQ.isLoading || windowsQ.isLoading;
+  const loading = entriesQ.isLoading || shiftQ.isLoading;
 
-  // Attendance sheets for the selected month, by lifecycle stage.
+  // Attendance sheets for the selected payroll period, by lifecycle stage.
   const sheets = useMemo(() => {
     let open = 0;
     let submitted = 0;
@@ -449,13 +445,13 @@ export function AttendanceCharter({
         />
         <CharterTile
           label="Extra duty"
-          sub="month till date · this page"
+          sub="period till date · this page"
           value={fmtHours(totals.otHours)}
           icon={TrendingDown}
           accent="amber"
         />
         <CharterTile
-          label="MTD attendance"
+          label="Period attendance"
           sub="current payroll periods · this page"
           value={`${totals.mtdPct}%`}
           icon={Gauge}
@@ -483,7 +479,7 @@ export function AttendanceCharter({
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          Loading month-till-date attendance…
+            Loading period-to-date attendance…
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -508,7 +504,7 @@ export function AttendanceCharter({
                   <Link
                     to="/admin/attendance/$unitId"
                     params={{ unitId: r.unit.id }}
-                    search={{ month: monthIdx, year }}
+                    search={{ month: monthIdx, year, start: r.period.start, end: r.period.end }}
                     className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
                   >
                     <Dial value={r.mtdPct} />
@@ -562,7 +558,7 @@ export function AttendanceCharter({
                       </div>
                       <VarianceChip committed={r.committed} actual={r.actual} />
                       <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">MTD hours</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Period hours</div>
                         <div className="font-semibold">
                           {fmtHours(r.actualHours)}
                           <span className="text-muted-foreground"> / {fmtHours(r.projectedHours)}</span>
@@ -614,11 +610,11 @@ export function AttendanceCharter({
 
                     <div>
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        Month-till-date per employee
+                          Period-to-date per employee
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                          No attendance marked for this unit yet this month.
+                          No attendance marked for this unit yet this period.
                         </p>
                       ) : (
                         <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">
@@ -631,7 +627,7 @@ export function AttendanceCharter({
                                 <th className="px-2 py-2 text-right font-medium">ED hrs</th>
                                 <th className="px-2 py-2 text-right font-medium">Actual</th>
                                 <th className="px-2 py-2 text-right font-medium">Projected</th>
-                                <th className="px-3 py-2 text-right font-medium">MTD</th>
+                                <th className="px-3 py-2 text-right font-medium">Period</th>
                               </tr>
                             </thead>
                             <tbody>

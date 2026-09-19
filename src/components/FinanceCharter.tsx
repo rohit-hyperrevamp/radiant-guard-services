@@ -23,13 +23,13 @@ import {
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
-import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 
 
 // ---------------------------------------------------------------------------
 // Finance charter — the shared Invoice / Payroll landing view.
 // Reads exactly like the attendance charter, but the currency is money instead
-// of days: contracted value, month-till-date invoice value, and the payroll
+// of days: contracted value, period-to-date invoice value, and the payroll
 // (gross) that sits behind it, so the margin is visible on both surfaces.
 // ---------------------------------------------------------------------------
 
@@ -128,6 +128,7 @@ export function FinanceCharter({
   organizationCount,
   activeEmployees,
   filters,
+  windowsByUnit,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -138,6 +139,7 @@ export function FinanceCharter({
   organizationCount?: number;
   activeEmployees?: number;
   filters?: ReactNode;
+  windowsByUnit: Map<string, PayrollWindow>;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -178,16 +180,11 @@ export function FinanceCharter({
   // numbers — no refresh, no stale cache.
   useAttendanceMoneyRealtime();
 
-  const windowsQ = useQuery({
-    queryKey: ["charter-payroll-windows", unitIds.join(",")],
-    enabled: unitIds.length > 0,
-    queryFn: () => fetchPayrollWindowsByUnit(unitIds),
-  });
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsQ.data?.get(unitId)));
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
     return out;
-  }, [unitIds, year, monthIdx, windowsQ.data]);
+  }, [unitIds, year, monthIdx, windowsByUnit]);
   const periodKey = useMemo(
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
@@ -211,7 +208,7 @@ export function FinanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -232,28 +229,23 @@ export function FinanceCharter({
 
   const statusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, periodKey],
-    enabled: unitIds.length > 0 && !windowsQ.isLoading,
+    enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
 
-  const allWindowsQ = useQuery({
-    queryKey: ["charter-payroll-windows-all", allUnitIds.join(",")],
-    enabled: allUnitIds.length > 0,
-    queryFn: () => fetchPayrollWindowsByUnit(allUnitIds),
-  });
   const allPeriodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, allWindowsQ.data?.get(unitId)));
+    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
     return out;
-  }, [allUnitIds, year, monthIdx, allWindowsQ.data]);
+  }, [allUnitIds, year, monthIdx, windowsByUnit]);
   const allPeriodKey = useMemo(
     () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [allPeriodsByUnit],
   );
   const allStatusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
-    enabled: allUnitIds.length > 0 && !allWindowsQ.isLoading,
+    enabled: allUnitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
   });
@@ -402,7 +394,7 @@ export function FinanceCharter({
     };
   }, [rows]);
 
-  // Register counts for the selected month across the WHOLE charter (not just
+  // Register counts for the selected payroll period across the WHOLE charter (not just
   // the visible page): where every unit sits in the open → ready → processed
   // lifecycle.
   const registers = useMemo(() => {
@@ -428,30 +420,30 @@ export function FinanceCharter({
         Unit: r.unit.name || r.unit.code,
         Committed: r.committed,
         Deployed: r.actual,
-        "Payroll gross (MTD)": Math.round(r.payrollAmount),
+        "Payroll gross (period to date)": Math.round(r.payrollAmount),
       };
       if (mode === "invoice") {
         return {
           ...base,
-          "Contracted value (month)": Math.round(r.monthlyContracted),
-          "Contracted value (MTD)": Math.round(r.contractedMtd),
-          "Invoice value (MTD)": Math.round(r.invoiceAmount),
-          "Deductions (MTD)": Math.round(r.deductionAmount),
-          "Net payable (MTD)": Math.round(r.netPayrollAmount),
+          "Contracted value (period)": Math.round(r.monthlyContracted),
+          "Contracted value (period to date)": Math.round(r.contractedMtd),
+          "Invoice value (period to date)": Math.round(r.invoiceAmount),
+          "Deductions (period to date)": Math.round(r.deductionAmount),
+          "Net payable (period to date)": Math.round(r.netPayrollAmount),
           Margin: Math.round(r.margin),
           "Margin %": r.marginPct,
         };
       }
       return {
         ...base,
-        "Deductions (MTD)": Math.round(r.deductionAmount),
-        "Net payable (MTD)": Math.round(r.netPayrollAmount),
+        "Deductions (period to date)": Math.round(r.deductionAmount),
+        "Net payable (period to date)": Math.round(r.netPayrollAmount),
       };
     });
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
-  const loading = entriesQ.isLoading || financeQ.isLoading || windowsQ.isLoading;
+  const loading = entriesQ.isLoading || financeQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
 
@@ -460,7 +452,7 @@ export function FinanceCharter({
       <CharterTileGrid>
         <CharterTile
           label="Organizations"
-          sub={mode === "invoice" ? "clients billed this month" : "clients with payroll this month"}
+          sub={mode === "invoice" ? "clients billed this period" : "clients with payroll this period"}
           countTo={organizationCount ?? new Set(units.map((u) => u.customer_id || u.customer_name)).size}
           icon={Building2}
           accent="violet"
@@ -501,14 +493,14 @@ export function FinanceCharter({
               accent="indigo"
             />
             <CharterTile
-              label="Invoice value (MTD)"
+              label="Invoice value to date"
               sub={`${totals.realisationPct}% of contracted till date`}
               value={fmtMoneyCompact(totals.invoiceAmount)}
               icon={Receipt}
               accent="emerald"
             />
             <CharterTile
-              label="Payroll gross (MTD)"
+              label="Payroll gross to date"
               sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
               value={fmtMoneyCompact(totals.payrollAmount)}
               icon={Wallet}
@@ -525,7 +517,7 @@ export function FinanceCharter({
         )}
         {mode === "payroll" && (
           <CharterTile
-            label="Payroll gross (MTD)"
+            label="Payroll gross to date"
             sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
             value={fmtMoneyCompact(totals.payrollAmount)}
             icon={Wallet}
@@ -557,7 +549,7 @@ export function FinanceCharter({
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          Loading month-till-date {mode === "invoice" ? "invoice" : "payroll"} values…
+            Loading period-to-date {mode === "invoice" ? "invoice" : "payroll"} values…
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -609,7 +601,7 @@ export function FinanceCharter({
                             <span className="whitespace-nowrap">{r.marginPct}% margin</span>
                           </>
                         ) : (
-                          <span className="whitespace-nowrap">Payroll MTD {fmtMoneyCompact(r.payrollAmount)}</span>
+                            <span className="whitespace-nowrap">Payroll to date {fmtMoneyCompact(r.payrollAmount)}</span>
                         )}
                       </div>
                     </div>
@@ -622,13 +614,13 @@ export function FinanceCharter({
                             <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.monthlyContracted)}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice MTD</div>
+                             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice to date</div>
                             <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.invoiceAmount)}</div>
                           </div>
                         </>
                       )}
                       <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll MTD</div>
+                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll to date</div>
                         <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.payrollAmount)}</div>
                       </div>
                       {mode === "invoice" && <MarginChip value={r.marginPct} />}
@@ -724,11 +716,11 @@ export function FinanceCharter({
 
                     <div>
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        Month-till-date per employee
+                         Period-to-date per employee
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                          No attendance marked for this unit yet this month.
+                           No attendance marked for this unit yet this period.
                         </p>
                       ) : (
                         <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">

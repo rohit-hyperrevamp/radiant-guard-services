@@ -178,3 +178,9 @@
 - [x] Replace Contracts full client preload with a compact contract-specific lookup.
 - [x] Move dashboard lifecycle totals into one production summary call.
 - [x] Verify production timings and TypeScript validation; production screen verification follows deployment.
+
+## Contract payroll-window navigation
+- [x] Add one contract-driven payroll-window and cycle selector to Attendance, Payroll, and Invoicing.
+- [x] Filter units, totals, lifecycle counts, searches, exports, and pagination to the selected window.
+- [x] Pass exact period dates into Attendance, Payroll, and Invoice registers.
+- [x] Validate production window assignments and TypeScript.

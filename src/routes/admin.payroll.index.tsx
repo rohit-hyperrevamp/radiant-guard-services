@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { z } from "zod";
 
 import { PayrollTabs } from "@/components/PayrollTabs";
 import { HeroTile } from "@/components/HeroTile";
@@ -15,25 +16,25 @@ import {
 } from "@/components/ui/select";
 import { ListSkeleton } from "@/components/Skeletons";
 import { FinanceCharter } from "@/components/FinanceCharter";
+import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
+import { formatPayrollPeriod, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
+const searchSchema = z.object({ window: z.string().optional(), month: z.coerce.number().min(0).max(11).optional(), year: z.coerce.number().min(2000).max(2100).optional() });
+
 export const Route = createFileRoute("/admin/payroll/")({
+  validateSearch: (search) => searchSchema.parse(search),
   component: PayrollUnitsPage,
 });
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 function PayrollUnitsPage() {
-  const now = new Date();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [q, setQ] = useState("");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [unitFilter, setUnitFilter] = useState<string>("all");
-  const [monthIdx, setMonthIdx] = useState<number>(now.getMonth());
-  const [year, setYear] = useState<number>(now.getFullYear());
 
   const { data, isLoading, error } = useQuery({
     queryKey: CHARTER_UNITS_QK,
@@ -46,22 +47,29 @@ function PayrollUnitsPage() {
     () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
     [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
+  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
+  const { monthIdx, year, selectedKey, selectedWindow, windowsByUnit, unitIdsForWindow } = periodSelection;
+  const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
+  const selectedPeriod = payrollPeriodForMonth(year, monthIdx, selectedWindow);
+  useEffect(() => {
+    if (!selectedKey) return;
+    void navigate({ search: { window: selectedKey, month: monthIdx, year }, replace: true });
+  }, [monthIdx, navigate, selectedKey, year]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
-    if (!foScope.isFieldOfficer) return all;
-    const allowed = new Set(units.map((u) => u.customer_id));
+    const allowed = new Set(windowUnits.map((u) => u.customer_id));
     return all.filter((o) => allowed.has(o.id));
-  }, [data?.organizations, foScope.isFieldOfficer, units]);
+  }, [data?.organizations, windowUnits]);
 
   const summary = {
     organizations: organizations.length,
-    units: units.length,
-    activeEmployees: units.reduce((s, r) => s + r.active_employee_count, 0),
+    units: windowUnits.length,
+    activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0),
   };
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return units.filter((u) => {
+    return windowUnits.filter((u) => {
       if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
       if (unitFilter !== "all" && u.id !== unitFilter) return false;
       if (term) {
@@ -72,7 +80,7 @@ function PayrollUnitsPage() {
       }
       return true;
     });
-  }, [q, orgFilter, unitFilter, units]);
+  }, [q, orgFilter, unitFilter, windowUnits]);
 
   const anyFilter = orgFilter !== "all" || unitFilter !== "all" || q.trim().length > 0;
 
@@ -81,34 +89,12 @@ function PayrollUnitsPage() {
       <PayrollTabs />
 
       <HeroTile
-        eyebrow="Payroll month"
-        title={MONTH_NAMES[monthIdx]}
-        subtitle={String(year)}
+        eyebrow="Payroll period"
+        title={formatPayrollPeriod(selectedPeriod)}
+        subtitle={selectedWindow?.label ?? "Contract window"}
         description="Payroll from approved attendance."
         right={
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,0.7fr)] items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 sm:flex sm:w-auto sm:gap-1.5 sm:rounded-2xl sm:p-1.5">
-            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 shadow-none hover:bg-muted focus:ring-0 sm:w-[130px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTH_NAMES.map((m, i) => (
-                  <SelectItem key={m} value={String(i)}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="h-5 w-px bg-border/70" />
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 shadow-none hover:bg-muted focus:ring-0 sm:w-[92px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[year - 2, year - 1, year, year + 1].map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
         }
       />
 
@@ -119,7 +105,7 @@ function PayrollUnitsPage() {
               Payroll charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Month-till-date payroll by unit. Open any unit for the full payroll register.
+              Period-to-date payroll by unit. Open any unit for the full payroll register.
             </p>
           </div>
 
@@ -143,11 +129,12 @@ function PayrollUnitsPage() {
               onQueryChange={setQ}
               organizationCount={summary.organizations}
               activeEmployees={summary.activeEmployees}
+              windowsByUnit={windowsByUnit}
               filters={
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <FilterSelect
-                      label="Client"
+                       label="Unit"
                       value={orgFilter}
                       onChange={setOrgFilter}
                       options={organizations.map((o) => ({
@@ -160,18 +147,18 @@ function PayrollUnitsPage() {
                       label="Client"
                       value={unitFilter}
                       onChange={setUnitFilter}
-                      options={units.map((u) => ({
+                      options={windowUnits.map((u) => ({
                         value: u.id,
                         label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
                       }))}
-                      allLabel={`All units (${units.length})`}
+                      allLabel={`All units (${windowUnits.length})`}
                     />
                   </div>
                   {anyFilter && (
                     <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                       <span>
                         Filtered to <span className="font-bold text-foreground">{filtered.length}</span> of{" "}
-                        {units.length} units
+                         {windowUnits.length} units
                       </span>
                       <Button
                         variant="ghost"

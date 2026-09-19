@@ -1,47 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { type ComponentType, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import {
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  ClipboardList,
-  Clock3,
-  IndianRupee,
-  MapPinned,
-  RotateCcw,
-  Search,
-  Users,
-  X,
-} from "lucide-react";
-import { useCurrentPermissions } from "@/lib/rbac";
-import { fetchAllPages } from "@/lib/supabase-batch";
-import { logActivity } from "@/lib/activity-log";
-
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-function monthRange(year: number, monthIdx: number) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const start = `${year}-${pad(monthIdx + 1)}-01`;
-  const last = new Date(year, monthIdx + 1, 0).getDate();
-  const end = `${year}-${pad(monthIdx + 1)}-${pad(last)}`;
-  return { start, end };
-}
-
-function currentMonthRange() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const start = `${y}-${pad(m + 1)}-01`;
-  const last = new Date(y, m + 1, 0).getDate();
-  const end = `${y}-${pad(m + 1)}-${pad(last)}`;
-  return { start, end };
-}
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+import { Search, X } from "lucide-react";
 
 import { HeroTile } from "@/components/HeroTile";
 import { Input } from "@/components/ui/input";
@@ -53,16 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
-import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
 import { AttendanceCharter } from "@/components/AttendanceCharter";
+import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
+import { formatPayrollPeriod, payrollPeriodForMonth } from "@/lib/payroll-period";
+import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 
 
+
+const searchSchema = z.object({
+  window: z.string().optional(),
+  month: z.coerce.number().min(0).max(11).optional(),
+  year: z.coerce.number().min(2000).max(2100).optional(),
+});
 
 export const Route = createFileRoute("/admin/attendance/")({
+  validateSearch: (search) => searchSchema.parse(search),
   component: AttendanceUnitsPage,
 });
 
@@ -105,12 +74,11 @@ type AttendancePageData = {
 const ACTIVE_EMPLOYEE_STATUSES = ["active"] as const;
 
 function AttendanceUnitsPage() {
-  const now = new Date();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [q, setQ] = useState("");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [unitFilter, setUnitFilter] = useState<string>("all");
-  const [monthIdx, setMonthIdx] = useState<number>(now.getMonth());
-  const [year, setYear] = useState<number>(now.getFullYear());
 
 
 
@@ -131,76 +99,25 @@ function AttendanceUnitsPage() {
     () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
     [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
+  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
+  const { monthIdx, year, selectedKey, selectedWindow, windowsByUnit, unitIdsForWindow } = periodSelection;
+  const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
+  const selectedPeriod = payrollPeriodForMonth(year, monthIdx, selectedWindow);
+  useEffect(() => {
+    if (!selectedKey) return;
+    void navigate({ search: { window: selectedKey, month: monthIdx, year }, replace: true });
+  }, [monthIdx, navigate, selectedKey, year]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
-    if (!foScope.isFieldOfficer) return all;
-    const allowed = new Set(units.map((u) => u.customer_id));
+    const allowed = new Set(windowUnits.map((u) => u.customer_id));
     return all.filter((o) => allowed.has(o.id));
-  }, [data?.organizations, foScope.isFieldOfficer, units]);
-  const employeesByCustomer = useMemo(() => {
-    const src = data?.employeesByCustomer ?? {};
-    if (!foScope.isFieldOfficer) return src;
-    const out: Record<string, typeof src[string]> = {};
-    for (const [cid, emps] of Object.entries(src)) {
-      const filtered = emps.filter((e) => foScope.unitIds.has(e.unit_id));
-      if (filtered.length) out[cid] = filtered;
-    }
-    return out;
-  }, [data?.employeesByCustomer, foScope.isFieldOfficer, foScope.unitIds]);
+  }, [data?.organizations, windowUnits]);
   const summary = useMemo(
     () => (foScope.isFieldOfficer
-      ? { organizations: organizations.length, units: units.length, activeEmployees: units.reduce((s, r) => s + r.active_employee_count, 0) }
-      : data?.summary ?? { organizations: 0, units: 0, activeEmployees: 0 }),
-    [foScope.isFieldOfficer, organizations, units, data?.summary],
+      ? { organizations: organizations.length, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }
+      : { organizations: new Set(windowUnits.map((u) => u.customer_id)).size, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }),
+    [foScope.isFieldOfficer, organizations, windowUnits],
   );
-
-  const queryClient = useQueryClient();
-  const { can } = useCurrentPermissions();
-  const canApprove = can("attendance", "approve");
-
-  type SheetStatus = "draft" | "submitted" | "approved" | "rejected";
-  type SheetInfo = { id: string; unit_id: string; status: SheetStatus; period_start: string; period_end: string };
-  const { start: monthStartISO, end: monthEndISO } = monthRange(year, monthIdx);
-  const sheetsQK = ["attendance-sheets-index", monthStartISO, monthEndISO] as const;
-  const { data: sheetsByUnit } = useQuery({
-    queryKey: sheetsQK,
-    queryFn: async (): Promise<Map<string, SheetInfo>> => {
-      const { data: rows, error: e } = await supabase
-        .from("attendance_sheets" as never)
-        .select("id, unit_id, status, period_start, period_end")
-        .lte("period_start", monthEndISO)
-        .gte("period_end", monthStartISO);
-      if (e) throw e;
-      const map = new Map<string, SheetInfo>();
-      for (const r of ((rows ?? []) as unknown as SheetInfo[])) {
-        const existing = map.get(r.unit_id);
-        if (!existing || r.period_start > existing.period_start) map.set(r.unit_id, r);
-      }
-      return map;
-    },
-  });
-
-  const reopenSheet = useMutation({
-    mutationFn: async (sheet: SheetInfo) => {
-      const { error } = await supabase
-        .from("attendance_sheets" as never)
-        .update({ status: "draft", rejection_reason: "" } as never)
-        .eq("id", sheet.id);
-      if (error) throw error;
-      void logActivity({
-        module: "Attendance",
-        action: "reopen",
-        entityType: "attendance_sheets",
-        entityLabel: `${sheet.unit_id} ${sheet.period_start} → ${sheet.period_end}`,
-        details: { unit_id: sheet.unit_id, period_start: sheet.period_start, period_end: sheet.period_end, status: "draft" },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: sheetsQK });
-      toast.success("Reopened for editing");
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to reopen"),
-  });
 
 
 
@@ -208,7 +125,7 @@ function AttendanceUnitsPage() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return units.filter((u) => {
+    return windowUnits.filter((u) => {
       if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
       if (unitFilter !== "all" && u.id !== unitFilter) return false;
       if (term) {
@@ -227,7 +144,7 @@ function AttendanceUnitsPage() {
       }
       return true;
     });
-  }, [q, orgFilter, unitFilter, units]);
+  }, [q, orgFilter, unitFilter, windowUnits]);
 
   const anyFilter = orgFilter !== "all" || unitFilter !== "all" || q.trim().length > 0;
 
@@ -236,34 +153,12 @@ function AttendanceUnitsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <HeroTile
-        eyebrow="Attendance month"
-        title={MONTH_NAMES[monthIdx]}
-        subtitle={String(year)}
-        description="Open a client’s monthly attendance."
+        eyebrow="Attendance payroll period"
+        title={formatPayrollPeriod(selectedPeriod)}
+        subtitle={selectedWindow?.label ?? "Contract window"}
+        description="Open a client’s attendance for this exact contract period."
         right={
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,0.7fr)] items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 sm:flex sm:w-auto sm:gap-1.5 sm:rounded-2xl sm:p-1.5">
-            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 shadow-none hover:bg-muted focus:ring-0 sm:w-[130px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTH_NAMES.map((m, i) => (
-                  <SelectItem key={m} value={String(i)}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="h-5 w-px bg-border/70" />
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 min-w-0 rounded-xl border-0 bg-transparent px-2 shadow-none hover:bg-muted focus:ring-0 sm:w-[92px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[year - 2, year - 1, year, year + 1].map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
         }
       />
 
@@ -285,7 +180,7 @@ function AttendanceUnitsPage() {
               Attendance charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
+               Committed vs actual deployment with period-to-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
         </div>
@@ -306,11 +201,12 @@ function AttendanceUnitsPage() {
               onQueryChange={setQ}
               organizationCount={summary.organizations}
               activeEmployees={summary.activeEmployees}
+              windowsByUnit={windowsByUnit}
               filters={
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <FilterSelect
-                      label="Client"
+                       label="Unit"
                       value={orgFilter}
                       onChange={setOrgFilter}
                       options={organizations.map((o) => ({
@@ -323,18 +219,18 @@ function AttendanceUnitsPage() {
                       label="Client"
                       value={unitFilter}
                       onChange={setUnitFilter}
-                      options={units.map((u) => ({
+                      options={windowUnits.map((u) => ({
                         value: u.id,
                         label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
                       }))}
-                      allLabel={`All units (${units.length})`}
+                      allLabel={`All units (${windowUnits.length})`}
                     />
                   </div>
                   {anyFilter && (
                     <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                       <span>
                         Filtered to <span className="font-bold text-foreground">{filtered.length}</span> of{" "}
-                        {units.length} units
+                         {windowUnits.length} units
                       </span>
                       <Button
                         variant="ghost"
