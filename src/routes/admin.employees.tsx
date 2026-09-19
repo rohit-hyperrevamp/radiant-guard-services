@@ -6553,6 +6553,9 @@ function CandidateWizard({
 
   // ---------- Stepped, mobile-first wizard ----------
   const { isFieldOfficer: wizardIsFieldOfficer } = useCurrentUserRole();
+  // Super Admin may jump freely between steps, even with earlier steps incomplete.
+  const { isSuperAdmin: wizardIsSuperAdmin, roleKey: wizardRoleKey } = useCurrentPermissions();
+  const canSkipSteps = wizardIsSuperAdmin || wizardRoleKey === "super_admin";
   const steps = useMemo(
     () => [
       { key: "aadhaar", label: "Aadhaar", caption: "Identity" },
