@@ -293,6 +293,23 @@ function UnitManagerPage() {
               ))}
             </SelectContent>
           </Select>
+          <MultiSelectFilter
+            options={stateOptions}
+            selected={stateFilter}
+            onChange={(next) => {
+              setStateFilter(next);
+              setCityFilter([]);
+            }}
+            allLabel="All states"
+            className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[180px]"
+          />
+          <MultiSelectFilter
+            options={cityOptions}
+            selected={cityFilter}
+            onChange={setCityFilter}
+            allLabel="All cities"
+            className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[180px]"
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[140px]">
               <SelectValue placeholder="Status" />
