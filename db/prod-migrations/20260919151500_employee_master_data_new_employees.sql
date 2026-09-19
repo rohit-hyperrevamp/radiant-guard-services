@@ -143,13 +143,13 @@ INSERT INTO public.candidates (
 )
 SELECT
   i.employee_code, 'CAN-E' || i.employee_code, COALESCE(i.full_name, ''), 'active', true, i.preferred_joining_date::date,
-  CASE WHEN i.mobile IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.candidates x WHERE x.mobile = i.mobile) THEN i.mobile END,
+  COALESCE(CASE WHEN i.mobile IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.candidates x WHERE x.mobile = i.mobile) THEN i.mobile END, ''),
   COALESCE(i.gender, ''), i.date_of_birth::date, i.preferred_joining_date::date, COALESCE(i.marital_status, ''), COALESCE(i.religion, ''),
   COALESCE(i.languages::jsonb, '[]'::jsonb),
   COALESCE(i.emergency_contact_name, ''), COALESCE(i.emergency_contact_mobile, ''), COALESCE(i.emergency_contact_relation, ''),
   COALESCE(i.present_address1, ''), COALESCE(i.present_address2, ''), COALESCE(i.present_city, ''), COALESCE(i.present_district, ''), COALESCE(i.present_state, ''), COALESCE(i.present_country, ''), COALESCE(i.present_pincode, ''),
   COALESCE(i.permanent_address1, ''), COALESCE(i.permanent_address2, ''), COALESCE(i.permanent_city, ''), COALESCE(i.permanent_district, ''), COALESCE(i.permanent_state, ''), COALESCE(i.permanent_pincode, ''),
-  CASE WHEN i.aadhaar_number IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.candidates x WHERE x.aadhaar_number = i.aadhaar_number) THEN i.aadhaar_number END,
+  COALESCE(CASE WHEN i.aadhaar_number IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.candidates x WHERE x.aadhaar_number = i.aadhaar_number) THEN i.aadhaar_number END, ''),
   COALESCE(i.pan_number, ''), COALESCE(i.bank_name, ''), COALESCE(i.bank_branch, ''), COALESCE(i.bank_account_number, ''), COALESCE(i.bank_ifsc, ''), COALESCE(i.bank_account_holder, ''),
   jsonb_strip_nulls(jsonb_build_object('father_name', i.father_name, 'mother_name', i.mother_name, 'spouse_name', i.spouse_name, 'education_level', i.education_level)),
   jsonb_strip_nulls(jsonb_build_object('blood_group', i.blood_group, 'height', i.height, 'weight', i.weight, 'chest', i.chest)),
