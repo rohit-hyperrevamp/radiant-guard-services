@@ -52,7 +52,7 @@ SELECT
     {"name":"ER LWF - MH","state":"Maharashtra","amount":12.5,"calcType":"fixed","capAmount":null,"percentage":0,"formulaMode":"preset","capFlatAmount":null,"baseComponents":[],"formulaVersion":3,"costComponentId":"70421294-a437-4e27-a0bd-5585513b8039","fixedCalcMethod":"flat","fixedDutyDivisor":null,"deductionCalcType":"earned_salary","formulaExpression":null,"fixedDutyComponents":[]},
     {"name":"Custom Management Fee","state":"Custom fixed amount","amount":1729,"calcType":"fixed","capAmount":null,"percentage":0,"formulaMode":null,"capFlatAmount":null,"baseComponents":[],"formulaVersion":null,"costComponentId":"__custom_management_fee__","formulaExpression":null}
   ]'::jsonb,
-  '',
+  NULL,
   8,
   'c82178db-3864-471f-b078-1510ea49a2f9'
 FROM client_contracts cc
