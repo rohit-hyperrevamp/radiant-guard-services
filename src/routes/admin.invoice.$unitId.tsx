@@ -1439,6 +1439,9 @@ function PayrollUnitPage() {
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 h-4 w-4" /> Export
           </Button>
+          <Button variant="outline" size="sm" onClick={exportMisFormat}>
+            <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
+          </Button>
           <Button variant="default" size="sm" onClick={exportTallyBilling}>
             <Download className="mr-1.5 h-4 w-4" /> Tally Billing File (XLSX)
           </Button>
