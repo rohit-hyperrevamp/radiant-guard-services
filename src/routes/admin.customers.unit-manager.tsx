@@ -231,6 +231,24 @@ function UnitManagerPage() {
     [scopedCustomers],
   );
 
+  // State / city come from the client's billing address, which is already
+  // populated for almost every client.
+  const stateOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const u of scopedUnits) if (u.billingState?.trim()) set.add(u.billingState.trim());
+    return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
+  }, [scopedUnits]);
+
+  const cityOptions = useMemo(() => {
+    const picked = new Set(stateFilter);
+    const set = new Set<string>();
+    for (const u of scopedUnits) {
+      if (picked.size && !picked.has((u.billingState || "").trim())) continue;
+      if (u.billingCity?.trim()) set.add(u.billingCity.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
+  }, [scopedUnits, stateFilter]);
+
   const activeCount = scopedUnits.filter((u) => u.status === "active").length;
 
   return (
