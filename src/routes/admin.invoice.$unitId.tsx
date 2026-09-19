@@ -1210,7 +1210,7 @@ function PayrollUnitPage() {
         "Month Rate": m.payrollDays,
         "Billing Rate": r2(m.contracted),
         "Billing Rate (Per Day)": m.perDay,
-        "OT Rate": m.perHour,
+        "OT Rate": otRate,
         "Working days": workingDays,
         "OT and Night duties": otDays,
         "OT Amount": otAmount,
