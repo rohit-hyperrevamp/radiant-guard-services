@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Plus, Trash2, Save, X } from "lucide-react";
+import { RecordViewButton } from "@/components/RecordViewButton";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -217,8 +218,23 @@ function RateCardsPage() {
                   <td className="p-3 text-right tabular-nums">{r.lead_time_days}</td>
                   <td className="p-3 text-center">{r.enabled ? "✓" : "—"}</td>
                   <td className="p-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}>Edit</Button>
-                    <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => { if (confirm("Delete rate card?")) delMut.mutate(r); }}><Trash2 className="h-4 w-4" /></Button>
+                    <RecordViewButton
+                      record={{
+                        vendor: v ? `${v.vendor_code} — ${v.name}` : "—",
+                        item: i ? `${i.item_code} — ${i.name}` : "—",
+                        size: r.size_value || "—",
+                        unit_price: `₹${Number(r.unit_price).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`,
+                        tax_percent: `${r.tax_percent}%`,
+                        min_order_qty: r.min_order_qty,
+                        lead_time_days: r.lead_time_days,
+                        enabled: r.enabled,
+                      }}
+                      title="Rate card"
+                      labels={{ unit_price: "Unit price", tax_percent: "Tax %", min_order_qty: "Minimum order qty", lead_time_days: "Lead time (days)" }}
+                      onEdit={() => { setEditing(r); setOpen(true); }}
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }} aria-label="Edit">Edit</Button>
+                    <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => { if (confirm("Delete rate card?")) delMut.mutate(r); }} aria-label="Delete"><Trash2 className="h-4 w-4" /></Button>
                   </td>
                 </tr>
               );
