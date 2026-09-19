@@ -216,7 +216,7 @@ function PayrollUnitPage() {
       const { data } = await supabase
         .from("units")
         .select(
-          "id, code, name, customer_id, epf_cap_enabled, gst_number, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
+          "id, code, name, customer_id, epf_cap_enabled, gst_number, zone, branch_sap_code, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -752,6 +752,8 @@ function PayrollUnitPage() {
           id: c.id,
           rowKey: pairKey(c.id, p.designationId),
           employeeCode: c.employee_code || "",
+          joiningDate:
+            ((c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null) as string | null,
           name: c.full_name || "—",
           designation: designationName,
           designationId: p.designationId,
