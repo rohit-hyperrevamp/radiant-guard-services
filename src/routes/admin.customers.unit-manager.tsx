@@ -173,7 +173,6 @@ function UnitManagerPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
-  const [peopleFor, setPeopleFor] = useState<Unit | null>(null);
 
   const branchById = useMemo(() => new Map(branches.map((b) => [b.id, b])), [branches]);
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
@@ -441,16 +440,6 @@ function UnitManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => setPeopleFor(u)}
-                        aria-label="People in this client"
-                        title="People in this client"
-                      >
-                        <Users className="h-4 w-4" />
-                      </Button>
                       <RecordViewButton
                         record={u}
                         title="Unit details"
@@ -500,35 +489,6 @@ function UnitManagerPage() {
         </div>
       </div>
 
-      <Dialog open={!!peopleFor} onOpenChange={(o) => !o && setPeopleFor(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              People in {peopleFor?.name ?? "unit"}
-            </DialogTitle>
-            <DialogDescription>
-              {peopleFor?.isBillable === false
-                ? "Department-wise hierarchy of everyone onboarded under this client."
-                : "Field officers and security guards deployed to this client."}
-            </DialogDescription>
-          </DialogHeader>
-          {peopleFor && (
-            <div className="max-h-[60vh] overflow-y-auto pr-1">
-              <UnitDeployedPeople
-                unitId={peopleFor.id}
-                branchId={peopleFor.branchId ?? null}
-                customerId={peopleFor.customerId ?? null}
-                stateName={
-                  peopleFor.branchId
-                    ? stateById.get(branchById.get(peopleFor.branchId)?.stateId ?? "")?.name ?? ""
-                    : ""
-                }
-                isBillable={peopleFor.isBillable !== false}
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <UnitFormDialog
         open={formOpen}
