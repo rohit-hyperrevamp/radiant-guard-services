@@ -589,7 +589,7 @@ function useContracts() {
         // in PostgREST, leaving every organisation/client cell blank even
         // though the contract rows had arrived. Three compact reads are both
         // faster and deterministic, and avoid loading the full unit records.
-        const [contractRows, unitRows, customerRows] = await Promise.all([
+        const [contractRows, directoryResult] = await Promise.all([
           fetchAllPages<Record<string, unknown>>((from, to) =>
             supabase
               .from("client_contracts" as never)
@@ -598,31 +598,22 @@ function useContracts() {
               .range(from, to)
               .abortSignal(controller.signal),
           ),
-          fetchAllPages<Record<string, unknown>>((from, to) =>
-            supabase
-              .from("units" as never)
-              .select("id,code,name,customer_id")
-              .order("id", { ascending: true })
-              .range(from, to)
-              .abortSignal(controller.signal),
-          ),
-          fetchAllPages<Record<string, unknown>>((from, to) =>
-            supabase
-              .from("customers" as never)
-              .select("id,name")
-              .order("id", { ascending: true })
-              .range(from, to)
-              .abortSignal(controller.signal),
-          ),
+          supabase.rpc("contract_register_directory" as never).abortSignal(controller.signal),
         ]);
-        const customersById = new Map(customerRows.map((row) => [String(row.id), row]));
-        const unitsById = new Map(unitRows.map((row) => [String(row.id), row]));
+        if (directoryResult.error) throw directoryResult.error;
+        const directoryRows = (directoryResult.data ?? []) as unknown as Record<string, unknown>[];
+        const unitsById = new Map(directoryRows.map((row) => [String(row.unit_id), row]));
         return contractRows.map((row) => {
           const unit = unitsById.get(String(row.unit_id ?? ""));
-          const customer = unit ? customersById.get(String(unit.customer_id ?? "")) : undefined;
           return rowToContract({
             ...row,
-            units: unit ? { ...unit, customers: customer ?? null } : null,
+            units: unit ? {
+              id: unit.unit_id,
+              code: unit.unit_code,
+              name: unit.unit_name,
+              customer_id: unit.customer_id,
+              customers: unit.customer_id ? { id: unit.customer_id, name: unit.customer_name } : null,
+            } : null,
           });
         });
       } catch (error) {
