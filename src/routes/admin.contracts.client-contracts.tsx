@@ -575,7 +575,7 @@ function nextProspectCode(existing: string[]): string {
 
 function useContracts() {
   const qc = useQueryClient();
-  const { data: items = [] } = useQuery({
+  const contractsQuery = useQuery({
     queryKey: QK,
     queryFn: async (): Promise<ClientContract[]> => {
       const { data, error } = await supabase
@@ -616,6 +616,7 @@ function useContracts() {
       return rows.map(rowToContract);
     },
   });
+  const items = contractsQuery.data ?? [];
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: QK });
@@ -949,7 +950,18 @@ function useContracts() {
     onSuccess: invalidate,
   });
 
-  return { items, addMut, updateMut, deleteMut, duplicateMut, updateStageMut, resubmitMut };
+  return {
+    items,
+    isLoading: contractsQuery.isLoading,
+    error: contractsQuery.error,
+    refetch: contractsQuery.refetch,
+    addMut,
+    updateMut,
+    deleteMut,
+    duplicateMut,
+    updateStageMut,
+    resubmitMut,
+  };
 }
 
 function useServiceTypes() {
@@ -2294,7 +2306,18 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
 
 function ClientContractsPage() {
   const qc = useQueryClient();
-  const { items, addMut, updateMut, deleteMut, duplicateMut, updateStageMut, resubmitMut } = useContracts();
+  const {
+    items,
+    isLoading,
+    error,
+    refetch,
+    addMut,
+    updateMut,
+    deleteMut,
+    duplicateMut,
+    updateStageMut,
+    resubmitMut,
+  } = useContracts();
   const { can, roleKey } = useCurrentPermissions();
   const canApprove = can("contracts", "approve");
   const canEdit = can("contracts", "edit");
@@ -2485,17 +2508,17 @@ function ClientContractsPage() {
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         kpis={
           <>
-            <PageStat label="Clients + Prospects" value={overview.total} />
+            <PageStat label="Clients + Prospects" value={isLoading ? "—" : overview.total} />
             <PageStat
               label="Active"
-              value={overview.active}
+              value={isLoading ? "—" : overview.active}
               tone="accent"
               active={statusFilter === "active"}
               onClick={() => applyStatusTile("active")}
             />
             <PageStat
               label="Renewals ≤ 6 months"
-              value={renewalCount6m}
+              value={isLoading ? "—" : renewalCount6m}
               tone="warning"
               active={renewalOnly}
               onClick={() => {
@@ -2506,7 +2529,7 @@ function ClientContractsPage() {
             />
             <PageStat
               label="Inactive"
-              value={overview.inactive}
+              value={isLoading ? "—" : overview.inactive}
               tone="warning"
               active={statusFilter === "inactive"}
               onClick={() => applyStatusTile("inactive")}
