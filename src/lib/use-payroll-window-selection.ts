@@ -73,5 +73,6 @@ export function usePayrollWindowSelection(
     isLoading: windowsQ.isLoading,
     selectWindow,
     shiftCycle,
+    setPeriod,
   };
 }
