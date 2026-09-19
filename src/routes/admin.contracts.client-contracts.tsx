@@ -148,12 +148,14 @@ function deriveStatus(c: {
   status: ContractStatus;
   approvalStatus: ApprovalStatus;
   prospectStage: ProspectStage;
+  endDate?: string;
 }): UnifiedStatus {
   if (c.prospectStage === "lost") return "lost";
   if (c.recordType === "prospect") {
     if (c.approvalStatus === "pending") return "pending_approval";
     if (c.approvalStatus === "rejected") return "inactive";
   }
+  if (c.status === "active" && c.endDate && c.endDate < new Date().toISOString().slice(0, 10)) return "expired";
   if (c.status === "expired") return "expired";
   if (c.status === "active") return "active";
   return "inactive";

@@ -286,6 +286,7 @@ function DashboardPage() {
       !showInventoryDashboard &&
       !opsFocus &&
       !lightMode &&
+      !!countsQuery.data &&
       (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
