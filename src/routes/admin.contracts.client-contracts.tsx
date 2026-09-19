@@ -2438,7 +2438,7 @@ function ClientContractsPage() {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enriched, query, statusFilter, orgFilter, unitFilter, tab, renewalOnly, renewalWindow]);
+  }, [enriched, query, statusFilter, orgFilter, unitFilter, windowFilter, tab, renewalOnly, renewalWindow]);
 
   const pg = usePagination(filtered);
 
@@ -2449,7 +2449,7 @@ function ClientContractsPage() {
   );
 
   const hasFilters =
-    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || renewalOnly;
+    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || windowFilter !== "all" || renewalOnly;
 
 
   const tabCounts = useMemo(() => {
