@@ -587,8 +587,8 @@ function useContracts() {
         // Keep the register request flat. The former nested
         // contracts -> units -> customers relationship intermittently stalled
         // in PostgREST, leaving every organisation/client cell blank even
-        // though the contract rows had arrived. Three compact reads are both
-        // faster and deterministic, and avoid loading the full unit records.
+        // though the contract rows had arrived. A flat register read plus the
+        // narrow directory RPC is deterministic and avoids full unit records.
         const [contractRows, directoryResult] = await Promise.all([
           fetchAllPages<Record<string, unknown>>((from, to) =>
             supabase
