@@ -79,10 +79,11 @@ function InvoiceUnitsPage() {
         title={formatPayrollPeriod(selectedPeriod)}
         subtitle={selectedWindow?.label ?? "Contract window"}
         description="Invoices from approved attendance."
-        right={
-          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
-        }
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} year={year} monthIdx={monthIdx} onWindowChange={periodSelection.selectWindow} onCycleChange={periodSelection.shiftCycle} />
+      </div>
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
         <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
