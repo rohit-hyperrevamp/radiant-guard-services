@@ -783,6 +783,8 @@ function unitToRow(data: Omit<Unit, "id">) {
     location: data.location.trim(),
     description: data.description.trim(),
     status: data.status,
+    zone: data.zone?.trim() || null,
+    branch_sap_code: data.branchSapCode?.trim() || null,
     branch_id: data.branchId || null,
     customer_id: data.customerId || null,
     onboarding_date: data.onboardingDate || null,
