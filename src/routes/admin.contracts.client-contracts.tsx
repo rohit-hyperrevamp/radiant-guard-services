@@ -2351,6 +2351,8 @@ function ClientContractsPage() {
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [windowFilter, setWindowFilter] = useState<string>("all");
+  const payrollWindows = usePayrollWindows();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ClientContract | null>(null);
@@ -2424,6 +2426,7 @@ function ClientContractsPage() {
       if (statusFilter !== "all" && deriveStatus(c) !== statusFilter) return false;
       if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
       if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
+      if (windowFilter !== "all" && (c.payrollWindowId ?? "") !== windowFilter) return false;
       if (!q) return true;
       return (
         c.contractCode.toLowerCase().includes(q) ||
@@ -2435,7 +2438,7 @@ function ClientContractsPage() {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enriched, query, statusFilter, orgFilter, unitFilter, tab, renewalOnly, renewalWindow]);
+  }, [enriched, query, statusFilter, orgFilter, unitFilter, windowFilter, tab, renewalOnly, renewalWindow]);
 
   const pg = usePagination(filtered);
 
@@ -2446,7 +2449,7 @@ function ClientContractsPage() {
   );
 
   const hasFilters =
-    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || renewalOnly;
+    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || windowFilter !== "all" || renewalOnly;
 
 
   const tabCounts = useMemo(() => {
@@ -2749,11 +2752,36 @@ function ClientContractsPage() {
               setOrgFilter("all");
               setUnitFilter("all");
               setStatusFilter("all");
+              setWindowFilter("all");
               setRenewalOnly(false);
             }}
           >
             <X className="mr-1.5 h-4 w-4" /> Clear
           </Button>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border/60 pt-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Payroll window
+          </span>
+          <Select value={windowFilter} onValueChange={setWindowFilter}>
+            <SelectTrigger className="h-9 w-[220px] rounded-lg">
+              <SelectValue placeholder="All windows" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All windows</SelectItem>
+              {payrollWindows.map((w) => (
+                <SelectItem key={w.id} value={w.id}>
+                  {w.label} ({w.windowStartDay}–{w.windowEndDay})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {windowFilter !== "all" && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {filtered.length} contract{filtered.length === 1 ? "" : "s"} in this window — matches
+              Attendance, Payroll &amp; Invoicing scope
+            </span>
+          )}
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
           {isLoading ? (
