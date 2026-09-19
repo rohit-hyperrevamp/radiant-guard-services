@@ -15,6 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { RadialGauge } from "@/components/charts/RadialGauge";
+import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
@@ -184,7 +185,10 @@ function DashboardPage() {
     staleTime: 2 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
+    retry: false,
     queryFn: async () => {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), 12_000);
       const sixtyDaysOut = new Date();
       sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60);
       const sixtyStr = sixtyDaysOut.toISOString().slice(0, 10);
@@ -192,20 +196,31 @@ function DashboardPage() {
 
       // Single round trip: the counts, the month status buckets and the
       // expiring-contract list are all aggregated in the database.
-      const [{ data, error }, { data: lifecycleData, error: lifecycleError }] = await Promise.all([
-        supabase.rpc("dashboard_counts" as never, {
-          p_start: monthStart,
-          p_end: monthEnd,
-          p_today: todayStr,
-          p_horizon: sixtyStr,
-        } as never),
-        can("attendance") || can("payroll") || can("invoice")
-          ? supabase.rpc("dashboard_lifecycle_counts" as never, {
-              p_year: year,
-              p_month: month + 1,
-            } as never)
-          : Promise.resolve({ data: null, error: null }),
-      ]);
+      let results;
+      try {
+        results = await Promise.all([
+          supabase.rpc("dashboard_counts" as never, {
+            p_start: monthStart,
+            p_end: monthEnd,
+            p_today: todayStr,
+            p_horizon: sixtyStr,
+          } as never).abortSignal(controller.signal),
+          can("attendance") || can("payroll") || can("invoice")
+            ? supabase.rpc("dashboard_lifecycle_counts" as never, {
+                p_year: year,
+                p_month: month + 1,
+              } as never).abortSignal(controller.signal)
+            : Promise.resolve({ data: null, error: null }),
+        ]);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error("Dashboard took too long to load. Please try again.");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timer);
+      }
+      const [{ data, error }, { data: lifecycleData, error: lifecycleError }] = results;
       if (error) throw error;
       if (lifecycleError) throw lifecycleError;
 
@@ -271,6 +286,7 @@ function DashboardPage() {
       !showInventoryDashboard &&
       !opsFocus &&
       !lightMode &&
+      !!countsQuery.data &&
       (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
@@ -578,6 +594,22 @@ function DashboardPage() {
     );
   }
 
+  if (countsQuery.error && !countsQuery.data) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
+          <h1 className="text-lg font-semibold">Dashboard could not load</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {countsQuery.error instanceof Error ? countsQuery.error.message : "Something went wrong while loading your data."}
+          </p>
+          <Button className="mt-5" onClick={() => void countsQuery.refetch()}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
 
   // RBAC: commercial figures never reach the render tree for roles without
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
@@ -645,7 +677,7 @@ function DashboardPage() {
               <OperationsOrgTree />
             </>
           ) : (
-            <>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}{departmentTree}</>
+            <>{!isLoading && data && (<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}{departmentTree}</>)}</>
           )
         }
       >
