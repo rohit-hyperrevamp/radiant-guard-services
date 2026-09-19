@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { z } from "zod";
@@ -30,7 +30,6 @@ export const Route = createFileRoute("/admin/invoice/")({
 
 function InvoiceUnitsPage() {
   const search = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [q, setQ] = useState("");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [unitFilter, setUnitFilter] = useState<string>("all");
@@ -50,10 +49,6 @@ function InvoiceUnitsPage() {
   const { monthIdx, year, selectedKey, selectedWindow, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
   const selectedPeriod = payrollPeriodForMonth(year, monthIdx, selectedWindow);
-  useEffect(() => {
-    if (!selectedKey) return;
-    void navigate({ search: { window: selectedKey, month: monthIdx, year }, replace: true });
-  }, [monthIdx, navigate, selectedKey, year]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
