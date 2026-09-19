@@ -76,8 +76,8 @@ const ACTIVE_EMPLOYEE_STATUSES = ["active"] as const;
 function AttendanceUnitsPage() {
   const search = Route.useSearch();
   const [q, setQ] = useState("");
-  const [orgFilter, setOrgFilter] = useState<string>("all");
-  const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
+  const [unitFilter, setUnitFilter] = useState<string[]>([]);
 
 
 
@@ -121,8 +121,8 @@ function AttendanceUnitsPage() {
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return windowUnits.filter((u) => {
-      if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
-      if (unitFilter !== "all" && u.id !== unitFilter) return false;
+      if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
+      if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
       if (term) {
         const hay = [
           u.customer_name,
@@ -141,7 +141,7 @@ function AttendanceUnitsPage() {
     });
   }, [q, orgFilter, unitFilter, windowUnits]);
 
-  const anyFilter = orgFilter !== "all" || unitFilter !== "all" || q.trim().length > 0;
+  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || q.trim().length > 0;
 
 
 
