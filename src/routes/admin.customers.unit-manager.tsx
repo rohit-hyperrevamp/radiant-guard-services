@@ -171,6 +171,8 @@ function UnitManagerPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
@@ -188,6 +190,8 @@ function UnitManagerPage() {
           ...u,
           branchLabel: br ? `${br.code} – ${stName}` : "—",
           customerLabel: u.customerId ? customerById.get(u.customerId)?.name ?? "—" : "—",
+          stateLabel: (u.billingState || "").trim(),
+          cityLabel: (u.billingCity || "").trim(),
         };
       })
       .sort((a, b) => {
@@ -195,9 +199,13 @@ function UnitManagerPage() {
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
       });
+    const stateSet = new Set(stateFilter);
+    const citySet = new Set(cityFilter);
     const filtered = list.filter((u) => {
       if (statusFilter !== "all" && u.status !== statusFilter) return false;
       if (orgFilter !== "all" && u.customerId !== orgFilter) return false;
+      if (stateSet.size && !stateSet.has(u.stateLabel)) return false;
+      if (citySet.size && !citySet.has(u.cityLabel)) return false;
       return true;
     });
     if (!query.trim()) return filtered;
@@ -208,9 +216,13 @@ function UnitManagerPage() {
         u.name.toLowerCase().includes(q) ||
         u.location.toLowerCase().includes(q) ||
         u.branchLabel.toLowerCase().includes(q) ||
-        u.customerLabel.toLowerCase().includes(q),
+        u.customerLabel.toLowerCase().includes(q) ||
+        u.stateLabel.toLowerCase().includes(q) ||
+        u.cityLabel.toLowerCase().includes(q) ||
+        u.zone.toLowerCase().includes(q) ||
+        u.branchSapCode.toLowerCase().includes(q),
     );
-  }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter]);
+  }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter, stateFilter, cityFilter]);
 
   const pg = usePagination(rows);
 
