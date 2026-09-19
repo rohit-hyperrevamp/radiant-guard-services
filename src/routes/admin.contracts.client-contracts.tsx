@@ -2756,7 +2756,13 @@ function ClientContractsPage() {
           </Button>
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
-          Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {items.length} contracts
+          {isLoading ? (
+            "Loading contracts…"
+          ) : error ? (
+            "Contracts could not be loaded."
+          ) : (
+            <>Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {items.length} contracts</>
+          )}
           {renewalOnly && (
             <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-600">
               Up for renewal by {renewalWindow.to}
@@ -2969,7 +2975,25 @@ function ClientContractsPage() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {isLoading && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                    Loading contracts…
+                  </td>
+                </tr>
+              )}
+              {!isLoading && error && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-destructive">
+                    <ShieldAlert className="mx-auto mb-2 h-6 w-6" />
+                    <p>{error instanceof Error ? error.message : "Contracts could not be loaded."}</p>
+                    <Button className="mt-4" variant="outline" onClick={() => void refetch()}>
+                      <RefreshCcw className="mr-1.5 h-4 w-4" /> Try again
+                    </Button>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     <FileText className="mx-auto mb-2 h-6 w-6 opacity-50" />
