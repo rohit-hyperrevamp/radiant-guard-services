@@ -2376,15 +2376,15 @@ function ClientContractsPage() {
     if (!search.status && !search.tab && !search.renewals) return;
     appliedDeepLink.current = true;
     if (search.tab && !isHrReadOnly) setTab(search.tab);
-    if (search.status) setStatusFilter(search.status);
+    if (search.status) setStatusFilter([search.status]);
     if (search.renewals) {
       setTab("client");
-      setStatusFilter("all");
+      setStatusFilter([]);
       setRenewalOnly(true);
     }
     if (search.unit) {
       setTab("client");
-      setUnitFilter(search.unit);
+      setUnitFilter([search.unit]);
     }
   }, [search.status, search.tab, search.renewals, search.unit]);
 
