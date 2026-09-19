@@ -1151,7 +1151,15 @@ function PayrollUnitPage() {
       invoiceSheetData?.invoiceNumber ??
       `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(unit?.code ?? "").toUpperCase()}`;
     const entity = orgSettings?.company_name || "Radiant";
-    const branchName = [unit?.customer_name, unit?.name || unit?.code].filter(Boolean).join(", ");
+    const siteLabel = unit?.name || unit?.code || "";
+    const clientLabel = unit?.customer_name ?? "";
+    // The client's own MIS prints "<entity>, <branch>". Avoid repeating the client
+    // name when the site name already carries it.
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const branchName =
+      clientLabel && !norm(siteLabel).includes(norm(clientLabel))
+        ? [clientLabel, siteLabel].filter(Boolean).join(", ")
+        : siteLabel;
     const stateName = unit?.billing_state ?? "";
     const sapCode = (unit as { branch_sap_code?: string | null } | null | undefined)?.branch_sap_code ?? "";
     const zone = (unit as { zone?: string | null } | null | undefined)?.zone ?? "";
@@ -1174,7 +1182,10 @@ function PayrollUnitPage() {
       const otDays = Math.round((r.totals.otDays ?? 0) * 100) / 100;
       const workingDays = Math.round(Math.max(0, (m.billedDays ?? 0) - otDays) * 100) / 100;
       const otHours = Math.round((r.totals.otHours ?? 0) * 100) / 100;
-      const otAmount = r2(m.perHour * otHours);
+      // The client MIS always derives the OT rate from an 8-hour day, regardless
+      // of the contracted shift length.
+      const otRate = r2(m.perDay / 8);
+      const otAmount = r2(otRate * otHours);
       const regular = r2(m.perDay * workingDays);
       const otBilling = r2(m.perDay * otDays);
       const totalBilling = r2(regular + otBilling + otAmount);
@@ -1199,7 +1210,7 @@ function PayrollUnitPage() {
         "Month Rate": m.payrollDays,
         "Billing Rate": r2(m.contracted),
         "Billing Rate (Per Day)": m.perDay,
-        "OT Rate": m.perHour,
+        "OT Rate": otRate,
         "Working days": workingDays,
         "OT and Night duties": otDays,
         "OT Amount": otAmount,
