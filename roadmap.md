@@ -175,6 +175,6 @@
 - [ ] Verify all production mappings and produce a detailed PDF reconciliation report.
 
 ## Dashboard and contract loading performance
-- [ ] Replace Contracts full client preload with a compact contract-specific lookup.
-- [ ] Move dashboard lifecycle totals into one production summary call.
-- [ ] Verify production timings, live rendering, and TypeScript validation.
+- [x] Replace Contracts full client preload with a compact contract-specific lookup.
+- [x] Move dashboard lifecycle totals into one production summary call.
+- [x] Verify production timings and TypeScript validation; production screen verification follows deployment.
