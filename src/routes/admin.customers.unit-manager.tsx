@@ -273,8 +273,8 @@ function UnitManagerPage() {
       />
 
       <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-2.5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full flex-col gap-2 sm:max-w-2xl sm:flex-row sm:items-center">
-          <div className="relative w-full sm:max-w-sm">
+        <div className="flex w-full flex-col gap-2 sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:min-w-56 sm:max-w-sm sm:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -284,7 +284,7 @@ function UnitManagerPage() {
             />
           </div>
           <Select value={orgFilter} onValueChange={setOrgFilter}>
-            <SelectTrigger className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[220px]">
+            <SelectTrigger className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[220px]">
               <SelectValue placeholder="All organisations" />
             </SelectTrigger>
             <SelectContent>
@@ -302,17 +302,17 @@ function UnitManagerPage() {
               setCityFilter([]);
             }}
             allLabel="All states"
-            className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[180px]"
+            className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-auto sm:min-w-36"
           />
           <MultiSelectFilter
             options={cityOptions}
             selected={cityFilter}
             onChange={setCityFilter}
             allLabel="All cities"
-            className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[180px]"
+            className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-auto sm:min-w-36"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 w-full rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[140px]">
+            <SelectTrigger className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
