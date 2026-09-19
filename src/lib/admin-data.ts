@@ -535,6 +535,10 @@ export type Unit = {
   location: string;
   description: string;
   status: CustomerStatus;
+  /** Optional operational zone label. */
+  zone: string;
+  /** Optional client-side SAP code for this branch/site. */
+  branchSapCode: string;
   branchId: string | null;
   customerId: string | null;
   onboardingDate: string;
@@ -629,6 +633,8 @@ type UnitRow = {
   location: string | null;
   description: string | null;
   status: CustomerStatus;
+  zone?: string | null;
+  branch_sap_code?: string | null;
   branch_id: string | null;
   customer_id: string | null;
   onboarding_date: string | null;
