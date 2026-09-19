@@ -173,3 +173,8 @@
 - [ ] Match or create field officers only where the sheet provides a usable client ID/name.
 - [ ] Assign matched field officers to the corresponding units and reporting heads.
 - [ ] Verify all production mappings and produce a detailed PDF reconciliation report.
+
+## Dashboard and contract loading performance
+- [ ] Replace Contracts full client preload with a compact contract-specific lookup.
+- [ ] Move dashboard lifecycle totals into one production summary call.
+- [ ] Verify production timings, live rendering, and TypeScript validation.
