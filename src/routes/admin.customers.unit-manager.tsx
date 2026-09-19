@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { notifySaved } from "@/components/ConfirmProvider";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
