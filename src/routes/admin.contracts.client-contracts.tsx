@@ -2696,62 +2696,38 @@ function ClientContractsPage() {
               className="h-10 rounded-lg pl-9"
             />
           </div>
-          <Select
-            value={orgFilter}
-            onValueChange={(v) => {
+          <MultiSelectFilter
+            selected={orgFilter}
+            onChange={(v) => {
               setOrgFilter(v);
-              setUnitFilter("all");
+              setUnitFilter([]);
             }}
-          >
-            <SelectTrigger className="h-10 rounded-lg">
-              <SelectValue placeholder="Organization" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All organizations</SelectItem>
-              {customers.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={unitFilter} onValueChange={setUnitFilter}>
-            <SelectTrigger className="h-10 rounded-lg">
-              <SelectValue placeholder="Client" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All units</SelectItem>
-              {units
-                .filter((u) => orgFilter === "all" || u.customerId === orgFilter)
-                .map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.code} – {u.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 rounded-lg">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={customers.map((c) => ({ value: c.id, label: c.name }))}
+            allLabel="All organizations"
+          />
+          <MultiSelectFilter
+            selected={unitFilter}
+            onChange={setUnitFilter}
+            options={units
+              .filter((u) => orgFilter.length === 0 || (u.customerId != null && orgFilter.includes(u.customerId)))
+              .map((u) => ({ value: u.id, label: `${u.code} – ${u.name}` }))}
+            allLabel="All units"
+          />
+          <MultiSelectFilter
+            selected={statusFilter}
+            onChange={setStatusFilter}
+            options={STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
+            allLabel="All statuses"
+          />
           <Button
             variant="outline"
             className="h-10 rounded-lg"
             disabled={!hasFilters}
             onClick={() => {
               setQuery("");
-              setOrgFilter("all");
-              setUnitFilter("all");
-              setStatusFilter("all");
+              setOrgFilter([]);
+              setUnitFilter([]);
+              setStatusFilter([]);
               setWindowFilter("all");
               setRenewalOnly(false);
             }}
