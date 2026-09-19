@@ -1132,6 +1132,107 @@ function PayrollUnitPage() {
     downloadCsv(`invoice-${unit?.code ?? unitId}-${start}-${end}`, dataRows, columns);
   };
 
+  /**
+   * Manpower-wise MIS export — exactly the client MIS workbook layout
+   * (Sr. No … Grand Total). Every value is pulled from the open client's own
+   * roster, contract rate card and approved attendance for this period.
+   */
+  const exportMisFormat = async () => {
+    const dmy = (iso: string | null | undefined) => {
+      const s = String(iso ?? "").slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
+      const [y, m, d] = s.split("-");
+      return `${d}-${m}-${y}`;
+    };
+    const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    const [ys, ms] = start.split("-").map(Number);
+    const fyEnd = (ms >= 4 ? ys : ys - 1) + 1;
+    const invoiceNo =
+      invoiceSheetData?.invoiceNumber ??
+      `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(unit?.code ?? "").toUpperCase()}`;
+    const entity = orgSettings?.company_name || "Radiant";
+    const branchName = [unit?.customer_name, unit?.name || unit?.code].filter(Boolean).join(", ");
+    const stateName = unit?.billing_state ?? "";
+    const sapCode = (unit as { branch_sap_code?: string | null } | null | undefined)?.branch_sap_code ?? "";
+    const zone = (unit as { zone?: string | null } | null | undefined)?.zone ?? "";
+    const monthDays = periodDates.length;
+
+    const headers = [
+      "Sr. No", "Invoice No", "Invoice Date", "Emp Code", "Employee Name",
+      "Regular/ Reliever Guard", "DOJ", "Entity", "Designation", "Location/Branch Name",
+      "State", "Branch SAP Code", "Zone", "Month Days", "Month Rate",
+      "Billing Rate", "Billing Rate (Per Day)", "OT Rate", "Working days",
+      "OT and Night duties", "OT Amount", "Working days Billing with OT",
+      "Total Regular Billing Amt", "OT & Night Duty Billing Amt", "Total Billing Amt",
+      "CGST @9%", "SGST @9%", "IGST @18%", "Grand Total",
+    ];
+    const columns = headers.map((h) => ({ key: h, header: h }));
+
+    const billable = rows.filter((r) => r.wages && r.resource);
+    const dataRows = billable.map((r, i) => {
+      const m = invoiceMathFor(r);
+      const otDays = Math.round((r.totals.otDays ?? 0) * 100) / 100;
+      const workingDays = Math.round(Math.max(0, (m.billedDays ?? 0) - otDays) * 100) / 100;
+      const otHours = Math.round((r.totals.otHours ?? 0) * 100) / 100;
+      const otAmount = r2(m.perHour * otHours);
+      const regular = r2(m.perDay * workingDays);
+      const otBilling = r2(m.perDay * otDays);
+      const totalBilling = r2(regular + otBilling + otAmount);
+      const cgst = isIntraStateCurrent ? r2(totalBilling * (GST_RATE / 2 / 100)) : 0;
+      const sgst = isIntraStateCurrent ? r2(totalBilling * (GST_RATE / 2 / 100)) : 0;
+      const igst = isIntraStateCurrent ? 0 : r2(totalBilling * (GST_RATE / 100));
+      const row: Record<string, unknown> = {
+        "Sr. No": i + 1,
+        "Invoice No": invoiceNo,
+        "Invoice Date": dmy(end),
+        "Emp Code": r.employeeCode,
+        "Employee Name": r.name,
+        "Regular/ Reliever Guard": r.isPrimary ? "Regular" : "Reliever",
+        "DOJ": dmy(r.joiningDate),
+        "Entity": entity,
+        "Designation": `${r.designation} @ (${m.shiftHours})`,
+        "Location/Branch Name": branchName,
+        "State": stateName,
+        "Branch SAP Code": sapCode,
+        "Zone": zone,
+        "Month Days": monthDays,
+        "Month Rate": m.payrollDays,
+        "Billing Rate": r2(m.contracted),
+        "Billing Rate (Per Day)": m.perDay,
+        "OT Rate": m.perHour,
+        "Working days": workingDays,
+        "OT and Night duties": otDays,
+        "OT Amount": otAmount,
+        "Working days Billing with OT": r2(regular + otBilling),
+        "Total Regular Billing Amt": regular,
+        "OT & Night Duty Billing Amt": r2(otBilling + otAmount),
+        "Total Billing Amt": totalBilling,
+        "CGST @9%": cgst,
+        "SGST @9%": sgst,
+        "IGST @18%": igst,
+        "Grand Total": r2(totalBilling + cgst + sgst + igst),
+      };
+      return row;
+    });
+
+    const numericCols = headers.slice(18);
+    const totalsRow: Record<string, unknown> = {};
+    headers.forEach((h) => { totalsRow[h] = ""; });
+    totalsRow["Employee Name"] = "TOTAL";
+    numericCols.forEach((h) => {
+      totalsRow[h] = r2(dataRows.reduce((s, x) => s + (Number(x[h]) || 0), 0));
+    });
+
+    await writeXlsx({
+      filename: `MIS_${(unit?.code || unitId).toUpperCase()}_${start}_to_${end}`,
+      rows: dataRows.length > 0 ? [...dataRows, totalsRow] : [{}],
+      columns,
+    });
+  };
+
+
+
+
 
 
   const exportTallyBilling = async () => {
