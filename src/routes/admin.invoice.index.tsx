@@ -39,7 +39,7 @@ function InvoiceUnitsPage() {
     [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
-  const { monthIdx, year, selectedKey, selectedWindow, windowsByUnit, unitIdsForWindow } = periodSelection;
+  const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
