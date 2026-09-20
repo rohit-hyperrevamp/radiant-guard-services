@@ -1837,6 +1837,8 @@ function MusterRollPage() {
     setOcrSummary(null);
     setUploadReadyToContinue(false);
     setUploadOpen(true);
+    // Start reading straight away — the person already confirmed the scan.
+    autoReadRef.current = true;
   };
 
   /** Read every selected photo one after another into this muster. */
