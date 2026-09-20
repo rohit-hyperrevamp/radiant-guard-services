@@ -153,8 +153,8 @@ function MisManagerPage() {
     });
   }, [templates, q, customerById]);
 
-  const pager = usePagination(filtered.length);
-  const pageRows = filtered.slice(pager.from, pager.to);
+  const pager = usePagination(filtered);
+  const pageRows = pager.pageRows;
 
   const resetForm = () => {
     setEditing(null);
@@ -375,7 +375,8 @@ function MisManagerPage() {
                               const ok = await confirmAction({
                                 title: "Remove this MIS format?",
                                 description: "The organization will fall back to the standard MIS sheet.",
-                                confirmLabel: "Yes, remove",
+                                confirmText: "Yes, remove",
+                                destructive: true,
                               });
                               if (ok) deleteMut.mutate(t);
                             }}
@@ -557,8 +558,8 @@ function MisUnitValuesDialog({
     if (!needle) return units;
     return units.filter((u) => [u.name, u.code].some((v) => String(v ?? "").toLowerCase().includes(needle)));
   }, [units, q]);
-  const pager = usePagination(filtered.length);
-  const pageRows = filtered.slice(pager.from, pager.to);
+  const pager = usePagination(filtered);
+  const pageRows = pager.pageRows;
 
   const valueOf = (colId: string, unitId: string) => {
     const key = `${colId}|${unitId}`;
