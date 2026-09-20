@@ -243,4 +243,4 @@
 - [x] Replace the separate More drawer with an expanding black dock.
 - [x] Rework the Payroll top controls for mobile.
 - [x] Finish the cross-page data, table, and form visibility audit.
-- [ ] Run final TypeScript and responsive integrity checks.
+- [x] Run final TypeScript and responsive integrity checks.
