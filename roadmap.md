@@ -209,3 +209,8 @@
 - [x] Add Download Tally Format on the invoice list as one combined workbook for all filtered invoices.
 - [x] Shorten MIS Format (XLSX) to MIS Format on both invoice screens.
 - [x] bunx tsgo --noEmit passes.
+
+## Document scanning for attendance photos — done
+- src/lib/document-scan.ts: paper detection, perspective correction, shadow flattening, sharpening, quality scoring with guidance hints.
+- src/components/DocumentScanCamera.tsx: live camera with real-time coaching and auto-capture when clear.
+- Wired into attendance upload dialog (scan on manual upload, cleaned/original toggle, per-photo tips) and Migration Utility photo uploads.

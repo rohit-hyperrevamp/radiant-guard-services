@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare } from "lucide-react";
+import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
+import { scanDocument, qualityTone, type ScanQuality, type ScanResult } from "@/lib/document-scan";
+import { DocumentScanCamera } from "@/components/DocumentScanCamera";
 import {
   SCAN_JOBS_QK,
   failScanJob,
@@ -171,6 +173,17 @@ async function downscaleImage(file: File, maxDim: number, quality: number): Prom
   ctx.drawImage(bitmap as CanvasImageSource, 0, 0, tw, th);
   return canvas.toDataURL("image/jpeg", quality);
 }
+
+/** One photo of the muster, with its cleaned scan and quality verdict. */
+type UploadPage = {
+  name: string;
+  /** Cleaned, perspective-corrected image. */
+  dataUrl: string;
+  /** Untouched photo, used when the person prefers the original. */
+  originalDataUrl: string;
+  cropped: boolean;
+  quality: ScanQuality | null;
+};
 
 /**
  * Attendance register period = the contract's payroll window.
@@ -1625,13 +1638,18 @@ function MusterRollPage() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   // Several photos of the same muster (page 1, page 2, …) are read one after
   // another so a multi-page sheet can be uploaded in one go.
-  const [uploadImages, setUploadImages] = useState<Array<{ name: string; dataUrl: string }>>([]);
+  const [uploadImages, setUploadImages] = useState<UploadPage[]>([]);
   const [scanStep, setScanStep] = useState<{ index: number; total: number } | null>(null);
   const [processingOcr, setProcessingOcr] = useState(false);
   const [uncertainCells, setUncertainCells] = useState<Set<string>>(new Set());
   const [ocrSummary, setOcrSummary] = useState<string | null>(null);
   const [uploadReadyToContinue, setUploadReadyToContinue] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  // Document-scan state: every photo is auto-cropped, straightened and cleaned
+  // before it is read, and the person is told when a photo is too poor to use.
+  const [preparingScan, setPreparingScan] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [useCleaned, setUseCleaned] = useState(true);
 
   // ---- Reading progress (keeps running after the dialog is closed) ----
   const [scanPct, setScanPct] = useState(0);
@@ -1714,6 +1732,31 @@ function MusterRollPage() {
     }
   };
 
+  /**
+   * Run every picked photo through the document scanner: find the sheet, remove
+   * the camera angle, flatten shadows and sharpen. The untouched photo is kept
+   * so a bad crop can always be overridden.
+   */
+  const prepareScans = async (files: File[]): Promise<UploadPage[]> => {
+    const out: UploadPage[] = [];
+    for (const f of files) {
+      try {
+        const scan = await scanDocument(f);
+        out.push({
+          name: f.name,
+          dataUrl: scan.dataUrl,
+          originalDataUrl: scan.originalDataUrl,
+          cropped: scan.cropped,
+          quality: scan.quality,
+        });
+      } catch {
+        const raw = await readImageDataUrl(f);
+        out.push({ name: f.name, dataUrl: raw, originalDataUrl: raw, cropped: false, quality: null });
+      }
+    }
+    return out;
+  };
+
   const onPickUploadFiles = (files: File[]) => {
     setUploadFile(files[0] ?? null);
     setUploadPreview(null);
@@ -1743,22 +1786,53 @@ function MusterRollPage() {
 
     if (images.length) {
       setUploadKind("image");
-      void Promise.all(images.map(async (f) => ({ name: f.name, dataUrl: await readImageDataUrl(f) })))
+      setUseCleaned(true);
+      setPreparingScan(true);
+      void prepareScans(images)
         .then((list) => {
           setUploadImages(list);
           setUploadPreview(list[0]?.dataUrl ?? null);
+          const poor = list.filter((p) => p.quality?.verdict === "poor");
+          if (poor.length) {
+            toast.warning(
+              poor.length === 1
+                ? `${poor[0]!.name}: ${poor[0]!.quality?.hint ?? "photo quality is poor"}`
+                : `${poor.length} photos are unclear — check the tips shown on each`,
+            );
+          }
         })
-        .catch(() => toast.error("Could not read the selected photos."));
+        .catch(() => toast.error("Could not read the selected photos."))
+        .finally(() => setPreparingScan(false));
     } else {
       setUploadKind("excel");
       setUploadPreview(files[0]!.name);
     }
   };
 
+  /** Accept pages captured with the live camera scanner. */
+  const onCameraCapture = (captured: Array<{ name: string; dataUrl: string; scan: ScanResult }>) => {
+    if (!captured.length) return;
+    const list: UploadPage[] = captured.map((c) => ({
+      name: c.name,
+      dataUrl: c.scan.dataUrl,
+      originalDataUrl: c.scan.originalDataUrl,
+      cropped: c.scan.cropped,
+      quality: c.scan.quality,
+    }));
+    setUploadKind("image");
+    setUseCleaned(true);
+    setUploadImages(list);
+    setUploadPreview(list[0]!.dataUrl);
+    setUploadFile(new File([], list[0]!.name, { type: "image/jpeg" }));
+    setOcrSummary(null);
+    setUploadReadyToContinue(false);
+    setUploadOpen(true);
+  };
+
   /** Read every selected photo one after another into this muster. */
   const processAttendanceImages = async () => {
-    const pages = uploadImages.length
-      ? uploadImages
+    const pages: Array<{ name: string; dataUrl: string }> = uploadImages.length
+      ? uploadImages.map((p) => ({ name: p.name, dataUrl: useCleaned ? p.dataUrl : p.originalDataUrl }))
       : uploadPreview
         ? [{ name: uploadFile?.name ?? "sheet", dataUrl: uploadPreview }]
         : [];
@@ -2721,39 +2795,80 @@ function MusterRollPage() {
               onChange={(e) => onPickUploadFiles(Array.from(e.target.files ?? []))}
             />
             {!uploadFile ? (
-              <button
-                type="button"
-                onClick={() => uploadInputRef.current?.click()}
-                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-              >
-                <Upload className="h-6 w-6" />
-                <span>Upload images or Excel</span>
-                <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => uploadInputRef.current?.click()}
+                  className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                >
+                  <Upload className="h-6 w-6" />
+                  <span>Upload images or Excel</span>
+                  <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
+                </button>
+                <Button variant="outline" className="w-full" onClick={() => setCameraOpen(true)}>
+                  <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
+                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  Every photo is automatically straightened, cropped to the sheet and sharpened before it is read.
+                </p>
+              </div>
             ) : uploadKind === "image" && uploadPreview ? (
               <div className="space-y-2">
+                {preparingScan ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning and cleaning the photos…
+                  </div>
+                ) : null}
                 {uploadImages.length > 1 ? (
                   <div className="grid grid-cols-3 gap-2">
                     {uploadImages.map((img, i) => (
                       <div key={`${img.name}-${i}`} className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                        <img src={img.dataUrl} alt={img.name} className="h-28 w-full object-cover" />
+                        <img src={useCleaned ? img.dataUrl : img.originalDataUrl} alt={img.name} className="h-28 w-full object-cover" />
                         <div className="truncate px-2 py-1 text-[10px] text-muted-foreground">{i + 1}. {img.name}</div>
+                        {img.quality ? (
+                          <div className={cn("border-t px-2 py-1 text-[10px]", qualityTone(img.quality.verdict))}>
+                            {img.quality.verdict === "good" ? "Clear" : img.quality.hint}
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                    <img src={uploadPreview} alt="Attendance preview" className="max-h-80 w-full object-contain" />
+                    <img
+                      src={useCleaned ? uploadImages[0]?.dataUrl ?? uploadPreview : uploadImages[0]?.originalDataUrl ?? uploadPreview}
+                      alt="Attendance preview"
+                      className="max-h-80 w-full object-contain"
+                    />
                   </div>
                 )}
+                {uploadImages[0]?.quality && uploadImages.length === 1 ? (
+                  <div className={cn("rounded-md border px-3 py-2 text-xs", qualityTone(uploadImages[0]!.quality!.verdict))}>
+                    {uploadImages[0]!.cropped ? "Sheet detected, straightened and cleaned. " : "Cleaned — sheet edges were not detected. "}
+                    {uploadImages[0]!.quality!.verdict === "good"
+                      ? "Quality looks good."
+                      : `${uploadImages[0]!.quality!.hint}. Retake for a more accurate read.`}
+                  </div>
+                ) : null}
+                {uploadImages.length ? (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input type="checkbox" checked={useCleaned} onChange={(e) => setUseCleaned(e.target.checked)} />
+                    Use the cleaned scan (uncheck to read the original photo)
+                  </label>
+                ) : null}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <ImageIcon className="h-3.5 w-3.5" />
                     {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
                   </span>
-                  <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
-                    Choose different files
-                  </button>
+                  <span className="flex items-center gap-3">
+                    <button type="button" className="text-primary hover:underline" onClick={() => setCameraOpen(true)}>
+                      Scan with camera
+                    </button>
+                    <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
+                      Choose different files
+                    </button>
+                  </span>
                 </div>
               </div>
             ) : (
@@ -2810,7 +2925,7 @@ function MusterRollPage() {
             <Button
               type="button"
               onClick={processUpload}
-              disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr}
+              disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr || preparingScan}
               className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
             >
               {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : uploadImages.length > 1 ? `Read ${uploadImages.length} sheets` : "Read sheet")}
@@ -2818,6 +2933,8 @@ function MusterRollPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DocumentScanCamera open={cameraOpen} onOpenChange={setCameraOpen} onCapture={onCameraCapture} />
 
 
       {/* Approval workflow */}
