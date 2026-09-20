@@ -1160,6 +1160,24 @@ function UnitFormDialog({
             </div>
           </Section>
 
+          {clientAttributes.length > 0 && (
+            <Section title="Additional attributes">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {clientAttributes.map((attr) => (
+                  <Field key={attr.columnId} label={attr.header}>
+                    <Input
+                      value={clientAttrValues[attr.columnId] ?? ""}
+                      placeholder="Optional"
+                      onChange={(e) =>
+                        setClientAttrValues((prev) => ({ ...prev, [attr.columnId]: e.target.value }))
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
+            </Section>
+          )}
+
 
           {/* BUSINESS */}
           <Section title="Business information">
