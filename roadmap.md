@@ -190,4 +190,4 @@
 
 ## Invoice output cleanup
 - [x] Show CGST at 9% and SGST at 9% separately in invoice preview and print output; remove IGST.
-- [ ] Remove the Tally Billing File XLSX action from the invoice header.
+- [x] Remove the Tally Billing File XLSX action from the invoice header.
