@@ -3946,7 +3946,7 @@ function EmployeesPage() {
     }
 
     return (
-      <div className="grid gap-2.5 md:hidden">
+      <div className="grid gap-2 md:hidden">
         {rows.map((c) => {
           const unit = unitOfCandidate(c);
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
@@ -3969,12 +3969,12 @@ function EmployeesPage() {
             <article
               key={c.id}
               className={cn(
-                "rounded-2xl border border-border/70 bg-card p-3 shadow-sm",
+                "rounded-xl border border-border/70 bg-card p-2.5 shadow-sm",
                 isDisabled && "opacity-65",
                 isPendingOffboarding && "border-amber-300/70 bg-amber-500/[0.05]",
               )}
             >
-              <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2.5">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
                 {c.photo_url ? (
                   <img src={c.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm ring-1 ring-border/70" />
                 ) : (
@@ -3990,7 +3990,7 @@ function EmployeesPage() {
                       {code}
                     </span>
                   </div>
-                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                  <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                     <span className="truncate">{c.mobile || "No mobile"}</span>
                     <span className="truncate text-right">{roleName}</span>
                     <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No client"}</span>
@@ -4078,7 +4078,7 @@ function EmployeesPage() {
               )}
 
               {mode === "employee" && columnsVisible.role && (
-                <div className="mt-2">
+                <div className="mt-1.5">
                   {c.role_key ? (
                     <Select
                       value={c.role_key}
@@ -4128,7 +4128,7 @@ function EmployeesPage() {
                 </div>
               )}
 
-              <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border/50 pt-2">
+              <div className="mt-1.5 flex items-center justify-end gap-1 border-t border-border/50 pt-1.5">
                 {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
                   <>
                     <Button size="icon" data-variant="success" onClick={() => setApprovePreview(c)} disabled={approveMut.isPending} className="h-8 w-8 rounded-full bg-emerald-600 text-white hover:bg-emerald-700" title="Review & approve" aria-label="Review & approve">
@@ -6785,24 +6785,24 @@ function CandidateWizard({
       <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
-        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
+        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-3 py-2.5 pr-12 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent sm:h-10 sm:w-10 sm:rounded-xl">
                 <UserPlus className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <DialogTitle className="truncate text-base font-semibold sm:text-lg">
                   {editing ? "Edit Candidate" : "Add Candidate"}
                 </DialogTitle>
-                <DialogDescription className="truncate text-xs sm:text-sm">
+                <DialogDescription className="hidden truncate text-xs sm:block sm:text-sm">
                   {currentStep.label} · {currentStep.caption}
                 </DialogDescription>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-base font-semibold tabular-nums text-foreground">{completionPct}%</p>
-              <p className="text-[11px] text-muted-foreground">{completionDone}/{completionTotal} complete</p>
+              <p className="text-sm font-medium tabular-nums text-foreground sm:text-base">{completionPct}%</p>
+              <p className="text-[10px] text-muted-foreground sm:text-[11px]">{completionDone}/{completionTotal}</p>
             </div>
           </div>
           {isEmployeeMode && (
@@ -6886,7 +6886,7 @@ function CandidateWizard({
         </DialogHeader>
 
         {/* Compact mobile progress */}
-        <div className="shrink-0 border-b border-border/60 bg-card px-4 py-3 sm:px-6 lg:hidden">
+        <div className="shrink-0 border-b border-border/60 bg-card px-3 py-2 sm:px-6 sm:py-3 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium text-muted-foreground">
@@ -6908,7 +6908,7 @@ function CandidateWizard({
               style={{ width: `${completionPct}%` }}
             />
           </div>
-          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {steps.map((s, i) => {
               const done = isStepComplete(s.key);
               return (
@@ -6919,7 +6919,7 @@ function CandidateWizard({
                   size="sm"
                   onClick={() => requestStep(s.key)}
                   className={cn(
-                    "h-8 shrink-0 gap-1.5 rounded-lg border px-2.5 text-xs font-medium shadow-none transition-colors",
+                    "h-7 shrink-0 gap-1 rounded-lg border px-2 text-[11px] font-medium shadow-none transition-colors",
                     i === stepIndex
                       ? "border-accent bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground"
                       : done
@@ -7037,7 +7037,7 @@ function CandidateWizard({
             </div>
           </aside>
 
-        <div ref={wizardBodyRef} data-candidate-form-scroll className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-4 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+        <div ref={wizardBodyRef} data-candidate-form-scroll className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
           <div className="mx-auto mb-7 hidden max-w-4xl lg:block">
             <p className="text-xs font-medium text-accent">Step {stepIndex + 1} of {steps.length}</p>
             <h3 className="mt-1 text-2xl font-semibold text-foreground">{currentStep.label}</h3>
@@ -8300,7 +8300,7 @@ function CandidateWizard({
               </>
             )}
           </div>
-          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
+          <div className="grid w-full grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:gap-2">
             {stepIndex > 0 && (
               <Button
                 type="button"

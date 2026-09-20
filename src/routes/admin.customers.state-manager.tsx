@@ -34,6 +34,16 @@ import { Badge } from "@/components/ui/badge";
 import { useBranches, useStates, type State } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/admin/customers/state-manager")({
+  head: () => ({
+    meta: [
+      { title: "State Manager | Radiant Guard Services" },
+      { name: "description", content: "Manage service states and branch mappings." },
+      { property: "og:title", content: "State Manager | Radiant Guard Services" },
+      { property: "og:description", content: "Manage service states and branch mappings." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: StateManagerPage,
 });
 
@@ -67,7 +77,7 @@ function StateManagerPage() {
         title="State Manager"
         eyebrow="Organizations"
         icon={MapPin}
-        description="All states served by Radiant Guard. Source of truth for branch mappings."
+        description="Service states and branch mappings."
         crumbs={[
           { label: "Organizations", to: "/admin/customers/customer-manager" },
           { label: "State Manager" },
@@ -87,7 +97,7 @@ function StateManagerPage() {
       />
 
       {/* Toolbar */}
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-2.5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+      <div className="mobile-glass-surface mb-3 grid grid-cols-1 gap-2 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:rounded-2xl sm:p-2.5">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -97,7 +107,7 @@ function StateManagerPage() {
             className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
             variant="outline"
             onClick={() =>
@@ -142,12 +152,12 @@ function StateManagerPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.7)_inset,0_18px_40px_-30px_rgba(15,23,42,0.18)]">
-        <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-accent/[0.08] via-transparent to-transparent px-5 py-2.5 text-xs text-foreground">
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card/70 shadow-sm sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-border/60 bg-accent/[0.06] px-3 py-2 text-xs text-foreground sm:px-5 sm:py-2.5">
           <span className="inline-flex items-center gap-2"><span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] text-primary-foreground">{filtered.length}</span><span className="uppercase tracking-[0.14em] text-muted-foreground">Total {filtered.length === 1 ? "row" : "rows"}</span></span>
         </div>
 
-        <div className="overflow-x-clip">
+        <div className="overflow-x-auto">
           <table className="ios-table w-full table-fixed text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
@@ -162,13 +172,13 @@ function StateManagerPage() {
                 const mapped = mappedStateIds.has(s.id);
                 return (
                   <tr key={s.id} className="hover:bg-secondary/30">
-                    <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+                    <td data-label="#" className="px-5 py-3 font-mono text-xs text-muted-foreground">
                       {i + 1}
                     </td>
-                    <td className="truncate px-5 py-3 font-medium text-foreground">
+                    <td data-label="State" className="truncate px-5 py-3 font-medium text-foreground">
                       {s.name}
                     </td>
-                    <td className="px-5 py-3">
+                    <td data-label="Status" className="px-5 py-3">
                       {mapped ? (
                         <Badge className="rounded-full bg-accent/15 font-semibold text-accent hover:bg-accent/20">
                           Mapped
@@ -182,7 +192,7 @@ function StateManagerPage() {
                         </Badge>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right" data-col="actions">
+                    <td data-label="Actions" className="px-5 py-3 text-right" data-col="actions">
                       <div className="inline-flex gap-1">
                         <RecordViewButton
                           record={s}
@@ -316,7 +326,7 @@ function StateFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="dialog-responsive state-form-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -333,7 +343,7 @@ function StateFormDialog({
               if (!initial) onOpenChange(false);
             }
           }}
-          className="modern-business-form"
+          className="modern-business-form space-y-3"
         >
           <section className="modern-form-section">
             <Label htmlFor="state-name">State name</Label>
