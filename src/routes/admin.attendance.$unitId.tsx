@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare } from "lucide-react";
+import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
-import { scanDocument, type ScanQuality, type ScanResult } from "@/lib/document-scan";
+import { scanDocument, qualityTone, type ScanQuality, type ScanResult } from "@/lib/document-scan";
 import { DocumentScanCamera } from "@/components/DocumentScanCamera";
 import {
   SCAN_JOBS_QK,
@@ -2925,7 +2925,7 @@ function MusterRollPage() {
             <Button
               type="button"
               onClick={processUpload}
-              disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr}
+              disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr || preparingScan}
               className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
             >
               {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : uploadImages.length > 1 ? `Read ${uploadImages.length} sheets` : "Read sheet")}
@@ -2933,6 +2933,8 @@ function MusterRollPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DocumentScanCamera open={cameraOpen} onOpenChange={setCameraOpen} onCapture={onCameraCapture} />
 
 
       {/* Approval workflow */}
