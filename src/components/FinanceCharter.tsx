@@ -205,9 +205,12 @@ export function FinanceCharter({
   });
 
   const matchedUnits = useMemo(() => {
-    if (mode !== "invoice" || statusFilter === "all") return searchedUnits;
+    if (statusFilter === "all") return searchedUnits;
     return searchedUnits.filter((unit) => {
-      const status = allStatusQ.data?.get(unit.id)?.invoice ?? "open";
+      const status = mode === "invoice"
+        ? allStatusQ.data?.get(unit.id)?.invoice ?? "open"
+        : allStatusQ.data?.get(unit.id)?.payroll ?? "open";
+      if (mode === "payroll" && statusFilter === "open") return status !== "processed";
       return status === statusFilter;
     });
   }, [allStatusQ.data, mode, searchedUnits, statusFilter]);
@@ -419,7 +422,7 @@ export function FinanceCharter({
       const status = allStatusQ.data?.get(u.id);
       const st = mode === "invoice" ? status?.invoice : status?.payroll;
       if (st === "processed") processed += 1;
-      else if (st === "ready") ready += 1;
+      else if (st === "ready" && mode === "invoice") ready += 1;
       else open += 1;
     }
     return { total: searchedUnits.length, open, ready, processed };
@@ -493,7 +496,7 @@ export function FinanceCharter({
           accent="lime"
           segments={[
             { label: "Open", value: registers.open, tone: "open" },
-            { label: "Ready", value: registers.ready, tone: "ready" },
+            ...(mode === "invoice" ? [{ label: "Ready", value: registers.ready, tone: "ready" as const }] : []),
             { label: "Processed", value: registers.processed, tone: "done" },
           ]}
         />
@@ -556,19 +559,29 @@ export function FinanceCharter({
             className="h-9 rounded-xl pl-9"
           />
         </div>
-        {mode === "invoice" && onStatusFilterChange && (
+        {onStatusFilterChange && (
           <Select
             value={statusFilter}
             onValueChange={(value) => onStatusFilterChange(value as "all" | MoneyStatus)}
           >
-            <SelectTrigger className="h-9 w-full rounded-xl sm:w-44" aria-label="Invoice status">
+            <SelectTrigger className="h-9 w-full rounded-xl sm:w-48" aria-label={`${mode === "invoice" ? "Invoice" : "Payroll"} status`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All invoices</SelectItem>
-              <SelectItem value="ready">Invoice ready</SelectItem>
-              <SelectItem value="open">Invoice open</SelectItem>
-              <SelectItem value="processed">Invoice processed</SelectItem>
+              {mode === "invoice" ? (
+                <>
+                  <SelectItem value="all">All invoices</SelectItem>
+                  <SelectItem value="ready">Invoice ready</SelectItem>
+                  <SelectItem value="open">Invoice open</SelectItem>
+                  <SelectItem value="processed">Invoice processed</SelectItem>
+                </>
+              ) : (
+                <>
+                  <SelectItem value="all">All payroll</SelectItem>
+                  <SelectItem value="open">Payroll open</SelectItem>
+                  <SelectItem value="processed">Payroll processed</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         )}

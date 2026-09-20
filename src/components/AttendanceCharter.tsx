@@ -8,6 +8,7 @@ import { CharterPagination } from "@/components/CharterPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
@@ -146,6 +147,8 @@ export function AttendanceCharter({
   activeEmployees,
   filters,
   windowsByUnit,
+  statusFilter = "all",
+  onStatusFilterChange,
 }: {
   units: CharterUnit[];
   monthIdx: number;
@@ -156,6 +159,8 @@ export function AttendanceCharter({
   activeEmployees?: number;
   filters?: ReactNode;
   windowsByUnit: Map<string, PayrollWindow>;
+  statusFilter?: "all" | "open" | "approved";
+  onStatusFilterChange?: (value: "all" | "open" | "approved") => void;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -175,13 +180,37 @@ export function AttendanceCharter({
     return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
   }, [units, query]);
 
+  const allUnitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
+  const allPeriodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    return out;
+  }, [allUnitIds, year, monthIdx, windowsByUnit]);
+  const allPeriodKey = useMemo(
+    () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [allPeriodsByUnit],
+  );
+  const allStatusQ = useQuery({
+    queryKey: [PERIOD_STATUS_QK, "attendance-charter-all", allPeriodKey],
+    enabled: allUnitIds.length > 0,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
+  });
+  const filteredUnits = useMemo(() => {
+    if (statusFilter === "all") return matchedUnits;
+    return matchedUnits.filter((unit) => {
+      const approved = allStatusQ.data?.get(unit.id)?.attendance === "approved";
+      return statusFilter === "approved" ? approved : !approved;
+    });
+  }, [allStatusQ.data, matchedUnits, statusFilter]);
+
   const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filteredUnits.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
-  useEffect(() => setPage(0), [query, units.length, monthIdx, year]);
+  useEffect(() => setPage(0), [query, statusFilter, units.length, monthIdx, year]);
   const pageUnits = useMemo(
-    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
-    [matchedUnits, safePage],
+    () => filteredUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [filteredUnits, safePage],
   );
   const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
 
@@ -424,8 +453,7 @@ export function AttendanceCharter({
           icon={ClipboardList}
           accent="lime"
           segments={[
-            { label: "Open", value: sheets.open, tone: "open" },
-            { label: "Submitted", value: sheets.submitted, tone: "ready" },
+            { label: "Open", value: sheets.open + sheets.submitted, tone: "open" },
             { label: "Approved", value: sheets.approved, tone: "done" },
           ]}
         />
@@ -463,7 +491,7 @@ export function AttendanceCharter({
 
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[220px]">
+        <div className="relative min-w-0 basis-full sm:basis-auto sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -472,6 +500,19 @@ export function AttendanceCharter({
             className="h-9 rounded-xl pl-9"
           />
         </div>
+        {onStatusFilterChange && (
+          <Select value={statusFilter} onValueChange={(value) => onStatusFilterChange(value as "all" | "open" | "approved")}>
+            <SelectTrigger className="h-9 w-full rounded-xl sm:w-52" aria-label="Attendance status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All attendance</SelectItem>
+              <SelectItem value="open">Attendance open</SelectItem>
+              <SelectItem value="approved">Attendance approved</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        <div className="hidden flex-1 sm:block" />
         <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
@@ -664,7 +705,7 @@ export function AttendanceCharter({
       <CharterPagination
         page={safePage}
         pageCount={pageCount}
-        total={matchedUnits.length}
+        total={filteredUnits.length}
         pageSize={PAGE_SIZE}
         onPageChange={setPage}
       />

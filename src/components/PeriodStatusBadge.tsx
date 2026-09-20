@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Lock, LockOpen, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Lock, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AttendanceStatus, MoneyStatus } from "@/lib/period-status";
 
@@ -16,19 +16,19 @@ export function AttendanceStatusBadge({
     none: { label: "Attendance open", tone: "border-border bg-muted text-muted-foreground", icon: LockOpen },
     draft: { label: "Attendance open", tone: "border-border bg-muted text-muted-foreground", icon: LockOpen },
     submitted: {
-      label: "Awaiting approval",
-      tone: "border-amber-500/30 bg-amber-500/10 text-amber-600",
-      icon: Clock,
+      label: "Attendance open",
+      tone: "border-border bg-muted text-muted-foreground",
+      icon: LockOpen,
     },
     approved: {
-      label: "Attendance locked",
+      label: "Attendance approved",
       tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
       icon: Lock,
     },
     rejected: {
-      label: "Rejected — reopened",
-      tone: "border-destructive/30 bg-destructive/10 text-destructive",
-      icon: XCircle,
+      label: "Attendance open",
+      tone: "border-border bg-muted text-muted-foreground",
+      icon: LockOpen,
     },
   };
   const cfg = map[status];
@@ -68,10 +68,11 @@ export function MoneyStatusBadge({
     },
   };
   const cfg = map[status];
-  const Icon = cfg.icon;
+  const visibleCfg = kind === "payroll" && status === "ready" ? map.open : cfg;
+  const Icon = visibleCfg.icon;
   return (
-    <span className={cn(base, cfg.tone, className)}>
-      <Icon className="h-3 w-3" /> {cfg.text}
+    <span className={cn(base, visibleCfg.tone, className)}>
+      <Icon className="h-3 w-3" /> {kind === "payroll" && status === "ready" ? "Payroll open" : visibleCfg.text}
     </span>
   );
 }
