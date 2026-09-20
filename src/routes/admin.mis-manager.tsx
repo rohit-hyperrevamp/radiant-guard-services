@@ -221,8 +221,8 @@ function MisManagerPage() {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!customerId) throw new Error("Choose an organization");
-      if (!misApplicable && !name.trim()) setName("MIS not applicable");
       if (misApplicable && !name.trim()) throw new Error("Give the format a name");
+      const formatName = name.trim() || "MIS not applicable";
       const enabled = misApplicable ? drafts.filter((d) => d.enabled && d.header.trim()) : [];
       if (misApplicable && enabled.length === 0) throw new Error("Select at least one column");
 
@@ -230,7 +230,7 @@ function MisManagerPage() {
       if (editing) {
         const { error } = await supabase
           .from("mis_templates" as never)
-          .update({ name: name.trim(), customer_id: customerId, row_grain: rowGrain, mis_applicable: misApplicable } as never)
+          .update({ name: formatName, customer_id: customerId, row_grain: rowGrain, mis_applicable: misApplicable } as never)
           .eq("id", editing.id);
         if (error) throw error;
         // Columns that are no longer part of the format go away with their values.
@@ -259,7 +259,7 @@ function MisManagerPage() {
       } else {
         const { data, error } = await supabase
           .from("mis_templates" as never)
-          .insert({ customer_id: customerId, name: name.trim(), enabled: true, row_grain: rowGrain, mis_applicable: misApplicable } as never)
+          .insert({ customer_id: customerId, name: formatName, enabled: true, row_grain: rowGrain, mis_applicable: misApplicable } as never)
           .select("id")
           .single();
         if (error) throw error;
@@ -296,7 +296,7 @@ function MisManagerPage() {
         module: MODULE,
         action: editing ? "update" : "create",
         entityType: "mis_templates",
-        entityLabel: name.trim(),
+        entityLabel: formatName,
         details: {
           customerId,
           columns: enabled.length,
@@ -419,8 +419,14 @@ function MisManagerPage() {
                     </td>
                     <td className="px-4 py-3">{t.name}</td>
                     <td className="px-4 py-3">
-                      {t.columns.length}
-                      {custom > 0 && <Badge variant="secondary" className="ml-2">{custom} custom</Badge>}
+                      {t.mis_applicable === false ? (
+                        <Badge variant="outline">MIS not applicable</Badge>
+                      ) : (
+                        <>
+                          {t.columns.length}
+                          {custom > 0 && <Badge variant="secondary" className="ml-2">{custom} custom</Badge>}
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Switch
@@ -439,7 +445,7 @@ function MisManagerPage() {
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         )}
-                        {custom > 0 && (
+                        {custom > 0 && t.mis_applicable !== false && (
                           <Button variant="ghost" size="icon" title="Site values" onClick={() => setValuesFor(t)}>
                             <Table2 className="h-4 w-4" />
                           </Button>
@@ -517,7 +523,18 @@ function MisManagerPage() {
             </div>
           </div>
 
-          {!readOnly && (
+          <div className="flex items-center justify-between rounded-xl border bg-muted/20 px-4 py-3">
+            <div>
+              <Label>MIS applicable</Label>
+              <p className="text-xs text-muted-foreground">
+                Switch off when this organization never receives an MIS sheet — the MIS download then
+                disappears from every invoice of its clients.
+              </p>
+            </div>
+            <Switch checked={misApplicable} disabled={readOnly} onCheckedChange={setMisApplicable} />
+          </div>
+
+          {!readOnly && misApplicable && (
             <div className="flex items-center gap-2">
               <input
                 ref={fileRef}
@@ -539,6 +556,7 @@ function MisManagerPage() {
             </div>
           )}
 
+          {misApplicable && (
           <div className="rounded-xl border">
             <div className="max-h-[45vh] overflow-y-auto">
               <table className="w-full text-sm">
@@ -597,6 +615,7 @@ function MisManagerPage() {
               </table>
             </div>
           </div>
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
