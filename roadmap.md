@@ -287,3 +287,5 @@
 - [x] Standardize Attendance, Invoice, Payroll, Employees, Contracts, and manager summaries with colorful icon-led tiles.
 - [x] Give every shared page statistic a meaningful icon and stable accent color.
 - [x] Keep mobile summary rows compact, swipeable, and aligned to the app content width.
+
+- [ ] Standardize compact mobile filters, buttons, toggles, and list cards across Employees, Contracts, Clients, Organizations, States, Branches, and related admin directories.
