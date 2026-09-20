@@ -3110,6 +3110,7 @@ function ClientContractsPage() {
           }
         }}
         canManageApproval={canApprove}
+        canSkipSteps={isSuperAdmin}
       />
 
       <ContractViewDialog
