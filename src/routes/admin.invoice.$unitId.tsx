@@ -38,6 +38,7 @@ import { useOrgSettings } from "@/lib/org-settings";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { PERIOD_STATUS_QK, setMoneyStatus } from "@/lib/period-status";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -1466,6 +1467,13 @@ function PayrollUnitPage() {
         await supabase.storage.from("tally-invoices").remove([path]);
         throw updateResult.error;
       }
+      await setMoneyStatus({
+        unitId,
+        periodStart: start,
+        periodEnd: end,
+        kind: "invoice",
+        next: "processed",
+      });
       if (oldPath && oldPath !== path) {
         await supabase.storage.from("tally-invoices").remove([oldPath]);
       }
@@ -1478,7 +1486,8 @@ function PayrollUnitPage() {
         details: { document: "Tally invoice", filename: file.name },
       });
       await queryClient.invalidateQueries({ queryKey: ["payroll-sheet", unitId, start, end] });
-      toast.success(oldPath ? "Tally invoice replaced" : "Tally invoice uploaded");
+      await queryClient.invalidateQueries({ queryKey: [PERIOD_STATUS_QK] });
+      toast.success(oldPath ? "Tally invoice replaced" : "Tally invoice uploaded — invoice processed");
     } catch (uploadError) {
       toast.error(uploadError instanceof Error ? uploadError.message : "Could not upload Tally invoice");
     } finally {

@@ -693,9 +693,9 @@ export function FinanceCharter({
                           </>
                         )}
                       </div>
-                      {canProcess && (
+                      {canProcess && mode === "payroll" && (
                         <div className="flex shrink-0 items-center gap-2">
-                          {(mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
+                          {r.status.payroll === "processed" ? (
                             <Button
                               size="sm"
                               variant="outline"
@@ -713,7 +713,7 @@ export function FinanceCharter({
                               onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "processed" })}
                             >
                               <Lock className="mr-1.5 h-3.5 w-3.5" /> Mark{" "}
-                              {mode === "invoice" ? "invoice" : "payroll"} processed
+                              payroll processed
                             </Button>
                           )}
                         </div>
