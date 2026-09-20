@@ -1166,52 +1166,48 @@ function PayrollUnitPage() {
       const cgst = r2(totalBilling * 0.09);
       const sgst = r2(totalBilling * 0.09);
       const igst = r2(cgst + sgst);
-      const row: Record<string, unknown> = {
-        "Sr. No": i + 1,
-        "Invoice No": invoiceNo,
-        "Invoice Date": dmy(end),
-        "Emp Code": r.employeeCode,
-        "Employee Name": r.name,
-        "Regular/ Reliever Guard": r.isPrimary ? "Regular" : "Reliever",
-        "DOJ": dmy(r.joiningDate),
-        "Entity": entity,
-        "Designation": `${r.designation} @ (${m.shiftHours})`,
-        "Location/Branch Name": branchName,
-        "State": stateName,
-        "Branch SAP Code": sapCode,
-        "Zone": zone,
-        "Month Days": monthDays,
-        "Month Rate": m.payrollDays,
-        "Billing Rate": r2(m.contracted),
-        "Billing Rate (Per Day)": m.perDay,
-        "OT Rate": otRate,
-        "Working days": workingDays,
-        "OT and Night duties": otDays,
-        "OT Amount": otAmount,
-        "Working days Billing with OT": r2(regular + otBilling),
-        "Total Regular Billing Amt": regular,
-        "OT & Night Duty Billing Amt": r2(otBilling + otAmount),
-        "Total Billing Amt": totalBilling,
-        "CGST @9%": cgst,
-        "SGST @9%": sgst,
-        "IGST @18%": igst,
-        "Grand Total": r2(totalBilling + igst),
+      return {
+        unitId,
+        values: {
+          sr_no: i + 1,
+          invoice_no: invoiceNo,
+          invoice_date: dmy(end),
+          emp_code: r.employeeCode,
+          employee_name: r.name,
+          regular_reliever: r.isPrimary ? "Regular" : "Reliever",
+          doj: dmy(r.joiningDate),
+          entity,
+          designation: `${r.designation} @ (${m.shiftHours})`,
+          branch_name: branchName,
+          state: stateName,
+          branch_sap_code: sapCode,
+          zone,
+          month_days: monthDays,
+          month_rate: m.payrollDays,
+          billing_rate: r2(m.contracted),
+          billing_rate_per_day: m.perDay,
+          ot_rate: otRate,
+          working_days: workingDays,
+          ot_duties: otDays,
+          ot_amount: otAmount,
+          working_days_billing_with_ot: r2(regular + otBilling),
+          total_regular_billing: regular,
+          ot_billing: r2(otBilling + otAmount),
+          total_billing: totalBilling,
+          cgst,
+          sgst,
+          igst,
+          grand_total: r2(totalBilling + igst),
+        },
       };
-      return row;
     });
 
-    const numericCols = headers.slice(18);
-    const totalsRow: Record<string, unknown> = {};
-    headers.forEach((h) => { totalsRow[h] = ""; });
-    totalsRow["Employee Name"] = "TOTAL";
-    numericCols.forEach((h) => {
-      totalsRow[h] = r2(dataRows.reduce((s, x) => s + (Number(x[h]) || 0), 0));
-    });
+    const sheet = buildMisSheet({ template, sourceRows, unitValues });
 
     await writeXlsx({
       filename: `MIS_${(unit?.code || unitId).toUpperCase()}_${start}_to_${end}`,
-      rows: dataRows.length > 0 ? [...dataRows, totalsRow] : [{}],
-      columns,
+      rows: sheet.rows,
+      columns: sheet.columns,
     });
   };
 
