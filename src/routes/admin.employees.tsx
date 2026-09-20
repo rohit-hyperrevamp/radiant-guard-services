@@ -3674,7 +3674,7 @@ function EmployeesPage() {
             </td>
           )}
           <td className="w-[110px] min-w-[100px] whitespace-nowrap px-2.5 py-2 align-middle" data-col="status">
-            <div className="flex flex-nowrap items-center justify-end gap-1.5" title={c.status === "rejected" ? c.rejection_reason ?? "Rejected" : c.status === "inactive" && c.offboarding_reason_id ? `${offboardReasons.find((x) => x.id === c.offboarding_reason_id)?.name || "Offboarded"}${c.offboarded_at ? ` · ${new Date(c.offboarded_at).toLocaleDateString()}` : ""}` : isPendingOffboarding ? `Offboarding in progress${pendingFoName ? ` · ${pendingFoName}` : ""}` : isPendingIssuance ? `Awaiting issuance${pendingIssuanceFoName ? ` · ${pendingIssuanceFoName}` : ""}` : undefined}>
+            <div className="flex flex-wrap items-center justify-end gap-1.5" title={c.status === "rejected" ? c.rejection_reason ?? "Rejected" : c.status === "inactive" && c.offboarding_reason_id ? `${offboardReasons.find((x) => x.id === c.offboarding_reason_id)?.name || "Offboarded"}${c.offboarded_at ? ` · ${new Date(c.offboarded_at).toLocaleDateString()}` : ""}` : isPendingOffboarding ? `Offboarding in progress${pendingFoName ? ` · ${pendingFoName}` : ""}` : isPendingIssuance ? `Awaiting issuance${pendingIssuanceFoName ? ` · ${pendingIssuanceFoName}` : ""}` : undefined}>
                 <StatusBadge status={c.status} />
                 {rehire && (
                   <span
@@ -3709,7 +3709,7 @@ function EmployeesPage() {
           </td>
 
           <td className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-2.5 align-middle" data-col="employee-actions">
-            <div className="flex flex-nowrap items-center justify-end gap-1.5">
+            <div className="flex flex-wrap items-center justify-end gap-1.5">
 
 
 

@@ -3408,7 +3408,7 @@ function MusterRollPage() {
         </table>
 
         <div className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:hidden">Swipe horizontally to view all days →</div>
-        <div className="mt-2 -mx-3 overflow-x-auto overscroll-x-contain rounded-md border border-slate-300 sm:mx-0 sm:rounded-none sm:border-0" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="mt-2 -mx-3 min-w-0 w-full overflow-x-auto overscroll-x-contain rounded-md border border-slate-300 sm:mx-0 sm:rounded-none sm:border-0" style={{ WebkitOverflowScrolling: "touch" }}>
           <table className="w-full min-w-[900px] border-collapse border border-slate-400 text-center text-[10px]">
 
             <thead className="bg-slate-100">

@@ -100,7 +100,7 @@ function Calendar({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="h-10 w-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
           disabled={atStart}
           onClick={() => moveMonth(subMonths(displayMonth, 1))}
           aria-label="Previous month"
@@ -111,7 +111,7 @@ function Calendar({
         {captionLayout === "dropdown" ? (
           <div className="grid grid-cols-[1fr_4.75rem] gap-1.5">
             <select
-              className="h-8 min-w-0 rounded-full border border-input bg-muted px-2 text-center text-xs font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="h-10 min-w-0 rounded-full border border-input bg-muted px-2 text-center text-xs font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
               value={displayMonth.getMonth()}
               onChange={(event) => {
                 const next = new Date(displayMonth);
@@ -127,7 +127,7 @@ function Calendar({
               ))}
             </select>
             <select
-              className="h-8 min-w-0 rounded-full border border-input bg-muted px-2 text-center text-xs font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="h-10 min-w-0 rounded-full border border-input bg-muted px-2 text-center text-xs font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
               value={displayMonth.getFullYear()}
               onChange={(event) => {
                 const next = new Date(displayMonth);
@@ -153,7 +153,7 @@ function Calendar({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="h-10 w-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
           disabled={atEnd}
           onClick={() => moveMonth(addMonths(displayMonth, 1))}
           aria-label="Next month"
@@ -179,7 +179,7 @@ function Calendar({
               type="button"
               disabled={blocked}
               className={cn(
-                "grid h-8 w-8 place-items-center rounded-lg text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                "grid h-10 w-10 place-items-center rounded-lg text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                 !inCurrentMonth && "text-muted-foreground/55",
                 isSelected && "bg-primary text-primary-foreground hover:bg-primary",
                 blocked && "cursor-not-allowed opacity-35 hover:bg-transparent",

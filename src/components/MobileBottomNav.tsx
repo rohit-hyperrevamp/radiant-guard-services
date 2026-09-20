@@ -45,7 +45,7 @@ export function MobileBottomNav({
       aria-label="Primary"
       data-bottom-nav
       className={cn(
-        "fixed inset-x-2 bottom-2 z-[80] rounded-[22px] border border-border/70 bg-card/95 shadow-xl backdrop-blur-xl",
+        "fixed left-[max(0.5rem,env(safe-area-inset-left,0px))] right-[max(0.5rem,env(safe-area-inset-right,0px))] bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-[80] rounded-[22px] border border-dock-foreground/15 bg-dock text-dock-foreground shadow-xl backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >
@@ -56,7 +56,7 @@ export function MobileBottomNav({
             <div
               className={cn(
                 "relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition-colors",
-                it.active ? "text-accent" : "text-muted-foreground",
+                it.active ? "text-accent" : "text-dock-foreground/60",
               )}
             >
               <span
@@ -64,7 +64,7 @@ export function MobileBottomNav({
                   "grid h-6 w-9 place-items-center rounded-lg transition-colors",
                     it.active
                      ? "text-accent"
-                    : "text-muted-foreground",
+                     : "text-dock-foreground/60",
                 )}
               >
                 <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={it.active ? 2.5 : 2} />
@@ -72,7 +72,7 @@ export function MobileBottomNav({
               <span
                 className={cn(
                   "block w-full truncate whitespace-nowrap text-center text-[9px] leading-none",
-                  it.active ? "font-semibold text-accent" : "font-medium text-muted-foreground",
+                  it.active ? "font-medium text-accent" : "font-normal text-dock-foreground/60",
                 )}
               >
                 {it.label}
@@ -100,16 +100,16 @@ export function MobileBottomNav({
             aria-label="More"
             className="block h-full w-full select-none rounded-xl p-0 outline-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] focus-visible:ring-2 focus-visible:ring-ring active:opacity-80"
           >
-             <div className={cn("relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition-colors", moreActive ? "text-accent" : "text-muted-foreground")}>
+             <div className={cn("relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition-colors", moreActive ? "text-accent" : "text-dock-foreground/60")}>
               <span
                 className={cn(
                   "grid h-6 w-9 place-items-center rounded-lg transition-colors",
-                  moreActive ? "text-accent" : "text-muted-foreground",
+                  moreActive ? "text-accent" : "text-dock-foreground/60",
                 )}
               >
                 <LayoutGrid className="h-[19px] w-[19px] shrink-0" strokeWidth={moreActive ? 2.5 : 2} />
               </span>
-               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9px] leading-none", moreActive ? "font-semibold text-accent" : "font-medium text-muted-foreground")}>
+                <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9px] leading-none", moreActive ? "font-medium text-accent" : "font-normal text-dock-foreground/60")}>
                 More
               </span>
                 {moreActive && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-accent" />}
