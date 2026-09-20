@@ -69,6 +69,7 @@
 :root {
   --radius: 0.75rem;
   --mobile-edge: 0.5rem;
+  --mobile-dock-clearance: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   /* surfaces — soft neutral canvas, pure white cards (reference design language) */
   --background: oklch(0.958 0.004 170);
   --foreground: oklch(0.19 0.015 168);
@@ -1936,6 +1937,22 @@ nav[data-bottom-nav]::after {
   [data-admin-scroll] {
     overscroll-behavior-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .sticky-action-bar,
+  .dock-clear-action {
+    bottom: var(--mobile-dock-clearance) !important;
+  }
+
+  [data-admin-scroll] :where(form, [data-slot="dialog-content"], [data-slot="sheet-content"]) {
+    scroll-padding-bottom: var(--mobile-dock-clearance);
+  }
+
+  /* Forms use compact, consistent phone controls without changing desktop density. */
+  [data-admin-scroll] form :where(button, [data-slot="button"]):not([data-size="icon"]),
+  [data-slot="dialog-content"] :where(button, [data-slot="button"]):not([data-size="icon"]),
+  [data-slot="sheet-content"] :where(button, [data-slot="button"]):not([data-size="icon"]) {
+    min-height: 2.5rem;
   }
 }
 [data-app-drawer-grid] {

@@ -1967,13 +1967,13 @@ function EmployeesPage() {
   const DEFAULT_FILTERS_VIS = {
     role: true,
     designation: true,
-    department: true,
+    department: false,
     customer: true,
-    unit: true,
-    manager: true,
+    unit: false,
+    manager: false,
     enabled: true,
-    billable: true,
-    offboardReason: true,
+    billable: false,
+    offboardReason: false,
   };
   const [filtersVisible, setFiltersVisible] = useState<typeof DEFAULT_FILTERS_VIS>(() => {
     if (typeof window === "undefined") return DEFAULT_FILTERS_VIS;
@@ -4548,7 +4548,7 @@ function EmployeesPage() {
 
         {/* Filter bar (Employees tab only) */}
         {tab === "employee" && (
-          <div className="grid grid-cols-2 items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
+          <div className="grid grid-cols-2 items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm backdrop-blur-xl sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>
@@ -8246,7 +8246,7 @@ function CandidateWizard({
         </div>
         </div>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/60 bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-3 sm:pb-3">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/60 bg-card/95 px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-3 sm:pb-3">
           {saveError && (
             <div
               role="alert"
@@ -8307,7 +8307,7 @@ function CandidateWizard({
                 variant="outline"
                 onClick={goBack}
                 disabled={submitting || savingDraft || !!uploading}
-                className="h-11 min-w-0 rounded-lg bg-accent px-2 text-accent-foreground hover:bg-accent/90 sm:h-10 sm:flex-none sm:px-4"
+                className="h-10 min-w-0 rounded-lg bg-accent px-2 text-accent-foreground hover:bg-accent/90 sm:flex-none sm:px-4"
               >
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back
               </Button>
@@ -8316,7 +8316,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading}
-              className={cn("h-11 min-w-0 rounded-lg px-2 sm:h-10 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
+              className={cn("h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
@@ -8325,7 +8325,7 @@ function CandidateWizard({
               <Button
                 type="button"
                 onClick={goNext}
-                className="h-11 min-w-0 rounded-lg bg-accent px-2 text-accent-foreground hover:bg-accent/90 sm:h-10 sm:flex-none sm:px-4"
+                className="h-10 min-w-0 rounded-lg bg-accent px-2 text-accent-foreground hover:bg-accent/90 sm:flex-none sm:px-4"
               >
                 Next <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
@@ -8334,7 +8334,7 @@ function CandidateWizard({
                 onClick={submit}
                 disabled={submitting || savingDraft || !!uploading}
                 title={!editing && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                className="h-11 min-w-0 rounded-lg px-2 sm:h-10 sm:flex-none sm:px-4"
+                className="h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4"
               >
                 {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 {editing ? "Save" : "Submit"}

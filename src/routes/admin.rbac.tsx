@@ -377,9 +377,9 @@ function RBACPage() {
       </div>
 
       {/* Grid */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card sm:rounded-2xl">
+      <div className="overflow-hidden rounded-xl border border-border bg-card sm:rounded-2xl">
         {/* Header row */}
-        <div className="grid min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 border-b border-border bg-secondary/40 px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:py-3">
+        <div className="hidden min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 border-b border-border bg-secondary/40 px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:py-3">
           <div>Module</div>
           {PERMISSION_ACTIONS.map((a) => {
             const Icon = ACTION_META[a].icon;
@@ -402,8 +402,8 @@ function RBACPage() {
             return (
               <div key={mod.key}>
                 {/* Parent row */}
-                <div className="grid min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 px-3 py-2.5 hover:bg-secondary/30 sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:py-3">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div className="grid grid-cols-4 items-center gap-2 px-3 py-3 hover:bg-secondary/30 sm:min-w-[590px] sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:py-3 sm:px-4">
+                  <div className="col-span-4 flex min-w-0 items-center gap-2 sm:col-span-1">
                     {hasChildren ? (
                       <button
                         type="button"
@@ -443,7 +443,7 @@ function RBACPage() {
                     }
                     const agg = aggregate(draft, mod, a);
                     return (
-                      <div key={a} className="flex justify-center">
+                      <div key={a} className="flex flex-col items-center justify-center gap-1">
                         <TriBox
                           state={agg}
                           disabled={isSuper}
@@ -451,6 +451,7 @@ function RBACPage() {
                             setDraft((m) => setParent(m, mod, a, agg !== "all"))
                           }
                         />
+                        <span className="text-[10px] text-muted-foreground sm:hidden">{ACTION_META[a].label}</span>
                       </div>
                     );
                   })}
@@ -466,9 +467,9 @@ function RBACPage() {
                       return (
                         <div
                           key={sub.key}
-                           className="grid min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 px-3 py-2 pl-10 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:pl-14"
+                            className="grid grid-cols-4 items-center gap-2 border-t border-border/40 px-3 py-3 hover:bg-secondary/40 sm:min-w-[590px] sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:border-0 sm:px-4 sm:py-2 sm:pl-14"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="col-span-4 flex min-w-0 items-center gap-2 sm:col-span-1">
                             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-muted-foreground">
                               <SubIcon className="h-3.5 w-3.5" />
                             </div>
@@ -486,7 +487,7 @@ function RBACPage() {
                             }
                             const on = permFlag(cell, a);
                             return (
-                              <div key={a} className="flex justify-center">
+                              <div key={a} className="flex flex-col items-center justify-center gap-1">
                                 <CheckBox
                                   on={on}
                                   disabled={isSuper}
@@ -500,6 +501,7 @@ function RBACPage() {
                                     )
                                   }
                                 />
+                                <span className="text-[10px] text-muted-foreground sm:hidden">{ACTION_META[a].label}</span>
                               </div>
                             );
                           })}
