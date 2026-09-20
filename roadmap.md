@@ -214,3 +214,10 @@
 - src/lib/document-scan.ts: paper detection, perspective correction, shadow flattening, sharpening, quality scoring with guidance hints.
 - src/components/DocumentScanCamera.tsx: live camera with real-time coaching and auto-capture when clear.
 - Wired into attendance upload dialog (scan on manual upload, cleaned/original toggle, per-photo tips) and Migration Utility photo uploads.
+
+## Full mobile-app interface optimization
+- [ ] Standardize the shared mobile shell, spacing, typography, actions, dialogs, sheets, tables, and safe areas.
+- [ ] Reduce nonessential on-screen copy and prioritize task-critical information across every authenticated screen.
+- [ ] Optimize dashboards, attendance, payroll, invoicing, contracts, employees, inventory, compliance, and settings for phone-first use.
+- [ ] Verify representative role-based flows at narrow Android, standard iPhone, and large-phone widths against production-facing behavior.
+- [ ] Run TypeScript validation and resolve mobile regressions without changing business rules or locked native push infrastructure.
