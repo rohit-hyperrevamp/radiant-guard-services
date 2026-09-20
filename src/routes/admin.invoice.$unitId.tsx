@@ -1429,7 +1429,7 @@ function PayrollUnitPage() {
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => void exportTallyBilling()}>
-            <Receipt className="mr-1.5 h-4 w-4" /> Tally Export
+            <Download className="mr-1.5 h-4 w-4" /> Tally Export
           </Button>
           <Button variant="outline" size="sm" onClick={exportMisFormat}>
             <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
