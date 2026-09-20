@@ -2815,7 +2815,7 @@ function MusterRollPage() {
                   <span>Upload images or Excel</span>
                   <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
                 </button>
-                <Button variant="outline" className="w-full" onClick={() => setCameraOpen(true)}>
+                <Button variant="outline" className="w-full" onClick={openCameraScan}>
                   <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
                 </Button>
                 <p className="text-[11px] text-muted-foreground">
