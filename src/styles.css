@@ -1826,6 +1826,22 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   form .flex.flex-wrap > textarea {
     width: 100%;
   }
+
+  /* Dense phone toolbars remain compact and aligned instead of turning each
+     control into a tall, full-width row. */
+  [data-mobile-toolbar] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  [data-mobile-toolbar] > :where(.relative, [data-slot="input"]) {
+    grid-column: 1 / -1;
+  }
+
+  /* Data cards use the same visual radius and outer width throughout the app. */
+  [data-admin-scroll] :where(.rounded-3xl) {
+    border-radius: 0.75rem;
+  }
 }
 
 @media (max-width: 359px) {
