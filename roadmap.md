@@ -268,3 +268,9 @@
 - [x] Improve attendance top controls/status/history and prevent dock overlap.
 - [x] Simplify Inventory dashboard density and mobile actions.
 - [x] Validate types and formatting.
+
+## End-to-end mobile app refinement
+- [ ] Audit every authenticated screen and shared control at phone width.
+- [ ] Standardize mobile typography, controls, cards, toolbars, dialogs, tables, and motion.
+- [ ] Refine people, client, contract, attendance, payroll, invoice, inventory, and control-center screens.
+- [ ] Verify phone rendering, TypeScript, and formatting without changing business workflows.
