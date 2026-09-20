@@ -332,6 +332,26 @@ function MisManagerPage() {
 
   const systemCount = drafts.filter((d) => d.enabled && d.source === "system").length;
   const customCount = drafts.filter((d) => d.enabled && d.source === "custom").length;
+  const attributeCount = drafts.filter((d) => d.enabled && d.client_attribute).length;
+
+  /** Warn before an attribute is taken off every client of the organization. */
+  const requestSave = async () => {
+    const removed = (editing?.columns ?? [])
+      .filter((c) => c.client_attribute === true)
+      .filter((c) => !drafts.some((d) => d.id === c.id && d.enabled && d.client_attribute))
+      .map((c) => c.header);
+    if (removed.length > 0) {
+      const orgName = customerById.get(customerId)?.name ?? "this organization";
+      const ok = await confirmAction({
+        title: removed.length === 1 ? `Remove "${removed[0]}" from every client?` : "Remove these client attributes?",
+        description: `${removed.join(", ")} will be deleted from all clients of ${orgName}, along with the values already entered.`,
+        confirmText: "Yes, remove",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    saveMut.mutate();
+  };
 
   return (
     <div className="space-y-6">
