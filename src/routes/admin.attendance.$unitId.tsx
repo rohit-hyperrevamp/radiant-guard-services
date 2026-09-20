@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
+import { scanDocument, type ScanQuality, type ScanResult } from "@/lib/document-scan";
+import { DocumentScanCamera } from "@/components/DocumentScanCamera";
 import {
   SCAN_JOBS_QK,
   failScanJob,
