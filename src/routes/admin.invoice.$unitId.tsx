@@ -1224,6 +1224,11 @@ function PayrollUnitPage() {
           total_duties: r2(workingDays + otDays),
           total_ot_hours: otHours,
           remarks: "",
+          sg_rate: r2(m.contracted),
+          worked_days: r2(workingDays + otDays),
+          service_start_date: dmy(start),
+          service_end_date: dmy(end),
+          basic_billing_claimed: totalBilling,
         },
       };
     });
