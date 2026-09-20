@@ -105,7 +105,7 @@ function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
   const net = punch.network_type;
   const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-[11px] sm:flex-row sm:items-center sm:justify-between">
+    <div className="mobile-glass-control mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-card/65 p-2.5 text-[11px] sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-semibold">
         <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
           <span className="relative flex h-2 w-2">

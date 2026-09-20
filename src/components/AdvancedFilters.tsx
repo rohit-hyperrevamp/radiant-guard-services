@@ -104,7 +104,7 @@ function FieldChip({
           variant="outline"
           size="sm"
           className={cn(
-            "h-10 justify-between rounded-xl border-border/70 bg-card px-3 text-xs font-medium shadow-none",
+            "mobile-glass-control h-9 justify-between rounded-xl border-border/70 bg-card/65 px-2.5 text-xs font-medium shadow-none",
             active ? "border-amber-400/60 bg-amber-50 text-foreground dark:bg-amber-500/10" : "text-muted-foreground",
             "w-auto min-w-[124px] max-w-[min(70vw,260px)] shrink-0 sm:min-w-[150px] sm:max-w-[240px]"
           )}

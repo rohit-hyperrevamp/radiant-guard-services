@@ -68,6 +68,7 @@
 
 :root {
   --radius: 0.75rem;
+  --mobile-edge: 0.5rem;
   /* surfaces — soft neutral canvas, pure white cards (reference design language) */
   --background: oklch(0.958 0.004 170);
   --foreground: oklch(0.19 0.015 168);
@@ -1385,7 +1386,7 @@ body {
    full repaint on every scroll frame. Preserve the appearance without the
    continuously recomputed blur layer. */
 [data-admin-scroll] :where(.glass, .glass-strong, .glass-dark),
-[data-admin-scroll] [class*="backdrop-blur"] {
+[data-admin-scroll] [class*="backdrop-blur"]:not(.mobile-glass-surface):not(.mobile-glass-control):not(.mobile-glass-bar) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -1417,8 +1418,8 @@ body {
 .safe-top    { padding-top: max(0.5rem, env(safe-area-inset-top)); }
 .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 .safe-x {
-  padding-left: max(0.5rem, env(safe-area-inset-left));
-  padding-right: max(0.5rem, env(safe-area-inset-right));
+  padding-left: max(var(--mobile-edge), env(safe-area-inset-left));
+  padding-right: max(var(--mobile-edge), env(safe-area-inset-right));
 }
 .safe-all {
   padding-top: env(safe-area-inset-top);
@@ -1559,8 +1560,8 @@ button, [role="button"], a.btn, .btn {
   min-width: 0;
 }
 button[data-slot="switch"] {
-  min-width: 2.25rem;
-  min-height: 1.25rem;
+  min-width: 3rem;
+  min-height: 1.75rem;
 }
 button > span:not(.sr-only),
 [role="button"] > span:not(.sr-only) {
@@ -1608,7 +1609,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     --tile-pad: 0.75rem;
     --card-pad: 0.875rem;
     --section-gap: 0.75rem;
-    --shell-pad-x: 0.75rem;
+    --shell-pad-x: var(--mobile-edge);
     --shell-pad-y: 0.625rem;
   }
 
@@ -1625,7 +1626,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   [data-admin-scroll] {
     font-size: 0.875rem;
     width: 100%;
-    padding-inline: max(0.5rem, env(safe-area-inset-left)) max(0.5rem, env(safe-area-inset-right)) !important;
+    padding-inline: max(var(--mobile-edge), env(safe-area-inset-left)) max(var(--mobile-edge), env(safe-area-inset-right)) !important;
   }
 
   [data-admin-scroll] > div,
@@ -1681,6 +1682,71 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   .page-shell {
     padding-inline: var(--shell-pad-x);
     padding-block: var(--shell-pad-y);
+  }
+
+  /* One phone-width contract: route roots and dashboards never add a second
+     outer gutter inside the shell. Cards can still keep their own inner padding. */
+  [data-admin-scroll] [data-mobile-dashboard],
+  [data-admin-scroll] [data-page-shell] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  [data-mobile-dashboard] > *,
+  [data-mobile-dashboard] > * > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* The authenticated shell already owns the 8px phone gutter. Nested page
+     shells therefore provide vertical rhythm only, avoiding double margins. */
+  [data-admin-scroll] .page-shell {
+    padding-inline: 0;
+  }
+
+  /* Compact visible controls with iOS-sized touch targets. */
+  [data-admin-scroll] [data-slot="button"] {
+    min-height: 2.5rem;
+    border-radius: 0.625rem;
+  }
+
+  [data-admin-scroll] [data-slot="button"][data-size="sm"] {
+    min-height: 2.25rem;
+  }
+
+  [data-admin-scroll] [data-slot="button"][data-size="icon"] {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+
+  [data-admin-scroll] .modern-form-toggle {
+    min-height: 2.75rem;
+    padding-block: 0.5rem;
+  }
+
+  /* Blur is reserved for chrome and anchored controls, not every data card. */
+  .mobile-glass-surface,
+  .mobile-glass-control,
+  .mobile-glass-bar,
+  header[data-app-header],
+  nav[data-bottom-nav] {
+    backdrop-filter: blur(18px) saturate(145%);
+  }
+
+  .mobile-glass-bar {
+    background: color-mix(in oklab, var(--card) 82%, transparent) !important;
+  }
+
+  [data-slot="dialog-content"]:has(form) [data-slot="dialog-footer"],
+  [data-slot="sheet-content"]:has(form) [data-slot="sheet-footer"],
+  [data-slot="dialog-content"]:has(input, textarea, [role="combobox"]) [data-slot="dialog-header"] {
+    background: color-mix(in oklab, var(--card) 84%, transparent);
+    backdrop-filter: blur(18px) saturate(145%);
+  }
+
+  .mobile-glass-control {
+    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--card-foreground) 5%, transparent);
   }
 
   /* Every ordinary dialog becomes a real app screen on phones. */
@@ -1786,7 +1852,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
    ========================================================================= */
 nav[data-bottom-nav] {
   position: fixed !important;
-  inset-inline: max(0.5rem, env(safe-area-inset-left)) max(0.5rem, env(safe-area-inset-right)) !important;
+  inset-inline: max(var(--mobile-edge), env(safe-area-inset-left)) max(var(--mobile-edge), env(safe-area-inset-right)) !important;
   bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
   top: auto !important;
   z-index: 80 !important;
@@ -1800,6 +1866,18 @@ nav[data-bottom-nav] {
   -webkit-overflow-scrolling: auto;
   overflow: hidden;
   transform-origin: bottom center !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mobile-glass-surface,
+  .mobile-glass-control,
+  .mobile-glass-bar,
+  header[data-app-header],
+  nav[data-bottom-nav] {
+    backdrop-filter: none;
+    background: var(--card);
+  }
+  nav[data-bottom-nav] { background: var(--dock); }
 }
 nav[data-bottom-nav][data-expanded="true"] {
   border-color: color-mix(in oklab, var(--dock-foreground) 22%, transparent);

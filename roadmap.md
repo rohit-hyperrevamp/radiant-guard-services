@@ -1,11 +1,11 @@
 # Mobile app UI re-review
 
 ## Consistent iOS-style mobile refinement
-- [ ] Align dashboard and all mobile surfaces to the bottom dock width.
-- [ ] Standardize compact buttons, switches, selectors, tabs, and action rows.
-- [ ] Add restrained glass treatment to floating and sticky mobile surfaces.
-- [ ] Re-audit attendance, sheets, onboarding, off-boarding, and shared forms for phone usability.
-- [ ] Run TypeScript and formatting validation.
+- [x] Align dashboard and all mobile surfaces to the bottom dock width.
+- [x] Standardize compact buttons, switches, selectors, tabs, and action rows.
+- [x] Add restrained glass treatment to floating and sticky mobile surfaces.
+- [x] Re-audit attendance, sheets, onboarding, off-boarding, and shared forms for phone usability.
+- [x] Run TypeScript and formatting validation.
 
 - [x] Audit all mobile routes, shared components, and every form
 - [x] Fix remaining alignment, placement, overflow, and clarity issues
