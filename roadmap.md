@@ -229,11 +229,11 @@
 - [ ] Visually verify authenticated screens; blocked until a signed-in session is available.
 
 ## iOS-style mobile interface refinement
-- [ ] Audit shared shell, controls, dialogs, cards, tables, and every route at phone widths.
-- [ ] Apply a unified iOS-inspired mobile visual system with minimal copy and safe-area spacing.
-- [ ] Fix clipping, overflow, action placement, toggles, filters, and dense record layouts globally.
-- [ ] Apply targeted fixes to screens that cannot inherit the shared improvements.
-- [ ] Run TypeScript validation and verify production mobile screens where authentication allows.
+- [x] Audit shared shell, controls, dialogs, cards, tables, and every route at phone widths.
+- [x] Apply a unified iOS-inspired mobile visual system with minimal copy and safe-area spacing.
+- [x] Fix clipping, overflow, action placement, toggles, filters, and dense record layouts globally.
+- [x] Apply targeted fixes to screens that cannot inherit the shared improvements.
+- [x] Run TypeScript validation; production visual verification follows deployment.
 
-- [ ] Make the mobile bottom dock black, matching the desktop navigation.
-- [ ] Remove bold/black typography from the interface; retain regular and medium weights only.
+- [x] Make the mobile bottom dock black, matching the desktop navigation.
+- [x] Remove bold/black typography from the interface; retain regular and medium weights only.

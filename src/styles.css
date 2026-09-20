@@ -55,6 +55,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-dock: var(--dock);
+  --color-dock-foreground: var(--dock-foreground);
   --color-field-hero: var(--field-hero);
   --color-field-hero-muted: var(--field-hero-muted);
   --color-field-hero-soft: var(--field-hero-soft);
@@ -103,6 +105,8 @@
   --sidebar-accent-foreground: oklch(0.22 0.02 168);
   --sidebar-border: oklch(0.925 0.005 170);
   --sidebar-ring: oklch(0.60 0.075 192);
+  --dock: oklch(0.12 0.006 168);
+  --dock-foreground: oklch(0.98 0 0);
 
   /* Theme-aware surfaces used by .glass, .tile, admin shell, etc. */
   --surface: 255 255 255;                 /* rgb triplet for translucent backgrounds */
@@ -204,6 +208,8 @@
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(1 0 0 / 14%);
   --sidebar-ring: oklch(0.8 0.09 190);
+  --dock: oklch(0.12 0.006 168);
+  --dock-foreground: oklch(0.98 0 0);
 
   /* Dark theme surfaces — deep ink, lifted for readability */
   --surface: 40 50 48;
@@ -1569,20 +1575,6 @@ button > span:not(.sr-only),
     min-height: 40px;
   }
 
-  button[data-slot="switch"] {
-    width: 2.25rem !important;
-    height: 1.25rem !important;
-    min-width: 2.25rem !important;
-    min-height: 1.25rem !important;
-    padding: 0 !important;
-    border-radius: 9999px !important;
-  }
-
-  button[data-slot="switch"] > [data-slot="switch-thumb"] {
-    width: 1rem !important;
-    height: 1rem !important;
-    border-radius: 9999px !important;
-  }
 }
 
 /* Prevent selection/callout on non-text UI chrome */
@@ -1792,8 +1784,8 @@ nav[data-bottom-nav] {
   bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
   top: auto !important;
   z-index: 80 !important;
-  border: 1px solid var(--sidebar-border);
-  background: var(--sidebar);
+  border: 1px solid color-mix(in oklab, var(--dock-foreground) 14%, transparent);
+  background: var(--dock);
   box-shadow: 0 12px 34px -18px color-mix(in oklab, var(--foreground) 45%, transparent);
   padding: 0;
   transform: none !important;
