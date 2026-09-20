@@ -71,6 +71,16 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/admin/attendance/$unitId")({
   validateSearch: (s) => searchSchema.parse(s),
+  head: () => ({
+    meta: [
+      { title: "Mark Attendance | Radiant Guard Services" },
+      { name: "description", content: "Mark and review employee attendance for a selected unit and payroll period." },
+      { property: "og:title", content: "Mark Attendance | Radiant Guard Services" },
+      { property: "og:description", content: "Mark and review employee attendance for a selected unit and payroll period." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: MusterRollPage,
 });
 
