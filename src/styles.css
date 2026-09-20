@@ -1634,6 +1634,12 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     max-width: 100%;
   }
 
+  /* Phone surfaces share the dock's exact 8px outer gutter. */
+  [data-admin-scroll] > div > div > :where(.bg-card, [class*="rounded-"][class*="border"]),
+  [data-admin-scroll] > div > div > div > :where(.bg-card, [class*="rounded-"][class*="border"]) {
+    max-width: 100%;
+  }
+
   [data-admin-scroll] :where(.text-xs, [class*="text-[10px]"], [class*="text-[11px]"]) {
     line-height: 1.3;
   }

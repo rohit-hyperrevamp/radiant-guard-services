@@ -79,7 +79,6 @@ export function MobileBottomNav({
           <div className="max-h-[min(62dvh,32rem)] overflow-y-auto overscroll-contain px-2.5 pb-1 pt-3">
             <div className="mb-2 flex items-center justify-between px-1.5">
               <span className="text-[13px] font-medium text-dock-foreground">More apps</span>
-              <span className="text-[10px] text-dock-foreground/50">Tap More to close</span>
             </div>
             <div data-app-drawer-grid className="grid grid-cols-2 gap-1.5 pb-2">
               {moreItems.map((item) => {

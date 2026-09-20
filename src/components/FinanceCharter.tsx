@@ -1050,15 +1050,17 @@ export function FinanceCharter({
                   >
                     {mode === "invoice" && <Dial value={r.realisationPct} />}
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="truncate text-sm font-semibold group-hover:text-primary">
+                      <div className="min-w-0">
+                        <span className="block truncate text-sm font-semibold group-hover:text-primary">
                           {r.unit.name || r.unit.code}
                         </span>
-                        <span className="hidden rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
-                          {r.actual}/{r.committed} deployed
-                        </span>
-                        <AttendanceStatusBadge status={r.status.attendance} />
-                        <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
+                        <div className="scrollbar-hide mt-1 flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible sm:pb-0">
+                          <span className="hidden shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
+                            {r.actual}/{r.committed} deployed
+                          </span>
+                          <AttendanceStatusBadge status={r.status.attendance} />
+                          <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
+                        </div>
                       </div>
                       <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
                         {r.unit.customer_name} · {r.contractCode}

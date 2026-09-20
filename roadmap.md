@@ -242,5 +242,5 @@
 - [x] Align phone cards and page content to the floating dock edges.
 - [x] Replace the separate More drawer with an expanding black dock.
 - [x] Rework the Payroll top controls for mobile.
-- [ ] Finish the cross-page data, table, and form visibility audit.
+- [x] Finish the cross-page data, table, and form visibility audit.
 - [ ] Run final TypeScript and responsive integrity checks.

@@ -212,7 +212,7 @@ function DemandsPage() {
                   {d.status.replace("_", " ")}
                 </span>
               </div>
-              <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+              <div className="mt-2.5 flex min-w-0 flex-col gap-2 text-[12px] min-[360px]:grid min-[360px]:grid-cols-2 min-[360px]:gap-x-3 min-[360px]:gap-y-1.5">
                 <div className="min-w-0">
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">From</div>
                   <div className="break-words text-foreground">{destLabel}</div>
@@ -752,7 +752,7 @@ function DemandViewDialog({ open, onOpenChange, demand, items }: {
           <DialogTitle>Demand {demand?.demand_number}</DialogTitle>
           <DialogDescription>{demand?.demand_date} · <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusBadgeClass(demand?.status ?? "")}`}>{demand?.status?.replace("_", " ")}</span></DialogDescription>
         </DialogHeader>
-          <div className="overflow-x-auto rounded-xl border border-border">
+          <div className="min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-border">
            <table className="ios-table w-full min-w-[480px] text-sm">
             <thead className="bg-secondary/60 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               <tr>
