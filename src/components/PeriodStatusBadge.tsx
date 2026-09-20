@@ -21,7 +21,7 @@ export function AttendanceStatusBadge({
       icon: Clock,
     },
     approved: {
-      label: "Attendance locked",
+      label: "Attendance approved",
       tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
       icon: Lock,
     },
@@ -68,10 +68,11 @@ export function MoneyStatusBadge({
     },
   };
   const cfg = map[status];
-  const Icon = cfg.icon;
+  const visibleCfg = kind === "payroll" && status === "ready" ? map.open : cfg;
+  const Icon = visibleCfg.icon;
   return (
-    <span className={cn(base, cfg.tone, className)}>
-      <Icon className="h-3 w-3" /> {cfg.text}
+    <span className={cn(base, visibleCfg.tone, className)}>
+      <Icon className="h-3 w-3" /> {kind === "payroll" && status === "ready" ? "Payroll open" : visibleCfg.text}
     </span>
   );
 }

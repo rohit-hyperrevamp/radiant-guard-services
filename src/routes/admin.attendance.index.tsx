@@ -72,6 +72,7 @@ function AttendanceUnitsPage() {
   const [q, setQ] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "approved">("all");
 
 
 
@@ -134,7 +135,7 @@ function AttendanceUnitsPage() {
     });
   }, [q, orgFilter, unitFilter, windowUnits]);
 
-  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || q.trim().length > 0;
+  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
 
 
 
@@ -197,6 +198,8 @@ function AttendanceUnitsPage() {
               organizationCount={summary.organizations}
               activeEmployees={summary.activeEmployees}
               windowsByUnit={windowsByUnit}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
               filters={
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -235,6 +238,7 @@ function AttendanceUnitsPage() {
                           setQ("");
                           setOrgFilter([]);
                           setUnitFilter([]);
+                          setStatusFilter("all");
                         }}
                       >
                         <X className="h-3.5 w-3.5" /> Clear
