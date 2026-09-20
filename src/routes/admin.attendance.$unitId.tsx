@@ -2944,7 +2944,16 @@ function MusterRollPage() {
         </DialogContent>
       </Dialog>
 
-      <DocumentScanCamera open={cameraOpen} onOpenChange={setCameraOpen} onCapture={onCameraCapture} />
+      <DocumentScanCamera
+        open={cameraOpen}
+        onOpenChange={(o) => {
+          setCameraOpen(o);
+          // Cancelling the camera must bring the upload dialog back, never drop
+          // the person on the attendance screen with nothing to do.
+          if (!o) setUploadOpen(true);
+        }}
+        onCapture={onCameraCapture}
+      />
 
 
       {/* Approval workflow */}
