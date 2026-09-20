@@ -167,7 +167,7 @@ export function GuidedForm({
       </aside>
 
       <div className="flex h-full min-h-0 flex-1 flex-col bg-card">
-        <div className="border-b border-border/60 bg-card/95 px-3 py-2 backdrop-blur-xl lg:hidden">
+        <div className="mobile-glass-bar border-b border-border/60 bg-card/80 px-3 py-2 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-medium text-accent">Step {stepIndex + 1} of {steps.length}</p>
@@ -212,7 +212,7 @@ export function GuidedForm({
           </div>
         </div>
 
-        <div className="grid shrink-0 grid-cols-3 gap-2 border-t border-border/60 bg-card/95 px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:flex sm:justify-end sm:px-6 sm:py-3">
+        <div className="mobile-glass-bar grid shrink-0 grid-cols-3 gap-1.5 border-t border-border/60 bg-card/80 px-2 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] min-[360px]:gap-2 min-[360px]:px-3 sm:flex sm:justify-end sm:px-6 sm:py-3 [&_[data-slot=button]]:px-2 min-[360px]:[&_[data-slot=button]]:px-3.5">
           {stepIndex === 0 ? (
             <Button type="button" variant="outline" onClick={() => void requestCancel()}>Cancel</Button>
           ) : (

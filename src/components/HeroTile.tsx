@@ -36,7 +36,7 @@ export function HeroTile({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border/60 bg-card px-3 py-2.5 sm:rounded-3xl sm:p-7",
+        "mobile-glass-surface relative overflow-hidden rounded-xl border border-border/60 bg-card/70 px-3 py-2.5 sm:rounded-3xl sm:bg-card sm:p-7",
         className,
       )}
     >

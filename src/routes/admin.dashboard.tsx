@@ -87,13 +87,12 @@ function DashboardErrorState({ error }: { error: Error }) {
       <p className="mt-2 text-sm text-muted-foreground">
         {error?.message || "Something went wrong while loading your data."}
       </p>
-      <button
-        type="button"
+      <Button
         onClick={() => window.location.reload()}
-        className="mt-5 h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white"
+        className="mt-5 w-full"
       >
         Try again
-      </button>
+      </Button>
     </div>
   );
 }
@@ -580,7 +579,7 @@ function DashboardPage() {
 
   if (showInventoryDashboard) {
     return (
-      <div className="p-4 sm:p-6">
+      <div className="px-0 py-1 sm:p-6">
         <DashboardShell>
           <PageHeader
             title="Inventory Dashboard"
@@ -595,7 +594,7 @@ function DashboardPage() {
 
   if (countsQuery.error && !countsQuery.data) {
     return (
-      <div className="p-4 sm:p-6">
+      <div className="px-0 py-1 sm:p-6">
         <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
           <h1 className="text-lg font-semibold">Dashboard could not load</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -657,7 +656,7 @@ function DashboardPage() {
       })();
 
   return (
-    <div className="p-4 sm:p-6">
+    <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
       <DashboardShell
         rightExtras={
           opsFocus ? (
@@ -683,7 +682,7 @@ function DashboardPage() {
 
 
       {/* Month hero — restrained slate panel */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mobile-glass-surface relative overflow-hidden rounded-2xl border border-border/70 bg-card/72 p-3 shadow-sm sm:p-6">
         <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-foreground/80" />
 
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -703,7 +702,7 @@ function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-muted/40 p-1">
+          <div className="mobile-glass-control flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-card/65 p-1">
             <button onClick={() => shift(-1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-foreground" aria-label="Previous"><ChevronLeft className="h-4 w-4" /></button>
             <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
               <SelectTrigger className="h-8 w-[130px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
