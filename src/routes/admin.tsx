@@ -275,6 +275,7 @@ function AdminLayout() {
     { prefix: "/admin/asset-manager", module: "control_center" },
     { prefix: "/admin/attendance-code-manager", module: "control_center" },
     { prefix: "/admin/esic-branch-manager", module: "control_center" },
+    { prefix: "/admin/mis-manager", module: "control_center" },
   ];
   const firstAllowedPath = () => {
     const order = [
