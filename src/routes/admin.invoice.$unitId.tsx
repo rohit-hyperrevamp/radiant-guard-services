@@ -1568,9 +1568,6 @@ function PayrollUnitPage() {
               Upload Tally Invoice
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="mr-1.5 h-4 w-4" /> Export
-          </Button>
           <Button variant="outline" size="sm" onClick={exportMisFormat}>
             <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
           </Button>
