@@ -621,9 +621,16 @@ export function FinanceCharter({
             monthly: l.monthly,
           }));
         if (voucherLines.length === 0) continue;
+        const customer = unitRow.customer_id ? customerById.get(unitRow.customer_id) ?? null : null;
+        const billingState = unitRow.billing_state || customer?.billing_state || "";
         allRows.push(
           ...buildTallyVoucherRows({
-            unit: { ...unitRow, customer: unitRow.customer_id ? customerById.get(unitRow.customer_id) ?? null : null },
+            unit: {
+              ...unitRow,
+              customer_name: u.customer_name,
+              gstin: gstinFor(unitRow.customer_id, billingState, unitRow.gst_number),
+              customer,
+            },
             companyState,
             periodStart: period.start,
             periodEnd: period.end,
