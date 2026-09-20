@@ -13,7 +13,7 @@ export function PayrollTabs() {
   const location = useLocation();
 
   return (
-    <div className="mb-5 inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-card/60 p-1 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_10px_28px_-18px_rgba(10,20,40,0.18)]">
+    <div className="mb-5 inline-flex overflow-x-auto scrollbar-hide items-center gap-1 rounded-2xl border border-border/60 bg-card/60 p-1 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_10px_28px_-18px_rgba(10,20,40,0.18)]">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const active = location.pathname === tab.to || location.pathname.startsWith(tab.to + "/");

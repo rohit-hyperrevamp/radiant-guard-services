@@ -53,7 +53,7 @@ export function HeroTile({
             </div>
           )}
           <div className="flex min-w-0 items-center gap-2 sm:flex-wrap sm:items-end">
-            <div className="truncate font-display text-[19px] font-semibold leading-tight text-foreground sm:text-[30px] md:text-[34px]">
+            <div className="truncate font-display text-[22px] font-semibold leading-tight text-foreground sm:text-[30px] md:text-[34px]">
               {title}
             </div>
             {subtitle && (

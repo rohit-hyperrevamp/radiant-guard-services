@@ -44,7 +44,7 @@ export function MiniStat({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-display text-[12.5px] font-semibold leading-tight text-foreground sm:text-[14px]">
+          <div className="line-clamp-2 font-display text-[12.5px] font-semibold leading-tight text-foreground sm:text-[14px]">
             {label}
           </div>
           {(trend?.label || subtle) && (

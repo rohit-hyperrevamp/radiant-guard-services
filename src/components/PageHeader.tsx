@@ -31,13 +31,13 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("relative mb-2.5 sm:mb-5", className)}>
-      <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card px-3 py-2.5 sm:p-5">
+    <div className={cn("relative mb-2 sm:mb-5", className)}>
+      <div className="relative overflow-hidden border-b border-border/50 bg-transparent px-0 pb-2 pt-0 sm:rounded-xl sm:border sm:bg-card sm:p-5">
         <div className="relative flex min-w-0 flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3">
             {Icon && (
               <div className="mt-0.5 shrink-0">
-                <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-11 sm:w-11 sm:rounded-xl">
+                <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent sm:h-11 sm:w-11 sm:rounded-xl sm:ring-1 sm:ring-inset sm:ring-accent/20">
                   <Icon className="h-4.5 w-4.5 sm:h-[19px] sm:w-[19px]" />
                 </div>
               </div>
@@ -48,7 +48,7 @@ export function PageHeader({
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[18px] font-semibold leading-tight text-foreground sm:truncate sm:text-[24px]">
+              <h1 className="font-display text-[20px] font-semibold leading-tight text-foreground sm:truncate sm:text-[24px]">
                 {title}
               </h1>
               {description && (
@@ -66,7 +66,7 @@ export function PageHeader({
         </div>
 
         {kpis && (
-          <div className="relative mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 lg:grid-cols-4">
+          <div className="scrollbar-hide relative -mx-2 mt-3 flex snap-x gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 sm:mt-5 sm:gap-3 lg:grid-cols-4 [&>*]:w-[42vw] [&>*]:max-w-44 [&>*]:shrink-0 [&>*]:snap-start sm:[&>*]:w-auto sm:[&>*]:max-w-none sm:[&>*]:shrink">
             {kpis}
           </div>
         )}

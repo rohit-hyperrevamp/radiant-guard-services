@@ -216,8 +216,14 @@
 - Wired into attendance upload dialog (scan on manual upload, cleaned/original toggle, per-photo tips) and Migration Utility photo uploads.
 
 ## Full mobile-app interface optimization
-- [ ] Standardize the shared mobile shell, spacing, typography, actions, dialogs, sheets, tables, and safe areas.
-- [ ] Reduce nonessential on-screen copy and prioritize task-critical information across every authenticated screen.
-- [ ] Optimize dashboards, attendance, payroll, invoicing, contracts, employees, inventory, compliance, and settings for phone-first use.
-- [ ] Verify representative role-based flows at narrow Android, standard iPhone, and large-phone widths against production-facing behavior.
-- [ ] Run TypeScript validation and resolve mobile regressions without changing business rules or locked native push infrastructure.
+- [x] Standardize the shared mobile shell, spacing, typography, actions, dialogs, sheets, tables, and safe areas.
+- [x] Reduce nonessential on-screen copy and prioritize task-critical information across every authenticated screen.
+- [x] Optimize dashboards, attendance, payroll, invoicing, contracts, employees, inventory, compliance, and settings for phone-first use.
+- [ ] Verify representative role-based flows after a signed-in production session is available.
+- [x] Run TypeScript validation and resolve mobile regressions without changing business rules or locked native push infrastructure.
+
+## Mobile shell and dock refinement
+- [x] Replace the footer-like bottom bar with a compact elevated app dock.
+- [x] Rebuild the More panel as a clean two-column app launcher.
+- [x] Reclaim phone width and vertical space across the shared signed-in shell.
+- [ ] Visually verify authenticated screens; blocked until a signed-in session is available.
