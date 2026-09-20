@@ -32,7 +32,6 @@ export type InvoicePreviewData = {
   subtotal: number;
   cgst: number;
   sgst: number;
-  igst: number;
   grandTotal: number;
 };
 
@@ -169,23 +168,14 @@ export function InvoicePreviewDialog({
                 <td>Taxable value</td>
                 <td className="right text-right tabular-nums">{fmtINR(data.subtotal)}</td>
               </tr>
-              {data.igst > 0 ? (
-                <tr>
-                  <td>IGST 18%</td>
-                  <td className="right text-right tabular-nums">{fmtINR(data.igst)}</td>
-                </tr>
-              ) : (
-                <>
-                  <tr>
-                    <td>CGST 9%</td>
-                    <td className="right text-right tabular-nums">{fmtINR(data.cgst)}</td>
-                  </tr>
-                  <tr>
-                    <td>SGST 9%</td>
-                    <td className="right text-right tabular-nums">{fmtINR(data.sgst)}</td>
-                  </tr>
-                </>
-              )}
+              <tr>
+                <td>CGST 9%</td>
+                <td className="right text-right tabular-nums">{fmtINR(data.cgst)}</td>
+              </tr>
+              <tr>
+                <td>SGST 9%</td>
+                <td className="right text-right tabular-nums">{fmtINR(data.sgst)}</td>
+              </tr>
               <tr>
                 <td className="font-semibold">Grand total</td>
                 <td className="right text-right font-semibold tabular-nums">{fmtINR(data.grandTotal)}</td>
