@@ -767,22 +767,22 @@ function AdminLayout() {
 
       {/* Mobile top bar — compact native-app chrome */}
       <header data-app-header className={cn(
-        "sticky top-0 z-20 grid min-h-[52px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 animate-slide-in-top safe-top safe-x",
-        "border-b border-border/60 bg-background/95",
+        "sticky top-0 z-20 grid min-h-[48px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1 animate-slide-in-top safe-top safe-x",
+        "border-b border-border/50 bg-background/95 backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}>
         <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
           <div className="relative shrink-0">
-            <img src={brandLogo} alt="Radiant" className="h-8 w-8 object-contain" />
+            <img src={brandLogo} alt="Radiant" className="h-7 w-7 object-contain" />
           </div>
-          <div className="truncate text-[15px] font-semibold leading-tight text-foreground">Radiant</div>
+          <div className="truncate text-[14px] font-semibold leading-tight text-foreground">Radiant</div>
         </Link>
         <div className="flex shrink-0 items-center gap-1">
           <NotificationBell />
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/10 text-foreground outline-none ring-1 ring-border/60 transition focus-visible:outline-none hover:ring-accent"
+            className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/10 text-foreground outline-none ring-1 ring-border/60 transition focus-visible:outline-none hover:ring-accent"
           >
             {me.photoUrl ? (
               <img
@@ -805,17 +805,21 @@ function AdminLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-200"
+            className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-in fade-in-0 duration-200"
             onClick={() => setMobileOpen(false)}
           />
           <aside
             className={cn(
               "absolute inset-x-0 bottom-0 flex max-h-[86dvh] flex-col overflow-hidden",
-              "rounded-t-xl border-t border-border bg-card",
+              "rounded-t-3xl border-t border-border bg-card shadow-2xl",
               "animate-in slide-in-from-bottom duration-300 ease-out",
               "safe-bottom",
             )}
           >
+            <div className="shrink-0 px-4 pb-2 pt-2">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+              <h2 className="text-base font-semibold text-foreground">More</h2>
+            </div>
             {isFieldOfficer ? (
               (() => {
                 const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void; tone?: "default" | "danger" }> = [
@@ -828,7 +832,7 @@ function AdminLayout() {
                 ];
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                     <div data-app-drawer-grid className="grid grid-cols-3 gap-1.5 p-2.5">
+                     <div data-app-drawer-grid className="grid grid-cols-2 gap-2 px-3 pb-3">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -838,19 +842,19 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                               "group relative flex min-h-20 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                               "group relative flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
                             )}
                           >
                             <span className={cn(
-                              "grid h-8 w-8 place-items-center rounded-2xl",
+                              "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10",
                               active ? "text-primary-foreground" : "text-primary",
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="line-clamp-3 text-[11px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-2 text-xs font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
@@ -874,7 +878,7 @@ function AdminLayout() {
 
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                     <div data-app-drawer-grid className="grid grid-cols-3 gap-1.5 p-2.5">
+                     <div data-app-drawer-grid className="grid grid-cols-2 gap-2 px-3 pb-3">
                       {tiles.map((t) => {
                         const Icon = t.icon;
                         return (
@@ -883,19 +887,19 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                               "group relative flex min-h-20 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                               "group relative flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               t.active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
                             )}
                           >
                             <span className={cn(
-                              "grid h-8 w-8 place-items-center rounded-2xl",
+                              "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10",
                               t.active ? "text-primary-foreground" : "text-primary",
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="line-clamp-3 text-[11px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-2 text-xs font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
@@ -913,7 +917,7 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(70px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(76px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
 
 
         <div className="mx-auto min-w-0 max-w-[1500px]">

@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { MoreHorizontal } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
 import { isNativePlatform } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
@@ -43,79 +44,77 @@ export function MobileBottomNav({
     <nav
       aria-label="Primary"
       data-bottom-nav
-      style={{
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        bottom: "0px",
-        left: "0px",
-        right: "0px",
-      }}
       className={cn(
-        "fixed z-[80] border-t border-border/60 bg-card/98 backdrop-blur-xl",
+        "fixed inset-x-2 bottom-2 z-[80] rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-[58px] w-full max-w-xl items-stretch justify-around gap-0 px-1.5 pt-1">
+      <ul className="mx-auto grid h-14 w-full max-w-xl grid-flow-col auto-cols-fr items-stretch gap-1 px-1.5 py-1">
         {primary.map((it) => {
           const Icon = it.icon;
           const inner = (
             <div
               className={cn(
-                "relative mx-auto flex min-w-0 max-w-[82px] flex-col items-center justify-center gap-0 rounded-lg px-0.5 pb-1 pt-0.5 transition-colors sm:gap-1 sm:px-2",
+                "relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 transition-colors",
+                it.active ? "bg-primary/10" : "text-muted-foreground",
               )}
             >
               <span
                 className={cn(
-                  "grid h-8 w-10 place-items-center rounded-lg transition-colors",
+                  "grid h-6 w-9 place-items-center rounded-lg transition-colors",
                   it.active
-                    ? "bg-primary/12 text-primary"
-                    : "bg-transparent text-foreground/70",
+                    ? "text-primary"
+                    : "text-muted-foreground",
                 )}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={it.active ? 2.4 : 2} />
+                <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={it.active ? 2.5 : 2} />
               </span>
               <span
                 className={cn(
-                  "block w-full truncate whitespace-nowrap text-center text-[10px] leading-tight",
-                  it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
+                  "block w-full truncate whitespace-nowrap text-center text-[9px] leading-none",
+                  it.active ? "font-semibold text-primary" : "font-medium text-muted-foreground",
                 )}
               >
                 {it.label}
               </span>
+              {it.active && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-primary" />}
             </div>
           );
-          const tapClass = "block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90";
+          const tapClass = "block h-full w-full select-none rounded-xl outline-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] focus-visible:ring-2 focus-visible:ring-ring active:opacity-80";
           return (
-            <li key={it.key} className="flex-1">
+            <li key={it.key} className="min-w-0">
               {it.to ? (
-                <Link to={it.to} className={tapClass}>{inner}</Link>
+                <Link to={it.to} aria-current={it.active ? "page" : undefined} className={tapClass}>{inner}</Link>
               ) : (
-                <button type="button" onClick={it.onClick} className={tapClass}>{inner}</button>
+                <Button type="button" variant="ghost" onClick={it.onClick} className={cn(tapClass, "p-0")}>{inner}</Button>
               )}
             </li>
           );
         })}
         {!hideMore && (
-        <li className="flex-1">
-          <button
+        <li className="min-w-0">
+          <Button
             type="button"
+            variant="ghost"
             onClick={onMore}
             aria-label="More"
-            className="block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90"
+            className="block h-full w-full select-none rounded-xl p-0 outline-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] focus-visible:ring-2 focus-visible:ring-ring active:opacity-80"
           >
-             <div className="relative mx-auto flex min-w-0 max-w-[82px] flex-col items-center justify-center gap-0 rounded-lg px-0.5 pb-1 pt-0.5 transition-colors sm:gap-1 sm:px-2">
+             <div className={cn("relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 transition-colors", moreActive ? "bg-primary/10" : "text-muted-foreground")}>
               <span
                 className={cn(
-                  "grid h-8 w-10 place-items-center rounded-lg transition-colors",
-                  moreActive ? "bg-primary/12 text-primary" : "bg-transparent text-foreground/70",
+                  "grid h-6 w-9 place-items-center rounded-lg transition-colors",
+                  moreActive ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
+                <LayoutGrid className="h-[19px] w-[19px] shrink-0" strokeWidth={moreActive ? 2.5 : 2} />
               </span>
-               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[10px] leading-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
+               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9px] leading-none", moreActive ? "font-semibold text-primary" : "font-medium text-muted-foreground")}>
                 More
               </span>
+               {moreActive && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-primary" />}
             </div>
-          </button>
+          </Button>
         </li>
         )}
       </ul>

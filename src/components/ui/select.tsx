@@ -33,7 +33,7 @@ const SelectTrigger = React.forwardRef<
     data-slot="select-trigger"
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-card px-3.5 py-2 text-sm shadow-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-accent/50 data-[placeholder]:text-muted-foreground focus:border-accent focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-muted/45 disabled:opacity-60 [&>span]:line-clamp-1",
+      "flex h-10 w-full items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-card px-3.5 py-2 text-base md:text-sm shadow-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-accent/50 data-[placeholder]:text-muted-foreground focus:border-accent focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-muted/45 disabled:opacity-60 [&>span]:line-clamp-1",
       className,
     )}
     {...props}
@@ -132,7 +132,7 @@ const SelectItem = React.forwardRef<
     data-slot="select-item"
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-sm outline-none focus:bg-accent focus:text-white focus:[&_*]:!text-white data-[state=checked]:bg-accent data-[state=checked]:text-white data-[state=checked]:[&_*]:!text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-base md:text-sm outline-none focus:bg-accent focus:text-white focus:[&_*]:!text-white data-[state=checked]:bg-accent data-[state=checked]:text-white data-[state=checked]:[&_*]:!text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
