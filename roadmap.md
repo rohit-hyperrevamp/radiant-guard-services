@@ -187,3 +187,7 @@
 - [x] Multi-select filters (org/client/status) via shared MultiSelectFilter on Contracts, Attendance, Payroll, Invoicing
 - [x] Show the highlighted month/year selector beside the payroll-window selector on all three screens.
 - [x] Compact Invoice search and add All, Ready, Open, and Processed status filtering before pagination.
+
+## Invoice output cleanup
+- [x] Show CGST at 9% and SGST at 9% separately in invoice preview and print output; remove IGST.
+- [ ] Remove the Tally Billing File XLSX action from the invoice header.
