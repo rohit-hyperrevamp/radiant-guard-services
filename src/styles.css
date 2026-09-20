@@ -1386,7 +1386,7 @@ body {
    full repaint on every scroll frame. Preserve the appearance without the
    continuously recomputed blur layer. */
 [data-admin-scroll] :where(.glass, .glass-strong, .glass-dark),
-[data-admin-scroll] [class*="backdrop-blur"] {
+[data-admin-scroll] [class*="backdrop-blur"]:not(.mobile-glass-surface):not(.mobile-glass-control):not(.mobile-glass-bar) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -1699,6 +1699,12 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     max-width: 100%;
   }
 
+  /* The authenticated shell already owns the 8px phone gutter. Nested page
+     shells therefore provide vertical rhythm only, avoiding double margins. */
+  [data-admin-scroll] .page-shell {
+    padding-inline: 0;
+  }
+
   /* Compact visible controls with iOS-sized touch targets. */
   [data-admin-scroll] [data-slot="button"] {
     min-height: 2.5rem;
@@ -1730,6 +1736,13 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
 
   .mobile-glass-bar {
     background: color-mix(in oklab, var(--card) 82%, transparent) !important;
+  }
+
+  [data-slot="dialog-content"]:has(form) [data-slot="dialog-footer"],
+  [data-slot="sheet-content"]:has(form) [data-slot="sheet-footer"],
+  [data-slot="dialog-content"]:has(input, textarea, [role="combobox"]) [data-slot="dialog-header"] {
+    background: color-mix(in oklab, var(--card) 84%, transparent);
+    backdrop-filter: blur(18px) saturate(145%);
   }
 
   .mobile-glass-control {
