@@ -22,6 +22,7 @@ import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-
 import { fetchUnitDesignations } from "@/lib/unit-designations";
 import { logActivity } from "@/lib/activity-log";
 import { extractMigrationSheetViaApi } from "@/lib/sheet-ocr-api";
+import { scanDocument } from "@/lib/document-scan";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
 export const Route = createFileRoute("/admin/migration-utility")({
