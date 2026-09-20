@@ -1,5 +1,4 @@
 import { writeXlsx } from "@/lib/csv-export";
-import { gstinStateCode } from "@/lib/gstin";
 
 // Shared Tally billing-file export. Used by the per-invoice export on the
 // invoice detail page and the combined multi-invoice export on the invoice
