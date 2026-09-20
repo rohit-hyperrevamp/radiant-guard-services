@@ -64,7 +64,7 @@ export function MultiSelectFilter({
           type="button"
           variant="outline"
           className={cn(
-            "h-11 w-full justify-between rounded-xl px-3 text-left font-normal sm:h-10",
+            "h-9 w-full justify-between rounded-lg px-2.5 text-left text-xs font-normal sm:h-10 sm:rounded-xl sm:px-3 sm:text-sm",
             selected.length === 0 && "text-muted-foreground",
             className,
           )}
@@ -97,7 +97,7 @@ export function MultiSelectFilter({
                   type="button"
                   onClick={() => toggle(o.value)}
                   className={cn(
-                    "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-secondary/60",
+                    "flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-secondary/60",
                     active && "font-medium text-foreground",
                   )}
                 >

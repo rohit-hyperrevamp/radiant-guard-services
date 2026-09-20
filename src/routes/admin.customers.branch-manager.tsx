@@ -40,6 +40,16 @@ import {
 import { useBranches, useStates, type Branch } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/admin/customers/branch-manager")({
+  head: () => ({
+    meta: [
+      { title: "Branch Manager | Radiant Guard Services" },
+      { name: "description", content: "Manage operating branches and state mappings." },
+      { property: "og:title", content: "Branch Manager | Radiant Guard Services" },
+      { property: "og:description", content: "Manage operating branches and state mappings." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: BranchManagerPage,
 });
 
@@ -123,7 +133,7 @@ function BranchManagerPage() {
       />
 
       {/* Toolbar */}
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-2.5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+      <div className="mobile-directory-toolbar mobile-glass-surface mb-3 grid grid-cols-1 gap-1.5 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
         <div className="relative w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -133,7 +143,7 @@ function BranchManagerPage() {
             className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={() =>
@@ -156,7 +166,7 @@ function BranchManagerPage() {
               )
             }
             disabled={rows.length === 0}
-            className="h-10 rounded-xl"
+            className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Download className="mr-1.5 h-4 w-4" />
             Export
@@ -164,7 +174,7 @@ function BranchManagerPage() {
           <Button
             onClick={openAdd}
             disabled={availableStates.length === 0}
-            className="h-10 rounded-xl bg-primary text-primary-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90"
+            className="h-9 rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
             title={availableStates.length === 0 ? "All states are already mapped" : ""}
           >
             <Plus className="mr-1.5 h-4 w-4" />
@@ -193,19 +203,19 @@ function BranchManagerPage() {
             <tbody className="divide-y divide-border">
               {pg.pageRows.map((b) => (
                 <tr key={b.id} className="hover:bg-secondary/30">
-                  <td className="px-5 py-3 font-mono text-xs font-semibold text-foreground">
+                  <td data-label="Code" className="px-5 py-3 font-mono text-xs font-semibold text-foreground">
                     {b.code}
                   </td>
-                  <td className="px-5 py-3 font-semibold text-foreground">
+                  <td data-label="Branch" className="px-5 py-3 font-semibold text-foreground">
                     <span className="font-mono text-accent">{b.code}</span>
                     <span className="mx-2 text-muted-foreground">–</span>
                     <span className="truncate">{b.stateName}</span>
                   </td>
-                  <td className="truncate px-5 py-3 text-foreground">{b.stateName}</td>
-                  <td className="truncate px-5 py-3 text-muted-foreground">
+                  <td data-label="State" className="truncate px-5 py-3 text-foreground">{b.stateName}</td>
+                  <td data-label="Description" className="truncate px-5 py-3 text-muted-foreground">
                     {b.description || <span className="italic opacity-60">—</span>}
                   </td>
-                  <td className="px-5 py-3 text-right" data-col="actions">
+                  <td data-label="Actions" className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
                       <RecordViewButton
                         record={b}

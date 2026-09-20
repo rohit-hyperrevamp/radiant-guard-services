@@ -149,7 +149,7 @@ function CustomerManagerPage() {
         }
       />
 
-      <div className="mobile-glass-surface mb-3 grid grid-cols-1 gap-2 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:rounded-2xl sm:p-2.5">
+      <div className="mobile-directory-toolbar mobile-glass-surface mb-3 grid grid-cols-1 gap-1.5 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
         <div className="grid w-full grid-cols-[minmax(0,1fr)_8.5rem] gap-2 sm:flex sm:items-center">
           <div className="relative w-full sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -171,7 +171,7 @@ function CustomerManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={() =>
@@ -196,7 +196,7 @@ function CustomerManagerPage() {
               )
             }
             disabled={rows.length === 0}
-            className="h-10 rounded-xl"
+            className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Download className="mr-1.5 h-4 w-4" />
             Export
@@ -206,10 +206,10 @@ function CustomerManagerPage() {
               setEditing(null);
               setFormOpen(true);
             }}
-            className="h-10 shrink-0 whitespace-nowrap rounded-xl bg-primary px-3 text-primary-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90 sm:px-4"
+            className="h-9 shrink-0 whitespace-nowrap rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Plus className="mr-1.5 h-4 w-4 shrink-0" />
-            Add Organization
+            <span className="sm:hidden">Add</span><span className="hidden sm:inline">Add Organization</span>
           </Button>
         </div>
       </div>

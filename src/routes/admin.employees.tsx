@@ -4509,7 +4509,7 @@ function EmployeesPage() {
 
         {/* Filter bar (Employees tab only) */}
         {tab === "employee" && (
-          <div className="grid grid-cols-2 items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm backdrop-blur-xl sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
+          <div className="mobile-directory-filters grid grid-cols-2 items-center gap-1.5 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm backdrop-blur-xl sm:flex sm:flex-wrap sm:gap-2 sm:rounded-2xl sm:p-3">
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>
@@ -4607,30 +4607,30 @@ function EmployeesPage() {
                 setFilterUnit("all"); setFilterManager("all"); setFilterEnabled("all"); setFilterBillable("all"); setFilterOffboardReason("all");
                 setFilterDepartment("all");
               }}
-              className="h-9 text-xs text-muted-foreground"
+              className="h-8 px-2 text-xs text-muted-foreground"
             >
               Reset
             </Button>
-            <div className="col-span-2 ml-auto flex items-center gap-2 sm:col-span-1">
+            <div className="col-span-2 ml-auto flex items-center gap-1.5 sm:col-span-1">
               <div className="flex rounded-lg border border-border/60 bg-secondary/40 p-0.5">
                 <button
                   type="button"
                   onClick={() => setViewMode("list")}
-                  className={cn("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs", viewMode === "list" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground")}
+                  className={cn("inline-flex h-8 items-center gap-1 rounded-md px-2 py-1 text-[11px]", viewMode === "list" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground")}
                 >
                   <LayoutList className="h-3.5 w-3.5" /> List
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode("tree")}
-                  className={cn("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs", viewMode === "tree" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground")}
+                  className={cn("inline-flex h-8 items-center gap-1 rounded-md px-2 py-1 text-[11px]", viewMode === "tree" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground")}
                 >
                   <Network className="h-3.5 w-3.5" /> Tree
                 </button>
               </div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" size="icon" className="h-9 w-9" title="Configure filters & columns">
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" title="Configure filters & columns">
                     <Settings2 className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>

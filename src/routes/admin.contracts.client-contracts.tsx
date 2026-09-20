@@ -2663,8 +2663,8 @@ function ClientContractsPage() {
         </TabsList>
       </Tabs>
 
-      <div className="mb-4 grid grid-cols-1 items-center gap-2 sm:flex sm:flex-wrap sm:justify-end">
-        <div className="grid min-w-0 grid-cols-1 items-center gap-2 sm:mr-auto sm:flex">
+      <div className="mobile-directory-toolbar mb-3 grid grid-cols-2 items-center gap-1.5 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex sm:flex-wrap sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
+        <div className="col-span-2 grid min-w-0 grid-cols-1 items-center gap-2 sm:mr-auto sm:flex">
           <Select value={windowFilter} onValueChange={setWindowFilter}>
             <SelectTrigger className="h-10 w-full rounded-xl sm:w-[220px]">
               <SelectValue placeholder="All payroll windows" />
@@ -2713,10 +2713,10 @@ function ClientContractsPage() {
               ],
             )
           }
-          className="h-10 rounded-lg"
+          className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:px-4 sm:text-sm"
         >
           <Download className="mr-1.5 h-4 w-4" />
-          Export Contracts
+          <span className="sm:hidden">Export</span><span className="hidden sm:inline">Export Contracts</span>
         </Button>
         {canEdit && (
           <input
@@ -2761,29 +2761,29 @@ function ClientContractsPage() {
             <Button
               variant="outline"
               onClick={() => importInputRef.current?.click()}
-              className="h-10 rounded-lg"
+              className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:px-4 sm:text-sm"
             >
               <Upload className="mr-1.5 h-4 w-4" />
-              Import Contract
+              <span className="sm:hidden">Import</span><span className="hidden sm:inline">Import Contract</span>
             </Button>
             <Button
               onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
               }}
-              className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
+              className="h-9 rounded-lg bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:h-10 sm:px-4 sm:text-sm"
             >
               <Plus className="mr-1.5 h-4 w-4" />
-              Create Contract
+              <span className="sm:hidden">Create</span><span className="hidden sm:inline">Create Contract</span>
             </Button>
           </>
         )}
       </div>
 
       {/* Filters */}
-      <div className="mb-4 rounded-2xl border border-border bg-card p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,180px))_auto]">
-          <div className="relative">
+      <div className="mobile-directory-filters mb-4 rounded-xl border border-border bg-card p-2 sm:rounded-2xl sm:p-4">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,180px))_auto]">
+          <div className="relative col-span-2 lg:col-span-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -2832,7 +2832,7 @@ function ClientContractsPage() {
           />
           <Button
             variant="outline"
-            className="h-10 rounded-lg"
+            className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:px-4 sm:text-sm"
             disabled={!hasFilters}
             onClick={() => {
               setQuery("");
