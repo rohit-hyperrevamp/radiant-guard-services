@@ -234,3 +234,6 @@
 - [ ] Fix clipping, overflow, action placement, toggles, filters, and dense record layouts globally.
 - [ ] Apply targeted fixes to screens that cannot inherit the shared improvements.
 - [ ] Run TypeScript validation and verify production mobile screens where authentication allows.
+
+- [ ] Make the mobile bottom dock black, matching the desktop navigation.
+- [ ] Remove bold/black typography from the interface; retain regular and medium weights only.
