@@ -3415,6 +3415,9 @@ function ContractFormDialog({
   const [originalStartDate, setOriginalStartDate] = useState("");
   const [renewalCount, setRenewalCount] = useState(0);
   const expiryManuallySetRef = useRef(false);
+  // Dates the user has touched must never be overwritten by the unit auto-fill,
+  // which can resolve after the dialog is already open and mid-edit.
+  const datesTouchedRef = useRef(false);
   const [description, setDescription] = useState("");
   const [serviceTypeId, setServiceTypeId] = useState<string>("");
   const [payrollWindowId, setPayrollWindowId] = useState<string>("");
@@ -3474,6 +3477,7 @@ function ContractFormDialog({
   // Reset when opened
   useEffect(() => {
     if (!open) return;
+    datesTouchedRef.current = false;
     if (editing) {
       setContractCode(editing.contractCode);
       setProspectCode(editing.prospectCode);
@@ -3552,9 +3556,13 @@ function ContractFormDialog({
     : undefined;
 
   // Auto-fill contract start/end from the selected unit's contract period.
-  // Only overwrite when the field is empty so the user can still edit.
+  // Never applies when editing an existing contract, and never once the user
+  // has touched a date field — the unit list can resolve mid-edit and would
+  // otherwise silently restore the old dates.
   useEffect(() => {
     if (!selectedUnit) return;
+    if (editing) return;
+    if (datesTouchedRef.current) return;
     if (selectedUnit.contractStartDate) {
       setStartDate((prev) => prev || selectedUnit.contractStartDate);
     }
@@ -3562,7 +3570,7 @@ function ContractFormDialog({
       setEndDate((prev) => prev || selectedUnit.contractEndDate);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUnit?.id]);
+  }, [selectedUnit?.id, editing?.id]);
   const filteredUnits = useMemo(() => {
     const query = unitQuery.trim().toLowerCase();
     if (!query) return units;
@@ -3865,6 +3873,7 @@ function ContractFormDialog({
                   type="date"
                   value={startDate}
                   onChange={(e) => {
+                    datesTouchedRef.current = true;
                     setStartDate(e.target.value);
                     expiryManuallySetRef.current = false;
                   }}
@@ -3881,7 +3890,10 @@ function ContractFormDialog({
                 <Input
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => {
+                    datesTouchedRef.current = true;
+                    setEndDate(e.target.value);
+                  }}
                 />
               </Field>
               <Field label="Next renewal / expiry date" className="sm:col-span-2">
