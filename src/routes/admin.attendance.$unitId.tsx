@@ -3520,7 +3520,7 @@ function MusterRollPage() {
         )}
 
         {mobileSelectedRows.size > 0 && (
-          <div className="mobile-glass-bar fixed inset-x-2 bottom-[calc(5.7rem+env(safe-area-inset-bottom))] z-50 rounded-xl border border-primary/30 bg-card/90 p-2 shadow-lg">
+          <div className="mobile-glass-bar dock-clear-action fixed inset-x-2 z-50 rounded-xl border border-primary/30 bg-card/90 p-2 shadow-lg">
             <div className="mb-1.5 flex items-center justify-between px-1 text-xs">
               <span>{mobileSelectedRows.size} selected</span>
               <Button size="sm" variant="ghost" className="h-8" onClick={() => setMobileSelectedRows(new Set())}>Clear</Button>

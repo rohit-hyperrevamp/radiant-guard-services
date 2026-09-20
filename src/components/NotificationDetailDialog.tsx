@@ -26,7 +26,7 @@ export function NotificationDetailDialog({
   const n = notification;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="dialog-responsive sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
@@ -51,32 +51,6 @@ export function NotificationDetailDialog({
           <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm text-foreground/90">
             {n.message}
           </div>
-        )}
-
-        {(n?.entityType || n?.type) && (
-          <dl className="grid grid-cols-3 gap-2 text-xs">
-            {n?.type && (
-              <>
-                <dt className="col-span-1 text-muted-foreground">Type</dt>
-                <dd className="col-span-2 font-mono text-[11px] text-foreground/80">
-                  {n.type}
-                </dd>
-              </>
-            )}
-            {n?.entityType && (
-              <>
-                <dt className="col-span-1 text-muted-foreground">Entity</dt>
-                <dd className="col-span-2 text-foreground/80">
-                  {n.entityType}
-                  {n.entityId ? (
-                    <span className="ml-1 text-muted-foreground">
-                      · {n.entityId.slice(0, 8)}
-                    </span>
-                  ) : null}
-                </dd>
-              </>
-            )}
-          </dl>
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">

@@ -134,9 +134,9 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
 
   const notificationList = (
     <>
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border/60 px-3 py-2.5 sm:px-4 sm:py-3">
         <div>
-          <div className="text-[15px] font-bold tracking-tight text-foreground">Notifications</div>
+          <div className="text-[15px] font-medium tracking-tight text-foreground">Notifications</div>
           <div className="text-[11px] text-muted-foreground">
             {unread > 0 ? `${unread} unread` : "You’re all caught up"}
           </div>
@@ -187,7 +187,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
                   type="button"
                   onClick={() => void handleOpenNotification(n)}
                   className={cn(
-                    "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40 [-webkit-tap-highlight-color:transparent]",
+                    "flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-secondary/40 [-webkit-tap-highlight-color:transparent] sm:gap-3 sm:px-4 sm:py-3",
                     !n.readAt && "bg-primary/[0.04]",
                   )}
                 >
@@ -201,7 +201,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="text-[13.5px] font-semibold leading-snug text-foreground">
+                      <div className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground sm:text-[13.5px]">
                         {n.title}
                       </div>
                       {!n.readAt && (
@@ -243,7 +243,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
               onClick={() => setMobileOpen(false)}
             />
             <div
-              className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-[28px] border-t border-x border-border/60 bg-card shadow-[0_-24px_80px_-20px_rgba(15,23,42,0.55)] animate-in slide-in-from-bottom duration-300 ease-out"
+              className="absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-[22px] border-t border-x border-border/60 bg-card shadow-[0_-24px_80px_-20px_rgba(15,23,42,0.55)] animate-in slide-in-from-bottom duration-300 ease-out"
               style={{
                 paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)",
               }}

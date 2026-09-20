@@ -65,7 +65,7 @@ export function MobileBottomNav({
       data-bottom-nav
       data-expanded={moreActive ? "true" : "false"}
       className={cn(
-        "fixed left-[max(0.5rem,env(safe-area-inset-left,0px))] right-[max(0.5rem,env(safe-area-inset-right,0px))] bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-[80] rounded-[22px] border border-dock-foreground/15 bg-dock text-dock-foreground shadow-xl backdrop-blur-xl",
+        "fixed left-[max(0.5rem,env(safe-area-inset-left,0px))] right-[max(0.5rem,env(safe-area-inset-right,0px))] bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-[80] rounded-[20px] border border-dock-foreground/15 bg-dock text-dock-foreground shadow-xl backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >

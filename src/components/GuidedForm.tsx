@@ -212,7 +212,7 @@ export function GuidedForm({
           </div>
         </div>
 
-        <div className="mobile-glass-bar grid shrink-0 grid-cols-3 gap-1.5 border-t border-border/60 bg-card/80 px-2 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] min-[360px]:gap-2 min-[360px]:px-3 sm:flex sm:justify-end sm:px-6 sm:py-3 [&_[data-slot=button]]:px-2 min-[360px]:[&_[data-slot=button]]:px-3.5">
+        <div className="mobile-glass-bar grid shrink-0 grid-cols-3 gap-1.5 border-t border-border/60 bg-card/80 px-2 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] min-[360px]:gap-2 min-[360px]:px-3 sm:flex sm:justify-end sm:px-6 sm:py-3 [&_[data-slot=button]]:h-10 [&_[data-slot=button]]:px-2 min-[360px]:[&_[data-slot=button]]:px-3.5">
           {stepIndex === 0 ? (
             <Button type="button" variant="outline" onClick={() => void requestCancel()}>Cancel</Button>
           ) : (
