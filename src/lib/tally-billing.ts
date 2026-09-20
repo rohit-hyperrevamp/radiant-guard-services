@@ -87,7 +87,6 @@ export function buildTallyVoucherRows(args: {
     ? `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} SGST/CGST ${gstRate}%`
     : `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} IGST ${gstRate}%`;
 
-  const stateCode = gstinStateCode(unit.gstin ?? "") || "00";
   const vchNo = tallyVoucherNo(unit.code ?? "", periodStart);
   const vchDate = periodEnd;
   const partyName = `${unit.customer_name || ""}, ${unit.name || unit.code || ""}`.trim();
@@ -168,7 +167,6 @@ export function buildTallyVoucherRows(args: {
       "TALLYIMPORTSTATUS": "",
     } satisfies Record<string, unknown>;
   });
-  void stateCode;
 }
 
 export async function writeTallyBillingXlsx(filename: string, rows: Record<string, unknown>[]) {
