@@ -31,7 +31,6 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -1227,60 +1226,6 @@ function PayrollUnitPage() {
 
 
 
-  const exportTallyBilling = async () => {
-    if (!unit) return;
-    const { data: contracts } = await supabase
-      .from("client_contracts")
-      .select("service_type_id")
-      .eq("unit_id", unitId)
-      .eq("record_type", "client")
-      .eq("status", "active")
-      .order("start_date", { ascending: false })
-      .limit(1);
-    const serviceTypeId = contracts?.[0]?.service_type_id ?? null;
-    let serviceTypeName = "Security Guard";
-    if (serviceTypeId) {
-      const { data: st } = await supabase
-        .from("service_types")
-        .select("name")
-        .eq("id", serviceTypeId)
-        .maybeSingle();
-      if (st?.name) serviceTypeName = String(st.name);
-    }
-
-    const lines = rows
-      .filter((r) => r.wages && r.resource)
-      .map((r) => {
-        const m = invoiceMathFor(r);
-        const monthly = m.contracted;
-        const amt = m.actual;
-        if (billingMode === "lumpsum") return { qty: 1, rate: amt, amount: amt, monthly };
-        return {
-          qty: m.billedDays,
-          rate: m.payrollDays > 0 ? monthly / m.payrollDays : 0,
-          amount: amt,
-          monthly,
-        };
-      });
-
-    if (lines.length === 0) {
-      toast.error("No billable rows for this period yet.");
-      return;
-    }
-    const stateCode = gstinStateCode(unit.gstin ?? "") || "00";
-    await writeTallyBillingXlsx(
-      `Billing File_${end}_${(unit.code || unitId).toUpperCase()}_${stateCode}`,
-      buildTallyVoucherRows({
-        unit,
-        companyState: COMPANY_STATE,
-        periodStart: start,
-        periodEnd: end,
-        serviceTypeName,
-        lines,
-      }),
-    );
-  };
-
   const uploadTallyInvoice = async (file: File) => {
     if (!sheet?.id || !canUploadTallyInvoice) return;
     if (file.size > 20 * 1024 * 1024) {
@@ -1428,9 +1373,6 @@ function PayrollUnitPage() {
               Upload Tally Invoice
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void exportTallyBilling()}>
-            <Download className="mr-1.5 h-4 w-4" /> Tally Export
-          </Button>
           <Button variant="outline" size="sm" onClick={exportMisFormat}>
             <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
           </Button>
