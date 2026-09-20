@@ -155,8 +155,8 @@ function AttendanceUnitsPage() {
         description="Open a client’s attendance for this exact contract period."
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5">
           <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
           <MonthYearPicker
             className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
@@ -167,28 +167,28 @@ function AttendanceUnitsPage() {
             }}
           />
         </div>
-        <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 rounded-full text-xs">
+        <Button asChild size="icon" variant="outline" className="h-10 w-10 shrink-0 rounded-lg sm:h-8 sm:w-auto sm:gap-1.5 sm:rounded-full sm:px-3 sm:text-xs">
           <Link to="/admin/attendance/employee">
-            <Search className="h-3.5 w-3.5" /> Employee lookup
+            <Search className="h-4 w-4" /> <span className="hidden sm:inline">Employee lookup</span>
           </Link>
         </Button>
       </div>
 
 
 
-      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
-        <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm sm:rounded-3xl">
+        <div className="border-b border-border/60 px-3 py-2.5 sm:space-y-3 sm:px-5 sm:py-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
               Attendance charter
             </h2>
-            <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="hidden text-sm leading-relaxed text-muted-foreground sm:block">
                Committed vs actual deployment with period-to-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
         </div>
 
-        <div className="px-4 py-4 sm:px-5 sm:py-5">
+        <div className="px-3 py-3 sm:px-5 sm:py-5">
           {isLoading ? (
             <ListSkeleton rows={5} />
           ) : error ? (

@@ -14,9 +14,6 @@ export function useDialogPortalContainer() {
 }
 
 // ---- Dirty-guard plumbing -----------------------------------------------
-// Tracks whether the user has typed/interacted inside an open dialog. If so,
-// any close attempt (Cancel button, ✕, outside click, Escape) is intercepted
-// and a "Discard unsaved changes?" confirmation is shown first.
 type DirtyCtx = {
   dirtyRef: React.MutableRefObject<boolean>;
   reset: () => void;
@@ -26,7 +23,6 @@ type DirtyCtx = {
 };
 const DialogDirtyContext = React.createContext<DirtyCtx | null>(null);
 
-/** Opt out of the global unsaved-changes guard for a specific Dialog. */
 export const DialogDirtyGuardOff = ({ children }: { children: React.ReactNode }) => {
   const dirtyRef = React.useRef(false);
   return (
@@ -104,9 +100,7 @@ const Dialog = ({ onOpenChange, open, defaultOpen, children, ...props }: DialogR
 };
 
 const DialogTrigger = DialogPrimitive.Trigger;
-
 const DialogPortal = DialogPrimitive.Portal;
-
 const DialogClose = DialogPrimitive.Close;
 
 const DialogOverlay = React.forwardRef<
@@ -126,12 +120,13 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
   overlayClassName?: string;
+  responsive?: boolean;
 };
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, overlayClassName, children, ...props }, ref) => {
+>(({ className, overlayClassName, responsive, children, ...props }, ref) => {
   const [contentElement, setContentElement] = React.useState<HTMLElement | null>(null);
   const [pristine, setPristine] = React.useState(true);
   const dirtyCtx = React.useContext(DialogDirtyContext);
@@ -148,27 +143,15 @@ const DialogContent = React.forwardRef<
     [ref],
   );
 
-  // Mark the dialog dirty on any field interaction, and pristine when a
-  // save-intent button is clicked or a form is submitted (so successful
-  // saves close silently; failed saves re-dirty as the user resumes typing).
-  // The `pristine` React state mirrors the ref so we can render
-  // `data-pristine` and disable save-intent buttons via CSS until edits exist.
   React.useEffect(() => {
     if (!contentElement || !dirtyCtx || dirtyCtx.disabled) return;
     dirtyCtx.reset();
     setPristine(true);
-    // Always start the dialog scrolled to the top so long forms don't open mid-way.
     requestAnimationFrame(() => contentElement.scrollTo?.({ top: 0, left: 0 }));
-    // Note: action words like "add"/"import" are intentionally excluded because
-    // dialogs also contain secondary controls such as "Add component" pickers.
     const SAVE_RX = /^(save|update|create|submit|confirm|apply|generate|send|sign|next|continue|finish|done)\b/i;
-    // Decision/action buttons (approval chains, workflow actions) never depend
-    // on the user editing a field first — they must stay clickable when pristine.
     const ACTION_RX = /^(approve|reject|decline|acknowledge|enable|open)\b/i;
 
-
     const markDirty = (e: Event) => {
-      // Programmatic value changes (React-driven prefill) shouldn't dirty.
       if (!(e as UIEvent).isTrusted) return;
       if (!dirtyCtx.dirtyRef.current) {
         dirtyCtx.dirtyRef.current = true;
@@ -193,9 +176,7 @@ const DialogContent = React.forwardRef<
     };
     dirtyCtx.markPristine = markPristine;
     const onClick = (e: Event) => {
-      const btn = (e.target as HTMLElement | null)?.closest?.(
-        "button",
-      ) as HTMLButtonElement | null;
+      const btn = (e.target as HTMLElement | null)?.closest?.("button") as HTMLButtonElement | null;
       if (!btn) return;
       const txt = (btn.textContent || "").trim();
       if (txt === "Close" || txt === "Cancel") closeDialog();
@@ -203,8 +184,6 @@ const DialogContent = React.forwardRef<
       if (btn.type === "submit" || SAVE_RX.test(txt)) markPristine();
     };
 
-    // Tag save-intent buttons inside the dialog so CSS can disable them
-    // while pristine. Re-scan when children change.
     const scan = () => {
       contentElement.querySelectorAll("button").forEach((b) => {
         const txt = (b.textContent || "").trim();
@@ -222,12 +201,8 @@ const DialogContent = React.forwardRef<
     contentElement.addEventListener("click", onClick, true);
     contentElement.addEventListener("submit", markPristine, true);
     return () => {
-      dirtyCtx.markDirty = () => {
-        dirtyCtx.dirtyRef.current = true;
-      };
-      dirtyCtx.markPristine = () => {
-        dirtyCtx.reset();
-      };
+      dirtyCtx.markDirty = () => { dirtyCtx.dirtyRef.current = true; };
+      dirtyCtx.markPristine = () => { dirtyCtx.reset(); };
       mo.disconnect();
       contentElement.removeEventListener("input", markDirty, true);
       contentElement.removeEventListener("change", markDirty, true);
@@ -245,13 +220,14 @@ const DialogContent = React.forwardRef<
           ref={handleRef}
           data-pristine={pristine ? "true" : "false"}
           className={cn(
-            "dialog-content-centered fixed left-[50%] top-[50%] z-50 grid w-[calc(100vw-1.5rem)] max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain gap-4 rounded-2xl border border-border/60 bg-card text-card-foreground p-4 sm:p-6 shadow-[0_24px_60px_-15px_rgba(15,23,42,0.25)] data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out sm:rounded-xl",
+            "dialog-content-centered fixed left-0 top-0 z-50 grid h-[100dvh] w-full max-w-none overflow-y-auto overscroll-contain gap-3 border-0 bg-card text-card-foreground p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] data-[state=open]:animate-none data-[state=closed]:animate-none sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-[calc(100vw-1.5rem)] sm:max-w-lg sm:max-h-[calc(100dvh-1.5rem)] sm:gap-4 sm:rounded-xl sm:border sm:border-border/60 sm:p-6 sm:shadow-[0_24px_60px_-15px_rgba(15,23,42,0.25)] sm:data-[state=open]:animate-dialog-in sm:data-[state=closed]:animate-dialog-out",
+            responsive && "dialog-responsive",
             className,
           )}
           {...props}
         >
           {children}
-          <DialogPrimitive.Close data-dialog-close className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-border/70 bg-card text-foreground shadow-sm ring-offset-background transition hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <DialogPrimitive.Close data-dialog-close className="absolute right-2.5 top-[max(0.625rem,env(safe-area-inset-top))] z-10 grid h-9 w-9 place-items-center rounded-full border border-border/70 bg-card text-foreground shadow-sm ring-offset-background transition hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none sm:right-3 sm:top-3 sm:h-8 sm:w-8">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
@@ -263,14 +239,14 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div data-slot="dialog-header" className={cn("flex flex-col space-y-1.5 text-left", className)} {...props} />
+  <div data-slot="dialog-header" className={cn("flex flex-col space-y-1 border-b border-border/60 pb-2.5 pr-10 text-left sm:border-0 sm:pb-0 sm:pr-0", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     data-slot="dialog-footer"
-    className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+    className={cn("sticky bottom-0 -mx-3 mt-auto flex flex-row gap-1.5 border-t border-border/60 bg-card px-3 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] [&>*]:min-w-0 [&>*]:flex-1 sm:static sm:mx-0 sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 sm:[&>*]:flex-none", className)}
     {...props}
   />
 );
@@ -283,7 +259,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     data-slot="dialog-title"
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn("text-base font-semibold leading-tight sm:text-lg", className)}
     {...props}
   />
 ));
@@ -296,16 +272,12 @@ const DialogDescription = React.forwardRef<
   <DialogPrimitive.Description
     data-slot="dialog-description"
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("hidden text-sm text-muted-foreground sm:block", className)}
     {...props}
   />
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
-/**
- * Imperatively mark the nearest enclosing Dialog as pristine — call after a
- * successful save so the close that follows won't trigger the discard prompt.
- */
 export function useDialogDirty() {
   const ctx = React.useContext(DialogDirtyContext);
   return React.useMemo(

@@ -106,7 +106,7 @@ function FieldChip({
           className={cn(
             "h-9 justify-between rounded-xl border-border/70 bg-card px-3 text-xs font-medium shadow-sm",
             active ? "border-amber-400/60 bg-amber-50 text-foreground dark:bg-amber-500/10" : "text-muted-foreground",
-            "w-full min-w-0 sm:w-auto sm:min-w-[150px]"
+            "w-auto min-w-[132px] max-w-[190px] shrink-0 sm:min-w-[150px]"
           )}
         >
           <span className="truncate">{chipSummary(field, condition)}</span>
@@ -196,7 +196,7 @@ export function AdvancedFilters({ fields, value, onChange, className, defaultHid
   const visibleFields = fields.filter((f) => visible[f.key]);
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-3 shadow-sm", className)}>
+    <div className={cn("scrollbar-hide flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-border/60 bg-card p-2 sm:flex-wrap sm:gap-2 sm:rounded-2xl sm:p-3", className)}>
       {visibleFields.map((f) => (
         <FieldChip
           key={f.key}
@@ -213,12 +213,12 @@ export function AdvancedFilters({ fields, value, onChange, className, defaultHid
         size="sm"
         onClick={resetAll}
         disabled={value.length === 0}
-        className="h-9 gap-1.5 text-xs text-muted-foreground"
+        className="h-9 shrink-0 gap-1.5 text-xs text-muted-foreground"
       >
         <RotateCcw className="h-3.5 w-3.5" /> Reset
       </Button>
 
-      <div className="ml-auto">
+      <div className="ml-auto shrink-0">
         <Popover>
           <PopoverTrigger asChild>
             <Button type="button" variant="outline" size="icon" className="h-9 w-9 rounded-xl" title="Show / hide filters">

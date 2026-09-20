@@ -64,7 +64,7 @@ export function MultiSelectFilter({
           type="button"
           variant="outline"
           className={cn(
-            "h-10 w-full justify-between rounded-lg px-3 font-normal",
+            "h-10 w-full justify-between rounded-lg px-3 text-left font-normal",
             selected.length === 0 && "text-muted-foreground",
             className,
           )}
@@ -73,7 +73,7 @@ export function MultiSelectFilter({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align={align} className="w-[--radix-popover-trigger-width] min-w-64 p-0">
+      <PopoverContent align={align} className="w-[min(20rem,calc(100vw-1rem))] p-0 sm:w-[--radix-popover-trigger-width] sm:min-w-64">
         <div className="border-b border-border/60 p-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -97,7 +97,7 @@ export function MultiSelectFilter({
                   type="button"
                   onClick={() => toggle(o.value)}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-secondary/60",
+                    "flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-secondary/60",
                     active && "font-medium text-foreground",
                   )}
                 >

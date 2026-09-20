@@ -12,7 +12,7 @@ import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-them
  */
 
 export function CharterTileGrid({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">{children}</div>;
+  return <div className="scrollbar-hide -mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 sm:pb-0 lg:grid-cols-4">{children}</div>;
 }
 
 export type TileSegment = { label: string; value: number; tone?: "open" | "ready" | "done" };
@@ -48,17 +48,17 @@ export function CharterTile({
   return (
     <div
       className={cn(
-        "group relative flex min-h-[104px] flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:min-h-[152px] sm:rounded-[26px] sm:p-5",
+        "group relative flex min-h-[94px] w-[44vw] min-w-[148px] max-w-[184px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/40 p-3 transition-colors sm:min-h-[138px] sm:w-auto sm:min-w-0 sm:max-w-none sm:rounded-2xl sm:p-4",
         ACCENT_TILE_BG[accent],
       )}
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-display text-[12.5px] font-semibold leading-tight text-foreground sm:text-[15px]">
+           <div className="line-clamp-2 font-display text-[12px] font-semibold leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
           {sub && (
-            <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-[11px]">
+             <div className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
               {sub}
             </div>
           )}
@@ -66,7 +66,7 @@ export function CharterTile({
         {Icon && (
           <span
             className={cn(
-              "grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9",
+               "grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 sm:rounded-full",
               ACCENT_CHIP[accent],
             )}
           >
@@ -75,23 +75,23 @@ export function CharterTile({
         )}
       </div>
 
-      <div className="relative mt-3 whitespace-nowrap font-display text-[26px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:mt-auto sm:text-[40px]">
+      <div className="relative mt-auto whitespace-nowrap pt-2 font-display text-[22px] font-bold leading-none tabular-nums text-foreground sm:text-[36px]">
         {display}
       </div>
 
       {segments && segments.length > 0 && (
-        <div className="relative mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 sm:mt-3">
+        <div className="relative mt-1.5 flex flex-nowrap items-center gap-2 overflow-hidden sm:mt-3 sm:flex-wrap sm:gap-x-3 sm:gap-y-1">
           {segments.map((s) => (
             <span key={s.label} className="flex items-baseline gap-1">
               <span
                 className={cn(
-                  "font-display text-[13px] font-bold tabular-nums sm:text-[15px]",
+                   "font-display text-[12px] font-bold tabular-nums sm:text-[15px]",
                   s.tone ? SEGMENT_TONE[s.tone] : "text-foreground",
                 )}
               >
                 {s.value}
               </span>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px]">
+              <span className="text-[9px] font-semibold text-muted-foreground sm:text-[10px] sm:uppercase">
                 {s.label}
               </span>
             </span>

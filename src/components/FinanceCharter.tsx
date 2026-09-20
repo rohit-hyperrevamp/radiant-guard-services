@@ -872,7 +872,7 @@ export function FinanceCharter({
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <CharterTileGrid>
         <CharterTile
           label="Organizations"
@@ -956,8 +956,8 @@ export function FinanceCharter({
 
 
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 basis-full sm:basis-auto sm:w-72">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
+        <div className="relative min-w-0 sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -971,7 +971,7 @@ export function FinanceCharter({
             value={statusFilter}
             onValueChange={(value) => onStatusFilterChange(value as "all" | MoneyStatus)}
           >
-            <SelectTrigger className="h-9 w-full rounded-xl sm:w-48" aria-label={`${mode === "invoice" ? "Invoice" : "Payroll"} status`}>
+            <SelectTrigger className="h-9 w-[132px] rounded-lg sm:w-48 sm:rounded-xl" aria-label={`${mode === "invoice" ? "Invoice" : "Payroll"} status`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -993,29 +993,31 @@ export function FinanceCharter({
           </Select>
         )}
         <div className="hidden flex-1 sm:block" />
+        <div className="col-span-2 flex items-center gap-1.5 overflow-x-auto sm:contents">
         {mode === "invoice" && (
           <Button
             variant="outline"
-            className="h-9 rounded-xl"
+            className="h-9 shrink-0 rounded-lg sm:rounded-xl"
             disabled={tallyBusy}
             onClick={() => void exportTallyCombined()}
           >
-            <Download className="mr-1.5 h-4 w-4" /> {tallyBusy ? "Preparing…" : "Download Tally Format"}
+            <Download className="h-4 w-4" /> {tallyBusy ? "Preparing…" : <><span className="sm:hidden">Tally</span><span className="hidden sm:inline">Download Tally Format</span></>}
           </Button>
         )}
         {mode === "invoice" && misApplicable && (
           <Button
             variant="outline"
-            className="h-9 rounded-xl"
+            className="h-9 shrink-0 rounded-lg sm:rounded-xl"
             disabled={misBusy}
             onClick={() => void exportMisCombined()}
           >
             <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : "MIS Format"}
           </Button>
         )}
-        <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
-          <Download className="mr-1.5 h-4 w-4" /> Export
+        <Button variant="outline" className="h-9 shrink-0 rounded-lg sm:rounded-xl" onClick={exportCsv}>
+          <Download className="h-4 w-4" /> Export
         </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -1044,7 +1046,7 @@ export function FinanceCharter({
                     to={linkTo}
                     params={{ unitId: r.unit.id }}
                     search={{ start: r.period.start, end: r.period.end }}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
+                    className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
                   >
                     {mode === "invoice" && <Dial value={r.realisationPct} />}
                     <div className="min-w-0 flex-1">
@@ -1052,13 +1054,13 @@ export function FinanceCharter({
                         <span className="truncate text-sm font-semibold group-hover:text-primary">
                           {r.unit.name || r.unit.code}
                         </span>
-                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="hidden rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
                           {r.actual}/{r.committed} deployed
                         </span>
                         <AttendanceStatusBadge status={r.status.attendance} />
                         <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
                       </div>
-                      <div className="truncate text-xs text-muted-foreground">
+                      <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
                         {r.unit.customer_name} · {r.contractCode}
                       </div>
 
@@ -1109,27 +1111,26 @@ export function FinanceCharter({
                 </div>
 
                 {isOpen && (
-                  <div className="space-y-4 border-t border-border/60 bg-muted/25 px-3 py-3 sm:px-4">
+                    <div className="space-y-3 border-t border-border/60 bg-muted/25 px-2.5 py-2.5 sm:space-y-4 sm:px-4 sm:py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2">
-                      <div className="min-w-0 text-[11px] leading-relaxed text-muted-foreground">
+                      <div className="min-w-0 text-[11px] leading-snug text-muted-foreground">
                         {r.status.attendance !== "approved" ? (
                           <>
                             <span className="font-semibold text-destructive">
                               {mode === "invoice" ? "Invoice" : "Payroll"} is open.
-                            </span>{" "}
-                            Attendance for this period is{" "}
+                             </span><span className="hidden sm:inline">{" "}Attendance for this period is{" "}
                             {r.status.attendance === "submitted" ? "awaiting approval" : "still being marked"} — values
-                            keep moving until it is approved and locked.
+                             keep moving until it is approved and locked.</span>
                           </>
                         ) : (mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
                           <>
-                            <span className="font-semibold text-emerald-600">Processed and locked.</span> Attendance is
-                            approved and this period has been run. An admin can reopen it if something must change.
+                             <span className="font-semibold text-emerald-600">Processed and locked.</span><span className="hidden sm:inline"> Attendance is
+                             approved and this period has been run. An admin can reopen it if something must change.</span>
                           </>
                         ) : (
                           <>
-                            <span className="font-semibold text-amber-600">Ready to process.</span> Attendance is
-                            approved and locked — the {mode === "invoice" ? "invoice" : "payroll"} can be run.
+                             <span className="font-semibold text-amber-600">Ready to process.</span><span className="hidden sm:inline"> Attendance is
+                             approved and locked — the {mode === "invoice" ? "invoice" : "payroll"} can be run.</span>
                           </>
                         )}
                       </div>
