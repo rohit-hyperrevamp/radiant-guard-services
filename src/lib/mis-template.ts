@@ -322,6 +322,7 @@ const MIS_NON_ADDITIVE_KEYS = new Set([
   "ot_rate",
   "regular_rate",
   "increment_rate",
+  "sg_rate",
 ]);
 
 /** Collapse the employee lines of each site into a single annexure row. */
