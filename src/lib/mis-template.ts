@@ -129,6 +129,7 @@ function toTemplate(t: TemplateRow, cols: ColumnRow[]): MisTemplate {
         source: c.source === "system" ? "system" : "custom",
         systemKey: c.system_key,
         enabled: c.enabled !== false,
+        clientAttribute: c.client_attribute === true,
       })),
   };
 }
@@ -147,7 +148,7 @@ export async function loadMisTemplateForCustomer(customerId: string | null | und
   if (!t) return null;
   const { data: cols, error: colErr } = await supabase
     .from("mis_template_columns" as never)
-    .select("id,template_id,header,sort_order,source,system_key,enabled")
+    .select("id,template_id,header,sort_order,source,system_key,enabled,client_attribute")
     .eq("template_id", t.id)
     .order("sort_order");
   if (colErr) throw colErr;
@@ -209,6 +210,7 @@ export function buildMisSheet({
         source: "system",
         systemKey: f.key,
         enabled: true,
+        clientAttribute: false,
       }));
 
   const columns = cols.map((c) => ({ key: c.header, header: c.header }));
