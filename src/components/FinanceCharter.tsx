@@ -541,11 +541,6 @@ export function FinanceCharter({
           .in("unit_id", chunkIds);
         contractRows.push(...((data ?? []) as any[]));
       }
-      const serviceTypeByUnit = new Map<string, string>();
-      for (const c of contractRows) {
-        const prev = serviceTypeByUnit.get(c.unit_id);
-        if (!prev || String(c.start_date) > prev) serviceTypeByUnit.set(c.unit_id, String(c.start_date));
-      }
       const serviceTypeIdByUnit = new Map<string, string>();
       const latestStartByUnit = new Map<string, string>();
       for (const c of contractRows) {
@@ -761,6 +756,16 @@ export function FinanceCharter({
           </Select>
         )}
         <div className="hidden flex-1 sm:block" />
+        {mode === "invoice" && (
+          <Button
+            variant="outline"
+            className="h-9 rounded-xl"
+            disabled={tallyBusy}
+            onClick={() => void exportTallyCombined()}
+          >
+            <Receipt className="mr-1.5 h-4 w-4" /> {tallyBusy ? "Preparing…" : "Tally Export"}
+          </Button>
+        )}
         <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
