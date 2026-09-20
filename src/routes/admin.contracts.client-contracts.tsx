@@ -759,11 +759,16 @@ function useContracts() {
         const uidRes = await supabase.auth.getUser();
         const uid = uidRes.data.user?.id ?? null;
         const nowIso = new Date().toISOString();
+        // Editing an already-approved contract must not rewrite its original
+        // approval trail — keep the first approver and timestamp intact.
+        const wasApproved = String(before?.approval_status ?? "") === "approved";
+        const approvedByRow = (before as Record<string, unknown> | null)?.["approved_by"];
+        const approvedAtRow = (before as Record<string, unknown> | null)?.["approved_at"];
 
         Object.assign(after, {
           approval_status: "approved",
-          approved_by: uid,
-          approved_at: nowIso,
+          approved_by: wasApproved && approvedByRow ? approvedByRow : uid,
+          approved_at: wasApproved && approvedAtRow ? approvedAtRow : nowIso,
           status: "active",
           rejection_reason: "",
           rejected_by: null,
