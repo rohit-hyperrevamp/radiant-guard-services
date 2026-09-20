@@ -1167,6 +1167,10 @@ function PayrollUnitPage() {
       const cgst = r2(totalBilling * 0.09);
       const sgst = r2(totalBilling * 0.09);
       const igst = r2(cgst + sgst);
+      // Annexure sheets split duties between staff on the starting rate and
+      // staff who have completed a year of service (incremented rate).
+      const joined = String(r.joiningDate ?? "").slice(0, 10);
+      const hasIncrement = !!joined && new Date(joined) <= new Date(new Date(start).setFullYear(new Date(start).getFullYear() - 1));
       return {
         unitId,
         values: {
@@ -1199,6 +1203,27 @@ function PayrollUnitPage() {
           sgst,
           igst,
           grand_total: r2(totalBilling + igst),
+          // Billing-annexure fields (site-summary formats)
+          cli_id: unit?.code ?? "",
+          vendor_name: entity,
+          district: unit?.billing_district ?? unit?.billing_city ?? "",
+          pin_code: unit?.billing_pincode ?? "",
+          address: [unit?.billing_address1, unit?.billing_address2].filter(Boolean).join(", "),
+          gst_no: unit?.gst_number ?? "",
+          invoice_month: `${dmy(start)} To ${dmy(end)}`,
+          sg_count: 1,
+          regular_rate: r2(m.contracted),
+          increment_rate: hasIncrement ? r2(m.contracted) : 0,
+          regular_duties: hasIncrement ? 0 : workingDays,
+          increment_duties: hasIncrement ? workingDays : 0,
+          regular_ot_hours: hasIncrement ? 0 : otHours,
+          increment_ot_hours: hasIncrement ? otHours : 0,
+          service_charge_claimed: totalBilling,
+          gst_18: igst,
+          invoice_value: r2(totalBilling + igst),
+          total_duties: r2(workingDays + otDays),
+          total_ot_hours: otHours,
+          remarks: "",
         },
       };
     });
