@@ -1652,6 +1652,7 @@ function MusterRollPage() {
   // The camera opens as its own dialog, so the upload dialog is hidden while it
   // is on screen. Without this flag the hide would wipe the pages just captured.
   const skipUploadResetRef = useRef(false);
+  const autoReadRef = useRef(false);
   const [useCleaned, setUseCleaned] = useState(true);
 
   // ---- Reading progress (keeps running after the dialog is closed) ----
