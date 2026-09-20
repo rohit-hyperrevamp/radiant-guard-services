@@ -102,7 +102,7 @@ export function RecordViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="overflow-y-auto sm:max-h-[90vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -115,16 +115,16 @@ export function RecordViewDialog({
             No details recorded.
           </p>
         ) : (
-          <dl className="grid gap-2 sm:grid-cols-2">
+          <dl className="grid gap-1.5 sm:grid-cols-2 sm:gap-2">
             {rows.map(([label, value]) => (
               <div
                 key={label}
-                className="rounded-xl border border-border bg-card px-3 py-2"
+                className="grid grid-cols-[minmax(6rem,36%)_minmax(0,1fr)] items-start gap-2 border-b border-border/60 px-1 py-2 last:border-0 sm:block sm:rounded-xl sm:border sm:bg-card sm:px-3"
               >
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <dt className="text-[11px] font-semibold text-muted-foreground sm:uppercase">
                   {label}
                 </dt>
-                <dd className="mt-0.5 break-words text-sm font-medium text-foreground">
+                <dd className="min-w-0 break-words text-sm font-medium text-foreground sm:mt-0.5">
                   {value}
                 </dd>
               </div>

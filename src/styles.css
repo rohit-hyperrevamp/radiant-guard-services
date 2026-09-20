@@ -1620,6 +1620,24 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     --shell-pad-y: 0.625rem;
   }
 
+  /* Phone-first type hierarchy: stronger headings, quieter supporting copy. */
+  .font-semibold,
+  .font-bold,
+  .font-extrabold,
+  .font-black,
+  strong,
+  b {
+    font-weight: 600 !important;
+  }
+
+  [data-admin-scroll] {
+    font-size: 0.875rem;
+  }
+
+  [data-admin-scroll] :where(.text-xs, [class*="text-[10px]"], [class*="text-[11px]"]) {
+    line-height: 1.3;
+  }
+
   /* Compact shared surfaces globally — the four shared primitives all use
      .bg-card + inner p-* which our v3 caps handle above. Pull additional
      legacy padding down so nothing has a "web-page" feel on phones. */
@@ -1658,6 +1676,44 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   .page-shell {
     padding-inline: var(--shell-pad-x);
     padding-block: var(--shell-pad-y);
+  }
+
+  /* Every ordinary dialog becomes a real app screen on phones. */
+  .dialog-content-centered {
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+    transform-origin: center !important;
+  }
+
+  .dialog-content-centered[data-state="open"],
+  .dialog-content-centered[data-state="closed"] {
+    animation: none !important;
+  }
+
+  [data-slot="dialog-content"],
+  [data-slot="sheet-content"] {
+    scrollbar-gutter: auto !important;
+  }
+
+  [data-slot="dialog-description"],
+  [data-slot="sheet-content"] [data-slot="sheet-description"] {
+    display: none;
+  }
+
+  /* Compact, consistent controls without triggering iOS input zoom. */
+  [data-admin-scroll] :where([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]) {
+    border-radius: 0.625rem;
+  }
+
+  [data-admin-scroll] [data-slot="textarea"] {
+    min-height: 5rem;
+  }
+
+  /* Make repeated empty/loading states feel like app states, not large web sections. */
+  [data-admin-scroll] :where(.border-dashed.p-10, .border-dashed.p-8, .border-dashed.p-6) {
+    min-height: 8rem;
+    padding: 1.25rem 1rem !important;
   }
 
   /* Phone-safe defaults. Responsive grids keep their declared mobile column
