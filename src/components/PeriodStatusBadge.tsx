@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Lock, LockOpen, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Lock, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AttendanceStatus, MoneyStatus } from "@/lib/period-status";
 
