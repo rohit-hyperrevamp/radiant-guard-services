@@ -2787,7 +2787,7 @@ function MusterRollPage() {
 
 
       {/* Upload Attendance dialog */}
-      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
+      <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o && skipUploadResetRef.current) { skipUploadResetRef.current = false; setUploadOpen(false); return; } setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload attendance sheet</DialogTitle>
