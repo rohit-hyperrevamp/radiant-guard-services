@@ -1625,13 +1625,18 @@ function MusterRollPage() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   // Several photos of the same muster (page 1, page 2, …) are read one after
   // another so a multi-page sheet can be uploaded in one go.
-  const [uploadImages, setUploadImages] = useState<Array<{ name: string; dataUrl: string }>>([]);
+  const [uploadImages, setUploadImages] = useState<UploadPage[]>([]);
   const [scanStep, setScanStep] = useState<{ index: number; total: number } | null>(null);
   const [processingOcr, setProcessingOcr] = useState(false);
   const [uncertainCells, setUncertainCells] = useState<Set<string>>(new Set());
   const [ocrSummary, setOcrSummary] = useState<string | null>(null);
   const [uploadReadyToContinue, setUploadReadyToContinue] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  // Document-scan state: every photo is auto-cropped, straightened and cleaned
+  // before it is read, and the person is told when a photo is too poor to use.
+  const [preparingScan, setPreparingScan] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [useCleaned, setUseCleaned] = useState(true);
 
   // ---- Reading progress (keeps running after the dialog is closed) ----
   const [scanPct, setScanPct] = useState(0);
