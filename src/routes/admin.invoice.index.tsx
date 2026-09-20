@@ -107,17 +107,17 @@ function InvoiceUnitsPage() {
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <LabeledMultiSelectFilter
-              label="Unit"
+              label="Organization"
               selected={orgFilter}
               onChange={setOrgFilter}
               options={organizations.map((o) => ({
                 value: o.id,
                 label: o.code ? `${o.code} · ${o.name}` : o.name,
               }))}
-              allLabel={`All clients (${organizations.length})`}
+              allLabel={`All organizations (${organizations.length})`}
             />
             <LabeledMultiSelectFilter
-              label="Client"
+              label="Unit"
               selected={unitFilter}
               onChange={setUnitFilter}
               options={windowUnits.map((u) => ({
