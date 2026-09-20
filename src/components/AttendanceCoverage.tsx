@@ -451,14 +451,14 @@ function AttendanceCharterDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] max-w-4xl overflow-hidden p-0">
-        <DialogHeader className="border-b border-border px-5 py-4">
+        <DialogHeader className="border-b border-border px-3 py-3 sm:px-5 sm:py-4">
           <DialogTitle>Attendance charter · {dayLabel}</DialogTitle>
           <DialogDescription>
-            Client-wise view of who is present, absent or still unmarked today.
+            Present, absent and unmarked people by client.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 items-center gap-2 px-3 pt-3 sm:flex sm:px-5 sm:pt-4">
+        <div className="grid grid-cols-2 items-center gap-2 px-3 pt-2.5 sm:flex sm:px-5 sm:pt-4">
           <div className="relative col-span-2 min-w-0 flex-1 sm:col-span-1 sm:min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -492,7 +492,7 @@ function AttendanceCharterDialog({
           unmarked
         </div>
 
-        <div className="max-h-[58vh] overflow-y-auto px-3 pb-4 pt-3 sm:px-5 sm:pb-5">
+        <div className="max-h-[58vh] overflow-y-auto px-3 pb-3 pt-2 sm:px-5 sm:pb-5 sm:pt-3">
           {filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               Nothing matches this filter.

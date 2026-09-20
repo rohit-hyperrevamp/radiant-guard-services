@@ -547,6 +547,22 @@
     }
   }
 
+  .state-form-dialog.dialog-responsive,
+  .record-view-dialog.dialog-responsive {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .state-form-dialog .modern-form-section {
+    min-height: 0 !important;
+    padding-block: 0.75rem !important;
+  }
+
+  .record-view-dialog dl {
+    max-height: min(58dvh, 28rem);
+    overflow-y: auto;
+  }
+
   /* Candidate wizard: quiet, consistent data-entry surfaces. The form canvas
      stays flat on phones while controls and actions retain the shared radius. */
   .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]),

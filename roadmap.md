@@ -261,3 +261,10 @@
 - [x] Audit Control Center, Attendance, Employee/Candidate, and Client/Organization screens at phone widths.
 - [x] Normalize page gutters, compact actions, filter rows, data cards, forms, dialogs, and tables without changing workflows.
 - [x] Validate TypeScript and formatting; production visual verification follows deployment.
+
+## Screenshot-specific mobile fixes
+- [x] Compact State Manager list and make edit/view dialogs content-sized on phones.
+- [x] Tighten employee cards and candidate onboarding while preserving all fields and actions.
+- [x] Improve attendance top controls/status/history and prevent dock overlap.
+- [x] Simplify Inventory dashboard density and mobile actions.
+- [x] Validate types and formatting.

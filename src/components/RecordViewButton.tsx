@@ -102,7 +102,7 @@ export function RecordViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-y-auto sm:max-h-[90vh] sm:max-w-2xl">
+      <DialogContent className="dialog-responsive record-view-dialog overflow-y-auto sm:max-h-[90vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>

@@ -2743,7 +2743,7 @@ function MusterRollPage() {
           }
         }
       `}</style>
-      <div className="mobile-glass-surface rounded-2xl border border-border/60 bg-card/80 p-3 shadow-sm sm:p-4 print:hidden">
+      <div className="mobile-glass-surface rounded-xl border border-border/60 bg-card/80 p-2.5 shadow-sm sm:rounded-2xl sm:p-4 print:hidden">
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
           <Link
             to="/admin/attendance"
@@ -2785,7 +2785,7 @@ function MusterRollPage() {
           {unit?.name || unit?.code || "Attendance"}
           {unit?.customer_name ? <span className="text-muted-foreground"> · {unit.customer_name}</span> : null}
         </div>
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:mt-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <Button
             onClick={() => { setUploadOpen(true); }}
             disabled={!editable}
@@ -3131,13 +3131,14 @@ function MusterRollPage() {
 
 
       {!editable && (
-        <div className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 print:hidden">
-          This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing.{" "}
-          {status === "submitted"
+        <div className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 print:hidden">
+          <span className="sm:hidden">{status === "approved" ? "Approved and locked." : "Submitted and locked."}</span>
+          <span className="hidden sm:inline">This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing. </span>{" "}
+          <span className="hidden sm:inline">{status === "submitted"
             ? "Reject it to allow further edits."
             : payrollProcessed
               ? "Payroll for this period is processed — start an amendment to correct it; the paid sheet is kept as a version."
-              : "Reopen it to make changes."}
+              : "Reopen it to make changes."}</span>
         </div>
       )}
       {status === "submitted" && canApprove && (
@@ -3159,14 +3160,14 @@ function MusterRollPage() {
 
       {/* Version history + change log */}
       {(versions.length > 0 || amendmentActive) && (
-        <div className="rounded-xl border border-border/60 bg-card p-3 print:hidden">
+        <div className="rounded-xl border border-border/60 bg-card p-2.5 print:hidden sm:p-3">
           <div className="mb-2 flex items-center gap-2">
             <HistoryIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Muster roll versions
             </span>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="scrollbar-hide flex gap-2 overflow-x-auto text-xs">
             {versions.map((v) => (
               <span key={v.id} className="rounded-full border border-border/60 px-2.5 py-1">
                 v{v.version} · archived {new Date(v.created_at).toLocaleDateString()} · {v.snapshot?.length ?? 0} entries
@@ -3185,8 +3186,8 @@ function MusterRollPage() {
               {amendmentDiff.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No changes yet — edit a cell to record an amendment.</p>
               ) : (
-                <div className="max-h-64 overflow-auto rounded-lg border border-border/60">
-                  <table className="w-full text-xs">
+                <div className="max-h-48 overflow-auto rounded-lg border border-border/60 sm:max-h-64">
+                  <table className="min-w-[360px] w-full text-xs">
                     <thead className="bg-muted/60">
                       <tr>
                         <th className="px-2 py-1.5 text-left font-semibold">Employee</th>
@@ -3286,7 +3287,7 @@ function MusterRollPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-wrap items-center gap-3 print:hidden">
+      <div className="flex items-center gap-2 print:hidden">
         <div className="flex min-w-0 flex-1 basis-full items-center gap-2 rounded-md border border-border/70 bg-card px-3 py-2 sm:basis-auto sm:min-w-[260px]">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -3363,7 +3364,7 @@ function MusterRollPage() {
       {/* Phone attendance entry: one day and one employee at a time. The full
           statutory register remains below for tablet, desktop, and print. */}
       <section className="space-y-2.5 sm:hidden print:hidden" aria-label="Mobile attendance entry">
-        <div className="mobile-glass-surface sticky top-1 z-20 rounded-xl border border-border/70 bg-card/85 p-2 shadow-sm">
+        <div className="mobile-glass-surface sticky top-1 z-20 rounded-xl border border-border/70 bg-card/85 p-1.5 shadow-sm">
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
             <Button
               size="icon"
@@ -3410,7 +3411,7 @@ function MusterRollPage() {
               <ChevronLeft className="h-4 w-4 rotate-180" />
             </Button>
           </div>
-          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1">
             <span className="truncate text-xs text-muted-foreground">
               {visibleMusterRows.filter((row) => !row.vacant).length} employees
             </span>
@@ -3462,7 +3463,7 @@ function MusterRollPage() {
               const selected = mobileSelectedRows.has(mr.key);
               return (
                 <article key={mr.key} className={cn("overflow-hidden rounded-xl border bg-card", selected ? "border-primary/50 ring-2 ring-primary/10" : "border-border/70")}>
-                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5">
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2.5 py-2">
                     {!attendanceBlocked ? (
                       <Checkbox
                         checked={selected}

@@ -79,12 +79,12 @@ function MapLink({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex max-w-full flex-col gap-0.5 rounded-md text-[11px] font-semibold text-primary underline-offset-2 hover:underline"
+      className="flex max-w-full flex-col gap-0.5 rounded-md text-xs font-medium text-primary underline-offset-2 hover:underline"
     >
       {place && (
-        <span className="inline-flex items-center gap-1 truncate">
+        <span className="inline-flex min-w-0 items-start gap-1">
           <MapPin className="h-3 w-3 shrink-0" />
-          <span className="truncate">{place}</span>
+          <span className="line-clamp-2">{place}</span>
         </span>
       )}
       <span className={cn("inline-flex items-center gap-1 truncate", place ? "pl-4 text-[10px] font-medium text-muted-foreground" : "")}>
@@ -105,8 +105,8 @@ function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
   const net = punch.network_type;
   const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
   return (
-    <div className="mobile-glass-control mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-card/65 p-2.5 text-[11px] sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-semibold">
+    <div className="mobile-glass-control mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-card/65 p-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
         <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -128,7 +128,7 @@ function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+          className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
         >
           <MapPin className="h-4 w-4" />
           View live location
@@ -678,14 +678,14 @@ export function MarkAttendanceCard({
                     disabled={confirmUnitMut.isPending}
                     onClick={() => confirmUnitMut.mutate(n.unit.id)}
                     className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-foreground disabled:opacity-60",
+                      "grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium text-foreground disabled:opacity-60",
                       inRange
                         ? "border-primary/30 bg-primary/5 hover:bg-primary/10"
                         : "border-border/60 bg-background/60 hover:bg-muted/60",
                     )}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate">{n.unit.name}</span>
+                      <span className="block line-clamp-2">{n.unit.name}</span>
                       <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {n.unit.isPrimary ? "Primary" : "Extra duty"}
                       </span>

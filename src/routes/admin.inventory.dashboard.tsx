@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Owner Dashboard is now merged into the /admin/inventory hub.
@@ -614,7 +615,7 @@ export function InventoryOwnerDashboard() {
   const branchDashboardLoading = scope.isLoading || (scope.isScoped && scopeAssignmentsQ.isLoading);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div data-mobile-dashboard className="space-y-3 sm:space-y-6">
       <ScopeBanner />
       {branchDashboardLoading ? (
         <div className="flex min-h-[32vh] items-center justify-center rounded-2xl border border-border bg-card/60 text-sm text-muted-foreground">
@@ -623,7 +624,7 @@ export function InventoryOwnerDashboard() {
       ) : (
         <>
       {/* Filter bar */}
-      <div className="grid grid-cols-2 items-center gap-2 rounded-2xl border border-border bg-card/60 p-2.5 backdrop-blur sm:flex sm:flex-wrap sm:p-3">
+      <div className="mobile-glass-surface grid grid-cols-2 items-center gap-2 rounded-xl border border-border bg-card/70 p-2 sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="col-span-2 h-9 w-full sm:w-[220px]" />
         {scope.isScoped ? (
           <div className="col-span-2 flex h-9 items-center rounded-lg border border-border bg-secondary/40 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:col-auto">
@@ -652,7 +653,7 @@ export function InventoryOwnerDashboard() {
             {cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="col-span-2 flex flex-wrap items-center gap-2 sm:ml-auto">
+        <div className="col-span-2 grid grid-cols-1 items-center gap-2 sm:ml-auto sm:flex sm:flex-wrap">
           {range === "custom" && (
             <>
               <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-9 flex-1 sm:w-[150px] sm:flex-none" />
@@ -749,7 +750,7 @@ export function InventoryOwnerDashboard() {
       )}
 
       {/* Live Notifications — pending actions across the inventory pipeline */}
-      <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-5">
+      <div className="rounded-xl border border-border bg-card p-2.5 sm:rounded-2xl sm:p-5">
         <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:mb-4 sm:flex sm:flex-wrap sm:justify-between">
           <div className="flex items-center gap-2">
             <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-9 sm:w-9 ${totalPending > 0 ? "bg-amber-500/15 text-amber-600" : "bg-emerald-500/15 text-emerald-600"}`}>
@@ -767,21 +768,23 @@ export function InventoryOwnerDashboard() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {(scope.isScoped || role.isFieldOfficer || role.isBranchManager) ? (
+              <Button asChild size="sm" className="h-9 shrink-0 rounded-lg px-2.5 text-xs sm:px-3">
               <Link
                 to="/admin/inventory/demands"
                 search={{ new: "1" } as never}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:opacity-90"
               >
                 <Zap className="h-3.5 w-3.5" />Raise Demand
               </Link>
+              </Button>
             ) : (
+              <Button asChild size="sm" className="h-9 shrink-0 rounded-lg px-2.5 text-xs sm:px-3">
               <Link
                 to="/admin/inventory/purchase-orders"
                 search={{ new: "1" } as never}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:opacity-90"
               >
-                <Zap className="h-3.5 w-3.5" />Raise Purchase Order
+                <Zap className="h-3.5 w-3.5" /><span className="sm:hidden">New PO</span><span className="hidden sm:inline">Raise Purchase Order</span>
               </Link>
+              </Button>
             )}
             <span className="hidden text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">SLA: {SLA_DAYS} days</span>
           </div>
@@ -932,7 +935,7 @@ function Kpi({ label, value, delta, icon: Icon, tint, iconClass, hint, to }: {
 }) {
   const up = (delta ?? 0) >= 0;
   const body = (
-    <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${tint} p-3 sm:p-4`}>
+    <div className={`relative overflow-hidden rounded-xl border border-border bg-gradient-to-br ${tint} p-2.5 sm:rounded-2xl sm:p-4`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs sm:tracking-wider">{label}</div>
@@ -963,7 +966,7 @@ function Panel({ title, subtitle, right, children, className = "" }: {
     <div className={`rounded-2xl border border-border bg-card p-3.5 sm:p-5 ${className}`}>
       <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
         <div>
-          <div className="font-display text-sm font-bold tracking-tight">{title}</div>
+      <div className="font-display text-sm font-medium tracking-tight">{title}</div>
           {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
         </div>
         {right}
@@ -1131,7 +1134,7 @@ function NotifTile({ label, hint, to, icon: Icon, accent, count, breached, oldes
   const isClear = count === 0;
   const isBreached = breached > 0;
   return (
-    <Link to={to} className={`group relative flex min-h-[116px] flex-col gap-1.5 rounded-2xl border p-3 transition hover:bg-accent/5 sm:min-h-0 sm:gap-2 sm:p-4 ${isBreached ? "border-rose-500/40 bg-rose-500/5" : isClear ? "border-border bg-card" : "border-amber-500/30 bg-amber-500/5"}`}>
+    <Link to={to} className={`group relative flex min-h-[102px] flex-col gap-1 rounded-xl border p-2.5 transition hover:bg-accent/5 sm:min-h-0 sm:gap-2 sm:rounded-2xl sm:p-4 ${isBreached ? "border-rose-500/40 bg-rose-500/5" : isClear ? "border-border bg-card" : "border-amber-500/30 bg-amber-500/5"}`}>
       <div className="flex items-center justify-between">
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-background/70 ${accent}`}><Icon className="h-4 w-4" /></div>
         {!isClear && (
