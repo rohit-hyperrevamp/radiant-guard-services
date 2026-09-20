@@ -45,7 +45,7 @@ export function MobileBottomNav({
       aria-label="Primary"
       data-bottom-nav
       className={cn(
-        "fixed inset-x-2 bottom-2 z-[80] rounded-[22px] border border-border/70 bg-card/95 shadow-xl backdrop-blur-xl",
+        "fixed left-[max(0.5rem,env(safe-area-inset-left,0px))] right-[max(0.5rem,env(safe-area-inset-right,0px))] bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-[80] rounded-[22px] border border-border/70 bg-card/95 shadow-xl backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >
