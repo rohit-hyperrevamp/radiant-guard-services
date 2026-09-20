@@ -1555,7 +1555,7 @@ function PayrollUnitPage() {
               <Eye className="mr-1.5 h-4 w-4" /> View Tally Invoice
             </Button>
           )}
-          {canUploadTallyInvoice && (
+          {canUploadTallyInvoice && !sheet?.tally_invoice_path && (
             <Button
               variant="outline"
               size="sm"
