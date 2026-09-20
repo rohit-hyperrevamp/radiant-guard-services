@@ -16,9 +16,9 @@ export function AttendanceStatusBadge({
     none: { label: "Attendance open", tone: "border-border bg-muted text-muted-foreground", icon: LockOpen },
     draft: { label: "Attendance open", tone: "border-border bg-muted text-muted-foreground", icon: LockOpen },
     submitted: {
-      label: "Awaiting approval",
-      tone: "border-amber-500/30 bg-amber-500/10 text-amber-600",
-      icon: Clock,
+      label: "Attendance open",
+      tone: "border-border bg-muted text-muted-foreground",
+      icon: LockOpen,
     },
     approved: {
       label: "Attendance approved",
@@ -26,9 +26,9 @@ export function AttendanceStatusBadge({
       icon: Lock,
     },
     rejected: {
-      label: "Rejected — reopened",
-      tone: "border-destructive/30 bg-destructive/10 text-destructive",
-      icon: XCircle,
+      label: "Attendance open",
+      tone: "border-border bg-muted text-muted-foreground",
+      icon: LockOpen,
     },
   };
   const cfg = map[status];
