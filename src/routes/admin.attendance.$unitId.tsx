@@ -1730,6 +1730,31 @@ function MusterRollPage() {
     }
   };
 
+  /**
+   * Run every picked photo through the document scanner: find the sheet, remove
+   * the camera angle, flatten shadows and sharpen. The untouched photo is kept
+   * so a bad crop can always be overridden.
+   */
+  const prepareScans = async (files: File[]): Promise<UploadPage[]> => {
+    const out: UploadPage[] = [];
+    for (const f of files) {
+      try {
+        const scan = await scanDocument(f);
+        out.push({
+          name: f.name,
+          dataUrl: scan.dataUrl,
+          originalDataUrl: scan.originalDataUrl,
+          cropped: scan.cropped,
+          quality: scan.quality,
+        });
+      } catch {
+        const raw = await readImageDataUrl(f);
+        out.push({ name: f.name, dataUrl: raw, originalDataUrl: raw, cropped: false, quality: null });
+      }
+    }
+    return out;
+  };
+
   const onPickUploadFiles = (files: File[]) => {
     setUploadFile(files[0] ?? null);
     setUploadPreview(null);
@@ -1759,22 +1784,53 @@ function MusterRollPage() {
 
     if (images.length) {
       setUploadKind("image");
-      void Promise.all(images.map(async (f) => ({ name: f.name, dataUrl: await readImageDataUrl(f) })))
+      setUseCleaned(true);
+      setPreparingScan(true);
+      void prepareScans(images)
         .then((list) => {
           setUploadImages(list);
           setUploadPreview(list[0]?.dataUrl ?? null);
+          const poor = list.filter((p) => p.quality?.verdict === "poor");
+          if (poor.length) {
+            toast.warning(
+              poor.length === 1
+                ? `${poor[0]!.name}: ${poor[0]!.quality?.hint ?? "photo quality is poor"}`
+                : `${poor.length} photos are unclear — check the tips shown on each`,
+            );
+          }
         })
-        .catch(() => toast.error("Could not read the selected photos."));
+        .catch(() => toast.error("Could not read the selected photos."))
+        .finally(() => setPreparingScan(false));
     } else {
       setUploadKind("excel");
       setUploadPreview(files[0]!.name);
     }
   };
 
+  /** Accept pages captured with the live camera scanner. */
+  const onCameraCapture = (captured: Array<{ name: string; dataUrl: string; scan: ScanResult }>) => {
+    if (!captured.length) return;
+    const list: UploadPage[] = captured.map((c) => ({
+      name: c.name,
+      dataUrl: c.scan.dataUrl,
+      originalDataUrl: c.scan.originalDataUrl,
+      cropped: c.scan.cropped,
+      quality: c.scan.quality,
+    }));
+    setUploadKind("image");
+    setUseCleaned(true);
+    setUploadImages(list);
+    setUploadPreview(list[0]!.dataUrl);
+    setUploadFile(new File([], list[0]!.name, { type: "image/jpeg" }));
+    setOcrSummary(null);
+    setUploadReadyToContinue(false);
+    setUploadOpen(true);
+  };
+
   /** Read every selected photo one after another into this muster. */
   const processAttendanceImages = async () => {
-    const pages = uploadImages.length
-      ? uploadImages
+    const pages: Array<{ name: string; dataUrl: string }> = uploadImages.length
+      ? uploadImages.map((p) => ({ name: p.name, dataUrl: useCleaned ? p.dataUrl : p.originalDataUrl }))
       : uploadPreview
         ? [{ name: uploadFile?.name ?? "sheet", dataUrl: uploadPreview }]
         : [];
