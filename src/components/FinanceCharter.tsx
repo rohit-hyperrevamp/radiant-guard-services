@@ -603,39 +603,39 @@ export function FinanceCharter({
           const round = (value: number) => Math.round(value * 100) / 100;
           const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
           const [jy, jm, jd] = doj.split("-");
-          allRows.push({
-            "Sr. No": serial++, "Invoice No": invoiceNo, "Invoice Date": invoiceDate,
-            "Emp Code": candidate?.employee_code ?? "", "Employee Name": candidate?.full_name ?? nameById.get(line.candidateId) ?? "",
-            "Regular/ Reliever Guard": candidate?.designation_id === line.designationId ? "Regular" : "Reliever",
-            "DOJ": jd && jm && jy ? `${jd}-${jm}-${jy}` : "", "Entity": entity,
-            "Designation": `${rate.designationName} @ (${rate.shiftHours})`, "Location/Branch Name": branchName,
-            "State": unitRow.billing_state ?? "", "Branch SAP Code": unitRow.branch_sap_code ?? "", "Zone": unitRow.zone ?? "",
-            "Month Days": periodDays, "Month Rate": periodDays, "Billing Rate": rate.billRate,
-            "Billing Rate (Per Day)": round(perDay), "OT Rate": round(otRate), "Working days": round(line.workingDays),
-            "OT and Night duties": round(line.otDays), "OT Amount": round(otAmount),
-            "Working days Billing with OT": round(regular + otBilling), "Total Regular Billing Amt": round(regular),
-            "OT & Night Duty Billing Amt": round(otBilling + otAmount), "Total Billing Amt": round(totalBilling),
-            "CGST @9%": round(cgst), "SGST @9%": round(sgst), "IGST @18%": round(igst),
-            "Grand Total": round(totalBilling + igst),
+          sourceRows.push({
+            unitId: u.id,
+            values: {
+              sr_no: serial++, invoice_no: invoiceNo, invoice_date: invoiceDate,
+              emp_code: candidate?.employee_code ?? "",
+              employee_name: candidate?.full_name ?? nameById.get(line.candidateId) ?? "",
+              regular_reliever: candidate?.designation_id === line.designationId ? "Regular" : "Reliever",
+              doj: jd && jm && jy ? `${jd}-${jm}-${jy}` : "", entity,
+              designation: `${rate.designationName} @ (${rate.shiftHours})`, branch_name: branchName,
+              state: unitRow.billing_state ?? "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
+              month_days: periodDays, month_rate: periodDays, billing_rate: rate.billRate,
+              billing_rate_per_day: round(perDay), ot_rate: round(otRate), working_days: round(line.workingDays),
+              ot_duties: round(line.otDays), ot_amount: round(otAmount),
+              working_days_billing_with_ot: round(regular + otBilling), total_regular_billing: round(regular),
+              ot_billing: round(otBilling + otAmount), total_billing: round(totalBilling),
+              cgst: round(cgst), sgst: round(sgst), igst: round(igst),
+              grand_total: round(totalBilling + igst),
+            },
           });
         }
       }
 
-      if (allRows.length === 0) {
+      if (sourceRows.length === 0) {
         toast.error("No billable attendance for the filtered units in this period.");
         return;
       }
-      const totals: Record<string, unknown> = Object.fromEntries(headers.map((header) => [header, ""]));
-      totals["Employee Name"] = "TOTAL";
-      for (const header of headers.slice(18)) {
-        totals[header] = Math.round(allRows.reduce((sum, row) => sum + (Number(row[header]) || 0), 0) * 100) / 100;
-      }
+      const sheet = buildMisSheet({ template, sourceRows, unitValues });
       await writeXlsx({
         filename: `MIS_${year}-${String(monthIdx + 1).padStart(2, "0")}_${targets.length}_units`,
-        rows: [...allRows, totals],
-        columns: headers.map((header) => ({ key: header, header })),
+        rows: sheet.rows,
+        columns: sheet.columns,
       });
-      toast.success(`MIS export ready — ${allRows.length} billable employee rows in one file.`);
+      toast.success(`MIS export ready — ${sourceRows.length} billable employee rows in one file.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "MIS export failed");
     } finally {
