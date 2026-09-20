@@ -3556,9 +3556,13 @@ function ContractFormDialog({
     : undefined;
 
   // Auto-fill contract start/end from the selected unit's contract period.
-  // Only overwrite when the field is empty so the user can still edit.
+  // Never applies when editing an existing contract, and never once the user
+  // has touched a date field — the unit list can resolve mid-edit and would
+  // otherwise silently restore the old dates.
   useEffect(() => {
     if (!selectedUnit) return;
+    if (editing) return;
+    if (datesTouchedRef.current) return;
     if (selectedUnit.contractStartDate) {
       setStartDate((prev) => prev || selectedUnit.contractStartDate);
     }
@@ -3566,7 +3570,7 @@ function ContractFormDialog({
       setEndDate((prev) => prev || selectedUnit.contractEndDate);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUnit?.id]);
+  }, [selectedUnit?.id, editing?.id]);
   const filteredUnits = useMemo(() => {
     const query = unitQuery.trim().toLowerCase();
     if (!query) return units;
