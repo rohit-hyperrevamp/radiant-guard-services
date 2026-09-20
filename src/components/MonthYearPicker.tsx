@@ -52,7 +52,7 @@ export function MonthYearPicker({
   return (
     <div
       className={cn(
-        "grid h-10 w-full grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto] items-center gap-1 rounded-lg border border-input bg-card px-1.5 shadow-sm sm:inline-flex sm:w-auto",
+        "grid h-10 w-[218px] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-0.5 rounded-lg border border-input bg-card px-1 shadow-sm sm:inline-flex sm:w-auto sm:gap-1 sm:px-1.5",
         className,
       )}
     >
@@ -65,10 +65,10 @@ export function MonthYearPicker({
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      <CalendarDays className="ml-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <CalendarDays className="ml-0.5 hidden h-3.5 w-3.5 shrink-0 text-muted-foreground sm:block" />
 
       <Select value={String(monthIdx)} onValueChange={(v) => emit(year, Number(v))}>
-        <SelectTrigger className="h-8 min-w-0 rounded-md border-0 bg-transparent px-2 text-sm font-semibold shadow-none hover:bg-muted focus:ring-0 sm:w-[124px]">
+        <SelectTrigger className="h-8 min-w-0 rounded-md border-0 bg-transparent px-1.5 text-sm font-semibold shadow-none hover:bg-muted focus:ring-0 sm:w-[124px] sm:px-2">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -83,7 +83,7 @@ export function MonthYearPicker({
       <div className="h-5 w-px bg-border/70" />
 
       <Select value={String(year)} onValueChange={(v) => emit(Number(v), monthIdx)}>
-        <SelectTrigger className="h-8 w-[72px] rounded-md border-0 bg-transparent px-2 text-sm font-semibold tabular-nums shadow-none hover:bg-muted focus:ring-0 sm:w-[86px]">
+        <SelectTrigger className="h-8 w-[66px] rounded-md border-0 bg-transparent px-1.5 text-sm font-semibold tabular-nums shadow-none hover:bg-muted focus:ring-0 sm:w-[86px] sm:px-2">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

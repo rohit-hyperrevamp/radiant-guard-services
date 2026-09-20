@@ -12,7 +12,7 @@ export function PayrollWindowPeriodPicker({
 }) {
   return (
     <Select value={selectedKey || "all"} onValueChange={onWindowChange}>
-      <SelectTrigger className="h-10 w-[220px] rounded-lg">
+      <SelectTrigger className="h-10 w-[190px] shrink-0 rounded-lg sm:w-[220px]">
         <SelectValue placeholder="All payroll windows" />
       </SelectTrigger>
       <SelectContent>
