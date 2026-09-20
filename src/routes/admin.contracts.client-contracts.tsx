@@ -3377,6 +3377,7 @@ function ContractFormDialog({
   existingProspectCodes,
   onSubmit,
   canManageApproval,
+  canSkipSteps = false,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -3387,6 +3388,7 @@ function ContractFormDialog({
     resources: ContractResource[],
   ) => Promise<string | null>;
   canManageApproval: boolean;
+  canSkipSteps?: boolean;
 }) {
   const { units, customers } = useContractDirectory(open);
   const serviceTypes = useServiceTypes();
