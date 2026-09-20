@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera } from "lucide-react";
+import { CalendarDays, ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera, Clock3 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -24,6 +24,7 @@ import {
   startScanJob,
 } from "@/lib/attendance-scan-jobs";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -557,6 +558,15 @@ function MusterRollPage() {
   const dayCount = periodCells.length;
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
+  const [mobileDate, setMobileDate] = useState(() => {
+    const requested = search.start && search.end && todayStr >= search.start && todayStr <= search.end ? todayStr : "";
+    return requested;
+  });
+  useEffect(() => {
+    if (periodCells.some((cell) => cell.date === mobileDate && cell.date <= todayStr)) return;
+    const latestAvailable = [...periodCells].reverse().find((cell) => cell.date <= todayStr);
+    setMobileDate(latestAvailable?.date ?? periodCells[0]?.date ?? "");
+  }, [mobileDate, periodCells, todayStr]);
   const holidayByDate = useMemo(
     () => holidayMapForDates(periodCells.map((c) => c.date), publicHolidays),
     [periodCells, publicHolidays],
@@ -1624,6 +1634,7 @@ function MusterRollPage() {
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerCells, setPickerCells] = useState<string[]>([]);
+  const [mobileSelectedRows, setMobileSelectedRows] = useState<Set<string>>(new Set());
 
   const [otSelAnchor, setOtSelAnchor] = useState<CellRef | null>(null);
   const [isOtDragging, setIsOtDragging] = useState(false);
@@ -2529,8 +2540,8 @@ function MusterRollPage() {
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
   };
 
-  const applyCodeToSelection = async (code: string) => {
-    const grouped = groupCells(pickerCells);
+  const applyCodeToCells = async (cells: string[], code: string) => {
+    const grouped = groupCells(cells);
     if (grouped.size === 0) return;
     try {
       let applied = 0;
@@ -2555,6 +2566,7 @@ function MusterRollPage() {
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedCells(new Set());
+      setMobileSelectedRows(new Set());
       setSelAnchor(null);
       if (applied > 0) {
         toast.success(`Applied ${code || "Clear"} to ${applied} cell${applied > 1 ? "s" : ""}`);
@@ -2563,6 +2575,8 @@ function MusterRollPage() {
       toast.error(saveErrorMessage(e));
     }
   };
+
+  const applyCodeToSelection = async (code: string) => applyCodeToCells(pickerCells, code);
 
   // `hours` is ED in clock hours (0.5 – 16). It is stored as ED *days*,
   // converted with each row's contractual shift length (8h or 12h).
@@ -2702,7 +2716,7 @@ function MusterRollPage() {
   };
 
   return (
-    <div className="space-y-4 px-3 py-4 sm:px-6 sm:py-6">
+    <div className="space-y-3 px-0 py-2 sm:space-y-4 sm:px-6 sm:py-6">
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 8mm; }
@@ -2719,7 +2733,7 @@ function MusterRollPage() {
           }
         }
       `}</style>
-      <div className="rounded-2xl border border-border/60 bg-card/95 p-3 shadow-sm backdrop-blur-xl sm:p-4 print:hidden">
+      <div className="mobile-glass-surface rounded-2xl border border-border/60 bg-card/80 p-3 shadow-sm sm:p-4 print:hidden">
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
           <Link
             to="/admin/attendance"
@@ -2757,12 +2771,16 @@ function MusterRollPage() {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
+        <div className="mt-2 min-w-0 truncate px-1 text-sm font-medium text-foreground sm:hidden">
+          {unit?.name || unit?.code || "Attendance"}
+          {unit?.customer_name ? <span className="text-muted-foreground"> · {unit.customer_name}</span> : null}
+        </div>
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <Button
             onClick={() => { setUploadOpen(true); }}
             disabled={!editable}
             title={editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
-            className="h-11 min-w-0 rounded-xl px-4 text-sm font-semibold shadow-sm"
+            className="h-10 min-w-0 rounded-xl px-3 text-sm shadow-sm"
           >
             <Upload className="mr-2 h-4 w-4 shrink-0" />
             <span className="truncate">Upload Attendance</span>
@@ -2772,7 +2790,7 @@ function MusterRollPage() {
             size="icon"
             onClick={() => window.print()}
             title="Print"
-            className="h-11 w-11 shrink-0 rounded-xl"
+            className="hidden h-10 w-10 shrink-0 rounded-xl sm:inline-flex"
           >
             <Printer className="h-4 w-4" />
           </Button>
@@ -2781,7 +2799,7 @@ function MusterRollPage() {
             size="icon"
             disabled
             title="Export (coming soon)"
-            className="h-11 w-11 shrink-0 rounded-xl"
+            className="hidden h-10 w-10 shrink-0 rounded-xl sm:inline-flex"
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -2791,7 +2809,7 @@ function MusterRollPage() {
             onClick={handleClearAll}
             disabled={!editable || clearingAll}
             title={editable ? "Delete every attendance entry on this sheet" : "Sheet locked"}
-            className="h-11 w-11 shrink-0 rounded-xl text-destructive hover:text-destructive"
+            className="h-10 w-10 shrink-0 rounded-xl text-destructive hover:text-destructive"
           >
             {clearingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
