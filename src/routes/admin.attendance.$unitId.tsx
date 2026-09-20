@@ -2386,6 +2386,9 @@ function MusterRollPage() {
 
   const processUpload = () => {
     if (uploadReadyToContinue) {
+      /* falls through below */
+    }
+    if (uploadReadyToContinue) {
       setUploadOpen(false);
       return;
     }
