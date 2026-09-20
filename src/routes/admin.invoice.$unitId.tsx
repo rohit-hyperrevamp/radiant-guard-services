@@ -961,9 +961,6 @@ function PayrollUnitPage() {
   }, [rows, billingMode]);
 
 
-  // GST split: intra-state (customer in company state) → CGST + SGST; else IGST.
-  const isIntraStateCurrent =
-    (unitState ?? "").trim().toLowerCase() === COMPANY_STATE.toLowerCase();
   const GST_RATE = 18;
   const r2 = (v: number) => Math.round(v * 100) / 100;
   // Configured extra charges for this unit + period (e.g. Technical Allowance).
@@ -971,10 +968,9 @@ function PayrollUnitPage() {
   const activeExtras = extraCharges.filter((c) => c.enabled);
   const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
   const taxableValue = r2(totals.actualTotal + extrasTotal);
-  const cgstAmount = isIntraStateCurrent ? r2(taxableValue * (GST_RATE / 2 / 100)) : 0;
-  const sgstAmount = isIntraStateCurrent ? r2(taxableValue * (GST_RATE / 2 / 100)) : 0;
-  const igstAmount = isIntraStateCurrent ? 0 : r2(taxableValue * (GST_RATE / 100));
-  const gstAmount = r2(cgstAmount + sgstAmount + igstAmount);
+  const cgstAmount = r2(taxableValue * 0.09);
+  const sgstAmount = r2(taxableValue * 0.09);
+  const gstAmount = r2(cgstAmount + sgstAmount);
   const grandTotal = r2(taxableValue + gstAmount);
   const roundedGrandTotal = Math.round(grandTotal);
   const roundingOff = r2(roundedGrandTotal - grandTotal);
@@ -1087,18 +1083,15 @@ function PayrollUnitPage() {
           ? `${r2(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0)).toFixed(2)} hrs`
           : `${r2(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0)).toFixed(2)} Duty`,
       taxableValue,
-      intraState: isIntraStateCurrent,
-      cgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
-      sgstRate: isIntraStateCurrent ? GST_RATE / 2 : 0,
-      igstRate: isIntraStateCurrent ? 0 : GST_RATE,
+      cgstRate: GST_RATE / 2,
+      sgstRate: GST_RATE / 2,
       cgst: cgstAmount,
       sgst: sgstAmount,
-      igst: igstAmount,
       roundingOff,
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, roundingOff, roundedGrandTotal, isIntraStateCurrent, start, end]);
+  }, [rows, orgSettings, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, roundingOff, roundedGrandTotal, start, end]);
 
 
   const exportCsv = () => {
@@ -1487,7 +1480,7 @@ function PayrollUnitPage() {
             className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
             title={`Company state: ${COMPANY_STATE} · Client state: ${unitState ?? "—"}`}
           >
-            {isIntraStateCurrent ? `Intra-state (${COMPANY_STATE}) · CGST + SGST` : `Inter-state · IGST`}
+            CGST 9% + SGST 9%
           </span>
           {orgSettings?.company_gstin && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 font-mono font-semibold tracking-wider text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
@@ -1514,17 +1507,8 @@ function PayrollUnitPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {isIntraStateCurrent ? (
-            <>
-              <Stat label={`CGST @ ${GST_RATE / 2}%`} value={fmtINR(cgstAmount)} />
-              <Stat label={`SGST @ ${GST_RATE / 2}%`} value={fmtINR(sgstAmount)} />
-            </>
-          ) : (
-            <>
-              <Stat label={`IGST @ ${GST_RATE}%`} value={fmtINR(igstAmount)} />
-              <div />
-            </>
-          )}
+          <Stat label={`CGST @ ${GST_RATE / 2}%`} value={fmtINR(cgstAmount)} />
+          <Stat label={`SGST @ ${GST_RATE / 2}%`} value={fmtINR(sgstAmount)} />
           <Stat label={`Total GST @ ${GST_RATE}%`} value={fmtINR(gstAmount)} />
           <Stat label="Invoice grand total" value={fmtINR(grandTotal)} tone="emerald" />
         </div>
