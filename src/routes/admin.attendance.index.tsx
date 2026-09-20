@@ -224,11 +224,11 @@ function AttendanceUnitsPage() {
                       label="Unit"
                       selected={unitFilter}
                       onChange={setUnitFilter}
-                      options={windowUnits.map((u) => ({
+                      options={unitOptions.map((u) => ({
                         value: u.id,
                         label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
                       }))}
-                      allLabel={`All units (${windowUnits.length})`}
+                      allLabel={`All units (${unitOptions.length})`}
                     />
                   </div>
                   {anyFilter && (
