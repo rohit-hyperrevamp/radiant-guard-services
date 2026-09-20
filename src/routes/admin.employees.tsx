@@ -6746,7 +6746,7 @@ function CandidateWizard({
       <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
-        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-3 py-2.5 pr-12 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
+        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-3 pb-2 pt-[max(0.625rem,env(safe-area-inset-top))] pr-12 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
             <div className="flex min-w-0 items-center gap-2">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent sm:h-10 sm:w-10 sm:rounded-xl">
@@ -6756,14 +6756,14 @@ function CandidateWizard({
                 <DialogTitle className="truncate text-base font-semibold sm:text-lg">
                   {editing ? "Edit Candidate" : "Add Candidate"}
                 </DialogTitle>
-                <DialogDescription className="hidden truncate text-xs sm:block sm:text-sm">
+                <DialogDescription className="sr-only">
                   {currentStep.label} · {currentStep.caption}
                 </DialogDescription>
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm font-medium tabular-nums text-foreground sm:text-base">{completionPct}%</p>
-              <p className="text-[10px] text-muted-foreground sm:text-[11px]">{completionDone}/{completionTotal}</p>
+              <p className="text-[10px] text-muted-foreground sm:text-[11px]">fields</p>
             </div>
           </div>
           {isEmployeeMode && (
@@ -6847,13 +6847,13 @@ function CandidateWizard({
         </DialogHeader>
 
         {/* Compact mobile progress */}
-        <div className="shrink-0 border-b border-border/60 bg-card px-3 py-2 sm:px-6 sm:py-3 lg:hidden">
+        <div className="mobile-glass-bar shrink-0 border-b border-border/60 bg-card/85 px-3 py-2 sm:px-6 sm:py-3 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">
-                Step {stepIndex + 1} of {steps.length}
+               <p className="text-[10px] font-medium text-accent">
+                 Step {stepIndex + 1} of {steps.length}
               </p>
-              <p className="truncate text-sm font-semibold">{currentStep.label}</p>
+               <p className="truncate text-sm font-medium">{currentStep.label}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {(editing?.employee_code || editing?.candidate_code) && (
@@ -6869,7 +6869,7 @@ function CandidateWizard({
               style={{ width: `${completionPct}%` }}
             />
           </div>
-          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {steps.map((s, i) => {
               const done = isStepComplete(s.key);
               return (
@@ -6880,7 +6880,7 @@ function CandidateWizard({
                   size="sm"
                   onClick={() => requestStep(s.key)}
                   className={cn(
-                    "h-7 shrink-0 gap-1 rounded-lg border px-2 text-[11px] font-medium shadow-none transition-colors",
+                    "h-8 shrink-0 snap-start gap-1 rounded-full border px-2.5 text-[11px] font-medium shadow-none transition-colors",
                     i === stepIndex
                       ? "border-accent bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground"
                       : done
@@ -6998,7 +6998,7 @@ function CandidateWizard({
             </div>
           </aside>
 
-        <div ref={wizardBodyRef} data-candidate-form-scroll className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+        <div ref={wizardBodyRef} data-candidate-form-scroll className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-3 pb-24 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
           <div className="mx-auto mb-7 hidden max-w-4xl lg:block">
             <p className="text-xs font-medium text-accent">Step {stepIndex + 1} of {steps.length}</p>
             <h3 className="mt-1 text-2xl font-semibold text-foreground">{currentStep.label}</h3>
@@ -8261,14 +8261,14 @@ function CandidateWizard({
               </>
             )}
           </div>
-          <div className="grid w-full grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:gap-2">
+          <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 sm:flex sm:w-auto sm:gap-2">
             {stepIndex > 0 && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={goBack}
                 disabled={submitting || savingDraft || !!uploading}
-                className="h-10 min-w-0 rounded-lg bg-accent px-2 text-accent-foreground hover:bg-accent/90 sm:flex-none sm:px-4"
+                className="h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4"
               >
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back
               </Button>
@@ -8277,7 +8277,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading}
-              className={cn("h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
+              className={cn("h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4", stepIndex === 0 && "sm:col-span-1")}
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
