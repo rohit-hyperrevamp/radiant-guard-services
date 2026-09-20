@@ -12,7 +12,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "flex min-h-10 max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/60 bg-card/60 p-1 text-muted-foreground backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_10px_28px_-18px_rgba(10,20,40,0.18)]",
+      "scrollbar-hide flex min-h-10 max-w-full snap-x items-center gap-1 overflow-x-auto rounded-xl border border-border/60 bg-card p-1 text-muted-foreground sm:rounded-2xl",
       className,
     )}
     {...props}
@@ -27,7 +27,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex min-h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-white data-[state=active]:to-accent/[0.08] data-[state=active]:text-foreground data-[state=active]:shadow-[0_1px_0_0_rgba(255,255,255,0.9)_inset,0_6px_16px_-10px_color-mix(in_oklab,var(--accent)_45%,transparent)] data-[state=active]:ring-1 data-[state=active]:ring-inset data-[state=active]:ring-accent/25 sm:px-3.5 sm:text-sm",
+      "inline-flex min-h-8 shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:rounded-xl sm:px-3.5 sm:text-sm",
       className,
     )}
     {...props}

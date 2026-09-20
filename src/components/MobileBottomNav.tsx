@@ -50,25 +50,24 @@ export function MobileBottomNav({
         right: "0px",
       }}
       className={cn(
-        "fixed z-[80] border-t border-border/40 bg-card/98 backdrop-blur-xl",
-        "shadow-[0_-1px_0_0_rgba(255,255,255,0.04)_inset,0_-12px_28px_-16px_rgba(15,23,42,0.22)]",
+        "fixed z-[80] border-t border-border/60 bg-card/98 backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-[62px] w-full items-stretch justify-around gap-0 px-2 pt-1.5">
+      <ul className="mx-auto flex h-[58px] w-full max-w-xl items-stretch justify-around gap-0 px-1.5 pt-1">
         {primary.map((it) => {
           const Icon = it.icon;
           const inner = (
             <div
               className={cn(
-                "relative mx-auto flex min-w-0 max-w-[86px] flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 pb-1 pt-1 transition-colors sm:gap-1 sm:px-2",
+                "relative mx-auto flex min-w-0 max-w-[82px] flex-col items-center justify-center gap-0 rounded-lg px-0.5 pb-1 pt-0.5 transition-colors sm:gap-1 sm:px-2",
               )}
             >
               <span
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-2xl transition-colors",
+                  "grid h-8 w-10 place-items-center rounded-lg transition-colors",
                   it.active
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-primary/12 text-primary"
                     : "bg-transparent text-foreground/70",
                 )}
               >
@@ -76,7 +75,7 @@ export function MobileBottomNav({
               </span>
               <span
                 className={cn(
-                  "block w-full truncate whitespace-nowrap text-center text-[11px] leading-tight",
+                  "block w-full truncate whitespace-nowrap text-center text-[10px] leading-tight",
                   it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
                 )}
               >
@@ -103,16 +102,16 @@ export function MobileBottomNav({
             aria-label="More"
             className="block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90"
           >
-            <div className="relative mx-auto flex min-w-0 max-w-[86px] flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 pb-1 pt-1 transition-colors sm:gap-1 sm:px-2">
+             <div className="relative mx-auto flex min-w-0 max-w-[82px] flex-col items-center justify-center gap-0 rounded-lg px-0.5 pb-1 pt-0.5 transition-colors sm:gap-1 sm:px-2">
               <span
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-2xl transition-colors",
-                  moreActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-foreground/70",
+                  "grid h-8 w-10 place-items-center rounded-lg transition-colors",
+                  moreActive ? "bg-primary/12 text-primary" : "bg-transparent text-foreground/70",
                 )}
               >
                 <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
               </span>
-               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[11px] leading-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
+               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[10px] leading-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
                 More
               </span>
             </div>

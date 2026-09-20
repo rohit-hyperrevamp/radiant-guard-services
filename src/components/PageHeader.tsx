@@ -31,13 +31,13 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("relative mb-3 sm:mb-5", className)}>
-      <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card p-3 sm:p-5">
-        <div className="relative flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
-          <div className="flex min-w-0 items-start gap-3">
+    <div className={cn("relative mb-2.5 sm:mb-5", className)}>
+      <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card px-3 py-2.5 sm:p-5">
+        <div className="relative flex min-w-0 flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
+          <div className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3">
             {Icon && (
               <div className="mt-0.5 shrink-0">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-11 sm:w-11">
+                <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-11 sm:w-11 sm:rounded-xl">
                   <Icon className="h-4.5 w-4.5 sm:h-[19px] sm:w-[19px]" />
                 </div>
               </div>
@@ -52,21 +52,21 @@ export function PageHeader({
                 {title}
               </h1>
               {description && (
-                <p className="mt-1 max-w-2xl text-[13px] leading-snug text-muted-foreground sm:text-[14px]">
+                <p className="mt-1 hidden max-w-2xl text-[14px] leading-snug text-muted-foreground sm:block">
                   {description}
                 </p>
               )}
             </div>
           </div>
           {actions && (
-            <div className="flex w-full flex-wrap items-center gap-2 self-start [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-[calc(50%-0.3rem)] sm:w-auto sm:justify-end sm:[&>*]:w-auto sm:[&>*]:flex-none sm:[&>*]:basis-auto">
+            <div className="scrollbar-hide -mx-1 flex w-[calc(100%+0.5rem)] snap-x items-center gap-1.5 overflow-x-auto px-1 pb-0.5 self-start [&>*]:h-9 [&>*]:shrink-0 [&>*]:snap-start sm:mx-0 sm:w-auto sm:justify-end sm:overflow-visible sm:px-0 sm:pb-0 sm:[&>*]:h-auto">
               {actions}
             </div>
           )}
         </div>
 
         {kpis && (
-          <div className="relative mt-5 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="relative mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 lg:grid-cols-4">
             {kpis}
           </div>
         )}
@@ -111,7 +111,7 @@ export function PageStat({
     <Wrapper
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
-        "group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border/40 p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4.5",
+        "group relative flex w-full flex-col overflow-hidden rounded-xl border border-border/40 p-3 text-left transition-colors sm:rounded-2xl sm:p-4",
         ACCENT_TILE_BG[resolvedAccent],
         onClick && "cursor-pointer",
         active && "ring-2 ring-accent/40",
@@ -119,10 +119,10 @@ export function PageStat({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">
+          <div className="line-clamp-2 font-display text-[12px] font-semibold leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
-          {sub && <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground sm:text-[11.5px]">{sub}</div>}
+          {sub && <div className="mt-0.5 hidden truncate text-[11.5px] text-muted-foreground sm:block">{sub}</div>}
         </div>
         {trend && (
           <span
@@ -135,14 +135,14 @@ export function PageStat({
           </span>
         )}
       </div>
-      <div className="relative mt-3.5 flex items-end justify-between gap-3 sm:mt-5.5">
-        <div className="min-w-0 whitespace-nowrap font-display text-[26px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[34px]">
+      <div className="relative mt-2.5 flex items-end justify-between gap-2 sm:mt-5">
+        <div className="min-w-0 whitespace-nowrap font-display text-[22px] font-bold leading-none tabular-nums text-foreground sm:text-[34px]">
           {value}
         </div>
         {Icon && (
           <span
             className={cn(
-              "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-10 sm:w-10",
+              "grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card/80 ring-1 ring-inset sm:h-10 sm:w-10 sm:rounded-full",
               ACCENT_CHIP[resolvedAccent],
             )}
           >

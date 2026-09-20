@@ -765,35 +765,24 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Mobile top bar — modern, minimal, high-contrast */}
+      {/* Mobile top bar — compact native-app chrome */}
       <header data-app-header className={cn(
-        "sticky top-0 z-20 flex min-h-[56px] items-center justify-between gap-2 px-3.5 py-2 animate-slide-in-top safe-top safe-x",
-        "border-b border-border/40 bg-background/85 backdrop-blur-2xl backdrop-saturate-150",
+        "sticky top-0 z-20 grid min-h-[52px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 animate-slide-in-top safe-top safe-x",
+        "border-b border-border/60 bg-background/95",
         !nativeShell && "lg:hidden",
       )}>
-        <Link to={dashboardHref} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
           <div className="relative shrink-0">
-            <img src={brandLogo} alt="Radiant" className="h-9 w-9 object-contain" />
-            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+            <img src={brandLogo} alt="Radiant" className="h-8 w-8 object-contain" />
           </div>
-          <div className="min-w-0 leading-tight">
-            <div className="truncate text-[15px] font-bold tracking-tight text-foreground">
-              Hi, {me.fullName ? me.fullName.split(/\s+/)[0] : "there"}
-            </div>
-            <div className="truncate text-[11px] font-medium text-muted-foreground">
-              {(() => {
-                const h = new Date().getHours();
-                return h < 12 ? "Good morning ☀️" : h < 17 ? "Good afternoon 👋" : "Good evening 🌙";
-              })()}
-            </div>
-          </div>
+          <div className="truncate text-[15px] font-semibold leading-tight text-foreground">Radiant</div>
         </Link>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           <NotificationBell />
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-accent/20 to-primary/20 text-foreground outline-none ring-1 ring-border/60 transition focus-visible:outline-none hover:ring-accent"
+            className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/10 text-foreground outline-none ring-1 ring-border/60 transition focus-visible:outline-none hover:ring-accent"
           >
             {me.photoUrl ? (
               <img
@@ -821,8 +810,8 @@ function AdminLayout() {
           />
           <aside
             className={cn(
-              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
-              "rounded-t-2xl border-t border-border bg-card",
+              "absolute inset-x-0 bottom-0 flex max-h-[86dvh] flex-col overflow-hidden",
+              "rounded-t-xl border-t border-border bg-card",
               "animate-in slide-in-from-bottom duration-300 ease-out",
               "safe-bottom",
             )}
@@ -839,7 +828,7 @@ function AdminLayout() {
                 ];
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2 p-3">
+                     <div data-app-drawer-grid className="grid grid-cols-3 gap-1.5 p-2.5">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -849,7 +838,7 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                               "group relative flex min-h-20 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
@@ -885,7 +874,7 @@ function AdminLayout() {
 
                 return (
                   <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2 p-3">
+                     <div data-app-drawer-grid className="grid grid-cols-3 gap-1.5 p-2.5">
                       {tiles.map((t) => {
                         const Icon = t.icon;
                         return (
@@ -894,7 +883,7 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                               "group relative flex min-h-20 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               t.active
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
@@ -924,7 +913,7 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(70px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
 
 
         <div className="mx-auto min-w-0 max-w-[1500px]">
