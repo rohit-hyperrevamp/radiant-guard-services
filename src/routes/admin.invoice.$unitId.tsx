@@ -38,7 +38,7 @@ import { useOrgSettings } from "@/lib/org-settings";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
-import { PERIOD_STATUS_QK, setMoneyStatus } from "@/lib/period-status";
+import { PERIOD_STATUS_QK } from "@/lib/period-status";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -1467,13 +1467,6 @@ function PayrollUnitPage() {
         await supabase.storage.from("tally-invoices").remove([path]);
         throw updateResult.error;
       }
-      await setMoneyStatus({
-        unitId,
-        periodStart: start,
-        periodEnd: end,
-        kind: "invoice",
-        next: "processed",
-      });
       if (oldPath && oldPath !== path) {
         await supabase.storage.from("tally-invoices").remove([oldPath]);
       }
