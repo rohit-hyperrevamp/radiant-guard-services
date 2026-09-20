@@ -205,6 +205,7 @@
 - [x] Confirm the values behind the displayed 87% and explain the calculation without changing data.
 
 ## Tally export (combined + per-invoice)
-- [x] Remove Tally export from invoice detail; retain MIS Format (XLSX).
-- [x] Replace invoice-list Tally export with one combined MIS Format (XLSX) workbook for filtered units.
+- [x] Restore Download Tally Format on invoice detail using the established Tally workbook layout.
+- [x] Add Download Tally Format on the invoice list as one combined workbook for all filtered invoices.
+- [x] Shorten MIS Format (XLSX) to MIS Format on both invoice screens.
 - [x] bunx tsgo --noEmit passes.
