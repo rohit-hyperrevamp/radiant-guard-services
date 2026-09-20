@@ -93,6 +93,7 @@ import { RehireReviewDialog } from "@/components/RehireReviewDialog";
 import { type RehireRequest } from "@/lib/workflows";
 import { fetchWorkflowByKey, fetchWorkflowSteps, REHIRE_WORKFLOW_KEY } from "@/lib/workflows";
 import { PageHeader } from "@/components/PageHeader";
+import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -4292,66 +4293,26 @@ function EmployeesPage() {
         }}
       />
 
-      <div className="scrollbar-hide -mx-2 flex snap-x gap-2 overflow-x-auto px-2 pb-1 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
+      <CharterTileGrid>
         {(tab === "employee" && !isFieldOfficer
           ? [
-              { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
-              { label: "Active", value: stats.empActive, accent: false as const, dot: "bg-emerald-500", tone: "neutral" as const },
-              { label: "Inactive", value: stats.empInactive, accent: false as const, dot: "bg-slate-400", tone: "neutral" as const },
-              { label: "Billable", value: stats.empBillable, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
-              { label: "Non-billable", value: stats.empNonBillable, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
+              { label: "Total employees", value: stats.empTotal, icon: IdCard, color: "sky" as const },
+              { label: "Active", value: stats.empActive, icon: CheckCircle2, color: "emerald" as const },
+              { label: "Inactive", value: stats.empInactive, icon: X, color: "rose" as const },
+              { label: "Billable", value: stats.empBillable, icon: ShieldCheck, color: "cyan" as const },
+              { label: "Non-billable", value: stats.empNonBillable, icon: HeartHandshake, color: "violet" as const },
             ]
 
           : [
-              { label: "Total", value: stats.candTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
-              { label: "Drafts", value: stats.candDrafts, accent: false as const, dot: "bg-slate-400", tone: "neutral" as const },
-              { label: "Pending", value: stats.candPending, accent: stats.candPending > 0, dot: "bg-amber-500", tone: "neutral" as const },
-              { label: "Rejected", value: stats.candRejected, accent: false as const, dot: "bg-rose-500", tone: "neutral" as const },
+              { label: "Total candidates", value: stats.candTotal, icon: UserPlus, color: "sky" as const },
+              { label: "Drafts", value: stats.candDrafts, icon: FileText, color: "violet" as const },
+              { label: "Pending", value: stats.candPending, icon: Clock, color: "amber" as const },
+              { label: "Rejected", value: stats.candRejected, icon: X, color: "rose" as const },
             ]
-        ).map((s) => {
-          const isAlert = (s as { tone?: string }).tone === "alert";
-          const suffix = (s as { suffix?: string }).suffix;
-          return (
-          <div
-            key={s.label}
-            className={cn(
-              "group relative w-[36vw] min-w-[124px] max-w-[150px] shrink-0 snap-start overflow-hidden rounded-xl border p-2.5 shadow-sm transition-all hover:shadow-md sm:p-4 md:w-auto md:min-w-0 md:max-w-none",
-              isAlert
-                ? "border-rose-300/70 bg-rose-50/70 backdrop-blur-md"
-                : s.accent
-                ? "border-amber-200/60 bg-amber-50/60 backdrop-blur-md"
-                : "border-border/60 bg-card/80 backdrop-blur-md",
-            )}
-          >
-            <div className="relative z-10 flex items-start justify-between gap-2">
-              <p
-                className={cn(
-                    "truncate text-[9px] font-bold uppercase tracking-[0.12em] transition-colors sm:text-[10px] sm:tracking-[0.18em]",
-                  isAlert
-                    ? "text-rose-700"
-                    : s.accent
-                    ? "text-amber-700"
-                    : "text-muted-foreground group-hover:text-amber-600",
-                )}
-              >
-                {s.label}
-              </p>
-              {(isAlert || (s.accent && s.value > 0)) && (
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", isAlert ? "bg-rose-400" : "bg-amber-400")} />
-                  <span className={cn("relative inline-flex h-2 w-2 rounded-full", s.dot)} />
-                </span>
-              )}
-            </div>
-            <p className="relative z-10 mt-1 text-[20px] font-bold leading-none tabular-nums text-foreground sm:mt-2 sm:text-[24px]">
-              {s.value}
-              {suffix && <span className="ml-1 text-xs font-medium text-muted-foreground">{suffix}</span>}
-            </p>
-          </div>
-
-          );
-        })}
-      </div>
+        ).map((s) => (
+          <CharterTile key={s.label} label={s.label} countTo={s.value} icon={s.icon} accent={s.color} />
+        ))}
+      </CharterTileGrid>
 
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "employee" | "candidate")} className="space-y-4 sm:space-y-5">
