@@ -469,6 +469,8 @@ function MisManagerPage() {
             <DialogDescription>
               Upload the client's own sheet to read its headings, then tick the columns to include.
               Headings we recognise are filled by the system; the rest become values you enter per site.
+              Switch on "Client attribute" to add that column as an optional field on every client of this
+              organization — switching it off removes the field and its saved values from all of them.
             </DialogDescription>
           </DialogHeader>
 
@@ -507,7 +509,7 @@ function MisManagerPage() {
                 <Upload className="h-4 w-4" /> Upload client sheet
               </Button>
               <span className="text-xs text-muted-foreground">
-                {systemCount} system-filled · {customCount} entered per site
+                {systemCount} system-filled · {customCount} entered per site · {attributeCount} client attributes
               </span>
             </div>
           )}
