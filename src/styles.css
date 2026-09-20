@@ -1805,3 +1805,38 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   }
 }
 
+
+/* Responsive Dialog: switches from centered to bottom-anchored or full-screen on phones */
+@media (max-width: 639px) {
+  .dialog-responsive {
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 92dvh !important;
+    transform: none !important;
+    border-bottom: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+  
+  [data-state=open].dialog-responsive {
+    animation: slide-in-from-bottom 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  
+  [data-state=closed].dialog-responsive {
+    animation: slide-out-to-bottom 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  @keyframes slide-in-from-bottom {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  
+  @keyframes slide-out-to-bottom {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+  }
+}
