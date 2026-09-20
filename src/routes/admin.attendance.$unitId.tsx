@@ -172,6 +172,17 @@ async function downscaleImage(file: File, maxDim: number, quality: number): Prom
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+/** One photo of the muster, with its cleaned scan and quality verdict. */
+type UploadPage = {
+  name: string;
+  /** Cleaned, perspective-corrected image. */
+  dataUrl: string;
+  /** Untouched photo, used when the person prefers the original. */
+  originalDataUrl: string;
+  cropped: boolean;
+  quality: ScanQuality | null;
+};
+
 /**
  * Attendance register period = the contract's payroll window.
  * Standard windows (1 → 30/31) render the plain calendar month. Spanning
