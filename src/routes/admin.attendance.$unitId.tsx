@@ -1812,6 +1812,13 @@ function MusterRollPage() {
     }
   };
 
+  /** Hide the upload dialog (keeping its state) and open the camera scanner. */
+  const openCameraScan = () => {
+    skipUploadResetRef.current = true;
+    setUploadOpen(false);
+    setCameraOpen(true);
+  };
+
   /** Accept pages captured with the live camera scanner. */
   const onCameraCapture = (captured: Array<{ name: string; dataUrl: string; scan: ScanResult }>) => {
     if (!captured.length) return;
