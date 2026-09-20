@@ -637,6 +637,7 @@ function useContracts() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: QK });
     qc.invalidateQueries({ queryKey: ["admin", "units"] });
+    qc.invalidateQueries({ queryKey: QK_CONTRACT_DIRECTORY });
   };
 
   const syncUnitDates = async (unitId: string, startDate: string, endDate: string) => {
@@ -779,7 +780,14 @@ function useContracts() {
           prospect_stage: "closed",
         });
       } else {
-        if (p.status === "active" && p.recordType === "client") {
+        const beforeUnitId = String(before?.unit_id ?? "");
+        const becameActiveClient =
+          p.status === "active" &&
+          p.recordType === "client" &&
+          (String(before?.status ?? "") !== "active" ||
+            String(before?.record_type ?? "") !== "client" ||
+            (p.unitId || beforeUnitId) !== beforeUnitId);
+        if (becameActiveClient) {
           await assertSingleActiveContract(p.unitId || String(before?.unit_id ?? ""), id);
         }
         Object.assign(after, {
