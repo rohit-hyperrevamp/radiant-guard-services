@@ -174,7 +174,7 @@ function AttendanceCodeManagerPage() {
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Attendance Code Manager" }]}
       />
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+       <div className="mb-3 grid grid-cols-1 gap-2 sm:mb-4 lg:flex lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -184,7 +184,7 @@ function AttendanceCodeManagerPage() {
             className="h-10 rounded-lg pl-9"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
           <Button
             variant="outline"
             disabled={filtered.length === 0}
@@ -223,7 +223,7 @@ function AttendanceCodeManagerPage() {
             className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add Attendance Code
+            <span className="sm:hidden">Add Code</span><span className="hidden sm:inline">Add Attendance Code</span>
           </Button>
         </div>
       </div>
@@ -235,7 +235,7 @@ function AttendanceCodeManagerPage() {
             <span className="uppercase tracking-[0.14em] text-muted-foreground">Total {filtered.length === 1 ? "code" : "codes"}</span>
           </span>
         </div>
-        <div className="overflow-x-clip">
+        <div className="overflow-x-auto">
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
@@ -253,7 +253,7 @@ function AttendanceCodeManagerPage() {
             <tbody className="divide-y divide-border">
               {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
-                  <td className="px-5 py-3">
+                  <td data-label="Code" className="px-5 py-3">
                     <span
                       className="inline-flex h-7 min-w-9 items-center justify-center rounded-md px-2 font-mono text-xs font-bold text-white"
                       style={{ backgroundColor: i.color }}
@@ -261,13 +261,13 @@ function AttendanceCodeManagerPage() {
                       {i.code}
                     </span>
                   </td>
-                  <td className="px-5 py-3 font-medium text-foreground">{i.label}</td>
-                  <td className="px-5 py-3 text-foreground/80">{i.description || "—"}</td>
-                  <td className="px-5 py-3 text-center">{i.counts_as_present ? "✓" : "—"}</td>
-                  <td className="px-5 py-3 text-center">{i.is_paid ? "✓" : "—"}</td>
-                  <td className="px-5 py-3 text-center">{i.is_leave ? "✓" : "—"}</td>
-                  <td className="px-5 py-3 text-right font-mono text-foreground/80">{i.sort_order}</td>
-                  <td className="px-5 py-3">
+                  <td data-label="Label" className="px-5 py-3 font-medium text-foreground">{i.label}</td>
+                  <td data-label="Description" className="px-5 py-3 text-foreground/80">{i.description || "—"}</td>
+                  <td data-label="Present" className="px-5 py-3 text-center">{i.counts_as_present ? "✓" : "—"}</td>
+                  <td data-label="Paid" className="px-5 py-3 text-center">{i.is_paid ? "✓" : "—"}</td>
+                  <td data-label="Leave" className="px-5 py-3 text-center">{i.is_leave ? "✓" : "—"}</td>
+                  <td data-label="Sort" className="px-5 py-3 text-right font-mono text-foreground/80">{i.sort_order}</td>
+                  <td data-label="Status" className="px-5 py-3">
                     <Switch
                       checked={i.enabled}
                       onCheckedChange={(v) =>
@@ -281,7 +281,7 @@ function AttendanceCodeManagerPage() {
                       }
                     />
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  <td data-label="Actions" className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
                       <RecordViewButton
                         record={i}

@@ -278,9 +278,9 @@ function UnitManagerPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-2.5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full flex-col gap-2 sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="relative w-full sm:min-w-56 sm:max-w-sm sm:flex-1">
+      <div className="mobile-glass-surface mb-3 grid grid-cols-1 gap-2 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:rounded-2xl sm:p-2.5">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative col-span-2 w-full sm:min-w-56 sm:max-w-sm sm:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -328,7 +328,7 @@ function UnitManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
             variant="outline"
             onClick={() =>
@@ -461,7 +461,7 @@ function UnitManagerPage() {
         <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-accent/[0.08] via-transparent to-transparent px-5 py-2.5 text-xs text-foreground">
           <span className="inline-flex items-center gap-2"><span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] text-primary-foreground">{rows.length}</span><span className="uppercase tracking-[0.14em] text-muted-foreground">Total {rows.length === 1 ? "row" : "rows"}</span></span>
         </div>
-        <div className="overflow-x-clip">
+        <div className="overflow-x-auto">
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
@@ -479,9 +479,9 @@ function UnitManagerPage() {
             <tbody className="divide-y divide-border">
               {pg.pageRows.map((u) => (
                 <tr key={u.id} className="hover:bg-secondary/30">
-                  <td className="px-5 py-3 font-mono text-xs font-semibold text-accent">{u.code}</td>
-                  <td className="px-5 py-3 font-semibold text-foreground" data-wrap="true">{u.name}</td>
-                  <td className="px-5 py-3 text-muted-foreground" data-wrap="true">
+                  <td data-label="Client ID" className="px-5 py-3 font-mono text-xs font-semibold text-accent">{u.code}</td>
+                  <td data-label="Name" className="px-5 py-3 font-semibold text-foreground" data-wrap="true">{u.name}</td>
+                  <td data-label="Location" className="px-5 py-3 text-muted-foreground" data-wrap="true">
                     <div className="flex flex-wrap items-center gap-2">
                       <span>{u.location || <span className="italic opacity-60">—</span>}</span>
                       {(u.latitude != null && u.longitude != null) && (
@@ -498,14 +498,14 @@ function UnitManagerPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.stateLabel || <span className="italic opacity-60">—</span>}</td>
-                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.cityLabel || <span className="italic opacity-60">—</span>}</td>
-                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.branchLabel}</td>
-                  <td className="px-5 py-3 text-foreground" data-wrap="true">{u.customerLabel}</td>
-                  <td className="px-5 py-3">
+                  <td data-label="State" className="px-5 py-3 text-foreground" data-wrap="true">{u.stateLabel || <span className="italic opacity-60">—</span>}</td>
+                  <td data-label="City" className="px-5 py-3 text-foreground" data-wrap="true">{u.cityLabel || <span className="italic opacity-60">—</span>}</td>
+                  <td data-label="Branch" className="px-5 py-3 text-foreground" data-wrap="true">{u.branchLabel}</td>
+                  <td data-label="Organization" className="px-5 py-3 text-foreground" data-wrap="true">{u.customerLabel}</td>
+                  <td data-label="Status" className="px-5 py-3">
                     <StatusBadge active={u.status === "active"} />
                   </td>
-                  <td className="px-5 py-3 text-right" data-col="actions">
+                  <td data-label="Actions" className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
                       <RecordViewButton
                         record={u}

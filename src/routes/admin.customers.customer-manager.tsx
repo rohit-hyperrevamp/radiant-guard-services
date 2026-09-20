@@ -60,6 +60,16 @@ import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFor
 const SALUTATIONS = ["Mr.", "Mrs.", "Ms.", "Dr.", "Mx."];
 
 export const Route = createFileRoute("/admin/customers/customer-manager")({
+  head: () => ({
+    meta: [
+      { title: "Organizations | Radiant Guard Services" },
+      { name: "description", content: "Manage organizations and their client locations." },
+      { property: "og:title", content: "Organizations | Radiant Guard Services" },
+      { property: "og:description", content: "Manage organizations and their client locations." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CustomerManagerPage,
 });
 
@@ -139,8 +149,8 @@ function CustomerManagerPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-2.5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mobile-glass-surface mb-3 grid grid-cols-1 gap-2 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:rounded-2xl sm:p-2.5">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_8.5rem] gap-2 sm:flex sm:items-center">
           <div className="relative w-full sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -161,7 +171,7 @@ function CustomerManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
             variant="outline"
             onClick={() =>
@@ -204,8 +214,8 @@ function CustomerManagerPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.7)_inset,0_18px_40px_-30px_rgba(15,23,42,0.18)]">
-        <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-accent/[0.08] via-transparent to-transparent px-5 py-2.5 text-xs text-foreground">
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card/70 shadow-sm sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-border/60 bg-accent/[0.06] px-3 py-2 text-xs text-foreground sm:px-5 sm:py-2.5">
           <span className="inline-flex items-center gap-2"><span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] text-primary-foreground">{rows.length}</span><span className="uppercase tracking-[0.14em] text-muted-foreground">Total {rows.length === 1 ? "row" : "rows"}</span></span>
         </div>
 
@@ -224,10 +234,10 @@ function CustomerManagerPage() {
             <tbody className="divide-y divide-border">
               {pg.pageRows.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30">
-                  <td className="px-5 py-3 font-mono text-xs font-semibold text-accent">
+                  <td data-label="Org ID" className="px-5 py-3 font-mono text-xs font-semibold text-accent">
                     {c.code}
                   </td>
-                  <td className="px-5 py-3" data-wrap="true">
+                  <td data-label="Organization" className="px-5 py-3" data-wrap="true">
                     <div className="font-semibold text-foreground">{c.name}</div>
                     {c.address && (
                       <div className="text-xs text-muted-foreground">
@@ -235,7 +245,7 @@ function CustomerManagerPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-muted-foreground" data-wrap="true">
+                  <td data-label="Website" className="px-5 py-3 text-muted-foreground" data-wrap="true">
                     {c.website ? (
                       <a
                         href={normaliseUrl(c.website)}
@@ -251,13 +261,13 @@ function CustomerManagerPage() {
                       <span className="italic opacity-60">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3 font-mono text-xs text-foreground">
+                  <td data-label="Phone" className="px-5 py-3 font-mono text-xs text-foreground">
                     {c.phone || <span className="italic opacity-60">—</span>}
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="Status" className="px-5 py-3">
                     <StatusBadge status={c.status} />
                   </td>
-                  <td className="px-5 py-3 text-right" data-col="actions">
+                  <td data-label="Actions" className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
                       <Button
                         size="sm"
