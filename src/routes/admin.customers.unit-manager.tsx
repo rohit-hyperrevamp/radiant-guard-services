@@ -54,6 +54,11 @@ import {
   type ReportingOfficer,
   type Unit,
 } from "@/lib/admin-data";
+import {
+  loadClientAttributeValues,
+  loadClientAttributesForCustomer,
+  saveClientAttributeValues,
+} from "@/lib/mis-template";
 import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
@@ -691,6 +696,7 @@ function UnitFormDialog({
   const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(units)));
   const [error, setError] = useState<string | null>(null);
   const [assignedFoIds, setAssignedFoIds] = useState<string[]>([]);
+  const [clientAttrValues, setClientAttrValues] = useState<Record<string, string>>({});
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
   const [, setFoSyncing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -862,6 +868,26 @@ function UnitFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id, existingAssignQuery.data]);
 
+  // Optional attributes this organization's MIS format contributes to its clients.
+  const clientAttrsQuery = useQuery({
+    queryKey: ["unit-form", "client-attributes", form.customerId ?? ""],
+    enabled: open && !!form.customerId,
+    queryFn: () => loadClientAttributesForCustomer(form.customerId),
+  });
+  const clientAttributes = clientAttrsQuery.data ?? [];
+
+  const clientAttrValuesQuery = useQuery({
+    queryKey: ["unit-form", "client-attribute-values", editing?.id ?? "new"],
+    enabled: open && !!editing?.id,
+    queryFn: () => loadClientAttributeValues(editing!.id),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    setClientAttrValues(editing?.id ? (clientAttrValuesQuery.data ?? {}) : {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing?.id, clientAttrValuesQuery.data]);
+
   const toggleFo = (id: string) =>
     setAssignedFoIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -965,6 +991,15 @@ function UnitFormDialog({
         setError(result.error);
         toast.error(result.error);
         return;
+      }
+      if (result.id && clientAttributes.length > 0) {
+        try {
+          await saveClientAttributeValues(clientAttributes, result.id, clientAttrValues);
+        } catch (cause) {
+          toast.error(
+            `Client saved, but the extra attributes could not be stored: ${cause instanceof Error ? cause.message : "unknown error"}`,
+          );
+        }
       }
       onOpenChange(false);
       if (result.id) {
@@ -1124,6 +1159,24 @@ function UnitFormDialog({
               </Field>
             </div>
           </Section>
+
+          {clientAttributes.length > 0 && (
+            <Section title="Additional attributes">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {clientAttributes.map((attr) => (
+                  <Field key={attr.columnId} label={attr.header}>
+                    <Input
+                      value={clientAttrValues[attr.columnId] ?? ""}
+                      placeholder="Optional"
+                      onChange={(e) =>
+                        setClientAttrValues((prev) => ({ ...prev, [attr.columnId]: e.target.value }))
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
+            </Section>
+          )}
 
 
           {/* BUSINESS */}

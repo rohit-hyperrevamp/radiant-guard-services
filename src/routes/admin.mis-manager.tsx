@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useCurrentPermissions } from "@/lib/rbac";
 import {
-  MIS_SYSTEM_FIELDS, MIS_SYSTEM_FIELD_BY_KEY, matchMisSystemKey,
+  MIS_SYSTEM_FIELDS, MIS_SYSTEM_FIELD_BY_KEY, MIS_NATIVE_CLIENT_KEYS, matchMisSystemKey,
 } from "@/lib/mis-template";
 
 export const Route = createFileRoute("/admin/mis-manager")({
@@ -45,12 +45,15 @@ type ColumnRow = {
   source: "system" | "custom";
   system_key: string | null;
   enabled: boolean;
+  client_attribute: boolean | null;
 };
 type Draft = {
+  id?: string;
   header: string;
   source: "system" | "custom";
   system_key: string | null;
   enabled: boolean;
+  client_attribute: boolean;
 };
 
 function useCustomers() {
@@ -80,7 +83,7 @@ function useTemplates() {
       if (templates.length === 0) return [];
       const { data: cols, error: colErr } = await supabase
         .from("mis_template_columns" as never)
-        .select("id, template_id, header, sort_order, source, system_key, enabled")
+        .select("id, template_id, header, sort_order, source, system_key, enabled, client_attribute")
         .in("template_id", templates.map((t) => t.id))
         .order("sort_order");
       if (colErr) throw colErr;
@@ -160,8 +163,8 @@ function MisManagerPage() {
     setEditing(null);
     setCustomerId("");
     setName("");
-    setDrafts(MIS_SYSTEM_FIELDS.map((f) => ({
-      header: f.label, source: "system", system_key: f.key, enabled: true,
+    setDrafts(MIS_SYSTEM_FIELDS.map<Draft>((f) => ({
+      header: f.label, source: "system", system_key: f.key, enabled: true, client_attribute: false,
     })));
   };
 
@@ -174,8 +177,9 @@ function MisManagerPage() {
     setEditing(t);
     setCustomerId(t.customer_id);
     setName(t.name);
-    setDrafts(t.columns.map((c) => ({
-      header: c.header, source: c.source, system_key: c.system_key, enabled: c.enabled,
+    setDrafts(t.columns.map<Draft>((c) => ({
+      id: c.id, header: c.header, source: c.source, system_key: c.system_key,
+      enabled: c.enabled, client_attribute: c.client_attribute === true,
     })));
     setReadOnly(view);
     setDialogOpen(true);
@@ -188,9 +192,15 @@ function MisManagerPage() {
         toast.error("No column headings found in that file.");
         return;
       }
-      setDrafts(headers.map((h) => {
+      setDrafts(headers.map<Draft>((h) => {
         const key = matchMisSystemKey(h);
-        return { header: h, source: key ? "system" : "custom", system_key: key, enabled: true };
+        return {
+          header: h,
+          source: key ? "system" : "custom",
+          system_key: key,
+          enabled: true,
+          client_attribute: false,
+        };
       }));
       toast.success(`${headers.length} columns read from the sheet.`);
     } catch (err) {
@@ -212,11 +222,29 @@ function MisManagerPage() {
           .update({ name: name.trim(), customer_id: customerId } as never)
           .eq("id", editing.id);
         if (error) throw error;
-        const { error: delErr } = await supabase
-          .from("mis_template_columns" as never)
-          .delete()
-          .eq("template_id", editing.id);
-        if (delErr) throw delErr;
+        // Columns that are no longer part of the format go away with their values.
+        const keptIds = new Set(enabled.map((d) => d.id).filter(Boolean) as string[]);
+        const dropped = editing.columns.filter((c) => !keptIds.has(c.id)).map((c) => c.id);
+        if (dropped.length > 0) {
+          const { error: delErr } = await supabase
+            .from("mis_template_columns" as never)
+            .delete()
+            .in("id", dropped);
+          if (delErr) throw delErr;
+        }
+        // A client attribute switched off is removed from every client of this
+        // organization, together with the values already entered against it.
+        const turnedOff = editing.columns
+          .filter((c) => c.client_attribute === true)
+          .filter((c) => enabled.some((d) => d.id === c.id && !d.client_attribute))
+          .map((c) => c.id);
+        if (turnedOff.length > 0) {
+          const { error: valErr } = await supabase
+            .from("mis_unit_values" as never)
+            .delete()
+            .in("column_id", turnedOff);
+          if (valErr) throw valErr;
+        }
       } else {
         const { data, error } = await supabase
           .from("mis_templates" as never)
@@ -227,23 +255,42 @@ function MisManagerPage() {
         templateId = String((data as { id: string }).id);
       }
 
-      const rows = enabled.map((d, i) => ({
-        template_id: templateId,
-        header: d.header.trim(),
-        sort_order: i + 1,
-        source: d.source,
-        system_key: d.source === "system" ? d.system_key : null,
-        enabled: true,
-      }));
-      const { error: insErr } = await supabase.from("mis_template_columns" as never).insert(rows as never);
-      if (insErr) throw insErr;
+      let order = 0;
+      for (const d of enabled) {
+        order += 1;
+        const payload = {
+          template_id: templateId,
+          header: d.header.trim(),
+          sort_order: order,
+          source: d.source,
+          system_key: d.source === "system" ? d.system_key : null,
+          enabled: true,
+          client_attribute: d.client_attribute === true,
+        };
+        if (d.id) {
+          const { error: upErr } = await supabase
+            .from("mis_template_columns" as never)
+            .update(payload as never)
+            .eq("id", d.id);
+          if (upErr) throw upErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from("mis_template_columns" as never)
+            .insert(payload as never);
+          if (insErr) throw insErr;
+        }
+      }
 
       void logActivity({
         module: MODULE,
         action: editing ? "update" : "create",
         entityType: "mis_templates",
         entityLabel: name.trim(),
-        details: { customerId, columns: rows.length },
+        details: {
+          customerId,
+          columns: enabled.length,
+          clientAttributes: enabled.filter((d) => d.client_attribute).length,
+        },
       });
     },
     onSuccess: () => {
@@ -285,6 +332,26 @@ function MisManagerPage() {
 
   const systemCount = drafts.filter((d) => d.enabled && d.source === "system").length;
   const customCount = drafts.filter((d) => d.enabled && d.source === "custom").length;
+  const attributeCount = drafts.filter((d) => d.enabled && d.client_attribute).length;
+
+  /** Warn before an attribute is taken off every client of the organization. */
+  const requestSave = async () => {
+    const removed = (editing?.columns ?? [])
+      .filter((c) => c.client_attribute === true)
+      .filter((c) => !drafts.some((d) => d.id === c.id && d.enabled && d.client_attribute))
+      .map((c) => c.header);
+    if (removed.length > 0) {
+      const orgName = customerById.get(customerId)?.name ?? "this organization";
+      const ok = await confirmAction({
+        title: removed.length === 1 ? `Remove "${removed[0]}" from every client?` : "Remove these client attributes?",
+        description: `${removed.join(", ")} will be deleted from all clients of ${orgName}, along with the values already entered.`,
+        confirmText: "Yes, remove",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    saveMut.mutate();
+  };
 
   return (
     <div className="space-y-6">
@@ -402,6 +469,8 @@ function MisManagerPage() {
             <DialogDescription>
               Upload the client's own sheet to read its headings, then tick the columns to include.
               Headings we recognise are filled by the system; the rest become values you enter per site.
+              Switch on "Client attribute" to add that column as an optional field on every client of this
+              organization — switching it off removes the field and its saved values from all of them.
             </DialogDescription>
           </DialogHeader>
 
@@ -440,7 +509,7 @@ function MisManagerPage() {
                 <Upload className="h-4 w-4" /> Upload client sheet
               </Button>
               <span className="text-xs text-muted-foreground">
-                {systemCount} system-filled · {customCount} entered per site
+                {systemCount} system-filled · {customCount} entered per site · {attributeCount} client attributes
               </span>
             </div>
           )}
@@ -453,6 +522,7 @@ function MisManagerPage() {
                     <th className="px-3 py-2 font-medium">Include</th>
                     <th className="px-3 py-2 font-medium">Column heading</th>
                     <th className="px-3 py-2 font-medium">Filled by</th>
+                    <th className="px-3 py-2 font-medium">Client attribute</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -484,6 +554,18 @@ function MisManagerPage() {
                           <Badge variant="outline">Entered per site</Badge>
                         )}
                       </td>
+                      <td className="px-3 py-2">
+                        {d.source === "system" && MIS_NATIVE_CLIENT_KEYS.has(d.system_key ?? "") ? (
+                          <span className="text-xs text-muted-foreground">Already on the client</span>
+                        ) : (
+                          <Switch
+                            checked={d.client_attribute}
+                            disabled={readOnly || !d.enabled}
+                            onCheckedChange={(v) => setDrafts((prev) =>
+                              prev.map((x, j) => (j === i ? { ...x, client_attribute: v } : x)))}
+                          />
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -494,7 +576,7 @@ function MisManagerPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
             {!readOnly && canEdit && (
-              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              <Button onClick={() => void requestSave()} disabled={saveMut.isPending}>
                 {saveMut.isPending ? "Saving…" : "Save format"}
               </Button>
             )}
