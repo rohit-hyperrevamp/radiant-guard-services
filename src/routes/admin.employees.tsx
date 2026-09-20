@@ -1967,13 +1967,13 @@ function EmployeesPage() {
   const DEFAULT_FILTERS_VIS = {
     role: true,
     designation: true,
-    department: true,
+    department: false,
     customer: true,
-    unit: true,
-    manager: true,
+    unit: false,
+    manager: false,
     enabled: true,
-    billable: true,
-    offboardReason: true,
+    billable: false,
+    offboardReason: false,
   };
   const [filtersVisible, setFiltersVisible] = useState<typeof DEFAULT_FILTERS_VIS>(() => {
     if (typeof window === "undefined") return DEFAULT_FILTERS_VIS;
@@ -4548,7 +4548,7 @@ function EmployeesPage() {
 
         {/* Filter bar (Employees tab only) */}
         {tab === "employee" && (
-          <div className="grid grid-cols-2 items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
+          <div className="grid grid-cols-2 items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm backdrop-blur-xl sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>

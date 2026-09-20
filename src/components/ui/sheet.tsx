@@ -79,7 +79,7 @@ SheetHeader.displayName = "SheetHeader";
 const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     data-slot="sheet-footer"
-    className={cn("sticky bottom-0 -mx-3 mt-auto flex flex-row gap-1.5 border-t border-border/60 bg-card px-3 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] [&>*]:flex-1 sm:static sm:mx-0 sm:justify-end sm:border-0 sm:px-0 sm:pt-0 sm:pb-0 sm:[&>*]:flex-none", className)}
+    className={cn("sticky bottom-0 z-10 -mx-3 mt-auto flex flex-row gap-1.5 border-t border-border/60 bg-card/95 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl [&>*]:flex-1 sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 sm:backdrop-blur-none sm:[&>*]:flex-none", className)}
     {...props}
   />
 );
