@@ -533,11 +533,11 @@ function PriceHistoryDialog({ item, open, onOpenChange }: { item: Item | null; o
           <DialogDescription>All purchase order lines across all vendors for this item.</DialogDescription>
         </DialogHeader>
         {stats && (
-          <div className="mb-3 grid grid-cols-4 gap-3 rounded-xl border border-border bg-secondary/30 p-3 text-center text-xs">
-            <div><div className="text-muted-foreground">Min</div><div className="text-base font-semibold tabular-nums">₹{stats.min.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div></div>
-            <div><div className="text-muted-foreground">Avg</div><div className="text-base font-semibold tabular-nums">₹{stats.avg.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div></div>
-            <div><div className="text-muted-foreground">Max</div><div className="text-base font-semibold tabular-nums">₹{stats.max.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div></div>
-            <div><div className="text-muted-foreground">PO Lines</div><div className="text-base font-semibold tabular-nums">{stats.count}</div></div>
+          <div className="mb-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border text-center text-xs sm:grid-cols-4">
+            <div className="min-w-0 bg-card p-2.5"><div className="text-muted-foreground">Min</div><div className="truncate text-base font-semibold tabular-nums">₹{stats.min.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div></div>
+            <div className="min-w-0 bg-card p-2.5"><div className="text-muted-foreground">Avg</div><div className="truncate text-base font-semibold tabular-nums">₹{stats.avg.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div></div>
+            <div className="min-w-0 bg-card p-2.5"><div className="text-muted-foreground">Max</div><div className="truncate text-base font-semibold tabular-nums">₹{stats.max.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div></div>
+            <div className="min-w-0 bg-card p-2.5"><div className="text-muted-foreground">PO Lines</div><div className="truncate text-base font-semibold tabular-nums">{stats.count}</div></div>
           </div>
         )}
         <div className="overflow-x-clip rounded-xl border border-border">

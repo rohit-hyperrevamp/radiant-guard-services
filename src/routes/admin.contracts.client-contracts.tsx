@@ -2663,10 +2663,10 @@ function ClientContractsPage() {
         </TabsList>
       </Tabs>
 
-      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-        <div className="mr-auto flex items-center gap-2">
+      <div className="mb-4 grid grid-cols-1 items-center gap-2 sm:flex sm:flex-wrap sm:justify-end">
+        <div className="grid min-w-0 grid-cols-1 items-center gap-2 sm:mr-auto sm:flex">
           <Select value={windowFilter} onValueChange={setWindowFilter}>
-            <SelectTrigger className="h-10 w-[220px] rounded-lg">
+            <SelectTrigger className="h-10 w-full rounded-xl sm:w-[220px]">
               <SelectValue placeholder="All payroll windows" />
             </SelectTrigger>
             <SelectContent>
@@ -2679,7 +2679,7 @@ function ClientContractsPage() {
             </SelectContent>
           </Select>
           {windowFilter !== "all" && (
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+            <span className="hidden rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary sm:inline-flex">
               {filtered.length} contract{filtered.length === 1 ? "" : "s"} in this window — matches
               Attendance, Payroll &amp; Invoicing scope
             </span>

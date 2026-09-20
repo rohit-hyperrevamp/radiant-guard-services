@@ -64,7 +64,7 @@ export function MultiSelectFilter({
           type="button"
           variant="outline"
           className={cn(
-            "h-10 w-full justify-between rounded-lg px-3 text-left font-normal",
+            "h-11 w-full justify-between rounded-xl px-3 text-left font-normal sm:h-10",
             selected.length === 0 && "text-muted-foreground",
             className,
           )}
@@ -97,13 +97,13 @@ export function MultiSelectFilter({
                   type="button"
                   onClick={() => toggle(o.value)}
                   className={cn(
-                    "flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-secondary/60",
+                    "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-secondary/60",
                     active && "font-medium text-foreground",
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border border-border",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border",
                       active && "border-primary bg-primary text-primary-foreground",
                     )}
                   >
@@ -147,8 +147,8 @@ export function LabeledMultiSelectFilter({
   className?: string;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
       <MultiSelectFilter {...props} className={cn("rounded-xl border-border/60 bg-background", props.className)} />

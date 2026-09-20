@@ -227,3 +227,10 @@
 - [x] Rebuild the More panel as a clean two-column app launcher.
 - [x] Reclaim phone width and vertical space across the shared signed-in shell.
 - [ ] Visually verify authenticated screens; blocked until a signed-in session is available.
+
+## iOS-style mobile interface refinement
+- [ ] Audit shared shell, controls, dialogs, cards, tables, and every route at phone widths.
+- [ ] Apply a unified iOS-inspired mobile visual system with minimal copy and safe-area spacing.
+- [ ] Fix clipping, overflow, action placement, toggles, filters, and dense record layouts globally.
+- [ ] Apply targeted fixes to screens that cannot inherit the shared improvements.
+- [ ] Run TypeScript validation and verify production mobile screens where authentication allows.

@@ -45,7 +45,7 @@ export function MobileBottomNav({
       aria-label="Primary"
       data-bottom-nav
       className={cn(
-        "fixed inset-x-2 bottom-2 z-[80] rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur-xl",
+        "fixed inset-x-2 bottom-2 z-[80] rounded-[22px] border border-border/70 bg-card/95 shadow-xl backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >
@@ -55,15 +55,15 @@ export function MobileBottomNav({
           const inner = (
             <div
               className={cn(
-                "relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 transition-colors",
-                it.active ? "bg-primary/10" : "text-muted-foreground",
+                "relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition-colors",
+                it.active ? "text-accent" : "text-muted-foreground",
               )}
             >
               <span
                 className={cn(
                   "grid h-6 w-9 place-items-center rounded-lg transition-colors",
-                  it.active
-                    ? "text-primary"
+                    it.active
+                     ? "text-accent"
                     : "text-muted-foreground",
                 )}
               >
@@ -72,12 +72,12 @@ export function MobileBottomNav({
               <span
                 className={cn(
                   "block w-full truncate whitespace-nowrap text-center text-[9px] leading-none",
-                  it.active ? "font-semibold text-primary" : "font-medium text-muted-foreground",
+                  it.active ? "font-semibold text-accent" : "font-medium text-muted-foreground",
                 )}
               >
                 {it.label}
               </span>
-              {it.active && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-primary" />}
+              {it.active && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-accent" />}
             </div>
           );
           const tapClass = "block h-full w-full select-none rounded-xl outline-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] focus-visible:ring-2 focus-visible:ring-ring active:opacity-80";
@@ -100,19 +100,19 @@ export function MobileBottomNav({
             aria-label="More"
             className="block h-full w-full select-none rounded-xl p-0 outline-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] focus-visible:ring-2 focus-visible:ring-ring active:opacity-80"
           >
-             <div className={cn("relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 transition-colors", moreActive ? "bg-primary/10" : "text-muted-foreground")}>
+             <div className={cn("relative mx-auto flex h-full min-w-0 max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 transition-colors", moreActive ? "text-accent" : "text-muted-foreground")}>
               <span
                 className={cn(
                   "grid h-6 w-9 place-items-center rounded-lg transition-colors",
-                  moreActive ? "text-primary" : "text-muted-foreground",
+                  moreActive ? "text-accent" : "text-muted-foreground",
                 )}
               >
                 <LayoutGrid className="h-[19px] w-[19px] shrink-0" strokeWidth={moreActive ? 2.5 : 2} />
               </span>
-               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9px] leading-none", moreActive ? "font-semibold text-primary" : "font-medium text-muted-foreground")}>
+               <span className={cn("block w-full truncate whitespace-nowrap text-center text-[9px] leading-none", moreActive ? "font-semibold text-accent" : "font-medium text-muted-foreground")}>
                 More
               </span>
-               {moreActive && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-primary" />}
+                {moreActive && <span aria-hidden className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-accent" />}
             </div>
           </Button>
         </li>

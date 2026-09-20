@@ -167,18 +167,18 @@ export function GuidedForm({
       </aside>
 
       <div className="flex h-full min-h-0 flex-1 flex-col bg-card">
-        <div className="border-b border-border/60 px-3 py-2.5 lg:hidden">
+        <div className="border-b border-border/60 bg-card/95 px-3 py-2 backdrop-blur-xl lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-accent">{stepIndex + 1} of {steps.length}</p>
+              <p className="text-[11px] font-medium text-accent">Step {stepIndex + 1} of {steps.length}</p>
               <p className="truncate text-base font-semibold">{currentStep?.label}</p>
             </div>
-            <span className="text-xs font-semibold tabular-nums">{completion}%</span>
+            <span className="rounded-full bg-secondary px-2 py-1 text-[11px] font-semibold tabular-nums">{completion}%</span>
           </div>
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
             <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${completion}%` }} />
           </div>
-          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {steps.map((step, index) => (
               <Button
                 key={step.key}
@@ -187,7 +187,7 @@ export function GuidedForm({
                 variant="outline"
                 onClick={() => onStepChange(step.key)}
                 className={cn(
-                   "h-8 shrink-0 rounded-lg px-2 text-[11px]",
+                   "h-8 shrink-0 rounded-full px-2.5 text-[11px]",
                   index === stepIndex && "border-accent bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground",
                   index !== stepIndex && isStepComplete(step.key) && "border-accent/30 bg-accent/10 text-accent",
                 )}
@@ -212,7 +212,7 @@ export function GuidedForm({
           </div>
         </div>
 
-        <div className="grid shrink-0 grid-cols-3 gap-1.5 border-t border-border/60 bg-card px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-6 sm:py-3">
+        <div className="grid shrink-0 grid-cols-3 gap-2 border-t border-border/60 bg-card/95 px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:flex sm:justify-end sm:px-6 sm:py-3">
           {stepIndex === 0 ? (
             <Button type="button" variant="outline" onClick={() => void requestCancel()}>Cancel</Button>
           ) : (
