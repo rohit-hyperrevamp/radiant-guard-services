@@ -721,7 +721,7 @@ function useContracts() {
       const beforeRes = await supabase
         .from("client_contracts" as never)
         .select(
-          "contract_code,prospect_code,unit_id,start_date,end_date,expiry_date,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,record_type,approval_status,prospect_stage,rejection_reason,promoted_at",
+          "contract_code,prospect_code,unit_id,start_date,end_date,expiry_date,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,record_type,approval_status,prospect_stage,rejection_reason,promoted_at,approved_by,approved_at",
         )
         .eq("id", id)
         .single();
