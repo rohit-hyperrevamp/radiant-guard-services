@@ -637,6 +637,7 @@ function useContracts() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: QK });
     qc.invalidateQueries({ queryKey: ["admin", "units"] });
+    qc.invalidateQueries({ queryKey: QK_CONTRACT_DIRECTORY });
   };
 
   const syncUnitDates = async (unitId: string, startDate: string, endDate: string) => {
@@ -779,7 +780,14 @@ function useContracts() {
           prospect_stage: "closed",
         });
       } else {
-        if (p.status === "active" && p.recordType === "client") {
+        const beforeUnitId = String(before?.unit_id ?? "");
+        const becameActiveClient =
+          p.status === "active" &&
+          p.recordType === "client" &&
+          (String(before?.status ?? "") !== "active" ||
+            String(before?.record_type ?? "") !== "client" ||
+            (p.unitId || beforeUnitId) !== beforeUnitId);
+        if (becameActiveClient) {
           await assertSingleActiveContract(p.unitId || String(before?.unit_id ?? ""), id);
         }
         Object.assign(after, {
@@ -805,11 +813,24 @@ function useContracts() {
         }
       }
 
-      const { error } = await supabase
+      const { data: savedRow, error } = await supabase
         .from("client_contracts" as never)
         .update(after as never)
-        .eq("id", id);
+        .eq("id", id)
+        .select("id,start_date,end_date,expiry_date")
+        .single();
       if (error) throw error;
+      const saved = savedRow as Record<string, unknown> | null;
+      const savedStartDate = String(saved?.start_date ?? "");
+      const savedEndDate = String(saved?.end_date ?? "");
+      const savedExpiryDate = String(saved?.expiry_date ?? "");
+      if (
+        savedStartDate !== p.startDate ||
+        savedEndDate !== p.endDate ||
+        savedExpiryDate !== p.expiryDate
+      ) {
+        throw new Error("The contract dates were not saved. Please try again.");
+      }
       await syncUnitDates(p.unitId || String(before?.unit_id ?? ""), p.startDate, p.endDate);
       void logActivity({
         module: "Client Contracts",
@@ -3414,6 +3435,9 @@ function ContractFormDialog({
   const [expiryDate, setExpiryDate] = useState("");
   const [originalStartDate, setOriginalStartDate] = useState("");
   const [renewalCount, setRenewalCount] = useState(0);
+  const startDateInputRef = useRef<HTMLInputElement | null>(null);
+  const endDateInputRef = useRef<HTMLInputElement | null>(null);
+  const expiryDateInputRef = useRef<HTMLInputElement | null>(null);
   const expiryManuallySetRef = useRef(false);
   // Dates the user has touched must never be overwritten by the unit auto-fill,
   // which can resolve after the dialog is already open and mid-edit.
@@ -3629,9 +3653,16 @@ function ContractFormDialog({
   const draft = useGuidedFormDraft({ open, storageKey: editing ? null : "rg-wizard-draft-contract", value: draftValue, onRestore: restoreDraft, isMeaningful: meaningfulDraft });
   const saveContract = async () => {
     if (!unitId) { toast.error("Select a client"); setStepKey("client"); return; }
+    // Read date controls directly at submit time as well as from React state.
+    // Native date pickers can retain a just-selected value until blur; relying
+    // only on the preceding change event can otherwise submit the old date.
+    const submittedStartDate = startDateInputRef.current?.value ?? startDate;
+    const submittedEndDate = endDateInputRef.current?.value ?? endDate;
+    const submittedExpiryDate = expiryDateInputRef.current?.value ?? expiryDate;
     const payload = applyApprovalPickerToPayload({
-      contractCode, prospectCode, recordType: editing?.recordType ?? "prospect", unitId, startDate, endDate,
-      expiryDate, originalStartDate: originalStartDate || startDate, renewalCount, description,
+      contractCode, prospectCode, recordType: editing?.recordType ?? "prospect", unitId,
+      startDate: submittedStartDate, endDate: submittedEndDate,
+      expiryDate: submittedExpiryDate, originalStartDate: originalStartDate || submittedStartDate, renewalCount, description,
       serviceTypeId: serviceTypeId || null, payrollWindowId: payrollWindowId || null,
       billingTypeId: billingTypeId || null, gstOption, status: editing?.status ?? "inactive",
       approvalStatus: editing?.approvalStatus ?? "pending", prospectStage: editing?.prospectStage ?? "new",
@@ -3870,8 +3901,13 @@ function ContractFormDialog({
               ) : null}
               <Field label="Contract start date">
                 <Input
+                  ref={startDateInputRef}
                   type="date"
                   value={startDate}
+                  onInput={(e) => {
+                    datesTouchedRef.current = true;
+                    setStartDate(e.currentTarget.value);
+                  }}
                   onChange={(e) => {
                     datesTouchedRef.current = true;
                     setStartDate(e.target.value);
@@ -3888,8 +3924,13 @@ function ContractFormDialog({
               </Field>
               <Field label="Contract end date">
                 <Input
+                  ref={endDateInputRef}
                   type="date"
                   value={endDate}
+                  onInput={(e) => {
+                    datesTouchedRef.current = true;
+                    setEndDate(e.currentTarget.value);
+                  }}
                   onChange={(e) => {
                     datesTouchedRef.current = true;
                     setEndDate(e.target.value);
@@ -3898,8 +3939,13 @@ function ContractFormDialog({
               </Field>
               <Field label="Next renewal / expiry date" className="sm:col-span-2">
                 <Input
+                  ref={expiryDateInputRef}
                   type="date"
                   value={expiryDate}
+                  onInput={(e) => {
+                    setExpiryDate(e.currentTarget.value);
+                    expiryManuallySetRef.current = true;
+                  }}
                   onChange={(e) => {
                     setExpiryDate(e.target.value);
                     expiryManuallySetRef.current = true;
