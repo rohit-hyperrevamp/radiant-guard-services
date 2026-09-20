@@ -37,6 +37,7 @@ type TemplateRow = {
   customer_id: string;
   name: string;
   enabled: boolean;
+  row_grain: string | null;
   columns: ColumnRow[];
 };
 type ColumnRow = {
@@ -77,7 +78,7 @@ function useTemplates() {
     queryFn: async (): Promise<TemplateRow[]> => {
       const { data, error } = await supabase
         .from("mis_templates" as never)
-        .select("id, customer_id, name, enabled")
+        .select("id, customer_id, name, enabled, row_grain")
         .order("created_at");
       if (error) throw error;
       const templates = (data ?? []) as Array<Omit<TemplateRow, "columns">>;
@@ -139,6 +140,7 @@ function MisManagerPage() {
   const [editing, setEditing] = useState<TemplateRow | null>(null);
   const [customerId, setCustomerId] = useState("");
   const [name, setName] = useState("");
+  const [rowGrain, setRowGrain] = useState<"employee" | "site">("employee");
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [valuesFor, setValuesFor] = useState<TemplateRow | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -164,6 +166,7 @@ function MisManagerPage() {
     setEditing(null);
     setCustomerId("");
     setName("");
+    setRowGrain("employee");
     setDrafts(MIS_SYSTEM_FIELDS.map<Draft>((f) => ({
       header: f.label, source: "system", system_key: f.key,
       enabled: MIS_STANDARD_FIELD_KEYS.includes(f.key), client_attribute: false,
@@ -179,6 +182,7 @@ function MisManagerPage() {
     setEditing(t);
     setCustomerId(t.customer_id);
     setName(t.name);
+    setRowGrain(t.row_grain === "site" ? "site" : "employee");
     setDrafts(t.columns.map<Draft>((c) => ({
       id: c.id, header: c.header, source: c.source, system_key: c.system_key,
       enabled: c.enabled, client_attribute: c.client_attribute === true,
@@ -221,7 +225,7 @@ function MisManagerPage() {
       if (editing) {
         const { error } = await supabase
           .from("mis_templates" as never)
-          .update({ name: name.trim(), customer_id: customerId } as never)
+          .update({ name: name.trim(), customer_id: customerId, row_grain: rowGrain } as never)
           .eq("id", editing.id);
         if (error) throw error;
         // Columns that are no longer part of the format go away with their values.
@@ -250,7 +254,7 @@ function MisManagerPage() {
       } else {
         const { data, error } = await supabase
           .from("mis_templates" as never)
-          .insert({ customer_id: customerId, name: name.trim(), enabled: true } as never)
+          .insert({ customer_id: customerId, name: name.trim(), enabled: true, row_grain: rowGrain } as never)
           .select("id")
           .single();
         if (error) throw error;
@@ -491,6 +495,20 @@ function MisManagerPage() {
             <div className="space-y-2">
               <Label>Format name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} disabled={readOnly} placeholder="e.g. Manpower-wise MIS" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>One row per</Label>
+              <Select
+                value={rowGrain}
+                onValueChange={(v) => setRowGrain(v === "site" ? "site" : "employee")}
+                disabled={readOnly}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee (manpower-wise)</SelectItem>
+                  <SelectItem value="site">Client site (billing annexure)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
