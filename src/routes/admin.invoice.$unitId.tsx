@@ -1110,37 +1110,6 @@ function PayrollUnitPage() {
   }, [rows, orgSettings, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, roundingOff, roundedGrandTotal, start, end]);
 
 
-  const exportCsv = () => {
-    const headers = [
-      "Emp ID", "Name", "Designation", "P Days", "PH Days", "ED Hrs", "ED Days", "Billed Days",
-      "Payroll Days", "Shift Hrs", "Billed Hrs", "Per Hour Rate", "Contracted Invoice", "Actual Invoice", "Variance",
-    ];
-    const columns = headers.map((h) => ({ key: h, header: h }));
-    const dataRows = rows.map((r) => {
-      const m = invoiceMathFor(r);
-      const cells: Record<string, unknown> = {
-        "Emp ID": r.employeeCode,
-        "Name": r.name,
-        "Designation": r.designation,
-        "P Days": r.totals.pDays,
-        "PH Days": r.totals.phDays,
-        "ED Hrs": r.totals.otHours,
-        "ED Days": r.totals.otDays,
-        "Billed Days": m.billedDays,
-        "Payroll Days": m.payrollDays,
-        "Shift Hrs": m.shiftHours,
-        "Billed Hrs": m.billedHours,
-        "Per Hour Rate": m.perHour,
-        "Contracted Invoice": m.contracted,
-
-        "Actual Invoice": r.wages ? m.actual : "",
-        "Variance": r.wages ? m.variance : "",
-      };
-      return cells;
-    });
-    downloadCsv(`invoice-${unit?.code ?? unitId}-${start}-${end}`, dataRows, columns);
-  };
-
   /**
    * Manpower-wise MIS export — exactly the client MIS workbook layout
    * (Sr. No … Grand Total). Every value is pulled from the open client's own
