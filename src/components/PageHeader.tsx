@@ -1,4 +1,20 @@
-import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Archive,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Layers3,
+  MapPin,
+  Package,
+  ReceiptText,
+  ShieldCheck,
+  Users,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   ACCENT_CHIP,
@@ -100,6 +116,7 @@ export function PageStat({
   accent?: Accent;
 }) {
   const resolvedAccent: Accent = accent ?? accentFromTone(tone) ?? accentFromKey(label);
+  const ResolvedIcon = Icon ?? iconForStatLabel(label);
   const trendCls =
     trend?.direction === "down"
       ? "text-rose-700 bg-rose-500/15 ring-rose-500/25"
@@ -119,7 +136,7 @@ export function PageStat({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="line-clamp-2 font-display text-[12px] font-semibold leading-tight text-foreground sm:text-[15px]">
+          <div className="line-clamp-2 font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
           {sub && <div className="mt-0.5 hidden truncate text-[11.5px] text-muted-foreground sm:block">{sub}</div>}
@@ -136,22 +153,39 @@ export function PageStat({
         )}
       </div>
       <div className="relative mt-2.5 flex items-end justify-between gap-2 sm:mt-5">
-        <div className="min-w-0 whitespace-nowrap font-display text-[22px] font-bold leading-none tabular-nums text-foreground sm:text-[34px]">
+        <div className="min-w-0 whitespace-nowrap font-display text-[22px] font-medium leading-none tabular-nums text-foreground sm:text-[34px]">
           {value}
         </div>
-        {Icon && (
-          <span
-            className={cn(
-              "grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card/80 ring-1 ring-inset sm:h-10 sm:w-10 sm:rounded-full",
-              ACCENT_CHIP[resolvedAccent],
-            )}
-          >
-            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-          </span>
-        )}
+        <span
+          className={cn(
+            "grid h-7 w-7 shrink-0 place-items-center rounded-lg ring-1 ring-inset sm:h-10 sm:w-10 sm:rounded-full",
+            ACCENT_CHIP[resolvedAccent],
+          )}
+        >
+          <ResolvedIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+        </span>
       </div>
     </Wrapper>
   );
+}
+
+function iconForStatLabel(label: string): LucideIcon {
+  const value = label.toLowerCase();
+  if (value.includes("organization") || value.includes("branch")) return Building2;
+  if (value.includes("client") || value.includes("unit") || value.includes("site")) return MapPin;
+  if (value.includes("employee") || value.includes("candidate") || value.includes("people")) return Users;
+  if (value.includes("active") || value.includes("approved") || value.includes("complete")) return CheckCircle2;
+  if (value.includes("inactive") || value.includes("expired") || value.includes("lost") || value.includes("reject")) return XCircle;
+  if (value.includes("pending") || value.includes("renewal") || value.includes("open")) return Clock3;
+  if (value.includes("invoice") || value.includes("tax") || value.includes("billing")) return ReceiptText;
+  if (value.includes("stock") || value.includes("item") || value.includes("asset")) return Package;
+  if (value.includes("state") || value.includes("region") || value.includes("location")) return MapPin;
+  if (value.includes("security") || value.includes("guard")) return ShieldCheck;
+  if (value.includes("document") || value.includes("contract")) return FileText;
+  if (value.includes("alert") || value.includes("due")) return AlertTriangle;
+  if (value.includes("archive")) return Archive;
+  if (value.includes("layer") || value.includes("category")) return Layers3;
+  return Activity;
 }
 
 export function ComingSoonCard({

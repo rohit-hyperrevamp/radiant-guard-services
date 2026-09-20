@@ -503,9 +503,8 @@
       top: 0 !important;
       transform: none !important;
       transform-origin: center center;
-      /* Leave the bottom nav (62px + safe area) visible below the sheet */
-      height: calc(100dvh - 62px - env(safe-area-inset-bottom, 0px)) !important;
-      max-height: calc(100dvh - 62px - env(safe-area-inset-bottom, 0px)) !important;
+      height: 100dvh !important;
+      max-height: 100dvh !important;
     }
 
     .candidate-wizard-page.animate-dialog-in,
@@ -542,9 +541,10 @@
     .candidate-wizard-page [data-slot="select-item"] { font-size: 15px !important; }
 
     .candidate-wizard-page section {
-      margin-inline: -0.75rem;
-      border-left: 0;
-      border-right: 0;
+      margin-inline: 0;
+      border-color: color-mix(in oklab, var(--border) 62%, transparent);
+      border-radius: 0.875rem;
+      padding: 0.875rem;
     }
   }
 
@@ -804,11 +804,20 @@
       border-radius: 0;
     }
     .modern-form-section {
-      margin-inline: -1rem;
-      border-left: 0;
-      border-right: 0;
-      border-radius: 0;
+      margin-inline: 0;
+      border-color: color-mix(in oklab, var(--border) 62%, transparent);
+      border-radius: 0.875rem;
+      padding: 0.875rem;
       box-shadow: none;
+    }
+    .guided-form .modern-business-form { gap: 0.75rem; }
+    .guided-form .modern-form-field { gap: 0.3rem; }
+    .guided-form input:not([type="checkbox"]):not([type="radio"]),
+    .guided-form textarea,
+    .guided-form [role="combobox"] {
+      width: 100%;
+      min-width: 0;
+      font-size: 16px;
     }
   }
 
