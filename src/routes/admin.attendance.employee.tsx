@@ -18,6 +18,16 @@ import { ListSkeleton } from "@/components/Skeletons";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
 export const Route = createFileRoute("/admin/attendance/employee")({
+  head: () => ({
+    meta: [
+      { title: "Employee Attendance | Radiant Guard Services" },
+      { name: "description", content: "Search employees and review attendance across assigned clients." },
+      { property: "og:title", content: "Employee Attendance | Radiant Guard Services" },
+      { property: "og:description", content: "Search employees and review attendance across assigned clients." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: EmployeeAttendanceLookupPage,
 });
 
@@ -267,7 +277,7 @@ function EmployeeAttendanceLookupPage() {
         }
       />
 
-      <div className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm sm:p-5">
+      <div className="rounded-xl border border-border/70 bg-card p-2.5 shadow-sm sm:rounded-3xl sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -275,7 +285,7 @@ function EmployeeAttendanceLookupPage() {
               value={term}
               onChange={(e) => setTerm(e.target.value)}
               placeholder="Search employees…"
-              className="h-12 pl-10 pr-12"
+              className="h-10 rounded-xl pl-10 pr-11 sm:h-12"
             />
             {term && (
               <Button
@@ -290,7 +300,7 @@ function EmployeeAttendanceLookupPage() {
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,0.7fr)] items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 sm:flex">
+          <div className="grid grid-cols-[minmax(0,1.45fr)_1px_minmax(0,1fr)] items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 sm:flex sm:rounded-2xl sm:p-1.5">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
               <SelectTrigger className="h-10 w-full rounded-xl border-0 bg-transparent shadow-none focus:ring-0 sm:w-[128px]">
                 <SelectValue />
@@ -358,7 +368,7 @@ function EmployeeAttendanceLookupPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:px-5">
+        <div className="grid grid-cols-1 gap-2 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-sm sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:rounded-3xl sm:px-5 sm:py-3">
             <div className="min-w-0">
               <p className="truncate font-display text-base font-bold tracking-tight text-foreground">
                 {selected.full_name}
@@ -368,7 +378,7 @@ function EmployeeAttendanceLookupPage() {
                 {MONTH_NAMES[monthIdx]} {year}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="scrollbar-hide flex max-w-full items-center gap-1.5 overflow-x-auto pb-0.5">
               <Stat label="Present days" value={totals.present.toFixed(2).replace(/\.00$/, "")} />
               <Stat label="Extra duty hrs" value={totals.ed.toFixed(2).replace(/\.00$/, "")} />
               <Stat label="Clients" value={String(unitBlocks.length)} />
@@ -387,8 +397,8 @@ function EmployeeAttendanceLookupPage() {
             </p>
           ) : (
             unitBlocks.map((block) => (
-              <div key={block.id} className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3 sm:px-5">
+              <div key={block.id} className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm sm:rounded-3xl">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/60 px-3 py-2.5 sm:px-5 sm:py-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-semibold text-foreground">{block.name}</span>
@@ -414,9 +424,9 @@ function EmployeeAttendanceLookupPage() {
                     </p>
 
                   </div>
-                  <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+                  <Button asChild size="icon" variant="outline" className="h-9 w-9 shrink-0 rounded-lg sm:w-auto sm:gap-1.5 sm:px-3 sm:text-xs">
                     <Link to="/admin/attendance/$unitId" params={{ unitId: block.id }}>
-                      <CalendarDays className="h-3.5 w-3.5" /> Open muster roll
+                      <CalendarDays className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Open muster roll</span>
                     </Link>
                   </Button>
                 </div>

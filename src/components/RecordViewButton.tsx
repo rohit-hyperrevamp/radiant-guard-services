@@ -119,7 +119,7 @@ export function RecordViewDialog({
             {rows.map(([label, value]) => (
               <div
                 key={label}
-                className="grid grid-cols-[minmax(6rem,36%)_minmax(0,1fr)] items-start gap-2 border-b border-border/60 px-1 py-2 last:border-0 sm:block sm:rounded-xl sm:border sm:bg-card sm:px-3"
+                className="grid grid-cols-1 items-start gap-0.5 border-b border-border/60 px-1 py-2 last:border-0 min-[380px]:grid-cols-[minmax(6rem,36%)_minmax(0,1fr)] min-[380px]:gap-2 sm:block sm:rounded-xl sm:border sm:bg-card sm:px-3"
               >
                 <dt className="text-[11px] font-semibold text-muted-foreground sm:uppercase">
                   {label}
