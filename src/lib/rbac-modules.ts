@@ -17,6 +17,7 @@ import {
   Coins,
   CreditCard,
   FileSignature,
+  FileSpreadsheet,
   FileText,
   Files,
   Fuel,
