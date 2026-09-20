@@ -37,6 +37,7 @@ import { Route as AdminNotificationsRouteImport } from './routes/admin.notificat
 import { Route as AdminMyReporteesRouteImport } from './routes/admin.my-reportees'
 import { Route as AdminMyInventoryRouteImport } from './routes/admin.my-inventory'
 import { Route as AdminMyAttendanceRouteImport } from './routes/admin.my-attendance'
+import { Route as AdminMisManagerRouteImport } from './routes/admin.mis-manager'
 import { Route as AdminMigrationUtilityRouteImport } from './routes/admin.migration-utility'
 import { Route as AdminLwfManagerRouteImport } from './routes/admin.lwf-manager'
 import { Route as AdminLanguageManagerRouteImport } from './routes/admin.language-manager'
@@ -263,6 +264,11 @@ const AdminMyInventoryRoute = AdminMyInventoryRouteImport.update({
 const AdminMyAttendanceRoute = AdminMyAttendanceRouteImport.update({
   id: '/my-attendance',
   path: '/my-attendance',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMisManagerRoute = AdminMisManagerRouteImport.update({
+  id: '/mis-manager',
+  path: '/mis-manager',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMigrationUtilityRoute = AdminMigrationUtilityRouteImport.update({
@@ -752,6 +758,7 @@ export interface FileRoutesByFullPath {
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/migration-utility': typeof AdminMigrationUtilityRoute
+  '/admin/mis-manager': typeof AdminMisManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/my-reportees': typeof AdminMyReporteesRoute
@@ -863,6 +870,7 @@ export interface FileRoutesByTo {
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/migration-utility': typeof AdminMigrationUtilityRoute
+  '/admin/mis-manager': typeof AdminMisManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/my-reportees': typeof AdminMyReporteesRoute
@@ -977,6 +985,7 @@ export interface FileRoutesById {
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/migration-utility': typeof AdminMigrationUtilityRoute
+  '/admin/mis-manager': typeof AdminMisManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/my-reportees': typeof AdminMyReporteesRoute
@@ -1093,6 +1102,7 @@ export interface FileRouteTypes {
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/migration-utility'
+    | '/admin/mis-manager'
     | '/admin/my-attendance'
     | '/admin/my-inventory'
     | '/admin/my-reportees'
@@ -1204,6 +1214,7 @@ export interface FileRouteTypes {
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/migration-utility'
+    | '/admin/mis-manager'
     | '/admin/my-attendance'
     | '/admin/my-inventory'
     | '/admin/my-reportees'
@@ -1317,6 +1328,7 @@ export interface FileRouteTypes {
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/migration-utility'
+    | '/admin/mis-manager'
     | '/admin/my-attendance'
     | '/admin/my-inventory'
     | '/admin/my-reportees'
@@ -1602,6 +1614,13 @@ declare module '@tanstack/react-router' {
       path: '/my-attendance'
       fullPath: '/admin/my-attendance'
       preLoaderRoute: typeof AdminMyAttendanceRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/mis-manager': {
+      id: '/admin/mis-manager'
+      path: '/mis-manager'
+      fullPath: '/admin/mis-manager'
+      preLoaderRoute: typeof AdminMisManagerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/migration-utility': {
@@ -2374,6 +2393,7 @@ interface AdminRouteChildren {
   AdminLanguageManagerRoute: typeof AdminLanguageManagerRoute
   AdminLwfManagerRoute: typeof AdminLwfManagerRoute
   AdminMigrationUtilityRoute: typeof AdminMigrationUtilityRoute
+  AdminMisManagerRoute: typeof AdminMisManagerRoute
   AdminMyAttendanceRoute: typeof AdminMyAttendanceRoute
   AdminMyInventoryRoute: typeof AdminMyInventoryRoute
   AdminMyReporteesRoute: typeof AdminMyReporteesRoute
@@ -2439,6 +2459,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLanguageManagerRoute: AdminLanguageManagerRoute,
   AdminLwfManagerRoute: AdminLwfManagerRoute,
   AdminMigrationUtilityRoute: AdminMigrationUtilityRoute,
+  AdminMisManagerRoute: AdminMisManagerRoute,
   AdminMyAttendanceRoute: AdminMyAttendanceRoute,
   AdminMyInventoryRoute: AdminMyInventoryRoute,
   AdminMyReporteesRoute: AdminMyReporteesRoute,
