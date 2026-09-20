@@ -26,7 +26,7 @@ import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStat
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
-import { buildMisSheet, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
+import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
 
 
 // ---------------------------------------------------------------------------
@@ -464,6 +464,19 @@ export function FinanceCharter({
   // Combined manpower MIS: one workbook for every filtered invoice, using the
   // same columns and attendance/rate-card maths as the per-invoice MIS export.
   const [misBusy, setMisBusy] = useState(false);
+  // Hidden when every organization in view is marked "MIS not applicable".
+  const { data: misDisabledCustomers } = useQuery({
+    queryKey: ["admin", "mis-disabled-customers"],
+    queryFn: loadMisDisabledCustomerIds,
+    staleTime: 5 * 60 * 1000,
+  });
+  const misApplicable = useMemo(() => {
+    const disabled = misDisabledCustomers;
+    if (!disabled || disabled.size === 0) return true;
+    const rows = matchedUnits.length > 0 ? matchedUnits : units;
+    if (rows.length === 0) return true;
+    return rows.some((u) => !disabled.has(String(u.customer_id ?? "")));
+  }, [misDisabledCustomers, matchedUnits, units]);
   const exportMisCombined = async () => {
     const targets = matchedUnits;
     if (targets.length === 0) {
@@ -798,7 +811,7 @@ export function FinanceCharter({
           </Select>
         )}
         <div className="hidden flex-1 sm:block" />
-        {mode === "invoice" && (
+        {mode === "invoice" && misApplicable && (
           <Button
             variant="outline"
             className="h-9 rounded-xl"
