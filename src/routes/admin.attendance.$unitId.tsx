@@ -2386,15 +2386,22 @@ function MusterRollPage() {
 
   const processUpload = () => {
     if (uploadReadyToContinue) {
-      /* falls through below */
-    }
-    if (uploadReadyToContinue) {
       setUploadOpen(false);
       return;
     }
     if (uploadKind === "excel") return processAttendanceExcel();
     return processAttendanceImages();
   };
+
+  // Photos captured with the camera scanner start reading on their own, so the
+  // progress bar appears immediately after "Use this scan".
+  useEffect(() => {
+    if (!autoReadRef.current) return;
+    if (!uploadOpen || processingOcr || preparingScan || !uploadImages.length) return;
+    autoReadRef.current = false;
+    void processAttendanceImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadOpen, uploadImages, processingOcr, preparingScan]);
 
 
 
