@@ -274,3 +274,5 @@
 - [ ] Standardize mobile typography, controls, cards, toolbars, dialogs, tables, and motion.
 - [ ] Refine people, client, contract, attendance, payroll, invoice, inventory, and control-center screens.
 - [ ] Verify phone rendering, TypeScript, and formatting without changing business workflows.
+
+- [ ] Prevent every mobile form, modal, sticky action bar, and content panel from overlapping the bottom dock.
