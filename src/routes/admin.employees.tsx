@@ -4282,7 +4282,7 @@ function EmployeesPage() {
         }}
       />
 
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
+      <div className="scrollbar-hide -mx-2 flex snap-x gap-2 overflow-x-auto px-2 pb-1 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
           ? [
               { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
@@ -4305,7 +4305,7 @@ function EmployeesPage() {
           <div
             key={s.label}
             className={cn(
-              "group relative overflow-hidden rounded-2xl border p-3 shadow-sm transition-all hover:shadow-md sm:p-4",
+              "group relative w-[38vw] min-w-[132px] max-w-[160px] shrink-0 snap-start overflow-hidden rounded-xl border p-3 shadow-sm transition-all hover:shadow-md sm:p-4 md:w-auto md:min-w-0 md:max-w-none",
               isAlert
                 ? "border-rose-300/70 bg-rose-50/70 backdrop-blur-md"
                 : s.accent

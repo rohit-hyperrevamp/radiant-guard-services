@@ -1636,6 +1636,12 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
     padding-inline: 0.625rem !important;
   }
 
+  [data-admin-scroll] > div,
+  [data-admin-scroll] > div > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   [data-admin-scroll] :where(.text-xs, [class*="text-[10px]"], [class*="text-[11px]"]) {
     line-height: 1.3;
   }
