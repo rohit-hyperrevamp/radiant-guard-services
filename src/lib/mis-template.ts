@@ -174,6 +174,75 @@ export async function loadMisUnitValues(templateId: string, unitIds: string[]): 
   return map;
 }
 
+export type ClientAttribute = { columnId: string; templateId: string; header: string };
+
+/**
+ * Optional attributes that the organization's MIS format contributes to every
+ * one of its clients. Empty when the organization has no MIS format or no
+ * column marked as a client attribute.
+ */
+export async function loadClientAttributesForCustomer(
+  customerId: string | null | undefined,
+): Promise<ClientAttribute[]> {
+  if (!customerId) return [];
+  const { data: templates, error } = await supabase
+    .from("mis_templates" as never)
+    .select("id")
+    .eq("customer_id", customerId)
+    .eq("enabled", true)
+    .limit(1);
+  if (error) throw error;
+  const t = (templates ?? [])[0] as { id: string } | undefined;
+  if (!t) return [];
+  const { data, error: colErr } = await supabase
+    .from("mis_template_columns" as never)
+    .select("id,header,sort_order,enabled,client_attribute")
+    .eq("template_id", t.id)
+    .eq("client_attribute", true)
+    .eq("enabled", true)
+    .order("sort_order");
+  if (colErr) throw colErr;
+  return ((data ?? []) as Array<{ id: string; header: string }>).map((c) => ({
+    columnId: c.id,
+    templateId: t.id,
+    header: c.header,
+  }));
+}
+
+/** Attribute values held against one client: key is the column id. */
+export async function loadClientAttributeValues(unitId: string): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  if (!unitId) return out;
+  const { data, error } = await supabase
+    .from("mis_unit_values" as never)
+    .select("column_id,value")
+    .eq("unit_id", unitId);
+  if (error) throw error;
+  for (const r of (data ?? []) as Array<{ column_id: string; value: string | null }>) {
+    out[r.column_id] = r.value ?? "";
+  }
+  return out;
+}
+
+/** Save the attribute values entered on a client record. */
+export async function saveClientAttributeValues(
+  attributes: ClientAttribute[],
+  unitId: string,
+  values: Record<string, string>,
+): Promise<void> {
+  if (!unitId || attributes.length === 0) return;
+  const rows = attributes.map((a) => ({
+    template_id: a.templateId,
+    column_id: a.columnId,
+    unit_id: unitId,
+    value: (values[a.columnId] ?? "").trim(),
+  }));
+  const { error } = await supabase
+    .from("mis_unit_values" as never)
+    .upsert(rows as never, { onConflict: "column_id,unit_id" });
+  if (error) throw error;
+}
+
 /** One exported employee line: system values by key, for one client site. */
 export type MisSourceRow = {
   unitId: string;
