@@ -99,6 +99,12 @@ export const MIS_SYSTEM_FIELDS: MisSystemField[] = [
   { key: "total_duties", label: "Total Duties", numeric: true },
   { key: "total_ot_hours", label: "Total OT HRS", aliases: ["total ot hours"], numeric: true },
   { key: "remarks", label: "Remarks" },
+  // Pan-India annexure sheets that bill a single guard rate per branch
+  { key: "sg_rate", label: "SG Rate", numeric: true },
+  { key: "worked_days", label: "Worked Days", aliases: ["worked day"], numeric: true },
+  { key: "service_start_date", label: "Service Start Date" },
+  { key: "service_end_date", label: "Service End Date" },
+  { key: "basic_billing_claimed", label: "Basic Billing Claimed", numeric: true },
 ];
 
 /** The original manpower-wise layout, used when an organization has no format. */
@@ -316,6 +322,7 @@ const MIS_NON_ADDITIVE_KEYS = new Set([
   "ot_rate",
   "regular_rate",
   "increment_rate",
+  "sg_rate",
 ]);
 
 /** Collapse the employee lines of each site into a single annexure row. */

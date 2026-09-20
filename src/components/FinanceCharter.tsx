@@ -644,6 +644,11 @@ export function FinanceCharter({
               total_duties: round(line.workingDays + line.otDays),
               total_ot_hours: round(line.otHours),
               remarks: "",
+              sg_rate: rate.billRate,
+              worked_days: round(line.workingDays + line.otDays),
+              service_start_date: `${String(period.start).slice(8, 10)}-${String(period.start).slice(5, 7)}-${String(period.start).slice(0, 4)}`,
+              service_end_date: `${String(period.end).slice(8, 10)}-${String(period.end).slice(5, 7)}-${String(period.end).slice(0, 4)}`,
+              basic_billing_claimed: round(totalBilling),
             },
           });
         }
