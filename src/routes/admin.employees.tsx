@@ -8277,7 +8277,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading}
-              className={cn("h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4", stepIndex === 0 && "sm:col-span-1")}
+              className={cn("h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft

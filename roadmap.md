@@ -279,6 +279,11 @@
 - [x] Prevent every mobile form, modal, sticky action bar, and content panel from overlapping the bottom dock.
 
 ## Mobile employee and contract forms
-- [ ] Optimize employee onboarding and editing for focused, one-handed mobile use.
-- [ ] Optimize contract creation and editing with compact steps, fields, and dock-safe actions.
-- [ ] Verify phone layouts and run TypeScript and formatting checks.
+- [x] Optimize employee onboarding and editing for focused, one-handed mobile use.
+- [x] Optimize contract creation and editing with compact steps, fields, and dock-safe actions.
+- [x] Verify phone layouts and run TypeScript and formatting checks.
+
+## Consistent operational summary tiles
+- [x] Standardize Attendance, Invoice, Payroll, Employees, Contracts, and manager summaries with colorful icon-led tiles.
+- [x] Give every shared page statistic a meaningful icon and stable accent color.
+- [x] Keep mobile summary rows compact, swipeable, and aligned to the app content width.
