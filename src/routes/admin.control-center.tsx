@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, MapPin, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, FileSpreadsheet, HandCoins, Languages, LogOut, MapPin, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -196,6 +196,12 @@ const tiles: Tile[] = [
     label: "Company Settings",
     description: "Company, tax and bank details.",
     icon: Building2,
+  },
+  {
+    to: "/admin/mis-manager",
+    label: "MIS Sheets",
+    description: "Client-wise MIS formats.",
+    icon: FileSpreadsheet,
   },
 
 
