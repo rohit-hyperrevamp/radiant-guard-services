@@ -862,6 +862,26 @@ function UnitFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id, existingAssignQuery.data]);
 
+  // Optional attributes this organization's MIS format contributes to its clients.
+  const clientAttrsQuery = useQuery({
+    queryKey: ["unit-form", "client-attributes", form.customerId ?? ""],
+    enabled: open && !!form.customerId,
+    queryFn: () => loadClientAttributesForCustomer(form.customerId),
+  });
+  const clientAttributes = clientAttrsQuery.data ?? [];
+
+  const clientAttrValuesQuery = useQuery({
+    queryKey: ["unit-form", "client-attribute-values", editing?.id ?? "new"],
+    enabled: open && !!editing?.id,
+    queryFn: () => loadClientAttributeValues(editing!.id),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    setClientAttrValues(editing?.id ? (clientAttrValuesQuery.data ?? {}) : {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing?.id, clientAttrValuesQuery.data]);
+
   const toggleFo = (id: string) =>
     setAssignedFoIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -965,6 +985,15 @@ function UnitFormDialog({
         setError(result.error);
         toast.error(result.error);
         return;
+      }
+      if (result.id && clientAttributes.length > 0) {
+        try {
+          await saveClientAttributeValues(clientAttributes, result.id, clientAttrValues);
+        } catch (cause) {
+          toast.error(
+            `Client saved, but the extra attributes could not be stored: ${cause instanceof Error ? cause.message : "unknown error"}`,
+          );
+        }
       }
       onOpenChange(false);
       if (result.id) {
