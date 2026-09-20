@@ -1649,6 +1649,9 @@ function MusterRollPage() {
   // before it is read, and the person is told when a photo is too poor to use.
   const [preparingScan, setPreparingScan] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  // The camera opens as its own dialog, so the upload dialog is hidden while it
+  // is on screen. Without this flag the hide would wipe the pages just captured.
+  const skipUploadResetRef = useRef(false);
   const [useCleaned, setUseCleaned] = useState(true);
 
   // ---- Reading progress (keeps running after the dialog is closed) ----
