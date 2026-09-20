@@ -3477,6 +3477,7 @@ function ContractFormDialog({
   // Reset when opened
   useEffect(() => {
     if (!open) return;
+    datesTouchedRef.current = false;
     if (editing) {
       setContractCode(editing.contractCode);
       setProspectCode(editing.prospectCode);
