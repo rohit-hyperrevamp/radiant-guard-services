@@ -54,6 +54,11 @@ import {
   type ReportingOfficer,
   type Unit,
 } from "@/lib/admin-data";
+import {
+  loadClientAttributeValues,
+  loadClientAttributesForCustomer,
+  saveClientAttributeValues,
+} from "@/lib/mis-template";
 import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
@@ -691,6 +696,7 @@ function UnitFormDialog({
   const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(units)));
   const [error, setError] = useState<string | null>(null);
   const [assignedFoIds, setAssignedFoIds] = useState<string[]>([]);
+  const [clientAttrValues, setClientAttrValues] = useState<Record<string, string>>({});
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
   const [, setFoSyncing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
