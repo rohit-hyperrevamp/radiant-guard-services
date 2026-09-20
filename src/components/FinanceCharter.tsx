@@ -9,6 +9,7 @@ import { CharterPagination } from "@/components/CharterPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
@@ -18,6 +19,7 @@ import {
   PERIOD_STATUS_QK,
   setMoneyStatus,
   useAttendanceMoneyRealtime,
+  type MoneyStatus,
   type PeriodStatus,
 } from "@/lib/period-status";
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
@@ -129,6 +131,8 @@ export function FinanceCharter({
   activeEmployees,
   filters,
   windowsByUnit,
+  statusFilter = "all",
+  onStatusFilterChange,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -140,6 +144,8 @@ export function FinanceCharter({
   activeEmployees?: number;
   filters?: ReactNode;
   windowsByUnit: Map<string, PayrollWindow>;
+  statusFilter?: "all" | MoneyStatus;
+  onStatusFilterChange?: (value: "all" | MoneyStatus) => void;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -147,7 +153,7 @@ export function FinanceCharter({
   // Search, then paginate, then load money for the visible page only. Contract
   // rates, attendance entries and period statuses are all fetched for these 25
   // units — never for the whole charter.
-  const matchedUnits = useMemo(() => {
+  const searchedUnits = useMemo(() => {
     const term = query.trim().toLowerCase();
     const list = term
       ? units.filter((u) =>
@@ -160,18 +166,10 @@ export function FinanceCharter({
   }, [units, query]);
 
   const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
-  const safePage = Math.min(page, pageCount - 1);
-  useEffect(() => setPage(0), [query, units.length, monthIdx, year]);
-  const pageUnits = useMemo(
-    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
-    [matchedUnits, safePage],
-  );
-  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
   // The stage tile reflects the whole charter, not just the visible page, so
   // windows and period statuses are also fetched (ids + status only — cheap)
-  // for every matched unit.
-  const allUnitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
+  // for every searched unit. This also lets status filtering happen before pagination.
+  const allUnitIds = useMemo(() => searchedUnits.map((u) => u.id), [searchedUnits]);
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
   const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
@@ -249,6 +247,32 @@ export function FinanceCharter({
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
   });
+
+  const matchedUnits = useMemo(() => {
+    if (mode !== "invoice" || statusFilter === "all") return searchedUnits;
+    return searchedUnits.filter((unit) => {
+      const status = allStatusQ.data?.get(unit.id)?.invoice ?? "open";
+      return status === statusFilter;
+    });
+  }, [allStatusQ.data, mode, searchedUnits, statusFilter]);
+  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  useEffect(() => setPage(0), [query, statusFilter, units.length, monthIdx, year]);
+  const pageUnits = useMemo(
+    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [matchedUnits, safePage],
+  );
+  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
+
+  const periodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    return out;
+  }, [unitIds, year, monthIdx, windowsByUnit]);
+  const periodKey = useMemo(
+    () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [periodsByUnit],
+  );
 
   const processMutation = useMutation({
     mutationFn: (vars: { unitId: string; next: "processed" | "open" }) =>
