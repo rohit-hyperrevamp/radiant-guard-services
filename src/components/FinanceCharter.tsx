@@ -562,16 +562,14 @@ export function FinanceCharter({
       }
 
       const unitById = new Map(unitRows.map((u) => [u.id, u]));
-      const headers = [
-        "Sr. No", "Invoice No", "Invoice Date", "Emp Code", "Employee Name",
-        "Regular/ Reliever Guard", "DOJ", "Entity", "Designation", "Location/Branch Name",
-        "State", "Branch SAP Code", "Zone", "Month Days", "Month Rate",
-        "Billing Rate", "Billing Rate (Per Day)", "OT Rate", "Working days",
-        "OT and Night duties", "OT Amount", "Working days Billing with OT",
-        "Total Regular Billing Amt", "OT & Night Duty Billing Amt", "Total Billing Amt",
-        "CGST @9%", "SGST @9%", "IGST @18%", "Grand Total",
-      ];
-      const allRows: Record<string, unknown>[] = [];
+      // One combined workbook uses the MIS format of the organization being
+      // exported; a mixed selection falls back to the standard layout.
+      const customerIds = Array.from(
+        new Set(unitRows.map((u) => String(u.customer_id ?? "")).filter(Boolean)),
+      );
+      const template = customerIds.length === 1 ? await loadMisTemplateForCustomer(customerIds[0]) : null;
+      const unitValues = template ? await loadMisUnitValues(template.id, ids) : undefined;
+      const sourceRows: MisSourceRow[] = [];
       let serial = 1;
       for (const u of targets) {
         const lines = linesByUnit.get(u.id);
