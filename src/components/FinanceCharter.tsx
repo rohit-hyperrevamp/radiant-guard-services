@@ -513,10 +513,11 @@ export function FinanceCharter({
       // Billing address / GST fields for the vouchers.
       const unitRows: any[] = [];
       for (const chunkIds of chunkOf(ids, 100)) {
-        const { data } = await supabase
+        const { data, error: unitsErr } = await supabase
           .from("units")
-          .select("id, code, name, customer_name, customer_id, gstin, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
+          .select("id, code, name, customer_id, gst_number, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
           .in("id", chunkIds);
+        if (unitsErr) throw new Error(unitsErr.message);
         unitRows.push(...((data ?? []) as any[]));
       }
       const customerIds = Array.from(new Set(unitRows.map((u) => u.customer_id).filter(Boolean)));
@@ -529,6 +530,25 @@ export function FinanceCharter({
         customerRows.push(...((data ?? []) as any[]));
       }
       const customerById = new Map(customerRows.map((c) => [c.id, c]));
+      const gstRows: any[] = [];
+      for (const chunkIds of chunkOf(customerIds, 100)) {
+        const { data } = await supabase
+          .from("customer_gst_numbers")
+          .select("customer_id, gstin, state_name")
+          .in("customer_id", chunkIds);
+        gstRows.push(...((data ?? []) as any[]));
+      }
+      const gstinFor = (customerId: string | null, state: string, fallback: string | null) => {
+        if (!customerId) return fallback ?? "";
+        const rowsFor = gstRows.filter((g) => g.customer_id === customerId);
+        const stateLc = state.trim().toLowerCase();
+        return (
+          rowsFor.find((g) => String(g.state_name ?? "").trim().toLowerCase() === stateLc)?.gstin ??
+          rowsFor[0]?.gstin ??
+          fallback ??
+          ""
+        );
+      };
 
       // Service type per unit from the active client contract.
       const contractRows: any[] = [];
