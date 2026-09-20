@@ -83,7 +83,7 @@ function useTemplates() {
       if (templates.length === 0) return [];
       const { data: cols, error: colErr } = await supabase
         .from("mis_template_columns" as never)
-        .select("id, template_id, header, sort_order, source, system_key, enabled")
+        .select("id, template_id, header, sort_order, source, system_key, enabled, client_attribute")
         .in("template_id", templates.map((t) => t.id))
         .order("sort_order");
       if (colErr) throw colErr;
