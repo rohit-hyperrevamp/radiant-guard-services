@@ -205,6 +205,6 @@
 - [x] Confirm the values behind the displayed 87% and explain the calculation without changing data.
 
 ## Tally export (combined + per-invoice)
-- [x] Restore per-invoice Tally Export button on invoice detail (shared builder in src/lib/tally-billing.ts).
-- [x] Add Tally Export on the invoice charter: one combined workbook for all filtered units.
+- [x] Remove Tally export from invoice detail; retain MIS Format (XLSX).
+- [x] Replace invoice-list Tally export with one combined MIS Format (XLSX) workbook for filtered units.
 - [x] bunx tsgo --noEmit passes.

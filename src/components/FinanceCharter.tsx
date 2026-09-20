@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { downloadCsv } from "@/lib/csv-export";
+import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance } from "@/lib/contract-finance";
@@ -26,7 +26,6 @@ import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStat
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
-import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 
 
 // ---------------------------------------------------------------------------
@@ -461,16 +460,16 @@ export function FinanceCharter({
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
-  // Combined Tally billing file: one workbook for every unit in the current
-  // filter (not just the visible page). Mirrors the per-invoice Tally export.
-  const [tallyBusy, setTallyBusy] = useState(false);
-  const exportTallyCombined = async () => {
+  // Combined manpower MIS: one workbook for every filtered invoice, using the
+  // same columns and attendance/rate-card maths as the per-invoice MIS export.
+  const [misBusy, setMisBusy] = useState(false);
+  const exportMisCombined = async () => {
     const targets = matchedUnits;
     if (targets.length === 0) {
       toast.error("No units in the current filter.");
       return;
     }
-    setTallyBusy(true);
+    setMisBusy(true);
     try {
       const chunkOf = <T,>(arr: T[], size: number) => {
         const out: T[][] = [];
@@ -481,10 +480,10 @@ export function FinanceCharter({
 
       const { data: org } = await supabase
         .from("org_settings")
-        .select("company_state")
+        .select("company_name")
         .limit(1)
         .maybeSingle();
-      const companyState = String((org as { company_state?: string } | null)?.company_state ?? "Maharashtra").trim();
+      const entity = String((org as { company_name?: string } | null)?.company_name ?? "Radiant").trim();
 
       const financeMap = new Map<string, UnitFinance>();
       for (const chunkIds of chunkOf(ids, 100)) {
@@ -510,73 +509,30 @@ export function FinanceCharter({
       );
       const entries = entriesPages.flat();
 
-      // Billing address / GST fields for the vouchers.
+      // Site fields printed in the client MIS.
       const unitRows: any[] = [];
       for (const chunkIds of chunkOf(ids, 100)) {
         const { data, error: unitsErr } = await supabase
           .from("units")
-          .select("id, code, name, customer_id, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
+          .select("id, code, name, customer_id, billing_state, branch_sap_code, zone")
           .in("id", chunkIds);
         if (unitsErr) throw new Error(unitsErr.message);
         unitRows.push(...((data ?? []) as any[]));
       }
-      const customerIds = Array.from(new Set(unitRows.map((u) => u.customer_id).filter(Boolean)));
-      const customerRows: any[] = [];
-      for (const chunkIds of chunkOf(customerIds, 100)) {
-        const { data } = await supabase
-          .from("customers")
-          .select("id, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
+      const candidateIds = Array.from(new Set(entries.map((e) => e.candidate_id).filter(Boolean)));
+      const candidateRows: any[] = [];
+      for (const chunkIds of chunkOf(candidateIds, 100)) {
+        const { data, error } = await supabase
+          .from("candidates")
+          .select("id, employee_code, full_name, preferred_joining_date, designation_id")
           .in("id", chunkIds);
-        customerRows.push(...((data ?? []) as any[]));
+        if (error) throw new Error(error.message);
+        candidateRows.push(...((data ?? []) as any[]));
       }
-      const customerById = new Map(customerRows.map((c) => [c.id, c]));
-      const gstRows: any[] = [];
-      for (const chunkIds of chunkOf(customerIds, 100)) {
-        const { data } = await supabase
-          .from("customer_gst_numbers")
-          .select("customer_id, gstin, state_name")
-          .in("customer_id", chunkIds);
-        gstRows.push(...((data ?? []) as any[]));
-      }
-      const gstinFor = (customerId: string | null, state: string) => {
-        if (!customerId) return "";
-        const rowsFor = gstRows.filter((g) => g.customer_id === customerId);
-        const stateLc = state.trim().toLowerCase();
-        return (
-          rowsFor.find((g) => String(g.state_name ?? "").trim().toLowerCase() === stateLc)?.gstin ??
-          rowsFor[0]?.gstin ??
-          ""
-        );
-      };
+      const candidateById = new Map(candidateRows.map((candidate) => [String(candidate.id), candidate]));
 
-      // Service type per unit from the active client contract.
-      const contractRows: any[] = [];
-      for (const chunkIds of chunkOf(ids, 100)) {
-        const { data } = await supabase
-          .from("client_contracts")
-          .select("unit_id, service_type_id, start_date")
-          .eq("record_type", "client")
-          .eq("status", "active")
-          .in("unit_id", chunkIds);
-        contractRows.push(...((data ?? []) as any[]));
-      }
-      const serviceTypeIdByUnit = new Map<string, string>();
-      const latestStartByUnit = new Map<string, string>();
-      for (const c of contractRows) {
-        const prev = latestStartByUnit.get(c.unit_id);
-        if (!prev || String(c.start_date) > prev) {
-          latestStartByUnit.set(c.unit_id, String(c.start_date));
-          if (c.service_type_id) serviceTypeIdByUnit.set(c.unit_id, String(c.service_type_id));
-        }
-      }
-      const serviceTypeIds = Array.from(new Set(Array.from(serviceTypeIdByUnit.values())));
-      const { data: stypes } = serviceTypeIds.length
-        ? await supabase.from("service_types").select("id, name").in("id", serviceTypeIds)
-        : { data: [] as any[] };
-      const serviceTypeNameById = new Map(((stypes ?? []) as any[]).map((s) => [String(s.id), String(s.name)]));
-
-      // Billable quantity/amount per unit per designation.
-      const linesByUnit = new Map<string, Map<string, { qty: number; amt: number; monthly: number }>>();
+      type MisBucket = { candidateId: string; designationId: string | null; workingDays: number; otDays: number; otHours: number };
+      const linesByUnit = new Map<string, Map<string, MisBucket>>();
       for (const e of entries) {
         const unitId = e.unit_id ?? "";
         if (!unitId) continue;
@@ -587,72 +543,105 @@ export function FinanceCharter({
         const raw = code?.day_value;
         const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
         const counted = code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0;
-        const payable = counted + (Number(e.ot_hours) || 0);
-        if (payable <= 0) continue;
-        const periodDays = allPeriodsByUnit.get(unitId)?.totalDays ?? 1;
-        const amt = (rate.billRate / periodDays) * payable;
+        const otDays = Number(e.ot_hours) || 0;
+        if (counted + otDays <= 0) continue;
         if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
         const bucket = linesByUnit.get(unitId)!;
-        const key = e.designation_id ?? "—";
-        const line = bucket.get(key) ?? { qty: 0, amt: 0, monthly: rate.billRate };
-        line.qty += payable;
-        line.amt += amt;
+        const key = `${e.candidate_id}|${e.designation_id ?? ""}`;
+        const line = bucket.get(key) ?? {
+          candidateId: e.candidate_id,
+          designationId: e.designation_id,
+          workingDays: 0,
+          otDays: 0,
+          otHours: 0,
+        };
+        line.workingDays += counted;
+        line.otDays += otDays;
+        line.otHours += otDays * (rate.shiftHours || 8);
         bucket.set(key, line);
       }
 
       const unitById = new Map(unitRows.map((u) => [u.id, u]));
+      const headers = [
+        "Sr. No", "Invoice No", "Invoice Date", "Emp Code", "Employee Name",
+        "Regular/ Reliever Guard", "DOJ", "Entity", "Designation", "Location/Branch Name",
+        "State", "Branch SAP Code", "Zone", "Month Days", "Month Rate",
+        "Billing Rate", "Billing Rate (Per Day)", "OT Rate", "Working days",
+        "OT and Night duties", "OT Amount", "Working days Billing with OT",
+        "Total Regular Billing Amt", "OT & Night Duty Billing Amt", "Total Billing Amt",
+        "CGST @9%", "SGST @9%", "IGST @18%", "Grand Total",
+      ];
       const allRows: Record<string, unknown>[] = [];
-      let billedUnits = 0;
+      let serial = 1;
       for (const u of targets) {
         const lines = linesByUnit.get(u.id);
         if (!lines || lines.size === 0) continue;
         const unitRow = unitById.get(u.id);
         if (!unitRow) continue;
         const period = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
-        const serviceTypeId = serviceTypeIdByUnit.get(u.id);
-        const serviceTypeName = (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard";
-        const voucherLines = Array.from(lines.values())
-          .filter((l) => l.amt > 0)
-          .map((l) => ({
-            qty: Math.round(l.qty * 100) / 100,
-            rate: l.qty > 0 ? l.amt / l.qty : 0,
-            amount: Math.round(l.amt * 100) / 100,
-            monthly: l.monthly,
-          }));
-        if (voucherLines.length === 0) continue;
-        const customer = unitRow.customer_id ? customerById.get(unitRow.customer_id) ?? null : null;
-        const billingState = unitRow.billing_state || customer?.billing_state || "";
-        allRows.push(
-          ...buildTallyVoucherRows({
-            unit: {
-              ...unitRow,
-              customer_name: u.customer_name,
-              gstin: gstinFor(unitRow.customer_id, billingState),
-              customer,
-            },
-            companyState,
-            periodStart: period.start,
-            periodEnd: period.end,
-            serviceTypeName,
-            lines: voucherLines,
-          }),
-        );
-        billedUnits += 1;
+        const periodDays = period.totalDays || 1;
+        const [py, pm, pd] = period.end.split("-");
+        const invoiceDate = `${pd}-${pm}-${py}`;
+        const invoiceNo = `${String(period.end).slice(5, 7)}${String(period.end).slice(2, 4)}-${String(Number(py) + 1).slice(2)}${u.code.toUpperCase()}`;
+        const siteNorm = String(unitRow.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const clientNorm = String(u.customer_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const branchName = clientNorm && !siteNorm.includes(clientNorm)
+          ? [u.customer_name, unitRow.name].filter(Boolean).join(", ")
+          : unitRow.name || unitRow.code;
+        for (const line of lines.values()) {
+          const finance = financeMap.get(u.id);
+          const rate = rateFor(finance, line.designationId);
+          if (!rate) continue;
+          const candidate = candidateById.get(line.candidateId);
+          const perDay = rate.billRate / periodDays;
+          const otRate = perDay / 8;
+          const otAmount = otRate * line.otHours;
+          const regular = perDay * line.workingDays;
+          const otBilling = perDay * line.otDays;
+          const totalBilling = regular + otBilling + otAmount;
+          const cgst = totalBilling * 0.09;
+          const sgst = totalBilling * 0.09;
+          const igst = cgst + sgst;
+          const round = (value: number) => Math.round(value * 100) / 100;
+          const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
+          const [jy, jm, jd] = doj.split("-");
+          allRows.push({
+            "Sr. No": serial++, "Invoice No": invoiceNo, "Invoice Date": invoiceDate,
+            "Emp Code": candidate?.employee_code ?? "", "Employee Name": candidate?.full_name ?? nameById.get(line.candidateId) ?? "",
+            "Regular/ Reliever Guard": candidate?.designation_id === line.designationId ? "Regular" : "Reliever",
+            "DOJ": jd && jm && jy ? `${jd}-${jm}-${jy}` : "", "Entity": entity,
+            "Designation": `${rate.designationName} @ (${rate.shiftHours})`, "Location/Branch Name": branchName,
+            "State": unitRow.billing_state ?? "", "Branch SAP Code": unitRow.branch_sap_code ?? "", "Zone": unitRow.zone ?? "",
+            "Month Days": periodDays, "Month Rate": periodDays, "Billing Rate": rate.billRate,
+            "Billing Rate (Per Day)": round(perDay), "OT Rate": round(otRate), "Working days": round(line.workingDays),
+            "OT and Night duties": round(line.otDays), "OT Amount": round(otAmount),
+            "Working days Billing with OT": round(regular + otBilling), "Total Regular Billing Amt": round(regular),
+            "OT & Night Duty Billing Amt": round(otBilling + otAmount), "Total Billing Amt": round(totalBilling),
+            "CGST @9%": round(cgst), "SGST @9%": round(sgst), "IGST @18%": round(igst),
+            "Grand Total": round(totalBilling + igst),
+          });
+        }
       }
 
       if (allRows.length === 0) {
         toast.error("No billable attendance for the filtered units in this period.");
         return;
       }
-      await writeTallyBillingXlsx(
-        `Tally Billing_${year}-${String(monthIdx + 1).padStart(2, "0")}_${billedUnits} units`,
-        allRows,
-      );
-      toast.success(`Tally export ready — ${billedUnits} invoice${billedUnits === 1 ? "" : "s"} in one file.`);
+      const totals: Record<string, unknown> = Object.fromEntries(headers.map((header) => [header, ""]));
+      totals["Employee Name"] = "TOTAL";
+      for (const header of headers.slice(18)) {
+        totals[header] = Math.round(allRows.reduce((sum, row) => sum + (Number(row[header]) || 0), 0) * 100) / 100;
+      }
+      await writeXlsx({
+        filename: `MIS_${year}-${String(monthIdx + 1).padStart(2, "0")}_${targets.length}_units`,
+        rows: [...allRows, totals],
+        columns: headers.map((header) => ({ key: header, header })),
+      });
+      toast.success(`MIS export ready — ${allRows.length} billable employee rows in one file.`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Tally export failed");
+      toast.error(err instanceof Error ? err.message : "MIS export failed");
     } finally {
-      setTallyBusy(false);
+      setMisBusy(false);
     }
   };
 
@@ -786,10 +775,10 @@ export function FinanceCharter({
           <Button
             variant="outline"
             className="h-9 rounded-xl"
-            disabled={tallyBusy}
-            onClick={() => void exportTallyCombined()}
+            disabled={misBusy}
+            onClick={() => void exportMisCombined()}
           >
-            <Receipt className="mr-1.5 h-4 w-4" /> {tallyBusy ? "Preparing…" : "Tally Export"}
+            <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : "MIS Format (XLSX)"}
           </Button>
         )}
         <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
