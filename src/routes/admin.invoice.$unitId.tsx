@@ -38,6 +38,7 @@ import { useOrgSettings } from "@/lib/org-settings";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { PERIOD_STATUS_QK } from "@/lib/period-status";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -1478,7 +1479,8 @@ function PayrollUnitPage() {
         details: { document: "Tally invoice", filename: file.name },
       });
       await queryClient.invalidateQueries({ queryKey: ["payroll-sheet", unitId, start, end] });
-      toast.success(oldPath ? "Tally invoice replaced" : "Tally invoice uploaded");
+      await queryClient.invalidateQueries({ queryKey: [PERIOD_STATUS_QK] });
+      toast.success(oldPath ? "Tally invoice replaced" : "Tally invoice uploaded — invoice processed");
     } catch (uploadError) {
       toast.error(uploadError instanceof Error ? uploadError.message : "Could not upload Tally invoice");
     } finally {

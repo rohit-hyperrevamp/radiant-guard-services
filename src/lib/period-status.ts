@@ -50,7 +50,7 @@ export async function fetchPeriodStatuses(
   const [{ data: sheets }, { data: runs }] = await Promise.all([
     supabase
       .from("attendance_sheets" as never)
-      .select("unit_id, status")
+      .select("unit_id, status, tally_invoice_path")
       .in("unit_id", ids)
       .eq("period_start", periodStart)
       .eq("period_end", periodEnd),
@@ -62,7 +62,11 @@ export async function fetchPeriodStatuses(
       .eq("period_end", periodEnd),
   ]);
 
-  const sheetRows = ((sheets ?? []) as unknown) as Array<{ unit_id: string; status: AttendanceStatus }>;
+  const sheetRows = ((sheets ?? []) as unknown) as Array<{
+    unit_id: string;
+    status: AttendanceStatus;
+    tally_invoice_path: string | null;
+  }>;
   const runRows = ((runs ?? []) as unknown) as Array<{
     id: string;
     unit_id: string;
@@ -71,11 +75,12 @@ export async function fetchPeriodStatuses(
     invoice_status: string | null;
   }>;
 
-  const sheetByUnit = new Map(sheetRows.map((s) => [s.unit_id, s.status]));
+  const sheetByUnit = new Map(sheetRows.map((s) => [s.unit_id, s]));
   const runByUnit = new Map(runRows.map((r) => [r.unit_id, r]));
 
   for (const unitId of ids) {
-    const attendance = sheetByUnit.get(unitId) ?? "none";
+    const sheet = sheetByUnit.get(unitId);
+    const attendance = sheet?.status ?? "none";
     const run = runByUnit.get(unitId);
     const handedOff = ["submitted", "approved"].includes(run?.status ?? "");
     const ready = attendance === "approved";
@@ -86,7 +91,7 @@ export async function fetchPeriodStatuses(
       attendance,
       handedOff,
       payroll: money(run?.payroll_status),
-      invoice: money(run?.invoice_status),
+      invoice: sheet?.tally_invoice_path ? "processed" : ready ? "ready" : "open",
       runId: run?.id ?? null,
     });
   }
