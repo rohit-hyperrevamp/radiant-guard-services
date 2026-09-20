@@ -2424,12 +2424,12 @@ function MusterRollPage() {
   type MusterRowT = (typeof musterRows)[number];
   const attCellBlocked = (mr: MusterRowT, date: string) =>
     date > todayStr ||
-    (Boolean(mr.emp.doj) && date < mr.emp.doj!) ||
+    (typeof mr.emp.doj === "string" && date < mr.emp.doj) ||
     Boolean(mr.vacant) ||
     Boolean(mr.otOnly) ||
     Boolean(mr.reliever);
   const otCellBlocked = (mr: MusterRowT, date: string) =>
-    date > todayStr || (Boolean(mr.emp.doj) && date < mr.emp.doj!) || Boolean(mr.vacant);
+    date > todayStr || (typeof mr.emp.doj === "string" && date < mr.emp.doj) || Boolean(mr.vacant);
 
   /** Rectangular selection between two cells — spans rows and days. */
   const buildRect = (
@@ -2988,9 +2988,9 @@ function MusterRollPage() {
 
 
       {/* Approval workflow */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-3 print:hidden">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Status</span>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/60 bg-card p-2.5 sm:flex sm:flex-wrap sm:justify-between sm:gap-3 sm:p-3 print:hidden">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto sm:gap-3">
+          <span className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:inline">Status</span>
           <span className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
             status === "draft" && "bg-slate-100 text-slate-700",
@@ -3038,7 +3038,7 @@ function MusterRollPage() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {(status === "draft" || status === "rejected") && (
             <Button size="sm" onClick={() => transitionSheet.mutate({ status: "submitted" })} disabled={transitionSheet.isPending}>
               <Send className="mr-1.5 h-4 w-4" /> Submit for Approval
@@ -3532,7 +3532,7 @@ function MusterRollPage() {
       </section>
 
       {selectedCells.size > 0 && !isDragging && (
-        <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm shadow-sm print:hidden">
+        <div className="sticky top-2 z-20 hidden items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm shadow-sm sm:flex print:hidden">
           <div>
             <span className="font-semibold">{selectedCells.size}</span> cell
             {selectedCells.size > 1 ? "s" : ""} selected for{" "}
@@ -3546,7 +3546,7 @@ function MusterRollPage() {
       )}
 
       {otSelectedCells.size > 0 && !isOtDragging && (
-        <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm print:hidden">
+        <div className="sticky top-2 z-20 hidden items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm sm:flex print:hidden">
           <div>
             <span className="font-semibold">{otSelectedCells.size}</span> ED cell
             {otSelectedCells.size > 1 ? "s" : ""} selected for{" "}

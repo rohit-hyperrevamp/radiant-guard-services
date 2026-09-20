@@ -251,3 +251,9 @@
 - [x] Rework the Payroll top controls for mobile.
 - [x] Finish the cross-page data, table, and form visibility audit.
 - [x] Run final TypeScript and responsive integrity checks.
+
+## Mobile attendance entry
+- [x] Replace the phone spreadsheet with a day-first employee attendance list.
+- [x] Add one-tap attendance codes, employee selection, bulk marking, and compact Extra Duty entry.
+- [x] Keep scanning, workflow status, payroll periods, roster mapping, desktop Form XVI, and print behavior intact.
+- [x] Validate TypeScript and formatting without changing attendance rules or production data.
