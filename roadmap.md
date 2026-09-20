@@ -5,7 +5,7 @@
 - [x] Standardize compact buttons, switches, selectors, tabs, and action rows.
 - [x] Add restrained glass treatment to floating and sticky mobile surfaces.
 - [x] Re-audit attendance, sheets, onboarding, off-boarding, and shared forms for phone usability.
-- [ ] Run TypeScript and formatting validation.
+- [x] Run TypeScript and formatting validation.
 
 - [x] Audit all mobile routes, shared components, and every form
 - [x] Fix remaining alignment, placement, overflow, and clarity issues
