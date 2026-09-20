@@ -3415,6 +3415,9 @@ function ContractFormDialog({
   const [originalStartDate, setOriginalStartDate] = useState("");
   const [renewalCount, setRenewalCount] = useState(0);
   const expiryManuallySetRef = useRef(false);
+  // Dates the user has touched must never be overwritten by the unit auto-fill,
+  // which can resolve after the dialog is already open and mid-edit.
+  const datesTouchedRef = useRef(false);
   const [description, setDescription] = useState("");
   const [serviceTypeId, setServiceTypeId] = useState<string>("");
   const [payrollWindowId, setPayrollWindowId] = useState<string>("");
