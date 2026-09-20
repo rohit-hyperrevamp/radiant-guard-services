@@ -289,3 +289,9 @@
 - [x] Keep mobile summary rows compact, swipeable, and aligned to the app content width.
 
 - [x] Standardize compact mobile filters, buttons, toggles, and list cards across Employees, Contracts, Clients, Organizations, States, Branches, and related admin directories.
+
+## Mobile muster-grid attendance entry
+- [ ] Replace the separate day-first mobile cards with a compact, desktop-consistent muster grid.
+- [ ] Make every eligible day cell directly editable on phones while preserving ED and restrictions.
+- [ ] Keep employee identity visible during horizontal scrolling and retain bulk entry.
+- [ ] Run TypeScript and formatting validation.
