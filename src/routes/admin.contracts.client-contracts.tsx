@@ -3086,7 +3086,11 @@ function ClientContractsPage() {
           try {
             let contractId: string;
             if (editing) {
-              await updateMut.mutateAsync({ id: editing.id, p, canApproveApproval: canApprove });
+              await updateMut.mutateAsync({
+                id: editing.id,
+                p,
+                canApproveApproval: canApprove || isSuperAdmin,
+              });
               contractId = editing.id;
             } else {
               contractId = await addMut.mutateAsync(p);
