@@ -2795,39 +2795,80 @@ function MusterRollPage() {
               onChange={(e) => onPickUploadFiles(Array.from(e.target.files ?? []))}
             />
             {!uploadFile ? (
-              <button
-                type="button"
-                onClick={() => uploadInputRef.current?.click()}
-                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-              >
-                <Upload className="h-6 w-6" />
-                <span>Upload images or Excel</span>
-                <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => uploadInputRef.current?.click()}
+                  className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                >
+                  <Upload className="h-6 w-6" />
+                  <span>Upload images or Excel</span>
+                  <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
+                </button>
+                <Button variant="outline" className="w-full" onClick={() => setCameraOpen(true)}>
+                  <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
+                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  Every photo is automatically straightened, cropped to the sheet and sharpened before it is read.
+                </p>
+              </div>
             ) : uploadKind === "image" && uploadPreview ? (
               <div className="space-y-2">
+                {preparingScan ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning and cleaning the photos…
+                  </div>
+                ) : null}
                 {uploadImages.length > 1 ? (
                   <div className="grid grid-cols-3 gap-2">
                     {uploadImages.map((img, i) => (
                       <div key={`${img.name}-${i}`} className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                        <img src={img.dataUrl} alt={img.name} className="h-28 w-full object-cover" />
+                        <img src={useCleaned ? img.dataUrl : img.originalDataUrl} alt={img.name} className="h-28 w-full object-cover" />
                         <div className="truncate px-2 py-1 text-[10px] text-muted-foreground">{i + 1}. {img.name}</div>
+                        {img.quality ? (
+                          <div className={cn("border-t px-2 py-1 text-[10px]", qualityTone(img.quality.verdict))}>
+                            {img.quality.verdict === "good" ? "Clear" : img.quality.hint}
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                    <img src={uploadPreview} alt="Attendance preview" className="max-h-80 w-full object-contain" />
+                    <img
+                      src={useCleaned ? uploadImages[0]?.dataUrl ?? uploadPreview : uploadImages[0]?.originalDataUrl ?? uploadPreview}
+                      alt="Attendance preview"
+                      className="max-h-80 w-full object-contain"
+                    />
                   </div>
                 )}
+                {uploadImages[0]?.quality && uploadImages.length === 1 ? (
+                  <div className={cn("rounded-md border px-3 py-2 text-xs", qualityTone(uploadImages[0]!.quality!.verdict))}>
+                    {uploadImages[0]!.cropped ? "Sheet detected, straightened and cleaned. " : "Cleaned — sheet edges were not detected. "}
+                    {uploadImages[0]!.quality!.verdict === "good"
+                      ? "Quality looks good."
+                      : `${uploadImages[0]!.quality!.hint}. Retake for a more accurate read.`}
+                  </div>
+                ) : null}
+                {uploadImages.length ? (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input type="checkbox" checked={useCleaned} onChange={(e) => setUseCleaned(e.target.checked)} />
+                    Use the cleaned scan (uncheck to read the original photo)
+                  </label>
+                ) : null}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <ImageIcon className="h-3.5 w-3.5" />
                     {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
                   </span>
-                  <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
-                    Choose different files
-                  </button>
+                  <span className="flex items-center gap-3">
+                    <button type="button" className="text-primary hover:underline" onClick={() => setCameraOpen(true)}>
+                      Scan with camera
+                    </button>
+                    <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
+                      Choose different files
+                    </button>
+                  </span>
                 </div>
               </div>
             ) : (
