@@ -105,7 +105,7 @@ export function InvoicePreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div ref={sheetRef} className="min-w-0 rounded-xl border border-border/70 bg-background p-3 text-[11px] sm:p-5 sm:text-[12px]">
+        <div ref={sheetRef} className="min-w-0 rounded-xl border border-border/70 bg-background p-3 text-[12px] sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="title text-base font-bold">{data.companyName}</div>
@@ -141,7 +141,7 @@ export function InvoicePreviewDialog({
             </div>
           </div>
 
-          <table className="mt-4 w-full table-fixed">
+          <table className="mt-4 w-full table-auto">
             <thead>
               <tr>
                 <th>#</th>

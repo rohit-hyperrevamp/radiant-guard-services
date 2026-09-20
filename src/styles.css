@@ -1417,8 +1417,8 @@ body {
 .safe-top    { padding-top: max(0.5rem, env(safe-area-inset-top)); }
 .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 .safe-x {
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
 }
 .safe-all {
   padding-top: env(safe-area-inset-top);
@@ -1625,7 +1625,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   [data-admin-scroll] {
     font-size: 0.875rem;
     width: 100%;
-    padding-inline: 0.625rem !important;
+    padding-inline: max(0.5rem, env(safe-area-inset-left)) max(0.5rem, env(safe-area-inset-right)) !important;
   }
 
   [data-admin-scroll] > div,
@@ -1790,9 +1790,14 @@ nav[data-bottom-nav] {
   padding: 0;
   transform: none !important;
   translate: none !important;
-  contain: layout paint style;
+  contain: layout style;
   -webkit-overflow-scrolling: auto;
   overflow: hidden;
+  transform-origin: bottom center !important;
+}
+nav[data-bottom-nav][data-expanded="true"] {
+  border-color: color-mix(in oklab, var(--dock-foreground) 22%, transparent);
+  box-shadow: 0 24px 64px -18px color-mix(in oklab, var(--foreground) 70%, transparent);
 }
 nav[data-bottom-nav]::after {
   content: none;

@@ -50,7 +50,7 @@ import {
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import brandLogo from "@/assets/radiant-logo-v2.png";
-import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNav";
+import { MobileBottomNav, type BottomNavItem, type BottomNavMoreItem } from "@/components/MobileBottomNav";
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
@@ -801,121 +801,6 @@ function AdminLayout() {
 
 
 
-      {/* Mobile bottom-sheet drawer (slide-up) */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-in fade-in-0 duration-200"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside
-            className={cn(
-              "absolute inset-x-0 bottom-0 flex max-h-[86dvh] flex-col overflow-hidden",
-              "rounded-t-[28px] border-t border-border bg-card shadow-2xl",
-              "animate-in slide-in-from-bottom duration-300 ease-out",
-              "safe-bottom",
-            )}
-          >
-            <div className="shrink-0 px-4 pb-2 pt-2">
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-              <h2 className="text-base font-semibold text-foreground">More</h2>
-            </div>
-            {isFieldOfficer ? (
-              (() => {
-                const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void; tone?: "default" | "danger" }> = [
-                  { to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard },
-                  { to: "/admin/employees", label: "Candidates", icon: UserPlus },
-                  { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
-                  { to: "/admin/field-sense", label: "Radar", icon: Radio },
-                  { to: "/admin/inventory", label: "Uniform", icon: Boxes },
-                  { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
-                ];
-                return (
-                  <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                     <div data-app-drawer-grid className="grid grid-cols-2 gap-2 px-3 pb-3">
-                      {foTiles.map((t) => {
-                        const Icon = t.icon;
-                        const active = isActive(t.to);
-                        return (
-                          <Link
-                            key={t.to}
-                            to={t.to}
-                            onClick={() => setMobileOpen(false)}
-                            className={cn(
-                               "group relative flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
-                              active
-                                ? "border-accent/20 bg-accent/10 text-accent"
-                                : "border-border/60 bg-secondary/45 text-foreground hover:bg-secondary",
-                            )}
-                          >
-                            <span className={cn(
-                              "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10",
-                              "text-accent",
-                            )}>
-                              <Icon className="h-[18px] w-[18px]" />
-                            </span>
-                            <span className="line-clamp-2 text-xs font-semibold leading-tight">{t.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </nav>
-                );
-              })()
-
-            ) : (
-              (() => {
-                const tiles: Array<{ to: string; label: string; icon: GroupItem["icon"]; active: boolean }> = [];
-                for (const g of visibleGroups) {
-                  const to = g.to ?? g.children?.[0]?.to;
-                  if (!to) continue;
-                  tiles.push({ to, label: g.label, icon: g.icon, active: isGroupActive(g) });
-                }
-                const has = (to: string) => tiles.some((t) => t.to === to);
-                if (!isGuard && !has("/admin/profile")) tiles.push({ to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
-                if (!has("/admin/my-attendance") && !has("/admin/attendance")) tiles.push({ to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
-                if (!isGuard && !has("/admin/notifications")) tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
-
-                return (
-                  <nav aria-label="More" className="flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-                     <div data-app-drawer-grid className="grid grid-cols-2 gap-2 px-3 pb-3">
-                      {tiles.map((t) => {
-                        const Icon = t.icon;
-                        return (
-                          <Link
-                            key={t.to + t.label}
-                            to={t.to}
-                            onClick={() => setMobileOpen(false)}
-                            className={cn(
-                               "group relative flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
-                              t.active
-                                ? "border-accent/20 bg-accent/10 text-accent"
-                                : "border-border/60 bg-secondary/45 text-foreground hover:bg-secondary",
-                            )}
-                          >
-                            <span className={cn(
-                              "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10",
-                               "text-accent",
-                            )}>
-                              <Icon className="h-[18px] w-[18px]" />
-                            </span>
-                            <span className="line-clamp-2 text-xs font-semibold leading-tight">{t.label}</span>
-                          </Link>
-                        );
-                      })}
-
-
-                    </div>
-                  </nav>
-                );
-              })()
-            )}
-          </aside>
-        </div>
-      )}
-
-
-
       {/* Main */}
       <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(82px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
 
@@ -983,13 +868,34 @@ function AdminLayout() {
             active: isGroupActive(g),
           }));
         })();
-        if (mobileOpen) return null;
+        const moreItems: BottomNavMoreItem[] = isFieldOfficer
+          ? [
+              { key: "fo-dashboard", to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard, active: isActive("/admin/field-dashboard") },
+              { key: "fo-candidates", to: "/admin/employees", label: "Candidates", icon: UserPlus, active: isActive("/admin/employees") },
+              { key: "fo-attendance", to: "/admin/attendance", label: "Attendance", icon: ClipboardList, active: isActive("/admin/attendance") },
+              { key: "fo-radar", to: "/admin/field-sense", label: "Radar", icon: Radio, active: isActive("/admin/field-sense") },
+              { key: "fo-uniform", to: "/admin/inventory", label: "Uniform", icon: Boxes, active: isActive("/admin/inventory") },
+              { key: "fo-my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") },
+            ]
+          : visibleGroups.flatMap((g) => {
+              const to = g.to ?? g.children?.[0]?.to;
+              return to ? [{ key: g.key, to, label: g.label, icon: g.icon, active: isGroupActive(g) }] : [];
+            });
+        const addMoreItem = (item: BottomNavMoreItem) => {
+          if (!moreItems.some((entry) => entry.to === item.to)) moreItems.push(item);
+        };
+        if (!isGuard) addMoreItem({ key: "profile", to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
+        if (!moreItems.some((entry) => entry.to === "/admin/my-attendance" || entry.to === "/admin/attendance")) {
+          addMoreItem({ key: "my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
+        }
+        if (!isGuard) addMoreItem({ key: "notifications", to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
         return (
           <MobileBottomNav
             items={bottomItems}
-            onMore={() => setMobileOpen(true)}
+            onMore={() => setMobileOpen((open) => !open)}
             moreActive={mobileOpen}
             hideMore={isGuard}
+            moreItems={moreItems}
           />
         );
       })()}
