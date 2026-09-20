@@ -23,11 +23,18 @@ export type MisColumn = {
   clientAttribute: boolean;
 };
 
+/**
+ * "employee" prints one line per person (manpower-wise MIS). "site" prints one
+ * line per client site, summing the people billed there (billing annexure).
+ */
+export type MisRowGrain = "employee" | "site";
+
 export type MisTemplate = {
   id: string;
   customerId: string;
   name: string;
   enabled: boolean;
+  rowGrain: MisRowGrain;
   columns: MisColumn[];
 };
 
@@ -71,6 +78,35 @@ export const MIS_SYSTEM_FIELDS: MisSystemField[] = [
   { key: "sgst", label: "SGST @9%", aliases: ["sgst"], numeric: true },
   { key: "igst", label: "IGST @18%", aliases: ["igst"], numeric: true },
   { key: "grand_total", label: "Grand Total", aliases: ["total with gst"], numeric: true },
+  // Site-summary (annexure) style sheets
+  { key: "cli_id", label: "CLI ID", aliases: ["client id", "cli", "unit code"] },
+  { key: "vendor_name", label: "Vendor Name" },
+  { key: "district", label: "District" },
+  { key: "pin_code", label: "Pin Code", aliases: ["pincode"] },
+  { key: "address", label: "Address" },
+  { key: "gst_no", label: "GST No", aliases: ["gst number", "gstin"] },
+  { key: "invoice_month", label: "Invoice Month", aliases: ["billing month", "period"] },
+  { key: "sg_count", label: "SG Count", aliases: ["guard count", "headcount", "manpower"], numeric: true },
+  { key: "regular_rate", label: "Regular SG Rate", numeric: true },
+  { key: "increment_rate", label: "Increment SG Rate", numeric: true },
+  { key: "regular_duties", label: "Regular SG Duties", numeric: true },
+  { key: "increment_duties", label: "Increment SG Duties", numeric: true },
+  { key: "regular_ot_hours", label: "Regular SG OTs (Hours)", numeric: true },
+  { key: "increment_ot_hours", label: "Increment SG OTs (Hours)", numeric: true },
+  { key: "service_charge_claimed", label: "Service Charge Claimed", numeric: true },
+  { key: "gst_18", label: "GST@18%", numeric: true },
+  { key: "invoice_value", label: "Invoice Value", numeric: true },
+  { key: "total_duties", label: "Total Duties", numeric: true },
+  { key: "total_ot_hours", label: "Total OT HRS", aliases: ["total ot hours"], numeric: true },
+  { key: "remarks", label: "Remarks" },
+];
+
+/** The original manpower-wise layout, used when an organization has no format. */
+export const MIS_STANDARD_FIELD_KEYS = [
+  "sr_no","invoice_no","invoice_date","emp_code","employee_name","regular_reliever","doj","entity",
+  "designation","branch_name","state","branch_sap_code","zone","month_days","month_rate","billing_rate",
+  "billing_rate_per_day","ot_rate","working_days","ot_duties","ot_amount","working_days_billing_with_ot",
+  "total_regular_billing","ot_billing","total_billing","cgst","sgst","igst","grand_total",
 ];
 
 export const MIS_SYSTEM_FIELD_BY_KEY = new Map(MIS_SYSTEM_FIELDS.map((f) => [f.key, f]));
@@ -99,9 +135,25 @@ export function matchMisSystemKey(header: string): string | null {
  * System columns that already exist as their own field on the client record,
  * so they never need a separate custom attribute.
  */
-export const MIS_NATIVE_CLIENT_KEYS = new Set(["zone", "branch_sap_code", "state", "branch_name"]);
+export const MIS_NATIVE_CLIENT_KEYS = new Set([
+  "zone",
+  "branch_sap_code",
+  "state",
+  "branch_name",
+  "cli_id",
+  "district",
+  "pin_code",
+  "address",
+  "gst_no",
+]);
 
-type TemplateRow = { id: string; customer_id: string; name: string; enabled: boolean };
+type TemplateRow = {
+  id: string;
+  customer_id: string;
+  name: string;
+  enabled: boolean;
+  row_grain?: string | null;
+};
 type ColumnRow = {
   id: string;
   template_id: string;
@@ -119,6 +171,7 @@ function toTemplate(t: TemplateRow, cols: ColumnRow[]): MisTemplate {
     customerId: t.customer_id,
     name: t.name,
     enabled: t.enabled !== false,
+    rowGrain: t.row_grain === "site" ? "site" : "employee",
     columns: cols
       .filter((c) => c.template_id === t.id && c.enabled !== false)
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -139,7 +192,7 @@ export async function loadMisTemplateForCustomer(customerId: string | null | und
   if (!customerId) return null;
   const { data: templates, error } = await supabase
     .from("mis_templates" as never)
-    .select("id,customer_id,name,enabled")
+    .select("id,customer_id,name,enabled,row_grain")
     .eq("customer_id", customerId)
     .eq("enabled", true)
     .limit(1);
@@ -254,6 +307,48 @@ export type MisSheet = {
   rows: Array<Record<string, unknown>>;
 };
 
+/** Rates and period lengths describe a site, so they are never added up. */
+const MIS_NON_ADDITIVE_KEYS = new Set([
+  "month_days",
+  "month_rate",
+  "billing_rate",
+  "billing_rate_per_day",
+  "ot_rate",
+  "regular_rate",
+  "increment_rate",
+]);
+
+/** Collapse the employee lines of each site into a single annexure row. */
+function mergeRowsPerSite(sourceRows: MisSourceRow[]): MisSourceRow[] {
+  const bySite = new Map<string, MisSourceRow>();
+  for (const src of sourceRows) {
+    const existing = bySite.get(src.unitId);
+    if (!existing) {
+      bySite.set(src.unitId, { unitId: src.unitId, values: { ...src.values } });
+      continue;
+    }
+    for (const [key, value] of Object.entries(src.values)) {
+      const field = MIS_SYSTEM_FIELD_BY_KEY.get(key);
+      if (field?.numeric && !MIS_NON_ADDITIVE_KEYS.has(key)) {
+        existing.values[key] = (Number(existing.values[key]) || 0) + (Number(value) || 0);
+        continue;
+      }
+      const current = existing.values[key];
+      if (current === "" || current == null || Number(current) === 0) existing.values[key] = value;
+    }
+  }
+  let serial = 1;
+  return Array.from(bySite.values()).map((row) => {
+    const values = { ...row.values };
+    if ("sr_no" in values) values.sr_no = serial++;
+    for (const key of Object.keys(values)) {
+      const field = MIS_SYSTEM_FIELD_BY_KEY.get(key);
+      if (field?.numeric) values[key] = Math.round((Number(values[key]) || 0) * 100) / 100;
+    }
+    return { unitId: row.unitId, values };
+  });
+}
+
 /**
  * Build the sheet for an organization's template. Without a template, the
  * standard system layout is used so existing exports are unchanged.
@@ -272,7 +367,7 @@ export function buildMisSheet({
 }): MisSheet {
   const cols = template?.columns.length
     ? template.columns
-    : MIS_SYSTEM_FIELDS.map<MisColumn>((f, i) => ({
+    : MIS_SYSTEM_FIELDS.filter((f) => MIS_STANDARD_FIELD_KEYS.includes(f.key)).map<MisColumn>((f, i) => ({
         id: `sys-${f.key}`,
         header: f.label,
         sortOrder: i,
@@ -283,7 +378,9 @@ export function buildMisSheet({
       }));
 
   const columns = cols.map((c) => ({ key: c.header, header: c.header }));
-  const rows = sourceRows.map((src) => {
+  const grain = template?.rowGrain ?? "employee";
+  const lines = grain === "site" ? mergeRowsPerSite(sourceRows) : sourceRows;
+  const rows = lines.map((src) => {
     const row: Record<string, unknown> = {};
     for (const c of cols) {
       if (c.source === "system" && c.systemKey) {
@@ -300,7 +397,9 @@ export function buildMisSheet({
   const totalsRow: Record<string, unknown> = {};
   for (const c of cols) totalsRow[c.header] = "";
   const labelCol =
-    cols.find((c) => c.systemKey === (totalsLabelColumnKey ?? "employee_name")) ?? cols[0];
+    cols.find(
+      (c) => c.systemKey === (totalsLabelColumnKey ?? (grain === "site" ? "branch_name" : "employee_name")),
+    ) ?? cols[0];
   if (labelCol) totalsRow[labelCol.header] = "TOTAL";
   for (const c of cols) {
     if (c.source !== "system" || !c.systemKey) continue;

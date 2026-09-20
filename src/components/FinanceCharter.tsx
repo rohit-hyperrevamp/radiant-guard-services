@@ -515,7 +515,7 @@ export function FinanceCharter({
       for (const chunkIds of chunkOf(ids, 100)) {
         const { data, error: unitsErr } = await supabase
           .from("units")
-          .select("id, code, name, customer_id, billing_state, branch_sap_code, zone")
+          .select("id, code, name, customer_id, billing_state, billing_district, billing_city, billing_pincode, billing_address1, billing_address2, gst_number, branch_sap_code, zone")
           .in("id", chunkIds);
         if (unitsErr) throw new Error(unitsErr.message);
         unitRows.push(...((data ?? []) as any[]));
@@ -603,6 +603,9 @@ export function FinanceCharter({
           const igst = cgst + sgst;
           const round = (value: number) => Math.round(value * 100) / 100;
           const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
+          const incrementCutoff = new Date(period.start);
+          incrementCutoff.setFullYear(incrementCutoff.getFullYear() - 1);
+          const hasIncrement = !!doj && new Date(doj) <= incrementCutoff;
           const [jy, jm, jd] = doj.split("-");
           sourceRows.push({
             unitId: u.id,
@@ -621,6 +624,26 @@ export function FinanceCharter({
               ot_billing: round(otBilling + otAmount), total_billing: round(totalBilling),
               cgst: round(cgst), sgst: round(sgst), igst: round(igst),
               grand_total: round(totalBilling + igst),
+              cli_id: unitRow.code ?? "",
+              vendor_name: entity,
+              district: unitRow.billing_district || unitRow.billing_city || "",
+              pin_code: unitRow.billing_pincode ?? "",
+              address: [unitRow.billing_address1, unitRow.billing_address2].filter(Boolean).join(", "),
+              gst_no: unitRow.gst_number ?? "",
+              invoice_month: `${String(period.start).slice(8, 10)}-${String(period.start).slice(5, 7)}-${String(period.start).slice(0, 4)} To ${String(period.end).slice(8, 10)}-${String(period.end).slice(5, 7)}-${String(period.end).slice(0, 4)}`,
+              sg_count: 1,
+              regular_rate: rate.billRate,
+              increment_rate: hasIncrement ? rate.billRate : 0,
+              regular_duties: hasIncrement ? 0 : round(line.workingDays),
+              increment_duties: hasIncrement ? round(line.workingDays) : 0,
+              regular_ot_hours: hasIncrement ? 0 : round(line.otHours),
+              increment_ot_hours: hasIncrement ? round(line.otHours) : 0,
+              service_charge_claimed: round(totalBilling),
+              gst_18: round(igst),
+              invoice_value: round(totalBilling + igst),
+              total_duties: round(line.workingDays + line.otDays),
+              total_ot_hours: round(line.otHours),
+              remarks: "",
             },
           });
         }
