@@ -99,7 +99,7 @@ export function DataPagination<T>({
           {start + 1}–{end} of {total} {label}
         </span>
         <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-          <SelectTrigger className="h-8 w-[96px] rounded-lg text-xs sm:w-[104px]">
+          <SelectTrigger className="h-8 w-[84px] rounded-lg text-xs sm:w-[104px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
