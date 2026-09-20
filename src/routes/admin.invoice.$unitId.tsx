@@ -29,7 +29,7 @@ import {
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { downloadCsv, writeXlsx } from "@/lib/csv-export";
-import { buildMisSheet, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
+import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
@@ -274,6 +274,14 @@ function PayrollUnitPage() {
       };
     },
   });
+
+  // Organizations marked "MIS not applicable" get no MIS download at all.
+  const { data: misDisabledCustomers } = useQuery({
+    queryKey: ["admin", "mis-disabled-customers"],
+    queryFn: loadMisDisabledCustomerIds,
+    staleTime: 5 * 60 * 1000,
+  });
+  const misApplicable = !misDisabledCustomers?.has(String(unit?.customer_id ?? ""));
 
   const { data: sheet } = useQuery({
     queryKey: ["payroll-sheet", unitId, start, end],
@@ -1394,9 +1402,11 @@ function PayrollUnitPage() {
               Upload Tally Invoice
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={exportMisFormat}>
-            <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
-          </Button>
+          {misApplicable && (
+            <Button variant="outline" size="sm" onClick={exportMisFormat}>
+              <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
+            </Button>
+          )}
         </div>
       </div>
 

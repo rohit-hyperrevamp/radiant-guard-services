@@ -26,7 +26,7 @@ import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStat
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
-import { buildMisSheet, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
+import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
 
 
 // ---------------------------------------------------------------------------
@@ -798,7 +798,7 @@ export function FinanceCharter({
           </Select>
         )}
         <div className="hidden flex-1 sm:block" />
-        {mode === "invoice" && (
+        {mode === "invoice" && misApplicable && (
           <Button
             variant="outline"
             className="h-9 rounded-xl"
