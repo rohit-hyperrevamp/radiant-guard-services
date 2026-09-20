@@ -163,8 +163,8 @@ function MisManagerPage() {
     setEditing(null);
     setCustomerId("");
     setName("");
-    setDrafts(MIS_SYSTEM_FIELDS.map((f) => ({
-      header: f.label, source: "system", system_key: f.key, enabled: true,
+    setDrafts(MIS_SYSTEM_FIELDS.map<Draft>((f) => ({
+      header: f.label, source: "system", system_key: f.key, enabled: true, client_attribute: false,
     })));
   };
 
@@ -177,8 +177,9 @@ function MisManagerPage() {
     setEditing(t);
     setCustomerId(t.customer_id);
     setName(t.name);
-    setDrafts(t.columns.map((c) => ({
-      header: c.header, source: c.source, system_key: c.system_key, enabled: c.enabled,
+    setDrafts(t.columns.map<Draft>((c) => ({
+      id: c.id, header: c.header, source: c.source, system_key: c.system_key,
+      enabled: c.enabled, client_attribute: c.client_attribute === true,
     })));
     setReadOnly(view);
     setDialogOpen(true);
@@ -191,9 +192,15 @@ function MisManagerPage() {
         toast.error("No column headings found in that file.");
         return;
       }
-      setDrafts(headers.map((h) => {
+      setDrafts(headers.map<Draft>((h) => {
         const key = matchMisSystemKey(h);
-        return { header: h, source: key ? "system" : "custom", system_key: key, enabled: true };
+        return {
+          header: h,
+          source: key ? "system" : "custom",
+          system_key: key,
+          enabled: true,
+          client_attribute: false,
+        };
       }));
       toast.success(`${headers.length} columns read from the sheet.`);
     } catch (err) {
