@@ -2872,7 +2872,7 @@ function MusterRollPage() {
                     {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
                   </span>
                   <span className="flex items-center gap-3">
-                    <button type="button" className="text-primary hover:underline" onClick={() => setCameraOpen(true)}>
+                    <button type="button" className="text-primary hover:underline" onClick={openCameraScan}>
                       Scan with camera
                     </button>
                     <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
