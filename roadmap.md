@@ -203,3 +203,8 @@
 
 ## CLI3851 invoice percentage explanation
 - [x] Confirm the values behind the displayed 87% and explain the calculation without changing data.
+
+## Tally export (combined + per-invoice)
+- [x] Restore per-invoice Tally Export button on invoice detail (shared builder in src/lib/tally-billing.ts).
+- [x] Add Tally Export on the invoice charter: one combined workbook for all filtered units.
+- [x] bunx tsgo --noEmit passes.

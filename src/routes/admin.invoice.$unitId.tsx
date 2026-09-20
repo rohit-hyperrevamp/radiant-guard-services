@@ -31,6 +31,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -1110,37 +1111,6 @@ function PayrollUnitPage() {
   }, [rows, orgSettings, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, roundingOff, roundedGrandTotal, start, end]);
 
 
-  const exportCsv = () => {
-    const headers = [
-      "Emp ID", "Name", "Designation", "P Days", "PH Days", "ED Hrs", "ED Days", "Billed Days",
-      "Payroll Days", "Shift Hrs", "Billed Hrs", "Per Hour Rate", "Contracted Invoice", "Actual Invoice", "Variance",
-    ];
-    const columns = headers.map((h) => ({ key: h, header: h }));
-    const dataRows = rows.map((r) => {
-      const m = invoiceMathFor(r);
-      const cells: Record<string, unknown> = {
-        "Emp ID": r.employeeCode,
-        "Name": r.name,
-        "Designation": r.designation,
-        "P Days": r.totals.pDays,
-        "PH Days": r.totals.phDays,
-        "ED Hrs": r.totals.otHours,
-        "ED Days": r.totals.otDays,
-        "Billed Days": m.billedDays,
-        "Payroll Days": m.payrollDays,
-        "Shift Hrs": m.shiftHours,
-        "Billed Hrs": m.billedHours,
-        "Per Hour Rate": m.perHour,
-        "Contracted Invoice": m.contracted,
-
-        "Actual Invoice": r.wages ? m.actual : "",
-        "Variance": r.wages ? m.variance : "",
-      };
-      return cells;
-    });
-    downloadCsv(`invoice-${unit?.code ?? unitId}-${start}-${end}`, dataRows, columns);
-  };
-
   /**
    * Manpower-wise MIS export — exactly the client MIS workbook layout
    * (Sr. No … Grand Total). Every value is pulled from the open client's own
@@ -1259,8 +1229,6 @@ function PayrollUnitPage() {
 
   const exportTallyBilling = async () => {
     if (!unit) return;
-
-    // Resolve service type name from active client contract for this unit.
     const { data: contracts } = await supabase
       .from("client_contracts")
       .select("service_type_id")
@@ -1280,145 +1248,37 @@ function PayrollUnitPage() {
       if (st?.name) serviceTypeName = String(st.name);
     }
 
-    const billingState = unit.billing_state || unit.customer?.billing_state || "";
-    const isIntraState =
-      billingState.trim().toLowerCase() === COMPANY_STATE.toLowerCase();
-    const gstRate = 18;
-    const cgstRate = isIntraState ? 9 : 0;
-    const sgstRate = isIntraState ? 9 : 0;
-    const igstRate = isIntraState ? 0 : gstRate;
-    const salesLedger = isIntraState
-      ? `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} SGST/CGST ${gstRate}%`
-      : `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} IGST ${gstRate}%`;
-
-    const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-    const [ys, ms] = start.split("-").map(Number);
-    const [ye] = end.split("-").map(Number);
-    const fyStart = ms >= 4 ? ys : ys - 1;
-    const fyEnd = fyStart + 1;
-    const stateCode = gstinStateCode(unit.gstin) || "00";
-    const vchNo = `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(unit.code || "").toUpperCase()}`;
-    const vchDate = end;
-    const partyName = `${unit.customer_name || ""}, ${unit.name || unit.code || ""}`.trim();
-
-    const addr1 = unit.billing_address1 || unit.customer?.billing_address1 || "";
-    const addr2 = unit.billing_address2 || unit.customer?.billing_address2 || "";
-    const addr3 = [
-      unit.billing_city || unit.customer?.billing_city,
-      unit.billing_district || unit.customer?.billing_district,
-      unit.billing_pincode || unit.customer?.billing_pincode,
-    ].filter(Boolean).join(", ");
-    const pincode = unit.billing_pincode || unit.customer?.billing_pincode || "";
-    const country = unit.billing_country || unit.customer?.billing_country || "India";
-
-    const headers = [
-      "Vch No.","Vch Type","Date","GST Registration","Bill to Place","Ship to Place","Reference No.",
-      "Delivery Note No","Delivery Note Date","Order No","Order Date","Party Name","Ledger Group",
-      "Registration Type","GSTIN No","Country","State","Pincode","Address 1","Address 2","Address 3",
-      "Cost Center","Cost Center Amt","Sales Ledger","Item Name","Stock Group","Client","Maintain Batches",
-      "Applicable From","HSN Description","HSN","IGST Rate","CGST Rate","SGST Rate","CESS Rate",
-      "Tracking No","Order No ","Order Due Date","Godown","Batch","Qty ","Incluse","Rate","Amt",
-      "Additional Ledger","Amount","CGST Ledger","CGST Amt","SGST Ledger","SGST Amt","IGST Ledger",
-      "IGST Amt","CESS Ledger","CESS Amt","Total","Narration","TALLYIMPORTSTATUS",
-    ];
-    const columns = headers.map((h) => ({ key: h, header: h }));
-
-    const billingRows = rows
+    const lines = rows
       .filter((r) => r.wages && r.resource)
       .map((r) => {
         const m = invoiceMathFor(r);
         const monthly = m.contracted;
         const amt = m.actual;
-        // Simplified model: qty = days billed, rate = contract / payroll days.
-        let qty: number;
-        let rate: number;
-        if (billingMode === "lumpsum") {
-          qty = 1;
-          rate = amt;
-        } else {
-          qty = m.billedDays;
-          rate = m.payrollDays > 0 ? monthly / m.payrollDays : 0;
-        }
-        const cgstAmt = Math.round(amt * (cgstRate / 100) * 100) / 100;
-        const sgstAmt = Math.round(amt * (sgstRate / 100) * 100) / 100;
-        const igstAmt = Math.round(amt * (igstRate / 100) * 100) / 100;
-        const total = Math.round((amt + cgstAmt + sgstAmt + igstAmt) * 100) / 100;
-        const itemName = `${serviceTypeName} @${monthly.toFixed(2)} Per Month`;
-        const narration = `${fmtPretty(start)} To ${fmtPretty(end)} Invoice`;
-        const cell: Record<string, unknown> = {
-          "Vch No.": vchNo,
-          "Vch Type": `Sales ${COMPANY_STATE}`,
-          "Date": vchDate,
-          "GST Registration": `${COMPANY_STATE} Registration`,
-          "Bill to Place": "",
-          "Ship to Place": "",
-          "Reference No.": vchNo,
-          "Delivery Note No": "",
-          "Delivery Note Date": "",
-          "Order No": "",
-          "Order Date": "",
-          "Party Name": partyName,
-          "Ledger Group": "Sundry Debtors",
-          "Registration Type": "Regular",
-          "GSTIN No": unit.gstin || "",
-          "Country": country,
-          "State": billingState,
-          "Pincode": pincode,
-          "Address 1": addr1,
-          "Address 2": addr2,
-          "Address 3": addr3,
-          "Cost Center": COMPANY_STATE,
-          "Cost Center Amt": "",
-          "Sales Ledger": salesLedger,
-          "Item Name": itemName,
-          "Stock Group": "Primary",
-          "Client": "Duty",
-          "Maintain Batches": "Yes",
-          "Applicable From": "01-Jul-2017",
-          "HSN Description": `${serviceTypeName} Services`,
-          "HSN": 998525,
-          "IGST Rate": igstRate || gstRate,
-          "CGST Rate": cgstRate || 9,
-          "SGST Rate": sgstRate || 9,
-          "CESS Rate": "",
-          "Tracking No": "",
-          "Order No ": "",
-          "Order Due Date": "",
-          "Godown": "",
-          "Batch": "",
-          "Qty ": qty,
-          "Incluse": "",
-          "Rate": Math.round(rate * 1000000) / 1000000,
-          "Amt": amt,
-          "Additional Ledger": "",
-          "Amount": "",
-          "CGST Ledger": isIntraState ? `${COMPANY_STATE} CGST` : "",
-          "CGST Amt": isIntraState ? cgstAmt : "",
-          "SGST Ledger": isIntraState ? `${COMPANY_STATE} SGST` : "",
-          "SGST Amt": isIntraState ? sgstAmt : "",
-          "IGST Ledger": !isIntraState ? `${COMPANY_STATE} IGST` : "",
-          "IGST Amt": !isIntraState ? igstAmt : "",
-          "CESS Ledger": "",
-          "CESS Amt": "",
-          "Total": total,
-          "Narration": narration,
-          "TALLYIMPORTSTATUS": "",
+        if (billingMode === "lumpsum") return { qty: 1, rate: amt, amount: amt, monthly };
+        return {
+          qty: m.billedDays,
+          rate: m.payrollDays > 0 ? monthly / m.payrollDays : 0,
+          amount: amt,
+          monthly,
         };
-        return cell;
       });
 
-    if (billingRows.length === 0) {
-      // fall back to chooser-based export with empty headers
-      downloadCsv(`Billing File_${end}_${unit.code ?? unitId}`, [{}], columns);
+    if (lines.length === 0) {
+      toast.error("No billable rows for this period yet.");
       return;
     }
-
-    // Skip the chooser — Tally needs a strict .xlsx format.
-    await writeXlsx({
-      filename: `Billing File_${end}_${(unit.code || unitId).toUpperCase()}_${stateCode}`,
-      rows: billingRows,
-      columns,
-    });
+    const stateCode = gstinStateCode(unit.gstin ?? "") || "00";
+    await writeTallyBillingXlsx(
+      `Billing File_${end}_${(unit.code || unitId).toUpperCase()}_${stateCode}`,
+      buildTallyVoucherRows({
+        unit,
+        companyState: COMPANY_STATE,
+        periodStart: start,
+        periodEnd: end,
+        serviceTypeName,
+        lines,
+      }),
+    );
   };
 
   const uploadTallyInvoice = async (file: File) => {
@@ -1568,8 +1428,8 @@ function PayrollUnitPage() {
               Upload Tally Invoice
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="mr-1.5 h-4 w-4" /> Export
+          <Button variant="outline" size="sm" onClick={() => void exportTallyBilling()}>
+            <Download className="mr-1.5 h-4 w-4" /> Tally Export
           </Button>
           <Button variant="outline" size="sm" onClick={exportMisFormat}>
             <Download className="mr-1.5 h-4 w-4" /> MIS Format (XLSX)
