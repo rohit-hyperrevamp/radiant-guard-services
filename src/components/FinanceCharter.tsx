@@ -9,6 +9,7 @@ import { CharterPagination } from "@/components/CharterPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
@@ -18,6 +19,7 @@ import {
   PERIOD_STATUS_QK,
   setMoneyStatus,
   useAttendanceMoneyRealtime,
+  type MoneyStatus,
   type PeriodStatus,
 } from "@/lib/period-status";
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
@@ -129,6 +131,8 @@ export function FinanceCharter({
   activeEmployees,
   filters,
   windowsByUnit,
+  statusFilter = "all",
+  onStatusFilterChange,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -140,6 +144,8 @@ export function FinanceCharter({
   activeEmployees?: number;
   filters?: ReactNode;
   windowsByUnit: Map<string, PayrollWindow>;
+  statusFilter?: "all" | MoneyStatus;
+  onStatusFilterChange?: (value: "all" | MoneyStatus) => void;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -147,7 +153,7 @@ export function FinanceCharter({
   // Search, then paginate, then load money for the visible page only. Contract
   // rates, attendance entries and period statuses are all fetched for these 25
   // units — never for the whole charter.
-  const matchedUnits = useMemo(() => {
+  const searchedUnits = useMemo(() => {
     const term = query.trim().toLowerCase();
     const list = term
       ? units.filter((u) =>
@@ -160,18 +166,10 @@ export function FinanceCharter({
   }, [units, query]);
 
   const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
-  const safePage = Math.min(page, pageCount - 1);
-  useEffect(() => setPage(0), [query, units.length, monthIdx, year]);
-  const pageUnits = useMemo(
-    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
-    [matchedUnits, safePage],
-  );
-  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
   // The stage tile reflects the whole charter, not just the visible page, so
   // windows and period statuses are also fetched (ids + status only — cheap)
-  // for every matched unit.
-  const allUnitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
+  // for every searched unit. This also lets status filtering happen before pagination.
+  const allUnitIds = useMemo(() => searchedUnits.map((u) => u.id), [searchedUnits]);
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
   const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
@@ -179,16 +177,6 @@ export function FinanceCharter({
   // Attendance edits (including overtime) push straight through to these
   // numbers — no refresh, no stale cache.
   useAttendanceMoneyRealtime();
-
-  const periodsByUnit = useMemo(() => {
-    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
-    return out;
-  }, [unitIds, year, monthIdx, windowsByUnit]);
-  const periodKey = useMemo(
-    () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
-    [periodsByUnit],
-  );
 
   const codesQ = useQuery({
     queryKey: ["attendance-codes-charter"],
@@ -199,6 +187,48 @@ export function FinanceCharter({
       return ((data ?? []) as unknown) as CodeRow[];
     },
   });
+
+  const allPeriodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    return out;
+  }, [allUnitIds, year, monthIdx, windowsByUnit]);
+  const allPeriodKey = useMemo(
+    () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [allPeriodsByUnit],
+  );
+  const allStatusQ = useQuery({
+    queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
+    enabled: allUnitIds.length > 0,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
+  });
+
+  const matchedUnits = useMemo(() => {
+    if (mode !== "invoice" || statusFilter === "all") return searchedUnits;
+    return searchedUnits.filter((unit) => {
+      const status = allStatusQ.data?.get(unit.id)?.invoice ?? "open";
+      return status === statusFilter;
+    });
+  }, [allStatusQ.data, mode, searchedUnits, statusFilter]);
+  const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  useEffect(() => setPage(0), [query, statusFilter, units.length, monthIdx, year]);
+  const pageUnits = useMemo(
+    () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [matchedUnits, safePage],
+  );
+  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
+
+  const periodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    return out;
+  }, [unitIds, year, monthIdx, windowsByUnit]);
+  const periodKey = useMemo(
+    () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [periodsByUnit],
+  );
 
   const financeQ = useQuery({
     queryKey: ["finance-charter-contracts", unitIds.join(",")],
@@ -232,22 +262,6 @@ export function FinanceCharter({
     enabled: unitIds.length > 0,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
-  });
-
-  const allPeriodsByUnit = useMemo(() => {
-    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
-    return out;
-  }, [allUnitIds, year, monthIdx, windowsByUnit]);
-  const allPeriodKey = useMemo(
-    () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
-    [allPeriodsByUnit],
-  );
-  const allStatusQ = useQuery({
-    queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
-    enabled: allUnitIds.length > 0,
-    staleTime: 0,
-    queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
   });
 
   const processMutation = useMutation({
@@ -401,15 +415,15 @@ export function FinanceCharter({
     let open = 0;
     let ready = 0;
     let processed = 0;
-    for (const u of matchedUnits) {
+    for (const u of searchedUnits) {
       const status = allStatusQ.data?.get(u.id);
       const st = mode === "invoice" ? status?.invoice : status?.payroll;
       if (st === "processed") processed += 1;
       else if (st === "ready") ready += 1;
       else open += 1;
     }
-    return { total: matchedUnits.length, open, ready, processed };
-  }, [matchedUnits, allStatusQ.data, mode]);
+    return { total: searchedUnits.length, open, ready, processed };
+  }, [searchedUnits, allStatusQ.data, mode]);
 
 
   const exportCsv = () => {
@@ -533,7 +547,7 @@ export function FinanceCharter({
 
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[220px]">
+        <div className="relative min-w-0 basis-full sm:basis-auto sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -542,6 +556,23 @@ export function FinanceCharter({
             className="h-9 rounded-xl pl-9"
           />
         </div>
+        {mode === "invoice" && onStatusFilterChange && (
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => onStatusFilterChange(value as "all" | MoneyStatus)}
+          >
+            <SelectTrigger className="h-9 w-full rounded-xl sm:w-44" aria-label="Invoice status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All invoices</SelectItem>
+              <SelectItem value="ready">Invoice ready</SelectItem>
+              <SelectItem value="open">Invoice open</SelectItem>
+              <SelectItem value="processed">Invoice processed</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        <div className="hidden flex-1 sm:block" />
         <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
