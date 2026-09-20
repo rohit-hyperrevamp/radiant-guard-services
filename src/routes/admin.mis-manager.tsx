@@ -222,11 +222,29 @@ function MisManagerPage() {
           .update({ name: name.trim(), customer_id: customerId } as never)
           .eq("id", editing.id);
         if (error) throw error;
-        const { error: delErr } = await supabase
-          .from("mis_template_columns" as never)
-          .delete()
-          .eq("template_id", editing.id);
-        if (delErr) throw delErr;
+        // Columns that are no longer part of the format go away with their values.
+        const keptIds = new Set(enabled.map((d) => d.id).filter(Boolean) as string[]);
+        const dropped = editing.columns.filter((c) => !keptIds.has(c.id)).map((c) => c.id);
+        if (dropped.length > 0) {
+          const { error: delErr } = await supabase
+            .from("mis_template_columns" as never)
+            .delete()
+            .in("id", dropped);
+          if (delErr) throw delErr;
+        }
+        // A client attribute switched off is removed from every client of this
+        // organization, together with the values already entered against it.
+        const turnedOff = editing.columns
+          .filter((c) => c.client_attribute === true)
+          .filter((c) => enabled.some((d) => d.id === c.id && !d.client_attribute))
+          .map((c) => c.id);
+        if (turnedOff.length > 0) {
+          const { error: valErr } = await supabase
+            .from("mis_unit_values" as never)
+            .delete()
+            .in("column_id", turnedOff);
+          if (valErr) throw valErr;
+        }
       } else {
         const { data, error } = await supabase
           .from("mis_templates" as never)
@@ -237,23 +255,42 @@ function MisManagerPage() {
         templateId = String((data as { id: string }).id);
       }
 
-      const rows = enabled.map((d, i) => ({
-        template_id: templateId,
-        header: d.header.trim(),
-        sort_order: i + 1,
-        source: d.source,
-        system_key: d.source === "system" ? d.system_key : null,
-        enabled: true,
-      }));
-      const { error: insErr } = await supabase.from("mis_template_columns" as never).insert(rows as never);
-      if (insErr) throw insErr;
+      let order = 0;
+      for (const d of enabled) {
+        order += 1;
+        const payload = {
+          template_id: templateId,
+          header: d.header.trim(),
+          sort_order: order,
+          source: d.source,
+          system_key: d.source === "system" ? d.system_key : null,
+          enabled: true,
+          client_attribute: d.client_attribute === true,
+        };
+        if (d.id) {
+          const { error: upErr } = await supabase
+            .from("mis_template_columns" as never)
+            .update(payload as never)
+            .eq("id", d.id);
+          if (upErr) throw upErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from("mis_template_columns" as never)
+            .insert(payload as never);
+          if (insErr) throw insErr;
+        }
+      }
 
       void logActivity({
         module: MODULE,
         action: editing ? "update" : "create",
         entityType: "mis_templates",
         entityLabel: name.trim(),
-        details: { customerId, columns: rows.length },
+        details: {
+          customerId,
+          columns: enabled.length,
+          clientAttributes: enabled.filter((d) => d.client_attribute).length,
+        },
       });
     },
     onSuccess: () => {
