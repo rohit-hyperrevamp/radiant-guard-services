@@ -366,7 +366,17 @@ function MigrationUtilityPage() {
       if (!payload) {
         const imageDataUrls: string[] = [];
         for (const file of pdfs) imageDataUrls.push(...(await pdfToImageDataUrls(file)));
-        for (const file of imageFiles) imageDataUrls.push(await fileToDataUrl(file));
+        // Photos go through the document scanner first: cropped to the sheet,
+        // straightened and sharpened, which lifts read accuracy on desk shots.
+        for (const file of imageFiles) {
+          try {
+            const scan = await scanDocument(file);
+            if (scan.quality.verdict === "poor") toast.warning(`${file.name}: ${scan.quality.hint}`);
+            imageDataUrls.push(scan.dataUrl);
+          } catch {
+            imageDataUrls.push(await fileToDataUrl(file));
+          }
+        }
         if (!imageDataUrls.length) throw new Error("Unsupported file type");
         payload = { imageDataUrls: imageDataUrls.slice(0, 12) };
       }
