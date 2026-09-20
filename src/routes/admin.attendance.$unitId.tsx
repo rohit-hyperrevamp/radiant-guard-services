@@ -1649,6 +1649,10 @@ function MusterRollPage() {
   // before it is read, and the person is told when a photo is too poor to use.
   const [preparingScan, setPreparingScan] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  // The camera opens as its own dialog, so the upload dialog is hidden while it
+  // is on screen. Without this flag the hide would wipe the pages just captured.
+  const skipUploadResetRef = useRef(false);
+  const autoReadRef = useRef(false);
   const [useCleaned, setUseCleaned] = useState(true);
 
   // ---- Reading progress (keeps running after the dialog is closed) ----
@@ -1809,6 +1813,13 @@ function MusterRollPage() {
     }
   };
 
+  /** Hide the upload dialog (keeping its state) and open the camera scanner. */
+  const openCameraScan = () => {
+    skipUploadResetRef.current = true;
+    setUploadOpen(false);
+    setCameraOpen(true);
+  };
+
   /** Accept pages captured with the live camera scanner. */
   const onCameraCapture = (captured: Array<{ name: string; dataUrl: string; scan: ScanResult }>) => {
     if (!captured.length) return;
@@ -1827,6 +1838,8 @@ function MusterRollPage() {
     setOcrSummary(null);
     setUploadReadyToContinue(false);
     setUploadOpen(true);
+    // Start reading straight away — the person already confirmed the scan.
+    autoReadRef.current = true;
   };
 
   /** Read every selected photo one after another into this muster. */
@@ -2380,6 +2393,16 @@ function MusterRollPage() {
     return processAttendanceImages();
   };
 
+  // Photos captured with the camera scanner start reading on their own, so the
+  // progress bar appears immediately after "Use this scan".
+  useEffect(() => {
+    if (!autoReadRef.current) return;
+    if (!uploadOpen || processingOcr || preparingScan || !uploadImages.length) return;
+    autoReadRef.current = false;
+    void processAttendanceImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadOpen, uploadImages, processingOcr, preparingScan]);
+
 
 
   const cellKey = (rowKey: string, date: string) => `${rowKey}|${date}`;
@@ -2777,7 +2800,7 @@ function MusterRollPage() {
 
 
       {/* Upload Attendance dialog */}
-      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
+      <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o && skipUploadResetRef.current) { skipUploadResetRef.current = false; setUploadOpen(false); return; } setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload attendance sheet</DialogTitle>
@@ -2805,7 +2828,7 @@ function MusterRollPage() {
                   <span>Upload images or Excel</span>
                   <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
                 </button>
-                <Button variant="outline" className="w-full" onClick={() => setCameraOpen(true)}>
+                <Button variant="outline" className="w-full" onClick={openCameraScan}>
                   <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
                 </Button>
                 <p className="text-[11px] text-muted-foreground">
@@ -2862,7 +2885,7 @@ function MusterRollPage() {
                     {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
                   </span>
                   <span className="flex items-center gap-3">
-                    <button type="button" className="text-primary hover:underline" onClick={() => setCameraOpen(true)}>
+                    <button type="button" className="text-primary hover:underline" onClick={openCameraScan}>
                       Scan with camera
                     </button>
                     <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
@@ -2934,7 +2957,16 @@ function MusterRollPage() {
         </DialogContent>
       </Dialog>
 
-      <DocumentScanCamera open={cameraOpen} onOpenChange={setCameraOpen} onCapture={onCameraCapture} />
+      <DocumentScanCamera
+        open={cameraOpen}
+        onOpenChange={(o) => {
+          setCameraOpen(o);
+          // Cancelling the camera must bring the upload dialog back, never drop
+          // the person on the attendance screen with nothing to do.
+          if (!o) setUploadOpen(true);
+        }}
+        onCapture={onCameraCapture}
+      />
 
 
       {/* Approval workflow */}
