@@ -664,7 +664,7 @@ export function AttendanceCharter({
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border/60 text-[10px] uppercase tracking-wide text-muted-foreground">
-                                <th className="px-3 py-2 text-left font-medium">Employee</th>
+                                <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium">Employee</th>
                                 <th className="px-2 py-2 text-right font-medium">Shift</th>
                                 <th className="px-2 py-2 text-right font-medium">Days</th>
                                 <th className="px-2 py-2 text-right font-medium">ED hrs</th>
@@ -676,7 +676,7 @@ export function AttendanceCharter({
                             <tbody>
                               {r.people.map((p) => (
                                 <tr key={p.id} className="border-t border-border/50 hover:bg-muted/40">
-                                  <td className="px-3 py-1.5 font-medium">{p.name}</td>
+                                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium">{p.name}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{p.shiftHours}h</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.presentDays}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">

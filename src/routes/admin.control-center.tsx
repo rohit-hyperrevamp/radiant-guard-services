@@ -3,6 +3,16 @@ import { ArrowRight, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Briefcas
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
+  head: () => ({
+    meta: [
+      { title: "Control Center | Radiant Guard Services" },
+      { name: "description", content: "Manage company settings, operational rules, permissions, and workflows." },
+      { property: "og:title", content: "Control Center | Radiant Guard Services" },
+      { property: "og:description", content: "Manage company settings, operational rules, permissions, and workflows." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ControlCenterDashboard,
 });
 
@@ -209,7 +219,7 @@ const tiles: Tile[] = [
 
 function ControlCenterDashboard() {
   return (
-    <div>
+    <div className="space-y-3 sm:space-y-5">
       <div className="relative">
         <PageHeader
           title="Control Center"
@@ -220,30 +230,30 @@ function ControlCenterDashboard() {
           to="/admin/system-logs"
           aria-label="System Logs"
           title="System Logs"
-          className="group absolute right-0 top-0 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground/80 transition-colors hover:border-accent/40 hover:bg-accent/10 hover:text-accent"
+          className="mobile-glass-control group absolute right-1 top-1 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/80 text-foreground/80 transition-colors hover:border-accent/40 hover:bg-accent/10 hover:text-accent sm:right-0 sm:top-0 sm:w-auto sm:gap-2 sm:rounded-full sm:px-3 sm:text-xs"
         >
           <Settings className="h-4 w-4 transition-transform group-hover:rotate-45" />
           <span className="hidden sm:inline">System Logs</span>
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-3">
         {tiles.map((tile) => (
           <Link
             key={tile.to}
             to={tile.to}
-            className="group relative flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-accent/40 hover:bg-accent/5"
+            className="group relative grid min-h-[88px] min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-xl border border-border bg-card p-2.5 transition-colors hover:border-accent/40 hover:bg-accent/5 sm:flex sm:min-h-0 sm:flex-col sm:items-stretch sm:gap-3 sm:p-4"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent sm:h-11 sm:w-11 sm:rounded-xl">
               <tile.icon className="h-5 w-5" />
             </div>
-            <div>
-              <div className="font-display text-base font-bold tracking-tight text-foreground">
+            <div className="min-w-0">
+              <div className="line-clamp-2 font-display text-[13px] font-medium leading-tight text-foreground sm:text-base">
                 {tile.label}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{tile.description}</p>
+              <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{tile.description}</p>
             </div>
-            <div className="mt-auto inline-flex items-center gap-1 text-xs font-semibold text-accent">
+            <div className="col-span-2 hidden items-center gap-1 text-xs font-medium text-accent sm:mt-auto sm:inline-flex">
               Open
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </div>

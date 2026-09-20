@@ -258,6 +258,6 @@
 - [x] Keep scanning, workflow status, payroll periods, roster mapping, desktop Form XVI, and print behavior intact.
 - [x] Validate TypeScript and formatting without changing attendance rules or production data.
 ## Full mobile screen audit
-- [ ] Audit Control Center, Attendance, Employee/Candidate, and Client/Organization screens at phone widths.
-- [ ] Normalize page gutters, compact actions, filter rows, data cards, forms, dialogs, and tables without changing workflows.
-- [ ] Validate TypeScript and formatting; verify representative pages where authentication permits.
+- [x] Audit Control Center, Attendance, Employee/Candidate, and Client/Organization screens at phone widths.
+- [x] Normalize page gutters, compact actions, filter rows, data cards, forms, dialogs, and tables without changing workflows.
+- [x] Validate TypeScript and formatting; production visual verification follows deployment.

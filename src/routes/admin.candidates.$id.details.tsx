@@ -129,6 +129,16 @@ export const Route = createFileRoute("/admin/candidates/$id/details")({
   validateSearch: (search: Record<string, unknown>): { section?: string } => ({
     section: typeof search.section === "string" ? search.section : undefined,
   }),
+  head: () => ({
+    meta: [
+      { title: "Employee Profile | Radiant Guard Services" },
+      { name: "description", content: "Review and update employee onboarding, compliance, and assignment details." },
+      { property: "og:title", content: "Employee Profile | Radiant Guard Services" },
+      { property: "og:description", content: "Review and update employee onboarding, compliance, and assignment details." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CandidateDetailsPage,
 });
 
@@ -305,13 +315,13 @@ function CandidateDetailsPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+      <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.history.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2">
               <h1 className="truncate text-xl font-semibold">{form.full_name || "Candidate"}</h1>
               <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Edit candidate" />
               {form.candidate_code && (
@@ -326,7 +336,7 @@ function CandidateDetailsPage() {
             </p>
           </div>
         </div>
-        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+        <div className="mobile-glass-bar scrollbar-hide sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 -mx-2 flex max-w-[calc(100%+1rem)] flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-xl border border-border/60 bg-card/85 p-2 shadow-lg sm:static sm:mx-0 sm:max-w-full sm:flex-wrap sm:justify-end sm:overflow-visible sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           {form.status === "pending" && (
             <Button
               size="sm"
@@ -390,7 +400,7 @@ function CandidateDetailsPage() {
 
       <div className="space-y-4">
         {/* Section tabs (horizontal) */}
-        <nav aria-label="Candidate sections" className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-xl border bg-card p-1.5">
+        <nav aria-label="Candidate sections" className="mobile-glass-surface scrollbar-hide sticky top-[52px] z-10 flex max-w-full gap-1 overflow-x-auto rounded-xl border bg-card/85 p-1">
           {SECTIONS.filter(
             (s) =>
               s.id !== "esic_card" ||
@@ -419,7 +429,7 @@ function CandidateDetailsPage() {
         </nav>
 
         {/* Content */}
-        <section id="candidate-detail-content" className="scroll-mt-20 rounded-xl border bg-card p-4 sm:p-6">
+        <section id="candidate-detail-content" className="scroll-mt-20 rounded-xl border bg-card p-3 sm:p-6">
           {active === "basic" && <BasicSection form={form} />}
           {active === "units" && <UnitMappingSection candidateId={id} primaryUnitId={form.unit_id ?? null} />}
           {active === "physical" && (

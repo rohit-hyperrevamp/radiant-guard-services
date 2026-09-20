@@ -40,6 +40,16 @@ import {
 } from "@/lib/rbac";
 
 export const Route = createFileRoute("/admin/rbac")({
+  head: () => ({
+    meta: [
+      { title: "Access Control | Radiant Guard Services" },
+      { name: "description", content: "Manage role permissions across application modules." },
+      { property: "og:title", content: "Access Control | Radiant Guard Services" },
+      { property: "og:description", content: "Manage role permissions across application modules." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: RBACPage,
 });
 
@@ -266,7 +276,7 @@ function RBACPage() {
       />
 
       {/* Role chip selector */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      <div className="scrollbar-hide -mx-2 mb-3 flex flex-nowrap items-center gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:mb-5 sm:flex-wrap sm:overflow-visible sm:px-0">
         {roles.map((r) => {
           const active = r.key === activeRole;
           return (
@@ -289,7 +299,7 @@ function RBACPage() {
       </div>
 
       {/* Active role banner */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+       <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:rounded-2xl sm:p-4">
         <div className="flex items-center gap-3">
           <div
             className={cn(
@@ -311,7 +321,7 @@ function RBACPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="scrollbar-hide -mx-1 flex max-w-[calc(100%+0.5rem)] items-center gap-1.5 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0">
           {!isSuper && (
             <>
               <Button
@@ -367,9 +377,9 @@ function RBACPage() {
       </div>
 
       {/* Grid */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card sm:rounded-2xl">
         {/* Header row */}
-        <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,96px)] items-center gap-2 border-b border-border bg-secondary/40 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="grid min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 border-b border-border bg-secondary/40 px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:py-3">
           <div>Module</div>
           {PERMISSION_ACTIONS.map((a) => {
             const Icon = ACTION_META[a].icon;
@@ -392,7 +402,7 @@ function RBACPage() {
             return (
               <div key={mod.key}>
                 {/* Parent row */}
-                <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,96px)] items-center gap-2 px-4 py-3 hover:bg-secondary/30">
+                <div className="grid min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 px-3 py-2.5 hover:bg-secondary/30 sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:py-3">
                   <div className="flex items-center gap-2 min-w-0">
                     {hasChildren ? (
                       <button
@@ -456,7 +466,7 @@ function RBACPage() {
                       return (
                         <div
                           key={sub.key}
-                          className="grid grid-cols-[minmax(0,1fr)_repeat(4,96px)] items-center gap-2 px-4 py-2 pl-14 hover:bg-secondary/40"
+                           className="grid min-w-[590px] grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center gap-2 px-3 py-2 pl-10 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1fr)_repeat(4,96px)] sm:px-4 sm:pl-14"
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-muted-foreground">

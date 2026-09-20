@@ -655,6 +655,16 @@ export const Route = createFileRoute("/admin/employees")({
     tab: search.tab === "candidate" || search.tab === "employee" ? search.tab : undefined,
     rehire: typeof search.rehire === "string" ? search.rehire : undefined,
   }),
+  head: () => ({
+    meta: [
+      { title: "Employees and Candidates | Radiant Guard Services" },
+      { name: "description", content: "Onboard candidates and manage employee records and assignments." },
+      { property: "og:title", content: "Employees and Candidates | Radiant Guard Services" },
+      { property: "og:description", content: "Onboard candidates and manage employee records and assignments." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: EmployeesPage,
 });
 
@@ -4305,7 +4315,7 @@ function EmployeesPage() {
           <div
             key={s.label}
             className={cn(
-              "group relative w-[38vw] min-w-[132px] max-w-[160px] shrink-0 snap-start overflow-hidden rounded-xl border p-3 shadow-sm transition-all hover:shadow-md sm:p-4 md:w-auto md:min-w-0 md:max-w-none",
+              "group relative w-[36vw] min-w-[124px] max-w-[150px] shrink-0 snap-start overflow-hidden rounded-xl border p-2.5 shadow-sm transition-all hover:shadow-md sm:p-4 md:w-auto md:min-w-0 md:max-w-none",
               isAlert
                 ? "border-rose-300/70 bg-rose-50/70 backdrop-blur-md"
                 : s.accent
@@ -4337,9 +4347,6 @@ function EmployeesPage() {
               {s.value}
               {suffix && <span className="ml-1 text-xs font-medium text-muted-foreground">{suffix}</span>}
             </p>
-            {(isAlert || s.accent) && (
-              <div className={cn("pointer-events-none absolute -right-4 -bottom-4 h-16 w-16 rounded-full blur-2xl", isAlert ? "bg-rose-200/40" : "bg-amber-200/30")} />
-            )}
           </div>
 
           );
@@ -4541,7 +4548,7 @@ function EmployeesPage() {
 
         {/* Filter bar (Employees tab only) */}
         {tab === "employee" && (
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-2.5 shadow-sm sm:p-3">
+          <div className="grid grid-cols-2 items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-2 shadow-sm sm:flex sm:flex-wrap sm:rounded-2xl sm:p-3">
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>
@@ -4643,7 +4650,7 @@ function EmployeesPage() {
             >
               Reset
             </Button>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="col-span-2 ml-auto flex items-center gap-2 sm:col-span-1">
               <div className="flex rounded-lg border border-border/60 bg-secondary/40 p-0.5">
                 <button
                   type="button"
