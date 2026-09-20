@@ -1189,9 +1189,11 @@ function PayrollUnitPage() {
       const regular = r2(m.perDay * workingDays);
       const otBilling = r2(m.perDay * otDays);
       const totalBilling = r2(regular + otBilling + otAmount);
-      const cgst = isIntraStateCurrent ? r2(totalBilling * (GST_RATE / 2 / 100)) : 0;
-      const sgst = isIntraStateCurrent ? r2(totalBilling * (GST_RATE / 2 / 100)) : 0;
-      const igst = isIntraStateCurrent ? 0 : r2(totalBilling * (GST_RATE / 100));
+      // The MIS always shows both state-tax components and their combined GST.
+      // Grand Total adds GST once: CGST + SGST, which equals IGST.
+      const cgst = r2(totalBilling * 0.09);
+      const sgst = r2(totalBilling * 0.09);
+      const igst = r2(cgst + sgst);
       const row: Record<string, unknown> = {
         "Sr. No": i + 1,
         "Invoice No": invoiceNo,
@@ -1221,7 +1223,7 @@ function PayrollUnitPage() {
         "CGST @9%": cgst,
         "SGST @9%": sgst,
         "IGST @18%": igst,
-        "Grand Total": r2(totalBilling + cgst + sgst + igst),
+        "Grand Total": r2(totalBilling + igst),
       };
       return row;
     });
