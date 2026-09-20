@@ -38,6 +38,7 @@ type TemplateRow = {
   name: string;
   enabled: boolean;
   row_grain: string | null;
+  mis_applicable: boolean | null;
   columns: ColumnRow[];
 };
 type ColumnRow = {
@@ -78,7 +79,7 @@ function useTemplates() {
     queryFn: async (): Promise<TemplateRow[]> => {
       const { data, error } = await supabase
         .from("mis_templates" as never)
-        .select("id, customer_id, name, enabled, row_grain")
+        .select("id, customer_id, name, enabled, row_grain, mis_applicable")
         .order("created_at");
       if (error) throw error;
       const templates = (data ?? []) as Array<Omit<TemplateRow, "columns">>;
@@ -141,6 +142,7 @@ function MisManagerPage() {
   const [customerId, setCustomerId] = useState("");
   const [name, setName] = useState("");
   const [rowGrain, setRowGrain] = useState<"employee" | "site">("employee");
+  const [misApplicable, setMisApplicable] = useState(true);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [valuesFor, setValuesFor] = useState<TemplateRow | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -167,6 +169,7 @@ function MisManagerPage() {
     setCustomerId("");
     setName("");
     setRowGrain("employee");
+    setMisApplicable(true);
     setDrafts(MIS_SYSTEM_FIELDS.map<Draft>((f) => ({
       header: f.label, source: "system", system_key: f.key,
       enabled: MIS_STANDARD_FIELD_KEYS.includes(f.key), client_attribute: false,
@@ -183,6 +186,7 @@ function MisManagerPage() {
     setCustomerId(t.customer_id);
     setName(t.name);
     setRowGrain(t.row_grain === "site" ? "site" : "employee");
+    setMisApplicable(t.mis_applicable !== false);
     setDrafts(t.columns.map<Draft>((c) => ({
       id: c.id, header: c.header, source: c.source, system_key: c.system_key,
       enabled: c.enabled, client_attribute: c.client_attribute === true,
@@ -217,15 +221,16 @@ function MisManagerPage() {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!customerId) throw new Error("Choose an organization");
-      if (!name.trim()) throw new Error("Give the format a name");
-      const enabled = drafts.filter((d) => d.enabled && d.header.trim());
-      if (enabled.length === 0) throw new Error("Select at least one column");
+      if (!misApplicable && !name.trim()) setName("MIS not applicable");
+      if (misApplicable && !name.trim()) throw new Error("Give the format a name");
+      const enabled = misApplicable ? drafts.filter((d) => d.enabled && d.header.trim()) : [];
+      if (misApplicable && enabled.length === 0) throw new Error("Select at least one column");
 
       let templateId = editing?.id ?? "";
       if (editing) {
         const { error } = await supabase
           .from("mis_templates" as never)
-          .update({ name: name.trim(), customer_id: customerId, row_grain: rowGrain } as never)
+          .update({ name: name.trim(), customer_id: customerId, row_grain: rowGrain, mis_applicable: misApplicable } as never)
           .eq("id", editing.id);
         if (error) throw error;
         // Columns that are no longer part of the format go away with their values.
@@ -254,7 +259,7 @@ function MisManagerPage() {
       } else {
         const { data, error } = await supabase
           .from("mis_templates" as never)
-          .insert({ customer_id: customerId, name: name.trim(), enabled: true, row_grain: rowGrain } as never)
+          .insert({ customer_id: customerId, name: name.trim(), enabled: true, row_grain: rowGrain, mis_applicable: misApplicable } as never)
           .select("id")
           .single();
         if (error) throw error;
