@@ -1184,13 +1184,13 @@ function InlinePicker({
         <Button
           variant="outline"
           size="sm"
-          className="h-8 w-[150px] justify-start rounded-lg border-border/60 bg-card px-2 text-left text-xs font-normal"
+          className="h-9 min-w-0 flex-1 justify-start rounded-xl border-border/60 bg-card px-2.5 text-left text-xs font-normal sm:w-[150px] sm:flex-none"
           title={current?.label ?? placeholder}
         >
           <span className={cn("truncate", !current && "text-muted-foreground")}>{current?.label ?? placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[268px] p-0">
+      <PopoverContent align="start" className="w-[min(268px,calc(100vw-1rem))] p-0">
         <Command>
           <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
           <CommandList>
@@ -5298,14 +5298,14 @@ function ScopeAddDialog({
           <DialogDescription>Pick a scope type, then select one or more entries. Guards in the chosen scope get linked automatically.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-4 gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1 sm:grid-cols-4">
             {(["state","customer","branch","unit"] as ScopeType[]).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setScopeType(t)}
                 className={cn(
-                  "rounded-md px-2 py-1.5 text-xs font-medium transition",
+                  "min-h-9 rounded-lg px-2 py-1.5 text-xs font-medium transition",
                   scopeType === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -8838,7 +8838,7 @@ function UnitPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[420px] p-0"
+        className="w-[min(420px,calc(100vw-1rem))] p-0"
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => {

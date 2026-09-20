@@ -2720,16 +2720,16 @@ function MusterRollPage() {
         }
       `}</style>
       <div className="rounded-2xl border border-border/60 bg-card/95 p-3 shadow-sm backdrop-blur-xl sm:p-4 print:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
           <Link
             to="/admin/attendance"
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:gap-2">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-9 w-[110px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 min-w-0 w-full rounded-xl text-sm sm:w-[110px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MONTH_NAMES.map((m, i) => {
                   if (contractStartDate) {
@@ -2742,7 +2742,7 @@ function MusterRollPage() {
               </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-9 w-[86px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-[84px] rounded-xl text-sm sm:w-[86px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {[year - 2, year - 1, year, year + 1].map((y) => {
                   if (contractStartDate) {

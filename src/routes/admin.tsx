@@ -768,7 +768,7 @@ function AdminLayout() {
       {/* Mobile top bar — compact native-app chrome */}
       <header data-app-header className={cn(
         "sticky top-0 z-20 grid min-h-[48px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1 animate-slide-in-top safe-top safe-x",
-        "border-b border-border/50 bg-background/95 backdrop-blur-xl",
+        "border-b border-border/50 bg-card/90 backdrop-blur-2xl",
         !nativeShell && "lg:hidden",
       )}>
         <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
@@ -777,21 +777,21 @@ function AdminLayout() {
           </div>
           <div className="truncate text-[14px] font-semibold leading-tight text-foreground">Radiant</div>
         </Link>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center">
           <NotificationBell />
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/10 text-foreground outline-none ring-1 ring-border/60 transition focus-visible:outline-none hover:ring-accent"
+            className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/15"
           >
             {me.photoUrl ? (
               <img
                 src={me.photoUrl}
                 alt={me.fullName || "Profile"}
-                className="absolute inset-0 h-full w-full object-cover object-center"
+                className="absolute inset-1.5 h-8 w-8 rounded-full object-cover object-center ring-1 ring-border/60"
               />
             ) : (
-              <span className="text-[12px] font-bold">{me.initials || "U"}</span>
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-accent/10 text-[12px] font-bold ring-1 ring-border/60">{me.initials || "U"}</span>
             )}
           </Link>
         </div>
@@ -811,7 +811,7 @@ function AdminLayout() {
           <aside
             className={cn(
               "absolute inset-x-0 bottom-0 flex max-h-[86dvh] flex-col overflow-hidden",
-              "rounded-t-3xl border-t border-border bg-card shadow-2xl",
+              "rounded-t-[28px] border-t border-border bg-card shadow-2xl",
               "animate-in slide-in-from-bottom duration-300 ease-out",
               "safe-bottom",
             )}
@@ -844,13 +844,13 @@ function AdminLayout() {
                             className={cn(
                                "group relative flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
-                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                                : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
+                                ? "border-accent/20 bg-accent/10 text-accent"
+                                : "border-border/60 bg-secondary/45 text-foreground hover:bg-secondary",
                             )}
                           >
                             <span className={cn(
                               "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10",
-                              active ? "text-primary-foreground" : "text-primary",
+                              "text-accent",
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
@@ -889,13 +889,13 @@ function AdminLayout() {
                             className={cn(
                                "group relative flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               t.active
-                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                                : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
+                                ? "border-accent/20 bg-accent/10 text-accent"
+                                : "border-border/60 bg-secondary/45 text-foreground hover:bg-secondary",
                             )}
                           >
                             <span className={cn(
                               "grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10",
-                              t.active ? "text-primary-foreground" : "text-primary",
+                               "text-accent",
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
@@ -917,7 +917,7 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(76px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(82px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
 
 
         <div className="mx-auto min-w-0 max-w-[1500px]">
