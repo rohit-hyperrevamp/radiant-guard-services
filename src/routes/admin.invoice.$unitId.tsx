@@ -1143,19 +1143,13 @@ function PayrollUnitPage() {
     const zone = (unit as { zone?: string | null } | null | undefined)?.zone ?? "";
     const monthDays = periodDates.length;
 
-    const headers = [
-      "Sr. No", "Invoice No", "Invoice Date", "Emp Code", "Employee Name",
-      "Regular/ Reliever Guard", "DOJ", "Entity", "Designation", "Location/Branch Name",
-      "State", "Branch SAP Code", "Zone", "Month Days", "Month Rate",
-      "Billing Rate", "Billing Rate (Per Day)", "OT Rate", "Working days",
-      "OT and Night duties", "OT Amount", "Working days Billing with OT",
-      "Total Regular Billing Amt", "OT & Night Duty Billing Amt", "Total Billing Amt",
-      "CGST @9%", "SGST @9%", "IGST @18%", "Grand Total",
-    ];
-    const columns = headers.map((h) => ({ key: h, header: h }));
+    // Columns, order and headings come from the organization's MIS format
+    // (Control Center → MIS); custom columns print the value saved for this site.
+    const template = await loadMisTemplateForCustomer(unit?.customer_id ?? null);
+    const unitValues = template ? await loadMisUnitValues(template.id, [unitId]) : undefined;
 
     const billable = rows.filter((r) => r.wages && r.resource);
-    const dataRows = billable.map((r, i) => {
+    const sourceRows = billable.map((r, i) => {
       const m = invoiceMathFor(r);
       const otDays = Math.round((r.totals.otDays ?? 0) * 100) / 100;
       const workingDays = Math.round(Math.max(0, (m.billedDays ?? 0) - otDays) * 100) / 100;
