@@ -257,3 +257,7 @@
 - [x] Add one-tap attendance codes, employee selection, bulk marking, and compact Extra Duty entry.
 - [x] Keep scanning, workflow status, payroll periods, roster mapping, desktop Form XVI, and print behavior intact.
 - [x] Validate TypeScript and formatting without changing attendance rules or production data.
+## Full mobile screen audit
+- [ ] Audit Control Center, Attendance, Employee/Candidate, and Client/Organization screens at phone widths.
+- [ ] Normalize page gutters, compact actions, filter rows, data cards, forms, dialogs, and tables without changing workflows.
+- [ ] Validate TypeScript and formatting; verify representative pages where authentication permits.
