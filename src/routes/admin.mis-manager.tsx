@@ -554,7 +554,7 @@ function MisManagerPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
             {!readOnly && canEdit && (
-              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              <Button onClick={() => void requestSave()} disabled={saveMut.isPending}>
                 {saveMut.isPending ? "Saving…" : "Save format"}
               </Button>
             )}
