@@ -220,14 +220,14 @@ const DialogContent = React.forwardRef<
           ref={handleRef}
           data-pristine={pristine ? "true" : "false"}
           className={cn(
-            "dialog-content-centered fixed left-[50%] top-[50%] z-50 grid w-[calc(100vw-1.5rem)] max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain gap-4 rounded-2xl border border-border/60 bg-card text-card-foreground p-4 sm:p-6 shadow-[0_24px_60px_-15px_rgba(15,23,42,0.25)] data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out sm:rounded-xl",
+            "dialog-content-centered fixed left-0 top-0 z-50 grid h-[100dvh] w-full max-w-none overflow-y-auto overscroll-contain gap-3 border-0 bg-card text-card-foreground p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] data-[state=open]:animate-none data-[state=closed]:animate-none sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-[calc(100vw-1.5rem)] sm:max-w-lg sm:max-h-[calc(100dvh-1.5rem)] sm:gap-4 sm:rounded-xl sm:border sm:border-border/60 sm:p-6 sm:shadow-[0_24px_60px_-15px_rgba(15,23,42,0.25)] sm:data-[state=open]:animate-dialog-in sm:data-[state=closed]:animate-dialog-out",
             responsive && "dialog-responsive",
             className,
           )}
           {...props}
         >
           {children}
-          <DialogPrimitive.Close data-dialog-close className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-border/70 bg-card text-foreground shadow-sm ring-offset-background transition hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <DialogPrimitive.Close data-dialog-close className="absolute right-2.5 top-[max(0.625rem,env(safe-area-inset-top))] z-10 grid h-9 w-9 place-items-center rounded-full border border-border/70 bg-card text-foreground shadow-sm ring-offset-background transition hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none sm:right-3 sm:top-3 sm:h-8 sm:w-8">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
@@ -239,14 +239,14 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div data-slot="dialog-header" className={cn("flex flex-col space-y-1.5 text-left", className)} {...props} />
+  <div data-slot="dialog-header" className={cn("flex flex-col space-y-1 border-b border-border/60 pb-2.5 pr-10 text-left sm:border-0 sm:pb-0 sm:pr-0", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     data-slot="dialog-footer"
-    className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+    className={cn("sticky bottom-0 -mx-3 mt-auto flex flex-row gap-1.5 border-t border-border/60 bg-card px-3 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] [&>*]:min-w-0 [&>*]:flex-1 sm:static sm:mx-0 sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 sm:[&>*]:flex-none", className)}
     {...props}
   />
 );
@@ -259,7 +259,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     data-slot="dialog-title"
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn("text-base font-semibold leading-tight sm:text-lg", className)}
     {...props}
   />
 ));
@@ -272,7 +272,7 @@ const DialogDescription = React.forwardRef<
   <DialogPrimitive.Description
     data-slot="dialog-description"
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("hidden text-sm text-muted-foreground sm:block", className)}
     {...props}
   />
 ));

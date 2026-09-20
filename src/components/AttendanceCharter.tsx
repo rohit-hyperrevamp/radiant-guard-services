@@ -429,7 +429,7 @@ export function AttendanceCharter({
   }, [rows]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <CharterTileGrid>
         <CharterTile
           label="Organizations"
@@ -490,8 +490,8 @@ export function AttendanceCharter({
       {filters}
 
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 basis-full sm:basis-auto sm:w-72">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
+        <div className="relative min-w-0 sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -502,7 +502,7 @@ export function AttendanceCharter({
         </div>
         {onStatusFilterChange && (
           <Select value={statusFilter} onValueChange={(value) => onStatusFilterChange(value as "all" | "open" | "approved")}>
-            <SelectTrigger className="h-9 w-full rounded-xl sm:w-52" aria-label="Attendance status">
+            <SelectTrigger className="h-9 w-[142px] rounded-lg sm:w-52 sm:rounded-xl" aria-label="Attendance status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -513,7 +513,7 @@ export function AttendanceCharter({
           </Select>
         )}
         <div className="hidden flex-1 sm:block" />
-        <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
+        <Button variant="outline" className="col-span-2 h-9 w-fit rounded-lg sm:rounded-xl" onClick={exportCsv}>
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
       </div>
@@ -546,7 +546,7 @@ export function AttendanceCharter({
                     to="/admin/attendance/$unitId"
                     params={{ unitId: r.unit.id }}
                     search={{ month: monthIdx, year, start: r.period.start, end: r.period.end }}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
+                    className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
                   >
                     <Dial value={r.mtdPct} />
                     <div className="min-w-0 flex-1">
@@ -554,7 +554,7 @@ export function AttendanceCharter({
                         <span className="truncate text-sm font-semibold group-hover:text-primary">
                           {r.unit.name || r.unit.code}
                         </span>
-                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="hidden rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
                           {r.unitShift}h shift
                         </span>
                         <AttendanceStatusBadge status={r.status.attendance} />
@@ -575,7 +575,7 @@ export function AttendanceCharter({
                           />
                         </div>
                       )}
-                      <div className="truncate text-xs text-muted-foreground">
+                      <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
                         {r.unit.customer_name} · {r.contractCode}
                       </div>
                       <div className="mt-1.5 flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
@@ -623,7 +623,7 @@ export function AttendanceCharter({
                 </div>
 
                 {isOpen && (
-                  <div className="space-y-4 border-t border-border/60 bg-muted/25 px-3 py-3 sm:px-4">
+                  <div className="space-y-3 border-t border-border/60 bg-muted/25 px-2.5 py-2.5 sm:space-y-4 sm:px-4 sm:py-3">
                     {r.lines.length > 0 && (
                       <div>
                         <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
