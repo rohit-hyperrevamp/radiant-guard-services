@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { useCurrentPermissions } from "@/lib/rbac";
 import {
-  MIS_SYSTEM_FIELDS, MIS_SYSTEM_FIELD_BY_KEY, MIS_NATIVE_CLIENT_KEYS, matchMisSystemKey,
+  MIS_SYSTEM_FIELDS,
+  MIS_STANDARD_FIELD_KEYS, MIS_SYSTEM_FIELD_BY_KEY, MIS_NATIVE_CLIENT_KEYS, matchMisSystemKey,
 } from "@/lib/mis-template";
 
 export const Route = createFileRoute("/admin/mis-manager")({
@@ -164,7 +165,8 @@ function MisManagerPage() {
     setCustomerId("");
     setName("");
     setDrafts(MIS_SYSTEM_FIELDS.map<Draft>((f) => ({
-      header: f.label, source: "system", system_key: f.key, enabled: true, client_attribute: false,
+      header: f.label, source: "system", system_key: f.key,
+      enabled: MIS_STANDARD_FIELD_KEYS.includes(f.key), client_attribute: false,
     })));
   };
 

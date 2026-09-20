@@ -101,6 +101,14 @@ export const MIS_SYSTEM_FIELDS: MisSystemField[] = [
   { key: "remarks", label: "Remarks" },
 ];
 
+/** The original manpower-wise layout, used when an organization has no format. */
+export const MIS_STANDARD_FIELD_KEYS = [
+  "sr_no","invoice_no","invoice_date","emp_code","employee_name","regular_reliever","doj","entity",
+  "designation","branch_name","state","branch_sap_code","zone","month_days","month_rate","billing_rate",
+  "billing_rate_per_day","ot_rate","working_days","ot_duties","ot_amount","working_days_billing_with_ot",
+  "total_regular_billing","ot_billing","total_billing","cgst","sgst","igst","grand_total",
+];
+
 export const MIS_SYSTEM_FIELD_BY_KEY = new Map(MIS_SYSTEM_FIELDS.map((f) => [f.key, f]));
 
 const norm = (v: string | null | undefined) =>
@@ -359,7 +367,7 @@ export function buildMisSheet({
 }): MisSheet {
   const cols = template?.columns.length
     ? template.columns
-    : MIS_SYSTEM_FIELDS.map<MisColumn>((f, i) => ({
+    : MIS_SYSTEM_FIELDS.filter((f) => MIS_STANDARD_FIELD_KEYS.includes(f.key)).map<MisColumn>((f, i) => ({
         id: `sys-${f.key}`,
         header: f.label,
         sortOrder: i,
