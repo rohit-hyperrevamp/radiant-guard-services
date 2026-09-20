@@ -500,6 +500,7 @@ function MisManagerPage() {
                     <th className="px-3 py-2 font-medium">Include</th>
                     <th className="px-3 py-2 font-medium">Column heading</th>
                     <th className="px-3 py-2 font-medium">Filled by</th>
+                    <th className="px-3 py-2 font-medium">Client attribute</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -529,6 +530,18 @@ function MisManagerPage() {
                           </Badge>
                         ) : (
                           <Badge variant="outline">Entered per site</Badge>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {d.source === "system" && MIS_NATIVE_CLIENT_KEYS.has(d.system_key ?? "") ? (
+                          <span className="text-xs text-muted-foreground">Already on the client</span>
+                        ) : (
+                          <Switch
+                            checked={d.client_attribute}
+                            disabled={readOnly || !d.enabled}
+                            onCheckedChange={(v) => setDrafts((prev) =>
+                              prev.map((x, j) => (j === i ? { ...x, client_attribute: v } : x)))}
+                          />
                         )}
                       </td>
                     </tr>
