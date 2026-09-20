@@ -144,7 +144,15 @@ function PayrollUnitsPage() {
                     <LabeledMultiSelectFilter
                       label="Organization"
                       selected={orgFilter}
-                      onChange={setOrgFilter}
+                      onChange={(v) => {
+                        setOrgFilter(v);
+                        setUnitFilter((prev) =>
+                          prev.filter((id) => {
+                            const u = windowUnits.find((x) => x.id === id);
+                            return !u || v.length === 0 || v.includes(u.customer_id || u.customer_name);
+                          }),
+                        );
+                      }}
                       options={organizations.map((o) => ({
                         value: o.id,
                         label: o.code ? `${o.code} · ${o.name}` : o.name,
