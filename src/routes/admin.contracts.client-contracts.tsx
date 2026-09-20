@@ -3873,6 +3873,7 @@ function ContractFormDialog({
                   type="date"
                   value={startDate}
                   onChange={(e) => {
+                    datesTouchedRef.current = true;
                     setStartDate(e.target.value);
                     expiryManuallySetRef.current = false;
                   }}
@@ -3889,7 +3890,10 @@ function ContractFormDialog({
                 <Input
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => {
+                    datesTouchedRef.current = true;
+                    setEndDate(e.target.value);
+                  }}
                 />
               </Field>
               <Field label="Next renewal / expiry date" className="sm:col-span-2">
