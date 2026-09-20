@@ -721,7 +721,7 @@ function useContracts() {
       const beforeRes = await supabase
         .from("client_contracts" as never)
         .select(
-          "contract_code,prospect_code,unit_id,start_date,end_date,expiry_date,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,record_type,approval_status,prospect_stage,rejection_reason,promoted_at",
+          "contract_code,prospect_code,unit_id,start_date,end_date,expiry_date,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,record_type,approval_status,prospect_stage,rejection_reason,promoted_at,approved_by,approved_at",
         )
         .eq("id", id)
         .single();
@@ -759,11 +759,16 @@ function useContracts() {
         const uidRes = await supabase.auth.getUser();
         const uid = uidRes.data.user?.id ?? null;
         const nowIso = new Date().toISOString();
+        // Editing an already-approved contract must not rewrite its original
+        // approval trail — keep the first approver and timestamp intact.
+        const wasApproved = String(before?.approval_status ?? "") === "approved";
+        const approvedByRow = (before as Record<string, unknown> | null)?.["approved_by"];
+        const approvedAtRow = (before as Record<string, unknown> | null)?.["approved_at"];
 
         Object.assign(after, {
           approval_status: "approved",
-          approved_by: uid,
-          approved_at: nowIso,
+          approved_by: wasApproved && approvedByRow ? approvedByRow : uid,
+          approved_at: wasApproved && approvedAtRow ? approvedAtRow : nowIso,
           status: "active",
           rejection_reason: "",
           rejected_by: null,
@@ -2334,11 +2339,12 @@ function ClientContractsPage() {
     updateStageMut,
     resubmitMut,
   } = useContracts();
-  const { can, roleKey } = useCurrentPermissions();
-  const canApprove = can("contracts", "approve");
-  const canEdit = can("contracts", "edit");
-  const canDelete = can("contracts", "delete");
-  const isHrReadOnly = roleKey === "hr";
+  const { can, roleKey, isSuperAdmin } = useCurrentPermissions();
+  // Super Admin always retains full control over every existing contract.
+  const canApprove = isSuperAdmin || can("contracts", "approve");
+  const canEdit = isSuperAdmin || can("contracts", "edit");
+  const canDelete = isSuperAdmin || can("contracts", "delete");
+  const isHrReadOnly = !isSuperAdmin && roleKey === "hr";
   const units = useMemo(
     () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
       id: item.unitId,
@@ -3085,7 +3091,11 @@ function ClientContractsPage() {
           try {
             let contractId: string;
             if (editing) {
-              await updateMut.mutateAsync({ id: editing.id, p, canApproveApproval: canApprove });
+              await updateMut.mutateAsync({
+                id: editing.id,
+                p,
+                canApproveApproval: canApprove || isSuperAdmin,
+              });
               contractId = editing.id;
             } else {
               contractId = await addMut.mutateAsync(p);
@@ -3105,6 +3115,7 @@ function ClientContractsPage() {
           }
         }}
         canManageApproval={canApprove}
+        canSkipSteps={isSuperAdmin}
       />
 
       <ContractViewDialog
@@ -3371,6 +3382,7 @@ function ContractFormDialog({
   existingProspectCodes,
   onSubmit,
   canManageApproval,
+  canSkipSteps = false,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -3381,6 +3393,7 @@ function ContractFormDialog({
     resources: ContractResource[],
   ) => Promise<string | null>;
   canManageApproval: boolean;
+  canSkipSteps?: boolean;
 }) {
   const { units, customers } = useContractDirectory(open);
   const serviceTypes = useServiceTypes();
@@ -3587,6 +3600,8 @@ function ContractFormDialog({
     return steps.slice(0, 4).every((step) => isStepComplete(step.key));
   };
   const requestStep = (key: string) => {
+    // Super Admin moves freely between steps, even on a partially filled contract.
+    if (canSkipSteps) { setStepKey(key); return; }
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
