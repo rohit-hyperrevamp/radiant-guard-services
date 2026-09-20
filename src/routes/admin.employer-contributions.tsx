@@ -164,7 +164,7 @@ function EmployerContributionsPage() {
 
       <PayrollTabs />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:gap-3 md:grid-cols-4">
         <SummaryTile label="Contributions" value={String(filtered.length)} />
         <SummaryTile label="Employees" value={String(new Set(filtered.map((r) => r.candidate_id)).size)} />
         <SummaryTile label="Total employer outgo" value={fmtINR(total)} tone />

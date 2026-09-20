@@ -237,3 +237,10 @@
 
 - [x] Make the mobile bottom dock black, matching the desktop navigation.
 - [x] Remove bold/black typography from the interface; retain regular and medium weights only.
+
+## Full-width mobile app refinement
+- [x] Align phone cards and page content to the floating dock edges.
+- [x] Replace the separate More drawer with an expanding black dock.
+- [x] Rework the Payroll top controls for mobile.
+- [x] Finish the cross-page data, table, and form visibility audit.
+- [x] Run final TypeScript and responsive integrity checks.

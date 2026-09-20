@@ -83,8 +83,6 @@ function PayrollUnitsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PayrollTabs />
-
       <HeroTile
         eyebrow="Payroll"
         title="Payroll"
@@ -92,16 +90,19 @@ function PayrollUnitsPage() {
         description="Payroll from approved attendance."
       />
 
-      <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto pb-0.5">
-        <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
-        <MonthYearPicker
-          className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
-          value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
-          onChange={(ym) => {
-            const [y, m] = ym.split("-").map(Number);
-            periodSelection.setPeriod(y, m - 1);
-          }}
-        />
+      <div className="space-y-2 rounded-xl border border-border/70 bg-card p-2 shadow-sm sm:rounded-2xl sm:p-3">
+        <PayrollTabs />
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
+          <MonthYearPicker
+            className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
+            value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
+            onChange={(ym) => {
+              const [y, m] = ym.split("-").map(Number);
+              periodSelection.setPeriod(y, m - 1);
+            }}
+          />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm sm:rounded-3xl">

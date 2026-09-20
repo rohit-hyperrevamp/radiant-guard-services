@@ -12,7 +12,7 @@ import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-them
  */
 
 export function CharterTileGrid({ children }: { children: ReactNode }) {
-  return <div className="scrollbar-hide -mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 sm:pb-0 lg:grid-cols-4">{children}</div>;
+  return <div className="scrollbar-hide -mx-2 flex snap-x gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 sm:pb-0 lg:grid-cols-4">{children}</div>;
 }
 
 export type TileSegment = { label: string; value: number; tone?: "open" | "ready" | "done" };
