@@ -515,7 +515,7 @@ export function FinanceCharter({
       for (const chunkIds of chunkOf(ids, 100)) {
         const { data, error: unitsErr } = await supabase
           .from("units")
-          .select("id, code, name, customer_id, gst_number, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
+          .select("id, code, name, customer_id, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
           .in("id", chunkIds);
         if (unitsErr) throw new Error(unitsErr.message);
         unitRows.push(...((data ?? []) as any[]));
@@ -538,14 +538,13 @@ export function FinanceCharter({
           .in("customer_id", chunkIds);
         gstRows.push(...((data ?? []) as any[]));
       }
-      const gstinFor = (customerId: string | null, state: string, fallback: string | null) => {
-        if (!customerId) return fallback ?? "";
+      const gstinFor = (customerId: string | null, state: string) => {
+        if (!customerId) return "";
         const rowsFor = gstRows.filter((g) => g.customer_id === customerId);
         const stateLc = state.trim().toLowerCase();
         return (
           rowsFor.find((g) => String(g.state_name ?? "").trim().toLowerCase() === stateLc)?.gstin ??
           rowsFor[0]?.gstin ??
-          fallback ??
           ""
         );
       };
@@ -628,7 +627,7 @@ export function FinanceCharter({
             unit: {
               ...unitRow,
               customer_name: u.customer_name,
-              gstin: gstinFor(unitRow.customer_id, billingState, unitRow.gst_number),
+              gstin: gstinFor(unitRow.customer_id, billingState),
               customer,
             },
             companyState,
