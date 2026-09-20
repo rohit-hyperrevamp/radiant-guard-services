@@ -195,3 +195,11 @@
 - [x] Add secure per-invoice Tally invoice storage and production migration
 - [x] Add Upload Tally Invoice and View controls on invoice details
 - [x] Validate types and invoice workflow
+
+## Attendance and payroll status filters
+- [ ] Add Attendance Open and Attendance Approved filtering beside search.
+- [ ] Add Payroll Open and Payroll Processed filtering beside search.
+- [ ] Validate filtering before pagination and run TypeScript checks.
+
+## CLI3851 invoice percentage explanation
+- [ ] Confirm the production values behind the displayed 87% and explain the calculation without changing data.
