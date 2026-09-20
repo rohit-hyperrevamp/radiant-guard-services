@@ -182,6 +182,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "ex_service_manager",       label: "Ex-Service Manager",       path: "/admin/ex-service-manager",       icon: Shield },
       { key: "offboarding_reason_manager", label: "Offboarding Reason Manager", path: "/admin/offboarding-reason-manager", icon: LogOut },
       { key: "esic_branch_manager",      label: "ESIC Branch Manager",      path: "/admin/esic-branch-manager",      icon: Building2 },
+      { key: "mis_manager",              label: "MIS Manager",              path: "/admin/mis-manager",              icon: FileSpreadsheet },
       { key: "asset_manager",            label: "Asset Manager",            path: "/admin/asset-manager",            icon: PackageOpen },
       { key: "language_manager",         label: "Language Manager",         path: "/admin/language-manager",         icon: Languages },
       { key: "company_documents",        label: "Company Documents",        path: "/admin/company-documents",        icon: FileSignature },
