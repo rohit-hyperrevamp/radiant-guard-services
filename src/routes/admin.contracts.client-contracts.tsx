@@ -3595,6 +3595,8 @@ function ContractFormDialog({
     return steps.slice(0, 4).every((step) => isStepComplete(step.key));
   };
   const requestStep = (key: string) => {
+    // Super Admin moves freely between steps, even on a partially filled contract.
+    if (canSkipSteps) { setStepKey(key); return; }
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
