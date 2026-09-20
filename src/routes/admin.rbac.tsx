@@ -40,6 +40,16 @@ import {
 } from "@/lib/rbac";
 
 export const Route = createFileRoute("/admin/rbac")({
+  head: () => ({
+    meta: [
+      { title: "Access Control | Radiant Guard Services" },
+      { name: "description", content: "Manage role permissions across application modules." },
+      { property: "og:title", content: "Access Control | Radiant Guard Services" },
+      { property: "og:description", content: "Manage role permissions across application modules." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: RBACPage,
 });
 
