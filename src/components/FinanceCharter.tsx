@@ -27,6 +27,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
+import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 
 
 // ---------------------------------------------------------------------------
@@ -461,6 +462,187 @@ export function FinanceCharter({
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
+  // One Tally workbook for every invoice in the current filters, not only the
+  // visible page. The rows use the same strict layout as the invoice detail export.
+  const [tallyBusy, setTallyBusy] = useState(false);
+  const exportTallyCombined = async () => {
+    const targets = matchedUnits;
+    if (targets.length === 0) {
+      toast.error("No invoices in the current filter.");
+      return;
+    }
+    setTallyBusy(true);
+    try {
+      const chunkOf = <T,>(items: T[], size: number) => {
+        const chunks: T[][] = [];
+        for (let index = 0; index < items.length; index += size) chunks.push(items.slice(index, index + size));
+        return chunks;
+      };
+      const ids = targets.map((unit) => unit.id);
+      const { data: org } = await supabase
+        .from("org_settings")
+        .select("company_state")
+        .limit(1)
+        .maybeSingle();
+      const companyState = String((org as { company_state?: string } | null)?.company_state ?? "Maharashtra").trim();
+
+      const financeMap = new Map<string, UnitFinance>();
+      for (const chunkIds of chunkOf(ids, 100)) {
+        const part = await fetchUnitFinance(chunkIds);
+        for (const [key, value] of part) financeMap.set(key, value);
+      }
+
+      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
+      for (const unit of targets) {
+        const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
+        const key = `${period.start}|${period.mtdEnd}`;
+        const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
+        group.unitIds.push(unit.id);
+        groups.set(key, group);
+      }
+      const entries = (await Promise.all(
+        Array.from(groups.values()).flatMap((group) =>
+          chunkOf(group.unitIds, 100).map((unitIds) =>
+            fetchAttendanceEntriesForPeriod({ unitIds, start: group.start, end: group.end, includeUnitId: true }),
+          ),
+        ),
+      )).flat();
+
+      const unitRows: Record<string, any>[] = [];
+      for (const chunkIds of chunkOf(ids, 100)) {
+        const { data, error } = await supabase
+          .from("units")
+          .select("id, code, name, customer_id, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
+          .in("id", chunkIds);
+        if (error) throw new Error(error.message);
+        unitRows.push(...((data ?? []) as Record<string, any>[]));
+      }
+      const customerIds = Array.from(new Set(unitRows.map((unit) => String(unit.customer_id ?? "")).filter(Boolean)));
+      const customerRows: Record<string, any>[] = [];
+      const gstRows: Record<string, any>[] = [];
+      for (const chunkIds of chunkOf(customerIds, 100)) {
+        const [customersResult, gstResult] = await Promise.all([
+          supabase
+            .from("customers")
+            .select("id, billing_state, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, billing_country")
+            .in("id", chunkIds),
+          supabase.from("customer_gst_numbers").select("customer_id, gstin, state_name").in("customer_id", chunkIds),
+        ]);
+        if (customersResult.error) throw new Error(customersResult.error.message);
+        if (gstResult.error) throw new Error(gstResult.error.message);
+        customerRows.push(...((customersResult.data ?? []) as Record<string, any>[]));
+        gstRows.push(...((gstResult.data ?? []) as Record<string, any>[]));
+      }
+      const customerById = new Map(customerRows.map((customer) => [String(customer.id), customer]));
+      const gstinFor = (customerId: string, state: string) => {
+        const matching = gstRows.filter((row) => String(row.customer_id) === customerId);
+        const stateKey = state.trim().toLowerCase();
+        return String(matching.find((row) => String(row.state_name ?? "").trim().toLowerCase() === stateKey)?.gstin ?? matching[0]?.gstin ?? "");
+      };
+
+      const contractRows: Record<string, any>[] = [];
+      for (const chunkIds of chunkOf(ids, 100)) {
+        const { data, error } = await supabase
+          .from("client_contracts")
+          .select("unit_id, service_type_id, start_date")
+          .eq("record_type", "client")
+          .eq("status", "active")
+          .in("unit_id", chunkIds);
+        if (error) throw new Error(error.message);
+        contractRows.push(...((data ?? []) as Record<string, any>[]));
+      }
+      const serviceTypeIdByUnit = new Map<string, string>();
+      const latestStartByUnit = new Map<string, string>();
+      for (const contract of contractRows) {
+        const unitId = String(contract.unit_id ?? "");
+        const startDate = String(contract.start_date ?? "");
+        if (!unitId || (latestStartByUnit.get(unitId) ?? "") >= startDate) continue;
+        latestStartByUnit.set(unitId, startDate);
+        if (contract.service_type_id) serviceTypeIdByUnit.set(unitId, String(contract.service_type_id));
+      }
+      const serviceTypeIds = Array.from(new Set(serviceTypeIdByUnit.values()));
+      const serviceTypesResult = serviceTypeIds.length
+        ? await supabase.from("service_types").select("id, name").in("id", serviceTypeIds)
+        : { data: [], error: null };
+      if (serviceTypesResult.error) throw new Error(serviceTypesResult.error.message);
+      const serviceTypeNameById = new Map(
+        ((serviceTypesResult.data ?? []) as { id: string; name: string }[]).map((type) => [String(type.id), String(type.name)]),
+      );
+
+      const linesByUnit = new Map<string, Map<string, { qty: number; amount: number; monthly: number }>>();
+      for (const entry of entries) {
+        const entryUnitId = entry.unit_id ?? "";
+        const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id);
+        if (!entryUnitId || !rate) continue;
+        const code = codeMap.get(entry.code);
+        const rawDayValue = code?.day_value;
+        const dayValue = rawDayValue == null || Number.isNaN(Number(rawDayValue)) ? 1 : Math.max(0, Number(rawDayValue));
+        const paid = code && (code.counts_as_present || code.is_paid) ? dayValue : 0;
+        const quantity = paid + (Number(entry.ot_hours) || 0);
+        if (quantity <= 0) continue;
+        const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
+        const amount = (rate.billRate / periodDays) * quantity;
+        const unitLines = linesByUnit.get(entryUnitId) ?? new Map();
+        const key = entry.designation_id ?? "—";
+        const line = unitLines.get(key) ?? { qty: 0, amount: 0, monthly: rate.billRate };
+        line.qty += quantity;
+        line.amount += amount;
+        unitLines.set(key, line);
+        linesByUnit.set(entryUnitId, unitLines);
+      }
+
+      const unitById = new Map(unitRows.map((unit) => [String(unit.id), unit]));
+      const workbookRows: Record<string, unknown>[] = [];
+      let invoiceCount = 0;
+      for (const unit of targets) {
+        const lines = linesByUnit.get(unit.id);
+        const unitRow = unitById.get(unit.id);
+        if (!lines || !unitRow) continue;
+        const voucherLines = Array.from(lines.values())
+          .filter((line) => line.amount > 0)
+          .map((line) => ({
+            qty: Math.round(line.qty * 100) / 100,
+            rate: line.qty > 0 ? line.amount / line.qty : 0,
+            amount: Math.round(line.amount * 100) / 100,
+            monthly: line.monthly,
+          }));
+        if (voucherLines.length === 0) continue;
+        const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
+        const customerId = String(unitRow.customer_id ?? "");
+        const customer = customerById.get(customerId) ?? null;
+        const billingState = String(unitRow.billing_state || customer?.billing_state || "");
+        const serviceTypeId = serviceTypeIdByUnit.get(unit.id);
+        workbookRows.push(...buildTallyVoucherRows({
+          unit: {
+            ...unitRow,
+            customer_name: unit.customer_name,
+            gstin: gstinFor(customerId, billingState),
+            customer,
+          },
+          companyState,
+          periodStart: period.start,
+          periodEnd: period.end,
+          serviceTypeName: (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard",
+          lines: voucherLines,
+        }));
+        invoiceCount += 1;
+      }
+      if (workbookRows.length === 0) {
+        toast.error("No billable attendance for the filtered invoices in this period.");
+        return;
+      }
+      await writeTallyBillingXlsx(
+        `Tally Billing_${year}-${String(monthIdx + 1).padStart(2, "0")}_${invoiceCount} invoices`,
+        workbookRows,
+      );
+      toast.success(`Tally format ready — ${invoiceCount} invoice${invoiceCount === 1 ? "" : "s"} in one file.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Tally export failed");
+    } finally {
+      setTallyBusy(false);
+    }
+  };
+
   // Combined manpower MIS: one workbook for every filtered invoice, using the
   // same columns and attendance/rate-card maths as the per-invoice MIS export.
   const [misBusy, setMisBusy] = useState(false);
@@ -811,6 +993,16 @@ export function FinanceCharter({
           </Select>
         )}
         <div className="hidden flex-1 sm:block" />
+        {mode === "invoice" && (
+          <Button
+            variant="outline"
+            className="h-9 rounded-xl"
+            disabled={tallyBusy}
+            onClick={() => void exportTallyCombined()}
+          >
+            <Download className="mr-1.5 h-4 w-4" /> {tallyBusy ? "Preparing…" : "Download Tally Format"}
+          </Button>
+        )}
         {mode === "invoice" && misApplicable && (
           <Button
             variant="outline"
@@ -818,7 +1010,7 @@ export function FinanceCharter({
             disabled={misBusy}
             onClick={() => void exportMisCombined()}
           >
-            <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : "MIS Format (XLSX)"}
+            <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : "MIS Format"}
           </Button>
         )}
         <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
