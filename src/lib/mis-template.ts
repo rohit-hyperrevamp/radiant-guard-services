@@ -35,6 +35,8 @@ export type MisTemplate = {
   name: string;
   enabled: boolean;
   rowGrain: MisRowGrain;
+  /** false when the organization never receives an MIS sheet. */
+  misApplicable: boolean;
   columns: MisColumn[];
 };
 
@@ -159,6 +161,7 @@ type TemplateRow = {
   name: string;
   enabled: boolean;
   row_grain?: string | null;
+  mis_applicable?: boolean | null;
 };
 type ColumnRow = {
   id: string;
@@ -178,6 +181,7 @@ function toTemplate(t: TemplateRow, cols: ColumnRow[]): MisTemplate {
     name: t.name,
     enabled: t.enabled !== false,
     rowGrain: t.row_grain === "site" ? "site" : "employee",
+    misApplicable: t.mis_applicable !== false,
     columns: cols
       .filter((c) => c.template_id === t.id && c.enabled !== false)
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -198,7 +202,7 @@ export async function loadMisTemplateForCustomer(customerId: string | null | und
   if (!customerId) return null;
   const { data: templates, error } = await supabase
     .from("mis_templates" as never)
-    .select("id,customer_id,name,enabled,row_grain")
+    .select("id,customer_id,name,enabled,row_grain,mis_applicable")
     .eq("customer_id", customerId)
     .eq("enabled", true)
     .limit(1);
@@ -212,6 +216,18 @@ export async function loadMisTemplateForCustomer(customerId: string | null | und
     .order("sort_order");
   if (colErr) throw colErr;
   return toTemplate(t, (cols ?? []) as ColumnRow[]);
+}
+
+/** Organizations marked "MIS not applicable": no MIS sheet is offered for them. */
+export async function loadMisDisabledCustomerIds(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("mis_templates" as never)
+    .select("customer_id,mis_applicable")
+    .eq("mis_applicable", false);
+  if (error) throw error;
+  return new Set(
+    ((data ?? []) as Array<{ customer_id: string }>).map((r) => String(r.customer_id)).filter(Boolean),
+  );
 }
 
 /** Custom values saved for the given sites: key is `${columnId}|${unitId}`. */
