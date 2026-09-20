@@ -125,10 +125,14 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  responsive?: boolean;
   overlayClassName?: string;
 };
 
 const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  DialogContentProps
+>(({ className, overlayClassName, responsive, children, ...props }, ref) => {
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
 >(({ className, overlayClassName, children, ...props }, ref) => {
@@ -260,7 +264,7 @@ const DialogContent = React.forwardRef<
     </DialogPortal>
   );
 });
-DialogContent.displayName = DialogPrimitive.Content.displayName;
+ 
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div data-slot="dialog-header" className={cn("flex flex-col space-y-1.5 text-left", className)} {...props} />
