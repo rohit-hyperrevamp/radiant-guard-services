@@ -19,6 +19,8 @@ export type MisColumn = {
   source: MisColumnSource;
   systemKey: string | null;
   enabled: boolean;
+  /** Also shown as an optional field on every client of the organization. */
+  clientAttribute: boolean;
 };
 
 export type MisTemplate = {
@@ -93,6 +95,12 @@ export function matchMisSystemKey(header: string): string | null {
   return ALIAS_INDEX.get(norm(header)) ?? null;
 }
 
+/**
+ * System columns that already exist as their own field on the client record,
+ * so they never need a separate custom attribute.
+ */
+export const MIS_NATIVE_CLIENT_KEYS = new Set(["zone", "branch_sap_code", "state", "branch_name"]);
+
 type TemplateRow = { id: string; customer_id: string; name: string; enabled: boolean };
 type ColumnRow = {
   id: string;
@@ -102,6 +110,7 @@ type ColumnRow = {
   source: string;
   system_key: string | null;
   enabled: boolean;
+  client_attribute?: boolean | null;
 };
 
 function toTemplate(t: TemplateRow, cols: ColumnRow[]): MisTemplate {
