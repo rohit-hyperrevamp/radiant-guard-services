@@ -1586,8 +1586,8 @@ button, [role="button"], a.btn, .btn {
   min-width: 0;
 }
 button[data-slot="switch"] {
-  min-width: 3rem;
-  min-height: 1.75rem;
+  min-width: 2.5rem;
+  min-height: 1.5rem;
 }
 button > span:not(.sr-only),
 [role="button"] > span:not(.sr-only) {
@@ -1599,7 +1599,7 @@ button > span:not(.sr-only),
 @media (max-width: 767px) {
   .btn-cta,
   button[data-slot="button"]:not([data-bottom-nav] *):not([data-slot="switch"]):not([data-size="icon"]):not([data-size="sm"]) {
-    min-height: 40px;
+    min-height: 36px;
   }
 
 }
@@ -1733,17 +1733,43 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
 
   /* Compact visible controls with iOS-sized touch targets. */
   [data-admin-scroll] [data-slot="button"] {
-    min-height: 2.5rem;
+    min-height: 2.25rem;
     border-radius: 0.625rem;
   }
 
   [data-admin-scroll] [data-slot="button"][data-size="sm"] {
-    min-height: 2.25rem;
+    min-height: 2rem;
   }
 
   [data-admin-scroll] [data-slot="button"][data-size="icon"] {
-    min-height: 2.5rem;
+    min-height: 2.125rem;
+    min-width: 2.125rem;
+  }
+
+  [data-admin-scroll] .mobile-directory-toolbar :where(input, [data-slot="select-trigger"], [data-slot="button"]),
+  [data-admin-scroll] .mobile-directory-filters :where(input, [data-slot="select-trigger"], [data-slot="button"]) {
+    height: 2.25rem !important;
+    min-height: 2.25rem !important;
+    border-radius: 0.625rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  [data-admin-scroll] .mobile-directory-toolbar :where(input, [data-slot="select-trigger"]),
+  [data-admin-scroll] .mobile-directory-filters :where(input, [data-slot="select-trigger"]) {
+    padding-inline: 0.625rem !important;
+  }
+
+  [data-admin-scroll] .mobile-directory-toolbar svg,
+  [data-admin-scroll] .mobile-directory-filters svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  [data-admin-scroll] button[data-slot="switch"] {
+    width: 2.5rem;
     min-width: 2.5rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
   }
 
   [data-admin-scroll] .modern-form-toggle {
@@ -1961,7 +1987,7 @@ nav[data-bottom-nav]::after {
   [data-admin-scroll] form :where(button, [data-slot="button"]):not([data-size="icon"]),
   [data-slot="dialog-content"] :where(button, [data-slot="button"]):not([data-size="icon"]),
   [data-slot="sheet-content"] :where(button, [data-slot="button"]):not([data-size="icon"]) {
-    min-height: 2.5rem;
+    min-height: 2.25rem;
   }
 }
 [data-app-drawer-grid] {

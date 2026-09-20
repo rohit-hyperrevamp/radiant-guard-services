@@ -288,8 +288,8 @@ function UnitManagerPage() {
         }
       />
 
-      <div className="mobile-glass-surface mb-3 grid grid-cols-1 gap-2 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:rounded-2xl sm:p-2.5">
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="mobile-directory-toolbar mobile-glass-surface mb-3 grid grid-cols-1 gap-1.5 rounded-xl border border-border/60 bg-card/60 p-2 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
+        <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           <div className="relative col-span-2 w-full sm:min-w-56 sm:max-w-sm sm:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -338,7 +338,7 @@ function UnitManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={() =>
@@ -449,7 +449,7 @@ function UnitManagerPage() {
               )
             }
             disabled={rows.length === 0}
-            className="h-10 rounded-xl"
+            className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Download className="mr-1.5 h-4 w-4" />
             Export
@@ -459,10 +459,10 @@ function UnitManagerPage() {
               setEditing(null);
               setFormOpen(true);
             }}
-            className="h-10 rounded-xl bg-primary text-primary-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90"
+            className="h-9 rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add unit
+            Add client
           </Button>
         </div>
       </div>
