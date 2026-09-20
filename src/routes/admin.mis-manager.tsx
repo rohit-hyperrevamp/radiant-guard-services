@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useCurrentPermissions } from "@/lib/rbac";
 import {
-  MIS_SYSTEM_FIELDS, MIS_SYSTEM_FIELD_BY_KEY, matchMisSystemKey,
+  MIS_SYSTEM_FIELDS, MIS_SYSTEM_FIELD_BY_KEY, MIS_NATIVE_CLIENT_KEYS, matchMisSystemKey,
 } from "@/lib/mis-template";
 
 export const Route = createFileRoute("/admin/mis-manager")({
@@ -45,12 +45,15 @@ type ColumnRow = {
   source: "system" | "custom";
   system_key: string | null;
   enabled: boolean;
+  client_attribute: boolean | null;
 };
 type Draft = {
+  id?: string;
   header: string;
   source: "system" | "custom";
   system_key: string | null;
   enabled: boolean;
+  client_attribute: boolean;
 };
 
 function useCustomers() {
