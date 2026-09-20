@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera } from "lucide-react";
+import { CalendarDays, ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera, Clock3 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -24,6 +24,7 @@ import {
   startScanJob,
 } from "@/lib/attendance-scan-jobs";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -70,6 +71,16 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/admin/attendance/$unitId")({
   validateSearch: (s) => searchSchema.parse(s),
+  head: () => ({
+    meta: [
+      { title: "Mark Attendance | Radiant Guard Services" },
+      { name: "description", content: "Mark and review employee attendance for a selected unit and payroll period." },
+      { property: "og:title", content: "Mark Attendance | Radiant Guard Services" },
+      { property: "og:description", content: "Mark and review employee attendance for a selected unit and payroll period." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: MusterRollPage,
 });
 
@@ -557,6 +568,15 @@ function MusterRollPage() {
   const dayCount = periodCells.length;
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
+  const [mobileDate, setMobileDate] = useState(() => {
+    const requested = search.start && search.end && todayStr >= search.start && todayStr <= search.end ? todayStr : "";
+    return requested;
+  });
+  useEffect(() => {
+    if (periodCells.some((cell) => cell.date === mobileDate && cell.date <= todayStr)) return;
+    const latestAvailable = [...periodCells].reverse().find((cell) => cell.date <= todayStr);
+    setMobileDate(latestAvailable?.date ?? periodCells[0]?.date ?? "");
+  }, [mobileDate, periodCells, todayStr]);
   const holidayByDate = useMemo(
     () => holidayMapForDates(periodCells.map((c) => c.date), publicHolidays),
     [periodCells, publicHolidays],
@@ -1624,6 +1644,7 @@ function MusterRollPage() {
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerCells, setPickerCells] = useState<string[]>([]);
+  const [mobileSelectedRows, setMobileSelectedRows] = useState<Set<string>>(new Set());
 
   const [otSelAnchor, setOtSelAnchor] = useState<CellRef | null>(null);
   const [isOtDragging, setIsOtDragging] = useState(false);
@@ -2413,12 +2434,12 @@ function MusterRollPage() {
   type MusterRowT = (typeof musterRows)[number];
   const attCellBlocked = (mr: MusterRowT, date: string) =>
     date > todayStr ||
-    (Boolean(mr.emp.doj) && date < mr.emp.doj!) ||
+    (typeof mr.emp.doj === "string" && date < mr.emp.doj) ||
     Boolean(mr.vacant) ||
     Boolean(mr.otOnly) ||
     Boolean(mr.reliever);
   const otCellBlocked = (mr: MusterRowT, date: string) =>
-    date > todayStr || (Boolean(mr.emp.doj) && date < mr.emp.doj!) || Boolean(mr.vacant);
+    date > todayStr || (typeof mr.emp.doj === "string" && date < mr.emp.doj) || Boolean(mr.vacant);
 
   /** Rectangular selection between two cells — spans rows and days. */
   const buildRect = (
@@ -2529,8 +2550,8 @@ function MusterRollPage() {
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
   };
 
-  const applyCodeToSelection = async (code: string) => {
-    const grouped = groupCells(pickerCells);
+  const applyCodeToCells = async (cells: string[], code: string) => {
+    const grouped = groupCells(cells);
     if (grouped.size === 0) return;
     try {
       let applied = 0;
@@ -2555,6 +2576,7 @@ function MusterRollPage() {
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedCells(new Set());
+      setMobileSelectedRows(new Set());
       setSelAnchor(null);
       if (applied > 0) {
         toast.success(`Applied ${code || "Clear"} to ${applied} cell${applied > 1 ? "s" : ""}`);
@@ -2563,6 +2585,8 @@ function MusterRollPage() {
       toast.error(saveErrorMessage(e));
     }
   };
+
+  const applyCodeToSelection = async (code: string) => applyCodeToCells(pickerCells, code);
 
   // `hours` is ED in clock hours (0.5 – 16). It is stored as ED *days*,
   // converted with each row's contractual shift length (8h or 12h).
@@ -2702,7 +2726,7 @@ function MusterRollPage() {
   };
 
   return (
-    <div className="space-y-4 px-3 py-4 sm:px-6 sm:py-6">
+    <div className="space-y-3 px-0 py-2 sm:space-y-4 sm:px-6 sm:py-6">
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 8mm; }
@@ -2719,7 +2743,7 @@ function MusterRollPage() {
           }
         }
       `}</style>
-      <div className="rounded-2xl border border-border/60 bg-card/95 p-3 shadow-sm backdrop-blur-xl sm:p-4 print:hidden">
+      <div className="mobile-glass-surface rounded-2xl border border-border/60 bg-card/80 p-3 shadow-sm sm:p-4 print:hidden">
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
           <Link
             to="/admin/attendance"
@@ -2757,12 +2781,16 @@ function MusterRollPage() {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
+        <div className="mt-2 min-w-0 truncate px-1 text-sm font-medium text-foreground sm:hidden">
+          {unit?.name || unit?.code || "Attendance"}
+          {unit?.customer_name ? <span className="text-muted-foreground"> · {unit.customer_name}</span> : null}
+        </div>
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <Button
             onClick={() => { setUploadOpen(true); }}
             disabled={!editable}
             title={editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
-            className="h-11 min-w-0 rounded-xl px-4 text-sm font-semibold shadow-sm"
+            className="h-10 min-w-0 rounded-xl px-3 text-sm shadow-sm"
           >
             <Upload className="mr-2 h-4 w-4 shrink-0" />
             <span className="truncate">Upload Attendance</span>
@@ -2772,7 +2800,7 @@ function MusterRollPage() {
             size="icon"
             onClick={() => window.print()}
             title="Print"
-            className="h-11 w-11 shrink-0 rounded-xl"
+            className="hidden h-10 w-10 shrink-0 rounded-xl sm:inline-flex"
           >
             <Printer className="h-4 w-4" />
           </Button>
@@ -2781,7 +2809,7 @@ function MusterRollPage() {
             size="icon"
             disabled
             title="Export (coming soon)"
-            className="h-11 w-11 shrink-0 rounded-xl"
+            className="hidden h-10 w-10 shrink-0 rounded-xl sm:inline-flex"
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -2791,7 +2819,7 @@ function MusterRollPage() {
             onClick={handleClearAll}
             disabled={!editable || clearingAll}
             title={editable ? "Delete every attendance entry on this sheet" : "Sheet locked"}
-            className="h-11 w-11 shrink-0 rounded-xl text-destructive hover:text-destructive"
+            className="h-10 w-10 shrink-0 rounded-xl text-destructive hover:text-destructive"
           >
             {clearingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
@@ -2970,9 +2998,9 @@ function MusterRollPage() {
 
 
       {/* Approval workflow */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-3 print:hidden">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Status</span>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/60 bg-card p-2.5 sm:flex sm:flex-wrap sm:justify-between sm:gap-3 sm:p-3 print:hidden">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto sm:gap-3">
+          <span className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:inline">Status</span>
           <span className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
             status === "draft" && "bg-slate-100 text-slate-700",
@@ -3020,7 +3048,7 @@ function MusterRollPage() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {(status === "draft" || status === "rejected") && (
             <Button size="sm" onClick={() => transitionSheet.mutate({ status: "submitted" })} disabled={transitionSheet.isPending}>
               <Send className="mr-1.5 h-4 w-4" /> Submit for Approval
@@ -3290,7 +3318,7 @@ function MusterRollPage() {
 
 
       {/* Add line item panel */}
-      <div className="rounded-xl border border-border/70 bg-card p-3 print:hidden">
+      <div className="hidden rounded-xl border border-border/70 bg-card p-3 print:hidden sm:block">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Employee</label>
@@ -3332,8 +3360,189 @@ function MusterRollPage() {
         </div>
       </div>
 
+      {/* Phone attendance entry: one day and one employee at a time. The full
+          statutory register remains below for tablet, desktop, and print. */}
+      <section className="space-y-2.5 sm:hidden print:hidden" aria-label="Mobile attendance entry">
+        <div className="mobile-glass-surface sticky top-1 z-20 rounded-xl border border-border/70 bg-card/85 p-2 shadow-sm">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Previous day"
+              disabled={periodCells.findIndex((cell) => cell.date === mobileDate) <= 0}
+              onClick={() => {
+                const index = periodCells.findIndex((cell) => cell.date === mobileDate);
+                const previous = periodCells[index - 1];
+                if (previous) setMobileDate(previous.date);
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <label className="relative min-w-0">
+              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+              <select
+                aria-label="Attendance date"
+                value={mobileDate}
+                onChange={(event) => {
+                  setMobileDate(event.target.value);
+                  setMobileSelectedRows(new Set());
+                }}
+                className="h-10 w-full appearance-none rounded-lg border border-primary/30 bg-primary/5 pl-9 pr-2 text-center text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {periodCells.map((cell) => (
+                  <option key={cell.date} value={cell.date} disabled={cell.date > todayStr}>
+                    {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Next day"
+              disabled={periodCells.findIndex((cell) => cell.date === mobileDate) >= periodCells.length - 1 || periodCells[periodCells.findIndex((cell) => cell.date === mobileDate) + 1]?.date > todayStr}
+              onClick={() => {
+                const index = periodCells.findIndex((cell) => cell.date === mobileDate);
+                const next = periodCells[index + 1];
+                if (next && next.date <= todayStr) setMobileDate(next.date);
+              }}
+            >
+              <ChevronLeft className="h-4 w-4 rotate-180" />
+            </Button>
+          </div>
+          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+            <span className="truncate text-xs text-muted-foreground">
+              {visibleMusterRows.filter((row) => !row.vacant).length} employees
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={!editable}
+              onClick={() => {
+                const eligible = visibleMusterRows.filter((row) => !row.vacant && !row.otOnly && !row.reliever && (!row.emp.doj || mobileDate >= row.emp.doj));
+                setMobileSelectedRows((current) => current.size === eligible.length ? new Set() : new Set(eligible.map((row) => row.key)));
+              }}
+            >
+              {mobileSelectedRows.size > 0 ? "Clear selection" : "Select all"}
+            </Button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Loading employees…</div>
+        ) : visibleMusterRows.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No employees found.</div>
+        ) : (
+          <div className="space-y-2">
+            {visibleMusterRows.map((mr) => {
+              if (mr.vacant) {
+                return (
+                  <Button
+                    key={mr.key}
+                    variant="outline"
+                    className="h-auto w-full justify-start border-dashed px-3 py-3 text-left"
+                    disabled={!editable}
+                    onClick={() => {
+                      setMapQuery("");
+                      setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="min-w-0 truncate">{mr.beyondAgreed ? "Add deployment" : "Fill vacant"} · {mr.designationName}</span>
+                  </Button>
+                );
+              }
+              const beforeDoj = Boolean(mr.emp.doj) && mobileDate < mr.emp.doj;
+              const blocked = !editable || mobileDate > todayStr || beforeDoj;
+              const attendanceBlocked = blocked || Boolean(mr.otOnly) || Boolean(mr.reliever);
+              const entry = entryMap.get(`${mr.key}|${mobileDate}`);
+              const currentCode = attendanceBlocked ? "" : entry?.code || "A";
+              const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
+              const edHours = Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
+              const selected = mobileSelectedRows.has(mr.key);
+              return (
+                <article key={mr.key} className={cn("overflow-hidden rounded-xl border bg-card", selected ? "border-primary/50 ring-2 ring-primary/10" : "border-border/70")}>
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5">
+                    {!attendanceBlocked ? (
+                      <Checkbox
+                        checked={selected}
+                        aria-label={`Select ${mr.emp.full_name}`}
+                        onCheckedChange={(checked) => setMobileSelectedRows((current) => {
+                          const next = new Set(current);
+                          if (checked) next.add(mr.key); else next.delete(mr.key);
+                          return next;
+                        })}
+                      />
+                    ) : <div className="h-6 w-6" />}
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-foreground">{mr.emp.full_name || "Unnamed employee"}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">{mr.emp.employee_code || "No ID"} · {mr.designationName}</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={edHours > 0 ? "secondary" : "outline"}
+                      className="shrink-0 px-2"
+                      disabled={blocked}
+                      onClick={() => {
+                        setOtPickerCells([`${mr.key}|${mobileDate}`]);
+                        setOtPickerOpen(true);
+                      }}
+                    >
+                      <Clock3 className="h-3.5 w-3.5" /> {edHours > 0 ? `${edHours}h ED` : "ED"}
+                    </Button>
+                  </div>
+                  {beforeDoj ? (
+                    <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">Joins {new Date(`${mr.emp.doj}T12:00:00`).toLocaleDateString("en-IN")}</div>
+                  ) : mr.otOnly || mr.reliever ? (
+                    <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">Reliever · Extra Duty only</div>
+                  ) : (
+                    <div className="scrollbar-hide flex gap-1.5 overflow-x-auto border-t border-border/60 px-2 py-2">
+                      {codes.map((code) => (
+                        <Button
+                          key={code.id}
+                          size="sm"
+                          variant={currentCode === code.code ? "default" : "outline"}
+                          className="h-9 min-w-10 shrink-0 px-2.5"
+                          disabled={blocked}
+                          title={code.label}
+                          onClick={() => applyCodeToCells([`${mr.key}|${mobileDate}`], code.code)}
+                        >
+                          {code.code}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {mobileSelectedRows.size > 0 && (
+          <div className="mobile-glass-bar fixed inset-x-2 bottom-[calc(5.7rem+env(safe-area-inset-bottom))] z-50 rounded-xl border border-primary/30 bg-card/90 p-2 shadow-lg">
+            <div className="mb-1.5 flex items-center justify-between px-1 text-xs">
+              <span>{mobileSelectedRows.size} selected</span>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setMobileSelectedRows(new Set())}>Clear</Button>
+            </div>
+            <div className="scrollbar-hide flex gap-1.5 overflow-x-auto">
+              {codes.map((code) => (
+                <Button
+                  key={code.id}
+                  size="sm"
+                  variant="outline"
+                  className="h-9 min-w-12 shrink-0"
+                  onClick={() => applyCodeToCells(Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`), code.code)}
+                >
+                  {code.code}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
       {selectedCells.size > 0 && !isDragging && (
-        <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm shadow-sm print:hidden">
+        <div className="sticky top-2 z-20 hidden items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm shadow-sm sm:flex print:hidden">
           <div>
             <span className="font-semibold">{selectedCells.size}</span> cell
             {selectedCells.size > 1 ? "s" : ""} selected for{" "}
@@ -3347,7 +3556,7 @@ function MusterRollPage() {
       )}
 
       {otSelectedCells.size > 0 && !isOtDragging && (
-        <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm print:hidden">
+        <div className="sticky top-2 z-20 hidden items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm sm:flex print:hidden">
           <div>
             <span className="font-semibold">{otSelectedCells.size}</span> ED cell
             {otSelectedCells.size > 1 ? "s" : ""} selected for{" "}
@@ -3361,7 +3570,7 @@ function MusterRollPage() {
       )}
 
       {/* Muster Roll Sheet */}
-      <div id="form-xvi-print" className="rounded-xl border border-border/60 bg-white p-3 text-[11px] text-slate-900 shadow-sm print:rounded-none print:border-0 print:shadow-none sm:p-6">
+      <div id="form-xvi-print" className="hidden rounded-xl border border-border/60 bg-white p-3 text-[11px] text-slate-900 shadow-sm print:block print:rounded-none print:border-0 print:shadow-none sm:block sm:p-6">
 
         <div className="text-center">
           <div className="text-base font-bold">Form XVI</div>
