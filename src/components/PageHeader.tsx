@@ -33,45 +33,47 @@ export function PageHeader({
   return (
     <div className={cn("relative mb-3 sm:mb-5", className)}>
       <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card p-3 sm:p-5">
-        <div className="relative flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
-          <div className="flex min-w-0 items-start gap-2.5">
+        <div className="relative flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
+          <div className="flex min-w-0 items-start gap-3">
             {Icon && (
               <div className="mt-0.5 shrink-0">
-                <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-10 sm:w-10">
-                  <Icon className="h-4 w-4 sm:h-[17px] sm:w-[17px]" />
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-11 sm:w-11">
+                  <Icon className="h-4.5 w-4.5 sm:h-[19px] sm:w-[19px]" />
                 </div>
               </div>
             )}
             <div className="min-w-0">
               {eyebrow && (
-                <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+                <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[17px] font-semibold leading-tight text-foreground sm:truncate sm:text-[22px]">
+              <h1 className="font-display text-[18px] font-semibold leading-tight text-foreground sm:truncate sm:text-[24px]">
                 {title}
               </h1>
               {description && (
-                <p className="mt-1 max-w-2xl text-[12px] leading-snug text-muted-foreground sm:text-[13px]">
+                <p className="mt-1 max-w-2xl text-[13px] leading-snug text-muted-foreground sm:text-[14px]">
                   {description}
                 </p>
               )}
             </div>
           </div>
           {actions && (
-            <div className="flex w-full flex-wrap items-center gap-1.5 self-start [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-[calc(50%-0.2rem)] sm:w-auto sm:justify-end sm:[&>*]:w-auto sm:[&>*]:flex-none sm:[&>*]:basis-auto">{actions}</div>
+            <div className="flex w-full flex-wrap items-center gap-2 self-start [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-[calc(50%-0.3rem)] sm:w-auto sm:justify-end sm:[&>*]:w-auto sm:[&>*]:flex-none sm:[&>*]:basis-auto">
+              {actions}
+            </div>
           )}
         </div>
 
-
         {kpis && (
-          <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">{kpis}</div>
+          <div className="relative mt-5 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {kpis}
+          </div>
         )}
       </div>
     </div>
   );
 }
-
 
 /**
  * Compact stat pill used inside <PageHeader kpis={...}>.
@@ -109,7 +111,7 @@ export function PageStat({
     <Wrapper
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
-        "group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4",
+        "group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border/40 p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4.5",
         ACCENT_TILE_BG[resolvedAccent],
         onClick && "cursor-pointer",
         active && "ring-2 ring-accent/40",
@@ -117,10 +119,10 @@ export function PageStat({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-display text-[12.5px] font-semibold leading-tight text-foreground sm:text-[14px]">
+          <div className="truncate font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
-          {sub && <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-[11px]">{sub}</div>}
+          {sub && <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground sm:text-[11.5px]">{sub}</div>}
         </div>
         {trend && (
           <span
@@ -133,25 +135,24 @@ export function PageStat({
           </span>
         )}
       </div>
-      <div className="relative mt-3 flex items-end justify-between gap-3 sm:mt-5">
-        <div className="min-w-0 whitespace-nowrap font-display text-[24px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[32px]">
+      <div className="relative mt-3.5 flex items-end justify-between gap-3 sm:mt-5.5">
+        <div className="min-w-0 whitespace-nowrap font-display text-[26px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[34px]">
           {value}
         </div>
         {Icon && (
           <span
             className={cn(
-              "grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9",
+              "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-10 sm:w-10",
               ACCENT_CHIP[resolvedAccent],
             )}
           >
-            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </span>
         )}
       </div>
     </Wrapper>
   );
 }
-
 
 export function ComingSoonCard({
   icon: Icon,
