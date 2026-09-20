@@ -2387,7 +2387,7 @@ function DeductionsSection({ rows }: { rows: DeductionSourceRow[] }) {
         {chip("other", "Other", colTotals.other)}
       </div>
 
-      <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+      <div className="min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
         <table className="ios-table min-w-[1000px] table-auto text-sm whitespace-nowrap">
           <thead className="border-b border-border/60 bg-secondary/40">
             <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -2579,7 +2579,7 @@ function EmployerContribSection({ rows }: { rows: DeductionSourceRow[] }) {
         {heads.map((h) => chip(h, h, colTotals[h] ?? 0))}
       </div>
 
-      <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+      <div className="min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
         <table className="ios-table min-w-[900px] table-auto text-sm whitespace-nowrap">
           <thead className="border-b border-border/60 bg-secondary/40">
             <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">

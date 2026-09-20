@@ -333,7 +333,7 @@ function AllowanceManagerPage() {
                     {i.formula_mode && i.formula_mode !== "preset" && i.formula_expression ? (
                       <span className="inline-flex items-center gap-2" title={i.formula_expression}>
                         <span className="rounded-md bg-violet-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-violet-700 dark:text-violet-300">Custom</span>
-                        <span className="max-w-[280px] truncate font-mono text-[11px]">{i.formula_expression}</span>
+                        <span className="max-w-[60vw] truncate font-mono text-[11px] sm:max-w-[280px]">{i.formula_expression}</span>
                       </span>
                     ) : i.calc_type === "percentage" ? (
                       <span className="inline-flex items-center gap-2" title={buildFormulaPreview(i)}>
@@ -586,7 +586,7 @@ function AllowanceFormDialog({
               placeholder="e.g. House Rent Allowance"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Display Name</Label>
               <Input

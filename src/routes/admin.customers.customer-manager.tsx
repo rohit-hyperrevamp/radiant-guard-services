@@ -209,8 +209,8 @@ function CustomerManagerPage() {
           <span className="inline-flex items-center gap-2"><span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] text-primary-foreground">{rows.length}</span><span className="uppercase tracking-[0.14em] text-muted-foreground">Total {rows.length === 1 ? "row" : "rows"}</span></span>
         </div>
 
-        <div className="overflow-x-clip">
-          <table className="ios-table w-full table-fixed text-sm">
+        <div className="min-w-0 overflow-x-auto overscroll-x-contain">
+          <table className="ios-table w-full table-auto text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3">Org ID</th>

@@ -813,7 +813,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border">
-          <table className="ios-table w-full min-w-[620px] text-sm">
+          <table className="ios-table w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">Code</th>
@@ -830,7 +830,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
                   <tr key={m.id} className="border-t">
                     <td className="px-3 py-2 font-mono text-xs">{u?.code ?? "—"}</td>
                     <td className="px-3 py-2">{u?.name ?? "—"}</td>
-                    <td className="px-3 py-2 min-w-[200px]">
+                    <td className="min-w-0 px-3 py-2 sm:min-w-[200px]">
                       <UnitDesignationSelect
                         unitId={m.unit_id}
                         value={m.designation_id}
