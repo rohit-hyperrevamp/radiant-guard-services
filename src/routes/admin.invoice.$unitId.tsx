@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Download } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, Download, Eye, Loader2, Upload } from "lucide-react";
 import { z } from "zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { TaxInvoiceSheet, type TaxInvoiceData } from "@/components/TaxInvoiceSheet";
@@ -35,6 +36,8 @@ import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
+import { logActivity } from "@/lib/activity-log";
+import { useCurrentPermissions } from "@/lib/rbac";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -175,6 +178,11 @@ function buildDates(start: string, end: string): string[] {
 function PayrollUnitPage() {
   const { unitId } = Route.useParams();
   const { start, end, candidate: highlightCandidate } = Route.useSearch();
+  const queryClient = useQueryClient();
+  const tallyInvoiceInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingTallyInvoice, setUploadingTallyInvoice] = useState(false);
+  const { can } = useCurrentPermissions();
+  const canUploadTallyInvoice = can("invoice", "edit");
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
@@ -271,12 +279,19 @@ function PayrollUnitPage() {
       await supabaseSessionReady();
       const { data } = await supabase
         .from("attendance_sheets" as never)
-        .select("status, approved_at")
+        .select("id, status, approved_at, tally_invoice_path, tally_invoice_name, tally_invoice_uploaded_at")
         .eq("unit_id", unitId)
         .eq("period_start", start)
         .eq("period_end", end)
         .maybeSingle();
-      return data as unknown as { status: string; approved_at: string | null } | null;
+      return data as unknown as {
+        id: string;
+        status: string;
+        approved_at: string | null;
+        tally_invoice_path: string | null;
+        tally_invoice_name: string | null;
+        tally_invoice_uploaded_at: string | null;
+      } | null;
     },
   });
 
@@ -1405,6 +1420,89 @@ function PayrollUnitPage() {
     });
   };
 
+  const uploadTallyInvoice = async (file: File) => {
+    if (!sheet?.id || !canUploadTallyInvoice) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("The Tally invoice must be 20 MB or smaller");
+      return;
+    }
+    const allowedTypes = new Set([
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ]);
+    if (!allowedTypes.has(file.type)) {
+      toast.error("Upload a PDF, image, XLS, or XLSX file");
+      return;
+    }
+    if (!window.confirm(sheet.tally_invoice_path ? "Replace the uploaded Tally invoice?" : "Upload this Tally invoice?")) return;
+
+    setUploadingTallyInvoice(true);
+    const oldPath = sheet.tally_invoice_path;
+    try {
+      const rawExtension = file.name.split(".").pop()?.toLowerCase() ?? "pdf";
+      const extension = rawExtension.replace(/[^a-z0-9]/g, "") || "pdf";
+      const path = `${sheet.id}/tally-invoice-${Date.now()}.${extension}`;
+      const uploadResult = await supabase.storage
+        .from("tally-invoices")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (uploadResult.error) throw uploadResult.error;
+
+      const { data: auth } = await supabase.auth.getUser();
+      const uploadedAt = new Date().toISOString();
+      const updateResult = await supabase
+        .from("attendance_sheets" as never)
+        .update({
+          tally_invoice_path: path,
+          tally_invoice_name: file.name,
+          tally_invoice_uploaded_at: uploadedAt,
+          tally_invoice_uploaded_by: auth.user?.id ?? null,
+        } as never)
+        .eq("id", sheet.id);
+      if (updateResult.error) {
+        await supabase.storage.from("tally-invoices").remove([path]);
+        throw updateResult.error;
+      }
+      if (oldPath && oldPath !== path) {
+        await supabase.storage.from("tally-invoices").remove([oldPath]);
+      }
+      await logActivity({
+        module: "Invoice",
+        action: oldPath ? "update" : "upload",
+        entityType: "attendance_sheets",
+        entityId: sheet.id,
+        entityLabel: `${unit?.code ?? unitId} · ${start} to ${end}`,
+        details: { document: "Tally invoice", filename: file.name },
+      });
+      await queryClient.invalidateQueries({ queryKey: ["payroll-sheet", unitId, start, end] });
+      toast.success(oldPath ? "Tally invoice replaced" : "Tally invoice uploaded");
+    } catch (uploadError) {
+      toast.error(uploadError instanceof Error ? uploadError.message : "Could not upload Tally invoice");
+    } finally {
+      setUploadingTallyInvoice(false);
+      if (tallyInvoiceInputRef.current) tallyInvoiceInputRef.current.value = "";
+    }
+  };
+
+  const viewTallyInvoice = async () => {
+    if (!sheet?.tally_invoice_path) return;
+    const invoiceWindow = window.open("about:blank", "_blank");
+    if (invoiceWindow) invoiceWindow.opener = null;
+    const { data: signed, error: signedError } = await supabase.storage
+      .from("tally-invoices")
+      .createSignedUrl(sheet.tally_invoice_path, 300);
+    if (signedError || !signed?.signedUrl) {
+      invoiceWindow?.close();
+      toast.error("Could not open the Tally invoice");
+      return;
+    }
+    if (invoiceWindow) invoiceWindow.location.href = signed.signedUrl;
+    else window.location.href = signed.signedUrl;
+  };
+
   const invoiceUnlocked = sheet?.status === "approved";
   if (!invoiceUnlocked) {
     const attStatus = sheet?.status ?? null;
@@ -1442,6 +1540,32 @@ function PayrollUnitPage() {
           <ChevronLeft className="h-4 w-4" /> Back to invoice units
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={tallyInvoiceInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.xls,.xlsx"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void uploadTallyInvoice(file);
+            }}
+          />
+          {sheet?.tally_invoice_path && (
+            <Button variant="outline" size="sm" onClick={() => void viewTallyInvoice()}>
+              <Eye className="mr-1.5 h-4 w-4" /> View Tally Invoice
+            </Button>
+          )}
+          {canUploadTallyInvoice && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={uploadingTallyInvoice}
+              onClick={() => tallyInvoiceInputRef.current?.click()}
+            >
+              {uploadingTallyInvoice ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+              Upload Tally Invoice
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 h-4 w-4" /> Export
           </Button>
