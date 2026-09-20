@@ -44,6 +44,13 @@ function InvoiceUnitsPage() {
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
+  const unitOptions = useMemo(
+    () =>
+      windowUnits.filter(
+        (u) => orgFilter.length === 0 || orgFilter.includes(u.customer_id || u.customer_name),
+      ),
+    [windowUnits, orgFilter],
+  );
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
@@ -120,11 +127,11 @@ function InvoiceUnitsPage() {
               label="Unit"
               selected={unitFilter}
               onChange={setUnitFilter}
-              options={windowUnits.map((u) => ({
+              options={unitOptions.map((u) => ({
                 value: u.id,
                 label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
               }))}
-              allLabel={`All units (${windowUnits.length})`}
+              allLabel={`All units (${unitOptions.length})`}
             />
           </div>
 
