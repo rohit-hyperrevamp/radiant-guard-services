@@ -58,6 +58,7 @@ import { cn } from "@/lib/utils";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
+import { pickEsicBranchId } from "@/lib/esic-auto-map";
 import { MONTH_NAMES, resolveLwf, useLwfRows } from "@/lib/lwf-lookup";
 import {
   resolveFieldOfficersForUnit,
@@ -718,6 +719,19 @@ function UnitFormDialog({
 
   const set = <K extends keyof Omit<Unit, "id">>(k: K, v: Omit<Unit, "id">[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  // The ESIC sub-code follows the site's location, so map it automatically
+  // whenever the site has no branch yet. A manual choice is never overwritten.
+  const autoEsicBranchId = useMemo(
+    () => pickEsicBranchId(esicBranches, form.billingCity, form.billingState),
+    [esicBranches, form.billingCity, form.billingState],
+  );
+  useEffect(() => {
+    if (!open) return;
+    if (form.esicBranchId) return;
+    if (!autoEsicBranchId) return;
+    setForm((f) => (f.esicBranchId ? f : { ...f, esicBranchId: autoEsicBranchId }));
+  }, [open, autoEsicBranchId, form.esicBranchId]);
 
   // Sort branches as code (BR1, BR2…)
   const branchOptions = useMemo(() => {
