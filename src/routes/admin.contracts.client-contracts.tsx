@@ -2334,11 +2334,12 @@ function ClientContractsPage() {
     updateStageMut,
     resubmitMut,
   } = useContracts();
-  const { can, roleKey } = useCurrentPermissions();
-  const canApprove = can("contracts", "approve");
-  const canEdit = can("contracts", "edit");
-  const canDelete = can("contracts", "delete");
-  const isHrReadOnly = roleKey === "hr";
+  const { can, roleKey, isSuperAdmin } = useCurrentPermissions();
+  // Super Admin always retains full control over every existing contract.
+  const canApprove = isSuperAdmin || can("contracts", "approve");
+  const canEdit = isSuperAdmin || can("contracts", "edit");
+  const canDelete = isSuperAdmin || can("contracts", "delete");
+  const isHrReadOnly = !isSuperAdmin && roleKey === "hr";
   const units = useMemo(
     () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
       id: item.unitId,
