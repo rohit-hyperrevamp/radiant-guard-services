@@ -220,7 +220,7 @@ const DialogContent = React.forwardRef<
           ref={handleRef}
           data-pristine={pristine ? "true" : "false"}
           className={cn(
-            "dialog-content-centered fixed inset-x-0 bottom-0 z-[110] grid h-auto max-h-[92dvh] w-full max-w-none overflow-y-auto overscroll-contain gap-3 rounded-t-2xl border-x-0 border-b-0 border-t border-border/60 bg-card text-card-foreground p-3 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl data-[state=open]:animate-slide-in-from-bottom data-[state=closed]:animate-slide-out-to-bottom sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:h-auto sm:w-[calc(100vw-1.5rem)] sm:max-w-lg sm:max-h-[calc(100dvh-1.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:gap-4 sm:rounded-xl sm:border sm:p-6 sm:shadow-[0_24px_60px_-15px_rgba(15,23,42,0.25)] sm:data-[state=open]:animate-dialog-in sm:data-[state=closed]:animate-dialog-out",
+            "dialog-content-centered fixed inset-x-0 bottom-0 z-[110] grid h-auto max-h-[92dvh] w-full max-w-none overflow-y-auto overscroll-contain gap-3 rounded-t-2xl border-x-0 border-b-0 border-t border-border/60 bg-card text-card-foreground p-3 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl data-[state=open]:animate-slide-in-from-bottom data-[state=closed]:animate-slide-out-to-bottom sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:h-auto sm:w-[calc(100vw-1.5rem)] sm:max-w-lg sm:max-h-[calc(100dvh-1.5rem)] sm:gap-4 sm:rounded-xl sm:border sm:p-6 sm:shadow-[0_24px_60px_-15px_rgba(15,23,42,0.25)] sm:data-[state=open]:animate-dialog-in sm:data-[state=closed]:animate-dialog-out",
             responsive && "dialog-responsive",
             className,
           )}
