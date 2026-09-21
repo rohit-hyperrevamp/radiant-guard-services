@@ -6746,8 +6746,8 @@ function CandidateWizard({
       <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl">
 
 
-        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-3 pb-2 pt-[max(0.625rem,env(safe-area-inset-top))] pr-12 sm:px-6 sm:py-4 sm:pr-14 lg:hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+        <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-3 pb-2 pt-[max(0.625rem,env(safe-area-inset-top))] pr-14 sm:px-6 sm:py-4 sm:pr-16 lg:hidden">
+          <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent sm:h-10 sm:w-10 sm:rounded-xl">
                 <UserPlus className="h-5 w-5" />
@@ -6760,10 +6760,6 @@ function CandidateWizard({
                   {currentStep.label} · {currentStep.caption}
                 </DialogDescription>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium tabular-nums text-foreground sm:text-base">{completionPct}%</p>
-              <p className="text-[10px] text-muted-foreground sm:text-[11px]">fields</p>
             </div>
           </div>
           {isEmployeeMode && (
@@ -8261,32 +8257,12 @@ function CandidateWizard({
               </>
             )}
           </div>
-          <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 sm:flex sm:w-auto sm:gap-2">
-            {stepIndex > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={goBack}
-                disabled={submitting || savingDraft || !!uploading}
-                className="h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4"
-              >
-                <ChevronLeft className="mr-1 h-4 w-4" /> Back
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              onClick={saveDraft}
-              disabled={savingDraft || submitting || !!uploading}
-              className={cn("h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4", stepIndex === 0 && "col-span-2 sm:col-span-1")}
-            >
-              {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              Save Draft
-            </Button>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-2">
             {!isLastStep ? (
               <Button
                 type="button"
                 onClick={goNext}
-                className="h-10 min-w-0 rounded-lg bg-accent px-2 text-accent-foreground hover:bg-accent/90 sm:flex-none sm:px-4"
+                className="col-span-2 h-10 min-w-0 rounded-lg bg-accent px-3 text-accent-foreground hover:bg-accent/90 sm:order-last sm:col-span-1 sm:flex-none sm:px-4"
               >
                 Next <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
@@ -8295,12 +8271,32 @@ function CandidateWizard({
                 onClick={submit}
                 disabled={submitting || savingDraft || !!uploading}
                 title={!editing && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                className="h-10 min-w-0 rounded-lg px-2 sm:flex-none sm:px-4"
+                className="col-span-2 h-10 min-w-0 rounded-lg px-3 sm:order-last sm:col-span-1 sm:flex-none sm:px-4"
               >
                 {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                {editing ? "Save" : "Submit"}
+                {editing ? "Save changes" : "Submit"}
               </Button>
             )}
+            {stepIndex > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={goBack}
+                disabled={submitting || savingDraft || !!uploading}
+                className="h-9 min-w-0 rounded-lg px-3 text-xs sm:h-10 sm:flex-none sm:px-4 sm:text-sm"
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" /> Back
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              onClick={saveDraft}
+              disabled={savingDraft || submitting || !!uploading}
+              className={cn("h-9 min-w-0 rounded-lg px-3 text-xs sm:h-10 sm:flex-none sm:px-4 sm:text-sm", stepIndex === 0 && "col-span-2 sm:col-span-1")}
+            >
+              {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Save Draft
+            </Button>
           </div>
           </div>
         </DialogFooter>

@@ -75,7 +75,7 @@ export function CharterTile({
         )}
       </div>
 
-       <div className="relative mt-auto whitespace-nowrap pt-2 font-display text-[22px] font-medium leading-none tabular-nums text-foreground sm:text-[36px]">
+       <div className="relative mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap pt-2 font-display text-[20px] font-medium leading-none tabular-nums text-foreground sm:text-[36px]">
         {display}
       </div>
 

@@ -351,7 +351,7 @@
 - [x] Keep employee identity visible during horizontal scrolling and retain bulk entry.
 - [x] Run TypeScript and formatting validation.
 
-- [ ] Simplify multi-employee mobile attendance entry and bulk actions
-- [ ] Fix dashboard and module stat values to stay single-line
-- [ ] Repair candidate editor mobile header/footer and employee stat alignment
-- [ ] Review listed operational screens for shared mobile consistency
+- [x] Simplify multi-employee mobile attendance entry and bulk actions
+- [x] Fix dashboard and module stat values to stay single-line
+- [x] Repair candidate editor mobile header/footer and employee stat alignment
+- [x] Review listed operational screens for shared mobile consistency

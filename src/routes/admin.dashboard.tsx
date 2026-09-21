@@ -816,7 +816,7 @@ function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: 
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[28px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">
           {display}
         </div>
         <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}>
@@ -838,7 +838,7 @@ function DualTile({ icon, label, primary, primaryLabel, secondary, secondaryLabe
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[30px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[40px]">{display}</div>
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">{display}</div>
         <div className="flex flex-col items-end text-right">
           <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">{secondaryLabel}</span>
           <span className="mt-0.5 flex items-center gap-1 font-display text-xs font-semibold tabular-nums text-foreground sm:text-sm">
@@ -862,16 +862,16 @@ function StatusTile({ icon, label, approved, pending, draft, rejected, open, app
       <TileHeader accent={accent} label={label} />
       <div className={`relative mt-2 grid gap-2 sm:mt-3 sm:gap-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}>
         <div>
-          <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{approved}</div>
+           <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">{approved}</div>
           <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{approvedLabel}</div>
         </div>
         <div>
-          <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{pending}</div>
+           <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">{pending}</div>
           <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{pendingLabel}</div>
         </div>
         {open != null && (
           <div>
-            <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{open}</div>
+             <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">{open}</div>
             <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{openLabel}</div>
           </div>
         )}
@@ -901,7 +901,7 @@ function ContractsTile({ active, expiring }: { active: number; expiring: Array<{
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[30px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">{display}</div>
+         <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">{display}</div>
         <div className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}>
           <AlertTriangle className="h-3 w-3 shrink-0" />
           <span className="truncate leading-none" title={hasExpiring && soonest?.end_date ? `Soonest: ${soonest.end_date}` : alertText}>{alertText}</span>

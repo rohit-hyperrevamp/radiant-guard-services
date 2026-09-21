@@ -3912,7 +3912,8 @@ function MusterRollPage() {
 
       {/* Phone muster: same employee-by-day model as Form XVI, condensed for touch. */}
       <section className="space-y-2 sm:hidden print:hidden" aria-label="Mobile attendance muster">
-        <div className="mobile-glass-surface sticky top-1 z-30 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/70 bg-card/90 p-2 shadow-sm">
+        <div className="mobile-glass-surface sticky top-1 z-30 space-y-2 rounded-xl border border-border/70 bg-card/90 p-2 shadow-sm">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <label className="relative min-w-0">
             <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
             <select
@@ -3935,7 +3936,7 @@ function MusterRollPage() {
           <Button
             size="sm"
             variant="ghost"
-            className="h-9 shrink-0 px-2.5"
+            className="h-9 shrink-0 px-2.5 text-xs"
             disabled={!editable}
             onClick={() => {
               const eligible = visibleMusterRows.filter(
@@ -3952,8 +3953,42 @@ function MusterRollPage() {
               );
             }}
           >
-            {mobileSelectedRows.size > 0 ? "Clear" : "Select all"}
+            {mobileSelectedRows.size > 0 ? `${mobileSelectedRows.size} selected` : "Select all"}
           </Button>
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-border/60 pt-2">
+            <div className="scrollbar-hide flex min-w-0 gap-1 overflow-x-auto">
+              {codes.map((code) => (
+                <Button
+                  key={code.id}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 min-w-9 shrink-0 rounded-lg px-2 text-xs font-medium"
+                  disabled={!editable || mobileSelectedRows.size === 0}
+                  title={mobileSelectedRows.size === 0 ? "Select employees first" : `Apply ${code.label}`}
+                  onClick={() =>
+                    applyCodeToCells(
+                      Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`),
+                      code.code,
+                    )
+                  }
+                >
+                  {code.code}
+                </Button>
+              ))}
+            </div>
+            {mobileSelectedRows.size > 0 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0"
+                aria-label="Clear selected employees"
+                onClick={() => setMobileSelectedRows(new Set())}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
@@ -4178,45 +4213,6 @@ function MusterRollPage() {
           </div>
         </div>
 
-        {mobileSelectedRows.size > 0 && (
-          <div className="mobile-glass-bar dock-clear-action fixed inset-x-2 z-50 rounded-xl border border-primary/30 bg-card/90 p-2 shadow-lg">
-            <div className="mb-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1 text-xs">
-              <span className="truncate">
-                {mobileSelectedRows.size} employees ·{" "}
-                {new Date(`${mobileDate}T12:00:00`).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                })}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 px-2"
-                onClick={() => setMobileSelectedRows(new Set())}
-              >
-                Clear
-              </Button>
-            </div>
-            <div className="scrollbar-hide flex gap-1 overflow-x-auto">
-              {codes.map((code) => (
-                <Button
-                  key={code.id}
-                  size="sm"
-                  variant="outline"
-                  className="h-9 min-w-11 shrink-0 px-2 font-medium"
-                  onClick={() =>
-                    applyCodeToCells(
-                      Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`),
-                      code.code,
-                    )
-                  }
-                >
-                  {code.code}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {selectedCells.size > 0 && !isDragging && (

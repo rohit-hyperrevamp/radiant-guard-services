@@ -153,7 +153,7 @@ export function PageStat({
         )}
       </div>
       <div className="relative mt-2.5 flex items-end justify-between gap-2 sm:mt-5">
-        <div className="min-w-0 whitespace-nowrap font-display text-[22px] font-medium leading-none tabular-nums text-foreground sm:text-[34px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[20px] font-medium leading-none tabular-nums text-foreground sm:text-[34px]">
           {value}
         </div>
         <span
