@@ -393,4 +393,4 @@
 ## Candidate-style Control Center forms
 - [x] Apply one consistent Candidate-style layout to every Control Center create/edit dialog.
 - [x] Align full-page Control Center forms to the same sections, fields, toggles, and actions.
-- [ ] Verify short and long forms on mobile and desktop and run TypeScript validation.
+- [x] Verify short and long forms on mobile and desktop and run TypeScript validation.
