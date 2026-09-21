@@ -3361,177 +3361,193 @@ function MusterRollPage() {
         </div>
       </div>
 
-      {/* Phone attendance entry: one day and one employee at a time. The full
-          statutory register remains below for tablet, desktop, and print. */}
-      <section className="space-y-2.5 sm:hidden print:hidden" aria-label="Mobile attendance entry">
-        <div className="mobile-glass-surface sticky top-1 z-20 rounded-xl border border-border/70 bg-card/85 p-1.5 shadow-sm">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Previous day"
-              disabled={periodCells.findIndex((cell) => cell.date === mobileDate) <= 0}
-              onClick={() => {
-                const index = periodCells.findIndex((cell) => cell.date === mobileDate);
-                const previous = periodCells[index - 1];
-                if (previous) setMobileDate(previous.date);
-              }}
+      {/* Phone muster: same employee-by-day model as Form XVI, condensed for touch. */}
+      <section className="space-y-2 sm:hidden print:hidden" aria-label="Mobile attendance muster">
+        <div className="mobile-glass-surface sticky top-1 z-30 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/70 bg-card/90 p-2 shadow-sm">
+          <label className="relative min-w-0">
+            <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+            <select
+              aria-label="Bulk attendance date"
+              value={mobileDate}
+              onChange={(event) => setMobileDate(event.target.value)}
+              className="h-9 w-full appearance-none rounded-lg border border-primary/30 bg-primary/5 pl-8 pr-2 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <label className="relative min-w-0">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
-              <select
-                aria-label="Attendance date"
-                value={mobileDate}
-                onChange={(event) => {
-                  setMobileDate(event.target.value);
-                  setMobileSelectedRows(new Set());
-                }}
-                className="h-10 w-full appearance-none rounded-lg border border-primary/30 bg-primary/5 pl-9 pr-2 text-center text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                {periodCells.map((cell) => (
-                  <option key={cell.date} value={cell.date} disabled={cell.date > todayStr}>
-                    {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Next day"
-              disabled={periodCells.findIndex((cell) => cell.date === mobileDate) >= periodCells.length - 1 || periodCells[periodCells.findIndex((cell) => cell.date === mobileDate) + 1]?.date > todayStr}
-              onClick={() => {
-                const index = periodCells.findIndex((cell) => cell.date === mobileDate);
-                const next = periodCells[index + 1];
-                if (next && next.date <= todayStr) setMobileDate(next.date);
-              }}
-            >
-              <ChevronLeft className="h-4 w-4 rotate-180" />
-            </Button>
-          </div>
-          <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1">
-            <span className="truncate text-xs text-muted-foreground">
-              {visibleMusterRows.filter((row) => !row.vacant).length} employees
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!editable}
-              onClick={() => {
-                const eligible = visibleMusterRows.filter((row) => !row.vacant && !row.otOnly && !row.reliever && (!row.emp.doj || mobileDate >= row.emp.doj));
-                setMobileSelectedRows((current) => current.size === eligible.length ? new Set() : new Set(eligible.map((row) => row.key)));
-              }}
-            >
-              {mobileSelectedRows.size > 0 ? "Clear selection" : "Select all"}
-            </Button>
+              {periodCells.map((cell) => (
+                <option key={cell.date} value={cell.date} disabled={cell.date > todayStr}>
+                  {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-9 shrink-0 px-2.5"
+            disabled={!editable}
+            onClick={() => {
+              const eligible = visibleMusterRows.filter((row) => !row.vacant && !row.otOnly && !row.reliever && (!row.emp.doj || mobileDate >= row.emp.doj));
+              setMobileSelectedRows((current) => current.size === eligible.length ? new Set() : new Set(eligible.map((row) => row.key)));
+            }}
+          >
+            {mobileSelectedRows.size > 0 ? "Clear" : "Select all"}
+          </Button>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
+          <div className="scrollbar-hide overflow-x-auto overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+            <table className="w-max min-w-full border-separate border-spacing-0 text-center text-xs">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 z-20 w-[136px] min-w-[136px] border-b border-r border-border bg-muted px-2 py-2 text-left font-medium text-foreground">
+                    Employee
+                  </th>
+                  {periodCells.map((cell) => (
+                    <th
+                      key={cell.date}
+                      className={cn(
+                        "h-11 w-10 min-w-10 border-b border-r border-border bg-muted p-0 font-medium",
+                        cell.date === mobileDate && "bg-primary/10 text-primary",
+                        cell.date > todayStr && "text-muted-foreground/50",
+                      )}
+                    >
+                      <span className="block text-[9px] uppercase leading-none">{MONTH_NAMES[cell.monthIdx]?.slice(0, 3)}</span>
+                      <span className="mt-1 block text-xs leading-none">{cell.dayNum}</span>
+                    </th>
+                  ))}
+                  <th className="h-11 w-12 min-w-12 border-b border-border bg-muted px-1 font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr><td colSpan={dayCount + 2} className="p-6 text-muted-foreground">Loading employees…</td></tr>
+                ) : visibleMusterRows.length === 0 ? (
+                  <tr><td colSpan={dayCount + 2} className="p-6 text-muted-foreground">No employees found.</td></tr>
+                ) : visibleMusterRows.map((mr) => {
+                  if (mr.vacant) {
+                    return (
+                      <tr key={mr.key}>
+                        <td className="sticky left-0 z-10 border-b border-r border-border bg-card p-1.5 text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto w-full justify-start px-1 py-1 text-left"
+                            disabled={!editable}
+                            onClick={() => {
+                              setMapQuery("");
+                              setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5 shrink-0" />
+                            <span className="min-w-0 truncate">{mr.designationName}</span>
+                          </Button>
+                        </td>
+                        <td colSpan={dayCount + 1} className="border-b border-border px-3 text-left text-[11px] text-muted-foreground">Vacant deployment</td>
+                      </tr>
+                    );
+                  }
+                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
+                  const selected = mobileSelectedRows.has(mr.key);
+                  return [
+                    <tr key={`${mr.key}-mobile-att`} className={selected ? "bg-primary/5" : undefined}>
+                      <td className="sticky left-0 z-10 w-[136px] min-w-[136px] border-b border-r border-border bg-card px-1.5 py-1.5 text-left">
+                        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
+                          {!mr.otOnly && !mr.reliever ? (
+                            <Checkbox
+                              checked={selected}
+                              aria-label={`Select ${mr.emp.full_name}`}
+                              onCheckedChange={(checked) => setMobileSelectedRows((current) => {
+                                const next = new Set(current);
+                                if (checked) next.add(mr.key); else next.delete(mr.key);
+                                return next;
+                              })}
+                            />
+                          ) : <Clock3 className="h-4 w-4 text-muted-foreground" />}
+                          <div className="min-w-0">
+                            <div className="truncate text-[11px] font-medium text-foreground">{mr.emp.full_name || "Unnamed"}</div>
+                            <div className="truncate text-[9px] text-muted-foreground">{mr.emp.employee_code || "No ID"} · {mr.designationName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {periodCells.map((cell) => {
+                        const date = cell.date;
+                        const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
+                        const edOnly = Boolean(mr.otOnly) || Boolean(mr.reliever);
+                        const blocked = !editable || date > todayStr || beforeDoj || edOnly;
+                        const entry = entryMap.get(`${mr.key}|${date}`);
+                        const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
+                        const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
+                        return (
+                          <td key={date} className={cn("border-b border-r border-border p-0", date === mobileDate && "bg-primary/5")}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className={cn("h-11 w-10 min-w-10 rounded-none p-0 text-xs font-medium", !entry?.code && displayCode === "A" && "text-muted-foreground")}
+                              disabled={blocked}
+                              aria-label={`${mr.emp.full_name}, ${date}: ${displayCode || "not marked"}`}
+                              title={blocked ? (beforeDoj ? "Before joining date" : edOnly ? "Extra Duty only" : "Not editable") : `${date} · ${codeMeta?.label || displayCode}`}
+                              style={{ color: codeMeta?.color }}
+                              onClick={() => {
+                                setMobileDate(date);
+                                setPickerCells([`${mr.key}|${date}`]);
+                                setPickerOpen(true);
+                              }}
+                            >
+                              {displayCode}
+                            </Button>
+                          </td>
+                        );
+                      })}
+                      <td className="border-b border-border px-1 font-medium text-foreground">{totals.tDays}</td>
+                    </tr>,
+                    <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
+                      <td className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-1 text-left text-[9px] font-medium text-muted-foreground">Extra Duty</td>
+                      {periodCells.map((cell) => {
+                        const beforeDoj = Boolean(mr.emp.doj) && cell.date < mr.emp.doj;
+                        const blocked = !editable || cell.date > todayStr || beforeDoj;
+                        const entry = entryMap.get(`${mr.key}|${cell.date}`);
+                        const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
+                        const hours = Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
+                        return (
+                          <td key={cell.date} className={cn("border-b border-r border-border p-0", hours > 0 && "bg-warning/10")}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-warning-foreground"
+                              disabled={blocked}
+                              aria-label={`${mr.emp.full_name}, ${cell.date}: ${hours || 0} Extra Duty hours`}
+                              onClick={() => {
+                                setMobileDate(cell.date);
+                                setOtPickerCells([`${mr.key}|${cell.date}`]);
+                                setOtPickerOpen(true);
+                              }}
+                            >
+                              {hours > 0 ? `${hours}h` : "·"}
+                            </Button>
+                          </td>
+                        );
+                      })}
+                      <td className="border-b border-border px-1 text-[10px] font-medium">{Math.round(totals.otDays * shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) * 4) / 4}h</td>
+                    </tr>,
+                  ];
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Loading employees…</div>
-        ) : visibleMusterRows.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No employees found.</div>
-        ) : (
-          <div className="space-y-2">
-            {visibleMusterRows.map((mr) => {
-              if (mr.vacant) {
-                return (
-                  <Button
-                    key={mr.key}
-                    variant="outline"
-                    className="h-auto w-full justify-start border-dashed px-3 py-3 text-left"
-                    disabled={!editable}
-                    onClick={() => {
-                      setMapQuery("");
-                      setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="min-w-0 truncate">{mr.beyondAgreed ? "Add deployment" : "Fill vacant"} · {mr.designationName}</span>
-                  </Button>
-                );
-              }
-              const beforeDoj = Boolean(mr.emp.doj) && mobileDate < mr.emp.doj;
-              const blocked = !editable || mobileDate > todayStr || beforeDoj;
-              const attendanceBlocked = blocked || Boolean(mr.otOnly) || Boolean(mr.reliever);
-              const entry = entryMap.get(`${mr.key}|${mobileDate}`);
-              const currentCode = attendanceBlocked ? "" : entry?.code || "A";
-              const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
-              const edHours = Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
-              const selected = mobileSelectedRows.has(mr.key);
-              return (
-                <article key={mr.key} className={cn("overflow-hidden rounded-xl border bg-card", selected ? "border-primary/50 ring-2 ring-primary/10" : "border-border/70")}>
-                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2.5 py-2">
-                    {!attendanceBlocked ? (
-                      <Checkbox
-                        checked={selected}
-                        aria-label={`Select ${mr.emp.full_name}`}
-                        onCheckedChange={(checked) => setMobileSelectedRows((current) => {
-                          const next = new Set(current);
-                          if (checked) next.add(mr.key); else next.delete(mr.key);
-                          return next;
-                        })}
-                      />
-                    ) : <div className="h-6 w-6" />}
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">{mr.emp.full_name || "Unnamed employee"}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{mr.emp.employee_code || "No ID"} · {mr.designationName}</div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={edHours > 0 ? "secondary" : "outline"}
-                      className="shrink-0 px-2"
-                      disabled={blocked}
-                      onClick={() => {
-                        setOtPickerCells([`${mr.key}|${mobileDate}`]);
-                        setOtPickerOpen(true);
-                      }}
-                    >
-                      <Clock3 className="h-3.5 w-3.5" /> {edHours > 0 ? `${edHours}h ED` : "ED"}
-                    </Button>
-                  </div>
-                  {beforeDoj ? (
-                    <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">Joins {new Date(`${mr.emp.doj}T12:00:00`).toLocaleDateString("en-IN")}</div>
-                  ) : mr.otOnly || mr.reliever ? (
-                    <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">Reliever · Extra Duty only</div>
-                  ) : (
-                    <div className="scrollbar-hide flex gap-1.5 overflow-x-auto border-t border-border/60 px-2 py-2">
-                      {codes.map((code) => (
-                        <Button
-                          key={code.id}
-                          size="sm"
-                          variant={currentCode === code.code ? "default" : "outline"}
-                          className="h-9 min-w-10 shrink-0 px-2.5"
-                          disabled={blocked}
-                          title={code.label}
-                          onClick={() => applyCodeToCells([`${mr.key}|${mobileDate}`], code.code)}
-                        >
-                          {code.code}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        )}
-
         {mobileSelectedRows.size > 0 && (
           <div className="mobile-glass-bar dock-clear-action fixed inset-x-2 z-50 rounded-xl border border-primary/30 bg-card/90 p-2 shadow-lg">
-            <div className="mb-1.5 flex items-center justify-between px-1 text-xs">
-              <span>{mobileSelectedRows.size} selected</span>
-              <Button size="sm" variant="ghost" className="h-8" onClick={() => setMobileSelectedRows(new Set())}>Clear</Button>
+            <div className="mb-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1 text-xs">
+              <span className="truncate">{mobileSelectedRows.size} employees · {new Date(`${mobileDate}T12:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+              <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setMobileSelectedRows(new Set())}>Clear</Button>
             </div>
-            <div className="scrollbar-hide flex gap-1.5 overflow-x-auto">
+            <div className="scrollbar-hide flex gap-1 overflow-x-auto">
               {codes.map((code) => (
                 <Button
                   key={code.id}
                   size="sm"
                   variant="outline"
-                  className="h-9 min-w-12 shrink-0"
+                  className="h-9 min-w-11 shrink-0 px-2 font-medium"
                   onClick={() => applyCodeToCells(Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`), code.code)}
                 >
                   {code.code}
