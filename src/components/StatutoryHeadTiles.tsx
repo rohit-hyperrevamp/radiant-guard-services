@@ -163,7 +163,7 @@ export function StatutoryHeadTiles({ ym }: { ym: string }) {
                 </span>
               </div>
 
-              <div className="mt-4 font-display text-[22px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[26px]">
+              <div className="mt-4 font-display text-[22px] font-bold leading-none tracking-tight whitespace-nowrap tabular-nums text-foreground sm:text-[26px]">
                 {isLoading ? "—" : inr(total)}
               </div>
 

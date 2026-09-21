@@ -118,7 +118,7 @@ function Tile({
       </div>
       <div
         className={cn(
-          "mt-1 whitespace-nowrap text-lg font-semibold tabular-nums",
+          "mt-1 whitespace-nowrap text-lg font-semibold whitespace-nowrap tabular-nums",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",

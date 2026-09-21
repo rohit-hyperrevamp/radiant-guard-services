@@ -350,3 +350,8 @@
 - [x] Make every eligible day cell directly editable on phones while preserving ED and restrictions.
 - [x] Keep employee identity visible during horizontal scrolling and retain bulk entry.
 - [x] Run TypeScript and formatting validation.
+
+- [x] Simplify multi-employee mobile attendance entry and bulk actions
+- [x] Fix dashboard and module stat values to stay single-line
+- [x] Repair candidate editor mobile header/footer and employee stat alignment
+- [x] Review listed operational screens for shared mobile consistency

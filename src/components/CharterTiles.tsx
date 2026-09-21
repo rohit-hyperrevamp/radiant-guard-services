@@ -12,7 +12,11 @@ import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-them
  */
 
 export function CharterTileGrid({ children }: { children: ReactNode }) {
-  return <div className="scrollbar-hide -mx-2 flex snap-x gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 sm:pb-0 lg:grid-cols-4">{children}</div>;
+  return (
+    <div className="scrollbar-hide -mx-2 grid grid-flow-col auto-cols-[calc(50%-0.25rem)] snap-x gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:grid-flow-row sm:grid-cols-2 sm:px-0 sm:pb-0 lg:grid-cols-4">
+      {children}
+    </div>
+  );
 }
 
 export type TileSegment = { label: string; value: number; tone?: "open" | "ready" | "done" };
@@ -48,17 +52,17 @@ export function CharterTile({
   return (
     <div
       className={cn(
-         "group relative flex min-h-[92px] w-[calc(50vw-16px)] min-w-[152px] max-w-[184px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/40 p-2.5 transition-colors sm:min-h-[138px] sm:w-auto sm:min-w-0 sm:max-w-none sm:rounded-2xl sm:p-4",
+        "group relative flex min-h-[92px] min-w-0 snap-start flex-col overflow-hidden rounded-xl border border-border/40 p-2.5 transition-colors sm:min-h-[138px] sm:w-auto sm:max-w-none sm:rounded-2xl sm:p-4",
         ACCENT_TILE_BG[accent],
       )}
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-           <div className="line-clamp-2 font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
+          <div className="line-clamp-2 font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
           {sub && (
-             <div className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
+            <div className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
               {sub}
             </div>
           )}
@@ -66,7 +70,7 @@ export function CharterTile({
         {Icon && (
           <span
             className={cn(
-               "grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 sm:rounded-full",
+              "grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 sm:rounded-full",
               ACCENT_CHIP[accent],
             )}
           >
@@ -75,7 +79,7 @@ export function CharterTile({
         )}
       </div>
 
-       <div className="relative mt-auto whitespace-nowrap pt-2 font-display text-[22px] font-medium leading-none tabular-nums text-foreground sm:text-[36px]">
+      <div className="relative mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap pt-2 font-display text-[20px] font-medium leading-none tabular-nums text-foreground sm:text-[36px]">
         {display}
       </div>
 
@@ -85,13 +89,13 @@ export function CharterTile({
             <span key={s.label} className="flex items-baseline gap-1">
               <span
                 className={cn(
-                   "font-display text-[12px] font-medium tabular-nums sm:text-[15px]",
+                  "font-display text-[12px] font-medium tabular-nums sm:text-[15px]",
                   s.tone ? SEGMENT_TONE[s.tone] : "text-foreground",
                 )}
               >
                 {s.value}
               </span>
-               <span className="text-[9px] font-medium text-muted-foreground sm:text-[10px] sm:uppercase">
+              <span className="text-[9px] font-medium text-muted-foreground sm:text-[10px] sm:uppercase">
                 {s.label}
               </span>
             </span>
