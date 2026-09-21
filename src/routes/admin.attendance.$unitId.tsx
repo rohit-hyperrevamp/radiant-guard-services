@@ -2843,7 +2843,11 @@ function MusterRollPage() {
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
   };
 
-  const applyCodeToCells = async (cells: string[], code: string) => {
+  const applyCodeToCells = async (
+    cells: string[],
+    code: string,
+    preserveMobileSelection = false,
+  ) => {
     const grouped = groupCells(cells);
     if (grouped.size === 0) return;
     try {
@@ -2872,7 +2876,7 @@ function MusterRollPage() {
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedCells(new Set());
-      setMobileSelectedRows(new Set());
+      if (!preserveMobileSelection) setMobileSelectedRows(new Set());
       setSelAnchor(null);
       if (applied > 0) {
         toast.success(`Applied ${code || "Clear"} to ${applied} cell${applied > 1 ? "s" : ""}`);
@@ -3972,6 +3976,7 @@ function MusterRollPage() {
                     applyCodeToCells(
                       Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`),
                       code.code,
+                      true,
                     )
                   }
                 >
@@ -4080,12 +4085,27 @@ function MusterRollPage() {
                         key={`${mr.key}-mobile-att`}
                         className={selected ? "bg-primary/5" : undefined}
                       >
-                        <td className="sticky left-0 z-10 w-[136px] min-w-[136px] border-b border-r border-border bg-card px-1.5 py-1.5 text-left">
+                        <td
+                          className={cn(
+                            "sticky left-0 z-10 w-[136px] min-w-[136px] border-b border-r border-border bg-card px-1.5 py-1.5 text-left",
+                            !mr.otOnly && !mr.reliever && editable && "cursor-pointer",
+                          )}
+                          onClick={() => {
+                            if (!editable || mr.otOnly || mr.reliever) return;
+                            setMobileSelectedRows((current) => {
+                              const next = new Set(current);
+                              if (next.has(mr.key)) next.delete(mr.key);
+                              else next.add(mr.key);
+                              return next;
+                            });
+                          }}
+                        >
                           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
                             {!mr.otOnly && !mr.reliever ? (
                               <Checkbox
                                 checked={selected}
                                 aria-label={`Select ${mr.emp.full_name}`}
+                                onClick={(event) => event.stopPropagation()}
                                 onCheckedChange={(checked) =>
                                   setMobileSelectedRows((current) => {
                                     const next = new Set(current);
