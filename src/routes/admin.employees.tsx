@@ -8072,8 +8072,8 @@ function CandidateWizard({
                 </div>
               </div>
             </div>
-          {isEmployeeMode && (
-            <div className="mt-3 hidden space-y-2 sm:block">
+            {isEmployeeMode && (
+              <div className="mt-3 hidden space-y-2 sm:block">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
                     Non-billable
@@ -8091,11 +8091,11 @@ function CandidateWizard({
               </div>
             )}
 
-          {editing &&
+            {editing &&
               (editing.status === "approved" ||
                 editing.status === "active" ||
                 editing.status === "inactive") && (
-              <div className="mt-3 hidden flex-wrap items-center gap-2 sm:flex">
+                <div className="mt-3 hidden flex-wrap items-center gap-2 sm:flex">
                   <StatusBadge status={form.status || editing.status} />
                   {(editing as { employee_code?: string }).employee_code && (
                     <Badge className="border-0 bg-primary/10 font-mono text-[11px] font-semibold text-primary">
