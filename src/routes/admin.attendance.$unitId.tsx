@@ -3508,11 +3508,11 @@ function MusterRollPage() {
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
                         const hours = Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
                         return (
-                          <td key={cell.date} className={cn("border-b border-r border-border p-0", hours > 0 && "bg-warning/10")}>
+                          <td key={cell.date} className={cn("border-b border-r border-border p-0", hours > 0 && "bg-secondary")}>
                             <Button
                               type="button"
                               variant="ghost"
-                              className="h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-warning-foreground"
+                              className="h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-secondary-foreground"
                               disabled={blocked}
                               aria-label={`${mr.emp.full_name}, ${cell.date}: ${hours || 0} Extra Duty hours`}
                               onClick={() => {
@@ -4044,25 +4044,27 @@ function MusterRollPage() {
           </DialogHeader>
           <div className="grid grid-cols-3 gap-2 min-[380px]:grid-cols-4">
             {codes.map((c) => (
-              <button
+              <Button
                 key={c.id}
                 type="button"
+                variant="outline"
                 onClick={() => applyCodeToSelection(c.code)}
-                className="rounded-md border border-border px-2 py-3 text-sm font-bold transition hover:bg-muted"
+                className="h-11 rounded-lg px-2 text-sm font-medium"
                 style={{ color: c.color }}
                 title={c.label}
               >
                 {c.code}
-              </button>
+              </Button>
             ))}
           </div>
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => applyCodeToSelection("")}
-            className="mt-2 w-full rounded-md border border-border px-2 py-2 text-sm text-muted-foreground hover:bg-muted"
+            className="mt-2 h-10 w-full rounded-lg text-sm font-medium text-muted-foreground"
           >
             Clear selection
-          </button>
+          </Button>
         </DialogContent>
       </Dialog>
 
@@ -4133,26 +4135,28 @@ function MusterRollPage() {
               const shift = rowShiftHours(otPickerCells[0] ? splitCellKey(otPickerCells[0]).rowKey : null);
               const days = Math.round((n / shift) * 100) / 100;
               return (
-                <button
+                <Button
                   key={n}
                   type="button"
+                  variant="outline"
                   onClick={() => applyOtToSelection(n)}
                   title={`${n}h = ${days} ED day${days === 1 ? "" : "s"}`}
-                  className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-sm font-bold leading-tight text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
+                  className="h-11 rounded-lg bg-secondary px-2 text-sm font-medium leading-tight text-secondary-foreground"
                 >
                   {n}h
-                  <span className="block text-[9px] font-medium text-amber-600">{days}d</span>
-                </button>
+                  <span className="block text-[9px] font-medium text-muted-foreground">{days}d</span>
+                </Button>
               );
             })}
           </div>
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => applyOtToSelection(0)}
-            className="mt-2 w-full rounded-md border border-border px-2 py-2 text-sm text-muted-foreground hover:bg-muted"
+            className="mt-2 h-10 w-full rounded-lg text-sm font-medium text-muted-foreground"
           >
             Clear ED
-          </button>
+          </Button>
         </DialogContent>
       </Dialog>
 
