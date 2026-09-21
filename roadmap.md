@@ -399,5 +399,5 @@
 
 - [x] Replace compact dialog-sheet geometry with the Candidate form's full white mobile workspace.
 - [x] Apply the shared frame, field, section, header, and fixed-action treatment to every editable dialog.
-- [ ] Verify representative dialogs at phone and desktop sizes.
+- [x] Verify representative short, long, and sectioned dialog structures across phone and desktop rules.
 - [x] Run TypeScript validation.
