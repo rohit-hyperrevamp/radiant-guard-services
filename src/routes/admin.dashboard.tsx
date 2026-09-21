@@ -1114,13 +1114,13 @@ function DashboardPage() {
 
         {/* Tiles */}
         <div
-          className={`grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}
+          className={`grid auto-rows-[124px] grid-cols-2 items-stretch gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}
         >
           {isLoading
             ? Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card"
+                  className="h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:h-[172px] sm:rounded-[26px]"
                 />
               ))
             : tiles.map((t, i) => (
@@ -1195,7 +1195,7 @@ function Shell({
   return (
     <Link
       to={to}
-      className={`group relative flex h-full min-h-[124px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:min-h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
     </Link>
@@ -1222,7 +1222,7 @@ function TileHeader({
           {label}
         </div>
         {sub && (
-          <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
+          <div className="mt-0.5 truncate whitespace-nowrap text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
             {sub}
           </div>
         )}
@@ -1303,11 +1303,11 @@ function DualTile({
         <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {display}
         </div>
-        <div className="flex flex-col items-end text-right">
-          <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">
+        <div className="min-w-0 max-w-[58%] flex flex-col items-end overflow-hidden text-right">
+          <span className="w-full truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
             {secondaryLabel}
           </span>
-          <span className="mt-0.5 flex items-center gap-1 font-display text-xs font-semibold tabular-nums text-foreground sm:text-sm">
+          <span className="mt-0.5 flex max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-display text-xs font-medium tabular-nums text-foreground sm:text-sm">
             <Fuel className="h-3.5 w-3.5 text-muted-foreground" />
             {secondary}
           </span>
@@ -1349,7 +1349,7 @@ function StatusTile({
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
       <div
-        className={`relative mt-2 grid gap-2 sm:mt-3 sm:gap-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}
+        className={`relative mt-auto grid min-w-0 gap-1.5 pb-2 sm:gap-3 sm:pb-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div>
           <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium tabular-nums leading-none text-foreground sm:text-[40px]">

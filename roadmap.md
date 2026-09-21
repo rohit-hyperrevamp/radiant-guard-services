@@ -362,3 +362,10 @@
 - [x] Add meaningful colored icons for each notification category.
 - [x] Match More, dialogs, drawers, sheets, and confirmations to the same blurred backdrop treatment.
 - [x] Run TypeScript and formatting validation.
+
+## Dashboard card consistency and More blur
+
+- [x] Standardize dashboard card heights, spacing, radii, icons, labels, and value sizing.
+- [x] Keep Dashboard, Attendance, Payroll, and Invoicing values on one line.
+- [x] Strengthen the full-page More blur below the expanded black dock.
+- [x] Run TypeScript validation; live authenticated phone rendering requires a signed-in production session.

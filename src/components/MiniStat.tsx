@@ -38,7 +38,7 @@ export function MiniStat({
   return (
     <div
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4",
+        "group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[resolvedAccent],
       )}
     >
@@ -64,7 +64,7 @@ export function MiniStat({
           </span>
         )}
       </div>
-      <div className="relative mt-3 flex items-end justify-between gap-3 sm:mt-5">
+      <div className="relative mt-auto flex items-end justify-between gap-3">
         <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {value}
         </div>

@@ -238,22 +238,22 @@ export function VisitInsightTile({ kind, items }: { kind: "most" | "least"; item
     <Link
       to="/admin/field-sense"
       search={{ range: "this_month", highlight: kind }}
-      className={`group relative flex h-full min-h-[124px] flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:min-h-[172px] sm:rounded-[26px] sm:p-5 ${most ? "bg-emerald-100/80 dark:bg-emerald-500/15" : "bg-amber-100/80 dark:bg-amber-500/15"}`}
+      className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5 ${most ? "bg-emerald-100/80 dark:bg-emerald-500/15" : "bg-amber-100/80 dark:bg-amber-500/15"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-display text-[13px] font-semibold text-foreground sm:text-[15px]">
+          <div className="truncate whitespace-nowrap font-display text-[13px] font-medium text-foreground sm:text-[15px]">
             {most ? "Top 5 most visited" : "Bottom 5 least visited"}
           </div>
-          <div className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">This month · all field officers</div>
+          <div className="mt-0.5 truncate whitespace-nowrap text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">This month · all field officers</div>
         </div>
         <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="font-display text-2xl font-bold whitespace-nowrap tabular-nums text-foreground sm:text-3xl">{total}</span>
+        <span className="font-display whitespace-nowrap text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">{total}</span>
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">visits</span>
       </div>
-      <ul className="mt-2 space-y-1">
+      <ul className="mt-1 hidden space-y-1 sm:block">
         {items.slice(0, 5).map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-2 text-[11px]">
             <span className="min-w-0 truncate text-foreground/90">{item.label}</span>
