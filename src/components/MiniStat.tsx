@@ -44,7 +44,7 @@ export function MiniStat({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="line-clamp-2 font-display text-[12.5px] font-medium leading-tight text-foreground sm:text-[14px]">
+          <div className="truncate whitespace-nowrap font-display text-[12.5px] font-medium leading-tight text-foreground sm:text-[14px]">
             {label}
           </div>
           {(trend?.label || subtle) && (
@@ -65,7 +65,7 @@ export function MiniStat({
         )}
       </div>
       <div className="relative mt-3 flex items-end justify-between gap-3 sm:mt-5">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap overflow-hidden text-ellipsis font-display text-[20px] font-medium leading-none tabular-nums text-foreground sm:text-[32px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {value}
         </div>
         {Icon && (

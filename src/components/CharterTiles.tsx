@@ -58,7 +58,7 @@ export function CharterTile({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="line-clamp-2 font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
+          <div className="truncate whitespace-nowrap font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
           {sub && (
@@ -79,14 +79,14 @@ export function CharterTile({
         )}
       </div>
 
-      <div className="relative mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap pt-2 font-display text-[20px] font-medium leading-none tabular-nums text-foreground sm:text-[36px]">
+      <div className="relative mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap pt-2 font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
         {display}
       </div>
 
       {segments && segments.length > 0 && (
         <div className="scrollbar-hide relative mt-1.5 flex flex-nowrap items-center gap-2 overflow-x-auto sm:mt-3 sm:flex-wrap sm:gap-x-3 sm:gap-y-1">
           {segments.map((s) => (
-            <span key={s.label} className="flex items-baseline gap-1">
+            <span key={s.label} className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
               <span
                 className={cn(
                   "font-display text-[12px] font-medium tabular-nums sm:text-[15px]",

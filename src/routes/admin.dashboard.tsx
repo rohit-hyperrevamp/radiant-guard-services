@@ -1218,7 +1218,7 @@ function TileHeader({
   return (
     <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">
+        <div className="truncate whitespace-nowrap font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">
           {label}
         </div>
         {sub && (
@@ -1263,7 +1263,7 @@ function MetricTile({
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {display}
         </div>
         <span
@@ -1352,27 +1352,27 @@ function StatusTile({
         className={`relative mt-2 grid gap-2 sm:mt-3 sm:gap-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div>
-          <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+          <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium tabular-nums leading-none text-foreground sm:text-[40px]">
             {approved}
           </div>
-          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">
+          <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
             {approvedLabel}
           </div>
         </div>
         <div>
-          <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+          <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium tabular-nums leading-none text-foreground sm:text-[40px]">
             {pending}
           </div>
-          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">
+          <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
             {pendingLabel}
           </div>
         </div>
         {open != null && (
           <div>
-            <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+            <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium tabular-nums leading-none text-foreground sm:text-[40px]">
               {open}
             </div>
-            <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">
+            <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
               {openLabel}
             </div>
           </div>
@@ -1425,7 +1425,7 @@ function ContractsTile({
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {display}
         </div>
         <div
