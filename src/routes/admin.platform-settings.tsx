@@ -131,8 +131,9 @@ function PlatformSettingsPage() {
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Platform Settings" }]}
       />
 
-      <div className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="modern-business-form mx-auto max-w-3xl">
+      <section className="modern-form-section">
+        <div className="modern-form-toggle">
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
               <MessageSquareLock className="h-5 w-5" />
@@ -167,10 +168,10 @@ function PlatformSettingsPage() {
               : "Fallback mode — no SMS is sent"}
           </span>
         </div>
-      </div>
+      </section>
 
-      <div className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className="modern-form-section">
+        <div className="modern-form-toggle">
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
               <BadgeCheck className="h-5 w-5" />
@@ -204,6 +205,7 @@ function PlatformSettingsPage() {
               : "Manual entry only — nothing is verified"}
           </span>
         </div>
+      </section>
       </div>
     </div>
   );
