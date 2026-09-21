@@ -369,3 +369,11 @@
 - [x] Keep Dashboard, Attendance, Payroll, and Invoicing values on one line.
 - [x] Strengthen the full-page More blur below the expanded black dock.
 - [x] Run TypeScript validation; live authenticated phone rendering requires a signed-in production session.
+
+## Mobile attendance employee column
+
+- [x] Widen the frozen employee column so names and identifiers remain visible.
+- [x] Keep employee names and details on single lines with clean truncation.
+- [x] Use a solid white background across the full frozen name and Extra Duty cells.
+- [x] Remove the spilling selected-row fill while retaining a clear selection outline.
+- [x] Run TypeScript validation.
