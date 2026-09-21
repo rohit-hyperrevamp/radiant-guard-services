@@ -117,12 +117,13 @@ export function DataPagination<T>({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 w-9 rounded-full p-0"
+          className="h-9 w-9 shrink-0 rounded-full p-0 sm:w-auto sm:gap-1 sm:rounded-lg sm:px-3"
           disabled={page <= 1}
           onClick={() => setPage(page - 1)}
+          aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
-          <span className="ml-1 hidden sm:inline">Prev</span>
+          <span className="hidden whitespace-nowrap sm:inline">Previous</span>
         </Button>
         <div className="hidden items-center gap-1 sm:flex">
           {pageWindow(page, pageCount).map((p, i) =>
@@ -151,11 +152,12 @@ export function DataPagination<T>({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 w-9 rounded-full p-0"
+          className="h-9 w-9 shrink-0 rounded-full p-0 sm:w-auto sm:gap-1 sm:rounded-lg sm:px-3"
           disabled={page >= pageCount}
           onClick={() => setPage(page + 1)}
+          aria-label="Next page"
         >
-          <span className="mr-1 hidden sm:inline">Next</span>
+          <span className="hidden whitespace-nowrap sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
