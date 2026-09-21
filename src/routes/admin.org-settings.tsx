@@ -14,6 +14,16 @@ import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/admin/org-settings")({
   component: OrgSettingsPage,
+  head: () => ({
+    meta: [
+      { title: "Company Settings | Radiant Control Center" },
+      { name: "description", content: "Manage company, statutory, bank, and invoice settings." },
+      { property: "og:title", content: "Company Settings | Radiant Control Center" },
+      { property: "og:description", content: "Manage company, statutory, bank, and invoice settings." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 type FieldKey =
@@ -83,7 +93,7 @@ function OrgSettingsPage() {
   });
 
   const Field = ({ k, label, hint, upper }: { k: FieldKey; label: string; hint?: string; upper?: boolean }) => (
-    <div>
+    <div className="modern-form-field">
       <Label>{label}</Label>
       <Input
         value={form[k]}
@@ -172,7 +182,7 @@ function OrgSettingsPage() {
           </div>
         </section>
 
-        <div className="flex justify-end pb-8">
+        <div className="sticky-action-bar flex justify-end border-t border-border bg-card py-4 pb-8">
           <Button type="submit" disabled={saveMut.isPending || isLoading}>
             {saveMut.isPending ? "Saving…" : "Save"}
           </Button>
