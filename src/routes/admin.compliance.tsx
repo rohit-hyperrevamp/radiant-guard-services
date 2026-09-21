@@ -317,7 +317,7 @@ function CompliancePage() {
                         {style.label}
                       </span>
                     </span>
-                    <span className="mt-0.5 block text-xl font-semibold tabular-nums">{bySeverity[s]}</span>
+                    <span className="mt-0.5 block text-xl font-semibold whitespace-nowrap tabular-nums">{bySeverity[s]}</span>
                   </button>
                 );
               })}
@@ -355,7 +355,7 @@ function CompliancePage() {
                 >
                   <Icon className="h-4 w-4" />
                 </span>
-                <span className="text-2xl font-semibold leading-none tabular-nums">{stats.total}</span>
+                <span className="text-2xl font-semibold leading-none whitespace-nowrap tabular-nums">{stats.total}</span>
               </div>
               <p className="mt-2 truncate text-[12px] font-semibold">{meta.label}</p>
               <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-border/50">

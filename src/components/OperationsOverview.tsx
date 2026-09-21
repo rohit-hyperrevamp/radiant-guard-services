@@ -250,7 +250,7 @@ export function VisitInsightTile({ kind, items }: { kind: "most" | "least"; item
         <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="font-display text-2xl font-bold tabular-nums text-foreground sm:text-3xl">{total}</span>
+        <span className="font-display text-2xl font-bold whitespace-nowrap tabular-nums text-foreground sm:text-3xl">{total}</span>
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">visits</span>
       </div>
       <ul className="mt-2 space-y-1">

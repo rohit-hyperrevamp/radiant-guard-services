@@ -215,7 +215,7 @@ function Stat({
         {icon}
         {label}
       </div>
-      <div className="mt-1.5 text-[22px] font-black leading-none tracking-tight text-foreground">{value}</div>
+      <div className="mt-1.5 text-[22px] font-black leading-none tracking-tight whitespace-nowrap text-foreground">{value}</div>
     </div>
   );
 }
