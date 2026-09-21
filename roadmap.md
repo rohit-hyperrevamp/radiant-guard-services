@@ -377,3 +377,7 @@
 - [x] Use a solid white background across the full frozen name and Extra Duty cells.
 - [x] Remove the spilling selected-row fill while retaining a clear selection outline.
 - [x] Run TypeScript validation.
+
+## Add Candidate dialog renders blank (FIXED)
+- [x] Fix blank white body when opening Add Candidate from Employees (only Save Draft/Next render)
+- [x] Review all other forms/dialogs for the same blank-content issue
