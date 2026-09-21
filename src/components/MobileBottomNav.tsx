@@ -56,7 +56,7 @@ export function MobileBottomNav({
         <button
           type="button"
           aria-label="Close more apps"
-          className="fixed inset-0 z-[79] bg-foreground/20 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-[79] bg-foreground/40 backdrop-blur-md animate-in fade-in-0 duration-200 lg:hidden"
           onClick={onMore}
         />
       )}
@@ -65,7 +65,7 @@ export function MobileBottomNav({
       data-bottom-nav
       data-expanded={moreActive ? "true" : "false"}
       className={cn(
-        "fixed left-[max(0.5rem,env(safe-area-inset-left,0px))] right-[max(0.5rem,env(safe-area-inset-right,0px))] bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-[80] rounded-[20px] border border-dock-foreground/15 bg-dock text-dock-foreground shadow-xl backdrop-blur-xl",
+        "fixed left-[max(0.5rem,env(safe-area-inset-left,0px))] right-[max(0.5rem,env(safe-area-inset-right,0px))] bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-[80] overflow-hidden rounded-[22px] border border-dock-foreground/15 bg-dock/95 text-dock-foreground shadow-2xl backdrop-blur-xl transition-[border-radius,box-shadow] duration-300",
         !nativeShell && "lg:hidden",
       )}
     >
@@ -76,9 +76,10 @@ export function MobileBottomNav({
         )}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="max-h-[min(62dvh,32rem)] overflow-y-auto overscroll-contain px-2.5 pb-1 pt-3">
-            <div className="mb-2 flex items-center justify-between px-1.5">
-              <span className="text-[13px] font-medium text-dock-foreground">More apps</span>
+          <div className="max-h-[min(62dvh,32rem)] overflow-y-auto overscroll-contain px-2.5 pb-1 pt-2.5">
+            <div className="mb-2.5 flex flex-col items-center gap-2 border-b border-dock-foreground/10 pb-2.5">
+              <span className="h-1 w-10 rounded-full bg-dock-foreground/25" aria-hidden="true" />
+              <span className="self-start px-1.5 text-[15px] font-medium text-dock-foreground">More</span>
             </div>
             <div data-app-drawer-grid className="grid grid-cols-2 gap-1.5 pb-2">
               {moreItems.map((item) => {
@@ -89,13 +90,13 @@ export function MobileBottomNav({
                     to={item.to}
                     onClick={onMore}
                     className={cn(
-                      "grid min-h-12 min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-colors",
+                      "grid min-h-14 min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors",
                       item.active
                         ? "bg-dock-foreground text-dock"
                         : "bg-dock-foreground/[0.07] text-dock-foreground/75 active:bg-dock-foreground/[0.13]",
                     )}
                   >
-                    <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", item.active ? "bg-dock/10" : "bg-dock-foreground/[0.08]") }>
+                    <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-[10px]", item.active ? "bg-dock/10" : "bg-dock-foreground/[0.08]") }>
                       <Icon className="h-[17px] w-[17px]" strokeWidth={2} />
                     </span>
                     <span className="truncate text-[11px] font-medium">{item.label}</span>
