@@ -291,7 +291,7 @@
 - [x] Standardize compact mobile filters, buttons, toggles, and list cards across Employees, Contracts, Clients, Organizations, States, Branches, and related admin directories.
 
 ## Mobile muster-grid attendance entry
-- [ ] Replace the separate day-first mobile cards with a compact, desktop-consistent muster grid.
-- [ ] Make every eligible day cell directly editable on phones while preserving ED and restrictions.
-- [ ] Keep employee identity visible during horizontal scrolling and retain bulk entry.
-- [ ] Run TypeScript and formatting validation.
+- [x] Replace the separate day-first mobile cards with a compact, desktop-consistent muster grid.
+- [x] Make every eligible day cell directly editable on phones while preserving ED and restrictions.
+- [x] Keep employee identity visible during horizontal scrolling and retain bulk entry.
+- [x] Run TypeScript and formatting validation.
