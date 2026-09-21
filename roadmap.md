@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Dashboard status-card number visibility
+
+- [x] Keep Attendance, Payroll, and Invoicing figures fully visible without ellipsis or wrapping.
+- [x] Preserve equal sizing and alignment across all three status cards.
+
 ## Consistent iOS-style mobile refinement
 
 - [x] Align dashboard and all mobile surfaces to the bottom dock width.
