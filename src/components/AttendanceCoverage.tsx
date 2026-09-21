@@ -233,7 +233,7 @@ function Tile({
               : "border-border bg-background/60",
       )}
     >
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         <Icon
           className={cn(
             "h-3.5 w-3.5",
@@ -243,11 +243,11 @@ function Tile({
             tone === "destructive" && "text-destructive",
           )}
         />
-        {label}
+        <span className="truncate whitespace-nowrap">{label}</span>
       </div>
       <div
         className={cn(
-          "mt-1 text-xl font-semibold tabular-nums",
+          "mt-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums sm:text-[40px]",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
