@@ -355,3 +355,10 @@
 - [x] Fix dashboard and module stat values to stay single-line
 - [x] Repair candidate editor mobile header/footer and employee stat alignment
 - [x] Review listed operational screens for shared mobile consistency
+
+## Notification and mobile drawer polish
+
+- [x] Redesign the mobile notification drawer with clearer hierarchy and compact actions.
+- [x] Add meaningful colored icons for each notification category.
+- [x] Match More, dialogs, drawers, sheets, and confirmations to the same blurred backdrop treatment.
+- [x] Run TypeScript and formatting validation.
