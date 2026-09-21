@@ -130,7 +130,7 @@ export function PageStat({
     <Wrapper
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
-        "group relative flex w-full flex-col overflow-hidden rounded-xl border border-border/40 p-3 text-left transition-colors sm:rounded-2xl sm:p-4",
+        "group relative flex h-[124px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-colors sm:h-[172px] sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[resolvedAccent],
         onClick && "cursor-pointer",
         active && "ring-2 ring-accent/40",
@@ -158,17 +158,17 @@ export function PageStat({
           </span>
         )}
       </div>
-      <div className="relative mt-2.5 flex items-end justify-between gap-2 sm:mt-5">
+      <div className="relative mt-auto flex items-end justify-between gap-2">
         <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {value}
         </div>
         <span
           className={cn(
-            "grid h-7 w-7 shrink-0 place-items-center rounded-lg ring-1 ring-inset sm:h-10 sm:w-10 sm:rounded-full",
+            "grid h-7 w-7 shrink-0 place-items-center rounded-full ring-1 ring-inset sm:h-9 sm:w-9",
             ACCENT_CHIP[resolvedAccent],
           )}
         >
-          <ResolvedIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+          <ResolvedIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
     </Wrapper>

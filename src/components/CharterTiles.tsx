@@ -52,7 +52,7 @@ export function CharterTile({
   return (
     <div
       className={cn(
-        "group relative flex min-h-[92px] min-w-0 snap-start flex-col overflow-hidden rounded-xl border border-border/40 p-2.5 transition-colors sm:min-h-[138px] sm:w-auto sm:max-w-none sm:rounded-2xl sm:p-4",
+        "group relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-colors sm:h-[172px] sm:w-auto sm:max-w-none sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[accent],
       )}
     >
@@ -70,7 +70,7 @@ export function CharterTile({
         {Icon && (
           <span
             className={cn(
-              "grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 sm:rounded-full",
+              "grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9",
               ACCENT_CHIP[accent],
             )}
           >

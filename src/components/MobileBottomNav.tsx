@@ -56,7 +56,8 @@ export function MobileBottomNav({
         <button
           type="button"
           aria-label="Close more apps"
-          className="fixed inset-0 z-[79] bg-foreground/40 backdrop-blur-md animate-in fade-in-0 duration-200 lg:hidden"
+          data-more-backdrop
+          className="fixed inset-0 z-[79] bg-foreground/30 backdrop-blur-xl animate-in fade-in-0 duration-200 lg:hidden"
           onClick={onMore}
         />
       )}

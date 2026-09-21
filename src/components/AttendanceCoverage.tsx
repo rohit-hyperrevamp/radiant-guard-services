@@ -223,7 +223,7 @@ function Tile({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-3",
+        "flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border p-3 sm:h-[172px] sm:p-5",
         tone === "success"
           ? "border-emerald-500/40 bg-emerald-500/10"
           : tone === "warning"
@@ -247,7 +247,7 @@ function Tile({
       </div>
       <div
         className={cn(
-          "mt-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums sm:text-[40px]",
+          "mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums sm:text-[40px]",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
@@ -255,7 +255,7 @@ function Tile({
       >
         {value}
       </div>
-      {hint ? <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div> : null}
+      {hint ? <div className="mt-1 truncate whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div> : <div className="h-[15px]" aria-hidden="true" />}
     </div>
   );
 }
