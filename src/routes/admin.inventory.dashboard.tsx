@@ -939,7 +939,7 @@ function Kpi({ label, value, delta, icon: Icon, tint, iconClass, hint, to }: {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs sm:tracking-wider">{label}</div>
-          <div className="mt-1 truncate font-display text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">{value}</div>
+          <div className="mt-1 whitespace-nowrap truncate font-display text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">{value}</div>
           {delta !== undefined ? (
             <div className={`mt-1 flex items-center gap-1 text-[11px] font-medium sm:text-xs ${up ? "text-emerald-600" : "text-rose-600"}`}>
               {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -1079,7 +1079,7 @@ function CountTile({ to, label, value, icon: Icon, accent }: { to: string; label
       <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/50 sm:h-10 sm:w-10 ${accent}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
-        <div className="font-display text-lg font-bold tabular-nums sm:text-xl">{value.toLocaleString("en-IN")}</div>
+        <div className="font-display text-lg font-bold whitespace-nowrap tabular-nums sm:text-xl">{value.toLocaleString("en-IN")}</div>
       </div>
       <ArrowRight className="h-4 w-4 text-muted-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-accent" />
     </Link>
@@ -1092,7 +1092,7 @@ function HeroTile({ to, label, value, icon: Icon, accent }: { to: string; label:
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
-          <div className="mt-1 truncate font-display text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">{value}</div>
+          <div className="mt-1 whitespace-nowrap truncate font-display text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">{value}</div>
         </div>
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/50 sm:h-9 sm:w-9 ${accent}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
       </div>
@@ -1113,7 +1113,7 @@ function WorkflowTile({ to, label, value, icon: Icon, accent, chips }: {
       </div>
       <div>
         <div className="line-clamp-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
-        <div className="font-display text-lg font-bold tabular-nums sm:text-xl">{value.toLocaleString("en-IN")}</div>
+        <div className="font-display text-lg font-bold whitespace-nowrap tabular-nums sm:text-xl">{value.toLocaleString("en-IN")}</div>
       </div>
       <div className="flex flex-wrap gap-1">
         {chips.map((c) => (
@@ -1138,7 +1138,7 @@ function NotifTile({ label, hint, to, icon: Icon, accent, count, breached, oldes
       <div className="flex items-center justify-between">
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-background/70 ${accent}`}><Icon className="h-4 w-4" /></div>
         {!isClear && (
-          <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${isBreached ? "bg-rose-500 text-white" : "bg-amber-500 text-white"}`}>
+          <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap tabular-nums ${isBreached ? "bg-rose-500 text-white" : "bg-amber-500 text-white"}`}>
             {count}
           </span>
         )}

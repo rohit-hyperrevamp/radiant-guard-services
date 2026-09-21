@@ -211,7 +211,7 @@ function Stat({
   }[tone];
   return (
     <div className="rounded-xl border border-border/50 bg-card/60 p-2.5">
-      <div className={"inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 " + toneCls}>
+      <div className={"inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase whitespace-nowrap tracking-wider ring-1 " + toneCls}>
         {icon}
         {label}
       </div>
