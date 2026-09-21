@@ -4,15 +4,38 @@ import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  Building2, Briefcase, CalendarDays, ChevronLeft, ChevronRight,
-  ClipboardList, Files, Fuel, PackageOpen, Receipt, TrendingDown, TrendingUp,
-  UserPlus, Users, Wallet, Warehouse, AlertTriangle, ArrowRight, ArrowUpRight, Sparkles, MapPin, Radio,
+  Building2,
+  Briefcase,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Files,
+  Fuel,
+  PackageOpen,
+  Receipt,
+  TrendingDown,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Wallet,
+  Warehouse,
+  AlertTriangle,
+  ArrowRight,
+  ArrowUpRight,
+  Sparkles,
+  MapPin,
+  Radio,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { DashboardShell } from "@/components/LiveFeed";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { RadialGauge } from "@/components/charts/RadialGauge";
 import { Button } from "@/components/ui/button";
@@ -20,11 +43,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
-import {
-  fmtINR,
-  computeWages,
-  type ContractResourceLike,
-} from "@/lib/payroll-calc";
+import { fmtINR, computeWages, type ContractResourceLike } from "@/lib/payroll-calc";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
@@ -34,12 +53,19 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
-import { OperationsRadarSummary, useOperationsRadarLive } from "@/components/OperationsRadarSummary";
+import {
+  OperationsRadarSummary,
+  useOperationsRadarLive,
+} from "@/components/OperationsRadarSummary";
 import { OperationsDeployments } from "@/components/OperationsDeployments";
 import { OperationsOrgTree } from "@/components/OperationsOrgTree";
 import { DepartmentOrgTree } from "@/components/DepartmentOrgTree";
 import { ROLE_KEYS } from "@/lib/role-keys";
-import { OperationsClientLocations, useOperationsOverview, VisitInsightTile } from "@/components/OperationsOverview";
+import {
+  OperationsClientLocations,
+  useOperationsOverview,
+  VisitInsightTile,
+} from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
@@ -54,15 +80,18 @@ import {
   type UnitFinanceRow,
 } from "@/components/FinanceCoverage";
 
-
 function PeopleInsightsSection({
-  compact, hideLive, roleKeys,
+  compact,
+  hideLive,
+  roleKeys,
 }: {
   compact?: boolean;
   hideLive?: boolean;
   roleKeys?: readonly string[];
 }) {
-  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights({ roleKeys });
+  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights({
+    roleKeys,
+  });
   return (
     <div className="flex flex-col gap-4">
       {!hideLive && <LiveFieldOfficersCard />}
@@ -87,10 +116,7 @@ function DashboardErrorState({ error }: { error: Error }) {
       <p className="mt-2 text-sm text-muted-foreground">
         {error?.message || "Something went wrong while loading your data."}
       </p>
-      <Button
-        onClick={() => window.location.reload()}
-        className="mt-5 w-full"
-      >
+      <Button onClick={() => window.location.reload()} className="mt-5 w-full">
         Try again
       </Button>
     </div>
@@ -103,8 +129,18 @@ export const Route = createFileRoute("/admin/dashboard")({
 });
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 type PnLRow = {
@@ -125,7 +161,6 @@ type PnLRow = {
   /** Internal (own-company) unit: cost centre, never billed to a customer. */
   internal: boolean;
 };
-
 
 function DashboardPage() {
   const now = new Date();
@@ -163,7 +198,8 @@ function DashboardPage() {
   const operationsOverviewQ = useOperationsOverview();
   const operationsLiveQ = useOperationsRadarLive();
   const operationsOverview = operationsOverviewQ.data;
-  const liveOfficerCount = new Set((operationsLiveQ.data ?? []).map((row) => row.candidate_id)).size;
+  const liveOfficerCount = new Set((operationsLiveQ.data ?? []).map((row) => row.candidate_id))
+    .size;
 
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const monthEnd = (() => {
@@ -198,17 +234,27 @@ function DashboardPage() {
       let results;
       try {
         results = await Promise.all([
-          supabase.rpc("dashboard_counts" as never, {
-            p_start: monthStart,
-            p_end: monthEnd,
-            p_today: todayStr,
-            p_horizon: sixtyStr,
-          } as never).abortSignal(controller.signal),
+          supabase
+            .rpc(
+              "dashboard_counts" as never,
+              {
+                p_start: monthStart,
+                p_end: monthEnd,
+                p_today: todayStr,
+                p_horizon: sixtyStr,
+              } as never,
+            )
+            .abortSignal(controller.signal),
           can("attendance") || can("payroll") || can("invoice")
-            ? supabase.rpc("dashboard_lifecycle_counts" as never, {
-                p_year: year,
-                p_month: month + 1,
-              } as never).abortSignal(controller.signal)
+            ? supabase
+                .rpc(
+                  "dashboard_lifecycle_counts" as never,
+                  {
+                    p_year: year,
+                    p_month: month + 1,
+                  } as never,
+                )
+                .abortSignal(controller.signal)
             : Promise.resolve({ data: null, error: null }),
         ]);
       } catch (error) {
@@ -228,14 +274,34 @@ function DashboardPage() {
         units?: number;
         employees?: number;
         contractsActive?: number;
-        contractsExpiring?: Array<{ id: string; contract_code: string; end_date: string; unit_id: string; status: string }>;
+        contractsExpiring?: Array<{
+          id: string;
+          contract_code: string;
+          end_date: string;
+          unit_id: string;
+          status: string;
+        }>;
         vehicles?: number;
         fuelTotal?: number | string;
         items?: number;
         sheetCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number };
-        runCounts?: { approved?: number; pending?: number; draft?: number; rejected?: number; open?: number; processed?: number };
+        runCounts?: {
+          approved?: number;
+          pending?: number;
+          draft?: number;
+          rejected?: number;
+          open?: number;
+          processed?: number;
+        };
       };
-      const buckets = (v?: { approved?: number; pending?: number; draft?: number; rejected?: number; open?: number; processed?: number }) => ({
+      const buckets = (v?: {
+        approved?: number;
+        pending?: number;
+        draft?: number;
+        rejected?: number;
+        open?: number;
+        processed?: number;
+      }) => ({
         approved: v?.approved ?? 0,
         pending: v?.pending ?? 0,
         draft: v?.draft ?? 0,
@@ -250,13 +316,34 @@ function DashboardPage() {
         invoice?: { processed?: number; ready?: number; open?: number };
       };
       const sheetCounts = lifecycleData
-        ? { approved: lifecycle.attendance?.approved ?? 0, pending: lifecycle.attendance?.submitted ?? 0, draft: 0, rejected: lifecycle.attendance?.rejected ?? 0, open: lifecycle.attendance?.open ?? 0, processed: 0 }
+        ? {
+            approved: lifecycle.attendance?.approved ?? 0,
+            pending: lifecycle.attendance?.submitted ?? 0,
+            draft: 0,
+            rejected: lifecycle.attendance?.rejected ?? 0,
+            open: lifecycle.attendance?.open ?? 0,
+            processed: 0,
+          }
         : buckets(d.sheetCounts);
       const runCounts = lifecycleData
-        ? { approved: 0, pending: lifecycle.payroll?.ready ?? 0, draft: 0, rejected: 0, open: lifecycle.payroll?.open ?? 0, processed: lifecycle.payroll?.processed ?? 0 }
+        ? {
+            approved: 0,
+            pending: lifecycle.payroll?.ready ?? 0,
+            draft: 0,
+            rejected: 0,
+            open: lifecycle.payroll?.open ?? 0,
+            processed: lifecycle.payroll?.processed ?? 0,
+          }
         : buckets(d.runCounts);
       const invoiceCounts = lifecycleData
-        ? { approved: 0, pending: lifecycle.invoice?.ready ?? 0, draft: 0, rejected: 0, open: lifecycle.invoice?.open ?? 0, processed: lifecycle.invoice?.processed ?? 0 }
+        ? {
+            approved: 0,
+            pending: lifecycle.invoice?.ready ?? 0,
+            draft: 0,
+            rejected: 0,
+            open: lifecycle.invoice?.open ?? 0,
+            processed: lifecycle.invoice?.processed ?? 0,
+          }
         : buckets(undefined);
 
       return {
@@ -300,11 +387,14 @@ function DashboardPage() {
       // duty totals. Previously this screen paged through every unit,
       // customer, contract line, employee and attendance row and reduced them
       // in the browser.
-      const { data, error } = await supabase.rpc("dashboard_pnl_inputs" as never, {
-        p_start: monthStart,
-        p_end: monthEnd,
-        p_att_end: attendanceEnd,
-      } as never);
+      const { data, error } = await supabase.rpc(
+        "dashboard_pnl_inputs" as never,
+        {
+          p_start: monthStart,
+          p_end: monthEnd,
+          p_att_end: attendanceEnd,
+        } as never,
+      );
       if (error) throw error;
 
       type UnitRow = {
@@ -358,7 +448,12 @@ function DashboardPage() {
         (payload.day_bases ?? []).map((p) => [
           p.id,
           {
-            method: p.method as "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average",
+            method: p.method as
+              | "actual_days"
+              | "fixed_days"
+              | "actual_minus_weekly_off"
+              | "custom_weekdays"
+              | "fixed_annual_average",
             fixedDays: p.fixed_days,
             weeklyOffDay: p.weekly_off_day,
             includedWeekdays: Array.isArray(p.included_weekdays)
@@ -370,24 +465,31 @@ function DashboardPage() {
 
       const toResource = (r: ResourceRow): ContractResourceLike => ({
         designationId: r.designation_id ?? "",
-        components: Array.isArray(r.components) ? (r.components as ContractResourceLike["components"]) : [],
+        components: Array.isArray(r.components)
+          ? (r.components as ContractResourceLike["components"])
+          : [],
         benefits: Array.isArray(r.benefits) ? (r.benefits as ContractResourceLike["benefits"]) : [],
-        deductions: Array.isArray(r.deductions) ? (r.deductions as ContractResourceLike["deductions"]) : [],
+        deductions: Array.isArray(r.deductions)
+          ? (r.deductions as ContractResourceLike["deductions"])
+          : [],
         employerContributions: Array.isArray(r.employer_contributions)
           ? (r.employer_contributions as ContractResourceLike["employerContributions"])
           : [],
-        payrollDayBase: r.payroll_day_base_id ? pdbMap.get(r.payroll_day_base_id) ?? null : null,
+        payrollDayBase: r.payroll_day_base_id ? (pdbMap.get(r.payroll_day_base_id) ?? null) : null,
       });
 
       // Resources grouped by (contract_id → designation_id).
       const resByContractDesig = new Map<string, Map<string, ResourceRow>>();
       for (const r of resources) {
         if (!r.designation_id) continue;
-        if (!resByContractDesig.has(r.contract_id)) resByContractDesig.set(r.contract_id, new Map());
+        if (!resByContractDesig.has(r.contract_id))
+          resByContractDesig.set(r.contract_id, new Map());
         resByContractDesig.get(r.contract_id)!.set(r.designation_id, r);
       }
 
-      const hydratedResources = (await hydrateFormulasFromMaster(resources.map(toResource))).map(refreshBillingAddOns);
+      const hydratedResources = (await hydrateFormulasFromMaster(resources.map(toResource))).map(
+        refreshBillingAddOns,
+      );
       const hydratedByContractDesignation = new Map(
         resources.map((row, index) => [
           `${row.contract_id}|${row.designation_id ?? ""}`,
@@ -429,17 +531,19 @@ function DashboardPage() {
         for (const r of resMap.values()) {
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
-          const resource = hydratedByContractDesignation.get(
-            `${r.contract_id}|${r.designation_id ?? ""}`,
-          ) ?? toResource(r);
+          const resource =
+            hydratedByContractDesignation.get(`${r.contract_id}|${r.designation_id ?? ""}`) ??
+            toResource(r);
           const payrollPerHead = resource.components.reduce(
             (sum, item) => sum + (Number(item.amount) || 0),
             0,
           );
-          const invoicePerHead = payrollPerHead + resource.employerContributions.reduce(
-            (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
-            0,
-          );
+          const invoicePerHead =
+            payrollPerHead +
+            resource.employerContributions.reduce(
+              (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
+              0,
+            );
           committedPayroll += qty * payrollPerHead;
           if (!isInternal) contractValue += qty * invoicePerHead;
         }
@@ -462,22 +566,23 @@ function DashboardPage() {
             otherPaidDays,
             tDays: round2(pDays + phDays + otDays),
           };
-          const resource = hydratedByContractDesignation.get(
-            `${u.contract_id}|${p.designation_id}`,
-          ) ?? toResource(resRow);
+          const resource =
+            hydratedByContractDesignation.get(`${u.contract_id}|${p.designation_id}`) ??
+            toResource(resRow);
           const wages = computeWages(totals, resource, periodDates.length, {
             periodDates: periodDateObjects,
             epfCapEnabled: u.epf_cap_enabled ?? true,
           });
-          const contractedInvoice = resource.components.reduce(
-            (sum, item) => sum + (Number(item.amount) || 0),
-            0,
-          ) + resource.employerContributions.reduce(
-            (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
-            0,
-          );
-          const payrollDays = resolvePayrollDayCount(resource.payrollDayBase, periodDates) ?? wages.baseDays;
-          const earnedInvoice = payrollDays > 0 ? (contractedInvoice / payrollDays) * totals.tDays : 0;
+          const contractedInvoice =
+            resource.components.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) +
+            resource.employerContributions.reduce(
+              (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
+              0,
+            );
+          const payrollDays =
+            resolvePayrollDayCount(resource.payrollDayBase, periodDates) ?? wages.baseDays;
+          const earnedInvoice =
+            payrollDays > 0 ? (contractedInvoice / payrollDays) * totals.tDays : 0;
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += wages.earnedGross;
         }
@@ -500,9 +605,15 @@ function DashboardPage() {
         });
       }
 
-      const pnlRows = Array.from(pnlByUnit.values()).sort((a, b) => b.contract_value - a.contract_value);
+      const pnlRows = Array.from(pnlByUnit.values()).sort(
+        (a, b) => b.contract_value - a.contract_value,
+      );
       const pnlTotals = pnlRows.reduce(
-        (s, r) => ({ contract: s.contract + r.contract_value, invoice: s.invoice + r.invoice_amount, payroll: s.payroll + r.payroll_cost }),
+        (s, r) => ({
+          contract: s.contract + r.contract_value,
+          invoice: s.invoice + r.invoice_amount,
+          payroll: s.payroll + r.payroll_cost,
+        }),
         { contract: 0, invoice: 0, payroll: 0 },
       );
 
@@ -522,7 +633,8 @@ function DashboardPage() {
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1);
-    setYear(d.getFullYear()); setMonth(d.getMonth());
+    setYear(d.getFullYear());
+    setMonth(d.getMonth());
   };
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
@@ -531,40 +643,244 @@ function DashboardPage() {
     if (data && opsFocus) {
       // Operations homepage: organizations, clients, contracts and field
       // officers. No designation follow-up, no employees, no money.
-      if (can("organizations")) t.push({ key: "orgs", module: "organizations", node: <MetricTile icon={Building2} label="Organizations" value={data.orgs} accent="rose" to="/admin/customers/customer-manager" /> });
-      if (can("organizations")) t.push({ key: "units", module: "organizations", node: <MetricTile icon={Warehouse} label="Clients" value={data.units} accent="cyan" to="/admin/customers/unit-manager" /> });
-      if (can("contracts")) t.push({ key: "contracts", module: "contracts", node: (
-        <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
-      )});
-      t.push({ key: "fo", module: "field_sense", node: <MetricTile icon={Users} label="Field officers" value={operationsOverview?.fieldOfficers ?? 0} accent="lime" to="/admin/field-sense/team" sub="Operations workforce" /> });
-      t.push({ key: "fo-live", module: "field_sense", node: <MetricTile icon={Radio} label="Live on duty today" value={liveOfficerCount} accent="emerald" to="/admin/field-sense" sub={`of ${operationsOverview?.fieldOfficers ?? 0} field officers`} /> });
-      t.push({ key: "sites-today", module: "field_sense", node: <MetricTile icon={MapPin} label="Sites visited today" value={operationsOverview?.sitesVisitedToday ?? 0} accent="sky" to="/admin/field-sense" sub="Distinct active client sites" /> });
-      t.push({ key: "most-visited", module: "field_sense", node: <VisitInsightTile kind="most" items={operationsOverview?.topVisited ?? []} /> });
-      t.push({ key: "least-visited", module: "field_sense", node: <VisitInsightTile kind="least" items={operationsOverview?.bottomVisited ?? []} /> });
+      if (can("organizations"))
+        t.push({
+          key: "orgs",
+          module: "organizations",
+          node: (
+            <MetricTile
+              icon={Building2}
+              label="Organizations"
+              value={data.orgs}
+              accent="rose"
+              to="/admin/customers/customer-manager"
+            />
+          ),
+        });
+      if (can("organizations"))
+        t.push({
+          key: "units",
+          module: "organizations",
+          node: (
+            <MetricTile
+              icon={Warehouse}
+              label="Clients"
+              value={data.units}
+              accent="cyan"
+              to="/admin/customers/unit-manager"
+            />
+          ),
+        });
+      if (can("contracts"))
+        t.push({
+          key: "contracts",
+          module: "contracts",
+          node: <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />,
+        });
+      t.push({
+        key: "fo",
+        module: "field_sense",
+        node: (
+          <MetricTile
+            icon={Users}
+            label="Field officers"
+            value={operationsOverview?.fieldOfficers ?? 0}
+            accent="lime"
+            to="/admin/field-sense/team"
+            sub="Operations workforce"
+          />
+        ),
+      });
+      t.push({
+        key: "fo-live",
+        module: "field_sense",
+        node: (
+          <MetricTile
+            icon={Radio}
+            label="Live on duty today"
+            value={liveOfficerCount}
+            accent="emerald"
+            to="/admin/field-sense"
+            sub={`of ${operationsOverview?.fieldOfficers ?? 0} field officers`}
+          />
+        ),
+      });
+      t.push({
+        key: "sites-today",
+        module: "field_sense",
+        node: (
+          <MetricTile
+            icon={MapPin}
+            label="Sites visited today"
+            value={operationsOverview?.sitesVisitedToday ?? 0}
+            accent="sky"
+            to="/admin/field-sense"
+            sub="Distinct active client sites"
+          />
+        ),
+      });
+      t.push({
+        key: "most-visited",
+        module: "field_sense",
+        node: <VisitInsightTile kind="most" items={operationsOverview?.topVisited ?? []} />,
+      });
+      t.push({
+        key: "least-visited",
+        module: "field_sense",
+        node: <VisitInsightTile kind="least" items={operationsOverview?.bottomVisited ?? []} />,
+      });
       return t;
     }
     if (data) {
-      if (can("organizations")) t.push({ key: "orgs", module: "organizations", node: <MetricTile icon={Building2} label="Organizations" value={data.orgs} accent="rose" to="/admin/customers/customer-manager" /> });
-      if (can("organizations")) t.push({ key: "units", module: "organizations", node: <MetricTile icon={Warehouse} label="Clients" value={data.units} accent="cyan" to="/admin/customers/unit-manager" /> });
-      if (can("contracts")) t.push({ key: "contracts", module: "contracts", node: (
-        <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />
-      )});
-      if (can("contracts")) t.push({ key: "contract-designations", module: "contracts", node: <ContractDesignationFollowUp actionable /> });
-      if (can("employees")) t.push({ key: "emp", module: "employees", node: <MetricTile icon={UserPlus} label="Employees" value={data.employees} accent="lime" to="/admin/employees" /> });
+      if (can("organizations"))
+        t.push({
+          key: "orgs",
+          module: "organizations",
+          node: (
+            <MetricTile
+              icon={Building2}
+              label="Organizations"
+              value={data.orgs}
+              accent="rose"
+              to="/admin/customers/customer-manager"
+            />
+          ),
+        });
+      if (can("organizations"))
+        t.push({
+          key: "units",
+          module: "organizations",
+          node: (
+            <MetricTile
+              icon={Warehouse}
+              label="Clients"
+              value={data.units}
+              accent="cyan"
+              to="/admin/customers/unit-manager"
+            />
+          ),
+        });
+      if (can("contracts"))
+        t.push({
+          key: "contracts",
+          module: "contracts",
+          node: <ContractsTile active={data.contractsActive} expiring={data.contractsExpiring} />,
+        });
+      if (can("contracts"))
+        t.push({
+          key: "contract-designations",
+          module: "contracts",
+          node: <ContractDesignationFollowUp actionable />,
+        });
+      if (can("employees"))
+        t.push({
+          key: "emp",
+          module: "employees",
+          node: (
+            <MetricTile
+              icon={UserPlus}
+              label="Employees"
+              value={data.employees}
+              accent="lime"
+              to="/admin/employees"
+            />
+          ),
+        });
       if (can("employees")) t.push({ key: "uan", module: "employees", node: <UanFollowUp /> });
-      if (can("vehicles")) t.push({ key: "veh", module: "vehicles", node: (
-        <DualTile icon={Briefcase} label="Vehicles" primary={data.vehicles} primaryLabel="In fleet" secondary={fmtINR(data.fuelTotal)} secondaryLabel="Spend this month" accent="violet" to="/admin/vehicles/inventory" />
-      )});
-      if (can("inventory")) t.push({ key: "inv", module: "inventory", node: <MetricTile icon={PackageOpen} label="Inventory SKUs" value={data.items} accent="amber" to="/admin/inventory/stock" /> });
-      if (can("attendance")) t.push({ key: "att", module: "attendance", node: (
-        <StatusTile icon={ClipboardList} label="Attendance" approved={data.sheetCounts.approved} pending={data.sheetCounts.pending} draft={data.sheetCounts.draft} rejected={data.sheetCounts.rejected} open={data.sheetCounts.open} approvedLabel="Approved" pendingLabel="Submitted" openLabel="Open" accent="emerald" to="/admin/attendance" />
-      )});
-      if (can("payroll")) t.push({ key: "pay", module: "payroll", node: (
-        <StatusTile icon={Wallet} label="Payroll" approved={data.runCounts.processed} pending={data.runCounts.pending} draft={0} rejected={0} open={data.runCounts.open} approvedLabel="Processed" pendingLabel="Ready" openLabel="Open" accent="sky" to="/admin/payroll" />
-      )});
-      if (can("invoice")) t.push({ key: "inv2", module: "invoice", node: (
-        <StatusTile icon={Receipt} label="Invoicing" approved={data.invoiceCounts.processed} pending={data.invoiceCounts.pending} draft={0} rejected={0} open={data.invoiceCounts.open} approvedLabel="Invoiced" pendingLabel="Ready" openLabel="Open" accent="indigo" to="/admin/invoice" />
-      )});
+      if (can("vehicles"))
+        t.push({
+          key: "veh",
+          module: "vehicles",
+          node: (
+            <DualTile
+              icon={Briefcase}
+              label="Vehicles"
+              primary={data.vehicles}
+              primaryLabel="In fleet"
+              secondary={fmtINR(data.fuelTotal)}
+              secondaryLabel="Spend this month"
+              accent="violet"
+              to="/admin/vehicles/inventory"
+            />
+          ),
+        });
+      if (can("inventory"))
+        t.push({
+          key: "inv",
+          module: "inventory",
+          node: (
+            <MetricTile
+              icon={PackageOpen}
+              label="Inventory SKUs"
+              value={data.items}
+              accent="amber"
+              to="/admin/inventory/stock"
+            />
+          ),
+        });
+      if (can("attendance"))
+        t.push({
+          key: "att",
+          module: "attendance",
+          node: (
+            <StatusTile
+              icon={ClipboardList}
+              label="Attendance"
+              approved={data.sheetCounts.approved}
+              pending={data.sheetCounts.pending}
+              draft={data.sheetCounts.draft}
+              rejected={data.sheetCounts.rejected}
+              open={data.sheetCounts.open}
+              approvedLabel="Approved"
+              pendingLabel="Submitted"
+              openLabel="Open"
+              accent="emerald"
+              to="/admin/attendance"
+            />
+          ),
+        });
+      if (can("payroll"))
+        t.push({
+          key: "pay",
+          module: "payroll",
+          node: (
+            <StatusTile
+              icon={Wallet}
+              label="Payroll"
+              approved={data.runCounts.processed}
+              pending={data.runCounts.pending}
+              draft={0}
+              rejected={0}
+              open={data.runCounts.open}
+              approvedLabel="Processed"
+              pendingLabel="Ready"
+              openLabel="Open"
+              accent="sky"
+              to="/admin/payroll"
+            />
+          ),
+        });
+      if (can("invoice"))
+        t.push({
+          key: "inv2",
+          module: "invoice",
+          node: (
+            <StatusTile
+              icon={Receipt}
+              label="Invoicing"
+              approved={data.invoiceCounts.processed}
+              pending={data.invoiceCounts.pending}
+              draft={0}
+              rejected={0}
+              open={data.invoiceCounts.open}
+              approvedLabel="Invoiced"
+              pendingLabel="Ready"
+              openLabel="Open"
+              accent="indigo"
+              to="/admin/invoice"
+            />
+          ),
+        });
     }
     return t;
   }, [data, can, opsFocus, operationsOverview, liveOfficerCount]);
@@ -598,7 +914,9 @@ function DashboardPage() {
         <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
           <h1 className="text-lg font-semibold">Dashboard could not load</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {countsQuery.error instanceof Error ? countsQuery.error.message : "Something went wrong while loading your data."}
+            {countsQuery.error instanceof Error
+              ? countsQuery.error.message
+              : "Something went wrong while loading your data."}
           </p>
           <Button className="mt-5" onClick={() => void countsQuery.refetch()}>
             Try again
@@ -607,7 +925,6 @@ function DashboardPage() {
       </div>
     );
   }
-
 
   // RBAC: commercial figures never reach the render tree for roles without
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
@@ -628,32 +945,42 @@ function DashboardPage() {
   }));
 
   const insightsCharts = (() => {
-        if (isLoading || !data) return null;
-        const sheetTotal = data.sheetCounts.approved + data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected;
-        const showGauge = can("attendance") && sheetTotal > 0;
-        if (!showGauge) return null;
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-1 gap-4"
-          >
-            <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
-              <div className="mb-2 text-center">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Approval rate</div>
-                <div className="font-display text-lg font-semibold tracking-tight text-foreground">Cycle health</div>
-              </div>
-              <RadialGauge
-                value={sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)}
-                label="Attendance approved"
-                sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
-                size={220}
-              />
+    if (isLoading || !data) return null;
+    const sheetTotal =
+      data.sheetCounts.approved +
+      data.sheetCounts.pending +
+      data.sheetCounts.draft +
+      data.sheetCounts.rejected;
+    const showGauge = can("attendance") && sheetTotal > 0;
+    if (!showGauge) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        className="grid grid-cols-1 gap-4"
+      >
+        <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
+          <div className="mb-2 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Approval rate
             </div>
-          </motion.div>
-        );
-      })();
+            <div className="font-display text-lg font-semibold tracking-tight text-foreground">
+              Cycle health
+            </div>
+          </div>
+          <RadialGauge
+            value={
+              sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)
+            }
+            label="Attendance approved"
+            sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
+            size={220}
+          />
+        </div>
+      </motion.div>
+    );
+  })();
 
   return (
     <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
@@ -675,73 +1002,141 @@ function DashboardPage() {
               <OperationsOrgTree />
             </>
           ) : (
-          <>{!isLoading && data && (<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{(can("payroll") || can("invoice")) && pnlQuery.isLoading && <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading payroll and invoice totals…</div>}{pnlQuery.error && <div className="mb-4 rounded-2xl border border-destructive/30 bg-card p-6"><p className="text-sm font-medium text-destructive">Payroll and invoice totals could not load.</p><Button className="mt-3" variant="outline" onClick={() => void pnlQuery.refetch()}>Try again</Button></div>}{pnlQuery.data && can("payroll") && <PayrollCoverageCard rows={financeRows} />}{pnlQuery.data && can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{pnlQuery.data && can("invoice") && <ProfitabilityCard rows={financeRows} />}{insightsCharts}{departmentTree}</>)}</>
+            <>
+              {!isLoading && data && (
+                <>
+                  {can("employees") && <EmployeeInsightsSection />}
+                  {can("attendance") && <AttendanceTodayCard />}
+                  {can("contracts") && (
+                    <>
+                      <ClientContractPortfolioCard />
+                      <WorkforceCoverageCard />
+                    </>
+                  )}
+                  {(can("payroll") || can("invoice")) && pnlQuery.isLoading && (
+                    <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                      Loading payroll and invoice totals…
+                    </div>
+                  )}
+                  {pnlQuery.error && (
+                    <div className="mb-4 rounded-2xl border border-destructive/30 bg-card p-6">
+                      <p className="text-sm font-medium text-destructive">
+                        Payroll and invoice totals could not load.
+                      </p>
+                      <Button
+                        className="mt-3"
+                        variant="outline"
+                        onClick={() => void pnlQuery.refetch()}
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  )}
+                  {pnlQuery.data && can("payroll") && <PayrollCoverageCard rows={financeRows} />}
+                  {pnlQuery.data && can("invoice") && <InvoiceCoverageCard rows={financeRows} />}
+                  {pnlQuery.data && can("invoice") && <ProfitabilityCard rows={financeRows} />}
+                  {insightsCharts}
+                  {departmentTree}
+                </>
+              )}
+            </>
           )
         }
       >
+        {/* Month hero — restrained slate panel */}
+        <div className="mobile-glass-surface relative overflow-hidden rounded-2xl border border-border/70 bg-card/72 p-3 shadow-sm sm:p-6">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-foreground/80" />
 
-
-      {/* Month hero — restrained slate panel */}
-      <div className="mobile-glass-surface relative overflow-hidden rounded-2xl border border-border/70 bg-card/72 p-3 shadow-sm sm:p-6">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-foreground/80" />
-
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              <Sparkles className="h-3 w-3" /> Leadership snapshot
-            </div>
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="font-display text-2xl font-bold leading-none tracking-tight text-foreground sm:text-[26px]">
-                {MONTH_NAMES[month]} {year}
-              </span>
-              {isCurrent && (
-                <span className="inline-flex items-center rounded-full bg-foreground px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-background">
-                  Current
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                <Sparkles className="h-3 w-3" /> Leadership snapshot
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="font-display text-2xl font-bold leading-none tracking-tight text-foreground sm:text-[26px]">
+                  {MONTH_NAMES[month]} {year}
                 </span>
-              )}
+                {isCurrent && (
+                  <span className="inline-flex items-center rounded-full bg-foreground px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-background">
+                    Current
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="mobile-glass-control flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-card/65 p-1">
-            <Button onClick={() => shift(-1)} size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground" aria-label="Previous"><ChevronLeft className="h-4 w-4" /></Button>
-            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger className="h-8 w-[130px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
-              <SelectContent>{MONTH_NAMES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
-            </Select>
-            <div className="h-5 w-px bg-border" />
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 w-[92px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
-              <SelectContent>{Array.from({ length: 7 }, (_, i) => now.getFullYear() - 3 + i).map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-            </Select>
-            <Button onClick={() => shift(1)} size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground" aria-label="Next"><ChevronRight className="h-4 w-4" /></Button>
+            <div className="mobile-glass-control flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-card/65 p-1">
+              <Button
+                onClick={() => shift(-1)}
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                <SelectTrigger className="h-8 w-[130px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_NAMES.map((m, i) => (
+                    <SelectItem key={m} value={String(i)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="h-5 w-px bg-border" />
+              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                <SelectTrigger className="h-8 w-[92px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 7 }, (_, i) => now.getFullYear() - 3 + i).map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={() => shift(1)}
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground"
+                aria-label="Next"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tiles */}
-      <div className={`grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}>
-        {isLoading ? (
-          Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card" />
-          ))
-        ) : (
-          tiles.map((t, i) => (
-            <motion.div
-              key={t.key}
-              className="h-full"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.42, delay: i * 0.045, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {t.node}
-            </motion.div>
-          ))
-        )}
-      </div>
+        {/* Tiles */}
+        <div
+          className={`grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}
+        >
+          {isLoading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card"
+                />
+              ))
+            : tiles.map((t, i) => (
+                <motion.div
+                  key={t.key}
+                  className="h-full"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.42, delay: i * 0.045, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  {t.node}
+                </motion.div>
+              ))}
+        </div>
 
-      {/* P&L renders full-width below the shell via fullWidthBelow */}
-
-
+        {/* P&L renders full-width below the shell via fullWidthBelow */}
       </DashboardShell>
     </div>
   );
@@ -755,16 +1150,26 @@ const ACCENT_CHIP: Record<Accent, string> = {
   rose: "bg-rose-50 text-rose-700 ring-rose-200/70 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/20",
   cyan: "bg-cyan-50 text-cyan-700 ring-cyan-200/70 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-400/20",
   lime: "bg-lime-50 text-lime-700 ring-lime-200/70 dark:bg-lime-500/10 dark:text-lime-300 dark:ring-lime-400/20",
-  violet: "bg-violet-50 text-violet-700 ring-violet-200/70 dark:bg-violet-500/10 dark:text-violet-300 dark:ring-violet-400/20",
-  amber: "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20",
-  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
+  violet:
+    "bg-violet-50 text-violet-700 ring-violet-200/70 dark:bg-violet-500/10 dark:text-violet-300 dark:ring-violet-400/20",
+  amber:
+    "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20",
+  emerald:
+    "bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
   sky: "bg-sky-50 text-sky-700 ring-sky-200/70 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20",
-  indigo: "bg-indigo-50 text-indigo-700 ring-indigo-200/70 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/20",
+  indigo:
+    "bg-indigo-50 text-indigo-700 ring-indigo-200/70 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/20",
 };
 
 const ACCENT_BAR: Record<Accent, string> = {
-  rose: "bg-rose-500", cyan: "bg-cyan-500", lime: "bg-lime-500", violet: "bg-violet-500",
-  amber: "bg-amber-500", emerald: "bg-emerald-500", sky: "bg-sky-500", indigo: "bg-indigo-500",
+  rose: "bg-rose-500",
+  cyan: "bg-cyan-500",
+  lime: "bg-lime-500",
+  violet: "bg-violet-500",
+  amber: "bg-amber-500",
+  emerald: "bg-emerald-500",
+  sky: "bg-sky-500",
+  indigo: "bg-indigo-500",
 };
 
 const ACCENT_TILE_BG: Record<Accent, string> = {
@@ -778,7 +1183,15 @@ const ACCENT_TILE_BG: Record<Accent, string> = {
   indigo: "bg-indigo-100/80 dark:bg-indigo-500/15",
 };
 
-function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode; to: string; accent?: Accent }) {
+function Shell({
+  children,
+  to,
+  accent = "indigo",
+}: {
+  children: React.ReactNode;
+  to: string;
+  accent?: Accent;
+}) {
   return (
     <Link
       to={to}
@@ -789,14 +1202,30 @@ function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode;
   );
 }
 
-
-function TileHeader({ Icon, accent, label, sub }: { Icon?: React.ComponentType<{ className?: string }>; accent: Accent; label: string; sub?: string }) {
-  void Icon; void accent;
+function TileHeader({
+  Icon,
+  accent,
+  label,
+  sub,
+}: {
+  Icon?: React.ComponentType<{ className?: string }>;
+  accent: Accent;
+  label: string;
+  sub?: string;
+}) {
+  void Icon;
+  void accent;
   return (
     <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">{label}</div>
-        {sub && <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">{sub}</div>}
+        <div className="font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">
+          {label}
+        </div>
+        {sub && (
+          <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
+            {sub}
+          </div>
+        )}
       </div>
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-9 sm:w-9">
         <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -806,10 +1235,28 @@ function TileHeader({ Icon, accent, label, sub }: { Icon?: React.ComponentType<{
 }
 
 function TileLabel({ children }: { children: React.ReactNode }) {
-  return <div className="relative mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{children}</div>;
+  return (
+    <div className="relative mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      {children}
+    </div>
+  );
 }
 
-function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number; accent?: Accent; to: string; sub?: string }) {
+function MetricTile({
+  icon,
+  label,
+  value,
+  to,
+  accent = "indigo",
+  sub,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  accent?: Accent;
+  to: string;
+  sub?: string;
+}) {
   const display = useCountUp(value);
   const I = icon;
   return (
@@ -819,7 +1266,9 @@ function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: 
         <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">
           {display}
         </div>
-        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}>
+        <span
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}
+        >
           <I className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
@@ -827,22 +1276,40 @@ function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: 
   );
 }
 
-function DualTile({ icon, label, primary, primaryLabel, secondary, secondaryLabel, to, accent = "violet" }: {
-  icon: React.ComponentType<{ className?: string }>; label: string;
-  primary: number; primaryLabel: string;
-  secondary: string; secondaryLabel: string;
-  accent?: Accent; to: string;
+function DualTile({
+  icon,
+  label,
+  primary,
+  primaryLabel,
+  secondary,
+  secondaryLabel,
+  to,
+  accent = "violet",
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  primary: number;
+  primaryLabel: string;
+  secondary: string;
+  secondaryLabel: string;
+  accent?: Accent;
+  to: string;
 }) {
   const display = useCountUp(primary);
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">{display}</div>
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+          {display}
+        </div>
         <div className="flex flex-col items-end text-right">
-          <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">{secondaryLabel}</span>
+          <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">
+            {secondaryLabel}
+          </span>
           <span className="mt-0.5 flex items-center gap-1 font-display text-xs font-semibold tabular-nums text-foreground sm:text-sm">
-            <Fuel className="h-3.5 w-3.5 text-muted-foreground" />{secondary}
+            <Fuel className="h-3.5 w-3.5 text-muted-foreground" />
+            {secondary}
           </span>
         </div>
       </div>
@@ -850,44 +1317,101 @@ function DualTile({ icon, label, primary, primaryLabel, secondary, secondaryLabe
   );
 }
 
-function StatusTile({ icon, label, approved, pending, draft, rejected, open, approvedLabel = "Approved", pendingLabel = "Pending", openLabel = "Open", to, accent = "emerald" }: {
-  icon: React.ComponentType<{ className?: string }>; label: string;
-  approved: number; pending: number; draft: number; rejected: number;
+function StatusTile({
+  icon,
+  label,
+  approved,
+  pending,
+  draft,
+  rejected,
+  open,
+  approvedLabel = "Approved",
+  pendingLabel = "Pending",
+  openLabel = "Open",
+  to,
+  accent = "emerald",
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  approved: number;
+  pending: number;
+  draft: number;
+  rejected: number;
   open?: number;
-  accent?: Accent; approvedLabel?: string; pendingLabel?: string; openLabel?: string; to: string;
+  accent?: Accent;
+  approvedLabel?: string;
+  pendingLabel?: string;
+  openLabel?: string;
+  to: string;
 }) {
   const total = Math.max(approved + pending + draft + rejected + (open ?? 0), 1);
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
-      <div className={`relative mt-2 grid gap-2 sm:mt-3 sm:gap-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}>
+      <div
+        className={`relative mt-2 grid gap-2 sm:mt-3 sm:gap-3 ${open != null ? "grid-cols-3" : "grid-cols-2"}`}
+      >
         <div>
-           <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">{approved}</div>
-          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{approvedLabel}</div>
+          <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+            {approved}
+          </div>
+          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">
+            {approvedLabel}
+          </div>
         </div>
         <div>
-           <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">{pending}</div>
-          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{pendingLabel}</div>
+          <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+            {pending}
+          </div>
+          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">
+            {pendingLabel}
+          </div>
         </div>
         {open != null && (
           <div>
-             <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">{open}</div>
-            <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{openLabel}</div>
+            <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[18px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+              {open}
+            </div>
+            <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">
+              {openLabel}
+            </div>
           </div>
         )}
       </div>
       <div className="relative mt-auto flex h-1.5 overflow-hidden rounded-full bg-card/60">
-        {approved > 0 && <div className={ACCENT_BAR[accent]} style={{ width: `${(approved / total) * 100}%` }} />}
-        {pending > 0 && <div className="bg-muted-foreground/50" style={{ width: `${(pending / total) * 100}%` }} />}
-        {draft > 0 && <div className="bg-muted-foreground/30" style={{ width: `${(draft / total) * 100}%` }} />}
-        {rejected > 0 && <div className="bg-rose-400/70" style={{ width: `${(rejected / total) * 100}%` }} />}
-        {(open ?? 0) > 0 && <div className="bg-muted-foreground/20" style={{ width: `${((open ?? 0) / total) * 100}%` }} />}
+        {approved > 0 && (
+          <div className={ACCENT_BAR[accent]} style={{ width: `${(approved / total) * 100}%` }} />
+        )}
+        {pending > 0 && (
+          <div
+            className="bg-muted-foreground/50"
+            style={{ width: `${(pending / total) * 100}%` }}
+          />
+        )}
+        {draft > 0 && (
+          <div className="bg-muted-foreground/30" style={{ width: `${(draft / total) * 100}%` }} />
+        )}
+        {rejected > 0 && (
+          <div className="bg-rose-400/70" style={{ width: `${(rejected / total) * 100}%` }} />
+        )}
+        {(open ?? 0) > 0 && (
+          <div
+            className="bg-muted-foreground/20"
+            style={{ width: `${((open ?? 0) / total) * 100}%` }}
+          />
+        )}
       </div>
     </Shell>
   );
 }
 
-function ContractsTile({ active, expiring }: { active: number; expiring: Array<{ id: string; contract_code: string | null; end_date: string | null }> }) {
+function ContractsTile({
+  active,
+  expiring,
+}: {
+  active: number;
+  expiring: Array<{ id: string; contract_code: string | null; end_date: string | null }>;
+}) {
   const soonest = expiring[0];
   const display = useCountUp(active);
   const hasExpiring = expiring.length > 0;
@@ -901,10 +1425,19 @@ function ContractsTile({ active, expiring }: { active: number; expiring: Array<{
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-         <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">{display}</div>
-        <div className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}>
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[46px]">
+          {display}
+        </div>
+        <div
+          className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}
+        >
           <AlertTriangle className="h-3 w-3 shrink-0" />
-          <span className="truncate leading-none" title={hasExpiring && soonest?.end_date ? `Soonest: ${soonest.end_date}` : alertText}>{alertText}</span>
+          <span
+            className="truncate leading-none"
+            title={hasExpiring && soonest?.end_date ? `Soonest: ${soonest.end_date}` : alertText}
+          >
+            {alertText}
+          </span>
         </div>
       </div>
     </Shell>

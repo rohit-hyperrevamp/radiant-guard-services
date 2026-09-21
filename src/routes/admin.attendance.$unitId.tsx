@@ -3914,47 +3914,47 @@ function MusterRollPage() {
       <section className="space-y-2 sm:hidden print:hidden" aria-label="Mobile attendance muster">
         <div className="mobile-glass-surface sticky top-1 z-30 space-y-2 rounded-xl border border-border/70 bg-card/90 p-2 shadow-sm">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <label className="relative min-w-0">
-            <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
-            <select
-              aria-label="Bulk attendance date"
-              value={mobileDate}
-              onChange={(event) => setMobileDate(event.target.value)}
-              className="h-9 w-full appearance-none rounded-lg border border-primary/30 bg-primary/5 pl-8 pr-2 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+            <label className="relative min-w-0">
+              <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+              <select
+                aria-label="Bulk attendance date"
+                value={mobileDate}
+                onChange={(event) => setMobileDate(event.target.value)}
+                className="h-9 w-full appearance-none rounded-lg border border-primary/30 bg-primary/5 pl-8 pr-2 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {periodCells.map((cell) => (
+                  <option key={cell.date} value={cell.date} disabled={cell.date > todayStr}>
+                    {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-9 shrink-0 px-2.5 text-xs"
+              disabled={!editable}
+              onClick={() => {
+                const eligible = visibleMusterRows.filter(
+                  (row) =>
+                    !row.vacant &&
+                    !row.otOnly &&
+                    !row.reliever &&
+                    (!row.emp.doj || mobileDate >= row.emp.doj),
+                );
+                setMobileSelectedRows((current) =>
+                  current.size === eligible.length
+                    ? new Set()
+                    : new Set(eligible.map((row) => row.key)),
+                );
+              }}
             >
-              {periodCells.map((cell) => (
-                <option key={cell.date} value={cell.date} disabled={cell.date > todayStr}>
-                  {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-9 shrink-0 px-2.5 text-xs"
-            disabled={!editable}
-            onClick={() => {
-              const eligible = visibleMusterRows.filter(
-                (row) =>
-                  !row.vacant &&
-                  !row.otOnly &&
-                  !row.reliever &&
-                  (!row.emp.doj || mobileDate >= row.emp.doj),
-              );
-              setMobileSelectedRows((current) =>
-                current.size === eligible.length
-                  ? new Set()
-                  : new Set(eligible.map((row) => row.key)),
-              );
-            }}
-          >
-            {mobileSelectedRows.size > 0 ? `${mobileSelectedRows.size} selected` : "Select all"}
-          </Button>
+              {mobileSelectedRows.size > 0 ? `${mobileSelectedRows.size} selected` : "Select all"}
+            </Button>
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-border/60 pt-2">
             <div className="scrollbar-hide flex min-w-0 gap-1 overflow-x-auto">
@@ -3965,7 +3965,9 @@ function MusterRollPage() {
                   variant="outline"
                   className="h-8 min-w-9 shrink-0 rounded-lg px-2 text-xs font-medium"
                   disabled={!editable || mobileSelectedRows.size === 0}
-                  title={mobileSelectedRows.size === 0 ? "Select employees first" : `Apply ${code.label}`}
+                  title={
+                    mobileSelectedRows.size === 0 ? "Select employees first" : `Apply ${code.label}`
+                  }
                   onClick={() =>
                     applyCodeToCells(
                       Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`),
@@ -4212,7 +4214,6 @@ function MusterRollPage() {
             </table>
           </div>
         </div>
-
       </section>
 
       {selectedCells.size > 0 && !isDragging && (

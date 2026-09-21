@@ -47,7 +47,9 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("relative mb-2 pt-[env(safe-area-inset-top,0px)] sm:mb-5 sm:pt-0", className)}>
+    <div
+      className={cn("relative mb-2 pt-[env(safe-area-inset-top,0px)] sm:mb-5 sm:pt-0", className)}
+    >
       <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-xl sm:border sm:bg-card sm:p-5">
         <div className="relative flex min-w-0 flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3">
@@ -139,7 +141,11 @@ export function PageStat({
           <div className="line-clamp-2 font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
-          {sub && <div className="mt-0.5 hidden truncate text-[11.5px] text-muted-foreground sm:block">{sub}</div>}
+          {sub && (
+            <div className="mt-0.5 hidden truncate text-[11.5px] text-muted-foreground sm:block">
+              {sub}
+            </div>
+          )}
         </div>
         {trend && (
           <span
@@ -173,13 +179,24 @@ function iconForStatLabel(label: string): LucideIcon {
   const value = label.toLowerCase();
   if (value.includes("organization") || value.includes("branch")) return Building2;
   if (value.includes("client") || value.includes("unit") || value.includes("site")) return MapPin;
-  if (value.includes("employee") || value.includes("candidate") || value.includes("people")) return Users;
-  if (value.includes("active") || value.includes("approved") || value.includes("complete")) return CheckCircle2;
-  if (value.includes("inactive") || value.includes("expired") || value.includes("lost") || value.includes("reject")) return XCircle;
-  if (value.includes("pending") || value.includes("renewal") || value.includes("open")) return Clock3;
-  if (value.includes("invoice") || value.includes("tax") || value.includes("billing")) return ReceiptText;
+  if (value.includes("employee") || value.includes("candidate") || value.includes("people"))
+    return Users;
+  if (value.includes("active") || value.includes("approved") || value.includes("complete"))
+    return CheckCircle2;
+  if (
+    value.includes("inactive") ||
+    value.includes("expired") ||
+    value.includes("lost") ||
+    value.includes("reject")
+  )
+    return XCircle;
+  if (value.includes("pending") || value.includes("renewal") || value.includes("open"))
+    return Clock3;
+  if (value.includes("invoice") || value.includes("tax") || value.includes("billing"))
+    return ReceiptText;
   if (value.includes("stock") || value.includes("item") || value.includes("asset")) return Package;
-  if (value.includes("state") || value.includes("region") || value.includes("location")) return MapPin;
+  if (value.includes("state") || value.includes("region") || value.includes("location"))
+    return MapPin;
   if (value.includes("security") || value.includes("guard")) return ShieldCheck;
   if (value.includes("document") || value.includes("contract")) return FileText;
   if (value.includes("alert") || value.includes("due")) return AlertTriangle;
