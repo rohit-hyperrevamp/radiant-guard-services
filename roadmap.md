@@ -378,6 +378,6 @@
 - [x] Remove the spilling selected-row fill while retaining a clear selection outline.
 - [x] Run TypeScript validation.
 
-## Add Candidate dialog renders blank
+## Add Candidate dialog renders blank (FIXED)
 - [ ] Fix blank white body when opening Add Candidate from Employees (only Save Draft/Next render)
 - [ ] Review all other forms/dialogs for the same blank-content issue
