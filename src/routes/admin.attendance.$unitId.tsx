@@ -2,7 +2,28 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { CalendarDays, ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare, Camera, Clock3 } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  Printer,
+  Download,
+  CheckCircle2,
+  XCircle,
+  Send,
+  RotateCcw,
+  Plus,
+  X,
+  Upload,
+  Loader2,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  Trash2,
+  Search,
+  History as HistoryIcon,
+  GitCompare,
+  Camera,
+  Clock3,
+} from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -42,7 +63,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
+import {
+  classifyAttendanceEmployee,
+  isNonBillableRoleKey,
+  matchesAttendanceScope,
+  type AttendanceScopeAssignment,
+  type AttendanceUnitContext,
+} from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import {
   fetchAttendanceVersions,
@@ -54,19 +81,29 @@ import {
   type AttendanceSnapshotEntry,
 } from "@/lib/attendance-versions";
 
-import { attendanceCodeForShift, fetchShiftHoursMap, overtimeDaysForShift, shiftHoursFor } from "@/lib/shift-hours";
+import {
+  attendanceCodeForShift,
+  fetchShiftHoursMap,
+  overtimeDaysForShift,
+  shiftHoursFor,
+} from "@/lib/shift-hours";
 import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
 
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
-
 const searchSchema = z.object({
   month: z.coerce.number().min(0).max(11).optional(),
   year: z.coerce.number().min(2000).max(2100).optional(),
-  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  start: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  end: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export const Route = createFileRoute("/admin/attendance/$unitId")({
@@ -74,9 +111,15 @@ export const Route = createFileRoute("/admin/attendance/$unitId")({
   head: () => ({
     meta: [
       { title: "Mark Attendance | Radiant Guard Services" },
-      { name: "description", content: "Mark and review employee attendance for a selected unit and payroll period." },
+      {
+        name: "description",
+        content: "Mark and review employee attendance for a selected unit and payroll period.",
+      },
       { property: "og:title", content: "Mark Attendance | Radiant Guard Services" },
-      { property: "og:description", content: "Mark and review employee attendance for a selected unit and payroll period." },
+      {
+        property: "og:description",
+        content: "Mark and review employee attendance for a selected unit and payroll period.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -118,8 +161,18 @@ const SERVICE_PROVIDER = {
 };
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const ATTENDANCE_EMPLOYEE_STATUSES = ["active", "approved"] as const;
@@ -148,10 +201,12 @@ function isSummaryClose(actual: OcrRowSummary, expected: OcrRowSummary) {
   // Printed muster rolls commonly total Extra Duty in hours (8, 16, 32),
   // while attendance_entries stores Extra Duty as days (1, 2, 4). Accept
   // either representation so a correct row is never rejected on units alone.
-  const otOk = expected.ot_days == null
-    || nearlyEqual(actual.ot_days, roundHalf(expected.ot_days), 1)
-    || nearlyEqual(actual.ot_days, roundHalf(expected.ot_days / 8), 0.25);
-  const tOk = expected.t_days == null || nearlyEqual(actual.t_days, roundHalf(expected.t_days), 1.5);
+  const otOk =
+    expected.ot_days == null ||
+    nearlyEqual(actual.ot_days, roundHalf(expected.ot_days), 1) ||
+    nearlyEqual(actual.ot_days, roundHalf(expected.ot_days / 8), 0.25);
+  const tOk =
+    expected.t_days == null || nearlyEqual(actual.t_days, roundHalf(expected.t_days), 1.5);
   return { pOk, otOk, tOk, ok: pOk && otOk && tOk };
 }
 
@@ -227,7 +282,12 @@ function buildPeriodCells(
   const prevYear = monthIdx === 0 ? year - 1 : year;
   const prevLast = daysInMonth(prevYear, prevMonthIdx);
   for (let day = Math.min(startDay, prevLast); day <= prevLast; day += 1) {
-    cells.push({ date: ymd(prevYear, prevMonthIdx, day), dayNum: day, monthIdx: prevMonthIdx, year: prevYear });
+    cells.push({
+      date: ymd(prevYear, prevMonthIdx, day),
+      dayNum: day,
+      monthIdx: prevMonthIdx,
+      year: prevYear,
+    });
   }
   const endDay = Math.min(endDayRaw, daysInMonth(year, monthIdx));
   for (let day = 1; day <= endDay; day += 1) {
@@ -241,13 +301,16 @@ function buildExactPeriodCells(start: string, end: string) {
   const cursor = new Date(`${start}T12:00:00`);
   const last = new Date(`${end}T12:00:00`);
   while (cursor <= last && cells.length < 62) {
-    cells.push({ date: ymd(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()), dayNum: cursor.getDate(), monthIdx: cursor.getMonth(), year: cursor.getFullYear() });
+    cells.push({
+      date: ymd(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()),
+      dayNum: cursor.getDate(),
+      monthIdx: cursor.getMonth(),
+      year: cursor.getFullYear(),
+    });
     cursor.setDate(cursor.getDate() + 1);
   }
   return cells;
 }
-
-
 
 const NULL_DESIG = "__none__"; // sentinel row-key segment when an employee has no designation
 
@@ -289,12 +352,13 @@ function MusterRollPage() {
   };
 
   const { data: unit } = useQuery({
-
     queryKey: ["attendance-unit", unitId],
     queryFn: async () => {
       const { data: raw, error } = await supabase
         .from("units")
-        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never)
+        .select(
+          "id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
+        )
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
@@ -306,23 +370,32 @@ function MusterRollPage() {
         .eq("id", String(data.customer_id ?? ""))
         .maybeSingle();
       return { ...data, customer_name: cust?.name ?? "" };
-
-
     },
   });
 
   const publicHolidays = usePublicHolidays();
-  const phEnabled = Boolean((unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled);
-  const phMultiplier = Number((unit as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
+  const phEnabled = Boolean(
+    (unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled,
+  );
+  const phMultiplier =
+    Number((unit as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
   // Per-unit duty value of one PH-marked day. NULL = use the PH code's day_value.
-  const unitPhDayValueRaw = (unit as { ph_day_value?: number | string | null } | null | undefined)?.ph_day_value;
+  const unitPhDayValueRaw = (unit as { ph_day_value?: number | string | null } | null | undefined)
+    ?.ph_day_value;
   const unitPhDayValue =
-    unitPhDayValueRaw == null || Number.isNaN(Number(unitPhDayValueRaw)) ? null : Number(unitPhDayValueRaw);
+    unitPhDayValueRaw == null || Number.isNaN(Number(unitPhDayValueRaw))
+      ? null
+      : Number(unitPhDayValueRaw);
 
-  const { data: employees, isLoading, error: rosterError } = useQuery({
+  const {
+    data: employees,
+    isLoading,
+    error: rosterError,
+  } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
     queryFn: async () => {
-      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, offboarded_at, date_of_birth, is_enabled, status, role_key, non_billable";
+      const rosterSelect =
+        "id, employee_code, full_name, designation_id, preferred_joining_date, offboarded_at, date_of_birth, is_enabled, status, role_key, non_billable";
 
       const { data: prim, error: primError } = await supabase
         .from("candidates")
@@ -337,9 +410,19 @@ function MusterRollPage() {
         { data: rawUnit, error: rawUnitError },
         { data: scopeAssignments, error: scopeAssignmentsError },
       ] = await Promise.all([
-        supabase.from("candidate_units").select("candidate_id, is_reliever, designation_id").eq("unit_id", unitId),
-        supabase.from("units").select("id, branch_id, customer_id, billing_state").eq("id", unitId).maybeSingle(),
-        supabase.from("employee_scope_assignments").select("candidate_id, scope_type, scope_id").limit(5000),
+        supabase
+          .from("candidate_units")
+          .select("candidate_id, is_reliever, designation_id")
+          .eq("unit_id", unitId),
+        supabase
+          .from("units")
+          .select("id, branch_id, customer_id, billing_state")
+          .eq("id", unitId)
+          .maybeSingle(),
+        supabase
+          .from("employee_scope_assignments")
+          .select("candidate_id, scope_type, scope_id")
+          .limit(5000),
       ]);
       if (linksError) throw linksError;
       if (rawUnitError) throw rawUnitError;
@@ -355,7 +438,7 @@ function MusterRollPage() {
         : null;
 
       const scopeIds = new Set<string>();
-      for (const assignment of ((scopeAssignments ?? []) as AttendanceScopeAssignment[])) {
+      for (const assignment of (scopeAssignments ?? []) as AttendanceScopeAssignment[]) {
         // Only include people explicitly scoped to THIS unit. Branch / customer /
         // state scopes on field officers are oversight markers — they must not
         // pull unrelated people into another unit's muster roll.
@@ -364,8 +447,9 @@ function MusterRollPage() {
         }
       }
 
-
-      const secondaryIds = Array.from(new Set([...(links ?? []).map((l) => l.candidate_id), ...scopeIds]));
+      const secondaryIds = Array.from(
+        new Set([...(links ?? []).map((l) => l.candidate_id), ...scopeIds]),
+      );
       let extra: typeof prim = [];
       if (secondaryIds.length) {
         const { data, error } = await supabase
@@ -398,13 +482,14 @@ function MusterRollPage() {
       ]);
       const homeMapped = new Set(Array.from(assignedIds).filter((id) => !relieverLinks.has(id)));
 
-
-
       // The designation a person fills AT THIS UNIT comes from the unit mapping
       // (contracted role slot), not from their master record. "Security guard" is
       // a role; the designation drives salary and the payroll-day cap.
       const unitDesigByCandidate = new Map<string, string>();
-      for (const l of ((links ?? []) as Array<{ candidate_id: string; designation_id?: string | null }>)) {
+      for (const l of (links ?? []) as Array<{
+        candidate_id: string;
+        designation_id?: string | null;
+      }>) {
         if (l.designation_id) unitDesigByCandidate.set(l.candidate_id, l.designation_id);
       }
 
@@ -427,7 +512,8 @@ function MusterRollPage() {
             (c as { non_billable?: boolean }).non_billable === true;
           const effectiveDesignationId =
             unitDesigByCandidate.get(c.id) ?? (c.designation_id as string | null);
-          const designationName = (effectiveDesignationId && dMap.get(effectiveDesignationId)) || "";
+          const designationName =
+            (effectiveDesignationId && dMap.get(effectiveDesignationId)) || "";
           return {
             id: c.id,
             employee_code: c.employee_code || "",
@@ -439,9 +525,8 @@ function MusterRollPage() {
             left_on: ((c as { offboarded_at?: string | null }).offboarded_at || "").slice(0, 10),
             is_non_billable: isNonBillable,
             is_home_mapped: homeMapped.has(c.id),
-             is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
+            is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
             role_key: (c.role_key || "").toLowerCase(),
-
           };
         })
 
@@ -449,10 +534,9 @@ function MusterRollPage() {
         // (field officers, branch managers, HR, etc.) only appear on the
         // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
         .filter((c) => !c.is_non_billable || unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1")
-        .sort((a, b) => (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name));
-
-
-
+        .sort((a, b) =>
+          (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name),
+        );
 
       return mappedEmployees;
     },
@@ -482,7 +566,12 @@ function MusterRollPage() {
       const startDate = contracts?.[0]?.start_date ?? null;
       const contractId = contracts?.[0]?.id ?? null;
 
-      type Win = { id: string; label: string | null; window_start_day: number; window_end_day: number };
+      type Win = {
+        id: string;
+        label: string | null;
+        window_start_day: number;
+        window_end_day: number;
+      };
       let win: Win | null = null;
       if (winId) {
         const { data: winRow } = await supabase
@@ -515,7 +604,10 @@ function MusterRollPage() {
         const orderedIds: string[] = [];
         for (const row of rows) {
           if (!qtyById.has(row.designation_id)) orderedIds.push(row.designation_id);
-          qtyById.set(row.designation_id, (qtyById.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1));
+          qtyById.set(
+            row.designation_id,
+            (qtyById.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1),
+          );
           if (row.payroll_day_base_id && !pdbIdByDesig.has(row.designation_id)) {
             pdbIdByDesig.set(row.designation_id, String(row.payroll_day_base_id));
           }
@@ -533,7 +625,9 @@ function MusterRollPage() {
               fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
               weeklyOffDay: b.weekly_off_day == null ? null : Number(b.weekly_off_day),
               includedWeekdays: Array.isArray(b.included_weekdays)
-                ? (b.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+                ? (b.included_weekdays as unknown[])
+                    .map((n) => Number(n))
+                    .filter((n) => n >= 0 && n <= 6)
                 : null,
             });
           }
@@ -553,7 +647,6 @@ function MusterRollPage() {
         }
       }
       return { window: win, startDate, contractId, resources };
-
     },
     enabled: Boolean(unitId),
   });
@@ -562,14 +655,21 @@ function MusterRollPage() {
   const contractDesignations = contractInfo?.resources ?? [];
 
   const periodCells = useMemo(
-    () => search.start && search.end ? buildExactPeriodCells(search.start, search.end) : buildPeriodCells(year, monthIdx, payrollWindow ?? null),
+    () =>
+      search.start && search.end
+        ? buildExactPeriodCells(search.start, search.end)
+        : buildPeriodCells(year, monthIdx, payrollWindow ?? null),
     [year, monthIdx, payrollWindow, search.start, search.end],
   );
   const dayCount = periodCells.length;
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
-  const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
+  const periodEnd =
+    periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
   const [mobileDate, setMobileDate] = useState(() => {
-    const requested = search.start && search.end && todayStr >= search.start && todayStr <= search.end ? todayStr : "";
+    const requested =
+      search.start && search.end && todayStr >= search.start && todayStr <= search.end
+        ? todayStr
+        : "";
     return requested;
   });
   useEffect(() => {
@@ -578,11 +678,13 @@ function MusterRollPage() {
     setMobileDate(latestAvailable?.date ?? periodCells[0]?.date ?? "");
   }, [mobileDate, periodCells, todayStr]);
   const holidayByDate = useMemo(
-    () => holidayMapForDates(periodCells.map((c) => c.date), publicHolidays),
+    () =>
+      holidayMapForDates(
+        periodCells.map((c) => c.date),
+        publicHolidays,
+      ),
     [periodCells, publicHolidays],
   );
-
-
 
   // Max "P" days allowed per designation for this period, driven by the
   // contract resource's Payroll Days entry (26 fixed, actual days, actual
@@ -617,9 +719,6 @@ function MusterRollPage() {
     return Math.min(...values);
   }, [maxPDaysByDesignation]);
 
-
-
-
   const queryClient = useQueryClient();
   const { can } = useCurrentPermissions();
   const canApprove = can("attendance", "approve");
@@ -640,13 +739,15 @@ function MusterRollPage() {
     queryFn: async (): Promise<SheetRow | null> => {
       const { data, error } = await supabase
         .from("attendance_sheets" as never)
-        .select("id, status, rejection_reason, review_proof_url, submitted_by, current_version, amendment_status")
+        .select(
+          "id, status, rejection_reason, review_proof_url, submitted_by, current_version, amendment_status",
+        )
         .eq("unit_id", unitId)
         .eq("period_start", periodStart)
         .eq("period_end", periodEnd)
         .maybeSingle();
       if (error) throw error;
-      return (data as unknown as SheetRow | null);
+      return data as unknown as SheetRow | null;
     },
     enabled: Boolean(unitId && periodStart && periodEnd),
   });
@@ -675,7 +776,7 @@ function MusterRollPage() {
         .eq("period_end", periodEnd)
         .maybeSingle();
       if (error) throw error;
-      return (data as unknown as PayrollRunLite | null);
+      return data as unknown as PayrollRunLite | null;
     },
   });
   const sentToPayroll = ["submitted", "approved"].includes(payrollRun?.status ?? "");
@@ -704,7 +805,6 @@ function MusterRollPage() {
     amendmentOpen ||
     (amendmentSubmitted && canApprove);
 
-
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectProof, setRejectProof] = useState<File | null>(null);
@@ -721,10 +821,17 @@ function MusterRollPage() {
         period_end: periodEnd,
         status: next.status,
       };
-      if (next.status === "submitted") { base.submitted_at = ts; base.submitted_by = uid; }
-      if (next.status === "approved") { base.approved_at = ts; base.approved_by = uid; }
+      if (next.status === "submitted") {
+        base.submitted_at = ts;
+        base.submitted_by = uid;
+      }
+      if (next.status === "approved") {
+        base.approved_at = ts;
+        base.approved_by = uid;
+      }
       if (next.status === "rejected") {
-        base.rejected_at = ts; base.rejected_by = uid;
+        base.rejected_at = ts;
+        base.rejected_by = uid;
         base.rejection_reason = next.reason ?? "";
         // Upload the optional proof image and store its path.
         if (next.proofFile) {
@@ -732,7 +839,9 @@ function MusterRollPage() {
           try {
             const ext = next.proofFile.name.split(".").pop() || "png";
             const path = `${unitId}/${periodStart}_${periodEnd}/${Date.now()}.${ext}`;
-            const up = await supabase.storage.from("attendance-review-proofs").upload(path, next.proofFile, { upsert: true });
+            const up = await supabase.storage
+              .from("attendance-review-proofs")
+              .upload(path, next.proofFile, { upsert: true });
             if (up.error) throw up.error;
             base.review_proof_url = path;
           } finally {
@@ -752,30 +861,48 @@ function MusterRollPage() {
           .eq("id", sheet.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("attendance_sheets" as never)
-          .insert(base as never);
+        const { error } = await supabase.from("attendance_sheets" as never).insert(base as never);
         if (error) throw error;
       }
       void logActivity({
         module: "Attendance",
-        action: next.status === "submitted" ? "submit" : next.status === "approved" ? "approve" : next.status === "rejected" ? "reject" : "reopen",
+        action:
+          next.status === "submitted"
+            ? "submit"
+            : next.status === "approved"
+              ? "approve"
+              : next.status === "rejected"
+                ? "reject"
+                : "reopen",
         entityType: "attendance_sheets",
         entityLabel: `${unitId} ${periodStart} → ${periodEnd}`,
-        details: { unit_id: unitId, period_start: periodStart, period_end: periodEnd, status: next.status, reason: next.reason ?? "" },
+        details: {
+          unit_id: unitId,
+          period_start: periodStart,
+          period_end: periodEnd,
+          status: next.status,
+          reason: next.reason ?? "",
+        },
       });
       // Fan out notifications.
       const link = `/admin/attendance/${unitId}?month=${new Date(periodStart).getMonth()}&year=${new Date(periodStart).getFullYear()}`;
-      const unitLabel = ((unit as { customer_name?: string; name?: string } | null | undefined)?.customer_name
-        ? `${(unit as { customer_name?: string }).customer_name} — ${(unit as { name?: string }).name ?? ""}`
-        : (unit as { name?: string } | null | undefined)?.name ?? "unit").trim();
+      const unitLabel = (
+        (unit as { customer_name?: string; name?: string } | null | undefined)?.customer_name
+          ? `${(unit as { customer_name?: string }).customer_name} — ${(unit as { name?: string }).name ?? ""}`
+          : ((unit as { name?: string } | null | undefined)?.name ?? "unit")
+      ).trim();
       const periodLabel = `${MONTH_NAMES[monthIdx]} ${year}`;
       if (next.status === "submitted") {
         // Look up the field officer's display name for a richer approver message.
         let actorName = "A field officer";
         if (uid) {
-          const { data: rows } = await supabase.rpc("get_user_display_name" as never, { _user_id: uid } as never);
-          const row = Array.isArray(rows) ? (rows[0] as { full_name?: string } | undefined) : undefined;
+          const { data: rows } = await supabase.rpc(
+            "get_user_display_name" as never,
+            { _user_id: uid } as never,
+          );
+          const row = Array.isArray(rows)
+            ? (rows[0] as { full_name?: string } | undefined)
+            : undefined;
           if (row?.full_name) actorName = row.full_name;
         }
         void notifyApprovers({
@@ -790,10 +917,14 @@ function MusterRollPage() {
       } else if (next.status === "approved" || next.status === "rejected") {
         void notifyUser(sheet?.submitted_by ?? null, {
           type: next.status === "approved" ? "attendance_approved" : "attendance_rejected",
-          title: next.status === "approved" ? `Attendance approved — ${unitLabel}` : `Attendance rejected — ${unitLabel}`,
-          message: next.status === "approved"
-            ? `Your attendance for ${unitLabel} (${periodLabel}) was approved.`
-            : `Your attendance for ${unitLabel} (${periodLabel}) was rejected. Reason: ${next.reason ?? ""}`,
+          title:
+            next.status === "approved"
+              ? `Attendance approved — ${unitLabel}`
+              : `Attendance rejected — ${unitLabel}`,
+          message:
+            next.status === "approved"
+              ? `Your attendance for ${unitLabel} (${periodLabel}) was approved.`
+              : `Your attendance for ${unitLabel} (${periodLabel}) was rejected. Reason: ${next.reason ?? ""}`,
           link,
           entityType: "attendance_sheets",
           entityId: sheet?.id ?? "",
@@ -804,9 +935,13 @@ function MusterRollPage() {
       queryClient.invalidateQueries({ queryKey: sheetQK });
       queryClient.invalidateQueries({ queryKey: payrollRunQK });
       toast.success(
-        vars.status === "submitted" ? "Submitted for approval" :
-        vars.status === "approved" ? "Attendance approved — payroll unlocked" :
-        vars.status === "rejected" ? "Attendance rejected" : "Reopened for editing",
+        vars.status === "submitted"
+          ? "Submitted for approval"
+          : vars.status === "approved"
+            ? "Attendance approved — payroll unlocked"
+            : vars.status === "rejected"
+              ? "Attendance rejected"
+              : "Reopened for editing",
       );
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
@@ -848,14 +983,21 @@ function MusterRollPage() {
         entityLabel: `${unitId} ${periodStart} → ${periodEnd}`,
         details: { unit_id: unitId, period_start: periodStart, period_end: periodEnd },
       });
-      const unitLabel = ((unit as { customer_name?: string; name?: string } | null | undefined)?.customer_name
-        ? `${(unit as { customer_name?: string }).customer_name} — ${(unit as { name?: string }).name ?? ""}`
-        : (unit as { name?: string } | null | undefined)?.name ?? "unit").trim();
+      const unitLabel = (
+        (unit as { customer_name?: string; name?: string } | null | undefined)?.customer_name
+          ? `${(unit as { customer_name?: string }).customer_name} — ${(unit as { name?: string }).name ?? ""}`
+          : ((unit as { name?: string } | null | undefined)?.name ?? "unit")
+      ).trim();
       const periodLabel = `${MONTH_NAMES[monthIdx]} ${year}`;
       let actorName = "An approver";
       if (uid) {
-        const { data: rows } = await supabase.rpc("get_user_display_name" as never, { _user_id: uid } as never);
-        const row = Array.isArray(rows) ? (rows[0] as { full_name?: string } | undefined) : undefined;
+        const { data: rows } = await supabase.rpc(
+          "get_user_display_name" as never,
+          { _user_id: uid } as never,
+        );
+        const row = Array.isArray(rows)
+          ? (rows[0] as { full_name?: string } | undefined)
+          : undefined;
         if (row?.full_name) actorName = row.full_name;
       }
       const payrollLink = `/admin/payroll/${unitId}?start=${periodStart}&end=${periodEnd}`;
@@ -895,7 +1037,12 @@ function MusterRollPage() {
       if (payrollRun?.id) {
         const { error } = await supabase
           .from("payroll_runs" as never)
-          .update({ status: "draft", submitted_at: null, submitted_by: null, rejection_reason: null } as never)
+          .update({
+            status: "draft",
+            submitted_at: null,
+            submitted_by: null,
+            rejection_reason: null,
+          } as never)
           .eq("id", payrollRun.id);
         if (error) throw error;
       }
@@ -923,13 +1070,16 @@ function MusterRollPage() {
     queryClient.invalidateQueries({ queryKey: sheetQK });
     queryClient.invalidateQueries({ queryKey: versionsQK });
     queryClient.invalidateQueries({ queryKey: payrollRunQK });
-    queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("payroll") });
+    queryClient.invalidateQueries({
+      predicate: (q) => String(q.queryKey[0] ?? "").startsWith("payroll"),
+    });
   };
 
   const startAmendment = useMutation({
     mutationFn: async () => {
       const reason = amendReason.trim();
-      if (reason.length < 5) throw new Error("Give a reason (at least 5 characters) for the amendment");
+      if (reason.length < 5)
+        throw new Error("Give a reason (at least 5 characters) for the amendment");
       return startAttendanceAmendment({
         unitId,
         periodStart,
@@ -945,7 +1095,8 @@ function MusterRollPage() {
       invalidateAmendment();
       toast.success(`Version ${v} opened — version ${v - 1} archived as the paid sheet`);
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not start amendment"),
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Could not start amendment"),
   });
 
   const moveAmendment = useMutation({
@@ -964,17 +1115,27 @@ function MusterRollPage() {
             : "Amendment updated",
       );
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not update amendment"),
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Could not update amendment"),
   });
 
   // Live diff of the current (amended) sheet against the last frozen version.
   const previousVersion = useMemo(
-    () => versions.filter((v) => v.version < currentVersion).sort((a, b) => b.version - a.version)[0] ?? null,
+    () =>
+      versions.filter((v) => v.version < currentVersion).sort((a, b) => b.version - a.version)[0] ??
+      null,
     [versions, currentVersion],
   );
   const { data: amendmentDiff = [] } = useQuery({
     // Prefixed with the entries key so every attendance save refreshes the diff.
-    queryKey: ["attendance-entries-v4", unitId, periodStart, periodEnd, "amendment-diff", currentVersion],
+    queryKey: [
+      "attendance-entries-v4",
+      unitId,
+      periodStart,
+      periodEnd,
+      "amendment-diff",
+      currentVersion,
+    ],
 
     enabled: Boolean(amendmentActive && previousVersion),
     queryFn: async () => {
@@ -982,7 +1143,6 @@ function MusterRollPage() {
       return diffAttendance((previousVersion?.snapshot ?? []) as AttendanceSnapshotEntry[], live);
     },
   });
-
 
   // Approval IS the handoff: once the sheet is approved, payroll & invoice are
   // notified automatically — no separate "send" click.
@@ -1000,7 +1160,9 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_codes")
-        .select("id, code, label, color, counts_as_present, is_paid, is_leave, day_value, sort_order")
+        .select(
+          "id, code, label, color, counts_as_present, is_paid, is_leave, day_value, sort_order",
+        )
         .eq("enabled", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
@@ -1015,23 +1177,31 @@ function MusterRollPage() {
   const { data: candDesignations = [] } = useQuery({
     queryKey: ["attendance-candidate-designations", unitId, candidateIds.join(",")],
     queryFn: async () => {
-      if (!candidateIds.length) return [] as Array<{ candidate_id: string; designation_id: string; is_primary: boolean }>;
+      if (!candidateIds.length)
+        return [] as Array<{ candidate_id: string; designation_id: string; is_primary: boolean }>;
       const { data, error } = await supabase
         .from("candidate_designations" as never)
         .select("candidate_id, designation_id, is_primary")
         .in("candidate_id", candidateIds);
       if (error) throw error;
-      return (data ?? []) as Array<{ candidate_id: string; designation_id: string; is_primary: boolean }>;
+      return (data ?? []) as Array<{
+        candidate_id: string;
+        designation_id: string;
+        is_primary: boolean;
+      }>;
     },
     enabled: candidateIds.length > 0,
   });
-
 
   const entriesQK = ["attendance-entries-v4", unitId, periodStart, periodEnd];
   const { data: entries = [] } = useQuery({
     queryKey: entriesQK,
     queryFn: async () => {
-      return fetchAttendanceEntriesForPeriod({ unitId, start: periodStart, end: periodEnd }) as Promise<EntryRow[]>;
+      return fetchAttendanceEntriesForPeriod({
+        unitId,
+        start: periodStart,
+        end: periodEnd,
+      }) as Promise<EntryRow[]>;
     },
     enabled: Boolean(unitId),
   });
@@ -1046,16 +1216,23 @@ function MusterRollPage() {
     () => (employees ?? []).filter((e) => !e.is_reliever).map((e) => e.id),
     [employees],
   );
-  const selfPunchQK = ["attendance-self-punches", unitId, periodStart, periodEnd, selfPunchCandidateIds.join(",")];
+  const selfPunchQK = [
+    "attendance-self-punches",
+    unitId,
+    periodStart,
+    periodEnd,
+    selfPunchCandidateIds.join(","),
+  ];
   const { data: selfPunches = [] } = useQuery({
     queryKey: selfPunchQK,
     queryFn: async () => {
-      if (!selfPunchCandidateIds.length) return [] as Array<{
-        candidate_id: string;
-        punch_date: string;
-        check_in_at: string | null;
-        check_out_at: string | null;
-      }>;
+      if (!selfPunchCandidateIds.length)
+        return [] as Array<{
+          candidate_id: string;
+          punch_date: string;
+          check_in_at: string | null;
+          check_out_at: string | null;
+        }>;
       const { data, error } = await supabase
         .from("self_attendance_punches")
         .select("candidate_id, punch_date, check_in_at, check_out_at")
@@ -1122,8 +1299,10 @@ function MusterRollPage() {
     // Self-punch derived rows only FILL BLANKS. A stored attendance_entries row
     // is a human decision (HR/FO marked the muster) and always wins — otherwise
     // a forgotten checkout would keep flipping a manually corrected P back to A.
-    for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
-    for (const e of entries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    for (const e of derivedSelfEntries)
+      m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    for (const e of entries)
+      m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
     return m;
   }, [entries, derivedSelfEntries]);
 
@@ -1172,7 +1351,10 @@ function MusterRollPage() {
   const [extraRows, setExtraRows] = useState<Set<string>>(new Set());
 
   // ---- Map an employee onto an unassigned (vacant) contracted slot ----
-  const [mapSlot, setMapSlot] = useState<{ designationId: string | null; designationName: string } | null>(null);
+  const [mapSlot, setMapSlot] = useState<{
+    designationId: string | null;
+    designationName: string;
+  } | null>(null);
   const [mapQuery, setMapQuery] = useState("");
   const [mapSaving, setMapSaving] = useState(false);
 
@@ -1181,8 +1363,9 @@ function MusterRollPage() {
   const managerCandidateId = currentRole.candidateId;
   const managerUserId = currentRole.userId;
   const mapScopeLoading = currentRole.isLoading;
-  const mapScopeKey = restrictMapToOwnPeople ? `own:${managerCandidateId ?? managerUserId ?? "none"}` : "all";
-
+  const mapScopeKey = restrictMapToOwnPeople
+    ? `own:${managerCandidateId ?? managerUserId ?? "none"}`
+    : "all";
 
   const mapSearch = mapQuery.trim();
   const { data: mapResults, isFetching: mapSearching } = useQuery({
@@ -1209,7 +1392,8 @@ function MusterRollPage() {
             : Promise.resolve({ data: [] as { id: string }[] }),
         ]);
         const ids = new Set<string>();
-        for (const r of (byManager.data ?? []) as { candidate_id: string }[]) ids.add(r.candidate_id);
+        for (const r of (byManager.data ?? []) as { candidate_id: string }[])
+          ids.add(r.candidate_id);
         for (const r of (byReports.data ?? []) as { id: string }[]) ids.add(r.id);
         for (const r of (byCreator.data ?? []) as { id: string }[]) ids.add(r.id);
         allowedIds = Array.from(ids);
@@ -1219,15 +1403,21 @@ function MusterRollPage() {
       const like = mapSearch.replace(/[%,]/g, " ");
       let query = supabase
         .from("candidates")
-        .select("id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date")
+        .select(
+          "id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date",
+        )
         .eq("is_enabled", true)
         .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES])
-        .or(`full_name.ilike.%${like}%,employee_code.ilike.%${like}%,candidate_code.ilike.%${like}%`);
+        .or(
+          `full_name.ilike.%${like}%,employee_code.ilike.%${like}%,candidate_code.ilike.%${like}%`,
+        );
       if (allowedIds) query = query.in("id", allowedIds);
       const { data, error } = await query.order("full_name").limit(30);
       if (error) throw error;
       const rows = data ?? [];
-      const desigIds = Array.from(new Set(rows.map((r) => r.designation_id).filter(Boolean))) as string[];
+      const desigIds = Array.from(
+        new Set(rows.map((r) => r.designation_id).filter(Boolean)),
+      ) as string[];
       const { data: desigs } = await supabase
         .from("designations")
         .select("id, name")
@@ -1244,10 +1434,13 @@ function MusterRollPage() {
     },
   });
 
-
   const rosterIds = useMemo(() => new Set((employees ?? []).map((e) => e.id)), [employees]);
 
-  const mapEmployeeToSlot = async (cand: { id: string; full_name: string; designation_id: string | null }) => {
+  const mapEmployeeToSlot = async (cand: {
+    id: string;
+    full_name: string;
+    designation_id: string | null;
+  }) => {
     if (!mapSlot) return;
     setMapSaving(true);
     try {
@@ -1273,7 +1466,9 @@ function MusterRollPage() {
         entityId: cand.id,
         entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
-      toast.success(`${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`);
+      toast.success(
+        `${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`,
+      );
       setMapSlot(null);
       setMapQuery("");
     } catch (e) {
@@ -1282,7 +1477,6 @@ function MusterRollPage() {
       setMapSaving(false);
     }
   };
-
 
   // Derived list of muster rows: one per (candidate, designation)
   const musterRows = useMemo(() => {
@@ -1310,7 +1504,9 @@ function MusterRollPage() {
       beyondAgreed?: boolean;
     }> = [];
     const seen = new Set<string>();
-    const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
+    const desigNameMap = new Map(
+      contractDesignations.map((d) => [d.designationId, d.designationName]),
+    );
     // Who actually has any attendance recorded inside this period?
     const candidatesWithEntries = new Set((entries ?? []).map((e) => e.candidate_id));
 
@@ -1345,8 +1541,6 @@ function MusterRollPage() {
       // (candidate, designation) pair in this period, or (b) the user explicitly adds a
       // line via "Add line item". This keeps the sheet free of empty designation rows.
 
-
-
       // Additional rows from any entries with a different designation
 
       for (const e of entries) {
@@ -1364,7 +1558,6 @@ function MusterRollPage() {
           isPrimary: false,
           reliever: true,
           otOnly: true,
-
         });
       }
 
@@ -1385,11 +1578,9 @@ function MusterRollPage() {
           isPrimary: false,
           reliever: true,
           otOnly: true,
-
         });
       }
     }
-
 
     // Contracted designations always appear on the muster, even with nobody
     // mapped. For each designation we render `quantity` slots; slots already
@@ -1445,11 +1636,11 @@ function MusterRollPage() {
     const q = musterQuery.trim().toLowerCase();
     if (!q) return musterRows;
     return musterRows.filter((r) => {
-      const hay = `${r.emp.full_name ?? ""} ${r.emp.employee_code ?? ""} ${r.designationName ?? ""}`.toLowerCase();
+      const hay =
+        `${r.emp.full_name ?? ""} ${r.emp.employee_code ?? ""} ${r.designationName ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [musterRows, musterQuery]);
-
 
   // ---- Mutations ----
 
@@ -1463,9 +1654,6 @@ function MusterRollPage() {
     }
     return "Failed to save";
   };
-
-
-
 
   const upsertEntries = async (
     candidate_id: string,
@@ -1505,8 +1693,8 @@ function MusterRollPage() {
     const cap = usesActualCalendarDays
       ? null
       : contractResource
-      ? desigCap ?? null
-      : unitMaxPDays;
+        ? (desigCap ?? null)
+        : unitMaxPDays;
     let capped = filtered;
     let convertedDays = 0;
     let movedDays = 0;
@@ -1586,7 +1774,9 @@ function MusterRollPage() {
       return !saved || saved.code !== row.code || Number(saved.ot_hours ?? 0) !== row.ot_hours;
     });
     if (mismatched.length > 0) {
-      throw new Error(`Attendance was not saved for ${mismatched.length} selected cell${mismatched.length === 1 ? "" : "s"}`);
+      throw new Error(
+        `Attendance was not saved for ${mismatched.length} selected cell${mismatched.length === 1 ? "" : "s"}`,
+      );
     }
     if (convertedDays > 0) {
       toast.info(
@@ -1595,14 +1785,15 @@ function MusterRollPage() {
       );
     }
     return capped.length;
-
   };
-
 
   const confirm = useConfirm();
   const [clearingAll, setClearingAll] = useState(false);
   const handleClearAll = async () => {
-    if (!editable) { toast.error("Sheet is locked"); return; }
+    if (!editable) {
+      toast.error("Sheet is locked");
+      return;
+    }
     const ok = await confirm({
       title: "Clear all attendance?",
       description: `This deletes every attendance entry on this sheet for ${periodStart} → ${periodEnd}. This cannot be undone.`,
@@ -1634,7 +1825,6 @@ function MusterRollPage() {
       setClearingAll(false);
     }
   };
-
 
   // Drag-to-select state — a selection is a set of cells (`rowKey|date`),
   // so a drag can span both horizontally (days) and vertically (employees).
@@ -1713,7 +1903,10 @@ function MusterRollPage() {
     return { startedAt, estimate };
   };
 
-  const endScanProgress = async (outcome: { summary?: string; error?: string }, startedAt: number) => {
+  const endScanProgress = async (
+    outcome: { summary?: string; error?: string },
+    startedAt: number,
+  ) => {
     if (scanTimerRef.current) {
       clearInterval(scanTimerRef.current);
       scanTimerRef.current = null;
@@ -1731,13 +1924,17 @@ function MusterRollPage() {
     await queryClient.invalidateQueries({ queryKey: [SCAN_JOBS_QK] });
   };
 
-  useEffect(() => () => {
-    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    },
+    [],
+  );
 
   const detectKind = (file: File): "image" | "excel" | null => {
     const name = file.name.toLowerCase();
-    if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|heic|heif|bmp|gif)$/.test(name)) return "image";
+    if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|heic|heif|bmp|gif)$/.test(name))
+      return "image";
     if (/\.(xlsx|xls|xlsm|csv|ods)$/.test(name)) return "excel";
     return null;
   };
@@ -1776,7 +1973,13 @@ function MusterRollPage() {
         });
       } catch {
         const raw = await readImageDataUrl(f);
-        out.push({ name: f.name, dataUrl: raw, originalDataUrl: raw, cropped: false, quality: null });
+        out.push({
+          name: f.name,
+          dataUrl: raw,
+          originalDataUrl: raw,
+          cropped: false,
+          quality: null,
+        });
       }
     }
     return out;
@@ -1842,7 +2045,9 @@ function MusterRollPage() {
   };
 
   /** Accept pages captured with the live camera scanner. */
-  const onCameraCapture = (captured: Array<{ name: string; dataUrl: string; scan: ScanResult }>) => {
+  const onCameraCapture = (
+    captured: Array<{ name: string; dataUrl: string; scan: ScanResult }>,
+  ) => {
     if (!captured.length) return;
     const list: UploadPage[] = captured.map((c) => ({
       name: c.name,
@@ -1866,11 +2071,17 @@ function MusterRollPage() {
   /** Read every selected photo one after another into this muster. */
   const processAttendanceImages = async () => {
     const pages: Array<{ name: string; dataUrl: string }> = uploadImages.length
-      ? uploadImages.map((p) => ({ name: p.name, dataUrl: useCleaned ? p.dataUrl : p.originalDataUrl }))
+      ? uploadImages.map((p) => ({
+          name: p.name,
+          dataUrl: useCleaned ? p.dataUrl : p.originalDataUrl,
+        }))
       : uploadPreview
         ? [{ name: uploadFile?.name ?? "sheet", dataUrl: uploadPreview }]
         : [];
-    if (!pages.length) { toast.error("Choose an image first"); return; }
+    if (!pages.length) {
+      toast.error("Choose an image first");
+      return;
+    }
     const summaries: string[] = [];
     try {
       for (let i = 0; i < pages.length; i++) {
@@ -1890,10 +2101,22 @@ function MusterRollPage() {
 
   const processAttendanceImage = async (imageDataUrl?: string): Promise<string | null> => {
     const sheetImage = imageDataUrl ?? uploadPreview;
-    if (!sheetImage) { toast.error("Choose an image first"); return null; }
-    if (!editable) { toast.error("Sheet is locked"); return null; }
-    if (!musterRows.length) { toast.error("No employees in this muster"); return null; }
-    if (!codes.length) { toast.error("No attendance codes configured"); return null; }
+    if (!sheetImage) {
+      toast.error("Choose an image first");
+      return null;
+    }
+    if (!editable) {
+      toast.error("Sheet is locked");
+      return null;
+    }
+    if (!musterRows.length) {
+      toast.error("No employees in this muster");
+      return null;
+    }
+    if (!codes.length) {
+      toast.error("No attendance codes configured");
+      return null;
+    }
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
@@ -1906,8 +2129,8 @@ function MusterRollPage() {
       // never manually added that row block yet. New pairs picked up from the
       // sheet are auto-created on apply. Out-of-contract designations are
       // blocked with a warning toast.
-      const pairByKey = new Map<string, typeof musterRows[number]>();
-      const candidatePairs = new Map<string, Array<typeof musterRows[number]>>();
+      const pairByKey = new Map<string, (typeof musterRows)[number]>();
+      const candidatePairs = new Map<string, Array<(typeof musterRows)[number]>>();
       for (const mr of musterRows) {
         pairByKey.set(`${mr.candidateId}|${mr.designationId ?? ""}`, mr);
         const list = candidatePairs.get(mr.candidateId) ?? [];
@@ -1922,7 +2145,13 @@ function MusterRollPage() {
       // to the reader, otherwise the payload fails uuid validation.
       const namedRows = musterRows.filter((m) => !m.vacant && Boolean(m.candidateId));
       const candidatesById = new Map(namedRows.map((m) => [m.candidateId, m]));
-      const employeesPayload: Array<{ id: string; name: string; employee_code: string | null; designation: string | null; designation_id: string }> = [];
+      const employeesPayload: Array<{
+        id: string;
+        name: string;
+        employee_code: string | null;
+        designation: string | null;
+        designation_id: string;
+      }> = [];
       const seenPair = new Set<string>();
       for (const mr of namedRows) {
         const k = `${mr.candidateId}|${mr.designationId ?? ""}`;
@@ -1987,7 +2216,8 @@ function MusterRollPage() {
         // contract — block per "Block with a warning" rule.
         if (did) {
           // Try to label it for the warning.
-          const dname = contractDesignations.find((d) => d.designationId === did)?.designationName ?? did;
+          const dname =
+            contractDesignations.find((d) => d.designationId === did)?.designationName ?? did;
           blockedDesigNames.add(dname);
           return null;
         }
@@ -2028,7 +2258,9 @@ function MusterRollPage() {
         );
       }
 
-      const computeImportedSummary = (rows: Array<{ entry_date: string; code: string; ot_hours: number }>): OcrRowSummary => {
+      const computeImportedSummary = (
+        rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
+      ): OcrRowSummary => {
         let pDays = 0;
         let otherPaidDays = 0;
         let phCount = 0;
@@ -2047,7 +2279,10 @@ function MusterRollPage() {
             continue;
           }
           if (row.code === "WO" || row.code === "W") continue;
-          const dayValue = meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
+          const dayValue =
+            meta.day_value == null || Number.isNaN(Number(meta.day_value))
+              ? 1
+              : Number(meta.day_value);
           if (meta.counts_as_present) pDays += dayValue;
           else if (meta.is_paid) otherPaidDays += dayValue;
         }
@@ -2066,7 +2301,9 @@ function MusterRollPage() {
 
       const summaryByPair = new Map(
         (result.row_summaries ?? []).map((summary) => {
-          const pk = resolvePairKey(summary.candidate_id, summary.designation_id) ?? pairKey(summary.candidate_id, summary.designation_id);
+          const pk =
+            resolvePairKey(summary.candidate_id, summary.designation_id) ??
+            pairKey(summary.candidate_id, summary.designation_id);
           return [pk, summary as OcrRowSummary];
         }),
       );
@@ -2087,9 +2324,7 @@ function MusterRollPage() {
         );
       }
 
-      const sheetPairKeys = new Set<string>([
-        ...byPair.keys(),
-      ]);
+      const sheetPairKeys = new Set<string>([...byPair.keys()]);
 
       // Sheet-authoritative: for any candidate present in the uploaded sheet,
       // wipe ALL prior entries for the period (across every designation),
@@ -2114,14 +2349,16 @@ function MusterRollPage() {
       confidentCount = Array.from(byPair.values()).reduce((sum, rows) => sum + rows.length, 0);
       uncertainCount = uncertainNext.size;
 
-      await Promise.all(Array.from(byPair.entries()).map(async ([pk, rows]) => {
-        const mr = pairByKey.get(pk)!;
-        await upsertEntries(
-          mr.candidateId,
-          mr.designationId,
-          rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
-        );
-      }));
+      await Promise.all(
+        Array.from(byPair.entries()).map(async ([pk, rows]) => {
+          const mr = pairByKey.get(pk)!;
+          await upsertEntries(
+            mr.candidateId,
+            mr.designationId,
+            rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
+          );
+        }),
+      );
       await queryClient.invalidateQueries({ queryKey: entriesQK });
 
       setUncertainCells((prev) => {
@@ -2152,10 +2389,22 @@ function MusterRollPage() {
   };
 
   const processAttendanceExcel = async () => {
-    if (!uploadFile) { toast.error("Choose a file first"); return; }
-    if (!editable) { toast.error("Sheet is locked"); return; }
-    if (!musterRows.length) { toast.error("No employees in this muster"); return; }
-    if (!codes.length) { toast.error("No attendance codes configured"); return; }
+    if (!uploadFile) {
+      toast.error("Choose a file first");
+      return;
+    }
+    if (!editable) {
+      toast.error("Sheet is locked");
+      return;
+    }
+    if (!musterRows.length) {
+      toast.error("No employees in this muster");
+      return;
+    }
+    if (!codes.length) {
+      toast.error("No attendance codes configured");
+      return;
+    }
     setProcessingOcr(true);
     setOcrSummary(null);
     setUploadReadyToContinue(false);
@@ -2184,8 +2433,10 @@ function MusterRollPage() {
         if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return validDateSet.has(s) ? s : null;
         const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
         if (m1) {
-          const dd = Number(m1[1]); const mm = Number(m1[2]);
-          let yy = Number(m1[3]); if (yy < 100) yy += 2000;
+          const dd = Number(m1[1]);
+          const mm = Number(m1[2]);
+          let yy = Number(m1[3]);
+          if (yy < 100) yy += 2000;
           const iso = `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
           return validDateSet.has(iso) ? iso : null;
         }
@@ -2208,18 +2459,20 @@ function MusterRollPage() {
         }
       }
       if (headerRowIdx < 0 || headerDates.length === 0) {
-        throw new Error("Could not find date columns. Header row must contain dates or day numbers from this period.");
+        throw new Error(
+          "Could not find date columns. Header row must contain dates or day numbers from this period.",
+        );
       }
 
-      const primaryByCandidate = new Map<string, typeof musterRows[number]>();
+      const primaryByCandidate = new Map<string, (typeof musterRows)[number]>();
       for (const mr of musterRows) {
         if (mr.isPrimary && !primaryByCandidate.has(mr.candidateId)) {
           primaryByCandidate.set(mr.candidateId, mr);
         }
       }
       const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const byName = new Map<string, typeof musterRows[number]>();
-      const byCode = new Map<string, typeof musterRows[number]>();
+      const byName = new Map<string, (typeof musterRows)[number]>();
+      const byCode = new Map<string, (typeof musterRows)[number]>();
       for (const mr of primaryByCandidate.values()) {
         byName.set(norm(mr.emp.full_name), mr);
         if (mr.emp.employee_code) byCode.set(norm(String(mr.emp.employee_code)), mr);
@@ -2244,7 +2497,7 @@ function MusterRollPage() {
       // "OPREATOR" vs "OPERATOR" (same letters, different order) without
       // doing broad fuzzy matching across unrelated designations.
       const sortLetters = (s: string) => s.split("").sort().join("");
-      const contractDesigBySorted = new Map<string, typeof contractDesignations[number]>();
+      const contractDesigBySorted = new Map<string, (typeof contractDesignations)[number]>();
       for (const d of contractDesignations) {
         const key = sortLetters(norm(d.designationName));
         if (!contractDesigBySorted.has(key)) contractDesigBySorted.set(key, d);
@@ -2255,11 +2508,16 @@ function MusterRollPage() {
         return contractDesigBySorted.get(sortLetters(n));
       };
 
-
       const codeSet = new Map<string, string>();
       for (const c of codes) codeSet.set(c.code.toUpperCase(), c.code);
 
-      const byPair = new Map<string, { mr: typeof musterRows[number]; rows: Array<{ entry_date: string; code: string; ot_hours: number }> }>();
+      const byPair = new Map<
+        string,
+        {
+          mr: (typeof musterRows)[number];
+          rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+        }
+      >();
       const unmatchedNames: string[] = [];
       const designationsNotOnContract = new Set<string>();
       const candidatesInSheet = new Set<string>();
@@ -2270,7 +2528,7 @@ function MusterRollPage() {
         const row = aoa[r] || [];
         if (!row.some((v) => v != null && String(v).trim() !== "")) continue;
 
-        let mr: typeof musterRows[number] | undefined;
+        let mr: (typeof musterRows)[number] | undefined;
         let labelCell = "";
         for (let c = 0; c < Math.min(row.length, 6); c++) {
           const v = row[c];
@@ -2280,14 +2538,28 @@ function MusterRollPage() {
           if (!labelCell) labelCell = s;
           const n = norm(s);
           if (!n) continue;
-          if (byCode.has(n)) { mr = byCode.get(n); break; }
-          if (byName.has(n)) { mr = byName.get(n); break; }
+          if (byCode.has(n)) {
+            mr = byCode.get(n);
+            break;
+          }
+          if (byName.has(n)) {
+            mr = byName.get(n);
+            break;
+          }
         }
         if (!mr) {
-          const joined = norm(row.slice(0, 4).map((v) => (v == null ? "" : String(v))).join(" "));
+          const joined = norm(
+            row
+              .slice(0, 4)
+              .map((v) => (v == null ? "" : String(v)))
+              .join(" "),
+          );
           if (joined) {
             for (const [k, m] of byName.entries()) {
-              if (k && (joined.includes(k) || k.includes(joined))) { mr = m; break; }
+              if (k && (joined.includes(k) || k.includes(joined))) {
+                mr = m;
+                break;
+              }
             }
           }
         }
@@ -2296,7 +2568,6 @@ function MusterRollPage() {
           continue;
         }
         candidatesInSheet.add(mr.candidateId);
-
 
         // Designation routing: if the sheet has a designation column and the
         // value matches a contract resource on this unit, save under that
@@ -2338,14 +2609,24 @@ function MusterRollPage() {
           const canonical = codeSet.get(codeKey);
           if (!canonical) continue;
           const ot = m[2] ? Number(m[2]) : 0;
-          rows.push({ entry_date: h.date, code: canonical, ot_hours: Number.isFinite(ot) ? ot : 0 });
+          rows.push({
+            entry_date: h.date,
+            code: canonical,
+            ot_hours: Number.isFinite(ot) ? ot : 0,
+          });
         }
         if (rows.length) {
           const key = `${mr.candidateId}|${targetDesignationId ?? ""}`;
           const bucket = byPair.get(key);
           // Synthetic mr clone so upsert uses the routed designation, not the primary.
           const routedMr = isSecondary
-            ? { ...mr, key, designationId: targetDesignationId, designationName: targetDesignationName, isPrimary: false }
+            ? {
+                ...mr,
+                key,
+                designationId: targetDesignationId,
+                designationName: targetDesignationName,
+                isPrimary: false,
+              }
             : mr;
           if (bucket) {
             bucket.rows.push(...rows);
@@ -2385,7 +2666,6 @@ function MusterRollPage() {
         );
       }
 
-
       const summary = `${filled} cell${filled === 1 ? "" : "s"} imported from ${uploadFile.name}${clearedStale ? ` · cleared ${clearedStale} stale entr${clearedStale === 1 ? "y" : "ies"}` : ""}${secondaryDesigRowCount ? ` · ${secondaryDesigRowCount} row${secondaryDesigRowCount === 1 ? "" : "s"} on secondary designation` : ""}${unmatchedNames.length ? ` · ${unmatchedNames.length} unmatched row${unmatchedNames.length === 1 ? "" : "s"}` : ""}${designationsNotOnContract.size ? ` · ${designationsNotOnContract.size} designation${designationsNotOnContract.size === 1 ? "" : "s"} not on contract` : ""}`;
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
@@ -2394,7 +2674,16 @@ function MusterRollPage() {
       logActivity({
         module: "Attendance",
         action: "Upload attendance Excel",
-        details: { filled, clearedStale, candidates: Array.from(candidatesInSheet), unmatched: unmatchedNames.length, secondaryDesigRowCount, notOnContract: Array.from(designationsNotOnContract), unit_id: unitId, file: uploadFile.name },
+        details: {
+          filled,
+          clearedStale,
+          candidates: Array.from(candidatesInSheet),
+          unmatched: unmatchedNames.length,
+          secondaryDesigRowCount,
+          notOnContract: Array.from(designationsNotOnContract),
+          unit_id: unitId,
+          file: uploadFile.name,
+        },
       }).catch(() => {});
     } catch (e) {
       const message = e instanceof Error ? e.message : "Excel import failed";
@@ -2423,8 +2712,6 @@ function MusterRollPage() {
     void processAttendanceImages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadOpen, uploadImages, processingOcr, preparingScan]);
-
-
 
   const cellKey = (rowKey: string, date: string) => `${rowKey}|${date}`;
   const splitCellKey = (k: string) => {
@@ -2517,8 +2804,14 @@ function MusterRollPage() {
     setOtPickerOpen(true);
   };
 
-  const clearSelection = () => { setSelectedCells(new Set()); setSelAnchor(null); };
-  const clearOtSelection = () => { setOtSelectedCells(new Set()); setOtSelAnchor(null); };
+  const clearSelection = () => {
+    setSelectedCells(new Set());
+    setSelAnchor(null);
+  };
+  const clearOtSelection = () => {
+    setOtSelectedCells(new Set());
+    setOtSelAnchor(null);
+  };
 
   const findRow = (k: string | null) => musterRows.find((r) => r.key === k);
 
@@ -2561,7 +2854,10 @@ function MusterRollPage() {
         if (!row) continue;
         // Reliever / extra-designation lines are Extra Duty only — they can
         // never carry a regular attendance code.
-        if (row.otOnly || row.reliever) { blocked += dates.length; continue; }
+        if (row.otOnly || row.reliever) {
+          blocked += dates.length;
+          continue;
+        }
         const rows = dates.map((d) => ({
           entry_date: d,
           code,
@@ -2663,7 +2959,8 @@ function MusterRollPage() {
       }
       // Weekly off is not a payable duty — it must never inflate the payable total.
       if (e.code === "WO" || e.code === "W") continue;
-      const dayValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      const dayValue =
+        c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       if (c.counts_as_present) pDays += dayValue;
       else if (c.is_paid) otherPaidDays += dayValue;
     }
@@ -2674,7 +2971,6 @@ function MusterRollPage() {
     const tDays = pDays + phDays + otDays;
     return { pDays, otHours, otDays, phDays, tDays };
   };
-
 
   const principalEmployer = unit
     ? `${unit.customer_name || ""}${unit.code ? ` - ${unit.code}` : ""}`.trim()
@@ -2688,8 +2984,12 @@ function MusterRollPage() {
           unit.shipping_district || unit.billing_district,
           unit.shipping_state || unit.billing_state,
           unit.shipping_pincode || unit.billing_pincode,
-        ].filter(Boolean).join(", "),
-      ].filter((v) => v && String(v).trim()).join(", ")
+        ]
+          .filter(Boolean)
+          .join(", "),
+      ]
+        .filter((v) => v && String(v).trim())
+        .join(", ")
     : "";
 
   const monthLabel = `${MONTH_NAMES[monthIdx]} ${year}`;
@@ -2720,9 +3020,11 @@ function MusterRollPage() {
     }
     setExtraRows((prev) => new Set(prev).add(k));
     const empName = (employees ?? []).find((e) => e.id === addCand)?.full_name ?? "";
-    const dName = contractDesignations.find((d) => d.designationId === addDesig)?.designationName ?? "";
+    const dName =
+      contractDesignations.find((d) => d.designationId === addDesig)?.designationName ?? "";
     toast.success(`Added row: ${empName} — ${dName}`);
-    setAddCand(""); setAddDesig("");
+    setAddCand("");
+    setAddDesig("");
   };
 
   return (
@@ -2753,20 +3055,32 @@ function MusterRollPage() {
           </Link>
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:gap-2">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-10 min-w-0 w-full rounded-xl text-sm sm:w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 min-w-0 w-full rounded-xl text-sm sm:w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {MONTH_NAMES.map((m, i) => {
                   if (contractStartDate) {
                     const [sy, sm] = contractStartDate.split("-").map(Number);
                     if (year < sy || (year === sy && i < sm - 1)) return null;
                   }
-                  if (year > now.getFullYear() || (year === now.getFullYear() && i > now.getMonth())) return null;
-                  return <SelectItem key={m} value={String(i)}>{m}</SelectItem>;
+                  if (
+                    year > now.getFullYear() ||
+                    (year === now.getFullYear() && i > now.getMonth())
+                  )
+                    return null;
+                  return (
+                    <SelectItem key={m} value={String(i)}>
+                      {m}
+                    </SelectItem>
+                  );
                 })}
               </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-10 w-[84px] rounded-xl text-sm sm:w-[86px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-[84px] rounded-xl text-sm sm:w-[86px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {[year - 2, year - 1, year, year + 1].map((y) => {
                   if (contractStartDate) {
@@ -2774,7 +3088,11 @@ function MusterRollPage() {
                     if (y < sy) return null;
                   }
                   if (y > now.getFullYear()) return null;
-                  return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
+                  return (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  );
                 })}
               </SelectContent>
             </Select>
@@ -2783,11 +3101,15 @@ function MusterRollPage() {
 
         <div className="mt-2 min-w-0 truncate px-1 text-sm font-medium text-foreground sm:hidden">
           {unit?.name || unit?.code || "Attendance"}
-          {unit?.customer_name ? <span className="text-muted-foreground"> · {unit.customer_name}</span> : null}
+          {unit?.customer_name ? (
+            <span className="text-muted-foreground"> · {unit.customer_name}</span>
+          ) : null}
         </div>
         <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:mt-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <Button
-            onClick={() => { setUploadOpen(true); }}
+            onClick={() => {
+              setUploadOpen(true);
+            }}
             disabled={!editable}
             title={editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
             className="h-10 min-w-0 rounded-xl px-3 text-sm shadow-sm"
@@ -2821,19 +3143,42 @@ function MusterRollPage() {
             title={editable ? "Delete every attendance entry on this sheet" : "Sheet locked"}
             className="h-10 w-10 shrink-0 rounded-xl text-destructive hover:text-destructive"
           >
-            {clearingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {clearingAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
 
-
       {/* Upload Attendance dialog */}
-      <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o && skipUploadResetRef.current) { skipUploadResetRef.current = false; setUploadOpen(false); return; } setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadImages([]); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); setScanStep(null); } }}>
+      <Dialog
+        open={uploadOpen}
+        onOpenChange={(o) => {
+          if (!o && skipUploadResetRef.current) {
+            skipUploadResetRef.current = false;
+            setUploadOpen(false);
+            return;
+          }
+          setUploadOpen(o);
+          if (!o) {
+            setUploadFile(null);
+            setUploadPreview(null);
+            setUploadImages([]);
+            setUploadKind(null);
+            setOcrSummary(null);
+            setUploadReadyToContinue(false);
+            setScanStep(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload attendance sheet</DialogTitle>
             <DialogDescription>
-              Photos (several at once), Excel or CSV. Unclear cells are left blank and marked in red.
+              Photos (several at once), Excel or CSV. Unclear cells are left blank and marked in
+              red.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2854,30 +3199,48 @@ function MusterRollPage() {
                 >
                   <Upload className="h-6 w-6" />
                   <span>Upload images or Excel</span>
-                  <span className="text-xs">Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV</span>
+                  <span className="text-xs">
+                    Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV
+                  </span>
                 </button>
                 <Button variant="outline" className="w-full" onClick={openCameraScan}>
                   <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
                 </Button>
                 <p className="text-[11px] text-muted-foreground">
-                  Every photo is automatically straightened, cropped to the sheet and sharpened before it is read.
+                  Every photo is automatically straightened, cropped to the sheet and sharpened
+                  before it is read.
                 </p>
               </div>
             ) : uploadKind === "image" && uploadPreview ? (
               <div className="space-y-2">
                 {preparingScan ? (
                   <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning and cleaning the photos…
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning and cleaning the
+                    photos…
                   </div>
                 ) : null}
                 {uploadImages.length > 1 ? (
                   <div className="grid grid-cols-3 gap-2">
                     {uploadImages.map((img, i) => (
-                      <div key={`${img.name}-${i}`} className="overflow-hidden rounded-lg border border-border bg-muted/20">
-                        <img src={useCleaned ? img.dataUrl : img.originalDataUrl} alt={img.name} className="h-28 w-full object-cover" />
-                        <div className="truncate px-2 py-1 text-[10px] text-muted-foreground">{i + 1}. {img.name}</div>
+                      <div
+                        key={`${img.name}-${i}`}
+                        className="overflow-hidden rounded-lg border border-border bg-muted/20"
+                      >
+                        <img
+                          src={useCleaned ? img.dataUrl : img.originalDataUrl}
+                          alt={img.name}
+                          className="h-28 w-full object-cover"
+                        />
+                        <div className="truncate px-2 py-1 text-[10px] text-muted-foreground">
+                          {i + 1}. {img.name}
+                        </div>
                         {img.quality ? (
-                          <div className={cn("border-t px-2 py-1 text-[10px]", qualityTone(img.quality.verdict))}>
+                          <div
+                            className={cn(
+                              "border-t px-2 py-1 text-[10px]",
+                              qualityTone(img.quality.verdict),
+                            )}
+                          >
                             {img.quality.verdict === "good" ? "Clear" : img.quality.hint}
                           </div>
                         ) : null}
@@ -2887,15 +3250,26 @@ function MusterRollPage() {
                 ) : (
                   <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
                     <img
-                      src={useCleaned ? uploadImages[0]?.dataUrl ?? uploadPreview : uploadImages[0]?.originalDataUrl ?? uploadPreview}
+                      src={
+                        useCleaned
+                          ? (uploadImages[0]?.dataUrl ?? uploadPreview)
+                          : (uploadImages[0]?.originalDataUrl ?? uploadPreview)
+                      }
                       alt="Attendance preview"
                       className="max-h-80 w-full object-contain"
                     />
                   </div>
                 )}
                 {uploadImages[0]?.quality && uploadImages.length === 1 ? (
-                  <div className={cn("rounded-md border px-3 py-2 text-xs", qualityTone(uploadImages[0]!.quality!.verdict))}>
-                    {uploadImages[0]!.cropped ? "Sheet detected, straightened and cleaned. " : "Cleaned — sheet edges were not detected. "}
+                  <div
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-xs",
+                      qualityTone(uploadImages[0]!.quality!.verdict),
+                    )}
+                  >
+                    {uploadImages[0]!.cropped
+                      ? "Sheet detected, straightened and cleaned. "
+                      : "Cleaned — sheet edges were not detected. "}
                     {uploadImages[0]!.quality!.verdict === "good"
                       ? "Quality looks good."
                       : `${uploadImages[0]!.quality!.hint}. Retake for a more accurate read.`}
@@ -2903,20 +3277,34 @@ function MusterRollPage() {
                 ) : null}
                 {uploadImages.length ? (
                   <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input type="checkbox" checked={useCleaned} onChange={(e) => setUseCleaned(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={useCleaned}
+                      onChange={(e) => setUseCleaned(e.target.checked)}
+                    />
                     Use the cleaned scan (uncheck to read the original photo)
                   </label>
                 ) : null}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <ImageIcon className="h-3.5 w-3.5" />
-                    {uploadImages.length > 1 ? `${uploadImages.length} photos selected` : uploadFile.name}
+                    {uploadImages.length > 1
+                      ? `${uploadImages.length} photos selected`
+                      : uploadFile.name}
                   </span>
                   <span className="flex items-center gap-3">
-                    <button type="button" className="text-primary hover:underline" onClick={openCameraScan}>
+                    <button
+                      type="button"
+                      className="text-primary hover:underline"
+                      onClick={openCameraScan}
+                    >
                       Scan with camera
                     </button>
-                    <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
+                    <button
+                      type="button"
+                      className="text-primary hover:underline"
+                      onClick={() => uploadInputRef.current?.click()}
+                    >
                       Choose different files
                     </button>
                   </span>
@@ -2934,7 +3322,11 @@ function MusterRollPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-end text-xs">
-                  <button type="button" className="text-primary hover:underline" onClick={() => uploadInputRef.current?.click()}>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => uploadInputRef.current?.click()}
+                  >
                     Choose a different file
                   </button>
                 </div>
@@ -2949,7 +3341,9 @@ function MusterRollPage() {
                       ? `Reading photo ${scanStep.index} of ${scanStep.total} · ${Math.round(scanPct)}%`
                       : `Reading ${Math.round(scanPct)}%`}
                   </span>
-                  <span className="tabular-nums text-muted-foreground">{formatRemaining(scanRemaining)}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {formatRemaining(scanRemaining)}
+                  </span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
@@ -2958,7 +3352,8 @@ function MusterRollPage() {
                   />
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  You can close this window — reading continues and the progress shows on the attendance list.
+                  You can close this window — reading continues and the progress shows on the
+                  attendance list.
                 </p>
               </div>
             )}
@@ -2972,14 +3367,33 @@ function MusterRollPage() {
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setUploadOpen(false)}>Close</Button>
+            <Button variant="ghost" onClick={() => setUploadOpen(false)}>
+              Close
+            </Button>
             <Button
               type="button"
               onClick={processUpload}
               disabled={(!uploadFile && !uploadReadyToContinue) || processingOcr || preparingScan}
-              className={cn(uploadReadyToContinue && !processingOcr && "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90")}
+              className={cn(
+                uploadReadyToContinue &&
+                  !processingOcr &&
+                  "bg-primary text-primary-foreground opacity-100 hover:bg-primary/90",
+              )}
             >
-              {processingOcr ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% · {formatRemaining(scanRemaining)}</> : uploadReadyToContinue ? "Continue" : (uploadKind === "excel" ? "Import" : uploadImages.length > 1 ? `Read ${uploadImages.length} sheets` : "Read sheet")}
+              {processingOcr ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {Math.round(scanPct)}% ·{" "}
+                  {formatRemaining(scanRemaining)}
+                </>
+              ) : uploadReadyToContinue ? (
+                "Continue"
+              ) : uploadKind === "excel" ? (
+                "Import"
+              ) : uploadImages.length > 1 ? (
+                `Read ${uploadImages.length} sheets`
+              ) : (
+                "Read sheet"
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -2996,18 +3410,21 @@ function MusterRollPage() {
         onCapture={onCameraCapture}
       />
 
-
       {/* Approval workflow */}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/60 bg-card p-2.5 sm:flex sm:flex-wrap sm:justify-between sm:gap-3 sm:p-3 print:hidden">
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto sm:gap-3">
-          <span className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:inline">Status</span>
-          <span className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-            status === "draft" && "bg-slate-100 text-slate-700",
-            status === "submitted" && "bg-amber-100 text-amber-800",
-            status === "approved" && "bg-emerald-100 text-emerald-800",
-            status === "rejected" && "bg-rose-100 text-rose-800",
-          )}>
+          <span className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:inline">
+            Status
+          </span>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+              status === "draft" && "bg-slate-100 text-slate-700",
+              status === "submitted" && "bg-amber-100 text-amber-800",
+              status === "approved" && "bg-emerald-100 text-emerald-800",
+              status === "rejected" && "bg-rose-100 text-rose-800",
+            )}
+          >
             {status === "draft" && "Draft"}
             {status === "submitted" && "Submitted — awaiting approval"}
             {status === "approved" && (
@@ -3017,7 +3434,11 @@ function MusterRollPage() {
               </>
             )}
 
-            {status === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Rejected</>}
+            {status === "rejected" && (
+              <>
+                <XCircle className="h-3.5 w-3.5" /> Rejected
+              </>
+            )}
           </span>
           {currentVersion > 1 && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">
@@ -3040,7 +3461,10 @@ function MusterRollPage() {
                 const { data, error } = await supabase.storage
                   .from("attendance-review-proofs")
                   .createSignedUrl(sheet.review_proof_url as string, 300);
-                if (error || !data?.signedUrl) { toast.error("Could not open proof image"); return; }
+                if (error || !data?.signedUrl) {
+                  toast.error("Could not open proof image");
+                  return;
+                }
                 window.open(data.signedUrl, "_blank", "noopener,noreferrer");
               }}
             >
@@ -3050,16 +3474,30 @@ function MusterRollPage() {
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {(status === "draft" || status === "rejected") && (
-            <Button size="sm" onClick={() => transitionSheet.mutate({ status: "submitted" })} disabled={transitionSheet.isPending}>
+            <Button
+              size="sm"
+              onClick={() => transitionSheet.mutate({ status: "submitted" })}
+              disabled={transitionSheet.isPending}
+            >
               <Send className="mr-1.5 h-4 w-4" /> Submit for Approval
             </Button>
           )}
           {status === "submitted" && canApprove && (
             <>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => transitionSheet.mutate({ status: "approved" })} disabled={transitionSheet.isPending}>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => transitionSheet.mutate({ status: "approved" })}
+                disabled={transitionSheet.isPending}
+              >
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve
               </Button>
-              <Button size="sm" variant="destructive" onClick={() => setRejectOpen(true)} disabled={transitionSheet.isPending}>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setRejectOpen(true)}
+                disabled={transitionSheet.isPending}
+              >
                 <XCircle className="mr-1.5 h-4 w-4" /> Reject
               </Button>
             </>
@@ -3067,31 +3505,44 @@ function MusterRollPage() {
           {status === "submitted" && !canApprove && (
             <span className="text-xs text-muted-foreground">Awaiting approver action</span>
           )}
-          {status === "approved" && canApprove && !payrollProcessed && !amendmentActive && !sentToPayroll && (
-            <>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
-              </span>
-              <Button size="sm" variant="outline" onClick={() => transitionSheet.mutate({ status: "draft" })} disabled={transitionSheet.isPending}>
-                <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
-              </Button>
-            </>
-          )}
-          {status === "approved" && canApprove && !payrollProcessed && !amendmentActive && sentToPayroll && (
-            <>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => reopenAfterHandoff.mutate()}
-                disabled={reopenAfterHandoff.isPending || transitionSheet.isPending}
-              >
-                <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
-              </Button>
-            </>
-          )}
+          {status === "approved" &&
+            canApprove &&
+            !payrollProcessed &&
+            !amendmentActive &&
+            !sentToPayroll && (
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => transitionSheet.mutate({ status: "draft" })}
+                  disabled={transitionSheet.isPending}
+                >
+                  <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
+                </Button>
+              </>
+            )}
+          {status === "approved" &&
+            canApprove &&
+            !payrollProcessed &&
+            !amendmentActive &&
+            sentToPayroll && (
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => reopenAfterHandoff.mutate()}
+                  disabled={reopenAfterHandoff.isPending || transitionSheet.isPending}
+                >
+                  <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
+                </Button>
+              </>
+            )}
 
           {/* Payroll already paid this period — amend instead of reopen. */}
           {status === "approved" && payrollProcessed && !amendmentActive && canApprove && (
@@ -3119,7 +3570,9 @@ function MusterRollPage() {
             </Button>
           )}
           {amendmentSubmitted && !canApprove && (
-            <span className="text-xs text-muted-foreground">Amendment awaiting approver action</span>
+            <span className="text-xs text-muted-foreground">
+              Amendment awaiting approver action
+            </span>
           )}
           {amendmentApproved && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
@@ -3129,16 +3582,22 @@ function MusterRollPage() {
         </div>
       </div>
 
-
       {!editable && (
         <div className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 print:hidden">
-          <span className="sm:hidden">{status === "approved" ? "Approved and locked." : "Submitted and locked."}</span>
-          <span className="hidden sm:inline">This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing. </span>{" "}
-          <span className="hidden sm:inline">{status === "submitted"
-            ? "Reject it to allow further edits."
-            : payrollProcessed
-              ? "Payroll for this period is processed — start an amendment to correct it; the paid sheet is kept as a version."
-              : "Reopen it to make changes."}</span>
+          <span className="sm:hidden">
+            {status === "approved" ? "Approved and locked." : "Submitted and locked."}
+          </span>
+          <span className="hidden sm:inline">
+            This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked
+            for editing.{" "}
+          </span>{" "}
+          <span className="hidden sm:inline">
+            {status === "submitted"
+              ? "Reject it to allow further edits."
+              : payrollProcessed
+                ? "Payroll for this period is processed — start an amendment to correct it; the paid sheet is kept as a version."
+                : "Reopen it to make changes."}
+          </span>
         </div>
       )}
       {status === "submitted" && canApprove && (
@@ -3150,7 +3609,9 @@ function MusterRollPage() {
         <div className="rounded-md border border-indigo-300/60 bg-indigo-50 px-3 py-2 text-xs text-indigo-900 print:hidden">
           <b>Amendment version {currentVersion}.</b>{" "}
           {amendmentOpen
-            ? "Edit the muster roll below. Version " + (currentVersion - 1) + " stays archived exactly as it was paid. Submit once the corrections are in."
+            ? "Edit the muster roll below. Version " +
+              (currentVersion - 1) +
+              " stays archived exactly as it was paid. Submit once the corrections are in."
             : amendmentSubmitted
               ? "Submitted for approval. Approving it unlocks the payroll difference."
               : "Approved. Open Payroll for this unit and process the difference — only affected employees get an arrears or recovery line."}
@@ -3170,7 +3631,8 @@ function MusterRollPage() {
           <div className="scrollbar-hide flex gap-2 overflow-x-auto text-xs">
             {versions.map((v) => (
               <span key={v.id} className="rounded-full border border-border/60 px-2.5 py-1">
-                v{v.version} · archived {new Date(v.created_at).toLocaleDateString()} · {v.snapshot?.length ?? 0} entries
+                v{v.version} · archived {new Date(v.created_at).toLocaleDateString()} ·{" "}
+                {v.snapshot?.length ?? 0} entries
               </span>
             ))}
             <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-semibold text-primary">
@@ -3184,7 +3646,9 @@ function MusterRollPage() {
                 Changes in v{currentVersion} vs v{previousVersion.version}
               </div>
               {amendmentDiff.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No changes yet — edit a cell to record an amendment.</p>
+                <p className="text-xs text-muted-foreground">
+                  No changes yet — edit a cell to record an amendment.
+                </p>
               ) : (
                 <div className="max-h-48 overflow-auto rounded-lg border border-border/60 sm:max-h-64">
                   <table className="min-w-[360px] w-full text-xs">
@@ -3192,23 +3656,32 @@ function MusterRollPage() {
                       <tr>
                         <th className="px-2 py-1.5 text-left font-semibold">Employee</th>
                         <th className="px-2 py-1.5 text-left font-semibold">Date</th>
-                        <th className="px-2 py-1.5 text-left font-semibold">v{previousVersion.version}</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">
+                          v{previousVersion.version}
+                        </th>
                         <th className="px-2 py-1.5 text-left font-semibold">v{currentVersion}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {amendmentDiff.map((d) => {
                         const row = musterRows.find((r) => r.candidateId === d.candidateId);
-                        const label = row ? `${row.emp.employee_code || "—"} · ${row.emp.full_name}` : d.candidateId.slice(0, 8);
+                        const label = row
+                          ? `${row.emp.employee_code || "—"} · ${row.emp.full_name}`
+                          : d.candidateId.slice(0, 8);
                         return (
-                          <tr key={`${d.candidateId}-${d.date}-${d.designationId ?? ""}`} className="border-t border-border/50">
+                          <tr
+                            key={`${d.candidateId}-${d.date}-${d.designationId ?? ""}`}
+                            className="border-t border-border/50"
+                          >
                             <td className="px-2 py-1.5">{label}</td>
                             <td className="px-2 py-1.5">{d.date}</td>
                             <td className="px-2 py-1.5 text-rose-700">
-                              {d.beforeCode || "—"}{d.beforeEd ? ` +${d.beforeEd} ED` : ""}
+                              {d.beforeCode || "—"}
+                              {d.beforeEd ? ` +${d.beforeEd} ED` : ""}
                             </td>
                             <td className="px-2 py-1.5 font-semibold text-emerald-700">
-                              {d.afterCode || "—"}{d.afterEd ? ` +${d.afterEd} ED` : ""}
+                              {d.afterCode || "—"}
+                              {d.afterEd ? ` +${d.afterEd} ED` : ""}
                             </td>
                           </tr>
                         );
@@ -3222,14 +3695,21 @@ function MusterRollPage() {
         </div>
       )}
 
-      <Dialog open={amendOpen} onOpenChange={(o) => { setAmendOpen(o); if (!o) setAmendReason(""); }}>
+      <Dialog
+        open={amendOpen}
+        onOpenChange={(o) => {
+          setAmendOpen(o);
+          if (!o) setAmendReason("");
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Amend approved attendance</DialogTitle>
             <DialogDescription>
-              Payroll for this period is already processed. The current muster roll will be archived as version {currentVersion}
-              {" "}and a new editable version {currentVersion + 1} will open. Nothing that was already paid is deleted — payroll
-              will later post only the difference for affected employees.
+              Payroll for this period is already processed. The current muster roll will be archived
+              as version {currentVersion} and a new editable version {currentVersion + 1} will open.
+              Nothing that was already paid is deleted — payroll will later post only the difference
+              for affected employees.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -3239,25 +3719,49 @@ function MusterRollPage() {
             placeholder="Why is this being amended? (e.g. EMP-192 was paid for 26 days but was absent on 12 July)"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAmendOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAmendOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={() => startAmendment.mutate()} disabled={startAmendment.isPending}>
-              {startAmendment.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <GitCompare className="mr-1.5 h-4 w-4" />}
+              {startAmendment.isPending ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <GitCompare className="mr-1.5 h-4 w-4" />
+              )}
               Start version {currentVersion + 1}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-
-      <Dialog open={rejectOpen} onOpenChange={(o) => { setRejectOpen(o); if (!o) { setRejectReason(""); setRejectProof(null); } }}>
+      <Dialog
+        open={rejectOpen}
+        onOpenChange={(o) => {
+          setRejectOpen(o);
+          if (!o) {
+            setRejectReason("");
+            setRejectProof(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Reject attendance</DialogTitle>
-            <DialogDescription>Give a clear reason and optionally attach a proof image (photo of physical register, WhatsApp screenshot, etc.).</DialogDescription>
+            <DialogDescription>
+              Give a clear reason and optionally attach a proof image (photo of physical register,
+              WhatsApp screenshot, etc.).
+            </DialogDescription>
           </DialogHeader>
-          <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason for rejection (min 5 characters)…" rows={4} />
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Reason for rejection (min 5 characters)…"
+            rows={4}
+          />
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Proof image (optional)</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Proof image (optional)
+            </label>
             <input
               type="file"
               accept="image/*"
@@ -3265,23 +3769,46 @@ function MusterRollPage() {
               className="block w-full text-xs file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-secondary/80"
             />
             {rejectProof && (
-              <div className="text-[11px] text-muted-foreground">{rejectProof.name} ({Math.round(rejectProof.size / 1024)} KB)</div>
+              <div className="text-[11px] text-muted-foreground">
+                {rejectProof.name} ({Math.round(rejectProof.size / 1024)} KB)
+              </div>
             )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setRejectOpen(false)} disabled={uploadingProof || transitionSheet.isPending}>Cancel</Button>
+            <Button
+              variant="ghost"
+              onClick={() => setRejectOpen(false)}
+              disabled={uploadingProof || transitionSheet.isPending}
+            >
+              Cancel
+            </Button>
             <Button
               variant="destructive"
               disabled={uploadingProof || transitionSheet.isPending}
               onClick={() => {
-                if (rejectReason.trim().length < 5) { toast.error("Reason must be at least 5 characters"); return; }
+                if (rejectReason.trim().length < 5) {
+                  toast.error("Reason must be at least 5 characters");
+                  return;
+                }
                 transitionSheet.mutate(
                   { status: "rejected", reason: rejectReason.trim(), proofFile: rejectProof },
-                  { onSuccess: () => { setRejectOpen(false); setRejectReason(""); setRejectProof(null); } },
+                  {
+                    onSuccess: () => {
+                      setRejectOpen(false);
+                      setRejectReason("");
+                      setRejectProof(null);
+                    },
+                  },
                 );
               }}
             >
-              {uploadingProof || transitionSheet.isPending ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Rejecting…</> : "Reject"}
+              {uploadingProof || transitionSheet.isPending ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Rejecting…
+                </>
+              ) : (
+                "Reject"
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -3317,34 +3844,50 @@ function MusterRollPage() {
         </div>
       </div>
 
-
       {/* Add line item panel */}
       <div className="hidden rounded-xl border border-border/70 bg-card p-3 print:hidden sm:block">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Employee</label>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Employee
+            </label>
             <Select value={addCand} onValueChange={setAddCand}>
-              <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Employee" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="Employee" />
+              </SelectTrigger>
               <SelectContent>
                 {(employees ?? []).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.full_name || e.employee_code || e.id}</SelectItem>
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.full_name || e.employee_code || e.id}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Additional designation</label>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Additional designation
+            </label>
             <Select value={addDesig} onValueChange={setAddDesig} disabled={!addCand}>
-              <SelectTrigger className="w-full sm:w-[260px]"><SelectValue placeholder="Designation" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[260px]">
+                <SelectValue placeholder="Designation" />
+              </SelectTrigger>
               <SelectContent>
                 {contractDesignations.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">No designations on this contract.</div>
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    No designations on this contract.
+                  </div>
                 ) : (
                   contractDesignations.map((d) => {
-                    const used = !!addCand && musterRows.some((r) => r.candidateId === addCand && r.designationId === d.designationId);
+                    const used =
+                      !!addCand &&
+                      musterRows.some(
+                        (r) => r.candidateId === addCand && r.designationId === d.designationId,
+                      );
                     return (
                       <SelectItem key={d.designationId} value={d.designationId}>
-                        {d.designationName}{used ? " (already added)" : ""}
+                        {d.designationName}
+                        {used ? " (already added)" : ""}
                       </SelectItem>
                     );
                   })
@@ -3352,11 +3895,17 @@ function MusterRollPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button size="sm" onClick={handleAddLineItem} disabled={!editable || !addCand || !addDesig}>
+          <Button
+            size="sm"
+            onClick={handleAddLineItem}
+            disabled={!editable || !addCand || !addDesig}
+          >
             <Plus className="mr-1.5 h-4 w-4" /> Add role
           </Button>
           <div className="ml-auto text-[11px] text-muted-foreground">
-            {contractDesignations.length === 0 ? "No contract resources mapped — add designations on the contract first." : `${contractDesignations.length} designation(s) on contract`}
+            {contractDesignations.length === 0
+              ? "No contract resources mapped — add designations on the contract first."
+              : `${contractDesignations.length} designation(s) on contract`}
           </div>
         </div>
       </div>
@@ -3374,7 +3923,11 @@ function MusterRollPage() {
             >
               {periodCells.map((cell) => (
                 <option key={cell.date} value={cell.date} disabled={cell.date > todayStr}>
-                  {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                  {new Date(`${cell.date}T12:00:00`).toLocaleDateString("en-IN", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}
                 </option>
               ))}
             </select>
@@ -3385,8 +3938,18 @@ function MusterRollPage() {
             className="h-9 shrink-0 px-2.5"
             disabled={!editable}
             onClick={() => {
-              const eligible = visibleMusterRows.filter((row) => !row.vacant && !row.otOnly && !row.reliever && (!row.emp.doj || mobileDate >= row.emp.doj));
-              setMobileSelectedRows((current) => current.size === eligible.length ? new Set() : new Set(eligible.map((row) => row.key)));
+              const eligible = visibleMusterRows.filter(
+                (row) =>
+                  !row.vacant &&
+                  !row.otOnly &&
+                  !row.reliever &&
+                  (!row.emp.doj || mobileDate >= row.emp.doj),
+              );
+              setMobileSelectedRows((current) =>
+                current.size === eligible.length
+                  ? new Set()
+                  : new Set(eligible.map((row) => row.key)),
+              );
             }}
           >
             {mobileSelectedRows.size > 0 ? "Clear" : "Select all"}
@@ -3394,7 +3957,10 @@ function MusterRollPage() {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
-          <div className="scrollbar-hide overflow-x-auto overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div
+            className="scrollbar-hide overflow-x-auto overscroll-x-contain"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             <table className="w-max min-w-full border-separate border-spacing-0 text-center text-xs">
               <thead>
                 <tr>
@@ -3410,126 +3976,203 @@ function MusterRollPage() {
                         cell.date > todayStr && "text-muted-foreground/50",
                       )}
                     >
-                      <span className="block text-[9px] uppercase leading-none">{MONTH_NAMES[cell.monthIdx]?.slice(0, 3)}</span>
+                      <span className="block text-[9px] uppercase leading-none">
+                        {MONTH_NAMES[cell.monthIdx]?.slice(0, 3)}
+                      </span>
                       <span className="mt-1 block text-xs leading-none">{cell.dayNum}</span>
                     </th>
                   ))}
-                  <th className="h-11 w-12 min-w-12 border-b border-border bg-muted px-1 font-medium">Total</th>
+                  <th className="h-11 w-12 min-w-12 border-b border-border bg-muted px-1 font-medium">
+                    Total
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={dayCount + 2} className="p-6 text-muted-foreground">Loading employees…</td></tr>
+                  <tr>
+                    <td colSpan={dayCount + 2} className="p-6 text-muted-foreground">
+                      Loading employees…
+                    </td>
+                  </tr>
                 ) : visibleMusterRows.length === 0 ? (
-                  <tr><td colSpan={dayCount + 2} className="p-6 text-muted-foreground">No employees found.</td></tr>
-                ) : visibleMusterRows.map((mr) => {
-                  if (mr.vacant) {
-                    return (
-                      <tr key={mr.key}>
-                        <td className="sticky left-0 z-10 border-b border-r border-border bg-card p-1.5 text-left">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto w-full justify-start px-1 py-1 text-left"
-                            disabled={!editable}
-                            onClick={() => {
-                              setMapQuery("");
-                              setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
-                            }}
+                  <tr>
+                    <td colSpan={dayCount + 2} className="p-6 text-muted-foreground">
+                      No employees found.
+                    </td>
+                  </tr>
+                ) : (
+                  visibleMusterRows.map((mr) => {
+                    if (mr.vacant) {
+                      return (
+                        <tr key={mr.key}>
+                          <td className="sticky left-0 z-10 border-b border-r border-border bg-card p-1.5 text-left">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto w-full justify-start px-1 py-1 text-left"
+                              disabled={!editable}
+                              onClick={() => {
+                                setMapQuery("");
+                                setMapSlot({
+                                  designationId: mr.designationId,
+                                  designationName: mr.designationName,
+                                });
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5 shrink-0" />
+                              <span className="min-w-0 truncate">{mr.designationName}</span>
+                            </Button>
+                          </td>
+                          <td
+                            colSpan={dayCount + 1}
+                            className="border-b border-border px-3 text-left text-[11px] text-muted-foreground"
                           >
-                            <Plus className="h-3.5 w-3.5 shrink-0" />
-                            <span className="min-w-0 truncate">{mr.designationName}</span>
-                          </Button>
-                        </td>
-                        <td colSpan={dayCount + 1} className="border-b border-border px-3 text-left text-[11px] text-muted-foreground">Vacant deployment</td>
-                      </tr>
+                            Vacant deployment
+                          </td>
+                        </tr>
+                      );
+                    }
+                    const totals = computeTotalsForRow(
+                      mr.key,
+                      Boolean(mr.otOnly) || Boolean(mr.reliever),
+                      mr.emp.doj || null,
                     );
-                  }
-                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
-                  const selected = mobileSelectedRows.has(mr.key);
-                  return [
-                    <tr key={`${mr.key}-mobile-att`} className={selected ? "bg-primary/5" : undefined}>
-                      <td className="sticky left-0 z-10 w-[136px] min-w-[136px] border-b border-r border-border bg-card px-1.5 py-1.5 text-left">
-                        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
-                          {!mr.otOnly && !mr.reliever ? (
-                            <Checkbox
-                              checked={selected}
-                              aria-label={`Select ${mr.emp.full_name}`}
-                              onCheckedChange={(checked) => setMobileSelectedRows((current) => {
-                                const next = new Set(current);
-                                if (checked) next.add(mr.key); else next.delete(mr.key);
-                                return next;
-                              })}
-                            />
-                          ) : <Clock3 className="h-4 w-4 text-muted-foreground" />}
-                          <div className="min-w-0">
-                            <div className="truncate text-[11px] font-medium text-foreground">{mr.emp.full_name || "Unnamed"}</div>
-                            <div className="truncate text-[9px] text-muted-foreground">{mr.emp.employee_code || "No ID"} · {mr.designationName}</div>
+                    const selected = mobileSelectedRows.has(mr.key);
+                    return [
+                      <tr
+                        key={`${mr.key}-mobile-att`}
+                        className={selected ? "bg-primary/5" : undefined}
+                      >
+                        <td className="sticky left-0 z-10 w-[136px] min-w-[136px] border-b border-r border-border bg-card px-1.5 py-1.5 text-left">
+                          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
+                            {!mr.otOnly && !mr.reliever ? (
+                              <Checkbox
+                                checked={selected}
+                                aria-label={`Select ${mr.emp.full_name}`}
+                                onCheckedChange={(checked) =>
+                                  setMobileSelectedRows((current) => {
+                                    const next = new Set(current);
+                                    if (checked) next.add(mr.key);
+                                    else next.delete(mr.key);
+                                    return next;
+                                  })
+                                }
+                              />
+                            ) : (
+                              <Clock3 className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <div className="min-w-0">
+                              <div className="truncate text-[11px] font-medium text-foreground">
+                                {mr.emp.full_name || "Unnamed"}
+                              </div>
+                              <div className="truncate text-[9px] text-muted-foreground">
+                                {mr.emp.employee_code || "No ID"} · {mr.designationName}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      {periodCells.map((cell) => {
-                        const date = cell.date;
-                        const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
-                        const edOnly = Boolean(mr.otOnly) || Boolean(mr.reliever);
-                        const blocked = !editable || date > todayStr || beforeDoj || edOnly;
-                        const entry = entryMap.get(`${mr.key}|${date}`);
-                        const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
-                        const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
-                        return (
-                          <td key={date} className={cn("border-b border-r border-border p-0", date === mobileDate && "bg-primary/5")}>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className={cn("h-11 w-10 min-w-10 rounded-none p-0 text-xs font-medium", !entry?.code && displayCode === "A" && "text-muted-foreground")}
-                              disabled={blocked}
-                              aria-label={`${mr.emp.full_name}, ${date}: ${displayCode || "not marked"}`}
-                              title={blocked ? (beforeDoj ? "Before joining date" : edOnly ? "Extra Duty only" : "Not editable") : `${date} · ${codeMeta?.label || displayCode}`}
-                              style={{ color: codeMeta?.color }}
-                              onClick={() => {
-                                setMobileDate(date);
-                                setPickerCells([`${mr.key}|${date}`]);
-                                setPickerOpen(true);
-                              }}
+                        </td>
+                        {periodCells.map((cell) => {
+                          const date = cell.date;
+                          const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
+                          const edOnly = Boolean(mr.otOnly) || Boolean(mr.reliever);
+                          const blocked = !editable || date > todayStr || beforeDoj || edOnly;
+                          const entry = entryMap.get(`${mr.key}|${date}`);
+                          const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
+                          const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
+                          return (
+                            <td
+                              key={date}
+                              className={cn(
+                                "border-b border-r border-border p-0",
+                                date === mobileDate && "bg-primary/5",
+                              )}
                             >
-                              {displayCode}
-                            </Button>
-                          </td>
-                        );
-                      })}
-                      <td className="border-b border-border px-1 font-medium text-foreground">{totals.tDays}</td>
-                    </tr>,
-                    <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
-                      <td className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-1 text-left text-[9px] font-medium text-muted-foreground">Extra Duty</td>
-                      {periodCells.map((cell) => {
-                        const beforeDoj = Boolean(mr.emp.doj) && cell.date < mr.emp.doj;
-                        const blocked = !editable || cell.date > todayStr || beforeDoj;
-                        const entry = entryMap.get(`${mr.key}|${cell.date}`);
-                        const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
-                        const hours = Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
-                        return (
-                          <td key={cell.date} className={cn("border-b border-r border-border p-0", hours > 0 && "bg-secondary")}>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-secondary-foreground"
-                              disabled={blocked}
-                              aria-label={`${mr.emp.full_name}, ${cell.date}: ${hours || 0} Extra Duty hours`}
-                              onClick={() => {
-                                setMobileDate(cell.date);
-                                setOtPickerCells([`${mr.key}|${cell.date}`]);
-                                setOtPickerOpen(true);
-                              }}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className={cn(
+                                  "h-11 w-10 min-w-10 rounded-none p-0 text-xs font-medium",
+                                  !entry?.code && displayCode === "A" && "text-muted-foreground",
+                                )}
+                                disabled={blocked}
+                                aria-label={`${mr.emp.full_name}, ${date}: ${displayCode || "not marked"}`}
+                                title={
+                                  blocked
+                                    ? beforeDoj
+                                      ? "Before joining date"
+                                      : edOnly
+                                        ? "Extra Duty only"
+                                        : "Not editable"
+                                    : `${date} · ${codeMeta?.label || displayCode}`
+                                }
+                                style={{ color: codeMeta?.color }}
+                                onClick={() => {
+                                  setMobileDate(date);
+                                  setPickerCells([`${mr.key}|${date}`]);
+                                  setPickerOpen(true);
+                                }}
+                              >
+                                {displayCode}
+                              </Button>
+                            </td>
+                          );
+                        })}
+                        <td className="border-b border-border px-1 font-medium text-foreground">
+                          {totals.tDays}
+                        </td>
+                      </tr>,
+                      <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
+                        <td className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-1 text-left text-[9px] font-medium text-muted-foreground">
+                          Extra Duty
+                        </td>
+                        {periodCells.map((cell) => {
+                          const beforeDoj = Boolean(mr.emp.doj) && cell.date < mr.emp.doj;
+                          const blocked = !editable || cell.date > todayStr || beforeDoj;
+                          const entry = entryMap.get(`${mr.key}|${cell.date}`);
+                          const rowShift = shiftHoursFor(
+                            shiftMap,
+                            unitId,
+                            mr.designationId ?? null,
+                          );
+                          const hours =
+                            Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
+                          return (
+                            <td
+                              key={cell.date}
+                              className={cn(
+                                "border-b border-r border-border p-0",
+                                hours > 0 && "bg-secondary",
+                              )}
                             >
-                              {hours > 0 ? `${hours}h` : "·"}
-                            </Button>
-                          </td>
-                        );
-                      })}
-                      <td className="border-b border-border px-1 text-[10px] font-medium">{Math.round(totals.otDays * shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) * 4) / 4}h</td>
-                    </tr>,
-                  ];
-                })}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-secondary-foreground"
+                                disabled={blocked}
+                                aria-label={`${mr.emp.full_name}, ${cell.date}: ${hours || 0} Extra Duty hours`}
+                                onClick={() => {
+                                  setMobileDate(cell.date);
+                                  setOtPickerCells([`${mr.key}|${cell.date}`]);
+                                  setOtPickerOpen(true);
+                                }}
+                              >
+                                {hours > 0 ? `${hours}h` : "·"}
+                              </Button>
+                            </td>
+                          );
+                        })}
+                        <td className="border-b border-border px-1 text-[10px] font-medium">
+                          {Math.round(
+                            totals.otDays *
+                              shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) *
+                              4,
+                          ) / 4}
+                          h
+                        </td>
+                      </tr>,
+                    ];
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -3538,8 +4181,21 @@ function MusterRollPage() {
         {mobileSelectedRows.size > 0 && (
           <div className="mobile-glass-bar dock-clear-action fixed inset-x-2 z-50 rounded-xl border border-primary/30 bg-card/90 p-2 shadow-lg">
             <div className="mb-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1 text-xs">
-              <span className="truncate">{mobileSelectedRows.size} employees · {new Date(`${mobileDate}T12:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-              <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setMobileSelectedRows(new Set())}>Clear</Button>
+              <span className="truncate">
+                {mobileSelectedRows.size} employees ·{" "}
+                {new Date(`${mobileDate}T12:00:00`).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                })}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-2"
+                onClick={() => setMobileSelectedRows(new Set())}
+              >
+                Clear
+              </Button>
             </div>
             <div className="scrollbar-hide flex gap-1 overflow-x-auto">
               {codes.map((code) => (
@@ -3548,7 +4204,12 @@ function MusterRollPage() {
                   size="sm"
                   variant="outline"
                   className="h-9 min-w-11 shrink-0 px-2 font-medium"
-                  onClick={() => applyCodeToCells(Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`), code.code)}
+                  onClick={() =>
+                    applyCodeToCells(
+                      Array.from(mobileSelectedRows, (row) => `${row}|${mobileDate}`),
+                      code.code,
+                    )
+                  }
                 >
                   {code.code}
                 </Button>
@@ -3566,8 +4227,12 @@ function MusterRollPage() {
             <span className="font-semibold">{selectionLabel(Array.from(selectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
-            <Button size="sm" onClick={openPickerForSelection}>Apply attendance</Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={openPickerForSelection}>
+              Apply attendance
+            </Button>
           </div>
         </div>
       )}
@@ -3580,15 +4245,21 @@ function MusterRollPage() {
             <span className="font-semibold">{selectionLabel(Array.from(otSelectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={clearOtSelection}>Clear</Button>
-            <Button size="sm" onClick={openOtPickerForSelection}>Set ED hours</Button>
+            <Button size="sm" variant="ghost" onClick={clearOtSelection}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={openOtPickerForSelection}>
+              Set ED hours
+            </Button>
           </div>
         </div>
       )}
 
       {/* Muster Roll Sheet */}
-      <div id="form-xvi-print" className="hidden rounded-xl border border-border/60 bg-white p-3 text-[11px] text-slate-900 shadow-sm print:block print:rounded-none print:border-0 print:shadow-none sm:block sm:p-6">
-
+      <div
+        id="form-xvi-print"
+        className="hidden rounded-xl border border-border/60 bg-white p-3 text-[11px] text-slate-900 shadow-sm print:block print:rounded-none print:border-0 print:shadow-none sm:block sm:p-6"
+      >
         <div className="text-center">
           <div className="text-base font-bold">Form XVI</div>
           <div className="text-[10px] italic">[ See Rule 78 (1) (a) (i) ]</div>
@@ -3598,15 +4269,23 @@ function MusterRollPage() {
         {/* Mobile: stacked meta cards to prevent overflow */}
         <div className="mt-3 grid grid-cols-1 gap-2 sm:hidden">
           <div className="rounded-md border border-slate-300 p-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Service Provider</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              Service Provider
+            </div>
             <div className="mt-1 font-bold break-words">{SERVICE_PROVIDER.name}</div>
             <div className="text-slate-700 break-words">{SERVICE_PROVIDER.address}</div>
           </div>
           <div className="rounded-md border border-slate-300 p-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Principal Employer</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              Principal Employer
+            </div>
             <div className="mt-1 font-bold break-words">{principalEmployer || "—"}</div>
-            {principalAddress && <div className="text-slate-700 break-words">{principalAddress}</div>}
-            <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Month</div>
+            {principalAddress && (
+              <div className="text-slate-700 break-words">{principalAddress}</div>
+            )}
+            <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              Month
+            </div>
             <div className="font-semibold">{monthLabel}</div>
             <div className="text-slate-700 break-words">Period: {periodLabel}</div>
             <div className="text-[10px] text-slate-500 break-words">{windowLabel}</div>
@@ -3633,22 +4312,55 @@ function MusterRollPage() {
           </tbody>
         </table>
 
-        <div className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:hidden">Swipe horizontally to view all days →</div>
-        <div className="mt-2 -mx-3 min-w-0 w-full overflow-x-auto overscroll-x-contain rounded-md border border-slate-300 sm:mx-0 sm:rounded-none sm:border-0" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:hidden">
+          Swipe horizontally to view all days →
+        </div>
+        <div
+          className="mt-2 -mx-3 min-w-0 w-full overflow-x-auto overscroll-x-contain rounded-md border border-slate-300 sm:mx-0 sm:rounded-none sm:border-0"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           <table className="w-full min-w-[900px] border-collapse border border-slate-400 text-center text-[10px]">
-
             <thead className="bg-slate-100">
               <tr>
-                <th className="border border-slate-400 p-1 align-middle">Sl.<br />No.</th>
+                <th className="border border-slate-400 p-1 align-middle">
+                  Sl.
+                  <br />
+                  No.
+                </th>
                 <th className="border border-slate-400 p-1 align-middle">Emp ID</th>
-                <th className="border border-slate-400 p-1 text-left align-middle">Employee Name</th>
+                <th className="border border-slate-400 p-1 text-left align-middle">
+                  Employee Name
+                </th>
                 <th className="border border-slate-400 p-1 text-left align-middle">Designation</th>
                 <th className="border border-slate-400 p-1 align-middle">DOJ</th>
-                <th className="border border-slate-400 p-1 align-middle" colSpan={dayCount}>Days</th>
-                <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>P<br />Days</th>
-                <th className="border border-slate-400 p-1 align-middle">ED<br />Days</th>
-                <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>PH<br />Days</th>
-                <th className="border border-slate-400 p-1 align-middle" rowSpan={2} title="Total paid days = P + ED + PH">Total<br />Paid<br />Days</th>
+                <th className="border border-slate-400 p-1 align-middle" colSpan={dayCount}>
+                  Days
+                </th>
+                <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>
+                  P<br />
+                  Days
+                </th>
+                <th className="border border-slate-400 p-1 align-middle">
+                  ED
+                  <br />
+                  Days
+                </th>
+                <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>
+                  PH
+                  <br />
+                  Days
+                </th>
+                <th
+                  className="border border-slate-400 p-1 align-middle"
+                  rowSpan={2}
+                  title="Total paid days = P + ED + PH"
+                >
+                  Total
+                  <br />
+                  Paid
+                  <br />
+                  Days
+                </th>
               </tr>
               <tr className="bg-slate-50">
                 <th className="border border-slate-400 p-1"></th>
@@ -3676,31 +4388,57 @@ function MusterRollPage() {
                         </div>
                       )}
                       {cell.dayNum}
-
                     </th>
                   );
                 })}
-                <th className="border border-slate-400 p-1 text-[9px] font-medium">ED<br />Hrs</th>
+                <th className="border border-slate-400 p-1 text-[9px] font-medium">
+                  ED
+                  <br />
+                  Hrs
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9 + dayCount} className="p-4 text-slate-500">Loading roster…</td></tr>
+                <tr>
+                  <td colSpan={9 + dayCount} className="p-4 text-slate-500">
+                    Loading roster…
+                  </td>
+                </tr>
               ) : rosterError ? (
-                <tr><td colSpan={9 + dayCount} className="p-6 text-red-600">Failed to load mapped employees for this unit.</td></tr>
+                <tr>
+                  <td colSpan={9 + dayCount} className="p-6 text-red-600">
+                    Failed to load mapped employees for this unit.
+                  </td>
+                </tr>
               ) : musterRows.length === 0 ? (
-                <tr><td colSpan={9 + dayCount} className="p-6 text-slate-500">No active security guards are mapped to this unit.</td></tr>
+                <tr>
+                  <td colSpan={9 + dayCount} className="p-6 text-slate-500">
+                    No active security guards are mapped to this unit.
+                  </td>
+                </tr>
               ) : visibleMusterRows.length === 0 ? (
-                <tr><td colSpan={9 + dayCount} className="p-6 text-slate-500">No rows match &ldquo;{musterQuery}&rdquo;.</td></tr>
+                <tr>
+                  <td colSpan={9 + dayCount} className="p-6 text-slate-500">
+                    No rows match &ldquo;{musterQuery}&rdquo;.
+                  </td>
+                </tr>
               ) : (
                 visibleMusterRows.flatMap((mr, idx) => {
                   const cellBase = "border border-slate-400 align-middle";
-                  const totals = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
+                  const totals = computeTotalsForRow(
+                    mr.key,
+                    Boolean(mr.otOnly) || Boolean(mr.reliever),
+                    mr.emp.doj || null,
+                  );
                   return [
                     <tr key={mr.key + "-att"}>
-
-                      <td className={cn(cellBase, "p-1 font-medium")} rowSpan={2}>{idx + 1}</td>
-                      <td className={cn(cellBase, "p-1")} rowSpan={2}>{mr.emp.employee_code || "—"}</td>
+                      <td className={cn(cellBase, "p-1 font-medium")} rowSpan={2}>
+                        {idx + 1}
+                      </td>
+                      <td className={cn(cellBase, "p-1")} rowSpan={2}>
+                        {mr.emp.employee_code || "—"}
+                      </td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
                         <div className="flex items-center gap-1.5">
                           {mr.vacant ? (
@@ -3709,7 +4447,10 @@ function MusterRollPage() {
                               disabled={!editable}
                               onClick={() => {
                                 setMapQuery("");
-                                setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
+                                setMapSlot({
+                                  designationId: mr.designationId,
+                                  designationName: mr.designationName,
+                                });
                               }}
                               className="flex items-center gap-1 rounded border border-dashed border-slate-300 px-1.5 py-0.5 text-[11px] italic text-slate-400 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                               title={
@@ -3733,13 +4474,17 @@ function MusterRollPage() {
                               onClick={async () => {
                                 if (!editable) return;
                                 const hasEntries = entries.some(
-                                  (e) => e.candidate_id === mr.candidateId && e.designation_id === mr.designationId,
+                                  (e) =>
+                                    e.candidate_id === mr.candidateId &&
+                                    e.designation_id === mr.designationId,
                                 );
-                                if (!window.confirm(
-                                  hasEntries
-                                    ? `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`
-                                    : `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name} from this muster?`,
-                                )) {
+                                if (
+                                  !window.confirm(
+                                    hasEntries
+                                      ? `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`
+                                      : `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name} from this muster?`,
+                                  )
+                                ) {
                                   return;
                                 }
                                 try {
@@ -3774,10 +4519,14 @@ function MusterRollPage() {
                                     return next;
                                   });
                                   queryClient.invalidateQueries({ queryKey: entriesQK });
-                                  queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["attendance-roster-v5", unitId],
+                                  });
                                   toast.success("Reliever line removed");
                                 } catch (e) {
-                                  toast.error(e instanceof Error ? e.message : "Failed to remove line");
+                                  toast.error(
+                                    e instanceof Error ? e.message : "Failed to remove line",
+                                  );
                                 }
                               }}
                               className="rounded-full p-0.5 text-slate-400 hover:text-rose-600 disabled:opacity-40 print:hidden"
@@ -3785,7 +4534,6 @@ function MusterRollPage() {
                               <X className="h-3 w-3" />
                             </button>
                           )}
-
                         </div>
                       </td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
@@ -3811,11 +4559,14 @@ function MusterRollPage() {
                         // Reliever / extra-designation lines are extra-duty only:
                         // never editable, never an implicit "A".
                         const edOnlyLine = Boolean(mr.otOnly) || Boolean(mr.reliever);
-                        const displayCode = mr.vacant || edOnlyLine
-                          ? ""
-                          : entry?.code
-                          ? entry.code
-                          : (!isFuture && !beforeDoj ? "A" : "");
+                        const displayCode =
+                          mr.vacant || edOnlyLine
+                            ? ""
+                            : entry?.code
+                              ? entry.code
+                              : !isFuture && !beforeDoj
+                                ? "A"
+                                : "";
                         const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = selectedCells.has(`${mr.key}|${date}`);
@@ -3839,24 +4590,32 @@ function MusterRollPage() {
                               minWidth: 18,
                               backgroundColor: isBlocked
                                 ? undefined
-                                : codeMeta?.color ? `${codeMeta.color}22` : undefined,
+                                : codeMeta?.color
+                                  ? `${codeMeta.color}22`
+                                  : undefined,
                             }}
                             title={
                               edOnlyLine
                                 ? "Reliever line — extra duty only. Use the ED row below."
                                 : beforeDoj
-                                ? `Before joining date (${mr.emp.doj})`
-                                : isFuture
-                                ? "Future date — cannot mark attendance"
-                                : isUncertain
-                                ? "OCR could not read this cell — please mark manually"
-                                : isImplicitAbsent
-                                ? "No attendance recorded — treated as Absent"
-                                : undefined
+                                  ? `Before joining date (${mr.emp.doj})`
+                                  : isFuture
+                                    ? "Future date — cannot mark attendance"
+                                    : isUncertain
+                                      ? "OCR could not read this cell — please mark manually"
+                                      : isImplicitAbsent
+                                        ? "No attendance recorded — treated as Absent"
+                                        : undefined
                             }
                             onMouseDown={(e) => {
-                              if (isBlocked) { e.preventDefault(); return; }
-                              if (!editable) { e.preventDefault(); return; }
+                              if (isBlocked) {
+                                e.preventDefault();
+                                return;
+                              }
+                              if (!editable) {
+                                e.preventDefault();
+                                return;
+                              }
                               e.preventDefault();
                               const key = `${mr.key}|${date}`;
                               if (e.ctrlKey || e.metaKey) {
@@ -3885,7 +4644,9 @@ function MusterRollPage() {
                                 buildRect(selAnchor, { rowKey: mr.key, date }, attCellBlocked),
                               );
                             }}
-                            onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
+                            onClick={(e) => {
+                              if (e.ctrlKey || e.metaKey) e.preventDefault();
+                            }}
                           >
                             <div
                               className={cn(
@@ -3900,10 +4661,16 @@ function MusterRollPage() {
                         );
                       })}
 
-                      <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>{totals.pDays}</td>
+                      <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>
+                        {totals.pDays}
+                      </td>
                       <td className={cn(cellBase, "p-1 font-semibold")}>{totals.otHours}</td>
-                      <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>{totals.phDays}</td>
-                      <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>{totals.tDays}</td>
+                      <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>
+                        {totals.phDays}
+                      </td>
+                      <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>
+                        {totals.tDays}
+                      </td>
                     </tr>,
                     <tr key={mr.key + "-ot"}>
                       {periodCells.map((cell) => {
@@ -3934,7 +4701,10 @@ function MusterRollPage() {
                             )}
                             style={{ height: 22, minWidth: 18 }}
                             onMouseDown={(e) => {
-                              if (isBlocked || !editable) { e.preventDefault(); return; }
+                              if (isBlocked || !editable) {
+                                e.preventDefault();
+                                return;
+                              }
                               e.preventDefault();
                               const key = `${mr.key}|${date}`;
                               if (e.ctrlKey || e.metaKey) {
@@ -3963,8 +4733,16 @@ function MusterRollPage() {
                                 buildRect(otSelAnchor, { rowKey: mr.key, date }, otCellBlocked),
                               );
                             }}
-                            onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
-                            title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark extra duty" : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
+                            onClick={(e) => {
+                              if (e.ctrlKey || e.metaKey) e.preventDefault();
+                            }}
+                            title={
+                              beforeDoj
+                                ? `Before joining date (${mr.emp.doj})`
+                                : isFuture
+                                  ? "Future date — cannot mark extra duty"
+                                  : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`
+                            }
                           >
                             {(() => {
                               const showPh =
@@ -3976,7 +4754,9 @@ function MusterRollPage() {
                               return (
                                 <div className="flex h-full w-full flex-col items-center justify-center leading-none">
                                   {hrs > 0 && (
-                                    <span className="text-[10px] font-semibold text-amber-700">{hrs}</span>
+                                    <span className="text-[10px] font-semibold text-amber-700">
+                                      {hrs}
+                                    </span>
                                   )}
                                   {showPh && (
                                     <span className="pointer-events-none text-[8px] font-bold text-emerald-600">
@@ -3991,45 +4771,54 @@ function MusterRollPage() {
                       })}
                       <td className={cn(cellBase, "p-1 font-semibold")}>
                         {Math.round(
-                          totals.otDays * shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) * 4,
+                          totals.otDays *
+                            shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) *
+                            4,
                         ) / 4}
                       </td>
-
                     </tr>,
                   ];
                 })
               )}
-              {!isLoading && !rosterError && visibleMusterRows.length > 0 && (() => {
-                const grand = visibleMusterRows.reduce(
-                  (acc, mr) => {
-                    const t = computeTotalsForRow(mr.key, Boolean(mr.otOnly) || Boolean(mr.reliever), mr.emp.doj || null);
-                    acc.pDays += t.pDays;
-                    acc.otHours += t.otHours;
-                    acc.phDays += t.phDays;
-                    acc.tDays += t.tDays;
-                    return acc;
-                  },
-                  { pDays: 0, otHours: 0, phDays: 0, tDays: 0 },
-                );
-                const r2 = (n: number) => Math.round(n * 100) / 100;
-                return (
-                  <tr className="bg-slate-100 font-bold">
-                    <td className="border border-slate-400 p-1 text-right" colSpan={5 + dayCount}>
-                      Grand Total
-                    </td>
-                    <td className="border border-slate-400 p-1">{r2(grand.pDays)}</td>
-                    <td className="border border-slate-400 p-1">{r2(grand.otHours)}</td>
-                    <td className="border border-slate-400 p-1">{r2(grand.phDays)}</td>
-                    <td className="border border-slate-400 p-1">{r2(grand.tDays)}</td>
-                  </tr>
-                );
-              })()}
+              {!isLoading &&
+                !rosterError &&
+                visibleMusterRows.length > 0 &&
+                (() => {
+                  const grand = visibleMusterRows.reduce(
+                    (acc, mr) => {
+                      const t = computeTotalsForRow(
+                        mr.key,
+                        Boolean(mr.otOnly) || Boolean(mr.reliever),
+                        mr.emp.doj || null,
+                      );
+                      acc.pDays += t.pDays;
+                      acc.otHours += t.otHours;
+                      acc.phDays += t.phDays;
+                      acc.tDays += t.tDays;
+                      return acc;
+                    },
+                    { pDays: 0, otHours: 0, phDays: 0, tDays: 0 },
+                  );
+                  const r2 = (n: number) => Math.round(n * 100) / 100;
+                  return (
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="border border-slate-400 p-1 text-right" colSpan={5 + dayCount}>
+                        Grand Total
+                      </td>
+                      <td className="border border-slate-400 p-1">{r2(grand.pDays)}</td>
+                      <td className="border border-slate-400 p-1">{r2(grand.otHours)}</td>
+                      <td className="border border-slate-400 p-1">{r2(grand.phDays)}</td>
+                      <td className="border border-slate-400 p-1">{r2(grand.tDays)}</td>
+                    </tr>
+                  );
+                })()}
             </tbody>
           </table>
         </div>
 
         <div className="mt-3 hidden text-[10px] text-slate-600 sm:block">
-          Att = Attendance · ED row = Extra duty hours (converted to ED days at the contractual shift length) · Each (employee × designation) is a separate payroll line.
+          Att = Attendance · ED row = Extra duty hours (converted to ED days at the contractual
+          shift length) · Each (employee × designation) is a separate payroll line.
         </div>
       </div>
 
@@ -4068,12 +4857,21 @@ function MusterRollPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(mapSlot)} onOpenChange={(o) => { if (!o) { setMapSlot(null); setMapQuery(""); } }}>
+      <Dialog
+        open={Boolean(mapSlot)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setMapSlot(null);
+            setMapQuery("");
+          }
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Map employee to slot</DialogTitle>
             <DialogDescription>
-              Find an employee for <span className="font-medium">{mapSlot?.designationName ?? "—"}</span>.
+              Find an employee for{" "}
+              <span className="font-medium">{mapSlot?.designationName ?? "—"}</span>.
             </DialogDescription>
           </DialogHeader>
           <div className="relative">
@@ -4126,13 +4924,16 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Set ED hours</DialogTitle>
             <DialogDescription>
-              Choose ED hours. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""} selected
+              Choose ED hours. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""}{" "}
+              selected
               {otPickerCells.length ? ` for ${selectionLabel(otPickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid max-h-[45vh] grid-cols-3 gap-2 overflow-y-auto pr-1 min-[380px]:grid-cols-4">
             {[0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((n) => {
-              const shift = rowShiftHours(otPickerCells[0] ? splitCellKey(otPickerCells[0]).rowKey : null);
+              const shift = rowShiftHours(
+                otPickerCells[0] ? splitCellKey(otPickerCells[0]).rowKey : null,
+              );
               const days = Math.round((n / shift) * 100) / 100;
               return (
                 <Button
@@ -4144,7 +4945,9 @@ function MusterRollPage() {
                   className="h-11 rounded-lg bg-secondary px-2 text-sm font-medium leading-tight text-secondary-foreground"
                 >
                   {n}h
-                  <span className="block text-[9px] font-medium text-muted-foreground">{days}d</span>
+                  <span className="block text-[9px] font-medium text-muted-foreground">
+                    {days}d
+                  </span>
                 </Button>
               );
             })}
@@ -4159,7 +4962,6 @@ function MusterRollPage() {
           </Button>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
