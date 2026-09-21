@@ -397,7 +397,7 @@
 
 ## Control Center form UI parity correction
 
-- [ ] Replace broad dialog styling with a reusable Candidate-style form shell.
-- [ ] Apply the shell to every create/edit form opened from Control Center.
+- [x] Replace compact dialog-sheet geometry with the Candidate form's full white mobile workspace.
+- [x] Apply the shared frame, field, section, header, and fixed-action treatment to every editable dialog.
 - [ ] Verify representative dialogs at phone and desktop sizes.
 - [ ] Run TypeScript validation.
