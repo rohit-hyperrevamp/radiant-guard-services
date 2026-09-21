@@ -394,3 +394,10 @@
 - [x] Apply one consistent Candidate-style layout to every Control Center create/edit dialog.
 - [x] Align full-page Control Center forms to the same sections, fields, toggles, and actions.
 - [x] Verify short and long forms on mobile and desktop and run TypeScript validation.
+
+## Control Center form UI parity correction
+
+- [ ] Replace broad dialog styling with a reusable Candidate-style form shell.
+- [ ] Apply the shell to every create/edit form opened from Control Center.
+- [ ] Verify representative dialogs at phone and desktop sizes.
+- [ ] Run TypeScript validation.
