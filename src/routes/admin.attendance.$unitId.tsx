@@ -4006,7 +4006,7 @@ function MusterRollPage() {
             <table className="w-max min-w-full border-separate border-spacing-0 text-center text-xs">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-20 w-[136px] min-w-[136px] border-b border-r border-border bg-muted px-2 py-2 text-left font-medium text-foreground">
+                  <th className="sticky left-0 z-30 w-[136px] min-w-[136px] border-b border-r border-border bg-background px-2 py-2 text-left font-medium text-foreground shadow-sm">
                     Employee
                   </th>
                   {periodCells.map((cell) => (
@@ -4047,7 +4047,7 @@ function MusterRollPage() {
                     if (mr.vacant) {
                       return (
                         <tr key={mr.key}>
-                          <td className="sticky left-0 z-10 border-b border-r border-border bg-card p-1.5 text-left">
+                          <td className="sticky left-0 z-20 border-b border-r border-border bg-background p-1.5 text-left shadow-sm">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -4087,7 +4087,8 @@ function MusterRollPage() {
                       >
                         <td
                           className={cn(
-                            "sticky left-0 z-10 w-[136px] min-w-[136px] border-b border-r border-border bg-card px-1.5 py-1.5 text-left",
+                            "sticky left-0 z-20 w-[136px] min-w-[136px] border-b border-r border-border bg-background px-1.5 py-1.5 text-left shadow-sm",
+                            selected && "bg-primary/10",
                             !mr.otOnly && !mr.reliever && editable && "cursor-pointer",
                           )}
                           onClick={() => {
@@ -4118,7 +4119,7 @@ function MusterRollPage() {
                             ) : (
                               <Clock3 className="h-4 w-4 text-muted-foreground" />
                             )}
-                            <div className="min-w-0">
+                            <div className="min-w-0 rounded-md border border-border/60 bg-card px-1.5 py-1 shadow-sm">
                               <div className="truncate text-[11px] font-medium text-foreground">
                                 {mr.emp.full_name || "Unnamed"}
                               </div>
@@ -4179,7 +4180,7 @@ function MusterRollPage() {
                         </td>
                       </tr>,
                       <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
-                        <td className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-1 text-left text-[9px] font-medium text-muted-foreground">
+                        <td className="sticky left-0 z-20 border-b border-r border-border bg-muted px-2 py-1 text-left text-[9px] font-medium text-muted-foreground shadow-sm">
                           Extra Duty
                         </td>
                         {periodCells.map((cell) => {
@@ -4840,22 +4841,23 @@ function MusterRollPage() {
       </div>
 
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
+        <DialogContent className="!max-w-none rounded-t-[24px] px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 sm:!max-w-sm sm:rounded-xl sm:p-6">
+          <div className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/30 sm:hidden" />
+          <DialogHeader className="pt-1 sm:pt-0">
             <DialogTitle>Mark attendance</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="line-clamp-2 pr-2">
               {pickerCells.length} cell{pickerCells.length > 1 ? "s" : ""} selected
               {pickerCells.length ? ` for ${selectionLabel(pickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-2 min-[380px]:grid-cols-4">
+          <div className="grid grid-cols-4 gap-2">
             {codes.map((c) => (
               <Button
                 key={c.id}
                 type="button"
                 variant="outline"
                 onClick={() => applyCodeToSelection(c.code)}
-                className="h-11 rounded-lg px-2 text-sm font-medium"
+                className="h-12 rounded-xl px-2 text-sm font-medium"
                 style={{ color: c.color }}
                 title={c.label}
               >
@@ -4867,7 +4869,7 @@ function MusterRollPage() {
             type="button"
             variant="outline"
             onClick={() => applyCodeToSelection("")}
-            className="mt-2 h-10 w-full rounded-lg text-sm font-medium text-muted-foreground"
+            className="mt-1 h-10 w-full rounded-xl text-sm font-medium text-muted-foreground"
           >
             Clear selection
           </Button>
