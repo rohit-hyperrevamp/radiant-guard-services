@@ -389,3 +389,8 @@
 
 ## Pagination label alignment
 - [x] Keep Previous, page numbers, and Next on one horizontal line without clipped text.
+
+## Candidate-style Control Center forms
+- [ ] Apply one consistent Candidate-style layout to every Control Center create/edit dialog.
+- [ ] Align full-page Control Center forms to the same sections, fields, toggles, and actions.
+- [ ] Verify short and long forms on mobile and desktop and run TypeScript validation.
