@@ -4006,7 +4006,7 @@ function MusterRollPage() {
             <table className="w-max min-w-full border-separate border-spacing-0 text-center text-xs">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-30 w-[136px] min-w-[136px] border-b border-r border-border bg-background px-2 py-2 text-left font-medium text-foreground shadow-sm">
+                  <th className="sticky left-0 z-30 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-3 py-2 text-left font-medium text-foreground shadow-sm">
                     Employee
                   </th>
                   {periodCells.map((cell) => (
@@ -4047,7 +4047,7 @@ function MusterRollPage() {
                     if (mr.vacant) {
                       return (
                         <tr key={mr.key}>
-                          <td className="sticky left-0 z-20 border-b border-r border-border bg-background p-1.5 text-left shadow-sm">
+                          <td className="sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card p-1.5 text-left shadow-sm">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -4083,12 +4083,12 @@ function MusterRollPage() {
                     return [
                       <tr
                         key={`${mr.key}-mobile-att`}
-                        className={selected ? "bg-primary/5" : undefined}
+                        className="bg-card"
                       >
                         <td
                           className={cn(
-                            "sticky left-0 z-20 w-[136px] min-w-[136px] border-b border-r border-border bg-background px-1.5 py-1.5 text-left shadow-sm",
-                            selected && "bg-primary/10",
+                            "sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-2 py-1.5 text-left shadow-sm",
+                            selected && "ring-2 ring-inset ring-primary/30",
                             !mr.otOnly && !mr.reliever && editable && "cursor-pointer",
                           )}
                           onClick={() => {
@@ -4119,11 +4119,11 @@ function MusterRollPage() {
                             ) : (
                               <Clock3 className="h-4 w-4 text-muted-foreground" />
                             )}
-                            <div className="min-w-0 rounded-md border border-border/60 bg-card px-1.5 py-1 shadow-sm">
-                              <div className="truncate text-[11px] font-medium text-foreground">
+                            <div className="min-w-0 overflow-hidden px-1 py-1">
+                              <div className="block overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-medium leading-tight text-foreground">
                                 {mr.emp.full_name || "Unnamed"}
                               </div>
-                              <div className="truncate text-[9px] text-muted-foreground">
+                              <div className="mt-0.5 block overflow-hidden text-ellipsis whitespace-nowrap text-[9px] leading-tight text-muted-foreground">
                                 {mr.emp.employee_code || "No ID"} · {mr.designationName}
                               </div>
                             </div>
@@ -4180,7 +4180,7 @@ function MusterRollPage() {
                         </td>
                       </tr>,
                       <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
-                        <td className="sticky left-0 z-20 border-b border-r border-border bg-muted px-2 py-1 text-left text-[9px] font-medium text-muted-foreground shadow-sm">
+                        <td className="sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-3 py-1 text-left text-[9px] font-medium text-muted-foreground shadow-sm">
                           Extra Duty
                         </td>
                         {periodCells.map((cell) => {
