@@ -6,9 +6,6 @@ import { motion } from "framer-motion";
 import {
   Building2,
   Briefcase,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   Files,
   Fuel,
@@ -30,13 +27,6 @@ import {
 
 import { PageHeader } from "@/components/PageHeader";
 import { DashboardShell } from "@/components/LiveFeed";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadialGauge } from "@/components/charts/RadialGauge";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -724,12 +714,6 @@ function DashboardPage() {
     };
   }, [countsQuery.data, scopedCountsQuery.data, pnlQuery.data]);
 
-  const shift = (delta: number) => {
-    const d = new Date(year, month + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
-    periodSelection.setPeriod(d.getFullYear(), d.getMonth());
-  };
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
   const tiles = useMemo(() => {
