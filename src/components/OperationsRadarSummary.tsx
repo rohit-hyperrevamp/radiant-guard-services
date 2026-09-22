@@ -73,10 +73,15 @@ export function OperationsRadarSummary() {
 
   const liveQ = useOperationsRadarLive();
 
+  const managerScope = useManagerFieldOfficerScope();
+  const scopedOfficerCount = managerScope.isScoped ? managerScope.fieldOfficerIds.size : null;
+
   const totalsQ = useQuery({
-    queryKey: ["ops-radar-totals"],
+    queryKey: ["ops-radar-totals", scopedOfficerCount],
+    enabled: !managerScope.isLoading,
     staleTime: 60_000,
     queryFn: async () => {
+      if (scopedOfficerCount != null) return { fo: scopedOfficerCount };
       const fo = await supabase
         .from("candidates" as never)
         .select("id", { count: "exact", head: true })
