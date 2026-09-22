@@ -7,7 +7,7 @@
 - [x] Select the supplier registration by client state with Maharashtra head-office fallback.
 - [x] Apply CGST + SGST for same-state billing and IGST-only for fallback/interstate billing.
 - [x] Apply the same calculation to invoice preview/print, MIS, and individual/combined Tally exports.
-- [ ] Apply and verify the production migration and run TypeScript validation.
+- [x] Apply and verify the production migration and run TypeScript validation.
 
 ## Dashboard status-card number visibility
 
