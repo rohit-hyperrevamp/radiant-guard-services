@@ -204,6 +204,7 @@ export async function resolveSheetPersonForUnit(opts: {
       found.id,
       unitId,
       ref.designationId ?? found.designation_id ?? null,
+      ref.isReliever === true,
     );
     return {
       candidateId: found.id,
