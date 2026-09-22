@@ -435,6 +435,7 @@
 - [ ] Flatten and protect Attendance, Payroll, and Invoice loading paths.
 - [ ] Optimize measured production functions and supporting indexes.
 - [ ] Validate production timings, TypeScript, and live production behavior.
+- [x] Remove per-keystroke Employees search requests and the yellow search focus treatment.
 
 ## State-based GST branches and invoicing
 
