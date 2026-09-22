@@ -188,6 +188,12 @@ export function FinalInvoiceDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {mixedStates && (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] font-medium text-destructive">
+              The selected sites belong to more than one state. An invoice number is state-specific, so one invoice cannot
+              cover multiple states — select sites from a single state.
+            </div>
+          )}
           <div className="grid gap-1.5 sm:max-w-[220px]">
             <Label htmlFor="final-invoice-date">Invoice date</Label>
             <Input
