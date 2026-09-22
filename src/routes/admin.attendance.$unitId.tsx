@@ -2478,7 +2478,14 @@ function MusterRollPage() {
           Array.from(sheetPairKeys).map(async (pk) => {
             const mr = pairByKey.get(pk);
             if (!mr) return;
-            const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+            // Reliever status is whatever the muster line already says — a
+            // normal deployed line stays mapped to this unit as primary.
+            const mapping = await ensureAttendanceUnitMapping(
+              mr.candidateId,
+              unitId,
+              mr.designationId,
+              mr.reliever === true,
+            );
             mappingByPair.set(pk, mapping);
           }),
         );
