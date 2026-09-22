@@ -384,6 +384,7 @@ export function FinanceCharter({
         };
         return {
           unit: u,
+          finalInvoice: finalsQ.data?.get(unitPeriodKey(u.id, period.start, period.end)) ?? null,
           contractCode: finance?.contractCode ?? u.contract_codes[0] ?? "—",
           committed: finance?.committed ?? 0,
           actual: u.security_guards.length,
