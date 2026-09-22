@@ -4201,7 +4201,7 @@ function MusterRollPage() {
                 <SelectValue placeholder="Employee" />
               </SelectTrigger>
               <SelectContent>
-                {(employees ?? []).map((e) => (
+                {(rosterEmployees ?? []).map((e) => (
                   <SelectItem key={e.id} value={e.id}>
                     {e.full_name || e.employee_code || e.id}
                   </SelectItem>
