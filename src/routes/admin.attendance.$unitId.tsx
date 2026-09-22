@@ -2452,9 +2452,32 @@ function MusterRollPage() {
       }
 
       if (byPair.size === 0) {
-        throw new Error(
-          "No attendance cells passed the accuracy checks. Existing attendance was left unchanged.",
+        // Nobody on the sheet matched this unit's roster (different guards, or
+        // the reader could not tie rows to mapped people). Resolve the people
+        // from the sheet itself — match or create them, map them to this unit,
+        // then save their attendance. Never ask the user to map first.
+        const auto = await importSheetPeopleWithoutRoster(
+          sheetImage,
+          result.unmatched_names.length ? result.unmatched_names : undefined,
         );
+        if (!auto.people) {
+          throw new Error(
+            "No employee rows could be read from that sheet. Retake the photo in better light and try again.",
+          );
+        }
+        const autoSummary = `${auto.cells} cell${auto.cells === 1 ? "" : "s"} auto-filled for ${auto.people} ${auto.people === 1 ? "person" : "people"}${auto.mapped ? ` · mapped ${auto.mapped} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}`;
+        await queryClient.invalidateQueries({ queryKey: entriesQK });
+        await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+        setOcrSummary(autoSummary);
+        setUploadReadyToContinue(true);
+        toast.success(autoSummary);
+        await endScanProgress({ summary: autoSummary }, startedAt);
+        logActivity({
+          module: "Attendance",
+          action: "Upload attendance image (OCR, auto-mapped)",
+          details: { ...auto, unit_id: unitId },
+        }).catch(() => {});
+        return autoSummary;
       }
 
       const sheetPairKeys = new Set<string>([...byPair.keys()]);
