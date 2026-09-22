@@ -90,7 +90,7 @@ import { RehireEnableDialog } from "@/components/RehireEnableDialog";
 import { RehireReviewDialog } from "@/components/RehireReviewDialog";
 import { type RehireRequest } from "@/lib/workflows";
 import { fetchWorkflowByKey, fetchWorkflowSteps, REHIRE_WORKFLOW_KEY } from "@/lib/workflows";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader, PageStat } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1224,7 +1224,6 @@ const QK_DESIG = ["admin", "designations-lite"] as const;
 const QK_EX_SERVICES = ["admin", "ex-services-lite"] as const;
 const QK_LANGUAGES = ["admin", "languages-lite"] as const;
 const QK_ESIC_BRANCHES = ["admin", "esic-branches-lite"] as const;
-const QK_SIGNED_DOCS = ["admin", "signed-docs-summary"] as const;
 
 function getMutationErrorMessage(error: unknown, fallback: string) {
   const parts: string[] = [];
@@ -1354,24 +1353,6 @@ async function healEmployeeCodes(rows: CandidateListItem[]): Promise<number> {
   return fixed;
 }
 
-function useSignedDocsSummary() {
-  return useQuery({
-    queryKey: QK_SIGNED_DOCS,
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
-    queryFn: async (): Promise<Array<{ candidate_id: string; doc_type: string }>> => {
-      const { data, error } = await supabase
-        .from("employee_signed_documents" as never)
-        .select("candidate_id,doc_type,signed_at")
-        .not("signed_at", "is", null)
-        .limit(5000);
-      if (error) throw error;
-      return (data as unknown as Array<{ candidate_id: string; doc_type: string }>) ?? [];
-    },
-  });
-}
-
 type EsicBranchLite = { id: string; location: string; esic_code: string };
 
 function useEsicBranchesLite() {
@@ -1463,6 +1444,7 @@ function writeSnapshot(key: string, rows: unknown) {
 }
 
 const SNAP_UNITS = "radiant.snapshot.units.v1";
+const SNAP_CANDIDATES = "radiant.snapshot.candidates.v2";
 
 const CANDIDATE_LIST_COLUMNS =
   "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
@@ -1542,40 +1524,56 @@ function InlinePicker({
 }
 
 function useCandidates() {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: QK,
-    retry: false,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 4_000),
     refetchOnWindowFocus: false,
     staleTime: 60_000,
+    placeholderData: () => readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES),
     queryFn: async (): Promise<CandidateListItem[]> => {
       return runWithQueryTimeout(
         "Employees",
         async (signal) => {
-          const countResult = await supabase
-            .from("candidates" as never)
-            .select("id", { count: "exact", head: true })
-            .abortSignal(signal);
-          if (countResult.error) throw countResult.error;
-
           const pageSize = 1000;
-          const pageCount = Math.ceil((countResult.count ?? 0) / pageSize);
-          const results = await Promise.all(
-            Array.from({ length: pageCount }, (_, page) =>
-              supabase
-                .from("candidates" as never)
-                .select(CANDIDATE_LIST_COLUMNS)
-                .order("created_at", { ascending: false })
-                .order("id", { ascending: true })
-                .range(page * pageSize, (page + 1) * pageSize - 1)
-                .abortSignal(signal),
-            ),
-          );
+          const fetchPage = (page: number) =>
+            supabase
+              .from("candidates" as never)
+              .select(CANDIDATE_LIST_COLUMNS)
+              .order("created_at", { ascending: false })
+              .order("id", { ascending: true })
+              .range(page * pageSize, (page + 1) * pageSize - 1)
+              .abortSignal(signal);
 
-          const rows: CandidateListItem[] = [];
-          for (const result of results) {
-            if (result.error) throw result.error;
-            rows.push(...((result.data ?? []) as unknown as CandidateListItem[]));
+          const first = await fetchPage(0);
+          if (first.error) throw first.error;
+
+          const rows = ((first.data ?? []) as unknown as CandidateListItem[]).slice();
+          qc.setQueryData(QK, rows);
+
+          if (rows.length < pageSize) {
+            writeSnapshot(SNAP_CANDIDATES, rows);
+            return rows;
           }
+
+          const batchSize = 4;
+          for (let startPage = 1; startPage < 60; startPage += batchSize) {
+            const results = await Promise.all(
+              Array.from({ length: batchSize }, (_, offset) => fetchPage(startPage + offset)),
+            );
+            let reachedEnd = false;
+            for (const result of results) {
+              if (result.error) throw result.error;
+              const pageRows = ((result.data ?? []) as unknown as CandidateListItem[]) ?? [];
+              rows.push(...pageRows);
+              if (pageRows.length < pageSize) reachedEnd = true;
+            }
+            qc.setQueryData(QK, rows.slice());
+            if (reachedEnd) break;
+          }
+
+          writeSnapshot(SNAP_CANDIDATES, rows);
           return rows;
         },
         30_000,
@@ -2131,7 +2129,6 @@ function EmployeesPage() {
   const languagesQuery = useLanguagesLite();
   const rolesQuery = useRolesLite();
   const esicBranchesQuery = useEsicBranchesLite();
-  const signedDocsQuery = useSignedDocsSummary();
   const candidates = candidatesQuery.data ?? [];
   const rowCandidates = candidates;
   const units = unitsQuery.data ?? [];
@@ -2233,6 +2230,7 @@ function EmployeesPage() {
 
   const assetsQuery = useQuery({
     queryKey: ["assets_lite_available"],
+    enabled: openWizard || !!offboardTarget || exporting,
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 60_000,
@@ -2912,17 +2910,6 @@ function EmployeesPage() {
     return m;
   }, [scopeAssignments]);
 
-  const signedDocs = signedDocsQuery.data ?? [];
-  const signedByCandidate = useMemo(() => {
-    const m = new Map<string, Set<string>>();
-    for (const s of signedDocs) {
-      if (!s.candidate_id) continue;
-      if (!m.has(s.candidate_id)) m.set(s.candidate_id, new Set());
-      m.get(s.candidate_id)!.add(s.doc_type);
-    }
-    return m;
-  }, [signedDocs]);
-
   const stats = useMemo(() => {
     // Candidate-tab stats (only non-employee status records)
     const candidateOnly = candidates.filter(
@@ -2943,10 +2930,6 @@ function EmployeesPage() {
     const empTotal = employeeOnly.length;
     const empActive = employeeOnly.filter((c) => c.is_enabled && c.status !== "inactive").length;
     const empInactive = empTotal - empActive;
-    const empNdaSigned = employeeOnly.filter((c) => signedByCandidate.get(c.id)?.has("nda")).length;
-    const empAlSigned = employeeOnly.filter((c) =>
-      signedByCandidate.get(c.id)?.has("appointment_letter"),
-    ).length;
     const empBillable = employeeOnly.filter((c) => !c.non_billable).length;
     const empNonBillable = empTotal - empBillable;
 
@@ -2958,12 +2941,10 @@ function EmployeesPage() {
       empTotal,
       empActive,
       empInactive,
-      empNdaSigned,
-      empAlSigned,
       empBillable,
       empNonBillable,
     };
-  }, [candidates, signedByCandidate, supersededEmployeeIds, rehireByCandidate]);
+  }, [candidates, supersededEmployeeIds, rehireByCandidate]);
 
   const deleteMut = useMutation({
     mutationFn: async (c: CandidateListItem) => {
