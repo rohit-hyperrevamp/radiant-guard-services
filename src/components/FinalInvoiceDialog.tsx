@@ -93,6 +93,12 @@ export function FinalInvoiceDialog({
     return list.find((s) => norm(s.state_name) === norm(state)) ?? list.find((s) => s.state_code === "MH") ?? null;
   };
 
+  // Hard stop: a selection spanning states can never become one invoice.
+  const mixedStates = useMemo(() => {
+    const set = new Set(targets.map((t) => norm(t.billingState)));
+    return set.size > 1;
+  }, [targets]);
+
   const groups = useMemo<Group[]>(() => {
     const map = new Map<string, Group>();
     for (const t of targets) {
@@ -118,6 +124,7 @@ export function FinalInvoiceDialog({
     setBusy(true);
     const issued: string[] = [];
     try {
+      if (mixedStates) throw new Error("Invoices cannot span multiple states. Select sites from one state only.");
       for (const g of groups) {
         const series = resolveSeries(g.billingState);
         if (!series) throw new Error(`No invoice number series set up for ${g.billingState ?? "this state"}`);
@@ -261,7 +268,7 @@ export function FinalInvoiceDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={() => void submit()} disabled={busy || groups.length === 0 || seriesQ.isLoading}>
+          <Button onClick={() => void submit()} disabled={busy || mixedStates || groups.length === 0 || seriesQ.isLoading}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCheck2 className="h-4 w-4" />}
             {busy ? "Generating…" : `Generate ${groups.length > 1 ? `${groups.length} invoices` : "invoice"}`}
           </Button>
