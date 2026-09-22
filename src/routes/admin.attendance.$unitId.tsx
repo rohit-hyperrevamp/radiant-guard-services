@@ -2795,6 +2795,12 @@ function MusterRollPage() {
               tokens,
               designationId: pendingDesigId,
               designationName: pendingDesigName,
+              // Only an explicit reliever marking on the sheet row makes this
+              // person a reliever; everyone else is mapped to this unit.
+              isReliever: looksLikeRelieverText(
+                ...tokens,
+                designationCol >= 0 ? String(row[designationCol] ?? "") : null,
+              ),
               rows: sheetRows,
             });
           } else if (labelCell) {
