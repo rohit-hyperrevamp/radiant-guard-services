@@ -179,13 +179,24 @@ export async function ensureAttendanceUnitMapping(
   return { mapped: true, isPrimary: !sheetReliever, isReliever: sheetReliever };
 }
 
-/** Keep exactly one primary posting: this unit. */
+/** Keep exactly one primary posting: this unit, and keep the home unit in step. */
 async function demoteOtherPrimaries(candidateId: string, unitId: string) {
   await supabase
     .from("candidate_units")
     .update({ is_primary: false } as never)
     .eq("candidate_id", candidateId)
     .eq("is_primary", true)
+    .neq("unit_id", unitId);
+  await syncGuardHomeUnit(candidateId, unitId);
+}
+
+/** A guard's home unit must always be the unit of their primary posting. */
+async function syncGuardHomeUnit(candidateId: string, unitId: string) {
+  await supabase
+    .from("candidates")
+    .update({ unit_id: unitId } as never)
+    .eq("id", candidateId)
+    .eq("role_key", "guard")
     .neq("unit_id", unitId);
 }
 
