@@ -1056,6 +1056,44 @@ export function FinanceCharter({
         </div>
       </div>
 
+      {canFinalise && selectableRows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2">
+          <Checkbox
+            checked={selectedTargets.length > 0 && selectedTargets.length === selectableRows.length}
+            onCheckedChange={(v) =>
+              setSelected(v ? Object.fromEntries(selectableRows.map((r) => [r.unit.id, true])) : {})
+            }
+            aria-label="Select all sites ready to finalise"
+          />
+          <span className="text-[12px] font-medium">
+            {selectedTargets.length > 0
+              ? `${selectedTargets.length} site${selectedTargets.length > 1 ? "s" : ""} selected`
+              : `Select sites to raise a final invoice (${selectableRows.length} ready)`}
+          </span>
+          <div className="flex-1" />
+          {selectedTargets.length > 0 && (
+            <Button variant="ghost" className="h-8 rounded-lg" onClick={() => setSelected({})}>
+              Clear
+            </Button>
+          )}
+          <Button
+            className="h-9 rounded-xl"
+            disabled={selectedTargets.length === 0}
+            onClick={() => setFinalOpen(true)}
+          >
+            <FileCheck2 className="h-4 w-4" /> Generate final invoice
+          </Button>
+        </div>
+      )}
+
+      <FinalInvoiceDialog
+        open={finalOpen}
+        onOpenChange={setFinalOpen}
+        targets={selectedTargets}
+        onDone={() => setSelected({})}
+      />
+
+
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
             Loading period-to-date {mode === "invoice" ? "invoice" : "payroll"} values…
