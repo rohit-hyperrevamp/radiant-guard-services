@@ -107,15 +107,18 @@ async function roleKeyForDesignation(contractId: string | null, designationId: s
 }
 
 /**
- * Preserve the one-primary-unit rule. Existing primary guards are never moved:
- * when they appear at another unit they are treated as relievers and attendance
- * is converted to Extra Duty by the importer. A person with no posting is made
- * primary at the uploaded unit.
+ * Reliever status comes from the sheet, never from other postings.
+ *   - row marked reliever  -> reliever link on this unit (Extra Duty only),
+ *     the guard's primary unit is left untouched / unset here.
+ *   - row not marked       -> the guard is mapped to THIS unit as primary;
+ *     any primary mapping at another unit is demoted so the one-primary rule
+ *     still holds.
  */
 export async function ensureAttendanceUnitMapping(
   candidateId: string,
   unitId: string,
   designationId: string | null,
+  sheetReliever = false,
 ): Promise<AttendanceUnitMapping> {
   const { data: existing } = await supabase
     .from("candidate_units")
@@ -125,62 +128,55 @@ export async function ensureAttendanceUnitMapping(
     .limit(1)
     .maybeSingle();
 
-  if (existing) {
-    const row = existing as {
-      id: string;
-      designation_id: string | null;
-      is_primary: boolean;
-      is_reliever: boolean | null;
-    };
+  const row = existing as {
+    id: string;
+    designation_id: string | null;
+    is_primary: boolean | null;
+    is_reliever: boolean | null;
+  } | null;
+
+  if (row) {
+    const patch: Record<string, unknown> = {};
     const nextDesignation = designationId ?? row.designation_id;
-    if (nextDesignation !== row.designation_id) {
-      const { error } = await supabase
-        .from("candidate_units")
-        .update({
-          designation_id: nextDesignation,
-        })
-        .eq("id", row.id);
+    if (nextDesignation !== row.designation_id) patch["designation_id"] = nextDesignation;
+    if (sheetReliever) {
+      if (row.is_primary === true) patch["is_primary"] = false;
+      if (row.is_reliever !== true) patch["is_reliever"] = true;
+    } else {
+      if (row.is_primary !== true) patch["is_primary"] = true;
+      if (row.is_reliever === true) patch["is_reliever"] = false;
+    }
+    if (Object.keys(patch).length) {
+      const { error } = await supabase.from("candidate_units").update(patch).eq("id", row.id);
       if (error) throw new Error(`Could not map employee for attendance: ${error.message}`);
     }
-    return {
-      mapped: false,
-      isPrimary: row.is_primary,
-      isReliever: !row.is_primary || row.is_reliever === true,
-    };
-  }
-
-  const { data: primaries } = await supabase
-    .from("candidate_units")
-    .select("id")
-    .eq("candidate_id", candidateId)
-    .eq("is_primary", true)
-    .limit(1);
-  const hasPrimary = (primaries ?? []).length > 0;
-  const { data: candidate } = await supabase
-    .from("candidates")
-    .select("unit_id")
-    .eq("id", candidateId)
-    .maybeSingle();
-  const legacyPrimaryUnit = (candidate as { unit_id?: string | null } | null)?.unit_id ?? null;
-
-  // A guard already posted primarily elsewhere is a reliever here. Do not add
-  // a unit mapping: reliever attendance is saved as Extra Duty by the caller,
-  // while the employee's one-and-only primary posting remains untouched.
-  if (hasPrimary || (legacyPrimaryUnit && legacyPrimaryUnit !== unitId)) {
-    return { mapped: false, isPrimary: false, isReliever: true };
+    if (!sheetReliever) await demoteOtherPrimaries(candidateId, unitId);
+    return { mapped: false, isPrimary: !sheetReliever, isReliever: sheetReliever };
   }
 
   const { error } = await supabase.from("candidate_units").insert({
     candidate_id: candidateId,
     unit_id: unitId,
     designation_id: designationId,
-    is_primary: true,
-    is_reliever: false,
+    is_primary: !sheetReliever,
+    is_reliever: sheetReliever,
     sort_order: 0,
   } as never);
   if (error) throw new Error(error.message);
-  return { mapped: true, isPrimary: true, isReliever: false };
+  if (!sheetReliever) await demoteOtherPrimaries(candidateId, unitId);
+  return { mapped: true, isPrimary: !sheetReliever, isReliever: sheetReliever };
 }
+
+/** Keep exactly one primary posting: this unit. */
+async function demoteOtherPrimaries(candidateId: string, unitId: string) {
+  await supabase
+    .from("candidate_units")
+    .update({ is_primary: false } as never)
+    .eq("candidate_id", candidateId)
+    .eq("is_primary", true)
+    .neq("unit_id", unitId);
+}
+
 
 export async function resolveSheetPersonForUnit(opts: {
   unitId: string;
