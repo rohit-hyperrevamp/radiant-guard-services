@@ -99,31 +99,44 @@ async function roleKeyForDesignation(contractId: string | null, designationId: s
 }
 
 /**
- * Make sure the employee is mapped to this unit so they show up on the unit's
- * muster roll. Existing mappings are left untouched (their primary / reliever
- * flags are deliberate). A new mapping becomes primary only when the person has
- * no primary posting anywhere yet.
+ * Make sure the employee is mapped as a regular resource at this unit so both
+ * the muster and the database attendance guard accept the uploaded marks. An
+ * uploaded monthly muster is authoritative evidence that this is not merely an
+ * extra-duty reliever posting. A new mapping becomes primary only when the
+ * person has no primary posting anywhere yet.
  */
-async function ensureUnitMapping(
+export async function ensureAttendanceUnitMapping(
   candidateId: string,
   unitId: string,
   designationId: string | null,
 ): Promise<boolean> {
   const { data: existing } = await supabase
     .from("candidate_units")
-    .select("id, designation_id")
+    .select("id, designation_id, is_reliever")
     .eq("candidate_id", candidateId)
     .eq("unit_id", unitId)
     .limit(1)
     .maybeSingle();
 
   if (existing) {
-    const row = existing as { id: string; designation_id: string | null };
-    if (designationId && !row.designation_id) {
-      await supabase
+    const row = existing as {
+      id: string;
+      designation_id: string | null;
+      is_reliever: boolean | null;
+    };
+    const nextDesignation = designationId ?? row.designation_id;
+    if (row.is_reliever === true || nextDesignation !== row.designation_id) {
+      const { error } = await supabase
         .from("candidate_units")
-        .update({ designation_id: designationId })
+        .update({
+          designation_id: nextDesignation,
+          // The reliever-only DB trigger intentionally erases normal attendance
+          // codes. A person present on the uploaded muster is a regular unit
+          // resource, even when they remain non-primary here.
+          is_reliever: false,
+        })
         .eq("id", row.id);
+      if (error) throw new Error(`Could not map employee for attendance: ${error.message}`);
     }
     return false;
   }
@@ -165,7 +178,7 @@ export async function resolveSheetPersonForUnit(opts: {
   if (!found) found = await findByName(names);
 
   if (found) {
-    const mapped = await ensureUnitMapping(
+    const mapped = await ensureAttendanceUnitMapping(
       found.id,
       unitId,
       ref.designationId ?? found.designation_id ?? null,
@@ -203,7 +216,7 @@ export async function resolveSheetPersonForUnit(opts: {
     .single();
   if (error) throw new Error(`Could not create ${name}: ${error.message}`);
   const candidateId = (created as { id: string; employee_code: string | null }).id;
-  await ensureUnitMapping(candidateId, unitId, ref.designationId);
+  await ensureAttendanceUnitMapping(candidateId, unitId, ref.designationId);
 
   return {
     candidateId,
