@@ -2100,6 +2100,99 @@ function MusterRollPage() {
     if (summaries.length > 1) setOcrSummary(summaries.join(" — "));
   };
 
+  /**
+   * Reads a sheet WITHOUT needing anyone mapped to the unit first. Names,
+   * employee IDs and designations are read straight off the sheet, each person
+   * is matched (or created) and mapped to this unit, then attendance is saved.
+   */
+  const importSheetPeopleWithoutRoster = async (
+    sheetImage: string,
+    onlyNames?: string[],
+  ): Promise<{ cells: number; created: number; mapped: number; people: number }> => {
+    const canonicalCode = new Map<string, string>();
+    for (const c of codes) canonicalCode.set(c.code.toUpperCase(), c.code);
+    const validDates = new Set(periodCells.map((c) => c.date));
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const wanted = (onlyNames ?? []).map(normalize).filter(Boolean);
+
+    const result = await extractMigrationSheetViaApi({
+      imageDataUrl: sheetImage,
+      dates: periodCells.map((c) => c.date),
+      codes: codes.map((c) => ({ code: c.code, label: c.label })),
+      designations: contractDesignations.map((d) => ({
+        id: d.designationId,
+        name: d.designationName,
+      })),
+    });
+
+    const { data: authUser } = await supabase.auth.getUser();
+    const createdBy = authUser.user?.id ?? null;
+    let cells = 0;
+    let created = 0;
+    let mapped = 0;
+    let people = 0;
+
+    for (const emp of result.employees) {
+      if (wanted.length) {
+        const n = normalize(emp.name || "");
+        const c = normalize(emp.employee_code || "");
+        const hit = wanted.some(
+          (t) => (n && (t.includes(n) || n.includes(t))) || (c && t.includes(c)),
+        );
+        if (!hit) continue;
+      }
+      const rows = (emp.days ?? [])
+        .filter(
+          (d) =>
+            validDates.has(d.entry_date) &&
+            d.entry_date <= todayStr &&
+            canonicalCode.has(String(d.code).toUpperCase()),
+        )
+        .map((d) => ({
+          entry_date: d.entry_date,
+          code: canonicalCode.get(String(d.code).toUpperCase())!,
+          ot_hours: Number(d.ot_hours) || 0,
+        }));
+      if (!rows.length) continue;
+
+      const designationId =
+        emp.designation_id ??
+        (contractDesignations.length === 1 ? contractDesignations[0].designationId : null);
+      const resolved = await resolveSheetPersonForUnit({
+        unitId,
+        contractId: contractInfo?.contractId ?? null,
+        ref: {
+          codeTokens: [emp.employee_code, emp.mobile].filter(Boolean) as string[],
+          nameTokens: [emp.name].filter(Boolean) as string[],
+          designationId,
+          designationName: emp.designation_name ?? null,
+        },
+        joiningDate: periodStart,
+        createdBy,
+      });
+      if (!resolved) continue;
+      if (resolved.created) created += 1;
+      else if (resolved.mapped) mapped += 1;
+      people += 1;
+
+      // Sheet-authoritative for this person's period.
+      const { error: delError } = await supabase
+        .from("attendance_entries")
+        .delete()
+        .eq("unit_id", unitId)
+        .eq("candidate_id", resolved.candidateId)
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
+      if (delError) throw delError;
+      await upsertEntries(resolved.candidateId, resolved.designationId, rows);
+      cells += rows.length;
+    }
+
+    await queryClient.invalidateQueries({ queryKey: entriesQK });
+    await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+    return { cells, created, mapped, people };
+  };
+
   const processAttendanceImage = async (imageDataUrl?: string): Promise<string | null> => {
     const sheetImage = imageDataUrl ?? uploadPreview;
     if (!sheetImage) {
