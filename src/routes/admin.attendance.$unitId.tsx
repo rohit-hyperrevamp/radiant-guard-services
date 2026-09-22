@@ -30,6 +30,7 @@ import { z } from "zod";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { withNetworkRetry, networkErrorMessage } from "@/lib/net-retry";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi, extractMigrationSheetViaApi } from "@/lib/sheet-ocr-api";
 import type { MigrationSheetDay } from "@/lib/sheet-ocr-types";
@@ -1652,14 +1653,7 @@ function MusterRollPage() {
 
   // Supabase/PostgREST errors are plain objects, not Error instances — without
   // this the UI collapsed every database rejection into a bare "Failed to save".
-  const saveErrorMessage = (e: unknown): string => {
-    if (e instanceof Error) return e.message;
-    if (e && typeof e === "object") {
-      const err = e as { message?: string; details?: string; hint?: string };
-      return err.message || err.details || err.hint || "Failed to save";
-    }
-    return "Failed to save";
-  };
+  const saveErrorMessage = (e: unknown): string => networkErrorMessage(e, "Failed to save");
 
   const upsertEntries = async (
     candidate_id: string,
@@ -1769,11 +1763,16 @@ function MusterRollPage() {
       ot_hours: r.ot_hours,
     }));
 
-    const { data: savedRows, error } = await supabase
-      .from("attendance_entries")
-      .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" })
-      .select("entry_date,code,ot_hours");
-    if (error) throw error;
+    // A dropped connection ("Failed to fetch") means the write never reached the
+    // database, so it is retried instead of being reported as a save failure.
+    const savedRows = await withNetworkRetry(async () => {
+      const { data, error } = await supabase
+        .from("attendance_entries")
+        .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" })
+        .select("entry_date,code,ot_hours");
+      if (error) throw error;
+      return data;
+    });
     const savedByDate = new Map((savedRows ?? []).map((row) => [row.entry_date, row]));
     const mismatched = capped.filter((row) => {
       const saved = savedByDate.get(row.entry_date);
