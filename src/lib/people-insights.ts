@@ -86,17 +86,30 @@ export function usePeopleInsights(options?: { roleKeys?: readonly string[] }) {
   const q = useQuery({
     queryKey: [
       "people-insights",
-      { canAll, isBranchManager, isFieldOfficer, showSixtyPlus, foUnits: Array.from(foScope.unitIds), branch: branchScope.branchId, roleKeys },
+      {
+        canAll,
+        isBranchManager,
+        isFieldOfficer,
+        showSixtyPlus,
+        foUnits: Array.from(foScope.unitIds),
+        managerUnits: managerUnitIds,
+        branch: branchScope.branchId,
+        roleKeys,
+      },
     ],
     enabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<InsightsPayload> => {
-      // Scope: field officers to their mapped units, branch managers to the
-      // units of their branch. Everyone else relies on row level security.
+      // Scope: field officers to their mapped units, managers to the units of
+      // the field officers reporting to them, branch managers without field
+      // officers to their branch. Everyone else relies on row level security.
       let unitIds: string[] | null = null;
-      if (!canAll) {
+      if (!canAll || managerUnitIds) {
         if (isFieldOfficer) {
-          unitIds = Array.from(foScope.unitIds);
+          unitIds = Array.from<string>(foScope.unitIds);
+          if (unitIds.length === 0) return {};
+        } else if (managerUnitIds) {
+          unitIds = managerUnitIds;
           if (unitIds.length === 0) return {};
         } else if (isBranchManager) {
           const branchId = branchScope.branchId;
@@ -109,6 +122,7 @@ export function usePeopleInsights(options?: { roleKeys?: readonly string[] }) {
           if (unitIds.length === 0) return {};
         }
       }
+
 
       // The whole rolling-12-month computation happens in the database: the
       // browser only ever receives the upcoming entries, never the roster.
