@@ -2760,7 +2760,14 @@ function MusterRollPage() {
       for (const { mr, rows } of byPair.values()) {
         await upsertEntries(mr.candidateId, mr.designationId, rows);
       }
+      for (const pair of autoPairs) {
+        await upsertEntries(pair.candidateId, pair.designationId, pair.rows);
+      }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
+      if (autoPairs.length) {
+        // Newly mapped / created people must appear on the muster immediately.
+        await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+      }
 
       if (designationsNotOnContract.size) {
         toast.warning(
