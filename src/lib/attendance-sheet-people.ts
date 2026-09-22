@@ -56,6 +56,13 @@ const looksLikeCode = (value: string) => /\d/.test(value) && value.trim().length
 const looksLikeName = (value: string) =>
   /[a-zA-Z]/.test(value) && value.replace(/[^a-zA-Z]/g, "").length >= 3;
 
+/** A sheet row is a reliever line only when it says so: "reliever", "(R)", "R -". */
+export const looksLikeRelieverText = (...parts: Array<string | null | undefined>) => {
+  const text = parts.filter(Boolean).join(" ");
+  return /\breliever\b|\brelief\b|\(\s*r\s*\)|\bR\s*[-–]\s/i.test(text);
+};
+
+
 function cleanTokens(tokens: string[]) {
   return Array.from(
     new Set(
