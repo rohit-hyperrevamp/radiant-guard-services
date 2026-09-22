@@ -2776,7 +2776,7 @@ function MusterRollPage() {
         );
       }
 
-      const summary = `${filled} cell${filled === 1 ? "" : "s"} imported from ${uploadFile.name}${clearedStale ? ` · cleared ${clearedStale} stale entr${clearedStale === 1 ? "y" : "ies"}` : ""}${secondaryDesigRowCount ? ` · ${secondaryDesigRowCount} row${secondaryDesigRowCount === 1 ? "" : "s"} on secondary designation` : ""}${unmatchedNames.length ? ` · ${unmatchedNames.length} unmatched row${unmatchedNames.length === 1 ? "" : "s"}` : ""}${designationsNotOnContract.size ? ` · ${designationsNotOnContract.size} designation${designationsNotOnContract.size === 1 ? "" : "s"} not on contract` : ""}`;
+      const summary = `${filled} cell${filled === 1 ? "" : "s"} imported from ${uploadFile.name}${autoMapped ? ` · mapped ${autoMapped} employee${autoMapped === 1 ? "" : "s"} to this unit` : ""}${autoCreated ? ` · created ${autoCreated} new employee${autoCreated === 1 ? "" : "s"}` : ""}${clearedStale ? ` · cleared ${clearedStale} stale entr${clearedStale === 1 ? "y" : "ies"}` : ""}${secondaryDesigRowCount ? ` · ${secondaryDesigRowCount} row${secondaryDesigRowCount === 1 ? "" : "s"} on secondary designation` : ""}${unmatchedNames.length ? ` · ${unmatchedNames.length} unmatched row${unmatchedNames.length === 1 ? "" : "s"}` : ""}${designationsNotOnContract.size ? ` · ${designationsNotOnContract.size} designation${designationsNotOnContract.size === 1 ? "" : "s"} not on contract` : ""}`;
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
