@@ -1150,6 +1150,11 @@ export function FinanceCharter({
                           </span>
                           <AttendanceStatusBadge status={r.status.attendance} />
                           <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
+                          {mode === "invoice" && r.finalInvoice && (
+                            <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
+                              {r.finalInvoice.invoice_no}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
