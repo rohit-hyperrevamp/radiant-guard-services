@@ -1792,6 +1792,26 @@ function MusterRollPage() {
     return capped.length;
   };
 
+  const rowsForAttendanceRole = (
+    rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
+    isReliever: boolean,
+  ) => {
+    if (!isReliever) return rows;
+    return rows.map((row) => {
+      const meta = codeMap.get(row.code);
+      const dutyDays = meta?.counts_as_present
+        ? meta.day_value == null || Number.isNaN(Number(meta.day_value))
+          ? 1
+          : Number(meta.day_value)
+        : 0;
+      return {
+        ...row,
+        code: dutyDays > 0 ? "" : row.code,
+        ot_hours: (Number(row.ot_hours) || 0) + dutyDays,
+      };
+    });
+  };
+
   const confirm = useConfirm();
   const [clearingAll, setClearingAll] = useState(false);
   const handleClearAll = async () => {
@@ -2188,7 +2208,11 @@ function MusterRollPage() {
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
       if (delError) throw delError;
-      await upsertEntries(resolved.candidateId, resolved.designationId, rows);
+      await upsertEntries(
+        resolved.candidateId,
+        resolved.designationId,
+        rowsForAttendanceRole(rows, resolved.isReliever),
+      );
       cells += rows.length;
     }
 
@@ -2446,11 +2470,13 @@ function MusterRollPage() {
         // Normalize every person found on the uploaded muster before writing.
         // Existing reliever links accept only Extra Duty at DB level and would
         // otherwise silently clear all normal attendance codes.
+        const mappingByPair = new Map<string, Awaited<ReturnType<typeof ensureAttendanceUnitMapping>>>();
         await Promise.all(
           Array.from(sheetPairKeys).map(async (pk) => {
             const mr = pairByKey.get(pk);
             if (!mr) return;
-            await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+            const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+            mappingByPair.set(pk, mapping);
           }),
         );
         const { error } = await supabase
@@ -2472,7 +2498,10 @@ function MusterRollPage() {
           await upsertEntries(
             mr.candidateId,
             mr.designationId,
-            rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
+            rowsForAttendanceRole(
+              rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
+              mappingByPair.get(pk)?.isReliever ?? false,
+            ),
           );
         }),
       );
@@ -2822,6 +2851,7 @@ function MusterRollPage() {
       const autoPairs: Array<{
         candidateId: string;
         designationId: string | null;
+        isReliever: boolean;
         rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
       }> = [];
       let autoCreated = 0;
@@ -2860,6 +2890,7 @@ function MusterRollPage() {
               autoPairs.push({
                 candidateId: resolved.candidateId,
                 designationId: resolved.designationId,
+                isReliever: resolved.isReliever,
                 rows: person.rows,
               });
             filled += person.rows.length;
@@ -2886,10 +2917,19 @@ function MusterRollPage() {
       }
 
       for (const { mr, rows } of byPair.values()) {
-        await upsertEntries(mr.candidateId, mr.designationId, rows);
+        const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+        await upsertEntries(
+          mr.candidateId,
+          mr.designationId,
+          rowsForAttendanceRole(rows, mapping.isReliever),
+        );
       }
       for (const pair of autoPairs) {
-        await upsertEntries(pair.candidateId, pair.designationId, pair.rows);
+        await upsertEntries(
+          pair.candidateId,
+          pair.designationId,
+          rowsForAttendanceRole(pair.rows, pair.isReliever),
+        );
       }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       if (autoPairs.length) {
