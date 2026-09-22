@@ -11200,7 +11200,7 @@ function ReportsToPicker({
               </CommandGroup>
             </CommandList>
           </Command>
-        </Popover>
+        </PopoverContent>
       </Popover>
       <p className="mt-1 text-[11px] text-muted-foreground">
         Used for approvals, escalations, and the dashboard "reports to" chip.
