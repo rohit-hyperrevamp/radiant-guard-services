@@ -4975,3 +4975,54 @@ insert into public.invoice_number_registry (state_code, fiscal_year, month_code,
 on conflict (state_code, fiscal_year, invoice_no) do nothing;
 
 commit;
+begin;
+create or replace function public.peek_invoice_number(
+  _state_code text, _invoice_date date default current_date, _client_token text default null
+) returns table (invoice_no text, next_sequence integer, fiscal_year text, month_code text)
+language plpgsql stable security definer set search_path = public as $$
+declare s public.invoice_number_series; fy text; mc text;
+begin
+  fy := public.invoice_fiscal_year(_invoice_date);
+  mc := public.invoice_month_code(_invoice_date);
+  select ns.* into s from public.invoice_number_series ns
+    where ns.state_code = upper(_state_code) and ns.fiscal_year = fy and ns.enabled;
+  if not found then
+    raise exception 'No enabled invoice number series for % in FY %', upper(_state_code), fy;
+  end if;
+  return query select public.build_invoice_number(s.number_prefix, mc, fy, _client_token, s.last_sequence + 1, s.seq_padding),
+    s.last_sequence + 1, fy, mc;
+end $$;
+
+create or replace function public.allocate_invoice_number(
+  _state_code text,
+  _invoice_date date default current_date,
+  _party_name text default null,
+  _client_token text default null,
+  _unit_id uuid default null
+) returns table (invoice_no text, sequence integer, fiscal_year text, month_code text)
+language plpgsql security definer set search_path = public as $$
+declare s public.invoice_number_series; fy text; mc text; nxt integer; num text;
+begin
+  if not (select public.current_user_has_permission('invoicing', null, 'edit'))
+     and not (select public.current_user_has_permission('control_center','invoice_numbering','edit')) then
+    raise exception 'Not permitted to allocate invoice numbers';
+  end if;
+  fy := public.invoice_fiscal_year(_invoice_date);
+  mc := public.invoice_month_code(_invoice_date);
+  select ns.* into s from public.invoice_number_series ns
+    where ns.state_code = upper(_state_code) and ns.fiscal_year = fy and ns.enabled
+    for update;
+  if not found then
+    raise exception 'No enabled invoice number series for % in FY %', upper(_state_code), fy;
+  end if;
+  nxt := s.last_sequence + 1;
+  num := public.build_invoice_number(s.number_prefix, mc, fy, _client_token, nxt, s.seq_padding);
+  update public.invoice_number_series set last_sequence = nxt where id = s.id;
+  insert into public.invoice_number_registry
+    (state_code, fiscal_year, month_code, sequence, client_token, invoice_no, party_name, source, unit_id, issued_on, created_by)
+  values (s.state_code, fy, mc, nxt, nullif(upper(trim(coalesce(_client_token, ''))), ''), num, _party_name, 'system', _unit_id, _invoice_date, auth.uid());
+  return query select num, nxt, fy, mc;
+end $$;
+grant execute on function public.allocate_invoice_number(text, date, text, text, uuid) to authenticated, service_role;
+grant execute on function public.peek_invoice_number(text, date, text) to authenticated, service_role;
+commit;
