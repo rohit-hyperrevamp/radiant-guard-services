@@ -29,6 +29,8 @@
 
 ## Current request
 
+- [x] Match Employees summary tiles to the shared dashboard theme.
+- [x] Make Employees open faster with an instant cached list, progressive paging, retries, and deferred inventory loading.
 - [x] Fix field officer unit visibility dynamically on dashboard and candidate posting.
 - [x] Rename field officer Employees surface to Candidates.
 - [x] Redesign mobile More panel without Menu/X and clipping.
