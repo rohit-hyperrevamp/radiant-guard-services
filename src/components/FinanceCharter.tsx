@@ -193,6 +193,7 @@ export function FinanceCharter({
 
   const codesQ = useQuery({
     queryKey: ["attendance-codes-charter"],
+    enabled: mode === "invoice",
     queryFn: async () => {
       const { data } = await supabase
         .from("attendance_codes" as never)
@@ -254,7 +255,7 @@ export function FinanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
-    enabled: unitIds.length > 0,
+    enabled: mode === "invoice" && unitIds.length > 0,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -479,6 +480,13 @@ export function FinanceCharter({
 
   const exportCsv = () => {
     const rowsForCsv = rows.map((r) => {
+      if (mode === "payroll") {
+        return {
+          Name: r.unit.name || r.unit.code,
+          "Contract ID": r.contractCode,
+          Status: r.status.payroll === "processed" ? "Payroll Processed" : "Payroll Open",
+        };
+      }
       const base = {
         Contract: r.contractCode,
         Organisation: r.unit.customer_name,
@@ -499,11 +507,7 @@ export function FinanceCharter({
           "Margin %": r.marginPct,
         };
       }
-      return {
-        ...base,
-        "Deductions (period to date)": Math.round(r.deductionAmount),
-        "Net payable (period to date)": Math.round(r.netPayrollAmount),
-      };
+      return base;
     });
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
@@ -918,7 +922,9 @@ export function FinanceCharter({
     }
   };
 
-  const loading = entriesQ.isLoading || financeQ.isLoading;
+  const loading = mode === "invoice"
+    ? entriesQ.isLoading || financeQ.isLoading || statusQ.isLoading
+    : statusQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
 
@@ -989,15 +995,6 @@ export function FinanceCharter({
               accent="rose"
             />
           </>
-        )}
-        {mode === "payroll" && (
-          <CharterTile
-            label="Payroll gross to date"
-            sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
-            value={fmtMoneyCompact(totals.payrollAmount)}
-            icon={Wallet}
-            accent="amber"
-          />
         )}
       </CharterTileGrid>
 
@@ -1129,6 +1126,27 @@ export function FinanceCharter({
         <div className="space-y-2">
           {rows.map((r) => {
             const isOpen = !!expanded[r.unit.id];
+            if (mode === "payroll") {
+              return (
+                <Link
+                  key={r.unit.id}
+                  to={linkTo}
+                  params={{ unitId: r.unit.id }}
+                  search={{ start: r.period.start, end: r.period.end }}
+                  className="group flex min-h-16 items-center gap-4 rounded-2xl border border-border/70 bg-card px-3 py-3 transition-colors hover:border-primary/40 sm:px-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold group-hover:text-primary">
+                      {r.unit.name || r.unit.code}
+                    </div>
+                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                      {r.contractCode}
+                    </div>
+                  </div>
+                  <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
+                </Link>
+              );
+            }
             return (
               <div
                 key={r.unit.id}
@@ -1178,9 +1196,11 @@ export function FinanceCharter({
                           {r.unit.name || r.unit.code}
                         </span>
                         <div className="scrollbar-hide mt-1 flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible sm:pb-0">
-                          <span className="hidden shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
-                            {r.actual}/{r.committed} deployed
-                          </span>
+                           {mode === "invoice" && (
+                             <span className="hidden shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
+                               {r.actual}/{r.committed} deployed
+                             </span>
+                           )}
                           <AttendanceStatusBadge status={r.status.attendance} />
                           <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
                           {mode === "invoice" && r.finalInvoice && (
