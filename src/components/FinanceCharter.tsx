@@ -152,6 +152,11 @@ export function FinanceCharter({
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Invoice finalisation: nothing carries a number until the user picks sites and
+  // presses "Generate final invoice".
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [finalOpen, setFinalOpen] = useState(false);
+
 
   // Search, then paginate, then load money for the visible page only. Contract
   // rates, attendance entries and period statuses are all fetched for these 25
