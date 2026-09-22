@@ -90,7 +90,7 @@ async function loadSubtree(managerId: string) {
 }
 
 async function loadUnitsForOfficers(officerIds: string[]) {
-  if (officerIds.length === 0) return new Set<string>();
+  if (officerIds.length === 0) return { unitIds: [] as string[], customerIds: [] as string[] };
   const candidateUnitIds = new Set<string>();
 
   for (const part of chunked(officerIds)) {
