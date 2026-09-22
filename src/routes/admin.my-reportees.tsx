@@ -33,7 +33,13 @@ function initials(name: string) {
 function MyReporteesPage() {
   const { candidateId } = useCurrentUserRole();
   const foScope = useFieldOfficerUnitScope();
-  const unitIds = useMemo(() => Array.from(foScope.unitIds), [foScope.unitIds]);
+  const managerScope = useManagerFieldOfficerScope();
+  // Field officers see their own units; managers see the units of every field
+  // officer reporting to them.
+  const unitIds = useMemo(
+    () => Array.from(foScope.isFieldOfficer ? foScope.unitIds : managerScope.unitIds),
+    [foScope.isFieldOfficer, foScope.unitIds, managerScope.unitIds],
+  );
   const [q, setQ] = useState("");
   const [unitFilter, setUnitFilter] = useState<string>("all");
 
