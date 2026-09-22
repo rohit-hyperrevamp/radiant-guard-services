@@ -411,10 +411,20 @@ export function FinanceCharter({
     () => rows.filter((r) => !r.finalInvoice && r.status.attendance === "approved"),
     [rows],
   );
+  // Invoice numbers are state-driven, so one final invoice can never span two
+  // states: the first pick locks the state for the rest of the selection.
+  const lockedState = useMemo(() => {
+    const first = selectableRows.find((r) => selected[r.unit.id]);
+    return first ? normalizeState(first.unit.billing_state ?? "") : null;
+  }, [selectableRows, selected]);
+  const lockedStateLabel = useMemo(() => {
+    const first = selectableRows.find((r) => selected[r.unit.id]);
+    return first?.unit.billing_state || null;
+  }, [selectableRows, selected]);
   const selectedTargets = useMemo<FinalInvoiceTarget[]>(
     () =>
       selectableRows
-        .filter((r) => selected[r.unit.id])
+        .filter((r) => selected[r.unit.id] && (!lockedState || normalizeState(r.unit.billing_state ?? "") === lockedState))
         .map((r) => ({
           unitId: r.unit.id,
           unitLabel: r.unit.name || r.unit.code,
@@ -425,7 +435,7 @@ export function FinanceCharter({
           periodEnd: r.period.end,
           taxableValue: r.invoiceAmount,
         })),
-    [selectableRows, selected],
+    [selectableRows, selected, lockedState],
   );
 
 
@@ -1065,15 +1075,23 @@ export function FinanceCharter({
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2">
           <Checkbox
             checked={selectedTargets.length > 0 && selectedTargets.length === selectableRows.length}
-            onCheckedChange={(v) =>
-              setSelected(v ? Object.fromEntries(selectableRows.map((r) => [r.unit.id, true])) : {})
-            }
-            aria-label="Select all sites ready to finalise"
+            onCheckedChange={(v) => {
+              if (!v) return setSelected({});
+              const target = lockedState ?? normalizeState(selectableRows[0]?.unit.billing_state ?? "");
+              setSelected(
+                Object.fromEntries(
+                  selectableRows
+                    .filter((r) => normalizeState(r.unit.billing_state ?? "") === target)
+                    .map((r) => [r.unit.id, true]),
+                ),
+              );
+            }}
+            aria-label="Select all sites ready to finalise in this state"
           />
           <span className="text-[12px] font-medium">
             {selectedTargets.length > 0
-              ? `${selectedTargets.length} site${selectedTargets.length > 1 ? "s" : ""} selected`
-              : `Select sites to raise a final invoice (${selectableRows.length} ready)`}
+              ? `${selectedTargets.length} site${selectedTargets.length > 1 ? "s" : ""} selected · ${lockedStateLabel || "state not set"} only`
+              : `Select sites to raise a final invoice (${selectableRows.length} ready) — one state per invoice`}
           </span>
           <div className="flex-1" />
           {selectedTargets.length > 0 && (
@@ -1124,6 +1142,7 @@ export function FinanceCharter({
                   {canFinalise && !r.finalInvoice && r.status.attendance === "approved" && (
                     <div className="flex w-9 shrink-0 items-center justify-center border-r border-border/60">
                       <Checkbox
+                        disabled={!!lockedState && normalizeState(r.unit.billing_state ?? "") !== lockedState}
                         checked={!!selected[r.unit.id]}
                         onCheckedChange={(v) =>
                           setSelected((p) => {
@@ -1133,7 +1152,16 @@ export function FinanceCharter({
                             return next;
                           })
                         }
-                        aria-label={`Select ${r.unit.name || r.unit.code} for final invoice`}
+                        aria-label={
+                          !!lockedState && normalizeState(r.unit.billing_state ?? "") !== lockedState
+                            ? `${r.unit.name || r.unit.code} is in another state — one state per invoice`
+                            : `Select ${r.unit.name || r.unit.code} for final invoice`
+                        }
+                        title={
+                          !!lockedState && normalizeState(r.unit.billing_state ?? "") !== lockedState
+                            ? "Invoices cannot mix states. Clear the selection to pick this state instead."
+                            : undefined
+                        }
                       />
                     </div>
                   )}
