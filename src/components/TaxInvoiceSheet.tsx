@@ -54,6 +54,8 @@ export type TaxInvoiceData = {
   sgstRate: number;
   cgst: number;
   sgst: number;
+  igstRate: number;
+  igst: number;
   roundingOff: number;
   grandTotal: number;
 };
@@ -208,7 +210,14 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(l.amount)}</td>
                 </tr>
               ))}
-              <>
+              {data.igst > 0 ? (
+                <tr>
+                  <td className="border border-border px-2 py-1" />
+                  <td className="border border-border px-2 py-1">IGST @ {data.igstRate}%</td>
+                  <td className="border border-border px-2 py-1" colSpan={4} />
+                  <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.igst)}</td>
+                </tr>
+              ) : <>
                 <tr>
                   <td className="border border-border px-2 py-1" />
                   <td className="border border-border px-2 py-1">CGST @ {data.cgstRate}%</td>
@@ -221,7 +230,7 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   <td className="border border-border px-2 py-1" colSpan={4} />
                   <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.sgst)}</td>
                 </tr>
-              </>
+              </>}
               {Math.abs(data.roundingOff) >= 0.005 && (
                 <tr>
                   <td className="border border-border px-2 py-1" />
@@ -253,10 +262,10 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
               <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider">
                 <th className="border border-border px-2 py-1 text-left">HSN/SAC</th>
                 <th className="border border-border px-2 py-1 text-right">Taxable Value</th>
-                <th className="border border-border px-2 py-1 text-right">CGST Rate</th>
-                <th className="border border-border px-2 py-1 text-right">CGST Amount</th>
-                <th className="border border-border px-2 py-1 text-right">SGST Rate</th>
-                <th className="border border-border px-2 py-1 text-right">SGST Amount</th>
+                <th className="border border-border px-2 py-1 text-right">{data.igst > 0 ? "IGST Rate" : "CGST Rate"}</th>
+                <th className="border border-border px-2 py-1 text-right">{data.igst > 0 ? "IGST Amount" : "CGST Amount"}</th>
+                <th className="border border-border px-2 py-1 text-right">{data.igst > 0 ? "" : "SGST Rate"}</th>
+                <th className="border border-border px-2 py-1 text-right">{data.igst > 0 ? "" : "SGST Amount"}</th>
                 <th className="border border-border px-2 py-1 text-right">Total Tax Amount</th>
               </tr>
             </thead>
@@ -264,23 +273,23 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
               <tr>
                 <td className="border border-border px-2 py-1">{data.lines[0]?.hsnSac ?? "—"}</td>
                 <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.taxableValue)}</td>
-                <td className="border border-border px-2 py-1 text-right">{data.cgstRate}%</td>
-                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.cgst)}</td>
-                <td className="border border-border px-2 py-1 text-right">{data.sgstRate}%</td>
-                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.sgst)}</td>
+                <td className="border border-border px-2 py-1 text-right">{data.igst > 0 ? data.igstRate : data.cgstRate}%</td>
+                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.igst > 0 ? data.igst : data.cgst)}</td>
+                <td className="border border-border px-2 py-1 text-right">{data.igst > 0 ? "" : `${data.sgstRate}%`}</td>
+                <td className="border border-border px-2 py-1 text-right tabular-nums">{data.igst > 0 ? "" : n2(data.sgst)}</td>
                 <td className="border border-border px-2 py-1 text-right tabular-nums">
-                  {n2(data.cgst + data.sgst)}
+                  {n2(data.cgst + data.sgst + data.igst)}
                 </td>
               </tr>
               <tr className="font-semibold">
                 <td className="border border-border px-2 py-1">Total</td>
                 <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.taxableValue)}</td>
                 <td className="border border-border px-2 py-1" />
-                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.cgst)}</td>
+                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.igst > 0 ? data.igst : data.cgst)}</td>
                 <td className="border border-border px-2 py-1" />
-                <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.sgst)}</td>
+                <td className="border border-border px-2 py-1 text-right tabular-nums">{data.igst > 0 ? "" : n2(data.sgst)}</td>
                 <td className="border border-border px-2 py-1 text-right tabular-nums">
-                  {n2(data.cgst + data.sgst)}
+                  {n2(data.cgst + data.sgst + data.igst)}
                 </td>
               </tr>
             </tbody>
@@ -289,7 +298,7 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
 
           <div className="mt-2 border border-border p-2">
             <span className="text-muted-foreground">Tax Amount (in words) : </span>
-            <span className="font-semibold">{inrWords(data.cgst + data.sgst, true)}</span>
+            <span className="font-semibold">{inrWords(data.cgst + data.sgst + data.igst, true)}</span>
           </div>
 
           {/* Footer */}

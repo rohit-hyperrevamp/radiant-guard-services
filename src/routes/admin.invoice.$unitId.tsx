@@ -37,6 +37,7 @@ import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
+import { normalizeState, resolveGstBillingBranch, taxSplit, useGstBillingBranches } from "@/lib/gst-billing";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
@@ -848,8 +849,11 @@ function PayrollUnitPage() {
 
 
   const { data: orgSettings } = useOrgSettings();
-  const COMPANY_STATE = (orgSettings?.company_state ?? "Maharashtra").trim();
+  const { data: gstBranches = [] } = useGstBillingBranches();
+  const supplierBranch = resolveGstBillingBranch(gstBranches, unitState, orgSettings);
+  const COMPANY_STATE = (supplierBranch?.stateName ?? orgSettings?.company_state ?? "Maharashtra").trim();
   const COMPANY_STATE_SHORT = COMPANY_STATE.slice(0, 4);
+  const isIntraState = normalizeState(unitState) === normalizeState(COMPANY_STATE);
 
   // ---------------------------------------------------------------------
   // SIMPLIFIED INVOICE MODEL
@@ -994,9 +998,11 @@ function PayrollUnitPage() {
   const activeExtras = extraCharges.filter((c) => c.enabled);
   const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
   const taxableValue = r2(totals.actualTotal + extrasTotal);
-  const cgstAmount = r2(taxableValue * 0.09);
-  const sgstAmount = r2(taxableValue * 0.09);
-  const gstAmount = r2(cgstAmount + sgstAmount);
+  const tax = taxSplit(taxableValue, isIntraState);
+  const cgstAmount = tax.cgst;
+  const sgstAmount = tax.sgst;
+  const igstAmount = tax.igst;
+  const gstAmount = tax.total;
   const grandTotal = r2(taxableValue + gstAmount);
   const roundedGrandTotal = Math.round(grandTotal);
   const roundingOff = r2(roundedGrandTotal - grandTotal);
@@ -1040,16 +1046,16 @@ function PayrollUnitPage() {
     const monthIdx = Number(start.split("-")[1]) - 1;
     const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][monthIdx] ?? "";
     return {
-      invoiceNumber: `${orgSettings?.company_state_code ?? ""}-${monthAbbr}${start.slice(2, 4)}-${(unit?.code ?? "UNIT").toUpperCase()}`,
+      invoiceNumber: `${supplierBranch?.stateCode ?? orgSettings?.company_state_code ?? ""}-${monthAbbr}${start.slice(2, 4)}-${(unit?.code ?? "UNIT").toUpperCase()}`,
       invoiceDate: fmtPretty(end),
       periodLabel: `${start.split("-").reverse().join("-")} To ${end.split("-").reverse().join("-")}`,
       company: {
         name: orgSettings?.company_name ?? "",
-        registeredAddress: orgSettings?.registered_address ?? "",
-        corporateAddress: orgSettings?.corporate_address ?? "",
-        gstin: orgSettings?.company_gstin ?? "",
+        registeredAddress: supplierBranch?.registeredAddress ?? orgSettings?.registered_address ?? "",
+        corporateAddress: supplierBranch?.corporateAddress ?? orgSettings?.corporate_address ?? "",
+        gstin: supplierBranch?.gstin ?? orgSettings?.company_gstin ?? "",
         stateName: COMPANY_STATE,
-        stateCode: orgSettings?.company_state_code ?? "",
+        stateCode: supplierBranch?.stateCode ?? orgSettings?.company_state_code ?? "",
         cin: orgSettings?.cin ?? "",
         pan: orgSettings?.pan ?? "",
         email: orgSettings?.email ?? "",
@@ -1113,11 +1119,13 @@ function PayrollUnitPage() {
       sgstRate: GST_RATE / 2,
       cgst: cgstAmount,
       sgst: sgstAmount,
+      igstRate: isIntraState ? 0 : GST_RATE,
+      igst: igstAmount,
       roundingOff,
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, roundingOff, roundedGrandTotal, start, end]);
+  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end]);
 
 
   /**
@@ -1173,9 +1181,8 @@ function PayrollUnitPage() {
       const totalBilling = r2(regular + otBilling + otAmount);
       // The MIS always shows both state-tax components and their combined GST.
       // Grand Total adds GST once: CGST + SGST, which equals IGST.
-      const cgst = r2(totalBilling * 0.09);
-      const sgst = r2(totalBilling * 0.09);
-      const igst = r2(cgst + sgst);
+      const lineTax = taxSplit(totalBilling, isIntraState);
+      const { cgst, sgst, igst } = lineTax;
       // Annexure sheets split duties between staff on the starting rate and
       // staff who have completed a year of service (incremented rate).
       const joined = String(r.joiningDate ?? "").slice(0, 10);
@@ -1211,7 +1218,7 @@ function PayrollUnitPage() {
           cgst,
           sgst,
           igst,
-          grand_total: r2(totalBilling + igst),
+          grand_total: r2(totalBilling + lineTax.total),
           // Billing-annexure fields (site-summary formats)
           cli_id: unit?.code ?? "",
           vendor_name: entity,
@@ -1228,8 +1235,8 @@ function PayrollUnitPage() {
           regular_ot_hours: hasIncrement ? 0 : otHours,
           increment_ot_hours: hasIncrement ? otHours : 0,
           service_charge_claimed: totalBilling,
-          gst_18: igst,
-          invoice_value: r2(totalBilling + igst),
+          gst_18: lineTax.total,
+          invoice_value: r2(totalBilling + lineTax.total),
           total_duties: r2(workingDays + otDays),
           total_ot_hours: otHours,
           remarks: "",
@@ -1490,11 +1497,11 @@ function PayrollUnitPage() {
             className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
             title={`Company state: ${COMPANY_STATE} · Client state: ${unitState ?? "—"}`}
           >
-            CGST 9% + SGST 9%
+            {isIntraState ? "CGST 9% + SGST 9%" : "IGST 18%"}
           </span>
-          {orgSettings?.company_gstin && (
+          {(supplierBranch?.gstin ?? orgSettings?.company_gstin) && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 font-mono font-semibold tracking-wider text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
-              Company GSTIN: {orgSettings.company_gstin}
+              Company GSTIN: {supplierBranch?.gstin ?? orgSettings?.company_gstin}
             </span>
           )}
           {unit?.gstin && (
@@ -1517,8 +1524,10 @@ function PayrollUnitPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label={`CGST @ ${GST_RATE / 2}%`} value={fmtINR(cgstAmount)} />
-          <Stat label={`SGST @ ${GST_RATE / 2}%`} value={fmtINR(sgstAmount)} />
+          {isIntraState ? <>
+            <Stat label={`CGST @ ${GST_RATE / 2}%`} value={fmtINR(cgstAmount)} />
+            <Stat label={`SGST @ ${GST_RATE / 2}%`} value={fmtINR(sgstAmount)} />
+          </> : <Stat label={`IGST @ ${GST_RATE}%`} value={fmtINR(igstAmount)} />}
           <Stat label={`Total GST @ ${GST_RATE}%`} value={fmtINR(gstAmount)} />
           <Stat label="Invoice grand total" value={fmtINR(grandTotal)} tone="emerald" />
         </div>

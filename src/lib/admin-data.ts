@@ -17,6 +17,13 @@ export type Branch = {
   name: string;
   description: string;
   stateId: string;
+  gstin: string;
+  registeredAddress: string;
+  corporateAddress: string;
+  gstStateName: string;
+  gstStateCode: string;
+  isGstBillingBranch: boolean;
+  isGstDefault: boolean;
 };
 
 export type CustomerStatus = "active" | "inactive";
@@ -212,14 +219,21 @@ export function useBranches() {
     queryFn: async (): Promise<Branch[]> => {
       const { data, error } = await supabase
         .from("branches")
-        .select("id, code, name, description, state_id");
+        .select("id, code, name, description, state_id, gstin, registered_address, corporate_address, gst_state_name, gst_state_code, is_gst_billing_branch, is_gst_default" as never);
       if (error) throw error;
-      return (data ?? []).map((r) => ({
-        id: r.id,
-        code: r.code,
-        name: r.name ?? "",
-        description: r.description ?? "",
-        stateId: r.state_id,
+      return ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
+        id: String(r.id ?? ""),
+        code: String(r.code ?? ""),
+        name: String(r.name ?? ""),
+        description: String(r.description ?? ""),
+        stateId: String(r.state_id ?? ""),
+        gstin: String(r.gstin ?? ""),
+        registeredAddress: String(r.registered_address ?? ""),
+        corporateAddress: String(r.corporate_address ?? ""),
+        gstStateName: String(r.gst_state_name ?? ""),
+        gstStateCode: String(r.gst_state_code ?? ""),
+        isGstBillingBranch: Boolean(r.is_gst_billing_branch),
+        isGstDefault: Boolean(r.is_gst_default),
       }));
     },
   });
@@ -236,7 +250,14 @@ export function useBranches() {
         name: data.name.trim(),
         description: data.description.trim(),
         state_id: data.stateId,
-      });
+        gstin: data.gstin.trim() || null,
+        registered_address: data.registeredAddress.trim() || null,
+        corporate_address: data.corporateAddress.trim() || null,
+        gst_state_name: data.gstStateName.trim() || null,
+        gst_state_code: data.gstStateCode.trim() || null,
+        is_gst_billing_branch: data.isGstBillingBranch,
+        is_gst_default: data.isGstDefault,
+      } as never);
       if (error) throw error;
       void logActivity({ module: "Branch Manager", action: "create", entityType: "branches", entityLabel: data.name.trim() || code, details: data as unknown as Record<string, unknown> });
     },
@@ -255,7 +276,14 @@ export function useBranches() {
           name: data.name.trim(),
           description: data.description.trim(),
           state_id: data.stateId,
-        })
+          gstin: data.gstin.trim() || null,
+          registered_address: data.registeredAddress.trim() || null,
+          corporate_address: data.corporateAddress.trim() || null,
+          gst_state_name: data.gstStateName.trim() || null,
+          gst_state_code: data.gstStateCode.trim() || null,
+          is_gst_billing_branch: data.isGstBillingBranch,
+          is_gst_default: data.isGstDefault,
+        } as never)
         .eq("id", id);
       if (error) throw error;
       void logActivity({ module: "Branch Manager", action: "update", entityType: "branches", entityId: id, entityLabel: data.name.trim() || code, details: data as unknown as Record<string, unknown> });

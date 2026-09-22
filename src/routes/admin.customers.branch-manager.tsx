@@ -348,6 +348,8 @@ function BranchFormDialog({
   const [code, setCode] = useState("");
   const [stateId, setStateId] = useState("");
   const [description, setDescription] = useState("");
+  const [gstin, setGstin] = useState("");
+  const [registeredAddress, setRegisteredAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // When editing, the branch's own state must remain selectable.
@@ -369,10 +371,14 @@ function BranchFormDialog({
       setCode(editing.code);
       setStateId(editing.stateId);
       setDescription(editing.description);
+      setGstin(editing.gstin);
+      setRegisteredAddress(editing.registeredAddress);
     } else {
       setCode(nextSuggestedCode(branches));
       setStateId("");
       setDescription("");
+      setGstin("");
+      setRegisteredAddress("");
     }
     setError(null);
   }, [open, editing, branches]);
@@ -400,6 +406,13 @@ function BranchFormDialog({
               name: selectedState?.name ?? "",
               description,
               stateId,
+              gstin,
+              registeredAddress,
+              corporateAddress: editing?.corporateAddress ?? "",
+              gstStateName: selectedState?.name ?? "",
+              gstStateCode: gstin.slice(0, 2),
+              isGstBillingBranch: Boolean(gstin.trim()),
+              isGstDefault: (selectedState?.name ?? "").toLowerCase() === "maharashtra",
             });
             if (err) setError(err);
             else onOpenChange(false);
@@ -460,6 +473,17 @@ function BranchFormDialog({
               rows={3}
             />
           </div>
+
+          <section className="modern-form-section grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="branch-gstin">GSTIN</Label>
+              <Input id="branch-gstin" value={gstin} maxLength={15} onChange={(e) => setGstin(e.target.value.toUpperCase())} placeholder="GST registration number" className="font-mono" />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="branch-gst-address">GST registered address</Label>
+              <Textarea id="branch-gst-address" value={registeredAddress} onChange={(e) => setRegisteredAddress(e.target.value)} placeholder="Address shown on invoices" rows={3} />
+            </div>
+          </section>
 
           <div className="rounded-xl border border-dashed border-border bg-secondary/40 p-3">
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
