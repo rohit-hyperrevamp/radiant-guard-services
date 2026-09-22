@@ -135,7 +135,6 @@ function PayrollUnitsPage() {
               query={q}
               onQueryChange={setQ}
               organizationCount={summary.organizations}
-              activeEmployees={summary.activeEmployees}
               windowsByUnit={windowsByUnit}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
