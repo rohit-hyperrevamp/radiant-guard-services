@@ -416,3 +416,12 @@
 - [x] Reportees page and people insights scoped
 - [x] Attendance, payroll, invoice, unit and organization lists scoped
 - [x] Multiple field officers per unit (already supported via employee_scope_assignments; unique key allows many per unit)
+
+## End-to-end core screen loading reliability
+
+- [ ] Bound authentication and shared data requests; add visible retry states.
+- [ ] Consolidate manager and Field Officer scope loading in production.
+- [ ] Remove duplicate/unbounded list requests across Dashboard, Clients, Contracts, and Employees.
+- [ ] Flatten and protect Attendance, Payroll, and Invoice loading paths.
+- [ ] Optimize measured production functions and supporting indexes.
+- [ ] Validate production timings, TypeScript, and live production behavior.
