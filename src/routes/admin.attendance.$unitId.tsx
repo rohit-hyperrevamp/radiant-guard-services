@@ -3364,7 +3364,8 @@ function MusterRollPage() {
       return;
     }
     setExtraRows((prev) => new Set(prev).add(k));
-    const empName = (employees ?? []).find((e) => e.id === addCand)?.full_name ?? "";
+    setManualRosterIds((prev) => new Set(prev).add(addCand));
+    const empName = (rosterEmployees ?? []).find((e) => e.id === addCand)?.full_name ?? "";
     const dName =
       contractDesignations.find((d) => d.designationId === addDesig)?.designationName ?? "";
     toast.success(`Added row: ${empName} — ${dName}`);
