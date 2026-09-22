@@ -362,13 +362,20 @@ function AdminLayout() {
   useEffect(() => {
     if (!isReady || !user || isSuperAdmin) return;
     let alive = true;
+    let strikes = 0;
     const check = async () => {
       try {
         const { data } = await supabase.rpc("is_current_employee_active" as never);
         if (!alive) return;
         if (data === false) {
+          // Two consecutive definite "disabled" answers before signing out, so a
+          // single flaky call can never log an active user out.
+          strikes += 1;
+          if (strikes < 2) return;
           toast.error("Your access has been disabled. Signing you out.");
           logout();
+        } else if (data === true) {
+          strikes = 0;
         }
       } catch { /* ignore transient */ }
     };
