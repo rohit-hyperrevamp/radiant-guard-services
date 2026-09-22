@@ -512,8 +512,8 @@ function AdminLayout() {
     const base = groups
       .filter((g) => {
         if (g.key === "field-sense") {
-          // Field officers always see their own Day Patrol dashboard.
-          // Other roles need RBAC access to the field_sense module.
+          // Field officers use the site visit workflow without the Radar map.
+          // Other roles need RBAC access to the field_sense module and map.
           return isFieldOfficer || isSuperAdmin || can("field_sense");
         }
         // Leadership-only analytics surfaces — hidden from field officers and
@@ -540,7 +540,7 @@ function AdminLayout() {
             // FOs only see the Day Patrol dashboard — no Team/Expenses/Reports.
             kids = kids
               .filter((c) => c.to === "/admin/field-sense")
-              .map((c) => ({ ...c, label: "Day Patrol" }));
+              .map((c) => ({ ...c, label: "Site Visits" }));
           } else if (!isSuperAdmin) {
             kids = kids.filter((c) => !c.sub || canSub("field_sense", c.sub));
           }
@@ -849,7 +849,7 @@ function AdminLayout() {
               }));
           }
           // Build primary destinations in priority order, filtered by permissions.
-          // FO gets exactly 3 tiles (Dashboard, Radar, Candidates) + More.
+          // FO gets exactly 3 tiles (Dashboard, Site Visits, Candidates) + More.
           const priorityKeys = isFieldOfficer
             ? ["dashboard", "field-sense", "employees"]
             : ["dashboard", "employees", "attendance", "payroll", "invoice", "inventory", "organizations"];
@@ -881,7 +881,7 @@ function AdminLayout() {
               { key: "fo-dashboard", to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard, active: isActive("/admin/field-dashboard") },
               { key: "fo-candidates", to: "/admin/employees", label: "Candidates", icon: UserPlus, active: isActive("/admin/employees") },
               { key: "fo-attendance", to: "/admin/attendance", label: "Attendance", icon: ClipboardList, active: isActive("/admin/attendance") },
-              { key: "fo-radar", to: "/admin/field-sense", label: "Radar", icon: Radio, active: isActive("/admin/field-sense") },
+               { key: "fo-radar", to: "/admin/field-sense", label: "Site Visits", icon: MapPin, active: isActive("/admin/field-sense") },
               { key: "fo-uniform", to: "/admin/inventory", label: "Uniform", icon: Boxes, active: isActive("/admin/inventory") },
               { key: "fo-my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") },
             ]

@@ -439,6 +439,7 @@
 - [x] Compact Employees totals and replace long client names with hoverable client IDs.
 - [x] Remove approval cycle health, today's committed attendance, and workforce deployment panels from leadership dashboards.
 - [x] Remove all in-app status toast pop-ups while preserving push notifications.
+- [x] Remove the map from Field Officer site visits; keep Radar maps restricted to permitted control-center users.
 
 ## State-based GST branches and invoicing
 
