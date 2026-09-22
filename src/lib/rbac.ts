@@ -261,7 +261,9 @@ export function useCurrentPermissions(): {
   };
 
   return {
-    isLoading: !isSuperAdmin && (roleQ.isLoading || permsQ.isLoading),
+    // Cached values prevent blank screens, but routing must wait for the live
+    // role and permission reads so an old device cache cannot select a stale dashboard.
+    isLoading: !isSuperAdmin && (roleQ.isLoading || roleQ.isFetching || permsQ.isLoading || permsQ.isFetching),
     isSuperAdmin,
     isAdminConsole: isSuperAdmin || isAdminConsoleRole(roleKey),
     isFieldOfficer: !isSuperAdmin && isFieldOfficerRole(roleKey),

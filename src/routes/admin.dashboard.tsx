@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/role-keys";
 import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
 import { fmtINR, computeWages, type ContractResourceLike } from "@/lib/payroll-calc";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -195,14 +196,7 @@ function DashboardPage() {
       />
     ) : null;
   const showInventoryDashboard =
-    can("inventory") &&
-    !can("organizations") &&
-    !can("contracts") &&
-    !can("employees") &&
-    !can("vehicles") &&
-    !can("attendance") &&
-    !can("payroll") &&
-    !can("invoice");
+    roleKey === ROLE_KEYS.INVENTORY_MANAGER || roleKey === ROLE_KEYS.INVENTORY;
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();

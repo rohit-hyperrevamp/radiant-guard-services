@@ -1,18 +1,17 @@
 import { useCurrentPermissions } from "@/lib/rbac";
-import { ROLE_KEYS } from "@/lib/role-keys";
+import { OPERATIONS_ROLES, ROLE_KEYS } from "@/lib/role-keys";
 
 /**
  * Operations focus.
  *
  * Roles whose work is field operations (VP Operations, Operations Manager and
- * any future subset role) hold Radar access but no payroll or invoicing. That
- * permission shape — never a hardcoded role name — decides whether the
- * operations dashboard renders instead of the finance-oriented one.
+ * any future operations role) use the operations dashboard. Dashboard identity
+ * comes from the verified role, not a temporarily stale permission shape.
  */
 export function useOperationsFocus(): boolean {
-  const { can, isSuperAdmin } = useCurrentPermissions();
+  const { roleKey, isSuperAdmin } = useCurrentPermissions();
   if (isSuperAdmin) return false;
-  return can("field_sense") && !can("payroll") && !can("invoice");
+  return !!roleKey && OPERATIONS_ROLES.has(roleKey);
 }
 
 /**

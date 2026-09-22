@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Hash, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, FileSpreadsheet, HandCoins, Languages, LogOut, MapPin, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { useCurrentPermissions } from "@/lib/rbac";
+import { RBAC_MODULES } from "@/lib/rbac-modules";
 
 export const Route = createFileRoute("/admin/control-center")({
   head: () => ({
@@ -224,6 +226,19 @@ const tiles: Tile[] = [
 ];
 
 function ControlCenterDashboard() {
+  const { can, canSub, isSuperAdmin } = useCurrentPermissions();
+  const visibleTiles = tiles.filter((tile) => {
+    if (isSuperAdmin) return true;
+    if (tile.to === "/admin/rbac") return can("rbac");
+    const permission = RBAC_MODULES.flatMap((module) =>
+      module.subModules.map((sub) => ({ module: module.key, sub })),
+    ).find(({ sub }) => sub.path === tile.to);
+    if (permission) return canSub(permission.module, permission.sub.key);
+    const module = RBAC_MODULES.find((item) => item.path === tile.to);
+    return module ? can(module.key) : false;
+  });
+  const canViewSystemLogs = isSuperAdmin || canSub("control_center", "system_logs");
+
   return (
     <div className="space-y-3 sm:space-y-5">
       <div className="relative">
@@ -232,19 +247,21 @@ function ControlCenterDashboard() {
           description="App settings and rules."
           crumbs={[{ label: "Control Center" }]}
         />
-        <Link
-          to="/admin/system-logs"
-          aria-label="System Logs"
-          title="System Logs"
-          className="mobile-glass-control group absolute right-1 top-1 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/80 text-foreground/80 transition-colors hover:border-accent/40 hover:bg-accent/10 hover:text-accent sm:right-0 sm:top-0 sm:w-auto sm:gap-2 sm:rounded-full sm:px-3 sm:text-xs"
-        >
-          <Settings className="h-4 w-4 transition-transform group-hover:rotate-45" />
-          <span className="hidden sm:inline">System Logs</span>
-        </Link>
+        {canViewSystemLogs && (
+          <Link
+            to="/admin/system-logs"
+            aria-label="System Logs"
+            title="System Logs"
+            className="mobile-glass-control group absolute right-1 top-1 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/80 text-foreground/80 transition-colors hover:border-accent/40 hover:bg-accent/10 hover:text-accent sm:right-0 sm:top-0 sm:w-auto sm:gap-2 sm:rounded-full sm:px-3 sm:text-xs"
+          >
+            <Settings className="h-4 w-4 transition-transform group-hover:rotate-45" />
+            <span className="hidden sm:inline">System Logs</span>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-3">
-        {tiles.map((tile) => (
+        {visibleTiles.map((tile) => (
           <Link
             key={tile.to}
             to={tile.to}
