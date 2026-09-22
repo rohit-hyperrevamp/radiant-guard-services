@@ -438,6 +438,7 @@
 - [x] Remove per-keystroke Employees search requests and the yellow search focus treatment.
 - [x] Compact Employees totals and replace long client names with hoverable client IDs.
 - [x] Remove approval cycle health, today's committed attendance, and workforce deployment panels from leadership dashboards.
+- [x] Remove all in-app status toast pop-ups while preserving push notifications.
 
 ## State-based GST branches and invoicing
 
