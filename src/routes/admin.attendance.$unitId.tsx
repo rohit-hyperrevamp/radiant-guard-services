@@ -2509,6 +2509,7 @@ function MusterRollPage() {
         }),
       );
       await queryClient.invalidateQueries({ queryKey: entriesQK });
+      await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
 
       setUncertainCells((prev) => {
         const next = new Set(prev);
@@ -2521,11 +2522,7 @@ function MusterRollPage() {
       // and save their attendance — never ask the user to map first.
       let auto = { cells: 0, created: 0, mapped: 0, people: 0 };
       if (result.unmatched_names.length) {
-        try {
-          auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
-        } catch {
-          auto = { cells: 0, created: 0, mapped: 0, people: 0 };
-        }
+        auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
       }
       const stillUnmatched = Math.max(0, result.unmatched_names.length - auto.people);
       const summary = `${confidentCount + auto.cells} cell${confidentCount + auto.cells === 1 ? "" : "s"} auto-filled · ${uncertainCount} flagged for review${totalsMismatchPairs.size ? ` · ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"} marked for totals review` : ""}${auto.mapped ? ` · mapped ${auto.mapped} employee${auto.mapped === 1 ? "" : "s"} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}${stillUnmatched ? ` · ${stillUnmatched} unmatched row${stillUnmatched === 1 ? "" : "s"}` : ""}`;
@@ -2931,10 +2928,8 @@ function MusterRollPage() {
         );
       }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
-      if (autoPairs.length) {
-        // Newly mapped / created people must appear on the muster immediately.
-        await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
-      }
+      // Mapping and designation changes must appear on the muster immediately.
+      await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
 
       if (designationsNotOnContract.size) {
         toast.warning(
