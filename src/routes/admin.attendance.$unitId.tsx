@@ -2695,6 +2695,7 @@ function MusterRollPage() {
         tokens: string[];
         designationId: string | null;
         designationName: string | null;
+        isReliever: boolean;
         rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
       }> = [];
 
