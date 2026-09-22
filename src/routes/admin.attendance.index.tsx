@@ -97,11 +97,11 @@ function AttendanceUnitsPage() {
   });
 
 
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
   const rawUnits = data?.units ?? [];
   const units = useMemo(
-    () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
-    [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
+    () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
+    [rawUnits, foScope.isScoped, foScope.unitIds],
   );
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
