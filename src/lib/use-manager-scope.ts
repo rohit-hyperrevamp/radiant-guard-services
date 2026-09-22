@@ -110,14 +110,24 @@ async function loadUnitsForOfficers(officerIds: string[]) {
 
   // Radiant's own non-billable offices are payroll homes, not work sites.
   const unitIds = new Set<string>();
+  const customerIds = new Set<string>();
   for (const part of chunked([...candidateUnitIds])) {
-    const { data, error } = await supabase.from("units").select("id,is_billable").in("id", part);
+    const { data, error } = await supabase
+      .from("units")
+      .select("id,is_billable,customer_id")
+      .in("id", part);
     if (error) throw error;
-    for (const row of ((data ?? []) as unknown as Array<{ id: string; is_billable: boolean | null }>)) {
-      if (row.is_billable !== false) unitIds.add(row.id);
+    for (const row of ((data ?? []) as unknown as Array<{
+      id: string;
+      is_billable: boolean | null;
+      customer_id: string | null;
+    }>)) {
+      if (row.is_billable === false) continue;
+      unitIds.add(row.id);
+      if (row.customer_id) customerIds.add(row.customer_id);
     }
   }
-  return unitIds;
+  return { unitIds: [...unitIds], customerIds: [...customerIds] };
 }
 
 /**
