@@ -424,7 +424,7 @@ export function AttendanceCharter({
         <CharterTile label="Clients" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
         <CharterTile
           label="Attendance"
-          sub="total sheets, this page"
+          sub="sites in this payroll window"
           countTo={sheets.total}
           icon={ClipboardList}
           accent="lime"
