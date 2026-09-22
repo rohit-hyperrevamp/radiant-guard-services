@@ -147,13 +147,14 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const fieldOfficerIds = await loadSubtree(candidateId!);
-      const unitIds = await loadUnitsForOfficers([...fieldOfficerIds]);
-      return { fieldOfficerIds: [...fieldOfficerIds], unitIds: [...unitIds] };
+      const { unitIds, customerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
+      return { fieldOfficerIds: [...fieldOfficerIds], unitIds, customerIds };
     },
   });
 
   const fieldOfficerIds = useMemo(() => new Set(q.data?.fieldOfficerIds ?? []), [q.data]);
   const unitIds = useMemo(() => new Set(q.data?.unitIds ?? []), [q.data]);
+  const customerIds = useMemo(() => new Set(q.data?.customerIds ?? []), [q.data]);
 
   return {
     isLoading: roleLoading || (enabled && q.isLoading),
@@ -161,5 +162,35 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     candidateId,
     fieldOfficerIds,
     unitIds,
+    customerIds,
+  };
+}
+
+/**
+ * Unit scope for list screens: a field officer's own units, or — for a manager
+ * with field officers reporting to them — the units their officers cover.
+ * `isScoped` false means the screen keeps its company-wide reach.
+ */
+export function useOperationalUnitScope(): {
+  isLoading: boolean;
+  isScoped: boolean;
+  unitIds: Set<string>;
+  customerIds: Set<string>;
+} {
+  const foScope = useFieldOfficerUnitScope();
+  const managerScope = useManagerFieldOfficerScope();
+  if (foScope.isFieldOfficer) {
+    return {
+      isLoading: foScope.isLoading,
+      isScoped: true,
+      unitIds: foScope.unitIds,
+      customerIds: foScope.customerIds,
+    };
+  }
+  return {
+    isLoading: managerScope.isLoading,
+    isScoped: managerScope.isScoped,
+    unitIds: managerScope.unitIds,
+    customerIds: managerScope.customerIds,
   };
 }
