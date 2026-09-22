@@ -140,8 +140,17 @@ export function FinalInvoiceDialog({
         void logActivity({
           module: "Invoicing",
           action: "create",
-          summary: `Final invoice ${result.invoice_no} generated for ${g.customerName} (${g.targets.length} site${g.targets.length > 1 ? "s" : ""})`,
-        }).catch(() => undefined);
+          entityType: "final_invoice",
+          entityId: result.final_invoice_id,
+          entityLabel: result.invoice_no,
+          details: {
+            party: g.customerName,
+            state: g.billingState,
+            units: g.targets.map((t) => t.unitLabel),
+            period: `${g.periodStart} to ${g.periodEnd}`,
+            invoice_date: invoiceDate,
+          },
+        });
       }
       await qc.invalidateQueries({ queryKey: [FINAL_INVOICE_QK] });
       await qc.invalidateQueries({ queryKey: ["invoice-number-series"] });
