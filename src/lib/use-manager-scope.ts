@@ -81,7 +81,9 @@ async function loadSubtree(managerId: string) {
       if (p.role_key === ROLE_KEYS.FIELD_OFFICER && usable(p)) fieldOfficerIds.add(p.id);
     }
     // Guards never manage anyone, so stopping there keeps the walk small.
-    frontier = people.filter((p) => p.role_key !== ROLE_KEYS.GUARD).map((p) => p.id);
+    frontier = people
+      .filter((p) => p.role_key !== ROLE_KEYS.GUARD && p.role_key !== ROLE_KEYS.SECURITY_GUARD)
+      .map((p) => p.id);
   }
 
   return fieldOfficerIds;
