@@ -37,6 +37,36 @@ export function readStoredAuthUser(): AuthUser | null {
   }
 }
 
+// A session is only ever abandoned when the user taps Log out. Everything else
+// (offline refresh, background app, flaky network, slow storage broker) is
+// treated as recoverable so a refresh can never silently sign somebody out.
+let manualSignOut = false;
+const isAuthHardFailure = (message: string) => {
+  const m = message.toLowerCase();
+  return (
+    m.includes("invalid refresh token") ||
+    m.includes("refresh token not found") ||
+    m.includes("already used") ||
+    m.includes("user not found") ||
+    m.includes("user banned")
+  );
+};
+
+/** Best-effort session recovery; resolves true when a session is live. */
+async function recoverSession(attempts = 3): Promise<boolean> {
+  for (let i = 0; i < attempts; i++) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) return true;
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.data.session?.user) return true;
+    const message = refreshed.error?.message ?? "";
+    // A genuinely revoked/expired refresh token is the only reason to give up.
+    if (message && isAuthHardFailure(message)) return false;
+    await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+  }
+  return false;
+}
+
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());
@@ -78,6 +108,16 @@ async function authUserFromSession(): Promise<AuthUser | null> {
   } = await supabase.auth.getSession();
 
   if (!session?.user) {
+    const stored = readStoredAuthUser();
+    // Storage brokering / token refresh can be momentarily unavailable. Try to
+    // bring the session back before treating the user as signed out.
+    if (stored && !manualSignOut) {
+      const ok = await recoverSession();
+      if (ok) return stored;
+      // Still no session but nothing proved the login invalid — stay signed in
+      // and let the next refresh attempt recover it.
+      return stored;
+    }
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(STORAGE_KEY);
     }
@@ -191,10 +231,29 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
 
       if (!session?.user) {
+        const stored = readStoredAuthUser();
+        // Only an explicit Log out ends the session. A null session from a
+        // failed/expired refresh is recovered in the background.
+        if (stored && !manualSignOut && event !== "SIGNED_OUT") {
+          setUser(stored);
+          setIsReady(true);
+          void recoverSession();
+          return;
+        }
+        if (stored && !manualSignOut && event === "SIGNED_OUT") {
+          setUser(stored);
+          setIsReady(true);
+          void recoverSession().then((ok) => {
+            if (!active || ok) return;
+            window.localStorage.removeItem(STORAGE_KEY);
+            setUser(null);
+          });
+          return;
+        }
         window.localStorage.removeItem(STORAGE_KEY);
         setUser(null);
         setIsReady(true);
@@ -225,8 +284,26 @@ export function useAuth() {
       setIsReady(true);
     });
 
+    // Keep the session warm: phones suspend timers while the app is in the
+    // background, so refresh on resume, on reconnect, and periodically.
+    const keepAlive = () => {
+      if (!active || manualSignOut || !readStoredAuthUser()) return;
+      void recoverSession(1);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") keepAlive();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", keepAlive);
+    window.addEventListener("online", keepAlive);
+    const keepAliveTimer = setInterval(keepAlive, 10 * 60_000);
+
     return () => {
       active = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", keepAlive);
+      window.removeEventListener("online", keepAlive);
+      clearInterval(keepAliveTimer);
       listeners.delete(syncStoredUser);
       window.removeEventListener("storage", syncStoredUser);
       subscription.unsubscribe();
@@ -238,6 +315,7 @@ export function useAuth() {
     const role: AuthUser["role"] =
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
+    manualSignOut = false;
     try {
       await ensureSupabaseSession(phone, restoreSession);
     } catch (e) {
@@ -298,6 +376,7 @@ export function useAuth() {
       userPhone: current?.phone ?? "",
       userRole: current?.role ?? "",
     });
+    manualSignOut = true;
     window.localStorage.removeItem(STORAGE_KEY);
     void supabase.auth.signOut();
     emit();
