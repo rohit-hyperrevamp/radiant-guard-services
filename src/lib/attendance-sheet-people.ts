@@ -147,7 +147,10 @@ export async function ensureAttendanceUnitMapping(
       if (row.is_reliever === true) patch["is_reliever"] = false;
     }
     if (Object.keys(patch).length) {
-      const { error } = await supabase.from("candidate_units").update(patch).eq("id", row.id);
+      const { error } = await supabase
+        .from("candidate_units")
+        .update(patch as never)
+        .eq("id", row.id);
       if (error) throw new Error(`Could not map employee for attendance: ${error.message}`);
     }
     if (!sheetReliever) await demoteOtherPrimaries(candidateId, unitId);
