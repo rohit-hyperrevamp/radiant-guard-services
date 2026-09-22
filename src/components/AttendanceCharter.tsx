@@ -507,6 +507,9 @@ export function AttendanceCharter({
                       </div>
                       <AttendanceStatusBadge status={r.status.attendance} />
                     </div>
+                    <div className="flex shrink-0 items-center pr-1 sm:hidden">
+                      <AttendanceStatusBadge status={r.status.attendance} />
+                    </div>
                   </Link>
 
                   <button
