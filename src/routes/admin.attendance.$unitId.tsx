@@ -2234,11 +2234,27 @@ function MusterRollPage() {
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
       if (delError) throw delError;
-      await upsertEntries(
-        resolved.candidateId,
-        resolved.designationId,
-        rowsForAttendanceRole(rows, resolved.isReliever),
-      );
+      const writeRows = async () =>
+        upsertEntries(
+          resolved.candidateId,
+          resolved.designationId,
+          rowsForAttendanceRole(rows, resolved.isReliever),
+        );
+      try {
+        await writeRows();
+      } catch (writeError) {
+        // A stale reliever link at this site makes the database reject normal
+        // attendance. The sheet is authoritative: post the guard here and retry.
+        const msg = networkErrorMessage(writeError, "");
+        if (!resolved.isReliever && /extra duty/i.test(msg)) {
+          await forcePrimaryAttendanceMapping(
+            resolved.candidateId,
+            unitId,
+            resolved.designationId,
+          );
+          await writeRows();
+        } else throw writeError;
+      }
       cells += rows.length;
     }
 
