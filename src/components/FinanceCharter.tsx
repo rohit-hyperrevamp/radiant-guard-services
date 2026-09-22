@@ -181,6 +181,8 @@ export function FinanceCharter({
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
   const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
+  const canFinalise = mode === "invoice" && (isSuperAdmin || can("invoicing", "edit") || can("invoice", "edit"));
+  const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : []);
 
   // Attendance edits (including overtime) push straight through to these
   // numbers — no refresh, no stale cache.
