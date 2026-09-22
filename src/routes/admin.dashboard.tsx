@@ -204,6 +204,7 @@ function DashboardPage() {
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();
+  const managerScope = useManagerFieldOfficerScope();
   const operationsOverviewQ = useOperationsOverview();
   const operationsLiveQ = useOperationsRadarLive();
   const operationsOverview = operationsOverviewQ.data;
