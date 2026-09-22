@@ -396,18 +396,20 @@ export function AttendanceCharter({
 
   const loading = entriesQ.isLoading || shiftQ.isLoading;
 
-  // Attendance sheets for the selected payroll period, by lifecycle stage.
+  // Attendance sheets for the selected payroll period, across every matching
+  // site (not just the current page), so the tile matches the real charter.
   const sheets = useMemo(() => {
     let open = 0;
     let submitted = 0;
     let approved = 0;
-    for (const r of rows) {
-      if (r.status.attendance === "approved") approved += 1;
-      else if (r.status.attendance === "submitted") submitted += 1;
+    for (const unit of matchedUnits) {
+      const state = allStatusQ.data?.get(unit.id)?.attendance ?? "none";
+      if (state === "approved") approved += 1;
+      else if (state === "submitted") submitted += 1;
       else open += 1;
     }
-    return { total: rows.length, open, submitted, approved };
-  }, [rows]);
+    return { total: matchedUnits.length, open, submitted, approved };
+  }, [matchedUnits, allStatusQ.data]);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -422,7 +424,7 @@ export function AttendanceCharter({
         <CharterTile label="Clients" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
         <CharterTile
           label="Attendance"
-          sub="total sheets, this page"
+          sub="sites in this payroll window"
           countTo={sheets.total}
           icon={ClipboardList}
           accent="lime"
