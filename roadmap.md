@@ -244,6 +244,7 @@
 - [x] Multi-select filters (org/client/status) via shared MultiSelectFilter on Contracts, Attendance, Payroll, Invoicing
 - [x] Show the highlighted month/year selector beside the payroll-window selector on all three screens.
 - [x] Compact Invoice search and add All, Ready, Open, and Processed status filtering before pagination.
+- [x] Add the contract payroll-window selector to the leadership dashboard and filter lifecycle/financial totals by it.
 
 ## Invoice output cleanup
 

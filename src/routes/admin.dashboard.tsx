@@ -6,9 +6,6 @@ import { motion } from "framer-motion";
 import {
   Building2,
   Briefcase,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   Files,
   Fuel,
@@ -30,13 +27,6 @@ import {
 
 import { PageHeader } from "@/components/PageHeader";
 import { DashboardShell } from "@/components/LiveFeed";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadialGauge } from "@/components/charts/RadialGauge";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -69,6 +59,11 @@ import {
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
+import { MonthYearPicker } from "@/components/MonthYearPicker";
+import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
+import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
+import { payrollPeriodForMonth } from "@/lib/payroll-period";
 
 type ContractExpiringRow = {
   id: string;
@@ -133,6 +128,16 @@ function DashboardErrorState({ error }: { error: Error }) {
 }
 
 export const Route = createFileRoute("/admin/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Leadership Dashboard | Radiant Guard Services" },
+      { name: "description", content: "Leadership overview across operations, attendance, payroll, and invoicing." },
+      { property: "og:title", content: "Leadership Dashboard | Radiant Guard Services" },
+      { property: "og:description", content: "Leadership overview across operations, attendance, payroll, and invoicing." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: DashboardPage,
   errorComponent: DashboardErrorState,
 });
@@ -211,8 +216,24 @@ function DashboardPage() {
   const liveOfficerCount = new Set((operationsLiveQ.data ?? []).map((row) => row.candidate_id))
     .size;
 
-  const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  const monthEnd = (() => {
+  const charterUnitsQ = useQuery({
+    queryKey: CHARTER_UNITS_QK,
+    queryFn: fetchCharterUnits,
+    initialData: () => readCharterUnitsSnapshot() ?? undefined,
+    placeholderData: (previous) => previous,
+    staleTime: 60_000,
+  });
+  const dashboardUnits = useMemo(() => {
+    const units = charterUnitsQ.data?.units ?? [];
+    return managerScope.isScoped ? units.filter((unit) => managerScope.unitIds.has(unit.id)) : units;
+  }, [charterUnitsQ.data?.units, managerScope.isScoped, managerScope.unitIds]);
+  const periodSelection = usePayrollWindowSelection(dashboardUnits.map((unit) => unit.id), { month, year });
+  const selectedWindow = periodSelection.selectedWindow;
+  const selectedPeriod = selectedWindow
+    ? payrollPeriodForMonth(year, month, selectedWindow)
+    : null;
+  const monthStart = selectedPeriod?.start ?? `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const monthEnd = selectedPeriod?.end ?? (() => {
     const d = new Date(year, month + 1, 0);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
@@ -225,7 +246,7 @@ function DashboardPage() {
   // Fast tile counts paint first; the heavy month P&L loads in a second,
   // independent query so the dashboard is usable immediately.
   const countsQuery = useQuery({
-    queryKey: ["dashboard-counts", year, month],
+    queryKey: ["dashboard-counts", year, month, periodSelection.selectedKey],
     enabled: !permsLoading && !showInventoryDashboard,
     staleTime: 2 * 60_000,
     refetchOnWindowFocus: false,
@@ -262,6 +283,8 @@ function DashboardPage() {
                   {
                     p_year: year,
                     p_month: month + 1,
+                     p_window_start: selectedWindow?.windowStartDay ?? null,
+                     p_window_end: selectedWindow?.windowEndDay ?? null,
                   } as never,
                 )
                 .abortSignal(controller.signal)
@@ -373,7 +396,7 @@ function DashboardPage() {
   });
 
   const pnlQuery = useQuery({
-    queryKey: ["dashboard-pnl", year, month],
+    queryKey: ["dashboard-pnl", year, month, periodSelection.selectedKey],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
@@ -388,8 +411,8 @@ function DashboardPage() {
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const todayStr = new Date().toISOString().slice(0, 10);
-      const selectedMonthIsCurrent = year === now.getFullYear() && month === now.getMonth();
-      const attendanceEnd = selectedMonthIsCurrent && todayStr < monthEnd ? todayStr : monthEnd;
+      const selectedPeriodIsCurrent = monthStart <= todayStr && todayStr <= monthEnd;
+      const attendanceEnd = selectedPeriodIsCurrent ? todayStr : monthEnd;
 
       // One round trip. The database picks the current contract per unit,
       // resolves the roster (primary unit + mapped units) and collapses every
@@ -450,7 +473,8 @@ function DashboardPage() {
         pairs?: PairRow[];
         day_bases?: DayBaseRow[];
       };
-      const unitRows = payload.units ?? [];
+      const allowedUnitIds = periodSelection.unitIdsForWindow;
+      const unitRows = (payload.units ?? []).filter((unit) => allowedUnitIds.has(unit.unit_id));
       const resources = payload.resources ?? [];
       const pairRows = payload.pairs ?? [];
 
@@ -690,11 +714,6 @@ function DashboardPage() {
     };
   }, [countsQuery.data, scopedCountsQuery.data, pnlQuery.data]);
 
-  const shift = (delta: number) => {
-    const d = new Date(year, month + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
-  };
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
   const tiles = useMemo(() => {
@@ -1123,50 +1142,22 @@ function DashboardPage() {
               </div>
             </div>
 
-            <div className="mobile-glass-control flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-card/65 p-1">
-              <Button
-                onClick={() => shift(-1)}
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-                <SelectTrigger className="h-8 w-[130px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTH_NAMES.map((m, i) => (
-                    <SelectItem key={m} value={String(i)}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="h-5 w-px bg-border" />
-              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-                <SelectTrigger className="h-8 w-[92px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 7 }, (_, i) => now.getFullYear() - 3 + i).map((y) => (
-                    <SelectItem key={y} value={String(y)}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={() => shift(1)}
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground"
-                aria-label="Next"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            <div className="scrollbar-hide flex min-w-0 max-w-full items-center gap-2 overflow-x-auto pb-0.5">
+              <PayrollWindowPeriodPicker
+                options={periodSelection.options}
+                selectedKey={periodSelection.selectedKey}
+                onWindowChange={periodSelection.selectWindow}
+              />
+              <MonthYearPicker
+                className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
+                value={`${year}-${String(month + 1).padStart(2, "0")}`}
+                onChange={(ym) => {
+                  const [nextYear, nextMonth] = ym.split("-").map(Number);
+                  setYear(nextYear);
+                  setMonth(nextMonth - 1);
+                  periodSelection.setPeriod(nextYear, nextMonth - 1);
+                }}
+              />
             </div>
           </div>
         </div>
