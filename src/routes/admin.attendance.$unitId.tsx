@@ -31,7 +31,8 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
-import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
+import { extractAttendanceViaApi, extractMigrationSheetViaApi } from "@/lib/sheet-ocr-api";
+import type { MigrationSheetDay } from "@/lib/sheet-ocr-types";
 import { scanDocument, qualityTone, type ScanQuality, type ScanResult } from "@/lib/document-scan";
 import { DocumentScanCamera } from "@/components/DocumentScanCamera";
 import {
@@ -2100,6 +2101,99 @@ function MusterRollPage() {
     if (summaries.length > 1) setOcrSummary(summaries.join(" — "));
   };
 
+  /**
+   * Reads a sheet WITHOUT needing anyone mapped to the unit first. Names,
+   * employee IDs and designations are read straight off the sheet, each person
+   * is matched (or created) and mapped to this unit, then attendance is saved.
+   */
+  const importSheetPeopleWithoutRoster = async (
+    sheetImage: string,
+    onlyNames?: string[],
+  ): Promise<{ cells: number; created: number; mapped: number; people: number }> => {
+    const canonicalCode = new Map<string, string>();
+    for (const c of codes) canonicalCode.set(c.code.toUpperCase(), c.code);
+    const validDates = new Set(periodCells.map((c) => c.date));
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const wanted = (onlyNames ?? []).map(normalize).filter(Boolean);
+
+    const result = await extractMigrationSheetViaApi({
+      imageDataUrl: sheetImage,
+      dates: periodCells.map((c) => c.date),
+      codes: codes.map((c) => ({ code: c.code, label: c.label })),
+      designations: contractDesignations.map((d) => ({
+        id: d.designationId,
+        name: d.designationName,
+      })),
+    });
+
+    const { data: authUser } = await supabase.auth.getUser();
+    const createdBy = authUser.user?.id ?? null;
+    let cells = 0;
+    let created = 0;
+    let mapped = 0;
+    let people = 0;
+
+    for (const emp of result.employees) {
+      if (wanted.length) {
+        const n = normalize(emp.name || "");
+        const c = normalize(emp.employee_code || "");
+        const hit = wanted.some(
+          (t) => (n && (t.includes(n) || n.includes(t))) || (c && t.includes(c)),
+        );
+        if (!hit) continue;
+      }
+      const rows = (emp.days ?? [])
+        .filter(
+          (d: MigrationSheetDay) =>
+            validDates.has(d.entry_date) &&
+            d.entry_date <= todayStr &&
+            canonicalCode.has(String(d.code).toUpperCase()),
+        )
+        .map((d: MigrationSheetDay) => ({
+          entry_date: d.entry_date,
+          code: canonicalCode.get(String(d.code).toUpperCase())!,
+          ot_hours: Number(d.ot_hours) || 0,
+        }));
+      if (!rows.length) continue;
+
+      const designationId =
+        emp.designation_id ??
+        (contractDesignations.length === 1 ? contractDesignations[0].designationId : null);
+      const resolved = await resolveSheetPersonForUnit({
+        unitId,
+        contractId: contractInfo?.contractId ?? null,
+        ref: {
+          codeTokens: [emp.employee_code, emp.mobile].filter(Boolean) as string[],
+          nameTokens: [emp.name].filter(Boolean) as string[],
+          designationId,
+          designationName: emp.designation_name ?? null,
+        },
+        joiningDate: periodStart,
+        createdBy,
+      });
+      if (!resolved) continue;
+      if (resolved.created) created += 1;
+      else if (resolved.mapped) mapped += 1;
+      people += 1;
+
+      // Sheet-authoritative for this person's period.
+      const { error: delError } = await supabase
+        .from("attendance_entries")
+        .delete()
+        .eq("unit_id", unitId)
+        .eq("candidate_id", resolved.candidateId)
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
+      if (delError) throw delError;
+      await upsertEntries(resolved.candidateId, resolved.designationId, rows);
+      cells += rows.length;
+    }
+
+    await queryClient.invalidateQueries({ queryKey: entriesQK });
+    await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+    return { cells, created, mapped, people };
+  };
+
   const processAttendanceImage = async (imageDataUrl?: string): Promise<string | null> => {
     const sheetImage = imageDataUrl ?? uploadPreview;
     if (!sheetImage) {
@@ -2108,10 +2202,6 @@ function MusterRollPage() {
     }
     if (!editable) {
       toast.error("Sheet is locked");
-      return null;
-    }
-    if (!musterRows.length) {
-      toast.error("No employees in this muster");
       return null;
     }
     if (!codes.length) {
@@ -2167,10 +2257,23 @@ function MusterRollPage() {
         });
       }
       if (!employeesPayload.length) {
-        toast.error("Map at least one person to a slot before reading a sheet");
-        setProcessingOcr(false);
-        await endScanProgress({ error: "No mapped employees" }, startedAt);
-        return null;
+        // Nobody mapped yet — read the people straight off the sheet, map /
+        // create them, then save their attendance.
+        const auto = await importSheetPeopleWithoutRoster(sheetImage);
+        if (!auto.people) {
+          throw new Error("No employee rows were detected on that sheet");
+        }
+        const autoSummary = `${auto.cells} cell${auto.cells === 1 ? "" : "s"} auto-filled for ${auto.people} ${auto.people === 1 ? "person" : "people"}${auto.mapped ? ` · mapped ${auto.mapped} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}`;
+        setOcrSummary(autoSummary);
+        setUploadReadyToContinue(true);
+        toast.success(autoSummary);
+        await endScanProgress({ summary: autoSummary }, startedAt);
+        logActivity({
+          module: "Attendance",
+          action: "Upload attendance image (OCR, auto-mapped)",
+          details: { ...auto, unit_id: unitId },
+        }).catch(() => {});
+        return autoSummary;
       }
       // Speed guard: on contracts with many designations the candidate ×
       // designation cross-product makes the prompt enormous and the read very
@@ -2368,7 +2471,19 @@ function MusterRollPage() {
         return next;
       });
 
-      const summary = `${confidentCount} cell${confidentCount === 1 ? "" : "s"} auto-filled · ${uncertainCount} flagged for review${totalsMismatchPairs.size ? ` · ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"} marked for totals review` : ""}${result.unmatched_names.length ? ` · ${result.unmatched_names.length} unmatched row${result.unmatched_names.length === 1 ? "" : "s"}` : ""}`;
+      // Rows the reader could not match to anyone on the muster are resolved
+      // from the sheet itself: match / create the person, map them to this unit
+      // and save their attendance — never ask the user to map first.
+      let auto = { cells: 0, created: 0, mapped: 0, people: 0 };
+      if (result.unmatched_names.length) {
+        try {
+          auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
+        } catch {
+          auto = { cells: 0, created: 0, mapped: 0, people: 0 };
+        }
+      }
+      const stillUnmatched = Math.max(0, result.unmatched_names.length - auto.people);
+      const summary = `${confidentCount + auto.cells} cell${confidentCount + auto.cells === 1 ? "" : "s"} auto-filled · ${uncertainCount} flagged for review${totalsMismatchPairs.size ? ` · ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"} marked for totals review` : ""}${auto.mapped ? ` · mapped ${auto.mapped} employee${auto.mapped === 1 ? "" : "s"} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}${stillUnmatched ? ` · ${stillUnmatched} unmatched row${stillUnmatched === 1 ? "" : "s"}` : ""}`;
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
