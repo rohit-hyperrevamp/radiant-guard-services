@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ROLE_KEYS } from "@/lib/role-keys";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
 /** Reporting chains are shallow; this cap only guards against cyclic data. */
 const MAX_DEPTH = 8;
