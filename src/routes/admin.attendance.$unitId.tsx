@@ -2257,10 +2257,23 @@ function MusterRollPage() {
         });
       }
       if (!employeesPayload.length) {
-        toast.error("Map at least one person to a slot before reading a sheet");
-        setProcessingOcr(false);
-        await endScanProgress({ error: "No mapped employees" }, startedAt);
-        return null;
+        // Nobody mapped yet — read the people straight off the sheet, map /
+        // create them, then save their attendance.
+        const auto = await importSheetPeopleWithoutRoster(sheetImage);
+        if (!auto.people) {
+          throw new Error("No employee rows were detected on that sheet");
+        }
+        const autoSummary = `${auto.cells} cell${auto.cells === 1 ? "" : "s"} auto-filled for ${auto.people} ${auto.people === 1 ? "person" : "people"}${auto.mapped ? ` · mapped ${auto.mapped} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}`;
+        setOcrSummary(autoSummary);
+        setUploadReadyToContinue(true);
+        toast.success(autoSummary);
+        await endScanProgress({ summary: autoSummary }, startedAt);
+        logActivity({
+          module: "Attendance",
+          action: "Upload attendance image (OCR, auto-mapped)",
+          details: { ...auto, unit_id: unitId },
+        }).catch(() => {});
+        return autoSummary;
       }
       // Speed guard: on contracts with many designations the candidate ×
       // designation cross-product makes the prompt enormous and the read very
