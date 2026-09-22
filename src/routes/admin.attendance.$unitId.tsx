@@ -2603,7 +2603,39 @@ function MusterRollPage() {
           }
         }
         if (!mr) {
-          if (labelCell) unmatchedNames.push(labelCell);
+          // Not on the muster yet — keep the row and resolve the person below.
+          const sheetRows = parseSheetRowCells(row);
+          const tokens = row
+            .slice(0, 6)
+            .map((v) => (v == null ? "" : String(v).trim()))
+            .filter((s) => s.length > 0 && s.length <= 80);
+          let pendingDesigId: string | null = null;
+          let pendingDesigName: string | null = null;
+          if (designationCol >= 0) {
+            const desigCell = norm(String(row[designationCol] ?? ""));
+            const match = desigCell ? fuzzyDesigMatch(desigCell) : null;
+            if (match) {
+              pendingDesigId = match.designationId;
+              pendingDesigName = match.designationName;
+            } else if (desigCell) {
+              designationsNotOnContract.add(String(row[designationCol]).trim());
+            }
+          }
+          if (!pendingDesigId && contractDesignations.length === 1) {
+            pendingDesigId = contractDesignations[0].designationId;
+            pendingDesigName = contractDesignations[0].designationName;
+          }
+          if (sheetRows.length && tokens.length) {
+            pendingPeople.push({
+              label: labelCell,
+              tokens,
+              designationId: pendingDesigId,
+              designationName: pendingDesigName,
+              rows: sheetRows,
+            });
+          } else if (labelCell) {
+            unmatchedNames.push(labelCell);
+          }
           continue;
         }
         candidatesInSheet.add(mr.candidateId);
