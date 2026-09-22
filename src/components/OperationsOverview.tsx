@@ -5,6 +5,7 @@ import { ArrowUpRight, Building2, ChevronLeft, ChevronRight, MapPinned, Search }
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
