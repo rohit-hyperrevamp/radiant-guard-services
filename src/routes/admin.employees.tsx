@@ -86,6 +86,7 @@ import { BankVerify } from "@/components/BankVerify";
 import { useEmployeeVerificationEnabled } from "@/lib/platform-settings";
 import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
+import { prepareUpload, withUploadRetry } from "@/lib/robust-upload";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
 import { RehireEnableDialog } from "@/components/RehireEnableDialog";
 import { RehireReviewDialog } from "@/components/RehireReviewDialog";
