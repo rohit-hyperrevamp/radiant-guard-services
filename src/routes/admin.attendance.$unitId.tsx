@@ -71,6 +71,7 @@ import {
   type AttendanceUnitContext,
 } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { resolveSheetPersonForUnit } from "@/lib/attendance-sheet-people";
 import {
   fetchAttendanceVersions,
   startAttendanceAmendment,
