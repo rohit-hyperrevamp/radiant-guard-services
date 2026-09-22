@@ -31,7 +31,8 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
-import { extractAttendanceViaApi } from "@/lib/sheet-ocr-api";
+import { extractAttendanceViaApi, extractMigrationSheetViaApi } from "@/lib/sheet-ocr-api";
+import type { MigrationSheetDay } from "@/lib/sheet-ocr-types";
 import { scanDocument, qualityTone, type ScanQuality, type ScanResult } from "@/lib/document-scan";
 import { DocumentScanCamera } from "@/components/DocumentScanCamera";
 import {
