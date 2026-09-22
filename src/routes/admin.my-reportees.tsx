@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ListSkeleton } from "@/components/Skeletons";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 
 export const Route = createFileRoute("/admin/my-reportees")({
   component: MyReporteesPage,
