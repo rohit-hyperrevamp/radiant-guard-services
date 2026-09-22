@@ -1116,6 +1116,22 @@ export function FinanceCharter({
                 )}
               >
                 <div className="flex items-stretch">
+                  {canFinalise && !r.finalInvoice && r.status.attendance === "approved" && (
+                    <div className="flex w-9 shrink-0 items-center justify-center border-r border-border/60">
+                      <Checkbox
+                        checked={!!selected[r.unit.id]}
+                        onCheckedChange={(v) =>
+                          setSelected((p) => {
+                            const next = { ...p };
+                            if (v) next[r.unit.id] = true;
+                            else delete next[r.unit.id];
+                            return next;
+                          })
+                        }
+                        aria-label={`Select ${r.unit.name || r.unit.code} for final invoice`}
+                      />
+                    </div>
+                  )}
                   <Link
                     to={linkTo}
                     params={{ unitId: r.unit.id }}
