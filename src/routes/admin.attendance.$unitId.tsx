@@ -71,6 +71,7 @@ import {
   type AttendanceUnitContext,
 } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { resolveSheetPersonForUnit } from "@/lib/attendance-sheet-people";
 import {
   fetchAttendanceVersions,
   startAttendanceAmendment,
@@ -2523,6 +2524,45 @@ function MusterRollPage() {
       const candidatesInSheet = new Set<string>();
       let secondaryDesigRowCount = 0;
       let filled = 0;
+      // Rows whose person is not yet on this unit's muster. They are resolved
+      // (matched by employee code / name, created when missing, then mapped to
+      // this unit) after the sheet is read — uploading never asks the user to
+      // map a resource first.
+      const pendingPeople: Array<{
+        label: string;
+        tokens: string[];
+        designationId: string | null;
+        designationName: string | null;
+        rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+      }> = [];
+
+      const parseSheetRowCells = (row: Array<unknown>) => {
+        const out: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
+        for (const h of headerDates) {
+          if (h.date > todayStr) continue;
+          const raw = row[h.col];
+          if (raw == null || String(raw).trim() === "") continue;
+          // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
+          const cell = String(raw).trim().toUpperCase();
+          const m = cell.match(/^([A-Z]+)(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
+          if (!m) continue;
+          // FPL muster shorthand: "D" / "ED" mean Duty / Extra-Duty — both are a
+          // PRESENT day, with the trailing number being OT days for that date.
+          // Re-map to canonical "P" so payroll counts them as present.
+          let codeKey = m[1];
+          if (codeKey === "D" || codeKey === "ED") codeKey = "P";
+          const canonical = codeSet.get(codeKey);
+          if (!canonical) continue;
+          const ot = m[2] ? Number(m[2]) : 0;
+          out.push({
+            entry_date: h.date,
+            code: canonical,
+            ot_hours: Number.isFinite(ot) ? ot : 0,
+          });
+        }
+        return out;
+      };
+
 
       for (let r = headerRowIdx + 1; r < aoa.length; r++) {
         const row = aoa[r] || [];
@@ -2564,7 +2604,39 @@ function MusterRollPage() {
           }
         }
         if (!mr) {
-          if (labelCell) unmatchedNames.push(labelCell);
+          // Not on the muster yet — keep the row and resolve the person below.
+          const sheetRows = parseSheetRowCells(row);
+          const tokens = row
+            .slice(0, 6)
+            .map((v) => (v == null ? "" : String(v).trim()))
+            .filter((s) => s.length > 0 && s.length <= 80);
+          let pendingDesigId: string | null = null;
+          let pendingDesigName: string | null = null;
+          if (designationCol >= 0) {
+            const desigCell = norm(String(row[designationCol] ?? ""));
+            const match = desigCell ? fuzzyDesigMatch(desigCell) : null;
+            if (match) {
+              pendingDesigId = match.designationId;
+              pendingDesigName = match.designationName;
+            } else if (desigCell) {
+              designationsNotOnContract.add(String(row[designationCol]).trim());
+            }
+          }
+          if (!pendingDesigId && contractDesignations.length === 1) {
+            pendingDesigId = contractDesignations[0].designationId;
+            pendingDesigName = contractDesignations[0].designationName;
+          }
+          if (sheetRows.length && tokens.length) {
+            pendingPeople.push({
+              label: labelCell,
+              tokens,
+              designationId: pendingDesigId,
+              designationName: pendingDesigName,
+              rows: sheetRows,
+            });
+          } else if (labelCell) {
+            unmatchedNames.push(labelCell);
+          }
           continue;
         }
         candidatesInSheet.add(mr.candidateId);
@@ -2592,29 +2664,7 @@ function MusterRollPage() {
           }
         }
 
-        const rows: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
-        for (const h of headerDates) {
-          if (h.date > todayStr) continue;
-          const raw = row[h.col];
-          if (raw == null || String(raw).trim() === "") continue;
-          // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
-          const cell = String(raw).trim().toUpperCase();
-          const m = cell.match(/^([A-Z]+)(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
-          if (!m) continue;
-          // FPL muster shorthand: "D" / "ED" mean Duty / Extra-Duty — both are a
-          // PRESENT day, with the trailing number being OT days for that date.
-          // Re-map to canonical "P" so payroll counts them as present.
-          let codeKey = m[1];
-          if (codeKey === "D" || codeKey === "ED") codeKey = "P";
-          const canonical = codeSet.get(codeKey);
-          if (!canonical) continue;
-          const ot = m[2] ? Number(m[2]) : 0;
-          rows.push({
-            entry_date: h.date,
-            code: canonical,
-            ot_hours: Number.isFinite(ot) ? ot : 0,
-          });
-        }
+        const rows = parseSheetRowCells(row);
         if (rows.length) {
           const key = `${mr.candidateId}|${targetDesignationId ?? ""}`;
           const bucket = byPair.get(key);
@@ -2638,6 +2688,59 @@ function MusterRollPage() {
         }
       }
 
+      // Auto-resolve everyone on the sheet who is not on the muster yet: match
+      // by employee code (or an unambiguous name), create the employee when
+      // there is no record, and map them to this unit.
+      const autoPairs: Array<{
+        candidateId: string;
+        designationId: string | null;
+        rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+      }> = [];
+      let autoCreated = 0;
+      let autoMapped = 0;
+      if (pendingPeople.length) {
+        const { data: authUser } = await supabase.auth.getUser();
+        const createdBy = authUser.user?.id ?? null;
+        for (const person of pendingPeople) {
+          try {
+            const resolved = await resolveSheetPersonForUnit({
+              unitId,
+              contractId: contractInfo?.contractId ?? null,
+              ref: {
+                codeTokens: person.tokens,
+                nameTokens: person.tokens,
+                designationId: person.designationId,
+                designationName: person.designationName,
+              },
+              joiningDate: periodStart,
+              createdBy,
+            });
+            if (!resolved) {
+              if (person.label) unmatchedNames.push(person.label);
+              continue;
+            }
+            if (resolved.created) autoCreated += 1;
+            else if (resolved.mapped) autoMapped += 1;
+            candidatesInSheet.add(resolved.candidateId);
+            const existing = autoPairs.find(
+              (p) =>
+                p.candidateId === resolved.candidateId &&
+                (p.designationId ?? "") === (resolved.designationId ?? ""),
+            );
+            if (existing) existing.rows.push(...person.rows);
+            else
+              autoPairs.push({
+                candidateId: resolved.candidateId,
+                designationId: resolved.designationId,
+                rows: person.rows,
+              });
+            filled += person.rows.length;
+          } catch {
+            if (person.label) unmatchedNames.push(person.label);
+          }
+        }
+      }
+
       // Sheet-authoritative: wipe every prior entry in this period for any
       // candidate present in the uploaded sheet (across all designations),
       // then write only what the sheet shows.
@@ -2657,7 +2760,14 @@ function MusterRollPage() {
       for (const { mr, rows } of byPair.values()) {
         await upsertEntries(mr.candidateId, mr.designationId, rows);
       }
+      for (const pair of autoPairs) {
+        await upsertEntries(pair.candidateId, pair.designationId, pair.rows);
+      }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
+      if (autoPairs.length) {
+        // Newly mapped / created people must appear on the muster immediately.
+        await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+      }
 
       if (designationsNotOnContract.size) {
         toast.warning(
@@ -2666,7 +2776,7 @@ function MusterRollPage() {
         );
       }
 
-      const summary = `${filled} cell${filled === 1 ? "" : "s"} imported from ${uploadFile.name}${clearedStale ? ` · cleared ${clearedStale} stale entr${clearedStale === 1 ? "y" : "ies"}` : ""}${secondaryDesigRowCount ? ` · ${secondaryDesigRowCount} row${secondaryDesigRowCount === 1 ? "" : "s"} on secondary designation` : ""}${unmatchedNames.length ? ` · ${unmatchedNames.length} unmatched row${unmatchedNames.length === 1 ? "" : "s"}` : ""}${designationsNotOnContract.size ? ` · ${designationsNotOnContract.size} designation${designationsNotOnContract.size === 1 ? "" : "s"} not on contract` : ""}`;
+      const summary = `${filled} cell${filled === 1 ? "" : "s"} imported from ${uploadFile.name}${autoMapped ? ` · mapped ${autoMapped} employee${autoMapped === 1 ? "" : "s"} to this unit` : ""}${autoCreated ? ` · created ${autoCreated} new employee${autoCreated === 1 ? "" : "s"}` : ""}${clearedStale ? ` · cleared ${clearedStale} stale entr${clearedStale === 1 ? "y" : "ies"}` : ""}${secondaryDesigRowCount ? ` · ${secondaryDesigRowCount} row${secondaryDesigRowCount === 1 ? "" : "s"} on secondary designation` : ""}${unmatchedNames.length ? ` · ${unmatchedNames.length} unmatched row${unmatchedNames.length === 1 ? "" : "s"}` : ""}${designationsNotOnContract.size ? ` · ${designationsNotOnContract.size} designation${designationsNotOnContract.size === 1 ? "" : "s"} not on contract` : ""}`;
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
