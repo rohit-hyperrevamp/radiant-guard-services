@@ -1322,6 +1322,15 @@ function TimelineRow(props: {
   );
 }
 
+function VisitSummary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-base font-semibold text-foreground">{value}</div>
+    </div>
+  );
+}
+
 type RangeInsightsProps = {
   units: FoUnit[];
   visits: FieldVisit[];
