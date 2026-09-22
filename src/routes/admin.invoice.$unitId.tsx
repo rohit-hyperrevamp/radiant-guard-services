@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Download, Eye, Loader2, Upload } from "lucide-react";
+import { ChevronLeft, Download, Eye, FileCheck2, Loader2, Upload } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -42,6 +42,8 @@ import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { PERIOD_STATUS_QK } from "@/lib/period-status";
+import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
+import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -187,6 +189,10 @@ function PayrollUnitPage() {
   const [uploadingTallyInvoice, setUploadingTallyInvoice] = useState(false);
   const { can } = useCurrentPermissions();
   const canUploadTallyInvoice = can("invoice", "edit");
+  // Invoice numbers only exist once the invoice has been finalised.
+  const finalInvoicesQ = useFinalInvoicesForUnits([unitId]);
+  const finalInvoice = finalInvoicesQ.data?.get(unitPeriodKey(unitId, start, end)) ?? null;
+  const [finalDialogOpen, setFinalDialogOpen] = useState(false);
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
@@ -1046,7 +1052,9 @@ function PayrollUnitPage() {
     const monthIdx = Number(start.split("-")[1]) - 1;
     const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][monthIdx] ?? "";
     return {
-      invoiceNumber: `${supplierBranch?.stateCode ?? orgSettings?.company_state_code ?? ""}-${monthAbbr}${start.slice(2, 4)}-${(unit?.code ?? "UNIT").toUpperCase()}`,
+      invoiceNumber:
+        finalInvoice?.invoice_no ??
+        `PROVISIONAL ${monthAbbr}${start.slice(2, 4)} ${(unit?.code ?? "UNIT").toUpperCase()}`,
       invoiceDate: fmtPretty(end),
       periodLabel: `${start.split("-").reverse().join("-")} To ${end.split("-").reverse().join("-")}`,
       company: {
@@ -1125,7 +1133,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end]);
+  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
 
 
   /**
@@ -1460,6 +1468,11 @@ function PayrollUnitPage() {
               Upload Tally Invoice
             </Button>
           )}
+          {can("invoice", "edit") && !finalInvoice && (
+            <Button size="sm" disabled={sheet?.status !== "approved"} onClick={() => setFinalDialogOpen(true)}>
+              <FileCheck2 className="mr-1.5 h-4 w-4" /> Generate Final Invoice
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => void exportTallyBilling()}>
             <Download className="mr-1.5 h-4 w-4" /> Download Tally Format
           </Button>
@@ -1482,11 +1495,22 @@ function PayrollUnitPage() {
               {unit?.customer_name} · Period {fmtPretty(start)} – {fmtPretty(end)}
             </div>
           </div>
-          {sheet?.status === "approved" && (
-            <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              Attendance approved
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {sheet?.status === "approved" && (
+              <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                Attendance approved
+              </span>
+            )}
+            {finalInvoice ? (
+              <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold tabular-nums text-emerald-700">
+                Invoice {finalInvoice.invoice_no} · {finalInvoice.invoice_date}
+              </span>
+            ) : (
+              <span className="inline-flex rounded-full border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
+                Not finalised — no invoice number yet
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
@@ -1593,6 +1617,25 @@ function PayrollUnitPage() {
       />
 
       {invoiceSheetData && <TaxInvoiceSheet data={invoiceSheetData} />}
+
+      <FinalInvoiceDialog
+        open={finalDialogOpen}
+        onOpenChange={setFinalDialogOpen}
+        targets={
+          [
+            {
+              unitId,
+              unitLabel: unit?.name || unit?.code || "Site",
+              customerId: unit?.customer_id ?? null,
+              customerName: unit?.customer_name ?? "",
+              billingState: unitState ?? null,
+              periodStart: start,
+              periodEnd: end,
+              taxableValue,
+            },
+          ] satisfies FinalInvoiceTarget[]
+        }
+      />
 
       <div className="space-y-4">
 

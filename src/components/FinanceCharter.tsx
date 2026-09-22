@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Building2, ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
+import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { CharterPagination } from "@/components/CharterPagination";
 
@@ -29,6 +29,9 @@ import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period"
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch, taxSplit } from "@/lib/gst-billing";
+import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
+import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 // ---------------------------------------------------------------------------
@@ -152,6 +155,11 @@ export function FinanceCharter({
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Invoice finalisation: nothing carries a number until the user picks sites and
+  // presses "Generate final invoice".
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [finalOpen, setFinalOpen] = useState(false);
+
 
   // Search, then paginate, then load money for the visible page only. Contract
   // rates, attendance entries and period statuses are all fetched for these 25
@@ -176,6 +184,8 @@ export function FinanceCharter({
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
   const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
+  const canFinalise = mode === "invoice" && (isSuperAdmin || can("invoicing", "edit") || can("invoice", "edit"));
+  const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : []);
 
   // Attendance edits (including overtime) push straight through to these
   // numbers — no refresh, no stale cache.
@@ -374,6 +384,7 @@ export function FinanceCharter({
         };
         return {
           unit: u,
+          finalInvoice: finalsQ.data?.get(unitPeriodKey(u.id, period.start, period.end)) ?? null,
           contractCode: finance?.contractCode ?? u.contract_codes[0] ?? "—",
           committed: finance?.committed ?? 0,
           actual: u.security_guards.length,
@@ -392,7 +403,31 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx]);
+  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
+
+  // Sites picked for finalisation — only those with approved attendance and no
+  // number issued yet for the open period.
+  const selectableRows = useMemo(
+    () => rows.filter((r) => !r.finalInvoice && r.status.attendance === "approved"),
+    [rows],
+  );
+  const selectedTargets = useMemo<FinalInvoiceTarget[]>(
+    () =>
+      selectableRows
+        .filter((r) => selected[r.unit.id])
+        .map((r) => ({
+          unitId: r.unit.id,
+          unitLabel: r.unit.name || r.unit.code,
+          customerId: r.unit.customer_id || null,
+          customerName: r.unit.customer_name,
+          billingState: r.unit.billing_state ?? null,
+          periodStart: r.period.start,
+          periodEnd: r.period.end,
+          taxableValue: r.invoiceAmount,
+        })),
+    [selectableRows, selected],
+  );
+
 
 
   const totals = useMemo(() => {
@@ -778,7 +813,12 @@ export function FinanceCharter({
         const periodDays = period.totalDays || 1;
         const [py, pm, pd] = period.end.split("-");
         const invoiceDate = `${pd}-${pm}-${py}`;
-        const invoiceNo = `${String(period.end).slice(5, 7)}${String(period.end).slice(2, 4)}-${String(Number(py) + 1).slice(2)}${u.code.toUpperCase()}`;
+        // Finalised invoices carry their allocated number; anything not yet
+        // finalised is clearly marked provisional.
+        const finalised = finalsQ.data?.get(unitPeriodKey(u.id, period.start, period.end));
+        const invoiceNo =
+          finalised?.invoice_no ??
+          `PROVISIONAL ${String(period.end).slice(5, 7)}${String(period.end).slice(2, 4)}-${u.code.toUpperCase()}`;
         const siteNorm = String(unitRow.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
         const clientNorm = String(u.customer_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
         const branchName = clientNorm && !siteNorm.includes(clientNorm)
@@ -1021,6 +1061,44 @@ export function FinanceCharter({
         </div>
       </div>
 
+      {canFinalise && selectableRows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2">
+          <Checkbox
+            checked={selectedTargets.length > 0 && selectedTargets.length === selectableRows.length}
+            onCheckedChange={(v) =>
+              setSelected(v ? Object.fromEntries(selectableRows.map((r) => [r.unit.id, true])) : {})
+            }
+            aria-label="Select all sites ready to finalise"
+          />
+          <span className="text-[12px] font-medium">
+            {selectedTargets.length > 0
+              ? `${selectedTargets.length} site${selectedTargets.length > 1 ? "s" : ""} selected`
+              : `Select sites to raise a final invoice (${selectableRows.length} ready)`}
+          </span>
+          <div className="flex-1" />
+          {selectedTargets.length > 0 && (
+            <Button variant="ghost" className="h-8 rounded-lg" onClick={() => setSelected({})}>
+              Clear
+            </Button>
+          )}
+          <Button
+            className="h-9 rounded-xl"
+            disabled={selectedTargets.length === 0}
+            onClick={() => setFinalOpen(true)}
+          >
+            <FileCheck2 className="h-4 w-4" /> Generate final invoice
+          </Button>
+        </div>
+      )}
+
+      <FinalInvoiceDialog
+        open={finalOpen}
+        onOpenChange={setFinalOpen}
+        targets={selectedTargets}
+        onDone={() => setSelected({})}
+      />
+
+
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
             Loading period-to-date {mode === "invoice" ? "invoice" : "payroll"} values…
@@ -1043,6 +1121,22 @@ export function FinanceCharter({
                 )}
               >
                 <div className="flex items-stretch">
+                  {canFinalise && !r.finalInvoice && r.status.attendance === "approved" && (
+                    <div className="flex w-9 shrink-0 items-center justify-center border-r border-border/60">
+                      <Checkbox
+                        checked={!!selected[r.unit.id]}
+                        onCheckedChange={(v) =>
+                          setSelected((p) => {
+                            const next = { ...p };
+                            if (v) next[r.unit.id] = true;
+                            else delete next[r.unit.id];
+                            return next;
+                          })
+                        }
+                        aria-label={`Select ${r.unit.name || r.unit.code} for final invoice`}
+                      />
+                    </div>
+                  )}
                   <Link
                     to={linkTo}
                     params={{ unitId: r.unit.id }}
@@ -1061,6 +1155,11 @@ export function FinanceCharter({
                           </span>
                           <AttendanceStatusBadge status={r.status.attendance} />
                           <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
+                          {mode === "invoice" && r.finalInvoice && (
+                            <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
+                              {r.finalInvoice.invoice_no}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
