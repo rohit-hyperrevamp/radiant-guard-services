@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  *   1. find the employee by employee code / candidate code (or an unambiguous
  *      full-name match),
  *   2. create the employee when no record exists,
- *   3. map the employee to this unit (so the unit's muster shows them),
+ *   3. map primary guards to this unit; keep relievers as people-only records,
  * and only then write attendance.
  */
 
@@ -30,6 +30,14 @@ export type ResolvedSheetPerson = {
   employeeCode: string | null;
   created: boolean;
   mapped: boolean;
+  isPrimary: boolean;
+  isReliever: boolean;
+};
+
+export type AttendanceUnitMapping = {
+  mapped: boolean;
+  isPrimary: boolean;
+  isReliever: boolean;
 };
 
 type CandidateRow = {
@@ -99,20 +107,19 @@ async function roleKeyForDesignation(contractId: string | null, designationId: s
 }
 
 /**
- * Make sure the employee is mapped as a regular resource at this unit so both
- * the muster and the database attendance guard accept the uploaded marks. An
- * uploaded monthly muster is authoritative evidence that this is not merely an
- * extra-duty reliever posting. A new mapping becomes primary only when the
- * person has no primary posting anywhere yet.
+ * Preserve the one-primary-unit rule. Existing primary guards are never moved:
+ * when they appear at another unit they are treated as relievers and attendance
+ * is converted to Extra Duty by the importer. A person with no posting is made
+ * primary at the uploaded unit.
  */
 export async function ensureAttendanceUnitMapping(
   candidateId: string,
   unitId: string,
   designationId: string | null,
-): Promise<boolean> {
+): Promise<AttendanceUnitMapping> {
   const { data: existing } = await supabase
     .from("candidate_units")
-    .select("id, designation_id, is_reliever")
+    .select("id, designation_id, is_primary, is_reliever")
     .eq("candidate_id", candidateId)
     .eq("unit_id", unitId)
     .limit(1)
@@ -122,23 +129,24 @@ export async function ensureAttendanceUnitMapping(
     const row = existing as {
       id: string;
       designation_id: string | null;
+      is_primary: boolean;
       is_reliever: boolean | null;
     };
     const nextDesignation = designationId ?? row.designation_id;
-    if (row.is_reliever === true || nextDesignation !== row.designation_id) {
+    if (nextDesignation !== row.designation_id) {
       const { error } = await supabase
         .from("candidate_units")
         .update({
           designation_id: nextDesignation,
-          // The reliever-only DB trigger intentionally erases normal attendance
-          // codes. A person present on the uploaded muster is a regular unit
-          // resource, even when they remain non-primary here.
-          is_reliever: false,
         })
         .eq("id", row.id);
       if (error) throw new Error(`Could not map employee for attendance: ${error.message}`);
     }
-    return false;
+    return {
+      mapped: false,
+      isPrimary: row.is_primary,
+      isReliever: !row.is_primary || row.is_reliever === true,
+    };
   }
 
   const { data: primaries } = await supabase
@@ -148,17 +156,30 @@ export async function ensureAttendanceUnitMapping(
     .eq("is_primary", true)
     .limit(1);
   const hasPrimary = (primaries ?? []).length > 0;
+  const { data: candidate } = await supabase
+    .from("candidates")
+    .select("unit_id")
+    .eq("id", candidateId)
+    .maybeSingle();
+  const legacyPrimaryUnit = (candidate as { unit_id?: string | null } | null)?.unit_id ?? null;
+
+  // A guard already posted primarily elsewhere is a reliever here. Do not add
+  // a unit mapping: reliever attendance is saved as Extra Duty by the caller,
+  // while the employee's one-and-only primary posting remains untouched.
+  if (hasPrimary || (legacyPrimaryUnit && legacyPrimaryUnit !== unitId)) {
+    return { mapped: false, isPrimary: false, isReliever: true };
+  }
 
   const { error } = await supabase.from("candidate_units").insert({
     candidate_id: candidateId,
     unit_id: unitId,
     designation_id: designationId,
-    is_primary: !hasPrimary,
+    is_primary: true,
     is_reliever: false,
     sort_order: 0,
   } as never);
   if (error) throw new Error(error.message);
-  return true;
+  return { mapped: true, isPrimary: true, isReliever: false };
 }
 
 export async function resolveSheetPersonForUnit(opts: {
@@ -178,7 +199,7 @@ export async function resolveSheetPersonForUnit(opts: {
   if (!found) found = await findByName(names);
 
   if (found) {
-    const mapped = await ensureAttendanceUnitMapping(
+    const mapping = await ensureAttendanceUnitMapping(
       found.id,
       unitId,
       ref.designationId ?? found.designation_id ?? null,
@@ -189,7 +210,7 @@ export async function resolveSheetPersonForUnit(opts: {
       name: found.full_name || names[0] || "Employee",
       employeeCode: found.employee_code ?? null,
       created: false,
-      mapped,
+      ...mapping,
     };
   }
 
@@ -199,24 +220,25 @@ export async function resolveSheetPersonForUnit(opts: {
   const employeeCode = codes[0] ?? null;
   const roleKey = (await roleKeyForDesignation(contractId, ref.designationId)) || "guard";
 
+  const insertPayload = {
+    full_name: name,
+    status: "active",
+    unit_id: unitId,
+    designation_id: ref.designationId,
+    role_key: roleKey,
+    application_date: joiningDate,
+    preferred_joining_date: joiningDate,
+    ...(employeeCode ? { employee_code: employeeCode } : {}),
+    ...(createdBy ? { created_by: createdBy } : {}),
+  };
   const { data: created, error } = await supabase
     .from("candidates")
-    .insert({
-      full_name: name,
-      employee_code: employeeCode,
-      status: "active",
-      unit_id: unitId,
-      designation_id: ref.designationId,
-      role_key: roleKey,
-      application_date: joiningDate,
-      preferred_joining_date: joiningDate,
-      ...(createdBy ? { created_by: createdBy } : {}),
-    } as never)
+    .insert(insertPayload as never)
     .select("id, employee_code")
     .single();
   if (error) throw new Error(`Could not create ${name}: ${error.message}`);
   const candidateId = (created as { id: string; employee_code: string | null }).id;
-  await ensureAttendanceUnitMapping(candidateId, unitId, ref.designationId);
+  const mapping = await ensureAttendanceUnitMapping(candidateId, unitId, ref.designationId);
 
   return {
     candidateId,
@@ -224,6 +246,6 @@ export async function resolveSheetPersonForUnit(opts: {
     name,
     employeeCode: (created as { employee_code: string | null }).employee_code ?? employeeCode,
     created: true,
-    mapped: true,
+    ...mapping,
   };
 }

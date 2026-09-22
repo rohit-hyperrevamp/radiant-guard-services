@@ -1792,6 +1792,26 @@ function MusterRollPage() {
     return capped.length;
   };
 
+  const rowsForAttendanceRole = (
+    rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
+    isReliever: boolean,
+  ) => {
+    if (!isReliever) return rows;
+    return rows.map((row) => {
+      const meta = codeMap.get(row.code);
+      const dutyDays = meta?.counts_as_present
+        ? meta.day_value == null || Number.isNaN(Number(meta.day_value))
+          ? 1
+          : Number(meta.day_value)
+        : 0;
+      return {
+        ...row,
+        code: dutyDays > 0 ? "" : row.code,
+        ot_hours: (Number(row.ot_hours) || 0) + dutyDays,
+      };
+    });
+  };
+
   const confirm = useConfirm();
   const [clearingAll, setClearingAll] = useState(false);
   const handleClearAll = async () => {
@@ -2188,7 +2208,11 @@ function MusterRollPage() {
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
       if (delError) throw delError;
-      await upsertEntries(resolved.candidateId, resolved.designationId, rows);
+      await upsertEntries(
+        resolved.candidateId,
+        resolved.designationId,
+        rowsForAttendanceRole(rows, resolved.isReliever),
+      );
       cells += rows.length;
     }
 
@@ -2432,6 +2456,10 @@ function MusterRollPage() {
       }
 
       const sheetPairKeys = new Set<string>([...byPair.keys()]);
+      const mappingByPair = new Map<
+        string,
+        Awaited<ReturnType<typeof ensureAttendanceUnitMapping>>
+      >();
 
       // Sheet-authoritative: for any candidate present in the uploaded sheet,
       // wipe ALL prior entries for the period (across every designation),
@@ -2450,7 +2478,8 @@ function MusterRollPage() {
           Array.from(sheetPairKeys).map(async (pk) => {
             const mr = pairByKey.get(pk);
             if (!mr) return;
-            await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+            const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+            mappingByPair.set(pk, mapping);
           }),
         );
         const { error } = await supabase
@@ -2472,11 +2501,15 @@ function MusterRollPage() {
           await upsertEntries(
             mr.candidateId,
             mr.designationId,
-            rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
+            rowsForAttendanceRole(
+              rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
+              mappingByPair.get(pk)?.isReliever ?? false,
+            ),
           );
         }),
       );
       await queryClient.invalidateQueries({ queryKey: entriesQK });
+      await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
 
       setUncertainCells((prev) => {
         const next = new Set(prev);
@@ -2489,11 +2522,7 @@ function MusterRollPage() {
       // and save their attendance — never ask the user to map first.
       let auto = { cells: 0, created: 0, mapped: 0, people: 0 };
       if (result.unmatched_names.length) {
-        try {
-          auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
-        } catch {
-          auto = { cells: 0, created: 0, mapped: 0, people: 0 };
-        }
+        auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
       }
       const stillUnmatched = Math.max(0, result.unmatched_names.length - auto.people);
       const summary = `${confidentCount + auto.cells} cell${confidentCount + auto.cells === 1 ? "" : "s"} auto-filled · ${uncertainCount} flagged for review${totalsMismatchPairs.size ? ` · ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"} marked for totals review` : ""}${auto.mapped ? ` · mapped ${auto.mapped} employee${auto.mapped === 1 ? "" : "s"} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}${stillUnmatched ? ` · ${stillUnmatched} unmatched row${stillUnmatched === 1 ? "" : "s"}` : ""}`;
@@ -2524,10 +2553,6 @@ function MusterRollPage() {
     }
     if (!editable) {
       toast.error("Sheet is locked");
-      return;
-    }
-    if (!musterRows.length) {
-      toast.error("No employees in this muster");
       return;
     }
     if (!codes.length) {
@@ -2822,6 +2847,7 @@ function MusterRollPage() {
       const autoPairs: Array<{
         candidateId: string;
         designationId: string | null;
+        isReliever: boolean;
         rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
       }> = [];
       let autoCreated = 0;
@@ -2860,6 +2886,7 @@ function MusterRollPage() {
               autoPairs.push({
                 candidateId: resolved.candidateId,
                 designationId: resolved.designationId,
+                isReliever: resolved.isReliever,
                 rows: person.rows,
               });
             filled += person.rows.length;
@@ -2886,16 +2913,23 @@ function MusterRollPage() {
       }
 
       for (const { mr, rows } of byPair.values()) {
-        await upsertEntries(mr.candidateId, mr.designationId, rows);
+        const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+        await upsertEntries(
+          mr.candidateId,
+          mr.designationId,
+          rowsForAttendanceRole(rows, mapping.isReliever),
+        );
       }
       for (const pair of autoPairs) {
-        await upsertEntries(pair.candidateId, pair.designationId, pair.rows);
+        await upsertEntries(
+          pair.candidateId,
+          pair.designationId,
+          rowsForAttendanceRole(pair.rows, pair.isReliever),
+        );
       }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
-      if (autoPairs.length) {
-        // Newly mapped / created people must appear on the muster immediately.
-        await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
-      }
+      // Mapping and designation changes must appear on the muster immediately.
+      await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
 
       if (designationsNotOnContract.size) {
         toast.warning(

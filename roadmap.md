@@ -443,3 +443,4 @@
 - [ ] Show CGST + SGST for same-state billing and IGST only for interstate billing.
 - [ ] Apply the rule to invoice preview, print, MIS, and Tally outputs.
 - [ ] Validate production data, calculations, and TypeScript.
+- [x] Fix attendance upload: resolve/create people, map primary guards, preserve relievers, then save attendance end to end
