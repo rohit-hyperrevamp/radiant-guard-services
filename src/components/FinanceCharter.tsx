@@ -403,7 +403,31 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx]);
+  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
+
+  // Sites picked for finalisation — only those with approved attendance and no
+  // number issued yet for the open period.
+  const selectableRows = useMemo(
+    () => rows.filter((r) => !r.finalInvoice && r.status.attendance === "approved"),
+    [rows],
+  );
+  const selectedTargets = useMemo<FinalInvoiceTarget[]>(
+    () =>
+      selectableRows
+        .filter((r) => selected[r.unit.id])
+        .map((r) => ({
+          unitId: r.unit.id,
+          unitLabel: r.unit.name || r.unit.code,
+          customerId: r.unit.customer_id || null,
+          customerName: r.unit.customer_name,
+          billingState: r.unit.billing_state ?? null,
+          periodStart: r.period.start,
+          periodEnd: r.period.end,
+          taxableValue: r.invoiceAmount,
+        })),
+    [selectableRows, selected],
+  );
+
 
 
   const totals = useMemo(() => {
