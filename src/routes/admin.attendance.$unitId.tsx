@@ -2190,6 +2190,7 @@ function MusterRollPage() {
           nameTokens: [emp.name].filter(Boolean) as string[],
           designationId,
           designationName: emp.designation_name ?? null,
+          isReliever: looksLikeRelieverText(emp.name, emp.designation_name),
         },
         joiningDate: periodStart,
         createdBy,
