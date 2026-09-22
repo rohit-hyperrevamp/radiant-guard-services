@@ -442,6 +442,13 @@ export function AttendanceCharter({
         </div>
       ) : (
         <div className="space-y-2">
+          <div className="hidden items-center gap-5 px-4 pb-1 pr-[3.75rem] text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:flex">
+            <span className="min-w-0 flex-1">Site</span>
+            <span className="w-24 shrink-0 text-center">Contract ID</span>
+            <span className="w-16 shrink-0 text-center">Shift</span>
+            <span className="w-16 shrink-0 text-right">Deployed</span>
+            <span className="w-[150px] shrink-0 text-center">Status</span>
+          </div>
           {rows.map((r) => {
             const isOpen = !!expanded[r.unit.id];
             const scan = scanJobsQ.data?.get(r.unit.id);
