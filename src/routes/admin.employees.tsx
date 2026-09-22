@@ -1565,7 +1565,7 @@ function useCandidates() {
             let reachedEnd = false;
             for (const result of results) {
               if (result.error) throw result.error;
-              const pageRows = ((result.data ?? []) as unknown as CandidateListItem[]) ?? [];
+              const pageRows = (result.data ?? []) as unknown as CandidateListItem[];
               rows.push(...pageRows);
               if (pageRows.length < pageSize) reachedEnd = true;
             }
@@ -2230,7 +2230,7 @@ function EmployeesPage() {
 
   const assetsQuery = useQuery({
     queryKey: ["assets_lite_available"],
-    enabled: openWizard || !!offboardTarget || exporting,
+    enabled: openWizard || !!offboardTarget,
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 60_000,
@@ -5095,36 +5095,28 @@ function EmployeesPage() {
         }}
       />
 
-      <div className="scrollbar-hide flex h-[68px] items-stretch overflow-x-auto rounded-xl border border-border/70 bg-card shadow-sm">
+      <div className="scrollbar-hide grid grid-flow-col auto-cols-[minmax(150px,1fr)] gap-2 overflow-x-auto pb-1 sm:grid-flow-row sm:grid-cols-4 sm:overflow-visible lg:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
           ? [
-              { label: "Total", value: stats.empTotal },
-              { label: "Active", value: stats.empActive },
-              { label: "Inactive", value: stats.empInactive },
-              { label: "Billable", value: stats.empBillable },
-              { label: "Non-billable", value: stats.empNonBillable },
+              { label: "Total", value: stats.empTotal, accent: "sky" as const },
+              { label: "Active", value: stats.empActive, accent: "emerald" as const },
+              { label: "Inactive", value: stats.empInactive, accent: "rose" as const },
+              { label: "Billable", value: stats.empBillable, accent: "cyan" as const },
+              { label: "Non-billable", value: stats.empNonBillable, accent: "amber" as const },
             ]
           : [
-              { label: "Total", value: stats.candTotal },
-              { label: "Drafts", value: stats.candDrafts },
-              { label: "Pending", value: stats.candPending },
-              { label: "Rejected", value: stats.candRejected },
+              { label: "Total", value: stats.candTotal, accent: "sky" as const },
+              { label: "Drafts", value: stats.candDrafts, accent: "amber" as const },
+              { label: "Pending", value: stats.candPending, accent: "violet" as const },
+              { label: "Rejected", value: stats.candRejected, accent: "rose" as const },
             ]
-        ).map((item, index) => (
-          <div
+        ).map((item) => (
+          <PageStat
             key={item.label}
-            className={cn(
-              "flex min-w-[118px] flex-1 flex-col justify-center px-4 sm:min-w-0 sm:px-5",
-              index > 0 && "border-l border-border/60",
-            )}
-          >
-            <span className="whitespace-nowrap text-[11px] font-medium text-muted-foreground">
-              {item.label}
-            </span>
-            <span className="mt-0.5 whitespace-nowrap font-display text-xl font-medium leading-none tabular-nums text-foreground">
-              {item.value.toLocaleString("en-IN")}
-            </span>
-          </div>
+            label={item.label}
+            value={item.value.toLocaleString("en-IN")}
+            accent={item.accent}
+          />
         ))}
       </div>
 
