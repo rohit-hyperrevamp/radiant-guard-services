@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, BatteryCharging, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 
 export type LivePunch = {
   id: string;
