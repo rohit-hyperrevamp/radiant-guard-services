@@ -28,6 +28,7 @@ import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
+import { loadGstBillingBranches, resolveGstBillingBranch } from "@/lib/gst-billing";
 
 
 // ---------------------------------------------------------------------------
@@ -479,12 +480,11 @@ export function FinanceCharter({
         return chunks;
       };
       const ids = targets.map((unit) => unit.id);
-      const { data: org } = await supabase
+      const [{ data: org }, gstBranches] = await Promise.all([supabase
         .from("org_settings")
-        .select("company_state")
+        .select("*")
         .limit(1)
-        .maybeSingle();
-      const companyState = String((org as { company_state?: string } | null)?.company_state ?? "Maharashtra").trim();
+        .maybeSingle(), loadGstBillingBranches()]);
 
       const financeMap = new Map<string, UnitFinance>();
       for (const chunkIds of chunkOf(ids, 100)) {
@@ -611,6 +611,7 @@ export function FinanceCharter({
         const customerId = String(unitRow.customer_id ?? "");
         const customer = customerById.get(customerId) ?? null;
         const billingState = String(unitRow.billing_state || customer?.billing_state || "");
+        const supplierBranch = resolveGstBillingBranch(gstBranches, billingState, org as never);
         const serviceTypeId = serviceTypeIdByUnit.get(unit.id);
         workbookRows.push(...buildTallyVoucherRows({
           unit: {
@@ -619,7 +620,7 @@ export function FinanceCharter({
             gstin: gstinFor(customerId, billingState),
             customer,
           },
-          companyState,
+          companyState: supplierBranch?.stateName ?? "Maharashtra",
           periodStart: period.start,
           periodEnd: period.end,
           serviceTypeName: (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard",

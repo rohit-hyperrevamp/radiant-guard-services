@@ -21,10 +21,15 @@ export function normalizeState(value: string | null | undefined) {
 export async function loadGstBillingBranches(): Promise<GstBillingBranch[]> {
   const { data, error } = await supabase
     .from("branches")
-    .select("id, code, name, gstin, registered_address, corporate_address, gst_state_name, gst_state_code, is_gst_default")
-    .eq("is_gst_billing_branch", true);
+    .select("id, code, name, gstin, registered_address, corporate_address, gst_state_name, gst_state_code, is_gst_default" as never)
+    .eq("is_gst_billing_branch" as never, true);
   if (error) throw error;
-  return (data ?? []).map((row) => ({
+  const rows = (data ?? []) as unknown as Array<{
+    id: string; code: string; name: string | null; gstin: string | null;
+    registered_address: string | null; corporate_address: string | null;
+    gst_state_name: string | null; gst_state_code: string | null; is_gst_default: boolean | null;
+  }>;
+  return rows.map((row) => ({
     id: row.id,
     code: row.code,
     name: row.name ?? "",
