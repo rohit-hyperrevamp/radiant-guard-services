@@ -68,6 +68,15 @@ import {
 } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+
+type ContractExpiringRow = {
+  id: string;
+  contract_code: string;
+  end_date: string;
+  unit_id: string;
+  status: string;
+};
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
@@ -195,6 +204,7 @@ function DashboardPage() {
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();
+  const managerScope = useManagerFieldOfficerScope();
   const operationsOverviewQ = useOperationsOverview();
   const operationsLiveQ = useOperationsRadarLive();
   const operationsOverview = operationsOverviewQ.data;
@@ -621,15 +631,64 @@ function DashboardPage() {
     },
   });
 
+  // Managers count only what their own field officers cover, so the headline
+  // tiles never show company-wide totals to a scoped manager.
+  const scopedUnitIds = useMemo(
+    () => (managerScope.isScoped ? [...managerScope.unitIds].sort() : null),
+    [managerScope.isScoped, managerScope.unitIds],
+  );
+  const scopedCountsQuery = useQuery({
+    queryKey: ["dashboard-counts-scoped", scopedUnitIds],
+    enabled: !!scopedUnitIds,
+    staleTime: 2 * 60_000,
+    queryFn: async () => {
+      const unitIds = scopedUnitIds ?? [];
+      if (unitIds.length === 0)
+        return { orgs: 0, units: 0, employees: 0, contractsActive: 0, contractsExpiring: [] as ContractExpiringRow[] };
+      const horizon = new Date();
+      horizon.setDate(horizon.getDate() + 60);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const horizonStr = horizon.toISOString().slice(0, 10);
+
+      const [unitRows, links, contracts] = await Promise.all([
+        supabase.from("units").select("id,customer_id").in("id", unitIds),
+        supabase.from("candidate_units").select("candidate_id").in("unit_id", unitIds).limit(20000),
+        supabase.from("client_contracts").select("id,contract_code,end_date,unit_id,status").in("unit_id", unitIds),
+      ]);
+      if (unitRows.error) throw unitRows.error;
+      if (links.error) throw links.error;
+      if (contracts.error) throw contracts.error;
+
+      const orgs = new Set(
+        ((unitRows.data ?? []) as Array<{ customer_id: string | null }>)
+          .map((u) => u.customer_id)
+          .filter(Boolean) as string[],
+      );
+      const employees = new Set(((links.data ?? []) as Array<{ candidate_id: string }>).map((l) => l.candidate_id));
+      const contractRows = ((contracts.data ?? []) as unknown) as ContractExpiringRow[];
+      const active = contractRows.filter((c) => c.status === "active");
+      return {
+        orgs: orgs.size,
+        units: unitIds.length,
+        employees: employees.size,
+        contractsActive: active.length,
+        contractsExpiring: active
+          .filter((c) => c.end_date && c.end_date >= todayStr && c.end_date <= horizonStr)
+          .sort((a, b) => a.end_date.localeCompare(b.end_date)),
+      };
+    },
+  });
+
   const isLoading = countsQuery.isLoading;
   const data = useMemo(() => {
     if (!countsQuery.data) return undefined;
     return {
       ...countsQuery.data,
+      ...(scopedCountsQuery.data ?? {}),
       pnlRows: pnlQuery.data?.pnlRows ?? ([] as PnLRow[]),
       pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0 },
     };
-  }, [countsQuery.data, pnlQuery.data]);
+  }, [countsQuery.data, scopedCountsQuery.data, pnlQuery.data]);
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1);

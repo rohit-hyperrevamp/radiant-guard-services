@@ -5,6 +5,7 @@ import { ArrowUpRight, Building2, ChevronLeft, ChevronRight, MapPinned, Search }
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -41,29 +42,48 @@ function monthStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-async function loadOperationsOverview(): Promise<OperationsOverviewData> {
+type OverviewScope = {
+  /** Only these units count. Null means every active unit. */
+  unitIds: string[] | null;
+  /** Field officer headcount for the scope. Null means company-wide. */
+  fieldOfficerCount: number | null;
+};
+
+async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsOverviewData> {
+  if (scope.unitIds && scope.unitIds.length === 0) {
+    return {
+      fieldOfficers: scope.fieldOfficerCount ?? 0,
+      activeSites: 0,
+      sitesVisitedToday: 0,
+      topVisited: [],
+      bottomVisited: [],
+      locations: [],
+    };
+  }
+  const scopedUnitIds = scope.unitIds;
   const [units, visits, foCount] = await Promise.all([
-    fetchAllPages<ActiveUnit>((from, to) =>
-      supabase
+    fetchAllPages<ActiveUnit>((from, to) => {
+      const q = supabase
         .from("units")
         .select("id,code,name,billing_city,billing_state,customer:customers(name)")
-        .eq("status", "active")
-        .order("name")
-        .range(from, to),
-    ),
-    fetchAllPages<VisitRow>((from, to) =>
-      supabase
+        .eq("status", "active");
+      return (scopedUnitIds ? q.in("id", scopedUnitIds) : q).order("name").range(from, to);
+    }),
+    fetchAllPages<VisitRow>((from, to) => {
+      const q = supabase
         .from("field_visits")
         .select("unit_id,visit_date,check_out_at")
         .gte("visit_date", monthStart())
-        .lte("visit_date", localDate())
-        .range(from, to),
-    ),
-    supabase
-      .from("candidates")
-      .select("id", { count: "exact", head: true })
-      .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
-      .in("status", ["approved", "active"]),
+        .lte("visit_date", localDate());
+      return (scopedUnitIds ? q.in("unit_id", scopedUnitIds) : q).range(from, to);
+    }),
+    scope.fieldOfficerCount != null
+      ? Promise.resolve({ count: scope.fieldOfficerCount, error: null })
+      : supabase
+          .from("candidates")
+          .select("id", { count: "exact", head: true })
+          .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
+          .in("status", ["approved", "active"]),
   ]);
 
   if (foCount.error) throw foCount.error;
@@ -102,11 +122,19 @@ async function loadOperationsOverview(): Promise<OperationsOverviewData> {
 }
 
 export function useOperationsOverview() {
+  const managerScope = useManagerFieldOfficerScope();
+  // A manager only ever sees the cumulative picture of the field officers
+  // reporting to them; everyone else keeps the company-wide view.
+  const scope: OverviewScope = managerScope.isScoped
+    ? { unitIds: [...managerScope.unitIds].sort(), fieldOfficerCount: managerScope.fieldOfficerIds.size }
+    : { unitIds: null, fieldOfficerCount: null };
+
   return useQuery({
-    queryKey: ["operations-overview", monthStart(), localDate()],
+    queryKey: ["operations-overview", monthStart(), localDate(), scope.unitIds ?? "all", scope.fieldOfficerCount],
+    enabled: !managerScope.isLoading,
     staleTime: 60_000,
     refetchInterval: 60_000,
-    queryFn: loadOperationsOverview,
+    queryFn: () => loadOperationsOverview(scope),
   });
 }
 

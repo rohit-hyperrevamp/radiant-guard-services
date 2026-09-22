@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ListSkeleton } from "@/components/Skeletons";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 
 export const Route = createFileRoute("/admin/my-reportees")({
   component: MyReporteesPage,
@@ -33,7 +34,13 @@ function initials(name: string) {
 function MyReporteesPage() {
   const { candidateId } = useCurrentUserRole();
   const foScope = useFieldOfficerUnitScope();
-  const unitIds = useMemo(() => Array.from(foScope.unitIds), [foScope.unitIds]);
+  const managerScope = useManagerFieldOfficerScope();
+  // Field officers see their own units; managers see the units of every field
+  // officer reporting to them.
+  const unitIds = useMemo<string[]>(
+    () => Array.from<string>(foScope.isFieldOfficer ? foScope.unitIds : managerScope.unitIds),
+    [foScope.isFieldOfficer, foScope.unitIds, managerScope.unitIds],
+  );
   const [q, setQ] = useState("");
   const [unitFilter, setUnitFilter] = useState<string>("all");
 

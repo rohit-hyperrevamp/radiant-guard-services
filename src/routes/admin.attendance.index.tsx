@@ -8,7 +8,7 @@ import { HeroTile } from "@/components/HeroTile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LabeledMultiSelectFilter } from "@/components/MultiSelectFilter";
-import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { ListSkeleton } from "@/components/Skeletons";
 import { AttendanceCharter } from "@/components/AttendanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
@@ -97,11 +97,11 @@ function AttendanceUnitsPage() {
   });
 
 
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
   const rawUnits = data?.units ?? [];
   const units = useMemo(
-    () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
-    [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
+    () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
+    [rawUnits, foScope.isScoped, foScope.unitIds],
   );
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
@@ -119,10 +119,10 @@ function AttendanceUnitsPage() {
     return all.filter((o) => allowed.has(o.id));
   }, [data?.organizations, windowUnits]);
   const summary = useMemo(
-    () => (foScope.isFieldOfficer
+    () => (foScope.isScoped
       ? { organizations: organizations.length, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }
       : { organizations: new Set(windowUnits.map((u) => u.customer_id)).size, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }),
-    [foScope.isFieldOfficer, organizations, windowUnits],
+    [foScope.isScoped, organizations, windowUnits],
   );
 
 

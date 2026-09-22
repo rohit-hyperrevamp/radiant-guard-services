@@ -14,7 +14,7 @@ import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicke
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
-import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import type { MoneyStatus } from "@/lib/period-status";
 
 const searchSchema = z.object({ window: z.string().optional(), month: z.coerce.number().min(0).max(11).optional(), year: z.coerce.number().min(2000).max(2100).optional() });
@@ -36,11 +36,11 @@ function PayrollUnitsPage() {
     queryFn: fetchCharterUnits,
   });
 
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
   const rawUnits = data?.units ?? [];
   const units = useMemo(
-    () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
-    [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
+    () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
+    [rawUnits, foScope.isScoped, foScope.unitIds],
   );
   const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;

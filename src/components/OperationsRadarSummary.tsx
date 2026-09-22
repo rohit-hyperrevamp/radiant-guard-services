@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, BatteryCharging, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 
 export type LivePunch = {
   id: string;
@@ -35,11 +36,17 @@ function batteryTone(pct: number | null) {
  * day's ping counts. The full Radar screen stays one click away.
  */
 export function useOperationsRadarLive() {
+  const managerScope = useManagerFieldOfficerScope();
+  // Managers only track the officers reporting to them.
+  const officerIds = managerScope.isScoped ? [...managerScope.fieldOfficerIds].sort() : null;
+
   return useQuery({
-    queryKey: ["ops-radar-live", today()],
+    queryKey: ["ops-radar-live", today(), officerIds ?? "all"],
+    enabled: !managerScope.isLoading,
     refetchInterval: 20_000,
     queryFn: async (): Promise<LivePunch[]> => {
-      const { data, error } = await supabase
+      if (officerIds && officerIds.length === 0) return [];
+      let q = supabase
         .from("self_attendance_punches" as never)
         .select(
           "id, candidate_id, check_in_at, last_lat, last_lng, last_seen_at, battery_pct, network_type, candidate:candidates!inner(full_name, employee_code, role_key)",
@@ -47,8 +54,9 @@ export function useOperationsRadarLive() {
         .eq("punch_date", today())
         .not("check_in_at", "is", null)
         .is("check_out_at", null)
-        .eq("candidate.role_key", ROLE_KEYS.FIELD_OFFICER)
-        .order("last_seen_at", { ascending: false, nullsFirst: false });
+        .eq("candidate.role_key", ROLE_KEYS.FIELD_OFFICER);
+      if (officerIds) q = q.in("candidate_id", officerIds);
+      const { data, error } = await q.order("last_seen_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as unknown as LivePunch[];
     },
@@ -65,10 +73,15 @@ export function OperationsRadarSummary() {
 
   const liveQ = useOperationsRadarLive();
 
+  const managerScope = useManagerFieldOfficerScope();
+  const scopedOfficerCount = managerScope.isScoped ? managerScope.fieldOfficerIds.size : null;
+
   const totalsQ = useQuery({
-    queryKey: ["ops-radar-totals"],
+    queryKey: ["ops-radar-totals", scopedOfficerCount],
+    enabled: !managerScope.isLoading,
     staleTime: 60_000,
     queryFn: async () => {
+      if (scopedOfficerCount != null) return { fo: scopedOfficerCount };
       const fo = await supabase
         .from("candidates" as never)
         .select("id", { count: "exact", head: true })
