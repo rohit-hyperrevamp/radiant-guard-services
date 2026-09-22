@@ -107,9 +107,9 @@ function FieldSensePage() {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="Radar"
-          description="Your live map — visits, distances traveled and check-in tracking for the day."
-          crumbs={[{ label: "Admin", to: "/admin/field-dashboard" }, { label: "Radar" }]}
+          title="Site Visits"
+          description="Check in and out at assigned sites and review today's visits."
+          crumbs={[{ label: "Admin", to: "/admin/field-dashboard" }, { label: "Site Visits" }]}
         />
         <FieldOfficerFieldSense candidateId={candidateId} />
       </div>

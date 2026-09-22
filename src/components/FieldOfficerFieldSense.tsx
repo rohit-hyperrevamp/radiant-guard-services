@@ -7,11 +7,9 @@ import {
   CheckCircle2,
   Flag,
   Loader2,
-  Map as MapIcon,
   MapPin,
   Navigation,
   Route as RouteIcon,
-  Satellite,
   Star,
   X,
 } from "lucide-react";
@@ -237,23 +235,8 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     });
   };
 
-  const [mapKind, setMapKind] = useState<"street" | "satellite">("street");
   const [pos, setPos] = useState<Geo | null>(null);
   const [posError, setPosError] = useState<string | null>(null);
-
-  // Map refs
-  const mapEl = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null);
-  const LRef = useRef<any>(null);
-  const tileRef = useRef<any>(null);
-  const meMarkerRef = useRef<any>(null);
-  const unitMarkersRef = useRef<Map<string, any>>(new Map());
-  const trackLineRef = useRef<any>(null);
-  const routeLineRef = useRef<any>(null);
-  const destMarkerRef = useRef<any>(null);
-  const waypointMarkersRef = useRef<any[]>([]);
-  const [mapReady, setMapReady] = useState(false);
-  const lastRouteFitKeyRef = useRef("");
 
   // Data — paints from the last known units instantly, refreshes silently.
   const unitsQ = useQuery({
@@ -373,109 +356,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     };
   }, [candidateId, isOnDuty, punchQ.data?.id, openVisit?.id, qc]);
 
-  // Init map
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const L = (await import("leaflet")).default;
-      await import("leaflet/dist/leaflet.css");
-      if (cancelled || !mapEl.current) return;
-      LRef.current = L;
-      const map = L.map(mapEl.current, {
-        center: [20.5937, 78.9629],
-        zoom: 5,
-        zoomControl: true,
-      });
-      const tile = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-        maxZoom: 19,
-      }).addTo(map);
-      tileRef.current = tile;
-      mapRef.current = map;
-      setMapReady(true);
-    })();
-    return () => {
-      cancelled = true;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-      unitMarkersRef.current.clear();
-      trackLineRef.current = null;
-      meMarkerRef.current = null;
-    };
-  }, []);
-
-  // Switch tile layer between street/satellite
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !LRef.current) return;
-    const L = LRef.current;
-    const map = mapRef.current;
-    if (tileRef.current) map.removeLayer(tileRef.current);
-    if (mapKind === "street") {
-      tileRef.current = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-        maxZoom: 19,
-      }).addTo(map);
-    } else {
-      tileRef.current = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { attribution: "© Esri, Maxar, Earthstar Geographics", maxZoom: 19 },
-      ).addTo(map);
-    }
-  }, [mapKind, mapReady]);
-
-  // Sync unit markers
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !LRef.current) return;
-    const L = LRef.current;
-    const map = mapRef.current;
-    const seen = new Set<string>();
-    for (const u of units) {
-      if (u.latitude == null || u.longitude == null) continue;
-      seen.add(u.unit_id);
-      const html = `<div style="width:28px;height:28px;border-radius:8px;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;box-shadow:0 3px 10px rgba(0,0,0,0.35);border:2px solid #fff;">📍</div>`;
-      const icon = L.divIcon({ className: "fo-fs-unit-pin", html, iconSize: [28, 28], iconAnchor: [14, 14] });
-      const existing = unitMarkersRef.current.get(u.unit_id);
-      const popup = `<div style="font-family:ui-sans-serif,system-ui;min-width:180px;">
-        <div style="font-weight:700;font-size:13px;color:#0f172a;">${u.unit_name}</div>
-        <div style="font-size:11px;color:#64748b;margin-top:2px;">${u.customer_name ?? "—"}${u.branch_name ? " · " + u.branch_name : ""}</div>
-      </div>`;
-      if (existing) {
-        existing.setLatLng([u.latitude, u.longitude]);
-        existing.setPopupContent(popup);
-      } else {
-        const m = L.marker([u.latitude, u.longitude], { icon }).addTo(map);
-        m.bindPopup(popup);
-        unitMarkersRef.current.set(u.unit_id, m);
-      }
-    }
-    for (const [id, m] of unitMarkersRef.current) {
-      if (!seen.has(id)) {
-        map.removeLayer(m);
-        unitMarkersRef.current.delete(id);
-      }
-    }
-  }, [units, mapReady]);
-
-  // Sync "me" marker
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !LRef.current || !snappedPosition) return;
-    const L = LRef.current;
-    const map = mapRef.current;
-    const html = `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
-      <div style="width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid #2563eb;box-shadow:0 4px 14px rgba(37,99,235,0.55);display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;">🏍️</div>
-      <span style="position:absolute;inset:-6px;border-radius:50%;border:2px solid #2563eb;opacity:0.45;animation:fs-ping 1.6s ease-out infinite;"></span>
-    </div>`;
-    const icon = L.divIcon({ className: "fo-fs-me-pin", html, iconSize: [36, 36], iconAnchor: [18, 18] });
-    if (meMarkerRef.current) {
-      meMarkerRef.current.setLatLng([snappedPosition.lat, snappedPosition.lng]);
-    } else {
-      meMarkerRef.current = L.marker([snappedPosition.lat, snappedPosition.lng], { icon, zIndexOffset: 1000 }).addTo(map);
-      meMarkerRef.current.bindPopup("You are here");
-    }
-  }, [snappedPosition, mapReady]);
-
   const track = trackQ.data ?? [];
   const routeCoords = useMemo(() => {
     const points: RouteCoord[] = [];
@@ -535,97 +415,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     return points;
   }, [isOnDuty, punchQ.data, snappedPosition, track, units, visits]);
 
-  // Road-following bike route (OSRM public cycling profile).
-  // Snaps waypoints to actual roads so the polyline follows streets instead of
-  // drawing straight aerial lines, and returns realistic riding distance.
-  const [roadRoute, setRoadRoute] = useState<{ key: string; coords: Array<[number, number]>; meters: number } | null>(null);
-  const roadRouteKey = useMemo(
-    () => routeCoords.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|"),
-    [routeCoords],
-  );
-  useEffect(() => {
-    if (routeCoords.length < 2) { setRoadRoute(null); return; }
-    let cancelled = false;
-    const coordsParam = routeCoords.map((p) => `${p.lng},${p.lat}`).join(";");
-    const url = `https://router.project-osrm.org/route/v1/cycling/${coordsParam}?overview=full&geometries=geojson`;
-    (async () => {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) throw new Error(`OSRM ${r.status}`);
-        const j: any = await r.json();
-        const route = j?.routes?.[0];
-        if (!route?.geometry?.coordinates?.length) throw new Error("no route");
-        const coords: Array<[number, number]> = route.geometry.coordinates.map(
-          (c: [number, number]) => [c[1], c[0]],
-        );
-        if (!cancelled) setRoadRoute({ key: roadRouteKey, coords, meters: Number(route.distance) || 0 });
-      } catch {
-        if (!cancelled) setRoadRoute(null);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [roadRouteKey, routeCoords]);
-
-  // Sync complete route polyline: attendance start → site 1 → site 2 → current/checkout.
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !LRef.current) return;
-    const L = LRef.current;
-    const map = mapRef.current;
-    if (trackLineRef.current) {
-      map.removeLayer(trackLineRef.current);
-      trackLineRef.current = null;
-    }
-    // Clear prior numbered waypoint markers
-    for (const m of waypointMarkersRef.current) {
-      try { map.removeLayer(m); } catch { /* noop */ }
-    }
-    waypointMarkersRef.current = [];
-
-    const coords: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
-    if (coords.length < 2) return;
-    const drawCoords: Array<[number, number]> =
-      roadRoute && roadRoute.key === roadRouteKey && roadRoute.coords.length >= 2
-        ? roadRoute.coords
-        : coords;
-    trackLineRef.current = L.polyline(drawCoords, {
-      color: "#2563eb",
-      weight: 5,
-      opacity: 0.9,
-    }).addTo(map);
-    trackLineRef.current.bringToFront();
-
-    // Numbered waypoint pins: S = start (punch-in), 1..N = site visits, E = checkout
-    let visitCounter = 0;
-    for (const point of routeCoords) {
-      let label: string | null = null;
-      let bg = "#2563eb";
-      if (point.kind === "punch-in") { label = "S"; bg = "#0f766e"; }
-      else if (point.kind === "visit-in") { visitCounter += 1; label = String(visitCounter); bg = "#2563eb"; }
-      else if (point.kind === "punch-out") { label = "E"; bg = "#b91c1c"; }
-      if (!label) continue;
-      const html = `<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:9999px;background:${bg};color:#fff;font-weight:700;font-size:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);">${label}</div>`;
-      const icon = L.divIcon({ className: "fo-fs-wp-pin", html, iconSize: [26, 26], iconAnchor: [13, 13] });
-      const m = L.marker([point.lat, point.lng], { icon, zIndexOffset: 950 }).addTo(map);
-      waypointMarkersRef.current.push(m);
-    }
-
-    const fitKey = routeCoords.map((point) => `${point.kind}:${point.lat.toFixed(5)},${point.lng.toFixed(5)}`).join("|");
-    if (fitKey && fitKey !== lastRouteFitKeyRef.current) {
-      lastRouteFitKeyRef.current = fitKey;
-      try {
-        const bounds = L.latLngBounds(coords);
-        // Single-point route: center and zoom in close
-        if (coords.length === 1 || bounds.getNorthEast().equals(bounds.getSouthWest())) {
-          map.setView(coords[0], 17, { animate: true });
-        } else {
-          map.fitBounds(bounds.pad(0.15), { maxZoom: 17, animate: true });
-        }
-      } catch {
-        /* noop */
-      }
-    }
-  }, [routeCoords, mapReady, roadRoute, roadRouteKey]);
-
   // Active-visit route: check-in origin → current position → destination unit.
   // Simulates a live navigation trail so the FO can see the intended route + km to destination.
   const distanceToDest = useMemo(() => {
@@ -636,64 +425,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     if (!from) return null;
     return distanceMeters(from, { lat: Number(openVisitUnit.latitude), lng: Number(openVisitUnit.longitude) });
   }, [openVisit, openVisitUnit, snappedPosition]);
-
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !LRef.current) return;
-    const L = LRef.current;
-    const map = mapRef.current;
-    // Clear previous
-    if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
-    if (destMarkerRef.current) { map.removeLayer(destMarkerRef.current); destMarkerRef.current = null; }
-    if (!openVisit || !openVisitUnit || openVisitUnit.latitude == null || openVisitUnit.longitude == null) return;
-    const origin: [number, number] | null = routeCoords.length
-      ? [routeCoords[routeCoords.length - 1].lat, routeCoords[routeCoords.length - 1].lng]
-      : snappedPosition ? [snappedPosition.lat, snappedPosition.lng] : null;
-    if (!origin) return;
-    const dest: [number, number] = [Number(openVisitUnit.latitude), Number(openVisitUnit.longitude)];
-    const coords: Array<[number, number]> = [origin];
-    if (snappedPosition) coords.push([snappedPosition.lat, snappedPosition.lng]);
-    coords.push(dest);
-    routeLineRef.current = L.polyline(coords, {
-      color: "#f59e0b",
-      weight: 5,
-      opacity: 0.9,
-    }).addTo(map);
-    const destHtml = `<div style="width:30px;height:30px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;box-shadow:0 4px 12px rgba(245,158,11,0.55);border:3px solid #fff;">🏁</div>`;
-    const destIcon = L.divIcon({ className: "fo-fs-dest-pin", html: destHtml, iconSize: [30, 30], iconAnchor: [15, 15] });
-    destMarkerRef.current = L.marker(dest, { icon: destIcon, zIndexOffset: 900 }).addTo(map);
-    destMarkerRef.current.bindPopup(`Destination: ${openVisitUnit.unit_name}`);
-    // Full route fitting is handled by the main route polyline so the entire
-    // day path remains visible, not only the active destination segment.
-  }, [openVisit, openVisitUnit, snappedPosition, routeCoords, mapReady]);
-
-  // Auto-fit map bounds once when we have data. Only use the actual trail
-  // (route + current position) so the map zooms tight to where the officer
-  // actually is — not to every unit on file (which would zoom way out).
-  const didFitRef = useRef(false);
-  useEffect(() => {
-    if (didFitRef.current) return;
-    if (!mapReady || !mapRef.current || !LRef.current) return;
-    const L = LRef.current;
-    const pts: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
-    if (snappedPosition) pts.push([snappedPosition.lat, snappedPosition.lng]);
-    // Fallback: no trail yet — fit to nearby units around the current position.
-    if (pts.length === 0 && snappedPosition) {
-      const NEAR_KM = 25;
-      for (const u of units) {
-        if (u.latitude == null || u.longitude == null) continue;
-        const d = distanceMeters(snappedPosition, { lat: Number(u.latitude), lng: Number(u.longitude) });
-        if (d != null && d / 1000 <= NEAR_KM) pts.push([Number(u.latitude), Number(u.longitude)]);
-      }
-      pts.push([snappedPosition.lat, snappedPosition.lng]);
-    }
-    if (pts.length === 0) return;
-    if (pts.length === 1) {
-      mapRef.current.setView(pts[0], 16, { animate: true });
-    } else {
-      mapRef.current.fitBounds(L.latLngBounds(pts).pad(0.18), { maxZoom: 16, animate: true });
-    }
-    didFitRef.current = true;
-  }, [routeCoords, units, snappedPosition, mapReady]);
 
 
   // Distance list from current position
@@ -710,9 +441,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
 
   // Total kms today
   const totalKmToday = useMemo(() => {
-    if (roadRoute && roadRoute.key === roadRouteKey && roadRoute.meters > 0) {
-      return roadRoute.meters / 1000;
-    }
     if (routeCoords.length < 2) return 0;
     let sum = 0;
     for (let i = 1; i < routeCoords.length; i += 1) {
@@ -722,9 +450,9 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
       if (d != null) sum += d;
     }
     return sum / 1000;
-  }, [routeCoords, roadRoute, roadRouteKey]);
+  }, [routeCoords]);
 
-  // Persist the road-snapped daily distance to the punch row so admin
+  // Persist the daily distance to the punch row so admin
   // dashboards read the exact same number the FO sees. Skip for historical views.
   const lastPersistedKmRef = useRef<number | null>(null);
   useEffect(() => {
@@ -867,57 +595,69 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
         )}
       </div>
 
-      {/* Map + Timeline side-by-side (stacks on mobile) */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr,340px]">
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Live map</div>
-            <div className="inline-flex rounded-lg border border-border/60 bg-background p-0.5 text-[11px] font-semibold">
-              <button
-                type="button"
-                onClick={() => setMapKind("street")}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-1",
-                  mapKind === "street" ? "bg-foreground text-background" : "text-muted-foreground",
-                )}
-              >
-                <MapIcon className="h-3 w-3" /> Map
-              </button>
-              <button
-                type="button"
-                onClick={() => setMapKind("satellite")}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-1",
-                  mapKind === "satellite" ? "bg-foreground text-background" : "text-muted-foreground",
-                )}
-              >
-                <Satellite className="h-3 w-3" /> Satellite
-              </button>
+      <div className="grid gap-3 sm:grid-cols-[repeat(3,minmax(0,1fr))]">
+        <VisitSummary label="Visits" value={`${completedCount}${openVisit ? " +1" : ""}`} />
+        <VisitSummary label="Distance" value={`${totalKmToday.toFixed(2)} km`} />
+        <VisitSummary
+          label="On duty"
+          value={isOnDuty || punchQ.data?.check_out_at ? `${Math.floor(totalMinutesOnDuty / 60)}h ${totalMinutesOnDuty % 60}m` : "—"}
+        />
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="order-2 lg:order-1">
+          {/* Units list */}
+          <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+              My sites ({units.length})
             </div>
-          </div>
-          <div ref={mapEl} style={{ height: "480px", width: "100%" }} />
-          {/* KPI strip under the map */}
-          <div className="grid grid-cols-3 divide-x divide-border/50 border-t border-border/50 bg-background/40 text-center">
-            <div className="px-2 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Visits</div>
-              <div className="text-sm font-bold text-foreground">{completedCount}{openVisit ? ` +1` : ""}</div>
-            </div>
-            <div className="px-2 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Distance</div>
-              <div className="text-sm font-bold text-foreground">{totalKmToday.toFixed(2)} km</div>
-            </div>
-            <div className="px-2 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">On duty</div>
-              <div className="text-sm font-bold text-foreground">
-                {isOnDuty || punchQ.data?.check_out_at
-                  ? `${Math.floor(totalMinutesOnDuty / 60)}h ${totalMinutesOnDuty % 60}m`
-                  : "—"}
-              </div>
-            </div>
+            {unitsQ.isLoading ? (
+              <div className="py-4 text-center text-[11px] italic text-muted-foreground">Loading…</div>
+            ) : units.length === 0 ? (
+              <div className="py-4 text-center text-[11px] italic text-muted-foreground">No sites assigned to you yet.</div>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {units.map((u) => {
+                  const last = lastVisitQ.data?.get(u.unit_id) ?? null;
+                  const count = monthCountsQ.data?.get(u.unit_id) ?? 0;
+                  const href = mapsUrl(u.latitude, u.longitude);
+                  return (
+                    <li key={u.unit_id} className="rounded-xl border border-border/50 bg-background/60 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-foreground">
+                            {u.unit_name}
+                            {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
+                          </div>
+                          <div className="truncate text-[11px] text-muted-foreground">
+                            {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
+                          </div>
+                          {u.address && <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{u.address}</div>}
+                        </div>
+                        <div className="shrink-0 text-right text-[10px] font-semibold text-muted-foreground">
+                          <div>Last visit</div>
+                          <div className="text-foreground">{whenAgo(last)}</div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                        {href ? (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-sky-100 px-2 py-1 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200">
+                            <Navigation className="h-3 w-3" /> Directions
+                          </a>
+                        ) : null}
+                        <span className="rounded-md bg-emerald-100 px-2 py-1 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
+                          {count} visit{count === 1 ? "" : "s"} this month
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
 
-        {/* Timeline column */}
+        <div className="order-1 lg:order-2">
         <FieldSenseTimeline
           visits={visits}
           units={units}
@@ -927,6 +667,7 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           totalKmToday={totalKmToday}
           onCompleteVisit={() => setCheckOutOpen(true)}
         />
+        </div>
       </div>
 
 
@@ -949,66 +690,6 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           </div>
         </div>
       )}
-
-      {/* Units list */}
-      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-          My units ({units.length})
-        </div>
-        {unitsQ.isLoading ? (
-          <div className="py-4 text-center text-[11px] italic text-muted-foreground">Loading…</div>
-        ) : units.length === 0 ? (
-          <div className="py-4 text-center text-[11px] italic text-muted-foreground">No units mapped to you yet.</div>
-        ) : (
-          <ul className="space-y-2">
-            {units.map((u) => {
-              const last = lastVisitQ.data?.get(u.unit_id) ?? null;
-              const count = monthCountsQ.data?.get(u.unit_id) ?? 0;
-              const href = mapsUrl(u.latitude, u.longitude);
-              return (
-                <li key={u.unit_id} className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-foreground">
-                        {u.unit_name}
-                        {u.unit_code && (
-                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>
-                        )}
-                      </div>
-                      <div className="truncate text-[11px] text-muted-foreground">
-                        {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
-                      </div>
-                      {u.address && <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{u.address}</div>}
-                    </div>
-                    <div className="text-right text-[10px] font-semibold text-muted-foreground">
-                      <div>Last visit</div>
-                      <div className="text-foreground">{whenAgo(last)}</div>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                    {href ? (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md bg-sky-100 px-2 py-1 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200"
-                      >
-                        <MapPin className="h-3 w-3" />
-                        {Number(u.latitude).toFixed(4)}, {Number(u.longitude).toFixed(4)}
-                      </a>
-                    ) : (
-                      <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground italic">no geo</span>
-                    )}
-                    <span className="rounded-md bg-emerald-100 px-2 py-1 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
-                      {count} visit{count === 1 ? "" : "s"} this month
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
 
       {/* Range-driven visit history & insights */}
       <RangeInsightsPanel
@@ -1603,6 +1284,15 @@ function TimelineRow(props: {
         )}
         {action}
       </div>
+    </div>
+  );
+}
+
+function VisitSummary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-base font-semibold text-foreground">{value}</div>
     </div>
   );
 }
