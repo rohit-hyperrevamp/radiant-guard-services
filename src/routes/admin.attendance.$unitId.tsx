@@ -30,6 +30,7 @@ import { z } from "zod";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { withNetworkRetry, networkErrorMessage } from "@/lib/net-retry";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
 import { extractAttendanceViaApi, extractMigrationSheetViaApi } from "@/lib/sheet-ocr-api";
 import type { MigrationSheetDay } from "@/lib/sheet-ocr-types";
