@@ -60,7 +60,7 @@ import {
   saveClientAttributeValues,
 } from "@/lib/mis-template";
 import { cn } from "@/lib/utils";
-import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
 import { pickEsicBranchId } from "@/lib/esic-auto-map";
@@ -173,16 +173,16 @@ function UnitManagerPage() {
   const { branches } = useBranches();
   const { customers } = useCustomers();
   const { states } = useStates();
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
 
   // Field officers only ever see the clients they are mapped to.
   const scopedUnits = useMemo(
-    () => (foScope.isFieldOfficer ? units.filter((u) => foScope.unitIds.has(u.id)) : units),
-    [units, foScope.isFieldOfficer, foScope.unitIds],
+    () => (foScope.isScoped ? units.filter((u) => foScope.unitIds.has(u.id)) : units),
+    [units, foScope.isScoped, foScope.unitIds],
   );
   const scopedCustomers = useMemo(
-    () => (foScope.isFieldOfficer ? customers.filter((c) => foScope.customerIds.has(c.id)) : customers),
-    [customers, foScope.isFieldOfficer, foScope.customerIds],
+    () => (foScope.isScoped ? customers.filter((c) => foScope.customerIds.has(c.id)) : customers),
+    [customers, foScope.isScoped, foScope.customerIds],
   );
 
   const [query, setQuery] = useState("");

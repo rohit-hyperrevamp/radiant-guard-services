@@ -53,7 +53,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 import { cn } from "@/lib/utils";
-import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 
@@ -92,11 +92,11 @@ function formatDate(iso: string) {
 
 function CustomerManagerPage() {
   const { customers: allCustomers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
   // Field officers only see the organizations they are actually mapped to.
   const customers = useMemo(
-    () => (foScope.isFieldOfficer ? allCustomers.filter((c) => foScope.customerIds.has(c.id)) : allCustomers),
-    [allCustomers, foScope.isFieldOfficer, foScope.customerIds],
+    () => (foScope.isScoped ? allCustomers.filter((c) => foScope.customerIds.has(c.id)) : allCustomers),
+    [allCustomers, foScope.isScoped, foScope.customerIds],
   );
 
   const [query, setQuery] = useState("");
@@ -402,10 +402,10 @@ function CustomerUnitsDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const { units: allUnits, updateUnit } = useUnits();
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
   const units = useMemo(
-    () => (foScope.isFieldOfficer ? allUnits.filter((u) => foScope.unitIds.has(u.id)) : allUnits),
-    [allUnits, foScope.isFieldOfficer, foScope.unitIds],
+    () => (foScope.isScoped ? allUnits.filter((u) => foScope.unitIds.has(u.id)) : allUnits),
+    [allUnits, foScope.isScoped, foScope.unitIds],
   );
   const { branches } = useBranches();
   const { states } = useStates();

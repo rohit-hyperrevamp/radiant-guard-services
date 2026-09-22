@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { ListSkeleton } from "@/components/Skeletons";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 
@@ -82,7 +82,7 @@ function EmployeeAttendanceLookupPage() {
   const [selected, setSelected] = useState<CandidateHit | null>(null);
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
-  const foScope = useFieldOfficerUnitScope();
+  const foScope = useOperationalUnitScope();
   const opsFocus = useOperationsFocus();
 
   useEffect(() => {
@@ -212,7 +212,7 @@ function EmployeeAttendanceLookupPage() {
 
     const ids = Array.from(
       new Set<string>([...d.entries.map((e) => e.unit_id), ...d.links.map((l) => l.unit_id)]),
-    ).filter((id) => (foScope.isFieldOfficer ? foScope.unitIds.has(id) : true));
+    ).filter((id) => (foScope.isScoped ? foScope.unitIds.has(id) : true));
 
     return ids
       .map((id) => {
@@ -243,7 +243,7 @@ function EmployeeAttendanceLookupPage() {
 
       })
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name));
-  }, [detailQ.data, codeMap, foScope.isFieldOfficer, foScope.unitIds]);
+  }, [detailQ.data, codeMap, foScope.isScoped, foScope.unitIds]);
 
   const totals = useMemo(
     () =>
