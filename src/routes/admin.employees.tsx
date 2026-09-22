@@ -86,6 +86,7 @@ import { BankVerify } from "@/components/BankVerify";
 import { useEmployeeVerificationEnabled } from "@/lib/platform-settings";
 import { hasCompletedDigilockerVerification } from "@/lib/surepass.functions";
 import { logActivity } from "@/lib/activity-log";
+import { prepareUpload, withUploadRetry } from "@/lib/robust-upload";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
 import { RehireEnableDialog } from "@/components/RehireEnableDialog";
 import { RehireReviewDialog } from "@/components/RehireReviewDialog";
@@ -7138,16 +7139,18 @@ function CandidateWizard({
     file: File,
     slot: "photo" | "signature" | "aadhaar" | "pan",
   ): Promise<string> => {
-    const ext = file.name.split(".").pop() || "png";
+    const { blob, ext, contentType } = await prepareUpload(file);
     const path = `${slot}/${form.aadhaar_number || "NEW"}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
-      .from("candidate-files")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (error) throw error;
+    await withUploadRetry(async () => {
+      const { error } = await supabase.storage
+        .from("candidate-files")
+        .upload(path, blob, { upsert: true, contentType });
+      if (error) throw error;
+    });
     // Bucket is private — generate a long-lived signed URL (≈10 years)
-    const { data: signed, error: signErr } = await supabase.storage
-      .from("candidate-files")
-      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    const { data: signed, error: signErr } = await withUploadRetry(() =>
+      supabase.storage.from("candidate-files").createSignedUrl(path, 60 * 60 * 24 * 365 * 10),
+    );
     if (signErr) throw signErr;
     return signed.signedUrl;
   };

@@ -581,15 +581,18 @@ const ESIC_RELATIONS = [
 /** Uploads to the private candidate-files bucket and returns a long-lived signed URL. */
 export async function uploadCandidateFile(file: File, folder: string, keyHint?: string): Promise<string> {
   const { supabase } = await import("@/integrations/supabase/client");
-  const ext = file.name.split(".").pop() || "png";
+  const { prepareUpload, withUploadRetry } = await import("@/lib/robust-upload");
+  const { blob, ext, contentType } = await prepareUpload(file);
   const path = `${folder}/${(keyHint || "NEW").replace(/[^A-Za-z0-9_-]/g, "")}-${Date.now()}.${ext}`;
-  const { error } = await supabase.storage
-    .from("candidate-files")
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw error;
-  const { data: signed, error: signErr } = await supabase.storage
-    .from("candidate-files")
-    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  await withUploadRetry(async () => {
+    const { error } = await supabase.storage
+      .from("candidate-files")
+      .upload(path, blob, { upsert: true, contentType });
+    if (error) throw error;
+  });
+  const { data: signed, error: signErr } = await withUploadRetry(() =>
+    supabase.storage.from("candidate-files").createSignedUrl(path, 60 * 60 * 24 * 365 * 10),
+  );
   if (signErr) throw signErr;
   return signed.signedUrl;
 }
