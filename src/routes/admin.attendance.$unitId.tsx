@@ -2930,7 +2930,12 @@ function MusterRollPage() {
       }
 
       for (const { mr, rows } of byPair.values()) {
-        const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+        const mapping = await ensureAttendanceUnitMapping(
+          mr.candidateId,
+          unitId,
+          mr.designationId,
+          mr.reliever === true,
+        );
         await upsertEntries(
           mr.candidateId,
           mr.designationId,
