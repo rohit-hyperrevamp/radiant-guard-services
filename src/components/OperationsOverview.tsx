@@ -68,19 +68,21 @@ async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsO
         .eq("status", "active");
       return (scopedUnitIds ? q.in("id", scopedUnitIds) : q).order("name").range(from, to);
     }),
-    fetchAllPages<VisitRow>((from, to) =>
-      supabase
+    fetchAllPages<VisitRow>((from, to) => {
+      const q = supabase
         .from("field_visits")
         .select("unit_id,visit_date,check_out_at")
         .gte("visit_date", monthStart())
-        .lte("visit_date", localDate())
-        .range(from, to),
-    ),
-    supabase
-      .from("candidates")
-      .select("id", { count: "exact", head: true })
-      .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
-      .in("status", ["approved", "active"]),
+        .lte("visit_date", localDate());
+      return (scopedUnitIds ? q.in("unit_id", scopedUnitIds) : q).range(from, to);
+    }),
+    scope.fieldOfficerCount != null
+      ? Promise.resolve({ count: scope.fieldOfficerCount, error: null })
+      : supabase
+          .from("candidates")
+          .select("id", { count: "exact", head: true })
+          .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
+          .in("status", ["approved", "active"]),
   ]);
 
   if (foCount.error) throw foCount.error;
