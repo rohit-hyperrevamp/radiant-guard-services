@@ -2471,7 +2471,19 @@ function MusterRollPage() {
         return next;
       });
 
-      const summary = `${confidentCount} cell${confidentCount === 1 ? "" : "s"} auto-filled · ${uncertainCount} flagged for review${totalsMismatchPairs.size ? ` · ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"} marked for totals review` : ""}${result.unmatched_names.length ? ` · ${result.unmatched_names.length} unmatched row${result.unmatched_names.length === 1 ? "" : "s"}` : ""}`;
+      // Rows the reader could not match to anyone on the muster are resolved
+      // from the sheet itself: match / create the person, map them to this unit
+      // and save their attendance — never ask the user to map first.
+      let auto = { cells: 0, created: 0, mapped: 0, people: 0 };
+      if (result.unmatched_names.length) {
+        try {
+          auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
+        } catch {
+          auto = { cells: 0, created: 0, mapped: 0, people: 0 };
+        }
+      }
+      const stillUnmatched = Math.max(0, result.unmatched_names.length - auto.people);
+      const summary = `${confidentCount + auto.cells} cell${confidentCount + auto.cells === 1 ? "" : "s"} auto-filled · ${uncertainCount} flagged for review${totalsMismatchPairs.size ? ` · ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"} marked for totals review` : ""}${auto.mapped ? ` · mapped ${auto.mapped} employee${auto.mapped === 1 ? "" : "s"} to this unit` : ""}${auto.created ? ` · created ${auto.created} new employee${auto.created === 1 ? "" : "s"}` : ""}${stillUnmatched ? ` · ${stillUnmatched} unmatched row${stillUnmatched === 1 ? "" : "s"}` : ""}`;
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
