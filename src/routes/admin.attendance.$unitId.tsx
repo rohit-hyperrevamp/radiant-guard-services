@@ -2456,6 +2456,10 @@ function MusterRollPage() {
       }
 
       const sheetPairKeys = new Set<string>([...byPair.keys()]);
+      const mappingByPair = new Map<
+        string,
+        Awaited<ReturnType<typeof ensureAttendanceUnitMapping>>
+      >();
 
       // Sheet-authoritative: for any candidate present in the uploaded sheet,
       // wipe ALL prior entries for the period (across every designation),
@@ -2470,7 +2474,6 @@ function MusterRollPage() {
         // Normalize every person found on the uploaded muster before writing.
         // Existing reliever links accept only Extra Duty at DB level and would
         // otherwise silently clear all normal attendance codes.
-        const mappingByPair = new Map<string, Awaited<ReturnType<typeof ensureAttendanceUnitMapping>>>();
         await Promise.all(
           Array.from(sheetPairKeys).map(async (pk) => {
             const mr = pairByKey.get(pk);
