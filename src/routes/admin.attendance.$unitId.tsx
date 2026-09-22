@@ -2881,6 +2881,7 @@ function MusterRollPage() {
                 nameTokens: person.tokens,
                 designationId: person.designationId,
                 designationName: person.designationName,
+                isReliever: person.isReliever,
               },
               joiningDate: periodStart,
               createdBy,
