@@ -2523,6 +2523,45 @@ function MusterRollPage() {
       const candidatesInSheet = new Set<string>();
       let secondaryDesigRowCount = 0;
       let filled = 0;
+      // Rows whose person is not yet on this unit's muster. They are resolved
+      // (matched by employee code / name, created when missing, then mapped to
+      // this unit) after the sheet is read — uploading never asks the user to
+      // map a resource first.
+      const pendingPeople: Array<{
+        label: string;
+        tokens: string[];
+        designationId: string | null;
+        designationName: string | null;
+        rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+      }> = [];
+
+      const parseSheetRowCells = (row: Array<unknown>) => {
+        const out: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
+        for (const h of headerDates) {
+          if (h.date > todayStr) continue;
+          const raw = row[h.col];
+          if (raw == null || String(raw).trim() === "") continue;
+          // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
+          const cell = String(raw).trim().toUpperCase();
+          const m = cell.match(/^([A-Z]+)(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
+          if (!m) continue;
+          // FPL muster shorthand: "D" / "ED" mean Duty / Extra-Duty — both are a
+          // PRESENT day, with the trailing number being OT days for that date.
+          // Re-map to canonical "P" so payroll counts them as present.
+          let codeKey = m[1];
+          if (codeKey === "D" || codeKey === "ED") codeKey = "P";
+          const canonical = codeSet.get(codeKey);
+          if (!canonical) continue;
+          const ot = m[2] ? Number(m[2]) : 0;
+          out.push({
+            entry_date: h.date,
+            code: canonical,
+            ot_hours: Number.isFinite(ot) ? ot : 0,
+          });
+        }
+        return out;
+      };
+
 
       for (let r = headerRowIdx + 1; r < aoa.length; r++) {
         const row = aoa[r] || [];
