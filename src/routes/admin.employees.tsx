@@ -45,7 +45,6 @@ import {
   FileSpreadsheet,
   FileText,
   HeartHandshake,
-  IdCard,
   LayoutList,
   Loader2,
   MapPin,
@@ -53,7 +52,6 @@ import {
   Plus,
   Search,
   Settings2,
-  ShieldCheck,
   Trash2,
   Upload,
   UserPlus,
@@ -93,7 +91,6 @@ import { RehireReviewDialog } from "@/components/RehireReviewDialog";
 import { type RehireRequest } from "@/lib/workflows";
 import { fetchWorkflowByKey, fetchWorkflowSteps, REHIRE_WORKFLOW_KEY } from "@/lib/workflows";
 import { PageHeader } from "@/components/PageHeader";
-import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -4167,14 +4164,14 @@ function EmployeesPage() {
             </td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
-            <td className="hidden max-w-[170px] px-2.5 py-2 md:table-cell">
+            <td className="hidden w-[112px] px-2.5 py-2 md:table-cell">
               {unit ? (
                 <div className="flex min-w-0 items-center gap-1.5">
                   <span
-                    className="block min-w-0 truncate text-sm font-medium text-foreground"
+                    className="inline-flex min-w-0 whitespace-nowrap rounded-md bg-secondary px-2 py-1 font-mono text-[11px] font-medium tabular-nums text-foreground"
                     title={`${unit.name}${unit.customer_name ? ` · ${unit.customer_name}` : ""}`}
                   >
-                    {unit.name}
+                    {unit.code || "—"}
                   </span>
                   {showSiteMap && (
                     <button
@@ -4713,8 +4710,11 @@ function EmployeesPage() {
                   <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                     <span className="truncate">{c.mobile || "No mobile"}</span>
                     <span className="truncate text-right">{roleName}</span>
-                    <span className="truncate" title={unit?.name ?? ""}>
-                      {unit?.name || "No client"}
+                    <span
+                      className="truncate font-mono"
+                      title={unit ? `${unit.name}${unit.customer_name ? ` · ${unit.customer_name}` : ""}` : ""}
+                    >
+                      {unit?.code || "No client"}
                     </span>
                     <span className="truncate text-right" title={desig?.name ?? ""}>
                       {desig?.name || "No designation"}
@@ -5020,8 +5020,8 @@ function EmployeesPage() {
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.unit) && (
-                <th className="hidden w-[188px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
-                  Client
+                <th className="hidden w-[112px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
+                  Client ID
                 </th>
               )}
               {(mode === "candidate" || columnsVisible.designation) && (
@@ -5114,61 +5114,38 @@ function EmployeesPage() {
         }}
       />
 
-      <CharterTileGrid>
+      <div className="scrollbar-hide flex h-[68px] items-stretch overflow-x-auto rounded-xl border border-border/70 bg-card shadow-sm">
         {(tab === "employee" && !isFieldOfficer
           ? [
-              {
-                label: "Total employees",
-                value: stats.empTotal,
-                icon: IdCard,
-                color: "sky" as const,
-              },
-              {
-                label: "Active",
-                value: stats.empActive,
-                icon: CheckCircle2,
-                color: "emerald" as const,
-              },
-              { label: "Inactive", value: stats.empInactive, icon: X, color: "rose" as const },
-              {
-                label: "Billable",
-                value: stats.empBillable,
-                icon: ShieldCheck,
-                color: "cyan" as const,
-              },
-              {
-                label: "Non-billable",
-                value: stats.empNonBillable,
-                icon: HeartHandshake,
-                color: "violet" as const,
-              },
+              { label: "Total", value: stats.empTotal },
+              { label: "Active", value: stats.empActive },
+              { label: "Inactive", value: stats.empInactive },
+              { label: "Billable", value: stats.empBillable },
+              { label: "Non-billable", value: stats.empNonBillable },
             ]
           : [
-              {
-                label: "Total candidates",
-                value: stats.candTotal,
-                icon: UserPlus,
-                color: "sky" as const,
-              },
-              {
-                label: "Drafts",
-                value: stats.candDrafts,
-                icon: FileText,
-                color: "violet" as const,
-              },
-              { label: "Pending", value: stats.candPending, icon: Clock, color: "amber" as const },
-              { label: "Rejected", value: stats.candRejected, icon: X, color: "rose" as const },
+              { label: "Total", value: stats.candTotal },
+              { label: "Drafts", value: stats.candDrafts },
+              { label: "Pending", value: stats.candPending },
+              { label: "Rejected", value: stats.candRejected },
             ]
-        ).map((s) => (
-          <CharterTile
-            key={s.label}
-            label={s.label}
-            countTo={s.value}
-            icon={s.icon}
-            accent={s.color}
-          />
+        ).map((item, index) => (
+          <div
+            key={item.label}
+            className={cn(
+              "flex min-w-[118px] flex-1 flex-col justify-center px-4 sm:min-w-0 sm:px-5",
+              index > 0 && "border-l border-border/60",
+            )}
+          >
+            <span className="whitespace-nowrap text-[11px] font-medium text-muted-foreground">
+              {item.label}
+            </span>
+            <span className="mt-0.5 whitespace-nowrap font-display text-xl font-medium leading-none tabular-nums text-foreground">
+              {item.value.toLocaleString("en-IN")}
+            </span>
+          </div>
         ))}
-      </CharterTileGrid>
+      </div>
 
       <Tabs
         value={tab}
