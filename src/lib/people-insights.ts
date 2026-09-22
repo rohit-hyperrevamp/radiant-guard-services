@@ -65,15 +65,22 @@ export function usePeopleInsights(options?: { roleKeys?: readonly string[] }) {
   const { isSuperAdmin, roleKey, isFieldOfficer, isBranchManager } = useCurrentUserRole();
   const foScope = useFieldOfficerUnitScope();
   const branchScope = useUserBranchScope();
+  const managerScope = useManagerFieldOfficerScope();
   // Operations leaders only follow their own chain: field officers and the
   // managers they report to.
   const roleKeys = options?.roleKeys ? Array.from(options.roleKeys) : null;
 
   const canAll = isSuperAdmin || roleKey === "leadership" || roleKey === "hr" || roleKey === "admin";
   const showSixtyPlus = isSuperAdmin || roleKey === "leadership";
+  // Managers with field officers under them stay inside that chain.
+  const managerUnitIds = managerScope.isScoped ? Array.from<string>(managerScope.unitIds) : null;
 
   const enabled =
-    isBranchManager ? !branchScope.isLoading : isFieldOfficer ? !foScope.isLoading : true;
+    isBranchManager
+      ? !branchScope.isLoading
+      : isFieldOfficer
+        ? !foScope.isLoading
+        : !managerScope.isLoading;
 
   const q = useQuery({
     queryKey: [
