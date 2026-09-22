@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  *   1. find the employee by employee code / candidate code (or an unambiguous
  *      full-name match),
  *   2. create the employee when no record exists,
- *   3. map the employee to this unit (so the unit's muster shows them),
+ *   3. map primary guards to this unit; keep relievers as people-only records,
  * and only then write attendance.
  */
 
@@ -107,11 +107,10 @@ async function roleKeyForDesignation(contractId: string | null, designationId: s
 }
 
 /**
- * Make sure the employee is mapped as a regular resource at this unit so both
- * the muster and the database attendance guard accept the uploaded marks. An
- * uploaded monthly muster is authoritative evidence that this is not merely an
- * extra-duty reliever posting. A new mapping becomes primary only when the
- * person has no primary posting anywhere yet.
+ * Preserve the one-primary-unit rule. Existing primary guards are never moved:
+ * when they appear at another unit they are treated as relievers and attendance
+ * is converted to Extra Duty by the importer. A person with no posting is made
+ * primary at the uploaded unit.
  */
 export async function ensureAttendanceUnitMapping(
   candidateId: string,
@@ -157,11 +156,17 @@ export async function ensureAttendanceUnitMapping(
     .eq("is_primary", true)
     .limit(1);
   const hasPrimary = (primaries ?? []).length > 0;
+  const { data: candidate } = await supabase
+    .from("candidates")
+    .select("unit_id")
+    .eq("id", candidateId)
+    .maybeSingle();
+  const legacyPrimaryUnit = (candidate as { unit_id?: string | null } | null)?.unit_id ?? null;
 
   // A guard already posted primarily elsewhere is a reliever here. Do not add
   // a unit mapping: reliever attendance is saved as Extra Duty by the caller,
   // while the employee's one-and-only primary posting remains untouched.
-  if (hasPrimary) {
+  if (hasPrimary || (legacyPrimaryUnit && legacyPrimaryUnit !== unitId)) {
     return { mapped: false, isPrimary: false, isReliever: true };
   }
 
