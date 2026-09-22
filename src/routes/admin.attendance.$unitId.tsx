@@ -2144,12 +2144,12 @@ function MusterRollPage() {
       }
       const rows = (emp.days ?? [])
         .filter(
-          (d) =>
+          (d: MigrationSheetDay) =>
             validDates.has(d.entry_date) &&
             d.entry_date <= todayStr &&
             canonicalCode.has(String(d.code).toUpperCase()),
         )
-        .map((d) => ({
+        .map((d: MigrationSheetDay) => ({
           entry_date: d.entry_date,
           code: canonicalCode.get(String(d.code).toUpperCase())!,
           ot_hours: Number(d.ot_hours) || 0,
