@@ -74,6 +74,7 @@ import {
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import {
   ensureAttendanceUnitMapping,
+  looksLikeRelieverText,
   resolveSheetPersonForUnit,
 } from "@/lib/attendance-sheet-people";
 import {
