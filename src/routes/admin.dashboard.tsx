@@ -27,7 +27,6 @@ import {
 
 import { PageHeader } from "@/components/PageHeader";
 import { DashboardShell } from "@/components/LiveFeed";
-import { RadialGauge } from "@/components/charts/RadialGauge";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,8 +74,6 @@ type ContractExpiringRow = {
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
-import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
-import { AttendanceTodayCard } from "@/components/AttendanceCoverage";
 import {
   PayrollCoverageCard,
   InvoiceCoverageCard,
@@ -1022,44 +1019,6 @@ function DashboardPage() {
     actual_invoice: canSeeCommercial ? r.invoice_amount : 0,
   }));
 
-  const insightsCharts = (() => {
-    if (isLoading || !data) return null;
-    const sheetTotal =
-      data.sheetCounts.approved +
-      data.sheetCounts.pending +
-      data.sheetCounts.draft +
-      data.sheetCounts.rejected;
-    const showGauge = can("attendance") && sheetTotal > 0;
-    if (!showGauge) return null;
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-        className="grid grid-cols-1 gap-4"
-      >
-        <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
-          <div className="mb-2 text-center">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Approval rate
-            </div>
-            <div className="font-display text-lg font-semibold tracking-tight text-foreground">
-              Cycle health
-            </div>
-          </div>
-          <RadialGauge
-            value={
-              sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)
-            }
-            label="Attendance approved"
-            sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
-            size={220}
-          />
-        </div>
-      </motion.div>
-    );
-  })();
-
   return (
     <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
       <DashboardShell
@@ -1084,13 +1043,7 @@ function DashboardPage() {
               {!isLoading && data && (
                 <>
                   {can("employees") && <EmployeeInsightsSection />}
-                  {can("attendance") && <AttendanceTodayCard />}
-                  {can("contracts") && (
-                    <>
-                      <ClientContractPortfolioCard />
-                      <WorkforceCoverageCard />
-                    </>
-                  )}
+                  {can("contracts") && <ClientContractPortfolioCard />}
                   {(can("payroll") || can("invoice")) && pnlQuery.isLoading && (
                     <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
                       Loading payroll and invoice totals…
@@ -1113,7 +1066,6 @@ function DashboardPage() {
                   {pnlQuery.data && can("payroll") && <PayrollCoverageCard rows={financeRows} />}
                   {pnlQuery.data && can("invoice") && <InvoiceCoverageCard rows={financeRows} />}
                   {pnlQuery.data && can("invoice") && <ProfitabilityCard rows={financeRows} />}
-                  {insightsCharts}
                   {departmentTree}
                 </>
               )}
