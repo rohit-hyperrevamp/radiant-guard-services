@@ -41,16 +41,33 @@ function monthStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-async function loadOperationsOverview(): Promise<OperationsOverviewData> {
+type OverviewScope = {
+  /** Only these units count. Null means every active unit. */
+  unitIds: string[] | null;
+  /** Field officer headcount for the scope. Null means company-wide. */
+  fieldOfficerCount: number | null;
+};
+
+async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsOverviewData> {
+  if (scope.unitIds && scope.unitIds.length === 0) {
+    return {
+      fieldOfficers: scope.fieldOfficerCount ?? 0,
+      activeSites: 0,
+      sitesVisitedToday: 0,
+      topVisited: [],
+      bottomVisited: [],
+      locations: [],
+    };
+  }
+  const scopedUnitIds = scope.unitIds;
   const [units, visits, foCount] = await Promise.all([
-    fetchAllPages<ActiveUnit>((from, to) =>
-      supabase
+    fetchAllPages<ActiveUnit>((from, to) => {
+      const q = supabase
         .from("units")
         .select("id,code,name,billing_city,billing_state,customer:customers(name)")
-        .eq("status", "active")
-        .order("name")
-        .range(from, to),
-    ),
+        .eq("status", "active");
+      return (scopedUnitIds ? q.in("id", scopedUnitIds) : q).order("name").range(from, to);
+    }),
     fetchAllPages<VisitRow>((from, to) =>
       supabase
         .from("field_visits")
