@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 
 export type InsightPerson = {
