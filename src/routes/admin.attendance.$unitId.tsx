@@ -2593,7 +2593,9 @@ function MusterRollPage() {
       }).catch(() => {});
       return summary;
     } catch (e) {
-      const message = e instanceof Error ? e.message : "OCR failed";
+      // Never swallow a database / trigger error behind a bare "OCR failed":
+      // those arrive as plain objects (PostgrestError), not Error instances.
+      const message = networkErrorMessage(e, "Could not read this sheet. Please try again.");
       toast.error(message);
       await endScanProgress({ error: message }, startedAt);
       return null;
