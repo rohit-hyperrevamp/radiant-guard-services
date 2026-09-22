@@ -163,7 +163,7 @@ function InvoiceNumberingPage() {
       await logActivity({
         module: MODULE,
         action: existingId ? "update" : "create",
-        entity: `${payload.state_code} ${payload.fiscal_year}`,
+        entityLabel: `${payload.state_code} ${payload.fiscal_year}`,
       });
     },
     onSuccess: () => {
@@ -205,7 +205,7 @@ function InvoiceNumberingPage() {
         const { error } = await supabase.from("invoice_number_client_tokens" as never).insert(payload as never);
         if (error) throw error;
       }
-      await logActivity({ module: MODULE, action: existingId ? "update" : "create", entity: `${payload.state_code}-${payload.token}` });
+      await logActivity({ module: MODULE, action: existingId ? "update" : "create", entityLabel: `${payload.state_code}-${payload.token}` });
     },
     onSuccess: () => {
       toast.success("Client code saved");
@@ -219,7 +219,7 @@ function InvoiceNumberingPage() {
     mutationFn: async (row: InvoiceNumberToken) => {
       const { error } = await supabase.from("invoice_number_client_tokens" as never).delete().eq("id", row.id);
       if (error) throw error;
-      await logActivity({ module: MODULE, action: "delete", entity: `${row.state_code}-${row.token}` });
+      await logActivity({ module: MODULE, action: "delete", entityLabel: `${row.state_code}-${row.token}` });
     },
     onSuccess: () => {
       toast.success("Client code removed");
@@ -430,6 +430,7 @@ function InvoiceNumberingPage() {
           total={total}
           start={(page - 1) * pageSize}
           end={Math.min(page * pageSize, total)}
+          pageRows={rows}
           label="numbers"
         />
       </div>
