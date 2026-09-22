@@ -222,10 +222,10 @@ export function useBranches() {
         .select("id, code, name, description, state_id, gstin, registered_address, corporate_address, gst_state_name, gst_state_code, is_gst_billing_branch, is_gst_default" as never);
       if (error) throw error;
       return ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
-        id: r.id,
-        code: r.code,
-        name: r.name ?? "",
-        description: r.description ?? "",
+        id: String(r.id ?? ""),
+        code: String(r.code ?? ""),
+        name: String(r.name ?? ""),
+        description: String(r.description ?? ""),
         stateId: String(r.state_id ?? ""),
         gstin: String(r.gstin ?? ""),
         registeredAddress: String(r.registered_address ?? ""),
@@ -257,7 +257,7 @@ export function useBranches() {
         gst_state_code: data.gstStateCode.trim() || null,
         is_gst_billing_branch: data.isGstBillingBranch,
         is_gst_default: data.isGstDefault,
-      });
+      } as never);
       if (error) throw error;
       void logActivity({ module: "Branch Manager", action: "create", entityType: "branches", entityLabel: data.name.trim() || code, details: data as unknown as Record<string, unknown> });
     },
@@ -283,7 +283,7 @@ export function useBranches() {
           gst_state_code: data.gstStateCode.trim() || null,
           is_gst_billing_branch: data.isGstBillingBranch,
           is_gst_default: data.isGstDefault,
-        })
+        } as never)
         .eq("id", id);
       if (error) throw error;
       void logActivity({ module: "Branch Manager", action: "update", entityType: "branches", entityId: id, entityLabel: data.name.trim() || code, details: data as unknown as Record<string, unknown> });

@@ -1,5 +1,14 @@
 # Mobile app UI re-review
 
+## State-based GST branches and invoicing
+
+- [x] Extract and verify Maharashtra, Telangana, Karnataka, Goa, and Gujarat GST certificates.
+- [x] Add configurable GST registration details to Branch Manager.
+- [x] Select the supplier registration by client state with Maharashtra head-office fallback.
+- [x] Apply CGST + SGST for same-state billing and IGST-only for fallback/interstate billing.
+- [x] Apply the same calculation to invoice preview/print, MIS, and individual/combined Tally exports.
+- [ ] Apply and verify the production migration and run TypeScript validation.
+
 ## Dashboard status-card number visibility
 
 - [x] Keep Attendance, Payroll, and Invoicing figures fully visible without ellipsis or wrapping.
