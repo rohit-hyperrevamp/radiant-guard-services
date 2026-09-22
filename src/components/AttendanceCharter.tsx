@@ -20,7 +20,7 @@ import {
   useAttendanceMoneyRealtime,
   type PeriodStatus,
 } from "@/lib/period-status";
-import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
+import { AttendanceStatusBadge } from "@/components/PeriodStatusBadge";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { SCAN_JOBS_QK, fetchRunningScanJobs, formatRemaining } from "@/lib/attendance-scan-jobs";
 
@@ -559,8 +559,6 @@ export function AttendanceCharter({
                             {r.unitShift}h shift
                           </span>
                           <AttendanceStatusBadge status={r.status.attendance} />
-                          <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
-                          <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                           {scan && (
                             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
