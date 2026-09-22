@@ -1770,11 +1770,16 @@ function MusterRollPage() {
       ot_hours: r.ot_hours,
     }));
 
-    const { data: savedRows, error } = await supabase
-      .from("attendance_entries")
-      .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" })
-      .select("entry_date,code,ot_hours");
-    if (error) throw error;
+    // A dropped connection ("Failed to fetch") means the write never reached the
+    // database, so it is retried instead of being reported as a save failure.
+    const savedRows = await withNetworkRetry(async () => {
+      const { data, error } = await supabase
+        .from("attendance_entries")
+        .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" })
+        .select("entry_date,code,ot_hours");
+      if (error) throw error;
+      return data;
+    });
     const savedByDate = new Map((savedRows ?? []).map((row) => [row.entry_date, row]));
     const mismatched = capped.filter((row) => {
       const saved = savedByDate.get(row.entry_date);
