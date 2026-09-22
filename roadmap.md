@@ -456,5 +456,5 @@
 - [x] Make dashboard variants depend on the verified current role instead of stale cached permission shapes.
 - [x] Register every Control Center tool and filter tiles by its exact permission.
 - [x] Return denied Control Center routes to Control Center instead of Deduction Types.
-- [ ] Apply and verify the missing permission rows in production.
-- [ ] Run TypeScript and formatting validation.
+- [x] Apply and verify the missing permission rows in production.
+- [x] Run TypeScript and formatting validation.
