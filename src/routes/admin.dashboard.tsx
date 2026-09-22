@@ -72,6 +72,50 @@ type ContractExpiringRow = {
   status: string;
 };
 
+type DashboardCounts = {
+  orgs: number;
+  units: number;
+  employees: number;
+  contractsActive: number;
+  contractsExpiring: ContractExpiringRow[];
+  vehicles: number;
+  fuelTotal: number;
+  items: number;
+  sheetCounts: StatusCounts;
+  runCounts: StatusCounts;
+  invoiceCounts: StatusCounts;
+};
+
+type StatusCounts = {
+  approved: number;
+  pending: number;
+  draft: number;
+  rejected: number;
+  open: number;
+  processed: number;
+};
+
+const DASHBOARD_COUNTS_SNAPSHOT = "radiant:dashboard-counts:v2";
+
+function readDashboardCountsSnapshot(key: string): DashboardCounts | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(`${DASHBOARD_COUNTS_SNAPSHOT}:${key}`);
+    return raw ? (JSON.parse(raw) as DashboardCounts) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeDashboardCountsSnapshot(key: string, value: DashboardCounts) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(`${DASHBOARD_COUNTS_SNAPSHOT}:${key}`, JSON.stringify(value));
+  } catch {
+    // The snapshot is only a resilience aid; a full or blocked store is harmless.
+  }
+}
+
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
 import {
@@ -241,56 +285,44 @@ function DashboardPage() {
     staleTime: 2 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
-    retry: false,
+    initialData: () =>
+      readDashboardCountsSnapshot(`${year}-${month}-${periodSelection.selectedKey}`),
+    initialDataUpdatedAt: 0,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
     queryFn: async () => {
-      const controller = new AbortController();
-      const timer = window.setTimeout(() => controller.abort(), 12_000);
       const sixtyDaysOut = new Date();
       sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60);
       const sixtyStr = sixtyDaysOut.toISOString().slice(0, 10);
       const todayStr = new Date().toISOString().slice(0, 10);
 
-      // Single round trip: the counts, the month status buckets and the
-      // expiring-contract list are all aggregated in the database.
-      let results;
-      try {
-        results = await Promise.all([
-          supabase
-            .rpc(
-              "dashboard_counts" as never,
+      // Counts are essential; lifecycle totals are supplementary. Keep them
+      // independent so a slow Attendance/Payroll/Invoice aggregate can never
+      // take down the Leadership dashboard.
+      const { data, error } = await supabase.rpc(
+        "dashboard_counts" as never,
+        {
+          p_start: monthStart,
+          p_end: monthEnd,
+          p_today: todayStr,
+          p_horizon: sixtyStr,
+        } as never,
+      );
+      if (error) throw error;
+
+      const lifecycleResult =
+        can("attendance") || can("payroll") || can("invoice")
+          ? await supabase.rpc(
+              "dashboard_lifecycle_counts" as never,
               {
-                p_start: monthStart,
-                p_end: monthEnd,
-                p_today: todayStr,
-                p_horizon: sixtyStr,
+                p_year: year,
+                p_month: month + 1,
+                p_window_start: selectedWindow?.windowStartDay ?? null,
+                p_window_end: selectedWindow?.windowEndDay ?? null,
               } as never,
             )
-            .abortSignal(controller.signal),
-          can("attendance") || can("payroll") || can("invoice")
-            ? supabase
-                .rpc(
-                  "dashboard_lifecycle_counts" as never,
-                  {
-                    p_year: year,
-                    p_month: month + 1,
-                     p_window_start: selectedWindow?.windowStartDay ?? null,
-                     p_window_end: selectedWindow?.windowEndDay ?? null,
-                  } as never,
-                )
-                .abortSignal(controller.signal)
-            : Promise.resolve({ data: null, error: null }),
-        ]);
-      } catch (error) {
-        if (controller.signal.aborted) {
-          throw new Error("Dashboard took too long to load. Please try again.");
-        }
-        throw error;
-      } finally {
-        window.clearTimeout(timer);
-      }
-      const [{ data, error }, { data: lifecycleData, error: lifecycleError }] = results;
-      if (error) throw error;
-      if (lifecycleError) throw lifecycleError;
+          : { data: null, error: null };
+      const lifecycleData = lifecycleResult.error ? null : lifecycleResult.data;
 
       const d = (data ?? {}) as {
         orgs?: number;
@@ -369,7 +401,7 @@ function DashboardPage() {
           }
         : buckets(undefined);
 
-      return {
+      const result: DashboardCounts = {
         orgs: d.orgs ?? 0,
         units: d.units ?? 0,
         employees: d.employees ?? 0,
@@ -382,6 +414,8 @@ function DashboardPage() {
         runCounts,
         invoiceCounts,
       };
+      writeDashboardCountsSnapshot(`${year}-${month}-${periodSelection.selectedKey}`, result);
+      return result;
     },
   });
 
@@ -972,24 +1006,6 @@ function DashboardPage() {
           />
           <InventoryOwnerDashboard />
         </DashboardShell>
-      </div>
-    );
-  }
-
-  if (countsQuery.error && !countsQuery.data) {
-    return (
-      <div className="px-0 py-1 sm:p-6">
-        <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
-          <h1 className="text-lg font-semibold">Dashboard could not load</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {countsQuery.error instanceof Error
-              ? countsQuery.error.message
-              : "Something went wrong while loading your data."}
-          </p>
-          <Button className="mt-5" onClick={() => void countsQuery.refetch()}>
-            Try again
-          </Button>
-        </div>
       </div>
     );
   }
