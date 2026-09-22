@@ -17,6 +17,7 @@ const MODULE_LINKS: Record<string, string> = {
   "Duty Manager": "/admin/duty-manager",
   "Allowance Manager": "/admin/allowance-manager",
   "Billing Type Manager": "/admin/billing-type-manager",
+  "Invoice Numbering": "/admin/invoice-numbering",
   "Cost Component Manager": "/admin/cost-component-manager",
   "Company Documents": "/admin/company-documents",
   "ESIC Branch Manager": "/admin/esic-branch-manager",

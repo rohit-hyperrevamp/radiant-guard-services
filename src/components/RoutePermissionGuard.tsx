@@ -42,6 +42,7 @@ const EXTRA_PATH_TO_MODULE: Record<string, string> = {
   "/admin/addition-type-manager": "control_center",
   "/admin/deduction-type-manager": "control_center",
   "/admin/billing-type-manager": "control_center",
+  "/admin/invoice-numbering": "control_center",
   "/admin/designation-manager": "control_center",
   "/admin/department-manager": "control_center",
   "/admin/platform-settings": "control_center",
