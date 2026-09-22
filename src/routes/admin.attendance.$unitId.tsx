@@ -72,7 +72,10 @@ import {
   type AttendanceUnitContext,
 } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { resolveSheetPersonForUnit } from "@/lib/attendance-sheet-people";
+import {
+  ensureAttendanceUnitMapping,
+  resolveSheetPersonForUnit,
+} from "@/lib/attendance-sheet-people";
 import {
   fetchAttendanceVersions,
   startAttendanceAmendment,
@@ -2440,6 +2443,16 @@ function MusterRollPage() {
         if (mr) candidatesInSheet.add(mr.candidateId);
       }
       if (candidatesInSheet.size) {
+        // Normalize every person found on the uploaded muster before writing.
+        // Existing reliever links accept only Extra Duty at DB level and would
+        // otherwise silently clear all normal attendance codes.
+        await Promise.all(
+          Array.from(sheetPairKeys).map(async (pk) => {
+            const mr = pairByKey.get(pk);
+            if (!mr) return;
+            await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+          }),
+        );
         const { error } = await supabase
           .from("attendance_entries")
           .delete()
