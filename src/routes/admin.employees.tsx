@@ -44,6 +44,7 @@ import {
   FileSignature,
   FileSpreadsheet,
   FileText,
+  HeartHandshake,
   LayoutList,
   Loader2,
   MapPin,
