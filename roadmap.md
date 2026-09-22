@@ -429,6 +429,7 @@
 
 ## End-to-end core screen loading reliability
 
+- [x] Make Leadership dashboard counts retry transient failures, retain the last valid period snapshot, and isolate lifecycle totals so they cannot crash the page.
 - [ ] Bound authentication and shared data requests; add visible retry states.
 - [ ] Consolidate manager and Field Officer scope loading in production.
 - [ ] Remove duplicate/unbounded list requests across Dashboard, Clients, Contracts, and Employees.
