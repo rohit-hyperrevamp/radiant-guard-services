@@ -2204,10 +2204,6 @@ function MusterRollPage() {
       toast.error("Sheet is locked");
       return null;
     }
-    if (!musterRows.length) {
-      toast.error("No employees in this muster");
-      return null;
-    }
     if (!codes.length) {
       toast.error("No attendance codes configured");
       return null;
