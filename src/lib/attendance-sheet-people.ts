@@ -21,6 +21,8 @@ export type SheetPersonRef = {
   /** Contract designation resolved from the sheet's designation column, if any. */
   designationId: string | null;
   designationName: string | null;
+  /** True only when the sheet row itself marks the person as a reliever / (R). */
+  isReliever?: boolean;
 };
 
 export type ResolvedSheetPerson = {
