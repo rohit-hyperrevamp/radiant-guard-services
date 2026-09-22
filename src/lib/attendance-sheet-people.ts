@@ -225,7 +225,8 @@ export async function resolveSheetPersonForUnit(opts: {
   const insertPayload = {
     full_name: name,
     status: "active",
-    unit_id: unitId,
+    // Relievers get no primary unit; regular guards are based at this unit.
+    unit_id: ref.isReliever === true ? null : unitId,
     designation_id: ref.designationId,
     role_key: roleKey,
     application_date: joiningDate,
@@ -240,7 +241,12 @@ export async function resolveSheetPersonForUnit(opts: {
     .single();
   if (error) throw new Error(`Could not create ${name}: ${error.message}`);
   const candidateId = (created as { id: string; employee_code: string | null }).id;
-  const mapping = await ensureAttendanceUnitMapping(candidateId, unitId, ref.designationId);
+  const mapping = await ensureAttendanceUnitMapping(
+    candidateId,
+    unitId,
+    ref.designationId,
+    ref.isReliever === true,
+  );
 
   return {
     candidateId,
