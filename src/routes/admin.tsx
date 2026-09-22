@@ -262,6 +262,7 @@ function AdminLayout() {
     { prefix: "/admin/payroll-days-manager", module: "control_center" },
     { prefix: "/admin/allowance-manager", module: "control_center" },
     { prefix: "/admin/billing-type-manager", module: "control_center" },
+    { prefix: "/admin/invoice-numbering", module: "control_center" },
     { prefix: "/admin/designation-manager", module: "control_center" },
     { prefix: "/admin/department-manager", module: "control_center" },
     { prefix: "/admin/platform-settings", module: "control_center" },
