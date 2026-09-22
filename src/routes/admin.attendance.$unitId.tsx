@@ -74,6 +74,7 @@ import {
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import {
   ensureAttendanceUnitMapping,
+  looksLikeRelieverText,
   resolveSheetPersonForUnit,
 } from "@/lib/attendance-sheet-people";
 import {
@@ -2190,6 +2191,7 @@ function MusterRollPage() {
           nameTokens: [emp.name].filter(Boolean) as string[],
           designationId,
           designationName: emp.designation_name ?? null,
+          isReliever: looksLikeRelieverText(emp.name, emp.designation_name),
         },
         joiningDate: periodStart,
         createdBy,
@@ -2478,7 +2480,14 @@ function MusterRollPage() {
           Array.from(sheetPairKeys).map(async (pk) => {
             const mr = pairByKey.get(pk);
             if (!mr) return;
-            const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+            // Reliever status is whatever the muster line already says — a
+            // normal deployed line stays mapped to this unit as primary.
+            const mapping = await ensureAttendanceUnitMapping(
+              mr.candidateId,
+              unitId,
+              mr.designationId,
+              mr.reliever === true,
+            );
             mappingByPair.set(pk, mapping);
           }),
         );
@@ -2686,6 +2695,7 @@ function MusterRollPage() {
         tokens: string[];
         designationId: string | null;
         designationName: string | null;
+        isReliever: boolean;
         rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
       }> = [];
 
@@ -2785,6 +2795,12 @@ function MusterRollPage() {
               tokens,
               designationId: pendingDesigId,
               designationName: pendingDesigName,
+              // Only an explicit reliever marking on the sheet row makes this
+              // person a reliever; everyone else is mapped to this unit.
+              isReliever: looksLikeRelieverText(
+                ...tokens,
+                designationCol >= 0 ? String(row[designationCol] ?? "") : null,
+              ),
               rows: sheetRows,
             });
           } else if (labelCell) {
@@ -2865,6 +2881,7 @@ function MusterRollPage() {
                 nameTokens: person.tokens,
                 designationId: person.designationId,
                 designationName: person.designationName,
+                isReliever: person.isReliever,
               },
               joiningDate: periodStart,
               createdBy,
@@ -2913,7 +2930,12 @@ function MusterRollPage() {
       }
 
       for (const { mr, rows } of byPair.values()) {
-        const mapping = await ensureAttendanceUnitMapping(mr.candidateId, unitId, mr.designationId);
+        const mapping = await ensureAttendanceUnitMapping(
+          mr.candidateId,
+          unitId,
+          mr.designationId,
+          mr.reliever === true,
+        );
         await upsertEntries(
           mr.candidateId,
           mr.designationId,
