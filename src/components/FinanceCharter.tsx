@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Building2, ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
+import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { CharterPagination } from "@/components/CharterPagination";
 
