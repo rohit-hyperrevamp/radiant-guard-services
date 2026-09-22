@@ -121,11 +121,19 @@ async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsO
 }
 
 export function useOperationsOverview() {
+  const managerScope = useManagerFieldOfficerScope();
+  // A manager only ever sees the cumulative picture of the field officers
+  // reporting to them; everyone else keeps the company-wide view.
+  const scope: OverviewScope = managerScope.isScoped
+    ? { unitIds: [...managerScope.unitIds].sort(), fieldOfficerCount: managerScope.fieldOfficerIds.size }
+    : { unitIds: null, fieldOfficerCount: null };
+
   return useQuery({
-    queryKey: ["operations-overview", monthStart(), localDate()],
+    queryKey: ["operations-overview", monthStart(), localDate(), scope.unitIds ?? "all", scope.fieldOfficerCount],
+    enabled: !managerScope.isLoading,
     staleTime: 60_000,
     refetchInterval: 60_000,
-    queryFn: loadOperationsOverview,
+    queryFn: () => loadOperationsOverview(scope),
   });
 }
 
