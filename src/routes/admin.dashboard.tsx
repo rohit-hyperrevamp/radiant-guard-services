@@ -68,6 +68,15 @@ import {
 } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+
+type ContractExpiringRow = {
+  id: string;
+  contract_code: string;
+  end_date: string;
+  unit_id: string;
+  status: string;
+};
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
