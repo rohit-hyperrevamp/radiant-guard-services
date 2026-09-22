@@ -813,7 +813,12 @@ export function FinanceCharter({
         const periodDays = period.totalDays || 1;
         const [py, pm, pd] = period.end.split("-");
         const invoiceDate = `${pd}-${pm}-${py}`;
-        const invoiceNo = `${String(period.end).slice(5, 7)}${String(period.end).slice(2, 4)}-${String(Number(py) + 1).slice(2)}${u.code.toUpperCase()}`;
+        // Finalised invoices carry their allocated number; anything not yet
+        // finalised is clearly marked provisional.
+        const finalised = finalsQ.data?.get(unitPeriodKey(u.id, period.start, period.end));
+        const invoiceNo =
+          finalised?.invoice_no ??
+          `PROVISIONAL ${String(period.end).slice(5, 7)}${String(period.end).slice(2, 4)}-${u.code.toUpperCase()}`;
         const siteNorm = String(unitRow.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
         const clientNorm = String(u.customer_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
         const branchName = clientNorm && !siteNorm.includes(clientNorm)
