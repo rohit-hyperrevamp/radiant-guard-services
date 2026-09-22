@@ -275,8 +275,11 @@ function AdminLayout() {
     { prefix: "/admin/system-logs", module: "control_center" },
     { prefix: "/admin/asset-manager", module: "control_center" },
     { prefix: "/admin/attendance-code-manager", module: "control_center" },
+    { prefix: "/admin/public-holiday-manager", module: "control_center" },
     { prefix: "/admin/esic-branch-manager", module: "control_center" },
     { prefix: "/admin/mis-manager", module: "control_center" },
+    { prefix: "/admin/migration-utility", module: "control_center" },
+    { prefix: "/admin/org-settings", module: "control_center" },
   ];
   const firstAllowedPath = () => {
     const order = [
@@ -343,8 +346,9 @@ function AdminLayout() {
     if (subHit) {
       if (subHit.module === "inventory" && ["demands", "goods_receipts", "collections", "issuances"].includes(subHit.sub) && roleKey === "field_officer") return;
       if (!canSub(subHit.module, subHit.sub)) {
-        // Fall back to the module hub or first allowed path.
-        const modulePath = pathToModule.find((p) => p.module === subHit.module)?.prefix;
+        // Return to the actual module hub. Never choose the first child route,
+        // which previously sent denied Control Center links to Deduction Types.
+        const modulePath = RBAC_MODULES.find((m) => m.key === subHit.module)?.path;
         const dest = modulePath && can(subHit.module) ? modulePath : firstAllowedPath();
         if (dest) navigate({ to: dest, replace: true });
       }

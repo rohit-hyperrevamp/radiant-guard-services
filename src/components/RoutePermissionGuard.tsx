@@ -26,54 +26,30 @@ const ALWAYS_ALLOW_PREFIXES: readonly string[] = [
 const EXTRA_PATH_TO_MODULE: Record<string, string> = {
   "/admin/notifications": "notification_center",
   "/admin/rbac": "rbac",
-  "/admin/roles-manager": "control_center",
-  "/admin/system-logs": "control_center",
-  "/admin/org-settings": "control_center",
-  "/admin/company-documents": "control_center",
-  "/admin/policy-manager": "control_center",
-  "/admin/attendance-code-manager": "control_center",
-  "/admin/duty-manager": "control_center",
-  "/admin/service-type-manager": "control_center",
-  "/admin/professional-tax-manager": "control_center",
-  "/admin/lwf-manager": "control_center",
-  "/admin/payroll-manager": "control_center",
-  "/admin/payroll-days-manager": "control_center",
-  "/admin/allowance-manager": "control_center",
-  "/admin/addition-type-manager": "control_center",
-  "/admin/deduction-type-manager": "control_center",
-  "/admin/billing-type-manager": "control_center",
-  "/admin/invoice-numbering": "control_center",
-  "/admin/designation-manager": "control_center",
-  "/admin/department-manager": "control_center",
-  "/admin/platform-settings": "control_center",
-  "/admin/cost-component-manager": "control_center",
-  "/admin/ex-service-manager": "control_center",
-  "/admin/offboarding-reason-manager": "control_center",
-  "/admin/esic-branch-manager": "control_center",
-  "/admin/asset-manager": "control_center",
-  "/admin/language-manager": "control_center",
 };
 
-function buildPrefixTable(): Array<[string, string]> {
-  const map = new Map<string, string>();
-  for (const [k, v] of Object.entries(EXTRA_PATH_TO_MODULE)) map.set(k, v);
+type RequiredPermission = { module: string; sub?: string };
+
+function buildPrefixTable(): Array<[string, RequiredPermission]> {
+  const map = new Map<string, RequiredPermission>();
+  for (const [k, v] of Object.entries(EXTRA_PATH_TO_MODULE)) map.set(k, { module: v });
   for (const m of RBAC_MODULES) {
-    if (m.path) map.set(m.path, m.key);
+    if (m.path) map.set(m.path, { module: m.key });
     for (const sub of m.subModules) {
-      if (sub.path) map.set(sub.path, m.key);
+      if (sub.path) map.set(sub.path, { module: m.key, sub: sub.key });
     }
   }
   // Sort by descending prefix length so longer matches win first.
   return Array.from(map.entries()).sort((a, b) => b[0].length - a[0].length);
 }
 
-let PREFIX_TABLE: Array<[string, string]> | null = null;
+let PREFIX_TABLE: Array<[string, RequiredPermission]> | null = null;
 function getPrefixTable() {
   if (!PREFIX_TABLE) PREFIX_TABLE = buildPrefixTable();
   return PREFIX_TABLE;
 }
 
-function resolveRequiredModule(pathname: string): string | null {
+function resolveRequiredModule(pathname: string): RequiredPermission | null {
   for (const [prefix, mod] of getPrefixTable()) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) return mod;
   }
@@ -89,7 +65,7 @@ function isAlwaysAllowed(pathname: string): boolean {
 export function RoutePermissionGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const pathname = location.pathname;
-  const { can, isSuperAdmin, isLoading } = useCurrentPermissions();
+  const { can, canSub, isSuperAdmin, isLoading } = useCurrentPermissions();
   const role = useCurrentUserRole();
 
   const decision = useMemo(() => {
@@ -103,10 +79,13 @@ export function RoutePermissionGuard({ children }: { children: React.ReactNode }
       pathname.startsWith("/admin/inventory/collections")
     )) return { allow: true as const };
     if (isSuperAdmin) return { allow: true as const };
-    const mod = resolveRequiredModule(pathname);
-    if (!mod) return { allow: true as const, unmapped: true };
-    return { allow: can(mod), module: mod };
-  }, [pathname, isSuperAdmin, can, role.isFieldOfficer]);
+    const required = resolveRequiredModule(pathname);
+    if (!required) return { allow: true as const, unmapped: true };
+    return {
+      allow: required.sub ? canSub(required.module, required.sub) : can(required.module),
+      module: required.module,
+    };
+  }, [pathname, isSuperAdmin, can, canSub, role.isFieldOfficer]);
 
   if (isLoading || role.isLoading) {
     return (
