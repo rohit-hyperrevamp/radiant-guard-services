@@ -179,6 +179,29 @@ export async function ensureAttendanceUnitMapping(
   return { mapped: true, isPrimary: !sheetReliever, isReliever: sheetReliever };
 }
 
+/**
+ * Force this unit to be the guard's posted (primary) line, clearing any stale
+ * reliever flag. Used as a self-heal when the database rejects normal
+ * attendance because an older mapping still marks the guard as a reliever.
+ */
+export async function forcePrimaryAttendanceMapping(
+  candidateId: string,
+  unitId: string,
+  designationId: string | null,
+) {
+  const { error } = await supabase
+    .from("candidate_units")
+    .update({
+      is_primary: true,
+      is_reliever: false,
+      ...(designationId ? { designation_id: designationId } : {}),
+    } as never)
+    .eq("candidate_id", candidateId)
+    .eq("unit_id", unitId);
+  if (error) throw new Error(`Could not post this employee to the site: ${error.message}`);
+  await demoteOtherPrimaries(candidateId, unitId);
+}
+
 /** Keep exactly one primary posting: this unit, and keep the home unit in step. */
 async function demoteOtherPrimaries(candidateId: string, unitId: string) {
   await supabase

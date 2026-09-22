@@ -75,6 +75,7 @@ import {
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import {
   ensureAttendanceUnitMapping,
+  forcePrimaryAttendanceMapping,
   looksLikeRelieverText,
   resolveSheetPersonForUnit,
 } from "@/lib/attendance-sheet-people";
@@ -2234,11 +2235,27 @@ function MusterRollPage() {
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
       if (delError) throw delError;
-      await upsertEntries(
-        resolved.candidateId,
-        resolved.designationId,
-        rowsForAttendanceRole(rows, resolved.isReliever),
-      );
+      const writeRows = async () =>
+        upsertEntries(
+          resolved.candidateId,
+          resolved.designationId,
+          rowsForAttendanceRole(rows, resolved.isReliever),
+        );
+      try {
+        await writeRows();
+      } catch (writeError) {
+        // A stale reliever link at this site makes the database reject normal
+        // attendance. The sheet is authoritative: post the guard here and retry.
+        const msg = networkErrorMessage(writeError, "");
+        if (!resolved.isReliever && /extra duty/i.test(msg)) {
+          await forcePrimaryAttendanceMapping(
+            resolved.candidateId,
+            unitId,
+            resolved.designationId,
+          );
+          await writeRows();
+        } else throw writeError;
+      }
       cells += rows.length;
     }
 
@@ -2593,7 +2610,9 @@ function MusterRollPage() {
       }).catch(() => {});
       return summary;
     } catch (e) {
-      const message = e instanceof Error ? e.message : "OCR failed";
+      // Never swallow a database / trigger error behind a bare "OCR failed":
+      // those arrive as plain objects (PostgrestError), not Error instances.
+      const message = networkErrorMessage(e, "Could not read this sheet. Please try again.");
       toast.error(message);
       await endScanProgress({ error: message }, startedAt);
       return null;
