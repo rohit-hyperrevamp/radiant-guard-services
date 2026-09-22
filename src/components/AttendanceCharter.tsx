@@ -440,15 +440,8 @@ export function AttendanceCharter({
         />
         <CharterTile label="Clients" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
         <CharterTile
-          label="Active employees"
-          sub="on the muster roll"
-          countTo={activeEmployees ?? units.reduce((s, u) => s + u.security_guards.length, 0)}
-          icon={Users}
-          accent="sky"
-        />
-        <CharterTile
-          label="Attendance sheets"
-          sub="this page, by stage"
+          label="Attendance"
+          sub="total sheets, this page"
           countTo={sheets.total}
           icon={ClipboardList}
           accent="lime"
@@ -456,34 +449,6 @@ export function AttendanceCharter({
             { label: "Open", value: sheets.open + sheets.submitted, tone: "open" },
             { label: "Approved", value: sheets.approved, tone: "done" },
           ]}
-        />
-        <CharterTile
-          label="Deployment"
-          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance · this page`}
-          value={`${totals.actual}/${totals.committed}`}
-          icon={Users}
-          accent="indigo"
-        />
-        <CharterTile
-          label="Actual man-hours"
-          sub={`of ${fmtHours(totals.projectedHours)} projected · this page`}
-          value={fmtHours(totals.actualHours)}
-          icon={UserCheck}
-          accent="emerald"
-        />
-        <CharterTile
-          label="Extra duty"
-          sub="period till date · this page"
-          value={fmtHours(totals.otHours)}
-          icon={TrendingDown}
-          accent="amber"
-        />
-        <CharterTile
-          label="Period attendance"
-          sub="current payroll periods · this page"
-          value={`${totals.mtdPct}%`}
-          icon={Gauge}
-          accent="rose"
         />
       </CharterTileGrid>
 
