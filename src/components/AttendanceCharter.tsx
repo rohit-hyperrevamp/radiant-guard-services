@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Building2, ChevronDown, ClipboardList, Download, Gauge, MapPinned, Search, TrendingDown, UserCheck, Users } from "lucide-react";
+import { Building2, ChevronDown, ClipboardList, Download, MapPinned, Search } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { CharterPagination } from "@/components/CharterPagination";
 
@@ -144,7 +144,6 @@ export function AttendanceCharter({
   query,
   onQueryChange,
   organizationCount,
-  activeEmployees,
   filters,
   windowsByUnit,
   statusFilter = "all",
@@ -156,7 +155,6 @@ export function AttendanceCharter({
   query: string;
   onQueryChange: (v: string) => void;
   organizationCount?: number;
-  activeEmployees?: number;
   filters?: ReactNode;
   windowsByUnit: Map<string, PayrollWindow>;
   statusFilter?: "all" | "open" | "approved";
@@ -376,23 +374,6 @@ export function AttendanceCharter({
       });
   }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx]);
 
-  const totals = useMemo(() => {
-    const committed = rows.reduce((s, r) => s + r.committed, 0);
-    const actual = rows.reduce((s, r) => s + r.actual, 0);
-    const projectedHours = rows.reduce((s, r) => s + r.projectedHours, 0);
-    const actualHours = rows.reduce((s, r) => s + r.actualHours, 0);
-    const otHours = rows.reduce((s, r) => s + r.otHours, 0);
-    return {
-      committed,
-      actual,
-      gap: actual - committed,
-      coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
-      projectedHours,
-      actualHours,
-      otHours,
-      mtdPct: pct(actualHours, projectedHours),
-    };
-  }, [rows]);
 
   const exportCsv = () => {
     downloadCsv(
