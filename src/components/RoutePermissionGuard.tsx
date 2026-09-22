@@ -49,7 +49,7 @@ function getPrefixTable() {
   return PREFIX_TABLE;
 }
 
-function resolveRequiredModule(pathname: string): string | null {
+function resolveRequiredModule(pathname: string): RequiredPermission | null {
   for (const [prefix, mod] of getPrefixTable()) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) return mod;
   }
