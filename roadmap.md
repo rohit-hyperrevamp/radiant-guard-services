@@ -409,3 +409,10 @@
 
 ## Multiple field officers per unit
 - [ ] Allow assigning more than one field officer to a unit.
+
+## Manager data scoping to their field officers
+- [x] Shared `useOperationalUnitScope` (field officer own units, manager = units of their field officer reportees)
+- [x] Dashboard headline counts, operations overview, radar summary scoped
+- [x] Reportees page and people insights scoped
+- [x] Attendance, payroll, invoice, unit and organization lists scoped
+- [x] Multiple field officers per unit (already supported via employee_scope_assignments; unique key allows many per unit)
