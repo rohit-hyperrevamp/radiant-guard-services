@@ -25,6 +25,8 @@ export type ManagerFieldOfficerScope = {
   fieldOfficerIds: Set<string>;
   /** Billable client units those field officers cover. */
   unitIds: Set<string>;
+  /** Organizations owning those units. */
+  customerIds: Set<string>;
 };
 
 function chunked<T>(items: T[]): T[][] {
