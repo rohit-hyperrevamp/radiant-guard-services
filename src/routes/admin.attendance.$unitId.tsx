@@ -2687,6 +2687,59 @@ function MusterRollPage() {
         }
       }
 
+      // Auto-resolve everyone on the sheet who is not on the muster yet: match
+      // by employee code (or an unambiguous name), create the employee when
+      // there is no record, and map them to this unit.
+      const autoPairs: Array<{
+        candidateId: string;
+        designationId: string | null;
+        rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+      }> = [];
+      let autoCreated = 0;
+      let autoMapped = 0;
+      if (pendingPeople.length) {
+        const { data: authUser } = await supabase.auth.getUser();
+        const createdBy = authUser.user?.id ?? null;
+        for (const person of pendingPeople) {
+          try {
+            const resolved = await resolveSheetPersonForUnit({
+              unitId,
+              contractId: contractInfo?.contractId ?? null,
+              ref: {
+                codeTokens: person.tokens,
+                nameTokens: person.tokens,
+                designationId: person.designationId,
+                designationName: person.designationName,
+              },
+              joiningDate: periodStart,
+              createdBy,
+            });
+            if (!resolved) {
+              if (person.label) unmatchedNames.push(person.label);
+              continue;
+            }
+            if (resolved.created) autoCreated += 1;
+            else if (resolved.mapped) autoMapped += 1;
+            candidatesInSheet.add(resolved.candidateId);
+            const existing = autoPairs.find(
+              (p) =>
+                p.candidateId === resolved.candidateId &&
+                (p.designationId ?? "") === (resolved.designationId ?? ""),
+            );
+            if (existing) existing.rows.push(...person.rows);
+            else
+              autoPairs.push({
+                candidateId: resolved.candidateId,
+                designationId: resolved.designationId,
+                rows: person.rows,
+              });
+            filled += person.rows.length;
+          } catch {
+            if (person.label) unmatchedNames.push(person.label);
+          }
+        }
+      }
+
       // Sheet-authoritative: wipe every prior entry in this period for any
       // candidate present in the uploaded sheet (across all designations),
       // then write only what the sheet shows.
