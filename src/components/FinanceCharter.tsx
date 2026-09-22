@@ -1,8 +1,8 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, Lock, LockOpen, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
+import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { CharterPagination } from "@/components/CharterPagination";
 
@@ -17,7 +17,6 @@ import { fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance 
 import {
   fetchPeriodStatusesForUnitPeriods,
   PERIOD_STATUS_QK,
-  setMoneyStatus,
   useAttendanceMoneyRealtime,
   type MoneyStatus,
   type PeriodStatus,
@@ -181,9 +180,7 @@ export function FinanceCharter({
   // windows and period statuses are also fetched (ids + status only — cheap)
   // for every searched unit. This also lets status filtering happen before pagination.
   const allUnitIds = useMemo(() => searchedUnits.map((u) => u.id), [searchedUnits]);
-  const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
-  const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
   const canFinalise = mode === "invoice" && (isSuperAdmin || can("invoicing", "edit") || can("invoice", "edit"));
   const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : []);
 
@@ -280,27 +277,6 @@ export function FinanceCharter({
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
-
-  const processMutation = useMutation({
-    mutationFn: (vars: { unitId: string; next: "processed" | "open" }) =>
-      setMoneyStatus({
-        unitId: vars.unitId,
-        periodStart: periodsByUnit.get(vars.unitId)?.start ?? payrollPeriodForMonth(year, monthIdx).start,
-        periodEnd: periodsByUnit.get(vars.unitId)?.end ?? payrollPeriodForMonth(year, monthIdx).end,
-        kind: mode,
-        next: vars.next,
-      }),
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: [PERIOD_STATUS_QK] });
-      toast.success(
-        vars.next === "processed"
-          ? `${mode === "invoice" ? "Invoice" : "Payroll"} marked processed`
-          : `${mode === "invoice" ? "Invoice" : "Payroll"} reopened`,
-      );
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not update status"),
-  });
-
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -1266,13 +1242,13 @@ export function FinanceCharter({
                       <div className="min-w-0 text-[11px] leading-snug text-muted-foreground">
                         {r.status.attendance !== "approved" ? (
                           <>
-                            <span className="font-semibold text-destructive">
-                              {mode === "invoice" ? "Invoice" : "Payroll"} is open.
-                             </span><span className="hidden sm:inline">{" "}Attendance for this period is{" "}
+                             <span className="font-semibold text-destructive">
+                               Invoice is open.
+                              </span><span className="hidden sm:inline">{" "}Attendance for this period is{" "}
                             {r.status.attendance === "submitted" ? "awaiting approval" : "still being marked"} — values
                              keep moving until it is approved and locked.</span>
                           </>
-                        ) : (mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
+                         ) : r.status.invoice === "processed" ? (
                           <>
                              <span className="font-semibold text-emerald-600">Processed and locked.</span><span className="hidden sm:inline"> Attendance is
                              approved and this period has been run. An admin can reopen it if something must change.</span>
@@ -1280,35 +1256,10 @@ export function FinanceCharter({
                         ) : (
                           <>
                              <span className="font-semibold text-amber-600">Ready to process.</span><span className="hidden sm:inline"> Attendance is
-                             approved and locked — the {mode === "invoice" ? "invoice" : "payroll"} can be run.</span>
+                              approved and locked — the invoice can be run.</span>
                           </>
                         )}
                       </div>
-                      {canProcess && mode === "payroll" && (
-                        <div className="flex shrink-0 items-center gap-2">
-                          {r.status.payroll === "processed" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 rounded-xl"
-                              disabled={processMutation.isPending}
-                              onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "open" })}
-                            >
-                              <LockOpen className="mr-1.5 h-3.5 w-3.5" /> Reopen
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              className="h-8 rounded-xl"
-                              disabled={processMutation.isPending || r.status.attendance !== "approved"}
-                              onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "processed" })}
-                            >
-                              <Lock className="mr-1.5 h-3.5 w-3.5" /> Mark{" "}
-                              payroll processed
-                            </Button>
-                          )}
-                        </div>
-                      )}
                     </div>
                     {r.rates.length > 0 && (
 
@@ -1352,24 +1303,11 @@ export function FinanceCharter({
                                 <th className="px-3 py-2 text-left font-medium">Employee</th>
                                 <th className="px-2 py-2 text-right font-medium">Paid days</th>
                                 <th className="px-2 py-2 text-right font-medium">ED days</th>
-                                {mode === "payroll" ? (
-                                  <>
-                                    <th className="px-2 py-2 text-right font-medium">Contracted</th>
-                                    <th className="px-2 py-2 text-right font-medium">Gross</th>
-                                    <th className="px-2 py-2 text-right font-medium">Deductions</th>
-                                    <th className="px-2 py-2 text-right font-medium">Net pay</th>
-                                  </>
-                                ) : (
-                                  <>
-                                    <th className="px-2 py-2 text-right font-medium">Contracted</th>
-                                    <th className="px-2 py-2 text-right font-medium">Invoice</th>
-                                    <th className="px-2 py-2 text-right font-medium">Payroll</th>
-                                    <th className="px-2 py-2 text-right font-medium">Margin</th>
-                                  </>
-                                )}
-                                <th className="px-3 py-2 text-right font-medium">
-                                  {mode === "payroll" ? "Pay sheet" : "Invoice line"}
-                                </th>
+                                 <th className="px-2 py-2 text-right font-medium">Contracted</th>
+                                 <th className="px-2 py-2 text-right font-medium">Invoice</th>
+                                 <th className="px-2 py-2 text-right font-medium">Payroll</th>
+                                 <th className="px-2 py-2 text-right font-medium">Margin</th>
+                                 <th className="px-3 py-2 text-right font-medium">Invoice line</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1378,45 +1316,26 @@ export function FinanceCharter({
                                   <td className="px-3 py-1.5 font-medium">{p.name}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.paidDays}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.otDays}</td>
-                                  {mode === "payroll" ? (
-                                    <>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                                        {fmtMoney(p.contractedGross)}
-                                      </td>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
-                                        {fmtMoney(p.payrollAmount)}
-                                      </td>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                                        {p.deductionAmount > 0 ? `− ${fmtMoney(p.deductionAmount)}` : fmtMoney(0)}
-                                      </td>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right font-semibold tabular-nums">
-                                        {fmtMoney(p.netPayrollAmount)}
-                                      </td>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                                        {fmtMoney(p.contractedBill)}
-                                      </td>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
-                                        {fmtMoney(p.invoiceAmount)}
-                                      </td>
-                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                                        {fmtMoney(p.payrollAmount)}
-                                      </td>
-                                      <td className="px-2 py-1.5 text-right">
-                                        <MarginChip
-                                          value={
-                                            p.invoiceAmount > 0
-                                              ? Math.round(
-                                                  ((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100,
-                                                )
-                                              : 0
-                                          }
-                                        />
-                                      </td>
-                                    </>
-                                  )}
+                                   <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                     {fmtMoney(p.contractedBill)}
+                                   </td>
+                                   <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                                     {fmtMoney(p.invoiceAmount)}
+                                   </td>
+                                   <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                     {fmtMoney(p.payrollAmount)}
+                                   </td>
+                                   <td className="px-2 py-1.5 text-right">
+                                     <MarginChip
+                                       value={
+                                         p.invoiceAmount > 0
+                                           ? Math.round(
+                                               ((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100,
+                                             )
+                                           : 0
+                                       }
+                                     />
+                                   </td>
                                   <td className="px-3 py-1.5 text-right">
                                     <Link
                                       to={linkTo}
