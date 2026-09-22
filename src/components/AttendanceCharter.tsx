@@ -498,21 +498,19 @@ export function AttendanceCharter({
                     </div>
 
                     <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
-                      <div className="text-center">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Contract</div>
-                        <div className="font-semibold">{r.contractCode || "—"}</div>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
-                        {r.unitShift}h shift
+                      <div className="w-24 shrink-0 truncate text-center font-semibold">{r.contractCode || "—"}</div>
+                      <span className="flex w-16 shrink-0 justify-center">
+                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+                          {r.unitShift}h
+                        </span>
                       </span>
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Deployed</div>
-                        <div className="font-semibold">
-                          {r.actual}
-                          <span className="text-muted-foreground">/{r.committed}</span>
-                        </div>
+                      <div className="w-16 shrink-0 text-right font-semibold">
+                        {r.actual}
+                        <span className="text-muted-foreground">/{r.committed}</span>
                       </div>
-                      <AttendanceStatusBadge status={r.status.attendance} />
+                      <div className="flex w-[150px] shrink-0 justify-center">
+                        <AttendanceStatusBadge status={r.status.attendance} />
+                      </div>
                     </div>
                     <div className="flex shrink-0 items-center pr-1 sm:hidden">
                       <AttendanceStatusBadge status={r.status.attendance} />
