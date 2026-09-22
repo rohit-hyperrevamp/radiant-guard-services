@@ -28,7 +28,7 @@ import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
-import { loadGstBillingBranches, resolveGstBillingBranch } from "@/lib/gst-billing";
+import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch, taxSplit } from "@/lib/gst-billing";
 
 
 // ---------------------------------------------------------------------------
@@ -675,11 +675,10 @@ export function FinanceCharter({
       };
       const ids = targets.map((u) => u.id);
 
-      const { data: org } = await supabase
-        .from("org_settings")
-        .select("company_name")
-        .limit(1)
-        .maybeSingle();
+      const [{ data: org }, gstBranches] = await Promise.all([
+        supabase.from("org_settings").select("*").limit(1).maybeSingle(),
+        loadGstBillingBranches(),
+      ]);
       const entity = String((org as { company_name?: string } | null)?.company_name ?? "Radiant").trim();
 
       const financeMap = new Map<string, UnitFinance>();
@@ -773,6 +772,8 @@ export function FinanceCharter({
         if (!lines || lines.size === 0) continue;
         const unitRow = unitById.get(u.id);
         if (!unitRow) continue;
+        const supplierBranch = resolveGstBillingBranch(gstBranches, unitRow.billing_state, org as never);
+        const intraState = normalizeState(unitRow.billing_state) === normalizeState(supplierBranch?.stateName);
         const period = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const periodDays = period.totalDays || 1;
         const [py, pm, pd] = period.end.split("-");
@@ -794,9 +795,8 @@ export function FinanceCharter({
           const regular = perDay * line.workingDays;
           const otBilling = perDay * line.otDays;
           const totalBilling = regular + otBilling + otAmount;
-          const cgst = totalBilling * 0.09;
-          const sgst = totalBilling * 0.09;
-          const igst = cgst + sgst;
+          const lineTax = taxSplit(totalBilling, intraState);
+          const { cgst, sgst, igst } = lineTax;
           const round = (value: number) => Math.round(value * 100) / 100;
           const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
           const incrementCutoff = new Date(period.start);
@@ -819,7 +819,7 @@ export function FinanceCharter({
               working_days_billing_with_ot: round(regular + otBilling), total_regular_billing: round(regular),
               ot_billing: round(otBilling + otAmount), total_billing: round(totalBilling),
               cgst: round(cgst), sgst: round(sgst), igst: round(igst),
-              grand_total: round(totalBilling + igst),
+              grand_total: round(totalBilling + lineTax.total),
               cli_id: unitRow.code ?? "",
               vendor_name: entity,
               district: unitRow.billing_district || unitRow.billing_city || "",
@@ -835,8 +835,8 @@ export function FinanceCharter({
               regular_ot_hours: hasIncrement ? 0 : round(line.otHours),
               increment_ot_hours: hasIncrement ? round(line.otHours) : 0,
               service_charge_claimed: round(totalBilling),
-              gst_18: round(igst),
-              invoice_value: round(totalBilling + igst),
+              gst_18: round(lineTax.total),
+              invoice_value: round(totalBilling + lineTax.total),
               total_duties: round(line.workingDays + line.otDays),
               total_ot_hours: round(line.otHours),
               remarks: "",
