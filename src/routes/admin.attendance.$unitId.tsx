@@ -395,7 +395,7 @@ function MusterRollPage() {
       : Number(unitPhDayValueRaw);
 
   const {
-    data: employees,
+    data: rosterEmployees,
     isLoading,
     error: rosterError,
   } = useQuery({
@@ -672,6 +672,40 @@ function MusterRollPage() {
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd =
     periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
+
+  // ---- Period roster -----------------------------------------------------
+  // Every period starts with an EMPTY muster roll. Unit mappings (primary
+  // guards, relievers, unit scopes) never pre-fill a month: whatever is
+  // uploaded — or added by hand — for that period IS the master roster for
+  // that period. People appear only once they have attendance for these dates.
+  const entriesQK = ["attendance-entries-v4", unitId, periodStart, periodEnd];
+  const { data: entries = [] } = useQuery({
+    queryKey: entriesQK,
+    queryFn: async () => {
+      return fetchAttendanceEntriesForPeriod({
+        unitId,
+        start: periodStart,
+        end: periodEnd,
+      }) as Promise<EntryRow[]>;
+    },
+    enabled: Boolean(unitId),
+  });
+  // People added to this period by hand (slot mapping / add line item) before
+  // any attendance exists for them. Cleared when the period or unit changes.
+  const [manualRosterIds, setManualRosterIds] = useState<Set<string>>(() => new Set<string>());
+  useEffect(() => {
+    setManualRosterIds(new Set<string>());
+  }, [unitId, periodStart, periodEnd]);
+  const periodRosterIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of entries as EntryRow[]) ids.add(e.candidate_id);
+    for (const id of manualRosterIds) ids.add(id);
+    return ids;
+  }, [entries, manualRosterIds]);
+  const employees = useMemo(
+    () => (rosterEmployees ?? []).filter((e) => periodRosterIds.has(e.id)),
+    [rosterEmployees, periodRosterIds],
+  );
   const [mobileDate, setMobileDate] = useState(() => {
     const requested =
       search.start && search.end && todayStr >= search.start && todayStr <= search.end
@@ -1200,18 +1234,6 @@ function MusterRollPage() {
     enabled: candidateIds.length > 0,
   });
 
-  const entriesQK = ["attendance-entries-v4", unitId, periodStart, periodEnd];
-  const { data: entries = [] } = useQuery({
-    queryKey: entriesQK,
-    queryFn: async () => {
-      return fetchAttendanceEntriesForPeriod({
-        unitId,
-        start: periodStart,
-        end: periodEnd,
-      }) as Promise<EntryRow[]>;
-    },
-    enabled: Boolean(unitId),
-  });
 
   // --- Self-attendance punches (guards + non-billable employees) ---
   // Employees mapped to this unit can record attendance through the self-punch
@@ -1465,6 +1487,9 @@ function MusterRollPage() {
         setExtraRows((prev) => new Set(prev).add(rowKey(cand.id, mapSlot.designationId)));
       }
 
+      // Show the person on THIS period's muster immediately, before any
+      // attendance exists for them.
+      setManualRosterIds((prev) => new Set(prev).add(cand.id));
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
       logActivity({
         module: "Attendance",
@@ -3339,7 +3364,8 @@ function MusterRollPage() {
       return;
     }
     setExtraRows((prev) => new Set(prev).add(k));
-    const empName = (employees ?? []).find((e) => e.id === addCand)?.full_name ?? "";
+    setManualRosterIds((prev) => new Set(prev).add(addCand));
+    const empName = (rosterEmployees ?? []).find((e) => e.id === addCand)?.full_name ?? "";
     const dName =
       contractDesignations.find((d) => d.designationId === addDesig)?.designationName ?? "";
     toast.success(`Added row: ${empName} — ${dName}`);
@@ -4176,7 +4202,7 @@ function MusterRollPage() {
                 <SelectValue placeholder="Employee" />
               </SelectTrigger>
               <SelectContent>
-                {(employees ?? []).map((e) => (
+                {(rosterEmployees ?? []).map((e) => (
                   <SelectItem key={e.id} value={e.id}>
                     {e.full_name || e.employee_code || e.id}
                   </SelectItem>
