@@ -1587,30 +1587,36 @@ function useCandidates() {
   });
 }
 
-function useCandidateSearch(query: string) {
-  const safeQuery = query
-    .trim()
-    .replace(/[%_,().]/g, " ")
-    .replace(/\s+/g, " ");
-  return useQuery({
-    queryKey: ["admin", "candidate-search", safeQuery.toLowerCase()],
-    enabled: safeQuery.length >= 2,
-    retry: false,
-    staleTime: 30_000,
-    queryFn: async (): Promise<CandidateListItem[]> => {
-      const pattern = `%${safeQuery}%`;
-      const { data, error } = await supabase
-        .from("candidates" as never)
-        .select(CANDIDATE_LIST_COLUMNS)
-        .or(
-          `full_name.ilike.${pattern},employee_code.ilike.${pattern},candidate_code.ilike.${pattern},mobile.ilike.${pattern},email.ilike.${pattern},aadhaar_number.ilike.${pattern}`,
-        )
-        .order("created_at", { ascending: false })
-        .limit(250);
-      if (error) throw error;
-      return (data ?? []) as unknown as CandidateListItem[];
-    },
-  });
+function EmployeeSearchInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    if (value !== draft) setDraft(value);
+  }, [value]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => onChange(draft), 150);
+    return () => window.clearTimeout(timer);
+  }, [draft, onChange]);
+
+  return (
+    <div className="relative flex-1 md:w-80">
+      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Search name, Aadhaar, mobile, code…"
+        autoComplete="off"
+        className="h-10 rounded-xl border-border/70 bg-card pl-11 text-sm shadow-sm focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/10 sm:h-11"
+      />
+    </div>
+  );
 }
 
 function useUnits() {
@@ -2122,7 +2128,6 @@ function EmployeesPage() {
   const routeSearch = useSearch({ from: "/admin/employees" });
   const [search, setSearch] = useState("");
   const candidatesQuery = useCandidates();
-  const candidateSearchQuery = useCandidateSearch(search);
   const unitsQuery = useUnits();
   const designationsQuery = useDesignations();
   const exServicesQuery = useExServices();
@@ -2131,16 +2136,15 @@ function EmployeesPage() {
   const esicBranchesQuery = useEsicBranchesLite();
   const signedDocsQuery = useSignedDocsSummary();
   const candidates = candidatesQuery.data ?? [];
-  const hasRemoteSearch = search.trim().length >= 2;
-  const rowCandidates = hasRemoteSearch ? (candidateSearchQuery.data ?? []) : candidates;
+  const rowCandidates = candidates;
   const units = unitsQuery.data ?? [];
   const designations = designationsQuery.data ?? [];
   const exServices = exServicesQuery.data ?? [];
   const languagesList = languagesQuery.data ?? [];
   const rolesList = rolesQuery.data ?? [];
   const esicBranches = esicBranchesQuery.data ?? [];
-  const isLoading = hasRemoteSearch ? candidateSearchQuery.isLoading : candidatesQuery.isLoading;
-  const candidatesError = hasRemoteSearch ? candidateSearchQuery.error : candidatesQuery.error;
+  const isLoading = candidatesQuery.isLoading;
+  const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
 
   // Self-heal: an approved/active person must carry an EMP-### employee ID.
@@ -5202,15 +5206,7 @@ function EmployeesPage() {
                   : "grid-cols-[minmax(0,1fr)_auto]",
             )}
           >
-            <div className="relative flex-1 md:w-80">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, Aadhaar, mobile, code…"
-                className="h-10 rounded-xl border-border/70 bg-card pl-11 text-sm shadow-sm focus-visible:ring-4 focus-visible:ring-amber-500/10 focus-visible:border-amber-500/60 sm:h-11"
-              />
-            </div>
+            <EmployeeSearchInput value={search} onChange={setSearch} />
             {isFieldOfficer ? (
               tab === "candidate" ? (
                 <Button
