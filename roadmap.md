@@ -467,3 +467,4 @@
 - [x] Payroll rows: show client ID + contract ID alongside Payroll Open status
 
 - Transport role: full Vehicles + Assets access (incl. Asset master), and a Fleet & Assets dashboard with no leadership snapshot or payroll window.
+- [x] Transport role: Control Center fully hidden — removed asset_manager grant and turned off control_center parent view in prod (db/prod-migrations/20260923030500_transport_remove_control_center.sql); menu and direct /admin/control-center access now blocked for transport.
