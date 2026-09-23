@@ -27,7 +27,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
-import { billingRatePerDay, misBillingLine, periodDateList } from "@/lib/mis-billing";
+import { billingRatePerDay, misBillingLine, periodDateList, resolveBillingDivisor } from "@/lib/mis-billing";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
