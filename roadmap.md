@@ -29,6 +29,8 @@
 
 ## Current request
 
+- [x] Reconcile all 12-hour Maharashtra L&T guard contracts to their correct district rate-sheet columns.
+- [x] Show final Billing instead of Gross and remove duplicate Billing/day from resource cards.
 - [x] Show 27-, 26-, 25-, and 24-day billing rates together for every contract resource.
 - [x] Put the rate matching the current calendar month first (31→27, 30→26, 29→25, 28→24).
 - [x] Match Employees summary tiles to the shared dashboard theme.
