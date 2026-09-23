@@ -1482,12 +1482,31 @@ function MusterRollPage() {
     if (!mapSlot) return;
     setMapSaving(true);
     try {
-      const { error } = await supabase
+      // A guard holds exactly ONE primary posting. If he has no primary unit yet,
+      // filling a contracted slot here deploys him properly (full attendance).
+      // If he is already posted elsewhere, he can only stand in as a reliever (ED).
+      const { data: existingLinks, error: linkError } = await supabase
         .from("candidate_units")
-        .upsert(
-          { candidate_id: cand.id, unit_id: unitId, is_reliever: true },
-          { onConflict: "candidate_id,unit_id" },
-        );
+        .select("unit_id, is_primary, is_reliever")
+        .eq("candidate_id", cand.id);
+      if (linkError) throw linkError;
+      const hasPrimaryElsewhere = ((existingLinks ?? []) as Array<{
+        unit_id: string;
+        is_primary?: boolean | null;
+        is_reliever?: boolean | null;
+      }>).some((l) => l.unit_id !== unitId && l.is_primary === true && l.is_reliever !== true);
+      const asReliever = hasPrimaryElsewhere;
+
+      const { error } = await supabase.from("candidate_units").upsert(
+        {
+          candidate_id: cand.id,
+          unit_id: unitId,
+          is_reliever: asReliever,
+          is_primary: !asReliever,
+          designation_id: mapSlot.designationId ?? cand.designation_id ?? null,
+        },
+        { onConflict: "candidate_id,unit_id" },
+      );
       if (error) throw error;
 
       // If the slot's designation differs from the employee's own, surface the
@@ -1508,7 +1527,9 @@ function MusterRollPage() {
         entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
       toast.success(
-        `${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`,
+        asReliever
+          ? `${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`
+          : `${cand.full_name} deployed on ${mapSlot.designationName}`,
       );
       setMapSlot(null);
       setMapQuery("");
