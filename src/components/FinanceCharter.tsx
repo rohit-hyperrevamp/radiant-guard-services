@@ -22,7 +22,7 @@ import {
   type MoneyStatus,
   type PeriodStatus,
 } from "@/lib/period-status";
-import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
+import { MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
