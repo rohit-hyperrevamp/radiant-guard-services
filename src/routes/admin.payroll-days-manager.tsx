@@ -58,7 +58,13 @@ export const Route = createFileRoute("/admin/payroll-days-manager")({
   component: PayrollDaysManagerPage,
 });
 
-type Method = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
+type Method =
+  | "actual_days"
+  | "fixed_days"
+  | "actual_minus_weekly_off"
+  | "custom_weekdays"
+  | "fixed_annual_average"
+  | "actual_minus_days";
 
 type PayrollDayBase = {
   id: string;
@@ -112,6 +118,11 @@ const METHOD_META: Record<Method, { label: string; icon: typeof CalendarDays; to
     label: "Custom — pick weekdays",
     icon: CalendarCheck2,
     tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
+  actual_minus_days: {
+    label: "Actual days minus a fixed count",
+    icon: CalendarMinus,
+    tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
   },
 };
 
