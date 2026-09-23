@@ -30,6 +30,7 @@ import {
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
+import { misBillingLine } from "@/lib/mis-billing";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1230,7 +1231,7 @@ function PayrollUnitPage() {
           cgst,
           sgst,
           igst,
-          grand_total: r2(totalBilling + lineTax.total),
+          grand_total: r2(totalBilling + line.gstTotal),
           // Billing-annexure fields (site-summary formats)
           cli_id: unit?.code ?? "",
           vendor_name: entity,
@@ -1247,8 +1248,8 @@ function PayrollUnitPage() {
           regular_ot_hours: hasIncrement ? 0 : otHours,
           increment_ot_hours: hasIncrement ? otHours : 0,
           service_charge_claimed: totalBilling,
-          gst_18: lineTax.total,
-          invoice_value: r2(totalBilling + lineTax.total),
+          gst_18: line.gstTotal,
+          invoice_value: r2(totalBilling + line.gstTotal),
           total_duties: r2(workingDays + otDays),
           total_ot_hours: otHours,
           remarks: "",
