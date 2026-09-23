@@ -75,40 +75,6 @@ function toneFor(value: number) {
   return "rose";
 }
 
-function Dial({ value }: { value: number }) {
-  const clamped = Math.max(0, Math.min(value, 130));
-  const tone = toneFor(value);
-  const stroke =
-    tone === "emerald"
-      ? "var(--color-emerald-500, #10b981)"
-      : tone === "amber"
-        ? "var(--color-amber-500, #f59e0b)"
-        : "hsl(var(--destructive))";
-  const r = 17;
-  const c = 2 * Math.PI * r;
-  const dash = (Math.min(clamped, 100) / 100) * c;
-  return (
-    <div className="relative h-11 w-11 shrink-0">
-      <svg viewBox="0 0 40 40" className="h-11 w-11 -rotate-90">
-        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-border" />
-        <circle
-          cx="20"
-          cy="20"
-          r={r}
-          fill="none"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          stroke={stroke}
-          strokeDasharray={`${dash} ${c}`}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums text-foreground">
-        {value}%
-      </span>
-    </div>
-  );
-}
-
 function MarginChip({ value }: { value: number }) {
   return (
     <span
