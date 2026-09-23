@@ -754,9 +754,14 @@ export function FinanceCharter({
         const code = codeMap.get(e.code);
         const raw = code?.day_value;
         const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
-        const counted = code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0;
+        // Billable duties only — exactly what the invoice bills: days that count
+        // as present (P, HD) plus paid holidays. Paid weekly offs and paid leave
+        // are part of the monthly wage and are never billed as duties, so they
+        // must never inflate the MIS working days.
+        const counted = !code ? 0 : code.counts_as_present || code.code === "PH" ? dayValue : 0;
         const otDays = Number(e.ot_hours) || 0;
         if (counted + otDays <= 0) continue;
+
         if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
         const bucket = linesByUnit.get(unitId)!;
         const key = `${e.candidate_id}|${e.designation_id ?? ""}`;
