@@ -22,7 +22,7 @@ update contract_resources r
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Gujarat'
    and r.shift_hours = 12
-   and d.name = 'Security Guard';
+   and exists (select 1 from designations d where d.id = r.designation_id and d.name = 'Security Guard');
 
 -- Rajasthan: gross wages 17656.00, total billing 23546.01 (GST extra)
 update contract_resources r
@@ -38,7 +38,7 @@ update contract_resources r
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Rajasthan'
    and r.shift_hours = 12
-   and d.name = 'Security Guard';
+   and exists (select 1 from designations d where d.id = r.designation_id and d.name = 'Security Guard');
 
 -- Telangana: gross wages 22574.01, total billing 31018.11 (GST extra)
 update contract_resources r
@@ -54,7 +54,7 @@ update contract_resources r
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Telangana'
    and r.shift_hours = 12
-   and d.name = 'Security Guard';
+   and exists (select 1 from designations d where d.id = r.designation_id and d.name = 'Security Guard');
 
 -- Karnataka: gross wages 25869.65, total billing 34608.84 (GST extra)
 update contract_resources r
@@ -70,6 +70,6 @@ update contract_resources r
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Karnataka'
    and r.shift_hours = 12
-   and d.name = 'Security Guard';
+   and exists (select 1 from designations d where d.id = r.designation_id and d.name = 'Security Guard');
 
 commit;
