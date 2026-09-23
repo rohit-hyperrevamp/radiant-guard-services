@@ -281,28 +281,6 @@ function AdminLayout() {
     { prefix: "/admin/migration-utility", module: "control_center" },
     { prefix: "/admin/org-settings", module: "control_center" },
   ];
-  const firstAllowedPath = () => {
-    const order = [
-      "organizations","contracts","employees","vehicles","assets","inventory","attendance",
-      "payroll","invoice","control_center","notification_center","rbac",
-    ];
-    const pathFor: Record<string, string> = {
-      organizations: "/admin/customers",
-      contracts: "/admin/contracts/client-contracts",
-      employees: "/admin/employees",
-      vehicles: "/admin/vehicles/inventory",
-      assets: "/admin/assets/inventory",
-      inventory: "/admin/inventory",
-      attendance: "/admin/attendance",
-      payroll: "/admin/payroll",
-      invoice: "/admin/invoice",
-      control_center: "/admin/control-center",
-      notification_center: "/admin/notifications",
-      rbac: "/admin/rbac",
-    };
-    for (const m of order) if (can(m)) return pathFor[m];
-    return null;
-  };
   useEffect(() => {
     if (!isReady || permsLoading || !user) return;
     // Re-read the verified login snapshot at effect execution time. An effect
@@ -336,9 +314,9 @@ function AdminLayout() {
       return;
     }
     if (!can(hit.module)) {
-      const dest = firstAllowedPath();
-      if (dest) navigate({ to: dest, replace: true });
-      else logout();
+      // Never hop to an unrelated module: a denied page returns the user to
+      // their own dashboard, so a link never appears to open a different tool.
+      navigate({ to: dashboardHref, replace: true });
       return;
     }
     // Sub-module gating: enforce canSub for any known sub-module path.
@@ -349,8 +327,8 @@ function AdminLayout() {
         // Return to the actual module hub. Never choose the first child route,
         // which previously sent denied Control Center links to Deduction Types.
         const modulePath = RBAC_MODULES.find((m) => m.key === subHit.module)?.path;
-        const dest = modulePath && can(subHit.module) ? modulePath : firstAllowedPath();
-        if (dest) navigate({ to: dest, replace: true });
+        const dest = modulePath && can(subHit.module) ? modulePath : dashboardHref;
+        navigate({ to: dest, replace: true });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

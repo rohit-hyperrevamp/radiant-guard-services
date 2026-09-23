@@ -26,6 +26,16 @@ import {
 } from "@/lib/mis-template";
 
 export const Route = createFileRoute("/admin/mis-manager")({
+  head: () => ({
+    meta: [
+      { title: "MIS Sheets | Radiant Guard Services" },
+      { name: "description", content: "Define the MIS sheet each organization receives, its columns and site values." },
+      { property: "og:title", content: "MIS Sheets | Radiant Guard Services" },
+      { property: "og:description", content: "Define the MIS sheet each organization receives, its columns and site values." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: MisManagerPage,
 });
 
@@ -127,9 +137,9 @@ async function readHeadersFromFile(file: File): Promise<string[]> {
 }
 
 function MisManagerPage() {
-  const { can, isSuperAdmin } = useCurrentPermissions();
-  const canEdit = isSuperAdmin || can("control_center", "edit");
-  const canDelete = isSuperAdmin || can("control_center", "delete");
+  const { canSub, isSuperAdmin } = useCurrentPermissions();
+  const canEdit = isSuperAdmin || canSub("control_center", "mis_manager", "edit");
+  const canDelete = isSuperAdmin || canSub("control_center", "mis_manager", "delete");
 
   const qc = useQueryClient();
   const { data: customers = [] } = useCustomers();
