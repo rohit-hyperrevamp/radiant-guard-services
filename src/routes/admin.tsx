@@ -336,9 +336,9 @@ function AdminLayout() {
       return;
     }
     if (!can(hit.module)) {
-      const dest = firstAllowedPath();
-      if (dest) navigate({ to: dest, replace: true });
-      else logout();
+      // Never hop to an unrelated module: a denied page returns the user to
+      // their own dashboard, so a link never appears to open a different tool.
+      navigate({ to: dashboardHref, replace: true });
       return;
     }
     // Sub-module gating: enforce canSub for any known sub-module path.
@@ -349,8 +349,8 @@ function AdminLayout() {
         // Return to the actual module hub. Never choose the first child route,
         // which previously sent denied Control Center links to Deduction Types.
         const modulePath = RBAC_MODULES.find((m) => m.key === subHit.module)?.path;
-        const dest = modulePath && can(subHit.module) ? modulePath : firstAllowedPath();
-        if (dest) navigate({ to: dest, replace: true });
+        const dest = modulePath && can(subHit.module) ? modulePath : dashboardHref;
+        navigate({ to: dest, replace: true });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
