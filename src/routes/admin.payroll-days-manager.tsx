@@ -162,6 +162,10 @@ function describeMethod(item: PayrollDayBase): string {
       if (!days.length) return "Salary ÷ count of selected weekdays (none picked yet).";
       return `Salary ÷ count of ${days.map((d) => WEEKDAY_SHORT[d]).join(", ")} in that month.`;
     }
+    case "actual_minus_days": {
+      const n = item.fixedDays ?? 0;
+      return `Salary ÷ (actual days of the period − ${n || "?"}) — e.g. 31 → ${31 - (n || 0)}, 30 → ${30 - (n || 0)}.`;
+    }
   }
 }
 
