@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { CharterPagination } from "@/components/CharterPagination";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
   type MoneyStatus,
   type PeriodStatus,
 } from "@/lib/period-status";
-import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
+import { MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
@@ -68,45 +69,6 @@ function pct(actual: number, projected: number) {
   return Math.round((actual / projected) * 100);
 }
 
-function toneFor(value: number) {
-  if (value >= 100) return "emerald";
-  if (value >= 85) return "amber";
-  return "rose";
-}
-
-function Dial({ value }: { value: number }) {
-  const clamped = Math.max(0, Math.min(value, 130));
-  const tone = toneFor(value);
-  const stroke =
-    tone === "emerald"
-      ? "var(--color-emerald-500, #10b981)"
-      : tone === "amber"
-        ? "var(--color-amber-500, #f59e0b)"
-        : "hsl(var(--destructive))";
-  const r = 17;
-  const c = 2 * Math.PI * r;
-  const dash = (Math.min(clamped, 100) / 100) * c;
-  return (
-    <div className="relative h-11 w-11 shrink-0">
-      <svg viewBox="0 0 40 40" className="h-11 w-11 -rotate-90">
-        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-border" />
-        <circle
-          cx="20"
-          cy="20"
-          r={r}
-          fill="none"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          stroke={stroke}
-          strokeDasharray={`${dash} ${c}`}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums text-foreground">
-        {value}%
-      </span>
-    </div>
-  );
-}
 
 function MarginChip({ value }: { value: number }) {
   return (
@@ -158,6 +120,31 @@ export function FinanceCharter({
   // presses "Generate final invoice".
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [finalOpen, setFinalOpen] = useState(false);
+  // Invoices are raised one state at a time, so the charter can be narrowed by
+  // billing state and city exactly like Contracts.
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
+
+  const stateOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const u of units) {
+      const label = (u.billing_state ?? "").trim();
+      if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
+  }, [units]);
+
+  const cityOptions = useMemo(() => {
+    const selectedStates = new Set(stateFilter.map((s) => s.toLowerCase()));
+    const seen = new Map<string, string>();
+    for (const u of units) {
+      const state = (u.billing_state ?? "").trim();
+      if (selectedStates.size && !selectedStates.has(state.toLowerCase())) continue;
+      const label = (u.billing_city ?? "").trim();
+      if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
+  }, [units, stateFilter]);
 
 
   // Search, then paginate, then load money for the visible page only. Contract
@@ -165,15 +152,18 @@ export function FinanceCharter({
   // units — never for the whole charter.
   const searchedUnits = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const list = term
-      ? units.filter((u) =>
-          [u.name, u.code, u.customer_name, ...u.contract_codes]
-            .filter(Boolean)
-            .some((v) => String(v).toLowerCase().includes(term)),
-        )
-      : units.slice();
+    const stateSet = new Set(stateFilter.map((s) => s.toLowerCase()));
+    const citySet = new Set(cityFilter.map((s) => s.toLowerCase()));
+    const list = units.filter((u) => {
+      if (stateSet.size && !stateSet.has((u.billing_state ?? "").trim().toLowerCase())) return false;
+      if (citySet.size && !citySet.has((u.billing_city ?? "").trim().toLowerCase())) return false;
+      if (!term) return true;
+      return [u.name, u.code, u.customer_name, ...u.contract_codes]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(term));
+    });
     return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
-  }, [units, query]);
+  }, [units, query, stateFilter, cityFilter]);
 
   const [page, setPage] = useState(0);
   // The stage tile reflects the whole charter, not just the visible page, so
@@ -227,7 +217,7 @@ export function FinanceCharter({
   }, [allStatusQ.data, mode, searchedUnits, statusFilter]);
   const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
-  useEffect(() => setPage(0), [query, statusFilter, units.length, monthIdx, year]);
+  useEffect(() => setPage(0), [query, statusFilter, stateFilter, cityFilter, units.length, monthIdx, year]);
   const pageUnits = useMemo(
     () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
     [matchedUnits, safePage],
@@ -1016,6 +1006,21 @@ export function FinanceCharter({
             </SelectContent>
           </Select>
         )}
+        <MultiSelectFilter
+          selected={stateFilter}
+          onChange={(v) => {
+            setStateFilter(v);
+            setCityFilter([]);
+          }}
+          options={stateOptions}
+          allLabel="All states"
+        />
+        <MultiSelectFilter
+          selected={cityFilter}
+          onChange={setCityFilter}
+          options={cityOptions}
+          allLabel="All cities"
+        />
         <div className="hidden flex-1 sm:block" />
         <div className="col-span-2 flex items-center gap-1.5 overflow-x-auto sm:contents">
         {mode === "invoice" && (
@@ -1165,64 +1170,28 @@ export function FinanceCharter({
                     search={{ start: r.period.start, end: r.period.end }}
                     className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
                   >
-                    {mode === "invoice" && <Dial value={r.realisationPct} />}
                     <div className="min-w-0 flex-1">
-                      <div className="min-w-0">
-                        <span className="block truncate text-sm font-semibold group-hover:text-primary">
-                          {r.unit.name || r.unit.code}
+                      <span className="block truncate text-sm font-semibold group-hover:text-primary">
+                        {r.unit.name || r.unit.code}
+                      </span>
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
+                        <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+                          {r.actual}/{r.committed} deployed
                         </span>
-                        <div className="scrollbar-hide mt-1 flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible sm:pb-0">
-                           {mode === "invoice" && (
-                             <span className="hidden shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
-                               {r.actual}/{r.committed} deployed
-                             </span>
-                           )}
-                          <AttendanceStatusBadge status={r.status.attendance} />
-                          <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
-                          {mode === "invoice" && r.finalInvoice && (
-                            <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
-                              {r.finalInvoice.invoice_no}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
-                        {r.unit.customer_name} · {r.contractCode}
-                      </div>
-
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
-                        {mode === "invoice" ? (
-                          <>
-                            <span className="whitespace-nowrap">Inv {fmtMoneyCompact(r.invoiceAmount)}</span>
-                            <span>·</span>
-                            <span className="whitespace-nowrap">Pay {fmtMoneyCompact(r.payrollAmount)}</span>
-                            <span>·</span>
-                            <span className="whitespace-nowrap">{r.marginPct}% margin</span>
-                          </>
-                        ) : (
-                            <span className="whitespace-nowrap">Payroll to date {fmtMoneyCompact(r.payrollAmount)}</span>
+                        {r.unit.customer_code && (
+                          <span className="shrink-0 font-medium tabular-nums">{r.unit.customer_code}</span>
                         )}
+                        <span className="truncate tabular-nums">{r.contractCode}</span>
                       </div>
                     </div>
 
-                    <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
-                      {mode === "invoice" && (
-                        <>
-                          <div className="text-right">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Contracted</div>
-                            <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.monthlyContracted)}</div>
-                          </div>
-                          <div className="text-right">
-                             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice to date</div>
-                            <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.invoiceAmount)}</div>
-                          </div>
-                        </>
+                    <div className="flex shrink-0 items-center gap-1.5 pr-1">
+                      {r.finalInvoice && (
+                        <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
+                          {r.finalInvoice.invoice_no}
+                        </span>
                       )}
-                      <div className="text-right">
-                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll to date</div>
-                        <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.payrollAmount)}</div>
-                      </div>
-                      {mode === "invoice" && <MarginChip value={r.marginPct} />}
+                      <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                     </div>
                   </Link>
 
