@@ -137,9 +137,9 @@ async function readHeadersFromFile(file: File): Promise<string[]> {
 }
 
 function MisManagerPage() {
-  const { can, isSuperAdmin } = useCurrentPermissions();
-  const canEdit = isSuperAdmin || can("control_center", "edit");
-  const canDelete = isSuperAdmin || can("control_center", "delete");
+  const { canSub, isSuperAdmin } = useCurrentPermissions();
+  const canEdit = isSuperAdmin || canSub("control_center", "mis_manager", "edit");
+  const canDelete = isSuperAdmin || canSub("control_center", "mis_manager", "delete");
 
   const qc = useQueryClient();
   const { data: customers = [] } = useCustomers();
