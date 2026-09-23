@@ -206,13 +206,18 @@ function usePayrollDayBases() {
         throw new Error("Pick at least one weekday for Custom Weekdays");
       }
     }
+    if (p.method === "actual_minus_days") {
+      if (!p.fixedDays || p.fixedDays < 1 || p.fixedDays > 15) {
+        throw new Error("Days to subtract must be between 1 and 15");
+      }
+    }
   };
 
   const toRow = (p: Payload) => ({
     name: p.name.trim(),
     code: p.code.trim().toUpperCase(),
     method: p.method,
-    fixed_days: p.method === "fixed_days" ? p.fixedDays : null,
+    fixed_days: p.method === "fixed_days" || p.method === "actual_minus_days" ? p.fixedDays : null,
     weekly_off_day: p.method === "actual_minus_weekly_off" ? p.weeklyOffDay : null,
     included_weekdays:
       p.method === "custom_weekdays"
