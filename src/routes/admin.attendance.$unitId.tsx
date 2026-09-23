@@ -1444,7 +1444,15 @@ function MusterRollPage() {
       if (allowedIds) query = query.in("id", allowedIds);
       const { data, error } = await query.order("full_name").limit(30);
       if (error) throw error;
-      const rows = data ?? [];
+      // Non-billable staff (field officers, branch managers, HR…) never belong on a
+      // client muster roll — mapping them here silently produces an empty roster.
+      const rows = (data ?? []).filter((r) => {
+        if (unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1") return true;
+        const roleKey = ((r as { role_key?: string | null }).role_key || "").toLowerCase();
+        return (
+          !isNonBillableRoleKey(roleKey) && (r as { non_billable?: boolean }).non_billable !== true
+        );
+      });
       const desigIds = Array.from(
         new Set(rows.map((r) => r.designation_id).filter(Boolean)),
       ) as string[];
