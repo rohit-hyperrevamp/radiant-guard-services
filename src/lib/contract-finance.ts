@@ -144,6 +144,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
       billRate: Math.round((grossRate + employerTotal) * 100) / 100,
+      payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
+      billingDayBase: r.billing_day_base_id ? billingBaseById.get(String(r.billing_day_base_id)) ?? null : null,
     };
     const arr = grouped.get(unitId) ?? [];
     arr.push(rate);
