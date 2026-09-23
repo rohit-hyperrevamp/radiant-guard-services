@@ -26,6 +26,16 @@ import {
 } from "@/lib/mis-template";
 
 export const Route = createFileRoute("/admin/mis-manager")({
+  head: () => ({
+    meta: [
+      { title: "MIS Sheets | Radiant Guard Services" },
+      { name: "description", content: "Define the MIS sheet each organization receives, its columns and site values." },
+      { property: "og:title", content: "MIS Sheets | Radiant Guard Services" },
+      { property: "og:description", content: "Define the MIS sheet each organization receives, its columns and site values." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: MisManagerPage,
 });
 
