@@ -4283,8 +4283,8 @@ function ResourcesSection({
     [billingDayBases],
   );
 
-  /** Monthly client billing (wages + employer cost lines) and the per-day rate
-   *  derived from the resource's billing-day divisor. */
+  /** Monthly client billing (wages + employer cost lines) and the four
+   *  calendar-month billing rates: 31/30/29/28 days use 27/26/25/24 duties. */
   const dayRates = useMemo(
     () =>
       resources.map((r) => {
@@ -4294,19 +4294,33 @@ function ResourcesSection({
           0,
         );
         const monthly = gross + employer;
-        const base = r.billingDayBaseId ? bdbById.get(r.billingDayBaseId) : undefined;
-        const days = computePayableDays(base);
         return {
           label: dById.get(r.designationId)?.name ?? "Resource",
           shiftHours: r.shiftHours,
           monthly,
-          days,
-          perDay: days > 0 ? monthly / days : null,
-          divisorName: base?.name ?? null,
         };
       }),
-    [resources, bdbById, dById],
+    [resources, dById],
   );
+
+  const currentCalendarDays = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth() + 1,
+    0,
+  ).getDate();
+  const billingRateScenarios = useMemo(() => {
+    const scenarios = [
+      { calendarDays: 31, billingDays: 27 },
+      { calendarDays: 30, billingDays: 26 },
+      { calendarDays: 29, billingDays: 25 },
+      { calendarDays: 28, billingDays: 24 },
+    ];
+    return scenarios.sort((a, b) => {
+      if (a.calendarDays === currentCalendarDays) return -1;
+      if (b.calendarDays === currentCalendarDays) return 1;
+      return b.calendarDays - a.calendarDays;
+    });
+  }, [currentCalendarDays]);
 
   const fmtRate = (n: number) =>
     `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -4329,29 +4343,47 @@ function ResourcesSection({
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Billing rate per day
             </div>
-            <div className="mt-2 space-y-1.5">
+            <div className="mt-2 space-y-3">
               {dayRates.map((d, i) => (
-                <div key={i} className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                <div key={i} className="space-y-1.5">
+                  <div className="flex min-w-0 items-baseline justify-between gap-2">
+                    <span className="min-w-0 truncate text-sm font-medium text-foreground">
                     {d.label}
-                    <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-                      {d.shiftHours}h
-                    </span>
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">
-                    {d.perDay == null ? (
-                      <span className="text-xs font-normal text-muted-foreground">
-                        Set a billing day basis
+                      <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+                        {d.shiftHours}h
                       </span>
-                    ) : (
-                      <>
-                        {fmtRate(d.perDay)}
-                        <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-                          {fmtRate(d.monthly)} ÷ {d.days} days
-                        </span>
-                      </>
-                    )}
-                  </span>
+                    </span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      Monthly {fmtRate(d.monthly)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                    {billingRateScenarios.map((scenario) => {
+                      const isCurrent = scenario.calendarDays === currentCalendarDays;
+                      return (
+                        <div
+                          key={scenario.billingDays}
+                          className={cn(
+                            "rounded-md border px-2 py-1.5",
+                            isCurrent
+                              ? "border-accent bg-accent/10"
+                              : "border-border bg-background/60",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
+                            <span>{scenario.calendarDays}-day month</span>
+                            {isCurrent ? <span className="font-medium text-accent">Current</span> : null}
+                          </div>
+                          <div className="mt-0.5 text-sm font-semibold text-foreground">
+                            {fmtRate(d.monthly / scenario.billingDays)}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            ÷ {scenario.billingDays} billing days
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
