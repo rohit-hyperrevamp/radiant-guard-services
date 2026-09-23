@@ -4265,6 +4265,7 @@ function ResourcesSection({
   const designations = useDesignations();
   const serviceTypes = useServiceTypes();
   const rolesList = useRolesList();
+  const billingDayBases = useBillingDayBases();
   const dById = useMemo(
     () => new Map(designations.map((d) => [d.id, d])),
     [designations],
@@ -4277,6 +4278,38 @@ function ResourcesSection({
     () => new Map(rolesList.map((r) => [r.key, r])),
     [rolesList],
   );
+  const bdbById = useMemo(
+    () => new Map(billingDayBases.map((b) => [b.id, b])),
+    [billingDayBases],
+  );
+
+  /** Monthly client billing (wages + employer cost lines) and the per-day rate
+   *  derived from the resource's billing-day divisor. */
+  const dayRates = useMemo(
+    () =>
+      resources.map((r) => {
+        const gross = r.components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+        const employer = (r.employerContributions ?? []).reduce(
+          (s, c) => s + (Number((c as { amount?: unknown }).amount) || 0),
+          0,
+        );
+        const monthly = gross + employer;
+        const base = r.billingDayBaseId ? bdbById.get(r.billingDayBaseId) : undefined;
+        const days = computePayableDays(base);
+        return {
+          label: dById.get(r.designationId)?.name ?? "Resource",
+          shiftHours: r.shiftHours,
+          monthly,
+          days,
+          perDay: days > 0 ? monthly / days : null,
+          divisorName: base?.name ?? null,
+        };
+      }),
+    [resources, bdbById, dById],
+  );
+
+  const fmtRate = (n: number) =>
+    `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <Section title="Resources">
@@ -4292,6 +4325,37 @@ function ResourcesSection({
         </button>
       ) : (
         <div className="space-y-3">
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Billing rate per day
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {dayRates.map((d, i) => (
+                <div key={i} className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                    {d.label}
+                    <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+                      {d.shiftHours}h
+                    </span>
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {d.perDay == null ? (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        Set a billing day basis
+                      </span>
+                    ) : (
+                      <>
+                        {fmtRate(d.perDay)}
+                        <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+                          {fmtRate(d.monthly)} ÷ {d.days} days
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
           {resources.map((r, idx) => {
             const gross = r.components.reduce(
               (s, c) => s + (Number(c.amount) || 0),
@@ -4343,8 +4407,13 @@ function ResourcesSection({
                         </span>
                       )}
                     </div>
-                    <div className="mt-1.5 text-xs font-semibold text-foreground">
-                      Gross: {gross.toFixed(2)}
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs font-semibold text-foreground">
+                      <span>Gross: {gross.toFixed(2)}</span>
+                      {dayRates[idx]?.perDay != null && (
+                        <span className="text-accent">
+                          Billing/day: {fmtRate(dayRates[idx].perDay!)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
