@@ -191,15 +191,18 @@ export function FinanceCharter({
   // units — never for the whole charter.
   const searchedUnits = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const list = term
-      ? units.filter((u) =>
-          [u.name, u.code, u.customer_name, ...u.contract_codes]
-            .filter(Boolean)
-            .some((v) => String(v).toLowerCase().includes(term)),
-        )
-      : units.slice();
+    const stateSet = new Set(stateFilter.map((s) => s.toLowerCase()));
+    const citySet = new Set(cityFilter.map((s) => s.toLowerCase()));
+    const list = units.filter((u) => {
+      if (stateSet.size && !stateSet.has((u.billing_state ?? "").trim().toLowerCase())) return false;
+      if (citySet.size && !citySet.has((u.billing_city ?? "").trim().toLowerCase())) return false;
+      if (!term) return true;
+      return [u.name, u.code, u.customer_name, ...u.contract_codes]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(term));
+    });
     return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
-  }, [units, query]);
+  }, [units, query, stateFilter, cityFilter]);
 
   const [page, setPage] = useState(0);
   // The stage tile reflects the whole charter, not just the visible page, so
@@ -253,7 +256,7 @@ export function FinanceCharter({
   }, [allStatusQ.data, mode, searchedUnits, statusFilter]);
   const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
-  useEffect(() => setPage(0), [query, statusFilter, units.length, monthIdx, year]);
+  useEffect(() => setPage(0), [query, statusFilter, stateFilter, cityFilter, units.length, monthIdx, year]);
   const pageUnits = useMemo(
     () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
     [matchedUnits, safePage],
