@@ -240,6 +240,9 @@ function DashboardPage() {
     ) : null;
   const showInventoryDashboard =
     roleKey === ROLE_KEYS.INVENTORY_MANAGER || roleKey === ROLE_KEYS.INVENTORY;
+  // Transport owns fleet and assets only — no payroll window, no leadership
+  // snapshot, no client money. Their homepage is vehicles + assets combined.
+  const showTransportDashboard = roleKey === ROLE_KEYS.TRANSPORT;
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();
@@ -281,7 +284,7 @@ function DashboardPage() {
   // independent query so the dashboard is usable immediately.
   const countsQuery = useQuery({
     queryKey: ["dashboard-counts", year, month, periodSelection.selectedKey],
-    enabled: !permsLoading && !showInventoryDashboard,
+    enabled: !permsLoading && !showInventoryDashboard && !showTransportDashboard,
     staleTime: 2 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
@@ -427,6 +430,7 @@ function DashboardPage() {
     enabled:
       !permsLoading &&
       !showInventoryDashboard &&
+      !showTransportDashboard &&
       !opsFocus &&
       !lightMode &&
       (can("payroll") || can("invoice") || can("contracts")),
