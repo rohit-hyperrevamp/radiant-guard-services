@@ -58,7 +58,13 @@ export const Route = createFileRoute("/admin/payroll-days-manager")({
   component: PayrollDaysManagerPage,
 });
 
-type Method = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
+type Method =
+  | "actual_days"
+  | "fixed_days"
+  | "actual_minus_weekly_off"
+  | "custom_weekdays"
+  | "fixed_annual_average"
+  | "actual_minus_days";
 
 type PayrollDayBase = {
   id: string;
@@ -113,6 +119,11 @@ const METHOD_META: Record<Method, { label: string; icon: typeof CalendarDays; to
     icon: CalendarCheck2,
     tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   },
+  actual_minus_days: {
+    label: "Actual days minus a fixed count",
+    icon: CalendarMinus,
+    tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  },
 };
 
 function rowToItem(r: Record<string, unknown>): PayrollDayBase {
@@ -150,6 +161,10 @@ function describeMethod(item: PayrollDayBase): string {
       const days = (item.includedWeekdays ?? []).slice().sort((a, b) => a - b);
       if (!days.length) return "Salary ÷ count of selected weekdays (none picked yet).";
       return `Salary ÷ count of ${days.map((d) => WEEKDAY_SHORT[d]).join(", ")} in that month.`;
+    }
+    case "actual_minus_days": {
+      const n = item.fixedDays ?? 0;
+      return `Salary ÷ (actual days of the period − ${n || "?"}) — e.g. 31 → ${31 - (n || 0)}, 30 → ${30 - (n || 0)}.`;
     }
   }
 }
@@ -191,13 +206,18 @@ function usePayrollDayBases() {
         throw new Error("Pick at least one weekday for Custom Weekdays");
       }
     }
+    if (p.method === "actual_minus_days") {
+      if (!p.fixedDays || p.fixedDays < 1 || p.fixedDays > 15) {
+        throw new Error("Days to subtract must be between 1 and 15");
+      }
+    }
   };
 
   const toRow = (p: Payload) => ({
     name: p.name.trim(),
     code: p.code.trim().toUpperCase(),
     method: p.method,
-    fixed_days: p.method === "fixed_days" ? p.fixedDays : null,
+    fixed_days: p.method === "fixed_days" || p.method === "actual_minus_days" ? p.fixedDays : null,
     weekly_off_day: p.method === "actual_minus_weekly_off" ? p.weeklyOffDay : null,
     included_weekdays:
       p.method === "custom_weekdays"
@@ -680,9 +700,27 @@ function PayrollDayBaseFormDialog({
                 <SelectItem value="fixed_annual_average">Fixed annual average (30.4166 days)</SelectItem>
                 <SelectItem value="actual_minus_weekly_off">Actual days minus a weekly off</SelectItem>
                 <SelectItem value="custom_weekdays">Custom — pick weekdays</SelectItem>
+                <SelectItem value="actual_minus_days">Actual days minus a fixed count (e.g. Days Minus Four)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {method === "actual_minus_days" && (
+            <div className="grid gap-2">
+              <Label>Days to subtract *</Label>
+              <Input
+                type="number"
+                min={1}
+                max={15}
+                value={fixedDays}
+                onChange={(e) => setFixedDays(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Actual days of the period minus this number — 4 gives 27 / 26 / 25 / 24 for a
+                31 / 30 / 29 / 28-day period.
+              </p>
+            </div>
+          )}
 
           {method === "fixed_days" && (
             <div className="grid gap-2">
@@ -848,7 +886,10 @@ function PayrollDayBaseFormDialog({
                 name,
                 code,
                 method,
-                fixedDays: method === "fixed_days" ? Number(fixedDays) || 0 : null,
+                fixedDays:
+                  method === "fixed_days" || method === "actual_minus_days"
+                    ? Number(fixedDays) || 0
+                    : null,
                 weeklyOffDay:
                   method === "actual_minus_weekly_off" ? Number(weeklyOffDay) : null,
                 includedWeekdays: method === "custom_weekdays" ? includedWeekdays : null,
