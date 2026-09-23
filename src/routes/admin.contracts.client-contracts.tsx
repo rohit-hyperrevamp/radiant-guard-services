@@ -4265,7 +4265,6 @@ function ResourcesSection({
   const designations = useDesignations();
   const serviceTypes = useServiceTypes();
   const rolesList = useRolesList();
-  const billingDayBases = useBillingDayBases();
   const dById = useMemo(
     () => new Map(designations.map((d) => [d.id, d])),
     [designations],
@@ -4277,10 +4276,6 @@ function ResourcesSection({
   const roleByKey = useMemo(
     () => new Map(rolesList.map((r) => [r.key, r])),
     [rolesList],
-  );
-  const bdbById = useMemo(
-    () => new Map(billingDayBases.map((b) => [b.id, b])),
-    [billingDayBases],
   );
 
   /** Monthly client billing (wages + employer cost lines) and the four
@@ -4321,6 +4316,7 @@ function ResourcesSection({
       return b.calendarDays - a.calendarDays;
     });
   }, [currentCalendarDays]);
+  const currentBillingDays = billingRateScenarios[0]?.billingDays ?? 27;
 
   const fmtRate = (n: number) =>
     `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -4441,9 +4437,9 @@ function ResourcesSection({
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs font-semibold text-foreground">
                       <span>Gross: {gross.toFixed(2)}</span>
-                      {dayRates[idx]?.perDay != null && (
+                      {dayRates[idx] && (
                         <span className="text-accent">
-                          Billing/day: {fmtRate(dayRates[idx].perDay!)}
+                          Billing/day: {fmtRate(dayRates[idx].monthly / currentBillingDays)}
                         </span>
                       )}
                     </div>
