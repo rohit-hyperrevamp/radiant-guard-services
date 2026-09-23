@@ -27,7 +27,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
-import { billingRatePerDay, misBillingLine, periodDateList } from "@/lib/mis-billing";
+import { billingRatePerDay, misBillingLine, periodDateList, resolveBillingDivisor } from "@/lib/mis-billing";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
@@ -754,9 +754,14 @@ export function FinanceCharter({
         const code = codeMap.get(e.code);
         const raw = code?.day_value;
         const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
-        const counted = code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0;
+        // Billable duties only — exactly what the invoice bills: days that count
+        // as present (P, HD) plus paid holidays. Paid weekly offs and paid leave
+        // are part of the monthly wage and are never billed as duties, so they
+        // must never inflate the MIS working days.
+        const counted = !code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0;
         const otDays = Number(e.ot_hours) || 0;
         if (counted + otDays <= 0) continue;
+
         if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
         const bucket = linesByUnit.get(unitId)!;
         const key = `${e.candidate_id}|${e.designation_id ?? ""}`;
@@ -822,7 +827,13 @@ export function FinanceCharter({
             otDays: line.otDays,
             total: perDay * billedDays,
             intraState,
+            // Regular duties can never exceed the contract's billing days; the
+            // surplus is Extra Duty at the same rate.
+            maxWorkingDays: resolveBillingDivisor(rate, periodDates),
           });
+          const workingDays = misLine.workingDays;
+          const otDuties = misLine.otDays;
+          const otHours = otDuties * (rate.shiftHours || 8);
           const otRate = misLine.otRate;
           const otAmount = misLine.otAmount;
           const regular = misLine.regularBilling;
@@ -831,6 +842,7 @@ export function FinanceCharter({
           const lineTax = { total: misLine.gstTotal };
           const { cgst, sgst, igst } = misLine;
           const round = (value: number) => Math.round(value * 100) / 100;
+
           const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
           const incrementCutoff = new Date(period.start);
           incrementCutoff.setFullYear(incrementCutoff.getFullYear() - 1);
@@ -847,10 +859,11 @@ export function FinanceCharter({
               designation: `${rate.designationName} @ (${rate.shiftHours})`, branch_name: branchName,
               state: unitRow.billing_state ?? "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
               month_days: periodDays, month_rate: periodDays, billing_rate: rate.billRate,
-              billing_rate_per_day: round(perDay), ot_rate: round(otRate), working_days: round(line.workingDays),
-              ot_duties: round(line.otDays), ot_amount: round(otAmount),
+              billing_rate_per_day: round(perDay), ot_rate: round(otRate), working_days: round(workingDays),
+              ot_duties: round(otDuties), ot_amount: round(otAmount),
               working_days_billing_with_ot: round(regular + otBilling), total_regular_billing: round(regular),
-              ot_billing: round(otBilling + otAmount), total_billing: round(totalBilling),
+              ot_billing: round(otBilling), total_billing: round(totalBilling),
+
               cgst: round(cgst), sgst: round(sgst), igst: round(igst),
               grand_total: round(totalBilling + lineTax.total),
               cli_id: unitRow.code ?? "",
@@ -863,18 +876,19 @@ export function FinanceCharter({
               sg_count: 1,
               regular_rate: rate.billRate,
               increment_rate: hasIncrement ? rate.billRate : 0,
-              regular_duties: hasIncrement ? 0 : round(line.workingDays),
-              increment_duties: hasIncrement ? round(line.workingDays) : 0,
-              regular_ot_hours: hasIncrement ? 0 : round(line.otHours),
-              increment_ot_hours: hasIncrement ? round(line.otHours) : 0,
+              regular_duties: hasIncrement ? 0 : round(workingDays),
+              increment_duties: hasIncrement ? round(workingDays) : 0,
+              regular_ot_hours: hasIncrement ? 0 : round(otHours),
+              increment_ot_hours: hasIncrement ? round(otHours) : 0,
               service_charge_claimed: round(totalBilling),
               gst_18: round(lineTax.total),
               invoice_value: round(totalBilling + lineTax.total),
-              total_duties: round(line.workingDays + line.otDays),
-              total_ot_hours: round(line.otHours),
+              total_duties: round(workingDays + otDuties),
+              total_ot_hours: round(otHours),
               remarks: "",
               sg_rate: rate.billRate,
-              worked_days: round(line.workingDays + line.otDays),
+              worked_days: round(workingDays + otDuties),
+
               service_start_date: `${String(period.start).slice(8, 10)}-${String(period.start).slice(5, 7)}-${String(period.start).slice(0, 4)}`,
               service_end_date: `${String(period.end).slice(8, 10)}-${String(period.end).slice(5, 7)}-${String(period.end).slice(0, 4)}`,
               basic_billing_claimed: round(totalBilling),

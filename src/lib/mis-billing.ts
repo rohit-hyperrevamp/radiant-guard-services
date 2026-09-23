@@ -93,19 +93,32 @@ export function misBillingLine({
   otDays,
   total,
   intraState,
+  maxWorkingDays,
 }: {
   perDay: number;
   billedDays: number;
   otDays: number;
   total: number;
   intraState: boolean;
+  /**
+   * Billing divisor for the period (e.g. 27). A month can never bill more
+   * regular duties than the contract's divisor — anything beyond it is Extra
+   * Duty, billed at the same per-duty rate, so the total never changes.
+   */
+  maxWorkingDays?: number | null;
 }): MisBillingLine {
-  const ot = Math.max(0, r2(otDays));
-  const workingDays = Math.max(0, r2(billedDays - ot));
+  let ot = Math.max(0, r2(otDays));
+  let workingDays = Math.max(0, r2(billedDays - ot));
+  const cap = maxWorkingDays == null ? null : Math.max(0, r2(maxWorkingDays));
+  if (cap != null && cap > 0 && workingDays > cap) {
+    ot = r2(ot + (workingDays - cap));
+    workingDays = cap;
+  }
   const otBilling = r2(perDay * ot);
   const totalBilling = r2(total);
   const regularBilling = r2(totalBilling - otBilling);
   const tax = taxSplit(totalBilling, intraState);
+
   return {
     perDay: r2(perDay),
     workingDays,

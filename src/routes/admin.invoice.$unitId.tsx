@@ -1186,7 +1186,9 @@ function PayrollUnitPage() {
         otDays: r.totals.otDays ?? 0,
         total: m.actual,
         intraState: isIntraState,
+        maxWorkingDays: m.billingDays,
       });
+
       const otDays = line.otDays;
       const workingDays = line.workingDays;
       const otHours = otDays;
@@ -1226,7 +1228,7 @@ function PayrollUnitPage() {
           ot_amount: otAmount,
           working_days_billing_with_ot: r2(regular + otBilling),
           total_regular_billing: regular,
-          ot_billing: r2(otBilling + otAmount),
+          ot_billing: otBilling,
           total_billing: totalBilling,
           cgst,
           sgst,
