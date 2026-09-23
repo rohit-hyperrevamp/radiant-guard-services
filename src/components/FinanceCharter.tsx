@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
 import { CharterTile, CharterTileGrid } from "@/components/CharterTiles";
 import { CharterPagination } from "@/components/CharterPagination";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
