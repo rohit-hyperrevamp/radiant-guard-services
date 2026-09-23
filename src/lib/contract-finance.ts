@@ -173,6 +173,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
               ? Math.max(0, (monthlyPayroll - monthlyDeductions) / committed)
               : rates[0].netRate,
           billRate: committed > 0 ? monthlyContracted / committed : rates[0].billRate,
+          payrollDayBase: rates[0].payrollDayBase,
+          billingDayBase: rates[0].billingDayBase,
         }
       : null;
 
