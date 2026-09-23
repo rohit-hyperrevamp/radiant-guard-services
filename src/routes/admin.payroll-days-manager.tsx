@@ -886,7 +886,10 @@ function PayrollDayBaseFormDialog({
                 name,
                 code,
                 method,
-                fixedDays: method === "fixed_days" ? Number(fixedDays) || 0 : null,
+                fixedDays:
+                  method === "fixed_days" || method === "actual_minus_days"
+                    ? Number(fixedDays) || 0
+                    : null,
                 weeklyOffDay:
                   method === "actual_minus_weekly_off" ? Number(weeklyOffDay) : null,
                 includedWeekdays: method === "custom_weekdays" ? includedWeekdays : null,
