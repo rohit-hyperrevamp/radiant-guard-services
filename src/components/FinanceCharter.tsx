@@ -1209,64 +1209,28 @@ export function FinanceCharter({
                     search={{ start: r.period.start, end: r.period.end }}
                     className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
                   >
-                    {mode === "invoice" && <Dial value={r.realisationPct} />}
                     <div className="min-w-0 flex-1">
-                      <div className="min-w-0">
-                        <span className="block truncate text-sm font-semibold group-hover:text-primary">
-                          {r.unit.name || r.unit.code}
+                      <span className="block truncate text-sm font-semibold group-hover:text-primary">
+                        {r.unit.name || r.unit.code}
+                      </span>
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
+                        <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+                          {r.actual}/{r.committed} deployed
                         </span>
-                        <div className="scrollbar-hide mt-1 flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible sm:pb-0">
-                           {mode === "invoice" && (
-                             <span className="hidden shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:inline-flex sm:uppercase">
-                               {r.actual}/{r.committed} deployed
-                             </span>
-                           )}
-                          <AttendanceStatusBadge status={r.status.attendance} />
-                          <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
-                          {mode === "invoice" && r.finalInvoice && (
-                            <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
-                              {r.finalInvoice.invoice_no}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="truncate text-[11px] text-muted-foreground sm:text-xs">
-                        {r.unit.customer_name} · {r.contractCode}
-                      </div>
-
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
-                        {mode === "invoice" ? (
-                          <>
-                            <span className="whitespace-nowrap">Inv {fmtMoneyCompact(r.invoiceAmount)}</span>
-                            <span>·</span>
-                            <span className="whitespace-nowrap">Pay {fmtMoneyCompact(r.payrollAmount)}</span>
-                            <span>·</span>
-                            <span className="whitespace-nowrap">{r.marginPct}% margin</span>
-                          </>
-                        ) : (
-                            <span className="whitespace-nowrap">Payroll to date {fmtMoneyCompact(r.payrollAmount)}</span>
+                        {r.unit.customer_code && (
+                          <span className="shrink-0 font-medium tabular-nums">{r.unit.customer_code}</span>
                         )}
+                        <span className="truncate tabular-nums">{r.contractCode}</span>
                       </div>
                     </div>
 
-                    <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
-                      {mode === "invoice" && (
-                        <>
-                          <div className="text-right">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Contracted</div>
-                            <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.monthlyContracted)}</div>
-                          </div>
-                          <div className="text-right">
-                             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice to date</div>
-                            <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.invoiceAmount)}</div>
-                          </div>
-                        </>
+                    <div className="flex shrink-0 items-center gap-1.5 pr-1">
+                      {r.finalInvoice && (
+                        <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
+                          {r.finalInvoice.invoice_no}
+                        </span>
                       )}
-                      <div className="text-right">
-                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Payroll to date</div>
-                        <div className="whitespace-nowrap font-semibold">{fmtMoneyCompact(r.payrollAmount)}</div>
-                      </div>
-                      {mode === "invoice" && <MarginChip value={r.marginPct} />}
+                      <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                     </div>
                   </Link>
 
