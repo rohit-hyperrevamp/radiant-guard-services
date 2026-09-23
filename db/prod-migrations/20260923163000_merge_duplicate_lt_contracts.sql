@@ -68,7 +68,11 @@ SET unit_id = p.new_unit
 FROM pair_map p
 WHERE v.unit_id = p.old_unit;
 
--- 4. Attendance entries.
+-- 4. Attendance entries. Historic reliever rows carry present codes, so the
+-- reliever/present-day guards are suspended while rows are relocated unchanged.
+ALTER TABLE attendance_entries DISABLE TRIGGER attendance_entries_reliever_ed_only;
+ALTER TABLE attendance_entries DISABLE TRIGGER enforce_contract_present_day_limit_trigger;
+
 UPDATE attendance_entries e
 SET unit_id = p.new_unit
 FROM pair_map p
@@ -79,6 +83,9 @@ WHERE e.unit_id = p.old_unit
       AND t.candidate_id = e.candidate_id
       AND t.entry_date = e.entry_date
       AND t.designation_id IS NOT DISTINCT FROM e.designation_id);
+
+ALTER TABLE attendance_entries ENABLE TRIGGER attendance_entries_reliever_ed_only;
+ALTER TABLE attendance_entries ENABLE TRIGGER enforce_contract_present_day_limit_trigger;
 
 -- 5. Payroll runs (skip windows already present on the surviving site).
 UPDATE payroll_runs r
