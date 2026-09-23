@@ -4407,8 +4407,13 @@ function ResourcesSection({
                         </span>
                       )}
                     </div>
-                    <div className="mt-1.5 text-xs font-semibold text-foreground">
-                      Gross: {gross.toFixed(2)}
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs font-semibold text-foreground">
+                      <span>Gross: {gross.toFixed(2)}</span>
+                      {dayRates[idx]?.perDay != null && (
+                        <span className="text-accent">
+                          Billing/day: {fmtRate(dayRates[idx].perDay!)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
