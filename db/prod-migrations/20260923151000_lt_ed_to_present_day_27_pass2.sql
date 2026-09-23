@@ -61,6 +61,8 @@ day_pick as (
   left join attendance_codes ac on ac.code = ae.code
   where coalesce(ac.counts_as_present, false) = false
     and coalesce(ac.is_paid, false) = false
+    and coalesce(ae.ot_hours, 0) = 0
+    and ae.id not in (select ed_id from ed_pick)
   order by e.unit_id, e.candidate_id, e.designation_id,
            case when ae.code = 'A' then 0 when coalesce(ae.code,'') = '' then 1 else 2 end,
            ae.entry_date
