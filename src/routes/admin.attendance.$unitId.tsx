@@ -1434,7 +1434,7 @@ function MusterRollPage() {
       let query = supabase
         .from("candidates")
         .select(
-          "id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date",
+          "id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date, role_key, non_billable",
         )
         .eq("is_enabled", true)
         .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES])
