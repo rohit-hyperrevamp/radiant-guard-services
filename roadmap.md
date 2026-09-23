@@ -480,3 +480,5 @@
 
 - Merged Jaya Nagar stub employees: "4678048629" Shiroppa -> 48629 Shivappa Bhajantri, "EMP-105" chandro Bahadur -> 46780 Chandra Bahadur Thapa (db/prod-migrations/20260923110500_merge_jaya_nagar_stub_employees.sql).
 - [x] Created L&T Karnataka sites CLI4504 Mudhol, CLI4505 Naragund, CLI4506 Ramdurg with contracts CON16191-16193 cloned from CLI4500 (Karnataka 12h structure)
+
+- [x] Added "Days Minus Four" payroll/billing day basis (actual period days − 4) and applied it to all 199 active L&T contract resources; MIS "OT Rate" now labelled per day.
