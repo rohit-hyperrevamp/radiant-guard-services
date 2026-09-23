@@ -4316,8 +4316,6 @@ function ResourcesSection({
       return b.calendarDays - a.calendarDays;
     });
   }, [currentCalendarDays]);
-  const currentBillingDays = billingRateScenarios[0]?.billingDays ?? 27;
-
   const fmtRate = (n: number) =>
     `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -4385,10 +4383,6 @@ function ResourcesSection({
             </div>
           </div>
           {resources.map((r, idx) => {
-            const gross = r.components.reduce(
-              (s, c) => s + (Number(c.amount) || 0),
-              0,
-            );
             const dn = dById.get(r.designationId);
             const sn = sById.get(r.serviceTypeId);
             const rn = r.roleKey ? roleByKey.get(r.roleKey) : null;
@@ -4435,13 +4429,10 @@ function ResourcesSection({
                         </span>
                       )}
                     </div>
-                    <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs font-semibold text-foreground">
-                      <span>Gross: {gross.toFixed(2)}</span>
-                      {dayRates[idx] && (
-                        <span className="text-accent">
-                          Billing/day: {fmtRate(dayRates[idx].monthly / currentBillingDays)}
-                        </span>
-                      )}
+                    <div className="mt-1.5 text-xs font-semibold text-foreground">
+                      <span>
+                        Billing: {fmtRate(dayRates[idx]?.monthly ?? 0)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
