@@ -6785,6 +6785,26 @@ function CandidateWizard({
         unit_designations:
           rest.unit_id && rest.designation_id ? { [rest.unit_id]: rest.designation_id } : {},
       });
+      // The list row can be a cached snapshot. Re-read the saved record so a
+      // stale copy (e.g. an old role) is never written back on save.
+      (async () => {
+        const { data: fresh } = await supabase
+          .from("candidates" as never)
+          .select("*")
+          .eq("id", editing.id)
+          .maybeSingle();
+        if (!fresh) return;
+        const f0 = fresh as Record<string, unknown>;
+        setForm((f) => {
+          const next = { ...f } as Record<string, unknown>;
+          for (const k of Object.keys(f0)) {
+            if (k === "id" || k === "unit_id" || k === "contacts") continue;
+            if (k in next || f0[k] !== null) next[k] = f0[k];
+          }
+          next.status = f0.status === "approved" ? "active" : f0.status;
+          return next as unknown as CandidateForm;
+        });
+      })();
       // Load full multi-unit assignment from junction table.
       (async () => {
         const { data, error } = await supabase
