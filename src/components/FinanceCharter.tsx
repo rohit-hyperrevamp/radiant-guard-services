@@ -791,6 +791,7 @@ export function FinanceCharter({
         const intraState = normalizeState(unitRow.billing_state) === normalizeState(supplierBranch?.stateName);
         const period = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const periodDays = period.totalDays || 1;
+        const periodDates = periodDateList(period.start, period.end);
         const [py, pm, pd] = period.end.split("-");
         const invoiceDate = `${pd}-${pm}-${py}`;
         // Finalised invoices carry their allocated number; anything not yet
