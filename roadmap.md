@@ -482,3 +482,5 @@
 - [x] Created L&T Karnataka sites CLI4504 Mudhol, CLI4505 Naragund, CLI4506 Ramdurg with contracts CON16191-16193 cloned from CLI4500 (Karnataka 12h structure)
 
 - [x] Added "Days Minus Four" payroll/billing day basis (actual period days − 4) and applied it to all 199 active L&T contract resources; MIS "OT Rate" now labelled per day.
+
+- L&T 26->27 present days: absorbed one extra-duty day into attendance for all 21-20 window L&T sites (Aug 21 - Sep 20 2026). Migrations 20260923150000 / 151000 / 152000. 46 people now at 27; 1 reliever skipped (relievers cannot hold present codes).
