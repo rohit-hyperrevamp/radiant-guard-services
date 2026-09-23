@@ -827,7 +827,13 @@ export function FinanceCharter({
             otDays: line.otDays,
             total: perDay * billedDays,
             intraState,
+            // Regular duties can never exceed the contract's billing days; the
+            // surplus is Extra Duty at the same rate.
+            maxWorkingDays: resolveBillingDivisor(rate, periodDates),
           });
+          const workingDays = misLine.workingDays;
+          const otDuties = misLine.otDays;
+          const otHours = otDuties * (rate.shiftHours || 8);
           const otRate = misLine.otRate;
           const otAmount = misLine.otAmount;
           const regular = misLine.regularBilling;
@@ -836,6 +842,7 @@ export function FinanceCharter({
           const lineTax = { total: misLine.gstTotal };
           const { cgst, sgst, igst } = misLine;
           const round = (value: number) => Math.round(value * 100) / 100;
+
           const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
           const incrementCutoff = new Date(period.start);
           incrementCutoff.setFullYear(incrementCutoff.getFullYear() - 1);
