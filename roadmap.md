@@ -484,3 +484,5 @@
 - [x] Added "Days Minus Four" payroll/billing day basis (actual period days − 4) and applied it to all 199 active L&T contract resources; MIS "OT Rate" now labelled per day.
 
 - L&T 26->27 present days: absorbed one extra-duty day into attendance for all 21-20 window L&T sites (Aug 21 - Sep 20 2026). Migrations 20260923150000 / 151000 / 152000. 46 people now at 27; 1 reliever skipped (relievers cannot hold present codes).
+
+- Merged duplicate L&T contracts (CON14918→16000, 14898→15978, 14915→15993, 14910→15989, 14907→15986, 14906→15985): postings, attendance, sheets and payroll runs moved to survivors; old contracts expired 2026-09-23 (db/prod-migrations/20260923163000_merge_duplicate_lt_contracts.sql).
