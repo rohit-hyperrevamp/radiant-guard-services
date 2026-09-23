@@ -700,9 +700,27 @@ function PayrollDayBaseFormDialog({
                 <SelectItem value="fixed_annual_average">Fixed annual average (30.4166 days)</SelectItem>
                 <SelectItem value="actual_minus_weekly_off">Actual days minus a weekly off</SelectItem>
                 <SelectItem value="custom_weekdays">Custom — pick weekdays</SelectItem>
+                <SelectItem value="actual_minus_days">Actual days minus a fixed count (e.g. Days Minus Four)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {method === "actual_minus_days" && (
+            <div className="grid gap-2">
+              <Label>Days to subtract *</Label>
+              <Input
+                type="number"
+                min={1}
+                max={15}
+                value={fixedDays}
+                onChange={(e) => setFixedDays(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Actual days of the period minus this number — 4 gives 27 / 26 / 25 / 24 for a
+                31 / 30 / 29 / 28-day period.
+              </p>
+            </div>
+          )}
 
           {method === "fixed_days" && (
             <div className="grid gap-2">
