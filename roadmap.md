@@ -479,3 +479,4 @@
 - 31 attendance rows at CLI4317 (Nokha) moved from 47068 (Inder Singh) to 48001 (Anil); Anil posted primary at CLI4317; Inder Singh restored primary at CLI4326 (Neem Ka Thana). Migration 20260923100000.
 
 - Merged Jaya Nagar stub employees: "4678048629" Shiroppa -> 48629 Shivappa Bhajantri, "EMP-105" chandro Bahadur -> 46780 Chandra Bahadur Thapa (db/prod-migrations/20260923110500_merge_jaya_nagar_stub_employees.sql).
+- [x] Created L&T Karnataka sites CLI4504 Mudhol, CLI4505 Naragund, CLI4506 Ramdurg with contracts CON16191-16193 cloned from CLI4500 (Karnataka 12h structure)
