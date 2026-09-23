@@ -558,8 +558,8 @@ function MisManagerPage() {
 
           {misApplicable && (
           <div className="rounded-xl border">
-            <div className="max-h-[45vh] overflow-y-auto">
-              <table className="w-full text-sm">
+            <div className="max-h-[45vh] overflow-auto">
+              <table className="w-full min-w-[34rem] text-sm">
                 <thead className="sticky top-0 border-b bg-muted/40 text-left">
                   <tr>
                     <th className="px-3 py-2 font-medium">Include</th>
