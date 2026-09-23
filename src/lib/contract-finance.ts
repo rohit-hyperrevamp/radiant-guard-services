@@ -19,6 +19,9 @@ export type ResourceRate = {
   designationName: string;
   quantity: number;
   shiftHours: number;
+  /** Divisor rules that turn the monthly value into the invoice's per-duty rate. */
+  payrollDayBase: PayrollDayBaseLike | null;
+  billingDayBase: PayrollDayBaseLike | null;
   /** Monthly gross = sum of the wage components. Never a stored scalar. */
   grossRate: number;
   /** Contract-level statutory / recurring employee deductions per month. */
