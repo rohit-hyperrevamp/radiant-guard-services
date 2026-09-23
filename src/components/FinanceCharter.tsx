@@ -1045,6 +1045,21 @@ export function FinanceCharter({
             </SelectContent>
           </Select>
         )}
+        <MultiSelectFilter
+          selected={stateFilter}
+          onChange={(v) => {
+            setStateFilter(v);
+            setCityFilter([]);
+          }}
+          options={stateOptions}
+          allLabel="All states"
+        />
+        <MultiSelectFilter
+          selected={cityFilter}
+          onChange={setCityFilter}
+          options={cityOptions}
+          allLabel="All cities"
+        />
         <div className="hidden flex-1 sm:block" />
         <div className="col-span-2 flex items-center gap-1.5 overflow-x-auto sm:contents">
         {mode === "invoice" && (
