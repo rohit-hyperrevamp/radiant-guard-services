@@ -999,6 +999,21 @@ function DashboardPage() {
     );
   }
 
+  if (showTransportDashboard) {
+    return (
+      <div className="px-0 py-1 sm:p-6">
+        <DashboardShell>
+          <PageHeader
+            title="Fleet & Assets"
+            description="Vehicles and assets in one view — fleet strength, running spend, compliance renewals, asset value and loans."
+            crumbs={[{ label: "Dashboard" }]}
+          />
+          <TransportFleetAssetsTiles />
+        </DashboardShell>
+      </div>
+    );
+  }
+
   if (showInventoryDashboard) {
     return (
       <div className="px-0 py-1 sm:p-6">
