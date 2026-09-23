@@ -1120,8 +1120,9 @@ export function FinanceCharter({
                     <div className="truncate text-sm font-semibold group-hover:text-primary">
                       {r.unit.name || r.unit.code}
                     </div>
-                    <div className="mt-1 truncate text-xs text-muted-foreground">
-                      {r.contractCode}
+                    <div className="mt-1 flex min-w-0 items-center gap-2 truncate text-xs tabular-nums text-muted-foreground">
+                      {r.unit.customer_code && <span className="shrink-0 font-medium">{r.unit.customer_code}</span>}
+                      <span className="truncate">{r.contractCode}</span>
                     </div>
                   </div>
                   <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
