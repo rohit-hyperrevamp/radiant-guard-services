@@ -159,6 +159,31 @@ export function FinanceCharter({
   // presses "Generate final invoice".
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [finalOpen, setFinalOpen] = useState(false);
+  // Invoices are raised one state at a time, so the charter can be narrowed by
+  // billing state and city exactly like Contracts.
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
+
+  const stateOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const u of units) {
+      const label = (u.billing_state ?? "").trim();
+      if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
+  }, [units]);
+
+  const cityOptions = useMemo(() => {
+    const selectedStates = new Set(stateFilter.map((s) => s.toLowerCase()));
+    const seen = new Map<string, string>();
+    for (const u of units) {
+      const state = (u.billing_state ?? "").trim();
+      if (selectedStates.size && !selectedStates.has(state.toLowerCase())) continue;
+      const label = (u.billing_city ?? "").trim();
+      if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
+  }, [units, stateFilter]);
 
 
   // Search, then paginate, then load money for the visible page only. Contract
