@@ -84,6 +84,7 @@ function buildPageData(rows: CharterUnitRow[]): CharterPageData {
   const units = rows.map((u) => ({
     ...u,
     location: u.location || "",
+    billing_city: u.billing_city ?? null,
     customer_id: u.customer_id || "",
     customer_name: u.customer_name || "—",
     customer_code: u.customer_code || "",
