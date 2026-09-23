@@ -17,7 +17,6 @@ update contract_resources r
        updated_at = now()
   from client_contracts c
   join units u on u.id = c.unit_id
-  left join designations d on d.id = r.designation_id
  where c.id = r.contract_id
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Gujarat'
@@ -33,7 +32,6 @@ update contract_resources r
        updated_at = now()
   from client_contracts c
   join units u on u.id = c.unit_id
-  left join designations d on d.id = r.designation_id
  where c.id = r.contract_id
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Rajasthan'
@@ -49,7 +47,6 @@ update contract_resources r
        updated_at = now()
   from client_contracts c
   join units u on u.id = c.unit_id
-  left join designations d on d.id = r.designation_id
  where c.id = r.contract_id
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Telangana'
@@ -65,7 +62,6 @@ update contract_resources r
        updated_at = now()
   from client_contracts c
   join units u on u.id = c.unit_id
-  left join designations d on d.id = r.designation_id
  where c.id = r.contract_id
    and u.customer_id = '77ddd7f3-bd79-4453-b0d7-f7e533687353'
    and u.billing_state = 'Karnataka'
