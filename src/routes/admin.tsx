@@ -281,28 +281,6 @@ function AdminLayout() {
     { prefix: "/admin/migration-utility", module: "control_center" },
     { prefix: "/admin/org-settings", module: "control_center" },
   ];
-  const firstAllowedPath = () => {
-    const order = [
-      "organizations","contracts","employees","vehicles","assets","inventory","attendance",
-      "payroll","invoice","control_center","notification_center","rbac",
-    ];
-    const pathFor: Record<string, string> = {
-      organizations: "/admin/customers",
-      contracts: "/admin/contracts/client-contracts",
-      employees: "/admin/employees",
-      vehicles: "/admin/vehicles/inventory",
-      assets: "/admin/assets/inventory",
-      inventory: "/admin/inventory",
-      attendance: "/admin/attendance",
-      payroll: "/admin/payroll",
-      invoice: "/admin/invoice",
-      control_center: "/admin/control-center",
-      notification_center: "/admin/notifications",
-      rbac: "/admin/rbac",
-    };
-    for (const m of order) if (can(m)) return pathFor[m];
-    return null;
-  };
   useEffect(() => {
     if (!isReady || permsLoading || !user) return;
     // Re-read the verified login snapshot at effect execution time. An effect
