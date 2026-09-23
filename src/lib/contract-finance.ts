@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
