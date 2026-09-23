@@ -90,6 +90,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { fetchAllPages } from "@/lib/supabase-batch";
+import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
@@ -4104,6 +4105,7 @@ function ContractFormDialog({
           <div className={stepKey === "resources" ? "block" : "hidden"}>
           <ResourcesSection
             resources={resources}
+            payrollWindow={selectedWindow}
             onAdd={() =>
               setResourceDialog({ open: true, index: null, initial: null })
             }
@@ -4251,12 +4253,14 @@ function DecimalAmountInput({
 
 function ResourcesSection({
   resources,
+  payrollWindow,
   onAdd,
   onEdit,
   onCopy,
   onDelete,
 }: {
   resources: ContractResource[];
+  payrollWindow?: PayrollWindow;
   onAdd: () => void;
   onEdit: (idx: number) => void;
   onCopy: (idx: number) => void;
@@ -4279,7 +4283,7 @@ function ResourcesSection({
   );
 
   /** Monthly client billing (wages + employer cost lines) and the four
-   *  calendar-month billing rates: 31/30/29/28 days use 27/26/25/24 duties. */
+   *  payroll-period billing rates: 31/30/29/28 days use 27/26/25/24 duties. */
   const dayRates = useMemo(
     () =>
       resources.map((r) => {
@@ -4298,11 +4302,21 @@ function ResourcesSection({
     [resources, dById],
   );
 
-  const currentCalendarDays = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth() + 1,
-    0,
-  ).getDate();
+  const currentPayrollPeriod = useMemo(() => {
+    const now = new Date();
+    return payrollPeriodForMonth(
+      now.getFullYear(),
+      now.getMonth(),
+      payrollWindow
+        ? {
+            windowStartDay: payrollWindow.windowStartDay,
+            windowEndDay: payrollWindow.windowEndDay,
+          }
+        : null,
+      now,
+    );
+  }, [payrollWindow]);
+  const currentPayrollPeriodDays = currentPayrollPeriod.totalDays;
   const billingRateScenarios = useMemo(() => {
     const scenarios = [
       { calendarDays: 31, billingDays: 27 },
@@ -4311,11 +4325,11 @@ function ResourcesSection({
       { calendarDays: 28, billingDays: 24 },
     ];
     return scenarios.sort((a, b) => {
-      if (a.calendarDays === currentCalendarDays) return -1;
-      if (b.calendarDays === currentCalendarDays) return 1;
+      if (a.calendarDays === currentPayrollPeriodDays) return -1;
+      if (b.calendarDays === currentPayrollPeriodDays) return 1;
       return b.calendarDays - a.calendarDays;
     });
-  }, [currentCalendarDays]);
+  }, [currentPayrollPeriodDays]);
   const fmtRate = (n: number) =>
     `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -4353,7 +4367,7 @@ function ResourcesSection({
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                     {billingRateScenarios.map((scenario) => {
-                      const isCurrent = scenario.calendarDays === currentCalendarDays;
+                      const isCurrent = scenario.calendarDays === currentPayrollPeriodDays;
                       return (
                         <div
                           key={scenario.billingDays}
@@ -4365,7 +4379,7 @@ function ResourcesSection({
                           )}
                         >
                           <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
-                            <span>{scenario.calendarDays}-day month</span>
+                            <span>{scenario.calendarDays}-day payroll period</span>
                             {isCurrent ? <span className="font-medium text-accent">Current</span> : null}
                           </div>
                           <div className="mt-0.5 text-sm font-semibold text-foreground">

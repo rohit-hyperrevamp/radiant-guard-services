@@ -33,6 +33,7 @@
 - [x] Show final Billing instead of Gross and remove duplicate Billing/day from resource cards.
 - [x] Show 27-, 26-, 25-, and 24-day billing rates together for every contract resource.
 - [x] Put the rate matching the current calendar month first (31→27, 30→26, 29→25, 28→24).
+- [x] Determine the highlighted daily rate from each contract's actual payroll window, including 21 Aug–20 Sep as 31 days.
 - [x] Match Employees summary tiles to the shared dashboard theme.
 - [x] Make Employees open faster with an instant cached list, progressive paging, retries, and deferred inventory loading.
 - [x] Fix field officer unit visibility dynamically on dashboard and candidate posting.
