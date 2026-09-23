@@ -137,31 +137,50 @@ export function OperationsDeployments() {
 
   const switchMut = useMutation({
     mutationFn: async ({ units, foId }: { units: UnitRow[]; foId: string }) => {
-      for (const unit of units) {
-        const previous = dir?.foByUnit.get(unit.id) ?? [];
-        if (previous.length) {
-          const { error } = await supabase
-            .from("candidate_units")
-            .delete()
-            .eq("unit_id", unit.id)
-            .in("candidate_id", previous);
-          if (error) throw error;
-        }
-        const { error: insErr } = await supabase
+      const unitIds = units.map((u) => u.id);
+      const previousByUnit = new Map(unitIds.map((id) => [id, dir?.foByUnit.get(id) ?? []]));
+      const previousIds = Array.from(new Set(Array.from(previousByUnit.values()).flat()));
+
+      // One delete + one insert for the whole selection instead of per-site round trips.
+      if (previousIds.length) {
+        const { error } = await supabase
           .from("candidate_units")
-          .insert({ candidate_id: foId, unit_id: unit.id, is_primary: false, is_reliever: false });
-        if (insErr && !String(insErr.message).includes("duplicate")) throw insErr;
-        await logActivity({
-          module: MODULE,
-          action: "update",
-          entityType: "unit",
-          entityId: unit.id,
-          entityLabel: unitLabel(unit),
-          details: { from: previous.map(foName), to: foName(foId) },
-        });
+          .delete()
+          .in("unit_id", unitIds)
+          .in("candidate_id", previousIds);
+        if (error) throw error;
       }
+      const { error: insErr } = await supabase.from("candidate_units").insert(
+        unitIds.map((unit_id) => ({
+          candidate_id: foId,
+          unit_id,
+          is_primary: false,
+          is_reliever: false,
+        })),
+      );
+      if (insErr && !String(insErr.message).includes("duplicate")) throw insErr;
+
+      // Audit trail is fire-and-forget: it must never hold up the UI.
+      void logActivity({
+        module: MODULE,
+        action: "update",
+        entityType: "unit",
+        entityId: unitIds[0] ?? "",
+        entityLabel:
+          units.length === 1 ? unitLabel(units[0]) : `${units.length} client sites`,
+        details: {
+          to: foName(foId),
+          sites: units.map((u) => ({
+            id: u.id,
+            label: unitLabel(u),
+            from: (previousByUnit.get(u.id) ?? []).map(foName),
+          })),
+        },
+      });
+
+      return { unitIds, foId, previousByUnit };
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: (res, vars) => {
       toast.success(
         vars.units.length > 1
           ? `Field officer assigned to ${vars.units.length} sites`
@@ -169,10 +188,25 @@ export function OperationsDeployments() {
       );
       setSwitchUnits(null);
       setSelected(new Set());
-      void qc.invalidateQueries({ queryKey: ["ops-deployments"] });
+      // Patch the cached directory in place — a full reload here was the slow part.
+      qc.setQueryData<Directory>(["ops-deployments"], (prev) => {
+        if (!prev) return prev;
+        const foByUnit = new Map(prev.foByUnit);
+        const unitsByFo = new Map(prev.unitsByFo);
+        for (const unitId of res.unitIds) {
+          for (const oldFo of foByUnit.get(unitId) ?? []) {
+            unitsByFo.set(oldFo, (unitsByFo.get(oldFo) ?? []).filter((u) => u !== unitId));
+          }
+          foByUnit.set(unitId, [res.foId]);
+          const own = unitsByFo.get(res.foId) ?? [];
+          if (!own.includes(unitId)) unitsByFo.set(res.foId, [...own, unitId]);
+        }
+        return { ...prev, foByUnit, unitsByFo };
+      });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not reassign"),
   });
+
 
   const toggleSelected = (id: string) =>
     setSelected((prev) => {
