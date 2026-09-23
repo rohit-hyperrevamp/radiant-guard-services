@@ -1434,7 +1434,7 @@ function MusterRollPage() {
       let query = supabase
         .from("candidates")
         .select(
-          "id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date",
+          "id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date, role_key, non_billable",
         )
         .eq("is_enabled", true)
         .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES])
@@ -1444,7 +1444,15 @@ function MusterRollPage() {
       if (allowedIds) query = query.in("id", allowedIds);
       const { data, error } = await query.order("full_name").limit(30);
       if (error) throw error;
-      const rows = data ?? [];
+      // Non-billable staff (field officers, branch managers, HR…) never belong on a
+      // client muster roll — mapping them here silently produces an empty roster.
+      const rows = (data ?? []).filter((r) => {
+        if (unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1") return true;
+        const roleKey = ((r as { role_key?: string | null }).role_key || "").toLowerCase();
+        return (
+          !isNonBillableRoleKey(roleKey) && (r as { non_billable?: boolean }).non_billable !== true
+        );
+      });
       const desigIds = Array.from(
         new Set(rows.map((r) => r.designation_id).filter(Boolean)),
       ) as string[];
@@ -1474,12 +1482,31 @@ function MusterRollPage() {
     if (!mapSlot) return;
     setMapSaving(true);
     try {
-      const { error } = await supabase
+      // A guard holds exactly ONE primary posting. If he has no primary unit yet,
+      // filling a contracted slot here deploys him properly (full attendance).
+      // If he is already posted elsewhere, he can only stand in as a reliever (ED).
+      const { data: existingLinks, error: linkError } = await supabase
         .from("candidate_units")
-        .upsert(
-          { candidate_id: cand.id, unit_id: unitId, is_reliever: true },
-          { onConflict: "candidate_id,unit_id" },
-        );
+        .select("unit_id, is_primary, is_reliever")
+        .eq("candidate_id", cand.id);
+      if (linkError) throw linkError;
+      const hasPrimaryElsewhere = ((existingLinks ?? []) as Array<{
+        unit_id: string;
+        is_primary?: boolean | null;
+        is_reliever?: boolean | null;
+      }>).some((l) => l.unit_id !== unitId && l.is_primary === true && l.is_reliever !== true);
+      const asReliever = hasPrimaryElsewhere;
+
+      const { error } = await supabase.from("candidate_units").upsert(
+        {
+          candidate_id: cand.id,
+          unit_id: unitId,
+          is_reliever: asReliever,
+          is_primary: !asReliever,
+          designation_id: mapSlot.designationId ?? cand.designation_id ?? null,
+        },
+        { onConflict: "candidate_id,unit_id" },
+      );
       if (error) throw error;
 
       // If the slot's designation differs from the employee's own, surface the
@@ -1500,7 +1527,9 @@ function MusterRollPage() {
         entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
       toast.success(
-        `${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`,
+        asReliever
+          ? `${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`
+          : `${cand.full_name} deployed on ${mapSlot.designationName}`,
       );
       setMapSlot(null);
       setMapQuery("");
