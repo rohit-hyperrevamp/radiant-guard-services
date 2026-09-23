@@ -30,6 +30,7 @@ import {
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
+import { misBillingLine } from "@/lib/mis-billing";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1177,20 +1178,24 @@ function PayrollUnitPage() {
     const billable = rows.filter((r) => r.wages && r.resource);
     const sourceRows = billable.map((r, i) => {
       const m = invoiceMathFor(r);
-      const otDays = Math.round((r.totals.otDays ?? 0) * 100) / 100;
-      const workingDays = Math.round(Math.max(0, (m.billedDays ?? 0) - otDays) * 100) / 100;
-      const otHours = Math.round((r.totals.otHours ?? 0) * 100) / 100;
-      // The client MIS always derives the OT rate from an 8-hour day, regardless
-      // of the contracted shift length.
-      const otRate = r2(m.perDay / 8);
-      const otAmount = r2(otRate * otHours);
-      const regular = r2(m.perDay * workingDays);
-      const otBilling = r2(m.perDay * otDays);
-      const totalBilling = r2(regular + otBilling + otAmount);
-      // The MIS always shows both state-tax components and their combined GST.
-      // Grand Total adds GST once: CGST + SGST, which equals IGST.
-      const lineTax = taxSplit(totalBilling, isIntraState);
-      const { cgst, sgst, igst } = lineTax;
+      // Everything below comes straight from the invoice: the per-duty rate the
+      // invoice bills, and Extra Duty at that very same rate.
+      const line = misBillingLine({
+        perDay: m.perDay,
+        billedDays: m.billedDays ?? 0,
+        otDays: r.totals.otDays ?? 0,
+        total: m.actual,
+        intraState: isIntraState,
+      });
+      const otDays = line.otDays;
+      const workingDays = line.workingDays;
+      const otHours = otDays;
+      const otRate = line.otRate;
+      const otAmount = line.otAmount;
+      const regular = line.regularBilling;
+      const otBilling = line.otBilling;
+      const totalBilling = line.totalBilling;
+      const { cgst, sgst, igst } = line;
       // Annexure sheets split duties between staff on the starting rate and
       // staff who have completed a year of service (incremented rate).
       const joined = String(r.joiningDate ?? "").slice(0, 10);
@@ -1226,7 +1231,7 @@ function PayrollUnitPage() {
           cgst,
           sgst,
           igst,
-          grand_total: r2(totalBilling + lineTax.total),
+          grand_total: r2(totalBilling + line.gstTotal),
           // Billing-annexure fields (site-summary formats)
           cli_id: unit?.code ?? "",
           vendor_name: entity,
@@ -1243,8 +1248,8 @@ function PayrollUnitPage() {
           regular_ot_hours: hasIncrement ? 0 : otHours,
           increment_ot_hours: hasIncrement ? otHours : 0,
           service_charge_claimed: totalBilling,
-          gst_18: lineTax.total,
-          invoice_value: r2(totalBilling + lineTax.total),
+          gst_18: line.gstTotal,
+          invoice_value: r2(totalBilling + line.gstTotal),
           total_duties: r2(workingDays + otDays),
           total_ot_hours: otHours,
           remarks: "",

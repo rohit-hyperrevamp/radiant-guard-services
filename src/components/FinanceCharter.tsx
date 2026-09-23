@@ -27,8 +27,9 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues, type MisSourceRow } from "@/lib/mis-template";
+import { billingRatePerDay, misBillingLine, periodDateList } from "@/lib/mis-billing";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
-import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch, taxSplit } from "@/lib/gst-billing";
+import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -791,6 +792,7 @@ export function FinanceCharter({
         const intraState = normalizeState(unitRow.billing_state) === normalizeState(supplierBranch?.stateName);
         const period = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const periodDays = period.totalDays || 1;
+        const periodDates = periodDateList(period.start, period.end);
         const [py, pm, pd] = period.end.split("-");
         const invoiceDate = `${pd}-${pm}-${py}`;
         // Finalised invoices carry their allocated number; anything not yet
@@ -809,14 +811,25 @@ export function FinanceCharter({
           const rate = rateFor(finance, line.designationId);
           if (!rate) continue;
           const candidate = candidateById.get(line.candidateId);
-          const perDay = rate.billRate / periodDays;
-          const otRate = perDay / 8;
-          const otAmount = otRate * line.otHours;
-          const regular = perDay * line.workingDays;
-          const otBilling = perDay * line.otDays;
-          const totalBilling = regular + otBilling + otAmount;
-          const lineTax = taxSplit(totalBilling, intraState);
-          const { cgst, sgst, igst } = lineTax;
+          // The MIS rate is the invoice rate: monthly billing divided by the
+          // contract's billing-days rule (e.g. ÷27), never by the calendar days
+          // in the cycle. Extra Duty bills at the same per-duty rate.
+          const perDay = billingRatePerDay(rate.billRate, rate, periodDates);
+          const billedDays = line.workingDays + line.otDays;
+          const misLine = misBillingLine({
+            perDay,
+            billedDays,
+            otDays: line.otDays,
+            total: perDay * billedDays,
+            intraState,
+          });
+          const otRate = misLine.otRate;
+          const otAmount = misLine.otAmount;
+          const regular = misLine.regularBilling;
+          const otBilling = misLine.otBilling;
+          const totalBilling = misLine.totalBilling;
+          const lineTax = { total: misLine.gstTotal };
+          const { cgst, sgst, igst } = misLine;
           const round = (value: number) => Math.round(value * 100) / 100;
           const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
           const incrementCutoff = new Date(period.start);

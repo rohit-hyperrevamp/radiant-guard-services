@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -19,6 +20,9 @@ export type ResourceRate = {
   designationName: string;
   quantity: number;
   shiftHours: number;
+  /** Divisor rules that turn the monthly value into the invoice's per-duty rate. */
+  payrollDayBase: PayrollDayBaseLike | null;
+  billingDayBase: PayrollDayBaseLike | null;
   /** Monthly gross = sum of the wage components. Never a stored scalar. */
   grossRate: number;
   /** Contract-level statutory / recurring employee deductions per month. */
@@ -81,19 +85,42 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   if (!contractByUnit.size) return out;
 
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
-  const [resources, designations] = await Promise.all([
+  const [resources, designations, payrollBases, billingBases] = await Promise.all([
     fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
       supabase
         .from("contract_resources")
-        .select("contract_id, designation_id, quantity, shift_hours, components, deductions, employer_contributions")
+        .select(
+          "contract_id, designation_id, quantity, shift_hours, components, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id",
+        )
         .in("contract_id", chunk)
         .range(from, to),
     ),
     fetchAllPages<{ id: string; name: string }>((from, to) =>
       supabase.from("designations").select("id, name").range(from, to),
     ),
+    supabase.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays"),
+    supabase
+      .from("billing_day_bases" as never)
+      .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
   ]);
   const desigMap = new Map(designations.map((d) => [d.id as string, d.name as string]));
+
+  // The per-duty billing rate the invoice prints is the monthly value divided by
+  // the resource's billing-days rule (falling back to its payroll-days rule).
+  const toBase = (row: Record<string, unknown>): PayrollDayBaseLike => ({
+    method: row.method as PayrollDayBaseLike["method"],
+    fixedDays: row.fixed_days == null ? null : Number(row.fixed_days),
+    weeklyOffDay: row.weekly_off_day == null ? null : Number(row.weekly_off_day),
+    includedWeekdays: Array.isArray(row.included_weekdays)
+      ? (row.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+      : null,
+  });
+  const baseIndex = (rows: unknown) =>
+    new Map<string, PayrollDayBaseLike>(
+      (Array.isArray(rows) ? (rows as Record<string, unknown>[]) : []).map((row) => [String(row.id), toBase(row)]),
+    );
+  const payrollBaseById = baseIndex((payrollBases as { data?: unknown }).data);
+  const billingBaseById = baseIndex((billingBases as { data?: unknown }).data);
 
   const unitByContract = new Map<string, string>();
   for (const [unitId, c] of contractByUnit) unitByContract.set(c.id, unitId);
@@ -117,6 +144,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
       billRate: Math.round((grossRate + employerTotal) * 100) / 100,
+      payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
+      billingDayBase: r.billing_day_base_id ? billingBaseById.get(String(r.billing_day_base_id)) ?? null : null,
     };
     const arr = grouped.get(unitId) ?? [];
     arr.push(rate);
@@ -144,6 +173,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
               ? Math.max(0, (monthlyPayroll - monthlyDeductions) / committed)
               : rates[0].netRate,
           billRate: committed > 0 ? monthlyContracted / committed : rates[0].billRate,
+          payrollDayBase: rates[0].payrollDayBase,
+          billingDayBase: rates[0].billingDayBase,
         }
       : null;
 
