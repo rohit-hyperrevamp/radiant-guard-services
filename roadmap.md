@@ -462,3 +462,4 @@
 - [x] Return denied Control Center routes to Control Center instead of Deduction Types.
 - [x] Apply and verify the missing permission rows in production.
 - [x] Run TypeScript and formatting validation.
+- [x] Invoice charter: State + City dropdown filters next to search/Invoice-ready (billing_city added to get_attendance_charter_units RPC, applied to prod)
