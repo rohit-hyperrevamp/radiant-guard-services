@@ -1473,3 +1473,159 @@ function ContractsTile({
     </Shell>
   );
 }
+
+/* -------------------- Transport: fleet + assets combined -------------------- */
+
+type FleetAssetsSnapshot = {
+  vehicles: number;
+  vehicleSpend: number;
+  insuranceDue: number;
+  pucDue: number;
+  properties: number;
+  propertyValue: number;
+  assetSpend: number;
+  loanOutstanding: number;
+};
+
+function TransportFleetAssetsTiles() {
+  const q = useQuery<FleetAssetsSnapshot>({
+    queryKey: ["transport-fleet-assets"],
+    staleTime: 2 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    queryFn: async () => {
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const horizon = new Date(today);
+      horizon.setDate(horizon.getDate() + 30);
+      const horizonStr = horizon.toISOString().slice(0, 10);
+      const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+
+      const [veh, fuel, ins, puc, props, expenses, loans] = await Promise.all([
+        supabase.from("vehicles").select("id", { count: "exact", head: true }),
+        supabase.from("vehicle_fuel_entries").select("amount").gte("entry_date", monthStart),
+        supabase
+          .from("vehicle_insurances")
+          .select("id", { count: "exact", head: true })
+          .gte("end_date", todayStr)
+          .lte("end_date", horizonStr),
+        supabase
+          .from("vehicle_pucs")
+          .select("id", { count: "exact", head: true })
+          .gte("expiry_date", todayStr)
+          .lte("expiry_date", horizonStr),
+        supabase.from("properties").select("current_value,purchase_value").eq("enabled", true),
+        supabase.from("property_expenses").select("amount").gte("expense_date", monthStart),
+        supabase.from("property_loans").select("outstanding_amount").eq("enabled", true),
+      ]);
+
+      const sum = (rows: Array<Record<string, unknown>> | null, key: string) =>
+        (rows ?? []).reduce((acc, row) => acc + Number(row[key] ?? 0), 0);
+
+      const propertyRows = (props.data ?? []) as Array<{
+        current_value: number | null;
+        purchase_value: number | null;
+      }>;
+
+      return {
+        vehicles: veh.count ?? 0,
+        vehicleSpend: sum(fuel.data as Array<Record<string, unknown>> | null, "amount"),
+        insuranceDue: ins.count ?? 0,
+        pucDue: puc.count ?? 0,
+        properties: propertyRows.length,
+        propertyValue: propertyRows.reduce(
+          (acc, p) => acc + Number(p.current_value ?? p.purchase_value ?? 0),
+          0,
+        ),
+        assetSpend: sum(expenses.data as Array<Record<string, unknown>> | null, "amount"),
+        loanOutstanding: sum(
+          loans.data as Array<Record<string, unknown>> | null,
+          "outstanding_amount",
+        ),
+      };
+    },
+  });
+
+  if (q.isLoading) {
+    return (
+      <div className="grid auto-rows-[124px] grid-cols-2 gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:h-[172px] sm:rounded-[26px]"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (q.error) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-card p-6">
+        <p className="text-sm font-medium text-destructive">Fleet and asset totals could not load.</p>
+        <Button className="mt-3" variant="outline" onClick={() => void q.refetch()}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  const d = q.data as FleetAssetsSnapshot;
+
+  return (
+    <div className="grid auto-rows-[124px] grid-cols-2 items-stretch gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+      <DualTile
+        icon={Briefcase}
+        label="Vehicles"
+        primary={d.vehicles}
+        primaryLabel="In fleet"
+        secondary={fmtINR(d.vehicleSpend)}
+        secondaryLabel="Spend this month"
+        accent="violet"
+        to="/admin/vehicles/inventory"
+      />
+      <MetricTile
+        icon={Fuel}
+        label="Insurance renewals"
+        value={d.insuranceDue}
+        accent="rose"
+        to="/admin/vehicles/insurances"
+        sub="Due in 30 days"
+      />
+      <MetricTile
+        icon={ClipboardList}
+        label="PUC renewals"
+        value={d.pucDue}
+        accent="amber"
+        to="/admin/vehicles/pucs"
+        sub="Due in 30 days"
+      />
+      <DualTile
+        icon={Building2}
+        label="Assets"
+        primary={d.properties}
+        primaryLabel="On book"
+        secondary={fmtINR(d.propertyValue)}
+        secondaryLabel="Current value"
+        accent="cyan"
+        to="/admin/assets/inventory"
+      />
+      <MetricTile
+        icon={Receipt}
+        label="Asset spend"
+        value={Math.round(d.assetSpend)}
+        accent="emerald"
+        to="/admin/assets/expense-manager"
+        sub="This month"
+      />
+      <MetricTile
+        icon={Wallet}
+        label="Loan outstanding"
+        value={Math.round(d.loanOutstanding)}
+        accent="sky"
+        to="/admin/assets/loan-manager"
+        sub="Across asset loans"
+      />
+    </div>
+  );
+}
