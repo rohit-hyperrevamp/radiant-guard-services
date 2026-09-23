@@ -36,6 +36,7 @@ export type CharterUnitRow = {
   customer_name: string;
   customer_code: string;
   billing_state: string | null;
+  billing_city: string | null;
   contract_codes: string[];
   contract_end: string | null;
   active_employee_count: number;
