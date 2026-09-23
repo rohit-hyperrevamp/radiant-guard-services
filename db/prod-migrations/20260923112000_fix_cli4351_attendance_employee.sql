@@ -1,6 +1,7 @@
 -- CLI4351 (L&T FINANCE LIMITED- MUDALAPALYA): swap mapped employee 48050 -> 48056
--- 48056 (L P Chidananda) stays primary at CLI4308 (Rajajinagar) and additionally
--- covers CLI4351 as a secondary (non-primary) posting. 48050 (Suvadra Singh) is
+-- 48056 (L P Chidananda) is posted at both CLI4308 (Rajajinagar) and CLI4351.
+-- DB rules allow only one primary posting per guard, so CLI4351 becomes his
+-- primary posting and CLI4308 stays as an additional (extra-duty) posting. 48050 (Suvadra Singh) is
 -- removed from CLI4351 and falls back to the Radiant Pune home unit.
 
 begin;
@@ -10,12 +11,12 @@ insert into candidate_units (candidate_id, unit_id, is_primary, is_reliever, des
 values (
   '0611a3b2-f27b-4141-9432-4d2329e2f3f4',
   '78e0be4f-92fe-4f02-9cd6-e6d73f0d381c',
-  false,
+  true,
   false,
   'aad77ba7-98d2-44cb-a0f1-b598eed740f4'
 )
 on conflict (candidate_id, unit_id) do update
-  set is_primary = false,
+  set is_primary = true,
       is_reliever = false,
       designation_id = excluded.designation_id;
 
