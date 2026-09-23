@@ -758,7 +758,7 @@ export function FinanceCharter({
         // as present (P, HD) plus paid holidays. Paid weekly offs and paid leave
         // are part of the monthly wage and are never billed as duties, so they
         // must never inflate the MIS working days.
-        const counted = !code ? 0 : code.counts_as_present || code.code === "PH" ? dayValue : 0;
+        const counted = !code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0;
         const otDays = Number(e.ot_hours) || 0;
         if (counted + otDays <= 0) continue;
 
