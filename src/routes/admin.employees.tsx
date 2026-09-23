@@ -6785,26 +6785,9 @@ function CandidateWizard({
         unit_designations:
           rest.unit_id && rest.designation_id ? { [rest.unit_id]: rest.designation_id } : {},
       });
-      // The list row can be a cached snapshot. Re-read the saved record so a
-      // stale copy (e.g. an old role) is never written back on save.
-      (async () => {
-        const { data: fresh } = await supabase
-          .from("candidates" as never)
-          .select("*")
-          .eq("id", editing.id)
-          .maybeSingle();
-        if (!fresh) return;
-        const f0 = fresh as Record<string, unknown>;
-        setForm((f) => {
-          const next = { ...f } as Record<string, unknown>;
-          for (const k of Object.keys(f0)) {
-            if (k === "id" || k === "unit_id" || k === "contacts") continue;
-            if (k in next || f0[k] !== null) next[k] = f0[k];
-          }
-          next.status = f0.status === "approved" ? "active" : f0.status;
-          return next as unknown as CandidateForm;
-        });
-      })();
+      // openEditor already fetches the latest production row before opening.
+      // Do not start a second late fetch here: it can arrive after the user has
+      // changed a field and silently overwrite that unsaved selection.
       // Load full multi-unit assignment from junction table.
       (async () => {
         const { data, error } = await supabase
@@ -7436,11 +7419,18 @@ function CandidateWizard({
         .select("*")
         .eq("id", editing.id)
         .maybeSingle();
-      const { error } = await supabase
+      const { data: saved, error } = await supabase
         .from("candidates" as never)
         .update(patched as never)
-        .eq("id", editing.id);
+        .eq("id", editing.id)
+        .select("id,role_key")
+        .single();
       if (error) throw error;
+      const requestedRole = (patched as { role_key?: unknown }).role_key;
+      const savedRole = (saved as unknown as { role_key?: string } | null)?.role_key;
+      if (typeof requestedRole === "string" && savedRole !== requestedRole) {
+        throw new Error(`Role was not saved. Expected ${requestedRole}, but found ${savedRole ?? "none"}.`);
+      }
       // Always sync: unit IDs may be unchanged while a per-unit designation changed.
       await syncCandidateUnits(editing.id);
       setInitialUnitIds([...form.unit_ids]);
