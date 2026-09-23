@@ -2226,3 +2226,19 @@ nav[data-bottom-nav] li > * > div > span:last-child {
     to { transform: translateY(100%); }
   }
 }
+
+/* =========================================================================
+   DIALOG / SHEET WIDTH CONTAINMENT — a wide child (tables, long rows) must
+   never stretch the dialog's grid column past the dialog itself, which used
+   to clip headings, descriptions and form fields on desktop.
+   ========================================================================= */
+[data-slot="dialog-content"],
+[data-slot="sheet-content"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-slot="dialog-content"] > *,
+[data-slot="sheet-content"] > * {
+  min-width: 0;
+  max-width: 100%;
+}
