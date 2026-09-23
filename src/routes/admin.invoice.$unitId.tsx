@@ -1186,7 +1186,9 @@ function PayrollUnitPage() {
         otDays: r.totals.otDays ?? 0,
         total: m.actual,
         intraState: isIntraState,
+        maxWorkingDays: m.billingDays,
       });
+
       const otDays = line.otDays;
       const workingDays = line.workingDays;
       const otHours = otDays;
