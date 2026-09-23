@@ -69,11 +69,6 @@ function pct(actual: number, projected: number) {
   return Math.round((actual / projected) * 100);
 }
 
-function toneFor(value: number) {
-  if (value >= 100) return "emerald";
-  if (value >= 85) return "amber";
-  return "rose";
-}
 
 function MarginChip({ value }: { value: number }) {
   return (
