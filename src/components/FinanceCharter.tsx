@@ -323,8 +323,12 @@ export function FinanceCharter({
       person.paidDays += counted;
       person.otDays += ot;
       const payable = counted + ot;
+      // Billing counts only what the MIS/invoice bills: present days (P, HD)
+      // and paid holidays (PH) plus Extra Duty. Paid weekly offs and paid
+      // leave are part of the wage but are never billed as duties.
+      const billed = (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) + ot;
       if (rate) {
-        person.invoiceAmount += billPerDay * payable;
+        person.invoiceAmount += billPerDay * billed;
         person.payrollAmount += (rate.grossRate / divisor) * payable;
         person.deductionAmount += (rate.deductionRate / divisor) * payable;
         person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
