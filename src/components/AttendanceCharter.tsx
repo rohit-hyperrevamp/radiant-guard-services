@@ -272,7 +272,7 @@ export function AttendanceCharter({
       if (!unitId) continue;
       if (!out.has(unitId)) out.set(unitId, new Map());
       const bucket = out.get(unitId)!;
-      const shift = shiftHoursFor(shiftQ.data, unitId, e.designation_id) || DEFAULT_SHIFT_HOURS;
+      const shift = shiftHoursFor(shiftQ.data, unitId, e.designation_id, e.candidate_id) || DEFAULT_SHIFT_HOURS;
       let person = bucket.get(e.candidate_id);
       if (!person) {
         person = {
