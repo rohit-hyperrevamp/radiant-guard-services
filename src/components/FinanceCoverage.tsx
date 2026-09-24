@@ -588,24 +588,26 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       actualMargin,
       tone: completionTone(committedMargin, actualMargin),
     };
-  }, [rows]);
-
+  }, [scopedRows]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = q
-      ? rows.filter((r) =>
+      ? scopedRows.filter((r) =>
           [r.unit_name, r.customer_name, r.unit_code].some((v) =>
             (v ?? "").toLowerCase().includes(q),
           ),
         )
-      : rows;
+      : scopedRows;
     return [...list].sort(
       (a, b) => b.actual_invoice - b.actual_payroll - (a.actual_invoice - a.actual_payroll),
     );
-  }, [rows, query]);
+  }, [scopedRows, query]);
 
-  const paged = usePaged(filtered, `${query}|${rows.length}`);
+  const paged = usePaged(
+    filtered,
+    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${cityFilter.join(",")}|${rows.length}`,
+  );
 
   const exportCsv = () =>
     downloadCsv(
@@ -669,6 +671,41 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         />
       </div>
 
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <LabeledMultiSelectFilter
+          label="Organization"
+          selected={orgFilter}
+          onChange={setOrgFilter}
+          options={orgOptions}
+          allLabel={`All organizations (${orgOptions.length})`}
+        />
+        <LabeledMultiSelectFilter
+          label="State"
+          selected={stateFilter}
+          onChange={(v) => {
+            setStateFilter(v);
+            setCityFilter((prev) =>
+              prev.filter((c) =>
+                rows.some(
+                  (r) =>
+                    r.billing_city === c &&
+                    (v.length === 0 || (r.billing_state != null && v.includes(r.billing_state))),
+                ),
+              ),
+            );
+          }}
+          options={stateOptions}
+          allLabel={`All states (${stateOptions.length})`}
+        />
+        <LabeledMultiSelectFilter
+          label="City"
+          selected={cityFilter}
+          onChange={setCityFilter}
+          options={cityOptions}
+          allLabel={`All cities (${cityOptions.length})`}
+        />
+      </div>
 
       <div className="relative mt-3 max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
