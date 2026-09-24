@@ -1283,6 +1283,15 @@ function MusterRollPage() {
     enabled: Boolean(unitId),
   });
 
+  // Units whose contract offers the same post as both 8h and 12h duty need the
+  // duty length chosen per guard so billing and payroll pick the right rate.
+  const unitHasBothShifts = useMemo(() => {
+    for (const [k, set] of shiftMap?.offered ?? []) {
+      if (k.startsWith(`${unitId}|`) && set.has(8) && set.has(12)) return true;
+    }
+    return false;
+  }, [shiftMap, unitId]);
+
   const derivedSelfEntries = useMemo(() => {
     const desigByCand = new Map<string, string | null>(
       (employees ?? []).map((e) => [e.id, e.designation_id ?? null]),
@@ -1388,6 +1397,7 @@ function MusterRollPage() {
   const [mapQuery, setMapQuery] = useState("");
   const [mapSaving, setMapSaving] = useState(false);
   const [mapAs, setMapAs] = useState<"regular" | "reliever">("regular");
+  const [mapShift, setMapShift] = useState<8 | 12>(8);
 
   const currentRole = useCurrentUserRole();
   const restrictMapToOwnPeople = currentRole.isFieldOfficer;
@@ -1516,7 +1526,8 @@ function MusterRollPage() {
           is_reliever: asReliever,
           is_primary: !asReliever,
           designation_id: mapSlot.designationId ?? cand.designation_id ?? null,
-        },
+          ...(unitHasBothShifts ? { shift_hours: mapShift } : {}),
+        } as never,
         { onConflict: "candidate_id,unit_id" },
       );
       if (error) throw error;
@@ -1535,12 +1546,13 @@ function MusterRollPage() {
       // attendance exists for them.
       setManualRosterIds((prev) => new Set(prev).add(cand.id));
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+      void queryClient.invalidateQueries({ queryKey: ["shift-hours-map", unitId] });
       logActivity({
         module: "Attendance",
         action: "update",
         entityType: "muster_slot",
         entityId: cand.id,
-        entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
+        entityLabel: `${cand.full_name} → ${mapSlot.designationName}${unitHasBothShifts ? ` (${mapShift}h)` : ""} @ ${unit?.name ?? unitId}`,
       });
       toast.success(
         asReliever
@@ -5342,6 +5354,28 @@ function MusterRollPage() {
               </button>
             ))}
           </div>
+          {unitHasBothShifts ? (
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">Duty length (sets the billing rate)</div>
+              <div className="grid grid-cols-2 gap-2">
+                {([8, 12] as const).map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setMapShift(h)}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-left text-sm transition",
+                      mapShift === h
+                        ? "border-primary bg-primary/10 font-semibold text-primary"
+                        : "border-border hover:bg-muted",
+                    )}
+                  >
+                    {h} hours
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
