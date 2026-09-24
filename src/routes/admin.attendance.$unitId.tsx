@@ -4525,7 +4525,7 @@ function MusterRollPage() {
                           const edOnly = Boolean(mr.otOnly) || Boolean(mr.reliever);
                           const blocked = !editable || date > todayStr || beforeDoj || edOnly;
                           const entry = entryMap.get(`${mr.key}|${date}`);
-                          const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
+                          const displayCode = edOnly ? entry?.code || "" : entry?.code || (!blocked ? "A" : "");
                           const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
                           return (
                             <td
@@ -4968,8 +4968,10 @@ function MusterRollPage() {
                         // never editable, never an implicit "A".
                         const edOnlyLine = Boolean(mr.otOnly) || Boolean(mr.reliever);
                         const displayCode =
-                          mr.vacant || edOnlyLine
+                          mr.vacant
                             ? ""
+                            : edOnlyLine
+                            ? entry?.code || ""
                             : entry?.code
                               ? entry.code
                               : !isFuture && !beforeDoj
