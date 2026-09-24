@@ -571,13 +571,13 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   );
 
   const totals = useMemo(() => {
-    const committedProfit = rows.reduce(
+    const committedProfit = scopedRows.reduce(
       (s, r) => s + (r.committed_invoice - r.committed_payroll),
       0,
     );
-    const actualProfit = rows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
-    const committedInvoice = rows.reduce((s, r) => s + r.committed_invoice, 0);
-    const actualInvoice = rows.reduce((s, r) => s + r.actual_invoice, 0);
+    const actualProfit = scopedRows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
+    const committedInvoice = scopedRows.reduce((s, r) => s + r.committed_invoice, 0);
+    const actualInvoice = scopedRows.reduce((s, r) => s + r.actual_invoice, 0);
     const committedMargin = committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0;
     const actualMargin = actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0;
     return {
