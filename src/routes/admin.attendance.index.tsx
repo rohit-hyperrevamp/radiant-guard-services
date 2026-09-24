@@ -240,6 +240,15 @@ function AttendanceUnitsPage() {
                             return !u || v.length === 0 || v.includes(u.customer_id || u.customer_name);
                           }),
                         );
+                        setStateFilter((prev) =>
+                          prev.filter((s) =>
+                            windowUnits.some(
+                              (u) =>
+                                u.billing_state === s &&
+                                (v.length === 0 || v.includes(u.customer_id || u.customer_name)),
+                            ),
+                          ),
+                        );
                       }}
                       options={organizations.map((o) => ({
                         value: o.id,
