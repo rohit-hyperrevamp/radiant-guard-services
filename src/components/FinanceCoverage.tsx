@@ -594,7 +594,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
 
   const paged = usePaged(
     filtered,
-    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${cityFilter.join(",")}|${rows.length}`,
+    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${rows.length}`,
   );
 
   const exportCsv = () =>
@@ -660,38 +660,32 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       </div>
 
 
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <LabeledMultiSelectFilter
           label="Organization"
           selected={orgFilter}
-          onChange={setOrgFilter}
+          onChange={(v) => {
+            setOrgFilter(v);
+            // Drop selected states the newly chosen orgs don't operate in.
+            setStateFilter((prev) =>
+              prev.filter((s) =>
+                rows.some(
+                  (r) =>
+                    r.billing_state === s &&
+                    (v.length === 0 || v.includes(r.customer_id || r.customer_name)),
+                ),
+              ),
+            );
+          }}
           options={orgOptions}
           allLabel={`All organizations (${orgOptions.length})`}
         />
         <LabeledMultiSelectFilter
           label="State"
           selected={stateFilter}
-          onChange={(v) => {
-            setStateFilter(v);
-            setCityFilter((prev) =>
-              prev.filter((c) =>
-                rows.some(
-                  (r) =>
-                    r.billing_city === c &&
-                    (v.length === 0 || (r.billing_state != null && v.includes(r.billing_state))),
-                ),
-              ),
-            );
-          }}
+          onChange={setStateFilter}
           options={stateOptions}
           allLabel={`All states (${stateOptions.length})`}
-        />
-        <LabeledMultiSelectFilter
-          label="City"
-          selected={cityFilter}
-          onChange={setCityFilter}
-          options={cityOptions}
-          allLabel={`All cities (${cityOptions.length})`}
         />
       </div>
 
