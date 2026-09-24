@@ -485,7 +485,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources")
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id",
+            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
         resources = r ?? [];
