@@ -82,6 +82,7 @@ function AttendanceUnitsPage() {
   const [q, setQ] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "approved">("all");
 
 
@@ -113,6 +114,14 @@ function AttendanceUnitsPage() {
       ),
     [windowUnits, orgFilter],
   );
+  const stateOptions = useMemo(() => {
+    const states = new Set<string>();
+    for (const u of windowUnits) {
+      if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) continue;
+      if (u.billing_state) states.add(u.billing_state);
+    }
+    return [...states].sort();
+  }, [windowUnits, orgFilter]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
@@ -134,6 +143,7 @@ function AttendanceUnitsPage() {
     return windowUnits.filter((u) => {
       if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
       if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
+      if (stateFilter.length > 0 && !stateFilter.includes(u.billing_state || "")) return false;
       if (term) {
         const hay = [
           u.customer_name,
@@ -150,9 +160,9 @@ function AttendanceUnitsPage() {
       }
       return true;
     });
-  }, [q, orgFilter, unitFilter, windowUnits]);
+  }, [q, orgFilter, unitFilter, stateFilter, windowUnits]);
 
-  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
+  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || stateFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
 
 
 
@@ -230,6 +240,15 @@ function AttendanceUnitsPage() {
                             return !u || v.length === 0 || v.includes(u.customer_id || u.customer_name);
                           }),
                         );
+                        setStateFilter((prev) =>
+                          prev.filter((s) =>
+                            windowUnits.some(
+                              (u) =>
+                                u.billing_state === s &&
+                                (v.length === 0 || v.includes(u.customer_id || u.customer_name)),
+                            ),
+                          ),
+                        );
                       }}
                       options={organizations.map((o) => ({
                         value: o.id,
@@ -238,13 +257,30 @@ function AttendanceUnitsPage() {
                       allLabel={`All organizations (${organizations.length})`}
                     />
                     <LabeledMultiSelectFilter
+                      label="State"
+                      selected={stateFilter}
+                      onChange={(v) => {
+                        setStateFilter(v);
+                        setUnitFilter((prev) =>
+                          prev.filter((id) => {
+                            const u = windowUnits.find((x) => x.id === id);
+                            return !u || v.length === 0 || v.includes(u.billing_state || "");
+                          }),
+                        );
+                      }}
+                      options={stateOptions.map((s) => ({ value: s, label: s }))}
+                      allLabel={`All states (${stateOptions.length})`}
+                    />
+                    <LabeledMultiSelectFilter
                       label="Unit"
                       selected={unitFilter}
                       onChange={setUnitFilter}
-                      options={unitOptions.map((u) => ({
-                        value: u.id,
-                        label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
-                      }))}
+                      options={unitOptions
+                        .filter((u) => stateFilter.length === 0 || stateFilter.includes(u.billing_state || ""))
+                        .map((u) => ({
+                          value: u.id,
+                          label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
+                        }))}
                       allLabel={`All units (${unitOptions.length})`}
                     />
                   </div>
@@ -262,6 +298,7 @@ function AttendanceUnitsPage() {
                           setQ("");
                           setOrgFilter([]);
                           setUnitFilter([]);
+                          setStateFilter([]);
                           setStatusFilter("all");
                         }}
                       >
