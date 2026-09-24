@@ -713,12 +713,13 @@ function DashboardPage() {
           ...chunks.map(async (ids) => {
             const { data: ex } = await supabase
               .from("invoice_extra_charges" as never)
-              .select("unit_id, quantity, rate, enabled")
+              .select("unit_id, quantity, rate, enabled, period_start, period_end")
               .in("unit_id", ids)
-              .eq("period_start", monthStart)
-              .eq("period_end", monthEnd)
               .eq("enabled", true);
-            for (const e of (ex ?? []) as { unit_id: string; quantity: number; rate: number }[]) {
+            type Ex = { unit_id: string; quantity: number; rate: number; period_start: string | null; period_end: string | null };
+            for (const e of ((ex ?? []) as Ex[]).filter(
+              (x) => !x.period_start || (x.period_start === monthStart && x.period_end === monthEnd),
+            )) {
               const amt = Math.round((Number(e.quantity) || 0) * (Number(e.rate) || 0) * 100) / 100;
               extrasByUnit.set(e.unit_id, (extrasByUnit.get(e.unit_id) ?? 0) + amt);
             }
