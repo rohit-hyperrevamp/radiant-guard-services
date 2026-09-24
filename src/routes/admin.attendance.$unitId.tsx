@@ -1387,6 +1387,7 @@ function MusterRollPage() {
   } | null>(null);
   const [mapQuery, setMapQuery] = useState("");
   const [mapSaving, setMapSaving] = useState(false);
+  const [mapAs, setMapAs] = useState<"regular" | "reliever">("regular");
 
   const currentRole = useCurrentUserRole();
   const restrictMapToOwnPeople = currentRole.isFieldOfficer;
@@ -1490,12 +1491,23 @@ function MusterRollPage() {
         .select("unit_id, is_primary, is_reliever")
         .eq("candidate_id", cand.id);
       if (linkError) throw linkError;
-      const hasPrimaryElsewhere = ((existingLinks ?? []) as Array<{
+      const primaryElsewhere = ((existingLinks ?? []) as Array<{
         unit_id: string;
         is_primary?: boolean | null;
         is_reliever?: boolean | null;
-      }>).some((l) => l.unit_id !== unitId && l.is_primary === true && l.is_reliever !== true);
-      const asReliever = hasPrimaryElsewhere;
+      }>).filter((l) => l.unit_id !== unitId && l.is_primary === true);
+      const asReliever = mapAs === "reliever";
+
+      // Regular = this becomes the guard's one primary unit; any other primary
+      // posting is turned into a reliever (ED-only) line first.
+      if (!asReliever && primaryElsewhere.length) {
+        const { error: demoteErr } = await supabase
+          .from("candidate_units")
+          .update({ is_primary: false, is_reliever: true })
+          .eq("candidate_id", cand.id)
+          .in("unit_id", primaryElsewhere.map((l) => l.unit_id));
+        if (demoteErr) throw demoteErr;
+      }
 
       const { error } = await supabase.from("candidate_units").upsert(
         {
@@ -1507,6 +1519,10 @@ function MusterRollPage() {
         },
         { onConflict: "candidate_id,unit_id" },
       );
+      if (error) throw error;
+      if (!asReliever) {
+        await supabase.from("candidates").update({ unit_id: unitId }).eq("id", cand.id);
+      }
       if (error) throw error;
 
       // If the slot's designation differs from the employee's own, surface the
@@ -3513,6 +3529,19 @@ function MusterRollPage() {
           </Button>
           <Button
             variant="outline"
+            disabled={!editable}
+            onClick={() => {
+              setMapQuery("");
+              setMapAs("regular");
+              setMapSlot({ designationId: null, designationName: "" });
+            }}
+            className="h-10 shrink-0 rounded-xl"
+          >
+            <Plus className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">Add Employee</span>
+          </Button>
+          <Button
+            variant="outline"
             size="icon"
             onClick={() => window.print()}
             title="Print"
@@ -5279,19 +5308,46 @@ function MusterRollPage() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Map employee to slot</DialogTitle>
+            <DialogTitle>Add employee to this sheet</DialogTitle>
             <DialogDescription>
-              Find an employee for{" "}
-              <span className="font-medium">{mapSlot?.designationName ?? "—"}</span>.
+              Search by employee ID or name
+              {mapSlot?.designationId ? (
+                <>
+                  {" "}for <span className="font-medium">{mapSlot?.designationName}</span>
+                </>
+              ) : null}
+              . Choose whether they are regular or a reliever.
             </DialogDescription>
           </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {(["regular", "reliever"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setMapAs(k)}
+                className={cn(
+                  "rounded-md border px-3 py-2 text-left text-sm transition",
+                  mapAs === k
+                    ? "border-primary bg-primary/10 font-semibold text-primary"
+                    : "border-border hover:bg-muted",
+                )}
+              >
+                {k === "regular" ? "Regular" : "Reliever (R)"}
+                <span className="block text-[11px] font-normal text-muted-foreground">
+                  {k === "regular"
+                    ? "Main unit — normal P/A attendance"
+                    : "Extra Duty hours only"}
+                </span>
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               autoFocus
               value={mapQuery}
               onChange={(e) => setMapQuery(e.target.value)}
-              placeholder="Search employees…"
+              placeholder="Employee ID or name…"
               className="h-10 w-full rounded-md border border-border bg-background pl-8 pr-3 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -5309,7 +5365,7 @@ function MusterRollPage() {
                   <button
                     key={c.id}
                     type="button"
-                    disabled={already || mapSaving}
+                    disabled={mapSaving}
                     onClick={() => mapEmployeeToSlot(c)}
                     className="flex w-full items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left transition hover:border-primary hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -5320,7 +5376,9 @@ function MusterRollPage() {
                       </span>
                     </span>
                     <span className="shrink-0 text-[11px] font-medium text-primary">
-                      {already ? "On roster" : "Add"}
+                      {already
+                        ? `Set as ${mapAs === "regular" ? "regular" : "reliever"}`
+                        : `Add as ${mapAs === "regular" ? "regular" : "reliever"}`}
                     </span>
                   </button>
                 );
