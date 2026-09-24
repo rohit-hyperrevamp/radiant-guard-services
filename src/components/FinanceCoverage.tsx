@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LabeledMultiSelectFilter } from "@/components/MultiSelectFilter";
 import { downloadCsv } from "@/lib/csv-export";
 import { fmtINR } from "@/lib/payroll-calc";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,9 @@ export type UnitFinanceRow = {
   unit_code: string;
   unit_name: string;
   customer_name: string;
+  customer_id?: string;
+  billing_state?: string | null;
+  billing_city?: string | null;
   internal: boolean;
   committed_strength: number;
   actual_strength: number;
