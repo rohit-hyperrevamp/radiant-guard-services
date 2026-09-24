@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LabeledMultiSelectFilter } from "@/components/MultiSelectFilter";
 import { downloadCsv } from "@/lib/csv-export";
 import { fmtINR } from "@/lib/payroll-calc";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,9 @@ export type UnitFinanceRow = {
   unit_code: string;
   unit_name: string;
   customer_name: string;
+  customer_id?: string;
+  billing_state?: string | null;
+  billing_city?: string | null;
   internal: boolean;
   committed_strength: number;
   actual_strength: number;
@@ -94,14 +98,16 @@ function Tile({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-3",
+        "rounded-2xl border p-3 bg-gradient-to-br",
         tone === "success"
-          ? "border-emerald-500/40 bg-emerald-500/10"
+          ? "border-emerald-500/40 from-emerald-500/15 to-emerald-500/5"
           : tone === "warning"
-            ? "border-amber-500/40 bg-amber-500/10"
+            ? "border-amber-500/40 from-amber-500/15 to-amber-500/5"
             : tone === "destructive"
-              ? "border-destructive/40 bg-destructive/10"
-              : "border-border bg-background/60",
+              ? "border-destructive/40 from-destructive/15 to-destructive/5"
+              : tone === "accent"
+                ? "border-primary/30 from-primary/10 to-primary/5"
+                : "border-border from-background/80 to-background/40",
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -506,19 +512,74 @@ export function InvoiceCoverageCard({ rows }: { rows: UnitFinanceRow[] }) {
 /** Unit-wise P&L: contracted MTD, actual invoice, actual payroll, profitability. */
 export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] }) {
   const [query, setQuery] = useState("");
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
 
   // Internal / non-billable units carry cost with no customer revenue by
   // design — including them would make P&L negative by construction.
   const rows = useMemo(() => allRows.filter((r) => !r.internal), [allRows]);
 
+  const orgOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          rows.map((r) => [
+            r.customer_id || r.customer_name,
+            { value: r.customer_id || r.customer_name, label: r.customer_name },
+          ]),
+        ).values(),
+      ).sort((a, b) => a.label.localeCompare(b.label)),
+    [rows],
+  );
+  const stateOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map((r) => r.billing_state).filter((s): s is string => !!s)))
+        .sort()
+        .map((s) => ({ value: s, label: s })),
+    [rows],
+  );
+  const cityOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .filter(
+              (r) =>
+                stateFilter.length === 0 ||
+                (r.billing_state != null && stateFilter.includes(r.billing_state)),
+            )
+            .map((r) => r.billing_city)
+            .filter((c): c is string => !!c),
+        ),
+      )
+        .sort()
+        .map((c) => ({ value: c, label: c })),
+    [rows, stateFilter],
+  );
+
+  const scopedRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (orgFilter.length > 0 && !orgFilter.includes(r.customer_id || r.customer_name))
+          return false;
+        if (stateFilter.length > 0 && !(r.billing_state && stateFilter.includes(r.billing_state)))
+          return false;
+        if (cityFilter.length > 0 && !(r.billing_city && cityFilter.includes(r.billing_city)))
+          return false;
+        return true;
+      }),
+    [rows, orgFilter, stateFilter, cityFilter],
+  );
+
   const totals = useMemo(() => {
-    const committedProfit = rows.reduce(
+    const committedProfit = scopedRows.reduce(
       (s, r) => s + (r.committed_invoice - r.committed_payroll),
       0,
     );
-    const actualProfit = rows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
-    const committedInvoice = rows.reduce((s, r) => s + r.committed_invoice, 0);
-    const actualInvoice = rows.reduce((s, r) => s + r.actual_invoice, 0);
+    const actualProfit = scopedRows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
+    const committedInvoice = scopedRows.reduce((s, r) => s + r.committed_invoice, 0);
+    const actualInvoice = scopedRows.reduce((s, r) => s + r.actual_invoice, 0);
     const committedMargin = committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0;
     const actualMargin = actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0;
     return {
@@ -529,24 +590,26 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       actualMargin,
       tone: completionTone(committedMargin, actualMargin),
     };
-  }, [rows]);
-
+  }, [scopedRows]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = q
-      ? rows.filter((r) =>
+      ? scopedRows.filter((r) =>
           [r.unit_name, r.customer_name, r.unit_code].some((v) =>
             (v ?? "").toLowerCase().includes(q),
           ),
         )
-      : rows;
+      : scopedRows;
     return [...list].sort(
       (a, b) => b.actual_invoice - b.actual_payroll - (a.actual_invoice - a.actual_payroll),
     );
-  }, [rows, query]);
+  }, [scopedRows, query]);
 
-  const paged = usePaged(filtered, `${query}|${rows.length}`);
+  const paged = usePaged(
+    filtered,
+    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${cityFilter.join(",")}|${rows.length}`,
+  );
 
   const exportCsv = () =>
     downloadCsv(
@@ -610,6 +673,41 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         />
       </div>
 
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <LabeledMultiSelectFilter
+          label="Organization"
+          selected={orgFilter}
+          onChange={setOrgFilter}
+          options={orgOptions}
+          allLabel={`All organizations (${orgOptions.length})`}
+        />
+        <LabeledMultiSelectFilter
+          label="State"
+          selected={stateFilter}
+          onChange={(v) => {
+            setStateFilter(v);
+            setCityFilter((prev) =>
+              prev.filter((c) =>
+                rows.some(
+                  (r) =>
+                    r.billing_city === c &&
+                    (v.length === 0 || (r.billing_state != null && v.includes(r.billing_state))),
+                ),
+              ),
+            );
+          }}
+          options={stateOptions}
+          allLabel={`All states (${stateOptions.length})`}
+        />
+        <LabeledMultiSelectFilter
+          label="City"
+          selected={cityFilter}
+          onChange={setCityFilter}
+          options={cityOptions}
+          allLabel={`All cities (${cityOptions.length})`}
+        />
+      </div>
 
       <div className="relative mt-3 max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
