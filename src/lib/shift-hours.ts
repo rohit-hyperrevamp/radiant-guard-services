@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPostingShifts } from "@/lib/shift-resources";
 
 /**
  * Contractual shift hours (8h or 12h) are the foundational layer for
@@ -18,14 +19,25 @@ export type ShiftHoursMap = {
   byUnitDesignation: Map<string, number>;
   /** unitId -> most common shift hours on that unit */
   byUnit: Map<string, number>;
+  /** `${unitId}|${candidateId}` -> duty length set on the guard's posting. */
+  byCandidateUnit?: Map<string, number>;
+  /** `${unitId}|${designationId}` -> duty lengths the contract offers. */
+  offered?: Map<string, Set<number>>;
 };
 
 export function shiftHoursFor(
   map: ShiftHoursMap | null | undefined,
   unitId: string | null | undefined,
   designationId: string | null | undefined,
+  candidateId?: string | null,
 ): number {
   if (!map || !unitId) return DEFAULT_SHIFT_HOURS;
+  if (candidateId) {
+    const posted = map.byCandidateUnit?.get(`${unitId}|${candidateId}`);
+    const offered = designationId ? map.offered?.get(`${unitId}|${designationId}`) : undefined;
+    // Posting wins when the contract offers that length (or has no line for the designation).
+    if (posted && (!offered || offered.has(posted))) return posted;
+  }
   if (designationId) {
     const exact = map.byUnitDesignation.get(`${unitId}|${designationId}`);
     if (exact) return exact;
@@ -64,12 +76,19 @@ export async function fetchShiftHoursMap(unitIds: string[]): Promise<ShiftHoursM
 
   const byUnitDesignation = new Map<string, number>();
   const tally = new Map<string, Map<number, number>>();
+  const offered = new Map<string, Set<number>>();
 
   for (const r of resources ?? []) {
     const unitId = unitByContract.get(r.contract_id as string);
     if (!unitId) continue;
     const hours = normalize(r.shift_hours);
-    if (r.designation_id) byUnitDesignation.set(`${unitId}|${r.designation_id}`, hours);
+    if (r.designation_id) {
+      const k = `${unitId}|${r.designation_id}`;
+      if (!byUnitDesignation.has(k)) byUnitDesignation.set(k, hours);
+      const o = offered.get(k) ?? new Set<number>();
+      o.add(hours);
+      offered.set(k, o);
+    }
     const t = tally.get(unitId) ?? new Map<number, number>();
     t.set(hours, (t.get(hours) ?? 0) + (Number(r.quantity) || 1));
     tally.set(unitId, t);
@@ -88,7 +107,8 @@ export async function fetchShiftHoursMap(unitIds: string[]): Promise<ShiftHoursM
     byUnit.set(unitId, best);
   }
 
-  return { byUnitDesignation, byUnit };
+  const byCandidateUnit = new Map<string, number>(await fetchPostingShifts(ids));
+  return { byUnitDesignation, byUnit, byCandidateUnit, offered };
 }
 
 /** Attendance code for worked hours against the contractual shift length. */
