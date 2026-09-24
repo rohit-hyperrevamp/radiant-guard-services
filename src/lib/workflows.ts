@@ -450,12 +450,18 @@ async function enableRehiredCandidate(
       .eq("candidate_id", candidateId)
       .neq("unit_id", request.unit_id);
     if (delErr) throw new Error(`Could not clear the previous unit mapping: ${delErr.message}`);
-    const { error: cuErr } = await supabase
+    const { data: existingLine } = await supabase
       .from("candidate_units" as never)
-      .upsert({ candidate_id: candidateId, unit_id: request.unit_id } as never, {
-        onConflict: "candidate_id,unit_id",
-      } as never);
-    if (cuErr) throw new Error(`Could not assign the rehire unit: ${cuErr.message}`);
+      .select("id")
+      .eq("candidate_id", candidateId)
+      .eq("unit_id", request.unit_id)
+      .limit(1);
+    if (!((existingLine ?? []) as unknown[]).length) {
+      const { error: cuErr } = await supabase
+        .from("candidate_units" as never)
+        .insert({ candidate_id: candidateId, unit_id: request.unit_id, is_primary: true } as never);
+      if (cuErr) throw new Error(`Could not assign the rehire unit: ${cuErr.message}`);
+    }
   }
 
   // Same for designations: candidate_designations drives candidates.designation_id

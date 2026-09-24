@@ -1,3 +1,5 @@
+import { useUnitDesignations } from "@/lib/unit-designations";
+import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +25,7 @@ import {
   GitCompare,
   Camera,
   Clock3,
+  Pencil,
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
@@ -153,6 +156,8 @@ type EntryRow = {
   entry_date: string;
   code: string;
   ot_hours: number;
+  shift_hours?: number | null;
+  is_reliever?: boolean | null;
 };
 
 type OcrRowSummary = {
@@ -322,8 +327,25 @@ function buildExactPeriodCells(start: string, end: string) {
 
 const NULL_DESIG = "__none__"; // sentinel row-key segment when an employee has no designation
 
-const rowKey = (candidateId: string, designationId: string | null) =>
-  `${candidateId}|${designationId ?? NULL_DESIG}`;
+/** Line variant: duty length (0 = default) + reliever flag, e.g. "0", "8", "12r". */
+const lineVariant = (shift: unknown, reliever: unknown) =>
+  `${Number(shift) === 8 || Number(shift) === 12 ? Number(shift) : 0}${reliever ? "r" : ""}`;
+const parseVariant = (v: string | undefined) => ({
+  shift: Number.parseInt(v ?? "0", 10) || 0,
+  reliever: (v ?? "").endsWith("r"),
+});
+const rowKey = (candidateId: string, designationId: string | null, variant = "0") =>
+  `${candidateId}|${designationId ?? NULL_DESIG}|${variant}`;
+const entryRowKey = (e: { candidate_id: string; designation_id: string | null; shift_hours?: number | null; is_reliever?: boolean | null }) =>
+  rowKey(e.candidate_id, e.designation_id, lineVariant(e.shift_hours, e.is_reliever));
+
+type UnitLine = {
+  id: string;
+  designation_id: string | null;
+  shift_hours: number | null;
+  is_reliever: boolean;
+  is_primary: boolean;
+};
 
 function MusterRollPage() {
   const { unitId } = Route.useParams();
@@ -420,7 +442,7 @@ function MusterRollPage() {
       ] = await Promise.all([
         supabase
           .from("candidate_units")
-          .select("candidate_id, is_reliever, designation_id")
+          .select("id, candidate_id, is_reliever, is_primary, designation_id, shift_hours" as "candidate_id, is_reliever, designation_id")
           .eq("unit_id", unitId),
         supabase
           .from("units")
@@ -493,6 +515,18 @@ function MusterRollPage() {
       // The designation a person fills AT THIS UNIT comes from the unit mapping
       // (contracted role slot), not from their master record. "Security guard" is
       // a role; the designation drives salary and the payroll-day cap.
+      const linesByCandidate = new Map<string, UnitLine[]>();
+      for (const l of (links ?? []) as Array<UnitLine & { candidate_id: string }>) {
+        const arr = linesByCandidate.get(l.candidate_id) ?? [];
+        arr.push({
+          id: l.id,
+          designation_id: l.designation_id ?? null,
+          shift_hours: l.shift_hours ?? null,
+          is_reliever: l.is_reliever === true,
+          is_primary: l.is_primary === true,
+        });
+        linesByCandidate.set(l.candidate_id, arr);
+      }
       const unitDesigByCandidate = new Map<string, string>();
       for (const l of (links ?? []) as Array<{
         candidate_id: string;
@@ -535,6 +569,7 @@ function MusterRollPage() {
             is_home_mapped: homeMapped.has(c.id),
             is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
             role_key: (c.role_key || "").toLowerCase(),
+            lines: linesByCandidate.get(c.id) ?? [],
           };
         })
 
@@ -1291,6 +1326,11 @@ function MusterRollPage() {
     }
     return false;
   }, [shiftMap, unitId]);
+  const desigHasBothShifts = (designationId: string | null | undefined) => {
+    if (!designationId) return false;
+    const set = shiftMap?.offered?.get(`${unitId}|${designationId}`);
+    return Boolean(set && set.has(8) && set.has(12));
+  };
 
   const derivedSelfEntries = useMemo(() => {
     const desigByCand = new Map<string, string | null>(
@@ -1338,10 +1378,8 @@ function MusterRollPage() {
     // Self-punch derived rows only FILL BLANKS. A stored attendance_entries row
     // is a human decision (HR/FO marked the muster) and always wins — otherwise
     // a forgotten checkout would keep flipping a manually corrected P back to A.
-    for (const e of derivedSelfEntries)
-      m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
-    for (const e of entries)
-      m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    for (const e of derivedSelfEntries) m.set(`${entryRowKey(e)}|${e.entry_date}`, e);
+    for (const e of entries) m.set(`${entryRowKey(e)}|${e.entry_date}`, e);
     return m;
   }, [entries, derivedSelfEntries]);
 
@@ -1355,7 +1393,8 @@ function MusterRollPage() {
         (x) =>
           x.candidate_id === e.candidate_id &&
           x.entry_date === e.entry_date &&
-          (x.designation_id ?? null) === (e.designation_id ?? null),
+          (x.designation_id ?? null) === (e.designation_id ?? null) &&
+          !x.is_reliever,
       );
       return !existing;
     });
@@ -1373,7 +1412,9 @@ function MusterRollPage() {
         }));
         const { error } = await supabase
           .from("attendance_entries")
-          .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
+          .upsert(payload, {
+            onConflict: "unit_id,candidate_id,designation_id,shift_hours,is_reliever,entry_date",
+          });
         if (error) throw error;
         if (!cancelled) queryClient.invalidateQueries({ queryKey: entriesQK });
       } catch {
@@ -1398,6 +1439,19 @@ function MusterRollPage() {
   const [mapSaving, setMapSaving] = useState(false);
   const [mapAs, setMapAs] = useState<"regular" | "reliever">("regular");
   const [mapShift, setMapShift] = useState<8 | 12>(8);
+  const [mapDesig, setMapDesig] = useState<string | null>(null);
+  /** Set when the Add Employee box is editing an existing line. */
+  const [editLine, setEditLine] = useState<{
+    key: string;
+    lineId: string | null;
+    candidateId: string;
+    fullName: string;
+    designationId: string | null;
+    variant: string;
+  } | null>(null);
+  useEffect(() => {
+    if (mapSlot && !editLine) setMapDesig(mapSlot.designationId ?? null);
+  }, [mapSlot, editLine]);
 
   const currentRole = useCurrentUserRole();
   const restrictMapToOwnPeople = currentRole.isFieldOfficer;
@@ -1493,54 +1547,86 @@ function MusterRollPage() {
     if (!mapSlot) return;
     setMapSaving(true);
     try {
-      // A guard holds exactly ONE primary posting. If he has no primary unit yet,
-      // filling a contracted slot here deploys him properly (full attendance).
-      // If he is already posted elsewhere, he can only stand in as a reliever (ED).
+      const asReliever = mapAs === "reliever";
+      const designationId = mapDesig ?? mapSlot.designationId ?? cand.designation_id ?? null;
+      const shiftHours = desigHasBothShifts(designationId) ? mapShift : null;
       const { data: existingLinks, error: linkError } = await supabase
         .from("candidate_units")
-        .select("unit_id, is_primary, is_reliever")
+        .select("id, unit_id, is_primary, is_reliever, designation_id, shift_hours" as "id, unit_id, is_primary, is_reliever, designation_id")
         .eq("candidate_id", cand.id);
       if (linkError) throw linkError;
-      const primaryElsewhere = ((existingLinks ?? []) as Array<{
-        unit_id: string;
-        is_primary?: boolean | null;
-        is_reliever?: boolean | null;
-      }>).filter((l) => l.unit_id !== unitId && l.is_primary === true);
-      const asReliever = mapAs === "reliever";
-
-      // Regular = this becomes the guard's one primary unit; any other primary
-      // posting is turned into a reliever (ED-only) line first.
-      if (!asReliever && primaryElsewhere.length) {
-        const { error: demoteErr } = await supabase
-          .from("candidate_units")
-          .update({ is_primary: false, is_reliever: true })
-          .eq("candidate_id", cand.id)
-          .in("unit_id", primaryElsewhere.map((l) => l.unit_id));
-        if (demoteErr) throw demoteErr;
-      }
-
-      const { error } = await supabase.from("candidate_units").upsert(
-        {
-          candidate_id: cand.id,
-          unit_id: unitId,
-          is_reliever: asReliever,
-          is_primary: !asReliever,
-          designation_id: mapSlot.designationId ?? cand.designation_id ?? null,
-          ...(unitHasBothShifts ? { shift_hours: mapShift } : {}),
-        } as never,
-        { onConflict: "candidate_id,unit_id" },
+      const links = (existingLinks ?? []) as unknown as Array<UnitLine & { unit_id: string }>;
+      const here = links.filter((l) => l.unit_id === unitId);
+      const lineExists = here.some(
+        (l) =>
+          (l.designation_id ?? null) === designationId &&
+          (l.shift_hours ?? null) === shiftHours &&
+          l.is_reliever === asReliever,
       );
-      if (error) throw error;
-      if (!asReliever) {
-        await supabase.from("candidates").update({ unit_id: unitId }).eq("id", cand.id);
+      if (lineExists && !editLine) {
+        toast.info(`${cand.full_name} already has this line on the sheet`);
+        return;
       }
-      if (error) throw error;
-
-      // If the slot's designation differs from the employee's own, surface the
-      // line on the contracted designation so the slot is actually filled.
-      if (mapSlot.designationId && mapSlot.designationId !== cand.designation_id) {
-        setExtraRows((prev) => new Set(prev).add(rowKey(cand.id, mapSlot.designationId)));
+      // First regular line at this unit makes it the guard's main unit; more
+      // regular lines here (e.g. 8h + 12h) stay regular without moving it.
+      const primaryHere = here.some((l) => l.is_primary && l.id !== editLine?.lineId);
+      const payload = {
+        candidate_id: cand.id,
+        unit_id: unitId,
+        designation_id: designationId,
+        shift_hours: shiftHours,
+        is_reliever: asReliever,
+        is_primary: !asReliever && !primaryHere,
+      };
+      if (editLine?.lineId) {
+        const { error } = await supabase.from("candidate_units").update(payload as never).eq("id", editLine.lineId);
+        if (error) throw error;
+      } else if (!lineExists) {
+        const { error } = await supabase.from("candidate_units").insert(payload as never);
+        if (error) throw error;
       }
+      const newVariant = lineVariant(shiftHours ?? 0, asReliever);
+      // Editing a line moves its saved days onto the new line.
+      if (editLine) {
+        const old = parseVariant(editLine.variant);
+        let q = supabase
+          .from("attendance_entries")
+          .select("entry_date, code, ot_hours")
+          .eq("unit_id", unitId)
+          .eq("candidate_id", cand.id)
+          .eq("shift_hours" as never, old.shift as never)
+          .eq("is_reliever" as never, old.reliever as never)
+          .gte("entry_date", periodStart)
+          .lte("entry_date", periodEnd);
+        q = editLine.designationId ? q.eq("designation_id", editLine.designationId) : q.is("designation_id", null);
+        const { data: oldRows, error: oldErr } = await q;
+        if (oldErr) throw oldErr;
+        const rows = (oldRows ?? []) as Array<{ entry_date: string; code: string; ot_hours: number }>;
+        if (rows.length) {
+          let d = supabase
+            .from("attendance_entries")
+            .delete()
+            .eq("unit_id", unitId)
+            .eq("candidate_id", cand.id)
+            .eq("shift_hours" as never, old.shift as never)
+            .eq("is_reliever" as never, old.reliever as never)
+            .gte("entry_date", periodStart)
+            .lte("entry_date", periodEnd);
+          d = editLine.designationId ? d.eq("designation_id", editLine.designationId) : d.is("designation_id", null);
+          const { error: delErr } = await d;
+          if (delErr) throw delErr;
+          await upsertEntries(cand.id, designationId, rowsForAttendanceRole(rows, asReliever), {
+            variant: newVariant,
+          });
+        }
+        setExtraRows((prev) => {
+          const next = new Set(prev);
+          next.delete(editLine.key);
+          return next;
+        });
+      }
+      setExtraRows((prev) => new Set(prev).add(rowKey(cand.id, designationId, newVariant)));
+      await queryClient.invalidateQueries({ queryKey: entriesQK });
 
       // Show the person on THIS period's muster immediately, before any
       // attendance exists for them.
@@ -1552,7 +1638,7 @@ function MusterRollPage() {
         action: "update",
         entityType: "muster_slot",
         entityId: cand.id,
-        entityLabel: `${cand.full_name} → ${mapSlot.designationName}${unitHasBothShifts ? ` (${mapShift}h)` : ""} @ ${unit?.name ?? unitId}`,
+        entityLabel: `${editLine ? "Edited line: " : ""}${cand.full_name} → ${allDesigNames.get(mapDesig ?? "") ?? mapSlot.designationName}${desigHasBothShifts(mapDesig) ? ` (${mapShift}h)` : ""}${mapAs === "reliever" ? " (R)" : ""} @ ${unit?.name ?? unitId}`,
       });
       toast.success(
         asReliever
@@ -1560,6 +1646,7 @@ function MusterRollPage() {
           : `${cand.full_name} added as regular guard`,
       );
       setMapSlot(null);
+      setEditLine(null);
       setMapQuery("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to map employee");
@@ -1568,7 +1655,13 @@ function MusterRollPage() {
     }
   };
 
-  // Derived list of muster rows: one per (candidate, designation)
+  const unitDesigOptionsQ = useUnitDesignations(unitId);
+  const allDesigNames = useMemo(
+    () => new Map((unitDesigOptionsQ.data ?? []).map((d) => [d.id, d.name])),
+    [unitDesigOptionsQ.data],
+  );
+
+  // Derived list of muster rows: one per (candidate, designation, duty length, reliever)
   const musterRows = useMemo(() => {
     const out: Array<{
       key: string;
@@ -1592,6 +1685,11 @@ function MusterRollPage() {
       vacant?: boolean;
       /** Open line offered past the contract's agreed quantity. */
       beyondAgreed?: boolean;
+      /** Duty length for this line (0 = unit/designation default). */
+      shiftHours?: number;
+      /** candidate_units row backing this line, when there is one. */
+      lineId?: string | null;
+      variant?: string;
     }> = [];
     const seen = new Set<string>();
     const desigNameMap = new Map(
@@ -1612,63 +1710,59 @@ function MusterRollPage() {
       // A guard may be deployed at many units — "is_home_mapped" here means
       // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
-      // Primary row from candidate's own designation
-      const primaryKey = rowKey(emp.id, emp.designation_id);
-      out.push({
-        key: primaryKey,
-        candidateId: emp.id,
-        designationId: emp.designation_id,
-        designationName: emp.designation || "—",
-        emp,
-        isPrimary: true,
-        reliever: !assigned,
-        otOnly: !assigned,
-      });
-      seen.add(primaryKey);
-
-      // Additional designations from candidate master are intentionally NOT auto-added
-      // here. They only surface in the muster when (a) attendance entries exist for that
-      // (candidate, designation) pair in this period, or (b) the user explicitly adds a
-      // line via "Add line item". This keeps the sheet free of empty designation rows.
-
-      // Additional rows from any entries with a different designation
-
-      for (const e of entries) {
-        if (e.candidate_id !== emp.id) continue;
-        const k = rowKey(e.candidate_id, e.designation_id);
-        if (seen.has(k)) continue;
+      const lines = ((emp as { lines?: UnitLine[] }).lines ?? []) as UnitLine[];
+      const pushRow = (
+        designationId: string | null,
+        variant: string,
+        isPrimary: boolean,
+        lineId: string | null,
+      ) => {
+        const k = rowKey(emp.id, designationId, variant);
+        if (seen.has(k)) return;
         seen.add(k);
-        const dName = (e.designation_id && desigNameMap.get(e.designation_id)) || "—";
+        const { shift, reliever } = parseVariant(variant);
         out.push({
           key: k,
           candidateId: emp.id,
-          designationId: e.designation_id,
-          designationName: dName,
+          designationId,
+          designationName:
+            (designationId && (desigNameMap.get(designationId) || allDesigNames.get(designationId))) ||
+            (designationId === emp.designation_id ? emp.designation : "") ||
+            "—",
           emp,
-          isPrimary: false,
-          reliever: true,
-          otOnly: true,
+          isPrimary,
+          reliever,
+          otOnly: reliever,
+          shiftHours: shift,
+          lineId,
+          variant,
         });
+      };
+      if (lines.length) {
+        for (const l of lines) {
+          pushRow(
+            l.designation_id ?? emp.designation_id,
+            lineVariant(l.shift_hours, l.is_reliever),
+            true,
+            l.id,
+          );
+        }
+      } else {
+        pushRow(emp.designation_id, lineVariant(0, !assigned), true, null);
+      }
+
+      // Lines that only exist through saved attendance (e.g. an older
+      // designation or duty length) still show so they can be edited/removed.
+      for (const e of entries) {
+        if (e.candidate_id !== emp.id) continue;
+        pushRow(e.designation_id, lineVariant(e.shift_hours, e.is_reliever), false, null);
       }
 
       // Locally added extras for this candidate
       for (const xk of extraRows) {
         if (!xk.startsWith(emp.id + "|")) continue;
-        if (seen.has(xk)) continue;
-        seen.add(xk);
-        const did = xk.split("|")[1];
-        const designationId = did === NULL_DESIG ? null : did;
-        const dName = (designationId && desigNameMap.get(designationId)) || "—";
-        out.push({
-          key: xk,
-          candidateId: emp.id,
-          designationId,
-          designationName: dName,
-          emp,
-          isPrimary: false,
-          reliever: true,
-          otOnly: true,
-        });
+        const [, did, v] = xk.split("|");
+        pushRow(did === NULL_DESIG ? null : did, v ?? "0", false, null);
       }
     }
 
@@ -1719,7 +1813,7 @@ function MusterRollPage() {
           a.i - b.i,
       )
       .map((x) => x.r);
-  }, [employees, entries, extraRows, contractDesignations, periodStart, periodEnd]);
+  }, [employees, entries, extraRows, contractDesignations, periodStart, periodEnd, allDesigNames]);
 
   // Client-side filter: name / employee_code / designation substring match.
   const visibleMusterRows = useMemo(() => {
@@ -1742,7 +1836,24 @@ function MusterRollPage() {
     candidate_id: string,
     designation_id: string | null,
     rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
+    line?: { variant?: string; reliever?: boolean },
   ) => {
+    // Which line of this person the rows belong to. Without an explicit
+    // variant, use the person's matching posting at this unit.
+    let variant = line?.variant;
+    if (variant == null) {
+      const emp = (rosterEmployees ?? []).find((e) => e.id === candidate_id);
+      const lines = ((emp as { lines?: UnitLine[] } | undefined)?.lines ?? []) as UnitLine[];
+      const want = line?.reliever;
+      const match =
+        lines.find(
+          (l) =>
+            (l.designation_id ?? null) === (designation_id ?? null) &&
+            (want == null || l.is_reliever === want),
+        ) ?? lines.find((l) => want == null || l.is_reliever === want);
+      variant = lineVariant(match?.shift_hours ?? 0, want ?? match?.is_reliever ?? false);
+    }
+    const lineParts = parseVariant(variant);
     // Reliever status belongs to a specific muster line, not the employee as
     // a whole. A guard may have an ED-only reliever line and a normal primary
     // line in the same unit; blanking by employee silently discarded valid P
@@ -1783,7 +1894,7 @@ function MusterRollPage() {
     let movedDays = 0;
     const extraRows: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
     if (cap != null) {
-      const rk = rowKey(candidate_id, designation_id);
+      const rk = rowKey(candidate_id, designation_id, variant);
       const touched = new Set(filtered.map((r) => r.entry_date));
       let used = 0;
       for (const cell of periodCells) {
@@ -1841,6 +1952,8 @@ function MusterRollPage() {
       unit_id: unitId,
       candidate_id,
       designation_id,
+      shift_hours: lineParts.shift,
+      is_reliever: lineParts.reliever,
       entry_date: r.entry_date,
       code: r.code,
       ot_hours: r.ot_hours,
@@ -1851,7 +1964,9 @@ function MusterRollPage() {
     const savedRows = await withNetworkRetry(async () => {
       const { data, error } = await supabase
         .from("attendance_entries")
-        .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" })
+        .upsert(payload as never, {
+          onConflict: "unit_id,candidate_id,designation_id,shift_hours,is_reliever,entry_date",
+        })
         .select("entry_date,code,ot_hours");
       if (error) throw error;
       return data;
@@ -1896,6 +2011,71 @@ function MusterRollPage() {
   };
 
   const confirm = useConfirm();
+  const deleteMusterLine = async (mr: {
+    key: string;
+    candidateId: string;
+    designationId: string | null;
+    designationName: string;
+    emp: { full_name: string };
+    lineId?: string | null;
+    variant?: string;
+  }) => {
+    const v = parseVariant(mr.variant);
+    const ok = await confirm({
+      title: "Delete this line?",
+      description: `${mr.emp.full_name} — ${mr.designationName}${v.shift ? ` ${v.shift}h` : ""}${v.reliever ? " (R)" : ""}. Its attendance for ${periodStart} → ${periodEnd} will be deleted.`,
+      confirmText: "Delete",
+      destructive: true,
+    } as never);
+    if (!ok) return;
+    try {
+      let q = supabase
+        .from("attendance_entries")
+        .delete()
+        .eq("unit_id", unitId)
+        .eq("candidate_id", mr.candidateId)
+        .eq("shift_hours" as never, v.shift as never)
+        .eq("is_reliever" as never, v.reliever as never)
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
+      q = mr.designationId ? q.eq("designation_id", mr.designationId) : q.is("designation_id", null);
+      const { error } = await q;
+      if (error) throw error;
+      if (mr.lineId) {
+        // Keep the posting when this line still has attendance in other periods.
+        let rest = supabase
+          .from("attendance_entries")
+          .select("id", { count: "exact", head: true })
+          .eq("unit_id", unitId)
+          .eq("candidate_id", mr.candidateId)
+          .eq("shift_hours" as never, v.shift as never)
+          .eq("is_reliever" as never, v.reliever as never);
+        rest = mr.designationId ? rest.eq("designation_id", mr.designationId) : rest.is("designation_id", null);
+        const { count } = await rest;
+        if (!count) {
+          const { error: unlinkError } = await supabase.from("candidate_units").delete().eq("id", mr.lineId);
+          if (unlinkError) throw unlinkError;
+        }
+      }
+      setExtraRows((prev) => {
+        const next = new Set(prev);
+        next.delete(mr.key);
+        return next;
+      });
+      await queryClient.invalidateQueries({ queryKey: entriesQK });
+      await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+      logActivity({
+        module: "Attendance",
+        action: "delete",
+        entityType: "muster_line",
+        entityId: mr.candidateId,
+        entityLabel: `${mr.emp.full_name} — ${mr.designationName}${v.shift ? ` ${v.shift}h` : ""}${v.reliever ? " (R)" : ""} @ ${unit?.name ?? unitId}`,
+      });
+      toast.success("Line deleted");
+    } catch (e) {
+      toast.error(saveErrorMessage(e));
+    }
+  };
   const [clearingAll, setClearingAll] = useState(false);
   const handleClearAll = async () => {
     if (!editable) {
@@ -2297,6 +2477,7 @@ function MusterRollPage() {
           resolved.candidateId,
           resolved.designationId,
           rowsForAttendanceRole(rows, resolved.isReliever),
+          { reliever: resolved.isReliever },
         );
       try {
         await writeRows();
@@ -2635,6 +2816,7 @@ function MusterRollPage() {
               rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
               mappingByPair.get(pk)?.isReliever ?? false,
             ),
+            { reliever: mappingByPair.get(pk)?.isReliever ?? false },
           );
         }),
       );
@@ -3063,6 +3245,7 @@ function MusterRollPage() {
           mr.candidateId,
           mr.designationId,
           rowsForAttendanceRole(rows, mapping.isReliever),
+          { reliever: mapping.isReliever },
         );
       }
       for (const pair of autoPairs) {
@@ -3070,6 +3253,7 @@ function MusterRollPage() {
           pair.candidateId,
           pair.designationId,
           rowsForAttendanceRole(pair.rows, pair.isReliever),
+          { reliever: pair.isReliever },
         );
       }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
@@ -3257,6 +3441,7 @@ function MusterRollPage() {
   // it comes from the unit's active contract resource line.
   const rowShiftHours = (k: string | null) => {
     const row = findRow(k);
+    if (row?.shiftHours === 8 || row?.shiftHours === 12) return row.shiftHours;
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null, row?.candidateId || null);
   };
 
@@ -3284,7 +3469,9 @@ function MusterRollPage() {
           code,
           ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
         }));
-        applied += await upsertEntries(row.candidateId, row.designationId, rows);
+        applied += await upsertEntries(row.candidateId, row.designationId, rows, {
+          variant: row.variant,
+        });
       }
       if (blocked > 0) {
         toast.error("Reliever lines are Extra Duty only — mark ED hours on the ED row instead");
@@ -3324,7 +3511,7 @@ function MusterRollPage() {
           code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
           ot_hours: otDays,
         }));
-        await upsertEntries(row.candidateId, row.designationId, rows);
+        await upsertEntries(row.candidateId, row.designationId, rows, { variant: row.variant });
         count += dates.length;
       }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
@@ -4916,73 +5103,42 @@ function MusterRollPage() {
                             <span>{mr.emp.full_name || "—"}</span>
                           )}
 
-                          {mr.reliever && !mr.vacant && (
-                            <button
-                              type="button"
-                              title="Remove this reliever line and delete its attendance entries in this period"
-                              disabled={!editable}
-                              onClick={async () => {
-                                if (!editable) return;
-                                const hasEntries = entries.some(
-                                  (e) =>
-                                    e.candidate_id === mr.candidateId &&
-                                    e.designation_id === mr.designationId,
-                                );
-                                if (
-                                  !window.confirm(
-                                    hasEntries
-                                      ? `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`
-                                      : `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name} from this muster?`,
-                                  )
-                                ) {
-                                  return;
-                                }
-                                try {
-                                  if (hasEntries) {
-                                    let q = supabase
-                                      .from("attendance_entries")
-                                      .delete()
-                                      .eq("unit_id", unitId)
-                                      .eq("candidate_id", mr.candidateId)
-                                      .gte("entry_date", periodStart)
-                                      .lte("entry_date", periodEnd);
-                                    q = mr.designationId
-                                      ? q.eq("designation_id", mr.designationId)
-                                      : q.is("designation_id", null);
-                                    const { error } = await q;
-                                    if (error) throw error;
-                                  }
-                                  // A reliever who reached this muster through a
-                                  // candidate_units link (their home unit is elsewhere)
-                                  // is unmapped entirely when their last line goes.
-                                  if (mr.isPrimary) {
-                                    const { error: unlinkError } = await supabase
-                                      .from("candidate_units")
-                                      .delete()
-                                      .eq("unit_id", unitId)
-                                      .eq("candidate_id", mr.candidateId);
-                                    if (unlinkError) throw unlinkError;
-                                  }
-                                  setExtraRows((prev) => {
-                                    const next = new Set(prev);
-                                    next.delete(mr.key);
-                                    return next;
+                          {!mr.vacant && editable && (
+                            <span className="inline-flex items-center gap-0.5 print:hidden">
+                              <button
+                                type="button"
+                                title="Edit this line: designation, 8/12 hours, regular or reliever"
+                                onClick={() => {
+                                  const v = parseVariant(mr.variant);
+                                  setEditLine({
+                                    key: mr.key,
+                                    lineId: mr.lineId ?? null,
+                                    candidateId: mr.candidateId,
+                                    fullName: mr.emp.full_name,
+                                    designationId: mr.designationId,
+                                    variant: mr.variant ?? "0",
                                   });
-                                  queryClient.invalidateQueries({ queryKey: entriesQK });
-                                  queryClient.invalidateQueries({
-                                    queryKey: ["attendance-roster-v5", unitId],
+                                  setMapDesig(mr.designationId);
+                                  setMapAs(v.reliever ? "reliever" : "regular");
+                                  setMapShift(v.shift === 12 ? 12 : 8);
+                                  setMapSlot({
+                                    designationId: mr.designationId,
+                                    designationName: mr.designationName,
                                   });
-                                  toast.success("Reliever line removed");
-                                } catch (e) {
-                                  toast.error(
-                                    e instanceof Error ? e.message : "Failed to remove line",
-                                  );
-                                }
-                              }}
-                              className="rounded-full p-0.5 text-slate-400 hover:text-rose-600 disabled:opacity-40 print:hidden"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
+                                }}
+                                className="rounded-full p-0.5 text-slate-400 hover:text-primary"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Delete this line and its attendance for this period"
+                                onClick={() => void deleteMusterLine(mr)}
+                                className="rounded-full p-0.5 text-slate-400 hover:text-rose-600"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </span>
                           )}
                         </div>
                       </td>
@@ -5315,13 +5471,16 @@ function MusterRollPage() {
         onOpenChange={(o) => {
           if (!o) {
             setMapSlot(null);
+            setEditLine(null);
             setMapQuery("");
           }
         }}
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add employee to this sheet</DialogTitle>
+            <DialogTitle>
+              {editLine ? `Edit line — ${editLine.fullName}` : "Add employee to this sheet"}
+            </DialogTitle>
             <DialogDescription>
               Search by employee ID or name
               {mapSlot?.designationId ? (
@@ -5354,7 +5513,11 @@ function MusterRollPage() {
               </button>
             ))}
           </div>
-          {unitHasBothShifts ? (
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-muted-foreground">Designation</div>
+            <UnitDesignationSelect unitId={unitId} value={mapDesig} onChange={setMapDesig} />
+          </div>
+          {desigHasBothShifts(mapDesig) ? (
             <div className="space-y-1">
               <div className="text-xs font-medium text-muted-foreground">Duty length (sets the billing rate)</div>
               <div className="grid grid-cols-2 gap-2">
@@ -5376,6 +5539,22 @@ function MusterRollPage() {
               </div>
             </div>
           ) : null}
+          {editLine ? (
+            <Button
+              type="button"
+              disabled={mapSaving || !mapDesig}
+              onClick={() =>
+                mapEmployeeToSlot({
+                  id: editLine.candidateId,
+                  full_name: editLine.fullName,
+                  designation_id: editLine.designationId,
+                })
+              }
+            >
+              {mapSaving ? "Saving…" : "Save changes"}
+            </Button>
+          ) : (
+          <>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -5412,7 +5591,7 @@ function MusterRollPage() {
                     </span>
                     <span className="shrink-0 text-[11px] font-medium text-primary">
                       {already
-                        ? `Set as ${mapAs === "regular" ? "regular" : "reliever"}`
+                        ? `Add another line (${mapAs})`
                         : `Add as ${mapAs === "regular" ? "regular" : "reliever"}`}
                     </span>
                   </button>
@@ -5420,6 +5599,8 @@ function MusterRollPage() {
               })
             )}
           </div>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -774,9 +774,9 @@ function PayrollUnitPage() {
       for (const l of ((postingShiftRes.data ?? []) as unknown as { candidate_id: string; shift_hours: number }[])) {
         postingShift.set(l.candidate_id, normShift(l.shift_hours));
       }
-      const resourceForLine = (cid: string, did: string) => {
+      const resourceForLine = (cid: string, did: string, lineShift?: number) => {
         const offered = shiftsByDesignation.get(did);
-        const wanted = postingShift.get(cid);
+        const wanted = lineShift === 8 || lineShift === 12 ? lineShift : postingShift.get(cid);
         const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);
         return resourceByShiftKey.get(shiftKey(did, shift)) ?? resourceByDesignation.get(did);
       };
@@ -821,17 +821,19 @@ function PayrollUnitPage() {
       // Each candidate gets a primary line (their own designation) plus an extra
       // line for any other designation found in their attendance entries.
       const rosterById = new Map(roster.map((c) => [c.id, c]));
-      const pairKey = (cid: string, did: string | null) => `${cid}|${did ?? "__none__"}`;
-      const pairs = new Map<string, { candidateId: string; designationId: string | null }>();
+      const pairKey = (cid: string, did: string | null, sh = 0) => `${cid}|${did ?? "__none__"}|${sh}`;
+      const entryShift = (e: unknown) => Number((e as { shift_hours?: number | null }).shift_hours) || 0;
+      const pairs = new Map<string, { candidateId: string; designationId: string | null; shift: number }>();
 
       for (const c of roster) {
-        const k = pairKey(c.id, c.designation_id ?? null);
-        pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null });
+        const sh = postingShift.get(c.id) ?? 0;
+        const k = pairKey(c.id, c.designation_id ?? null, sh);
+        pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null, shift: sh });
       }
       for (const e of entries) {
         if (!rosterById.has(e.candidate_id)) continue;
-        const k = pairKey(e.candidate_id, e.designation_id);
-        if (!pairs.has(k)) pairs.set(k, { candidateId: e.candidate_id, designationId: e.designation_id });
+        const k = pairKey(e.candidate_id, e.designation_id, entryShift(e));
+        if (!pairs.has(k)) pairs.set(k, { candidateId: e.candidate_id, designationId: e.designation_id, shift: entryShift(e) });
       }
 
       const rows = Array.from(pairs.values()).map((p) => {
@@ -840,7 +842,10 @@ function PayrollUnitPage() {
         const designationName = (p.designationId && desigMap.get(p.designationId)) || "—";
         // Filter entries to just this (candidate, designation) pair so totals reflect only that line.
         const lineEntries = entries.filter(
-          (e) => e.candidate_id === p.candidateId && (e.designation_id ?? null) === p.designationId,
+          (e) =>
+            e.candidate_id === p.candidateId &&
+            (e.designation_id ?? null) === p.designationId &&
+            entryShift(e) === p.shift,
         );
         // Public holiday credit belongs to the employee, not to each line they
         // appear on: a reliever line (designation other than their own) must not
@@ -871,7 +876,7 @@ function PayrollUnitPage() {
           const phDisplay = phDisplayCountByCandidate.get(c.id) ?? 0;
           if (phDisplay) totals.phDays = totals.phDays + phDisplay;
         }
-        const resource = resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did);
+        const resource = resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did, p.shift);
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })
