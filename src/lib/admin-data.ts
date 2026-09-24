@@ -567,6 +567,8 @@ export type Unit = {
   zone: string;
   /** Optional client-side SAP code for this branch/site. */
   branchSapCode: string;
+  /** MIS is sent on its own; excluded from combined MIS exports. */
+  separateMis?: boolean;
   branchId: string | null;
   customerId: string | null;
   onboardingDate: string;
@@ -663,6 +665,7 @@ type UnitRow = {
   status: CustomerStatus;
   zone?: string | null;
   branch_sap_code?: string | null;
+  separate_mis?: boolean | null;
   branch_id: string | null;
   customer_id: string | null;
   onboarding_date: string | null;
@@ -740,6 +743,7 @@ function rowToUnit(r: UnitRow): Unit {
     status: r.status,
     zone: r.zone ?? "",
     branchSapCode: r.branch_sap_code ?? "",
+    separateMis: r.separate_mis === true,
     branchId: r.branch_id,
     customerId: r.customer_id,
     onboardingDate: r.onboarding_date ?? "",
@@ -813,6 +817,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     status: data.status,
     zone: data.zone?.trim() || null,
     branch_sap_code: data.branchSapCode?.trim() || null,
+    separate_mis: data.separateMis === true,
     branch_id: data.branchId || null,
     customer_id: data.customerId || null,
     onboarding_date: data.onboardingDate || null,

@@ -1167,6 +1167,17 @@ function UnitFormDialog({
                   />
                 </div>
               </Field>
+              <Field label="Separate MIS">
+                <div className="modern-form-toggle">
+                  <span className="text-sm font-medium text-foreground">
+                    {form.separateMis ? "Yes — excluded from combined MIS" : "No"}
+                  </span>
+                  <Switch
+                    checked={form.separateMis === true}
+                    onCheckedChange={(v) => set("separateMis", v)}
+                  />
+                </div>
+              </Field>
             </div>
           </Section>
 
