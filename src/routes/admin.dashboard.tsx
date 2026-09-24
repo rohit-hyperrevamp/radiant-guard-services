@@ -215,7 +215,10 @@ type PnLRow = {
   actual_strength: number;
   /** Internal (own-company) unit: cost centre, never billed to a customer. */
   internal: boolean;
+  /** Attendance for the window is approved — invoice/payroll can be shown. */
+  attendance_approved: boolean;
 };
+
 
 function DashboardPage() {
   const now = new Date();
@@ -581,6 +584,79 @@ function DashboardPage() {
 
       const round2 = (n: number) => Math.round(n * 100) / 100;
 
+      // Real figures for the window: approved attendance sheets decide whether
+      // a unit is ready; posted payroll snapshots and single-unit final invoices
+      // override the computed values whenever they exist.
+      const unitIdList = unitRows.map((u) => u.unit_id);
+      const chunks: string[][] = [];
+      for (let i = 0; i < unitIdList.length; i += 200) chunks.push(unitIdList.slice(i, i + 200));
+      const approvedUnits = new Set<string>();
+      const postedPayroll = new Map<string, number>();
+      const finalInvoiceByUnit = new Map<string, number>();
+      await Promise.all(
+        chunks.map(async (ids) => {
+          const [sheets, runs, invUnits] = await Promise.all([
+            supabase
+              .from("attendance_sheets")
+              .select("unit_id,status")
+              .in("unit_id", ids)
+              .eq("period_start", monthStart)
+              .eq("period_end", monthEnd)
+              .eq("status", "approved"),
+            supabase
+              .from("payroll_runs")
+              .select("id,unit_id")
+              .in("unit_id", ids)
+              .eq("period_start", monthStart)
+              .eq("period_end", monthEnd),
+            supabase
+              .from("final_invoice_units" as never)
+              .select("unit_id,final_invoice_id")
+              .in("unit_id", ids)
+              .eq("period_start", monthStart)
+              .eq("period_end", monthEnd),
+          ]);
+          for (const s of (sheets.data ?? []) as { unit_id: string }[]) approvedUnits.add(s.unit_id);
+          const runIds = ((runs.data ?? []) as { id: string }[]).map((r) => r.id);
+          if (runIds.length) {
+            const { data: snaps } = await supabase
+              .from("payroll_run_snapshots" as never)
+              .select("unit_id,gross,total_employer")
+              .in("payroll_run_id", runIds);
+            for (const s of (snaps ?? []) as { unit_id: string; gross: number; total_employer: number }[]) {
+              postedPayroll.set(
+                s.unit_id,
+                (postedPayroll.get(s.unit_id) ?? 0) + (Number(s.gross) || 0),
+              );
+            }
+          }
+          const links = (invUnits.data ?? []) as { unit_id: string; final_invoice_id: string }[];
+          const invIds = Array.from(new Set(links.map((l) => l.final_invoice_id)));
+          if (invIds.length) {
+            const [{ data: invs }, { data: allLinks }] = await Promise.all([
+              supabase.from("final_invoices" as never).select("id,taxable_value").in("id", invIds),
+              supabase
+                .from("final_invoice_units" as never)
+                .select("final_invoice_id,unit_id")
+                .in("final_invoice_id", invIds),
+            ]);
+            const unitCount = new Map<string, number>();
+            for (const l of (allLinks ?? []) as { final_invoice_id: string }[])
+              unitCount.set(l.final_invoice_id, (unitCount.get(l.final_invoice_id) ?? 0) + 1);
+            const value = new Map(
+              ((invs ?? []) as { id: string; taxable_value: number }[]).map((i) => [
+                i.id,
+                Number(i.taxable_value) || 0,
+              ]),
+            );
+            for (const l of links) {
+              if (unitCount.get(l.final_invoice_id) !== 1) continue;
+              finalInvoiceByUnit.set(l.unit_id, value.get(l.final_invoice_id) ?? 0);
+            }
+          }
+        }),
+      );
+
       const pnlByUnit = new Map<string, PnLRow>();
       for (const u of unitRows) {
         const resMap = resByContractDesig.get(u.contract_id) ?? new Map<string, ResourceRow>();
@@ -649,6 +725,9 @@ function DashboardPage() {
           payrollCost += wages.earnedGross;
         }
 
+        if (!isInternal && finalInvoiceByUnit.has(u.unit_id))
+          invoiceAmount = finalInvoiceByUnit.get(u.unit_id)!;
+        if (postedPayroll.has(u.unit_id)) payrollCost = postedPayroll.get(u.unit_id)!;
         const variance = invoiceAmount - payrollCost;
         pnlByUnit.set(u.unit_id, {
           unit_id: u.unit_id,
@@ -664,6 +743,7 @@ function DashboardPage() {
           committed_payroll: committedPayroll,
           committed_strength: committedStrength,
           actual_strength: Number(u.actual_strength) || 0,
+          attendance_approved: approvedUnits.has(u.unit_id),
         });
       }
 
