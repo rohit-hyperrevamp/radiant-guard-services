@@ -1544,8 +1544,8 @@ function MusterRollPage() {
       });
       toast.success(
         asReliever
-          ? `${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`
-          : `${cand.full_name} deployed on ${mapSlot.designationName}`,
+          ? `${cand.full_name} added as reliever (R) — extra duty only`
+          : `${cand.full_name} added as regular guard`,
       );
       setMapSlot(null);
       setMapQuery("");
