@@ -249,8 +249,8 @@ export function FinanceCharter({
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
       for (const [unitId, period] of periodsByUnit) {
-        const key = `${period.start}|${period.mtdEnd}`;
-        const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
+        const key = `${period.start}|${period.end}`;
+        const group = groups.get(key) ?? { start: period.start, end: period.end, unitIds: [] };
         group.unitIds.push(unitId);
         groups.set(key, group);
       }
@@ -289,7 +289,12 @@ export function FinanceCharter({
       if (!unitId) continue;
       const finance = financeQ.data?.get(unitId);
       const rate = rateFor(finance, e.designation_id, e.candidate_id, (e as any).shift_hours);
-      const periodDays = periodsByUnit.get(unitId)?.totalDays ?? 1;
+      // Same maths as the MIS sheet: per-day rate = monthly bill ÷ the contract's
+      // billing-days rule (e.g. fixed 26, days minus four), not calendar days.
+      const p = periodsByUnit.get(unitId);
+      const dates = p ? periodDateList(p.start, p.end) : [];
+      const divisor = rate ? Math.max(1, resolveBillingDivisor(rate, dates) || p?.totalDays || 1) : 1;
+      const billPerDay = rate ? billingRatePerDay(rate.billRate, rate, dates) : 0;
       if (!out.has(unitId)) out.set(unitId, new Map());
       const bucket = out.get(unitId)!;
       let person = bucket.get(e.candidate_id);
@@ -319,9 +324,9 @@ export function FinanceCharter({
       person.otDays += ot;
       const payable = counted + ot;
       if (rate) {
-        person.invoiceAmount += (rate.billRate / periodDays) * payable;
-        person.payrollAmount += (rate.grossRate / periodDays) * payable;
-        person.deductionAmount += (rate.deductionRate / periodDays) * payable;
+        person.invoiceAmount += billPerDay * payable;
+        person.payrollAmount += (rate.grossRate / divisor) * payable;
+        person.deductionAmount += (rate.deductionRate / divisor) * payable;
         person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
       }
     }
