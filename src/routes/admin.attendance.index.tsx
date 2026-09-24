@@ -143,6 +143,7 @@ function AttendanceUnitsPage() {
     return windowUnits.filter((u) => {
       if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
       if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
+      if (stateFilter.length > 0 && !stateFilter.includes(u.billing_state || "")) return false;
       if (term) {
         const hay = [
           u.customer_name,
@@ -159,9 +160,9 @@ function AttendanceUnitsPage() {
       }
       return true;
     });
-  }, [q, orgFilter, unitFilter, windowUnits]);
+  }, [q, orgFilter, unitFilter, stateFilter, windowUnits]);
 
-  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
+  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || stateFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
 
 
 
