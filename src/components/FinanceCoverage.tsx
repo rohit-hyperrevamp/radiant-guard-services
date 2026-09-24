@@ -514,7 +514,6 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   const [query, setQuery] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
-  const [cityFilter, setCityFilter] = useState<string[]>([]);
 
   // Internal / non-billable units carry cost with no customer revenue by
   // design — including them would make P&L negative by construction.
@@ -532,44 +531,31 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       ).sort((a, b) => a.label.localeCompare(b.label)),
     [rows],
   );
+  // States cascade from the selected organizations — picking an org narrows
+  // the state list to only the states that org actually operates in.
+  const orgScopedRows = useMemo(
+    () =>
+      orgFilter.length === 0
+        ? rows
+        : rows.filter((r) => orgFilter.includes(r.customer_id || r.customer_name)),
+    [rows, orgFilter],
+  );
   const stateOptions = useMemo(
     () =>
-      Array.from(new Set(rows.map((r) => r.billing_state).filter((s): s is string => !!s)))
+      Array.from(new Set(orgScopedRows.map((r) => r.billing_state).filter((s): s is string => !!s)))
         .sort()
         .map((s) => ({ value: s, label: s })),
-    [rows],
-  );
-  const cityOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rows
-            .filter(
-              (r) =>
-                stateFilter.length === 0 ||
-                (r.billing_state != null && stateFilter.includes(r.billing_state)),
-            )
-            .map((r) => r.billing_city)
-            .filter((c): c is string => !!c),
-        ),
-      )
-        .sort()
-        .map((c) => ({ value: c, label: c })),
-    [rows, stateFilter],
+    [orgScopedRows],
   );
 
   const scopedRows = useMemo(
     () =>
-      rows.filter((r) => {
-        if (orgFilter.length > 0 && !orgFilter.includes(r.customer_id || r.customer_name))
-          return false;
+      orgScopedRows.filter((r) => {
         if (stateFilter.length > 0 && !(r.billing_state && stateFilter.includes(r.billing_state)))
-          return false;
-        if (cityFilter.length > 0 && !(r.billing_city && cityFilter.includes(r.billing_city)))
           return false;
         return true;
       }),
-    [rows, orgFilter, stateFilter, cityFilter],
+    [orgScopedRows, stateFilter],
   );
 
   const totals = useMemo(() => {
