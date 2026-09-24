@@ -677,7 +677,21 @@ export function FinanceCharter({
     return rows.some((u) => !disabled.has(String(u.customer_id ?? "")));
   }, [misDisabledCustomers, matchedUnits, units]);
   const exportMisCombined = async () => {
-    const targets = matchedUnits;
+    let targets = matchedUnits;
+    // Units with "Separate MIS" are exported one by one, never in a combined sheet.
+    if (targets.length > 1) {
+      const sep = new Set<string>();
+      const allIds = targets.map((u) => u.id);
+      for (let i = 0; i < allIds.length; i += 150) {
+        const { data } = await supabase
+          .from("units")
+          .select("id" as never)
+          .in("id", allIds.slice(i, i + 150))
+          .eq("separate_mis" as never, true as never);
+        for (const r of (data ?? []) as unknown as Array<{ id: string }>) sep.add(r.id);
+      }
+      targets = targets.filter((u) => !sep.has(u.id));
+    }
     if (targets.length === 0) {
       toast.error("No units in the current filter.");
       return;
