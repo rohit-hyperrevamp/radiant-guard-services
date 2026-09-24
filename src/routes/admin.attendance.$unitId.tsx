@@ -1283,6 +1283,15 @@ function MusterRollPage() {
     enabled: Boolean(unitId),
   });
 
+  // Units whose contract offers the same post as both 8h and 12h duty need the
+  // duty length chosen per guard so billing and payroll pick the right rate.
+  const unitHasBothShifts = useMemo(() => {
+    for (const [k, set] of shiftMap?.offered ?? []) {
+      if (k.startsWith(`${unitId}|`) && set.has(8) && set.has(12)) return true;
+    }
+    return false;
+  }, [shiftMap, unitId]);
+
   const derivedSelfEntries = useMemo(() => {
     const desigByCand = new Map<string, string | null>(
       (employees ?? []).map((e) => [e.id, e.designation_id ?? null]),
@@ -1310,7 +1319,7 @@ function MusterRollPage() {
       const mins = (new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime()) / 60000;
       const hours = Math.max(0, mins / 60);
       const designationId = desigByCand.get(p.candidate_id) ?? null;
-      const shift = shiftHoursFor(shiftMap, unitId, designationId);
+      const shift = shiftHoursFor(shiftMap, unitId, designationId, p.candidate_id);
       const otDays = overtimeDaysForShift(hours, shift);
       const code = attendanceCodeForShift(hours, shift);
       rows.push({
@@ -1388,6 +1397,7 @@ function MusterRollPage() {
   const [mapQuery, setMapQuery] = useState("");
   const [mapSaving, setMapSaving] = useState(false);
   const [mapAs, setMapAs] = useState<"regular" | "reliever">("regular");
+  const [mapShift, setMapShift] = useState<8 | 12>(8);
 
   const currentRole = useCurrentUserRole();
   const restrictMapToOwnPeople = currentRole.isFieldOfficer;
@@ -1516,7 +1526,8 @@ function MusterRollPage() {
           is_reliever: asReliever,
           is_primary: !asReliever,
           designation_id: mapSlot.designationId ?? cand.designation_id ?? null,
-        },
+          ...(unitHasBothShifts ? { shift_hours: mapShift } : {}),
+        } as never,
         { onConflict: "candidate_id,unit_id" },
       );
       if (error) throw error;
@@ -1535,12 +1546,13 @@ function MusterRollPage() {
       // attendance exists for them.
       setManualRosterIds((prev) => new Set(prev).add(cand.id));
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+      void queryClient.invalidateQueries({ queryKey: ["shift-hours-map", unitId] });
       logActivity({
         module: "Attendance",
         action: "update",
         entityType: "muster_slot",
         entityId: cand.id,
-        entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
+        entityLabel: `${cand.full_name} → ${mapSlot.designationName}${unitHasBothShifts ? ` (${mapShift}h)` : ""} @ ${unit?.name ?? unitId}`,
       });
       toast.success(
         asReliever
@@ -3245,7 +3257,7 @@ function MusterRollPage() {
   // it comes from the unit's active contract resource line.
   const rowShiftHours = (k: string | null) => {
     const row = findRow(k);
-    return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
+    return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null, row?.candidateId || null);
   };
 
   const applyCodeToCells = async (
@@ -3304,7 +3316,7 @@ function MusterRollPage() {
       for (const [rowKey, dates] of grouped) {
         const row = findRow(rowKey);
         if (!row) continue;
-        const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
+        const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null, row.candidateId || null);
         const otDays = Math.round((hours / shift) * 10000) / 10000;
 
         const rows = dates.map((d) => ({
@@ -4610,6 +4622,7 @@ function MusterRollPage() {
                             shiftMap,
                             unitId,
                             mr.designationId ?? null,
+                            mr.candidateId || null,
                           );
                           const hours =
                             Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
@@ -4641,7 +4654,7 @@ function MusterRollPage() {
                         <td className="border-b border-border px-1 text-[10px] font-medium">
                           {Math.round(
                             totals.otDays *
-                              shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) *
+                              shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
                               4,
                           ) / 4}
                           h
@@ -5118,7 +5131,7 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         const entry = entryMap.get(`${mr.key}|${date}`);
-                        const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
+                        const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
                         // Stored value is ED *days*; the grid shows clock hours.
                         // Snap to the nearest quarter hour so legacy rounded
@@ -5211,7 +5224,7 @@ function MusterRollPage() {
                       <td className={cn(cellBase, "p-1 font-semibold")}>
                         {Math.round(
                           totals.otDays *
-                            shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) *
+                            shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
                             4,
                         ) / 4}
                       </td>
@@ -5341,6 +5354,28 @@ function MusterRollPage() {
               </button>
             ))}
           </div>
+          {unitHasBothShifts ? (
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">Duty length (sets the billing rate)</div>
+              <div className="grid grid-cols-2 gap-2">
+                {([8, 12] as const).map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setMapShift(h)}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-left text-sm transition",
+                      mapShift === h
+                        ? "border-primary bg-primary/10 font-semibold text-primary"
+                        : "border-border hover:bg-muted",
+                    )}
+                  >
+                    {h} hours
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input

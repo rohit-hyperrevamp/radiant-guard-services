@@ -34,6 +34,7 @@ import { misBillingLine } from "@/lib/mis-billing";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
+import { normShift, shiftKey } from "@/lib/shift-resources";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -367,13 +368,13 @@ function PayrollUnitPage() {
           .eq("unit_id", unitId)
           .eq("is_enabled", true)
           .eq("status", "active"),
-        supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
+        supabase.from("candidate_units").select("candidate_id, shift_hours" as never).eq("unit_id", unitId),
       ]);
       if (primaryRes.error) throw primaryRes.error;
       if (linksRes.error) throw linksRes.error;
       const primary = primaryRes.data;
       const links = linksRes.data;
-      const linkIds = (links ?? []).map((l) => l.candidate_id);
+      const linkIds = ((links ?? []) as unknown as { candidate_id: string }[]).map((l) => l.candidate_id);
       let secondary: typeof primary = [];
       if (linkIds.length > 0) {
         const { data, error: secErr } = await supabase
@@ -633,10 +634,19 @@ function PayrollUnitPage() {
 
 
       const resourceByDesignation = new Map<string, ContractResourceLike>();
+      // Same designation may exist as an 8h and a 12h line; keep both.
+      const resourceByShiftKey = new Map<string, ContractResourceLike>();
+      const shiftKeysOrdered: string[] = [];
+      const shiftsByDesignation = new Map<string, Set<number>>();
       for (const r of resources) {
         const did = String(r.designation_id ?? "");
         if (!did) continue;
-        resourceByDesignation.set(did, {
+        const sk = shiftKey(did, r.shift_hours);
+        const set = shiftsByDesignation.get(did) ?? new Set<number>();
+        set.add(normShift(r.shift_hours));
+        shiftsByDesignation.set(did, set);
+        shiftKeysOrdered.push(sk);
+        resourceByShiftKey.set(sk, {
           designationId: did,
           components: Array.isArray(r.components)
             ? (r.components as {
@@ -666,17 +676,49 @@ function PayrollUnitPage() {
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
             : null,
         });
+        if (!resourceByDesignation.has(did)) resourceByDesignation.set(did, resourceByShiftKey.get(sk)!);
       }
 
       // Overlay latest formula_mode/expression/version from Control Center
       // masters so paysheets/invoices reflect master-formula edits without
       // requiring contracts to be re-saved.
+      const uniqueShiftKeys = Array.from(new Set(shiftKeysOrdered));
       const hydratedList = (
-        await hydrateFormulasFromMaster(Array.from(resourceByDesignation.values()))
+        await hydrateFormulasFromMaster(uniqueShiftKeys.map((k) => resourceByShiftKey.get(k)!))
       ).map(refreshBillingAddOns);
-      for (const r of hydratedList) {
-        resourceByDesignation.set(r.designationId, r);
+      resourceByDesignation.clear();
+      hydratedList.forEach((r, i) => {
+        resourceByShiftKey.set(uniqueShiftKeys[i], r);
+        if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, r);
+      });
+      const shiftForDesignationDefault = new Map<string, number>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        if (did && !shiftForDesignationDefault.has(did)) shiftForDesignationDefault.set(did, normShift(r.shift_hours));
       }
+      const postingShift = new Map<string, number>();
+      for (const l of (links ?? []) as unknown as { candidate_id: string; shift_hours?: number | null }[]) {
+        if (l.shift_hours != null) postingShift.set(l.candidate_id, normShift(l.shift_hours));
+      }
+      const billingBaseByShiftKey = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        const bid = r.billing_day_base_id ? String(r.billing_day_base_id) : "";
+        const base = bid ? bdbMap.get(bid) : undefined;
+        if (did && base) billingBaseByShiftKey.set(shiftKey(did, r.shift_hours), base);
+      }
+      /** Pick the contract line for this guard: posting shift first, else the designation default. */
+      const lineFor = (cid: string, did: string) => {
+        const offered = shiftsByDesignation.get(did);
+        const wanted = postingShift.get(cid);
+        const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);
+        const sk = shiftKey(did, shift);
+        return {
+          shift,
+          resource: resourceByShiftKey.get(sk) ?? resourceByDesignation.get(did),
+          billingBase: billingBaseByShiftKey.get(sk) ?? null,
+        };
+      };
 
       // 4. Build line items per (candidate, designation_id).
       // Each candidate gets a primary line (their own designation) plus an extra
@@ -728,7 +770,8 @@ function PayrollUnitPage() {
           const phDisplay = phDisplayCountByCandidate.get(c.id) ?? 0;
           if (phDisplay) totals.phDays = totals.phDays + phDisplay;
         }
-        const resource = resourceByDesignation.get(did);
+        const line = lineFor(c.id, did);
+        const resource = line.resource;
         const phOverride = isPrimary ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, {
@@ -809,6 +852,8 @@ function PayrollUnitPage() {
           designation: designationName,
           designationId: p.designationId,
           isPrimary,
+          shiftHours: line.shift,
+          billingDayBase: line.billingBase,
           totals,
           wages,
           resource: mergedResource ?? resource ?? null,
@@ -884,7 +929,7 @@ function PayrollUnitPage() {
     // The hourly-rate divisor uses the billing-days rule when configured.
     const billingDays =
       resolvePayrollDayCount(
-        billingDayBaseByDesignation.get(String(r.designationId ?? "")) ?? r.resource?.payrollDayBase ?? null,
+        r.billingDayBase ?? billingDayBaseByDesignation.get(String(r.designationId ?? "")) ?? r.resource?.payrollDayBase ?? null,
         periodDates,
         // A billing divisor is a contractual constant (e.g. 30.40), so it is
         // never clamped down to the number of days in the cycle.
@@ -898,7 +943,7 @@ function PayrollUnitPage() {
     //   man_months / lumpsum → the full contracted value
     // The 2 dp rounding happens on the rate that is actually printed, so the
     // printed rate × printed quantity always reconciles with the amount.
-    const shiftHours = shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
+    const shiftHours = r.shiftHours ?? shiftHoursByDesignation.get(String(r.designationId ?? "__none__")) ?? 8;
     const perHour =
       billingDays > 0 && shiftHours > 0
         ? Math.round((contracted / billingDays / shiftHours) * 100) / 100

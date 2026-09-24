@@ -202,7 +202,7 @@ function MyAttendancePage() {
     enabled: !!me.unit_id,
     queryFn: () => fetchShiftHoursMap([me.unit_id!]),
   });
-  const myShiftHours = shiftHoursFor(shiftQ.data, me.unit_id, me.designation_id) || DEFAULT_SHIFT_HOURS;
+  const myShiftHours = shiftHoursFor(shiftQ.data, me.unit_id, me.designation_id, me.candidate_id) || DEFAULT_SHIFT_HOURS;
 
   const codeMap = useMemo(() => {
     const m = new Map<string, CodeRow>();

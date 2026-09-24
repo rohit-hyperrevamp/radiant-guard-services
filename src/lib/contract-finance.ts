@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import type { PayrollDayBaseLike } from "@/lib/payroll-days";
+import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -44,6 +45,10 @@ export type UnitFinance = {
   monthlyNetPayroll: number;
   rates: ResourceRate[];
   byDesignation: Map<string, ResourceRate>;
+  /** `${designationId}|8|12` -> rate, for contracts with both duty lengths. */
+  byDesignationShift: Map<string, ResourceRate>;
+  /** candidate_id -> duty length set on their posting at this unit. */
+  postingShift: Map<string, 8 | 12>;
   /** Weighted average rate, used when an employee's designation is not on the contract. */
   fallback: ResourceRate | null;
 };
@@ -85,7 +90,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   if (!contractByUnit.size) return out;
 
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
-  const [resources, designations, payrollBases, billingBases] = await Promise.all([
+  const [resources, designations, payrollBases, billingBases, postingShifts] = await Promise.all([
     fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
       supabase
         .from("contract_resources")
@@ -102,6 +107,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
     supabase
       .from("billing_day_bases" as never)
       .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
+    fetchPostingShifts(Array.from(contractByUnit.keys())),
   ]);
   const desigMap = new Map(designations.map((d) => [d.id as string, d.name as string]));
 
@@ -159,7 +165,17 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
     const monthlyPayroll = rates.reduce((s, r) => s + r.quantity * r.grossRate, 0);
     const monthlyDeductions = rates.reduce((s, r) => s + r.quantity * r.deductionRate, 0);
     const byDesignation = new Map<string, ResourceRate>();
-    for (const r of rates) if (r.designationId) byDesignation.set(r.designationId, r);
+    const byDesignationShift = new Map<string, ResourceRate>();
+    for (const r of rates) {
+      if (!r.designationId) continue;
+      if (!byDesignation.has(r.designationId)) byDesignation.set(r.designationId, r);
+      byDesignationShift.set(shiftKey(r.designationId, r.shiftHours), r);
+    }
+    const postingShift = new Map<string, 8 | 12>();
+    for (const [k, v] of postingShifts) {
+      const [u, cid] = k.split("|");
+      if (u === unitId) postingShift.set(cid, v);
+    }
     const fallback: ResourceRate | null = rates.length
       ? {
           designationId: null,
@@ -189,6 +205,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       monthlyNetPayroll: Math.round(Math.max(0, monthlyPayroll - monthlyDeductions) * 100) / 100,
       rates: rates.sort((a, b) => a.designationName.localeCompare(b.designationName)),
       byDesignation,
+      byDesignationShift,
+      postingShift,
       fallback,
     });
   }
@@ -197,8 +215,17 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   return out;
 }
 
-export function rateFor(finance: UnitFinance | undefined, designationId: string | null): ResourceRate | null {
+export function rateFor(
+  finance: UnitFinance | undefined,
+  designationId: string | null,
+  candidateId?: string | null,
+): ResourceRate | null {
   if (!finance) return null;
+  if (designationId && candidateId) {
+    const shift = finance.postingShift.get(candidateId);
+    const byShift = shift ? finance.byDesignationShift.get(shiftKey(designationId, shift)) : undefined;
+    if (byShift) return byShift;
+  }
   if (designationId) {
     const exact = finance.byDesignation.get(designationId);
     if (exact) return exact;

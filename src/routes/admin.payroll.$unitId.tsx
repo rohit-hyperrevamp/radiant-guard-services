@@ -22,6 +22,7 @@ import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
+import { normShift, shiftKey } from "@/lib/shift-resources";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import {
   applyEpfBreakdownToWageComputation,
@@ -484,7 +485,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources")
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id",
+            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
         resources = r ?? [];
@@ -715,10 +716,20 @@ function PayrollUnitPage() {
       }));
 
       const resourceByDesignation = new Map<string, ContractResourceLike>();
+      const resourceByShiftKey = new Map<string, ContractResourceLike>();
+      const shiftKeysOrdered: string[] = [];
+      const shiftsByDesignation = new Map<string, Set<number>>();
+      const shiftForDesignationDefault = new Map<string, number>();
       for (const r of resources) {
         const did = String(r.designation_id ?? "");
         if (!did) continue;
-        resourceByDesignation.set(did, {
+        const sk = shiftKey(did, (r as { shift_hours?: unknown }).shift_hours);
+        const set = shiftsByDesignation.get(did) ?? new Set<number>();
+        set.add(normShift((r as { shift_hours?: unknown }).shift_hours));
+        shiftsByDesignation.set(did, set);
+        if (!shiftForDesignationDefault.has(did)) shiftForDesignationDefault.set(did, normShift((r as { shift_hours?: unknown }).shift_hours));
+        shiftKeysOrdered.push(sk);
+        resourceByShiftKey.set(sk, {
           designationId: did,
           components: Array.isArray(r.components)
             ? (r.components as { name: string; amount: number; allowanceId?: string | null; includeInOt?: boolean; formulaMode?: string | null; formulaExpression?: string | null; formulaVersion?: number | null }[]).map((c) => ({
@@ -748,10 +759,27 @@ function PayrollUnitPage() {
       // so payroll always reflects the LATEST master formula — even when the
       // contract snapshot pre-dates the formula engine. Per-line `amount`
       // (the agreed monetary base) stays from the snapshot.
-      const hydratedList = await hydrateFormulasFromMaster(Array.from(resourceByDesignation.values()));
-      for (const r of hydratedList) {
-        resourceByDesignation.set(r.designationId, r);
+      const uniqueShiftKeys = Array.from(new Set(shiftKeysOrdered));
+      const hydratedList = await hydrateFormulasFromMaster(uniqueShiftKeys.map((k) => resourceByShiftKey.get(k)!));
+      hydratedList.forEach((r, i) => {
+        resourceByShiftKey.set(uniqueShiftKeys[i], r);
+        if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, r);
+      });
+      const postingShiftRes = await supabase
+        .from("candidate_units")
+        .select("candidate_id, shift_hours" as never)
+        .eq("unit_id", unitId)
+        .not("shift_hours" as never, "is", null);
+      const postingShift = new Map<string, number>();
+      for (const l of ((postingShiftRes.data ?? []) as unknown as { candidate_id: string; shift_hours: number }[])) {
+        postingShift.set(l.candidate_id, normShift(l.shift_hours));
       }
+      const resourceForLine = (cid: string, did: string) => {
+        const offered = shiftsByDesignation.get(did);
+        const wanted = postingShift.get(cid);
+        const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);
+        return resourceByShiftKey.get(shiftKey(did, shift)) ?? resourceByDesignation.get(did);
+      };
 
       // 3c. Per-employee wage sheets (non-billable employees). These override
       // the contract resource: a non-billable employee is not deployed against
@@ -843,7 +871,7 @@ function PayrollUnitPage() {
           const phDisplay = phDisplayCountByCandidate.get(c.id) ?? 0;
           if (phDisplay) totals.phDays = totals.phDays + phDisplay;
         }
-        const resource = resourceByCandidate.get(c.id) ?? resourceByDesignation.get(did);
+        const resource = resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did);
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })
