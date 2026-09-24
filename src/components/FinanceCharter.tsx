@@ -834,7 +834,9 @@ export function FinanceCharter({
           const workingDays = misLine.workingDays;
           const otDuties = misLine.otDays;
           const otHours = otDuties * (rate.shiftHours || 8);
-          const otRate = misLine.otRate;
+          // OT rate is hourly: per-duty rate divided by the contractual shift
+          // length (8h or 12h unit).
+          const otRate = misLine.otRate / (rate.shiftHours || 8);
           const otAmount = misLine.otAmount;
           const regular = misLine.regularBilling;
           const otBilling = misLine.otBilling;

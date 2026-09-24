@@ -68,7 +68,7 @@ export const MIS_SYSTEM_FIELDS: MisSystemField[] = [
   { key: "month_rate", label: "Month Rate", aliases: ["payroll days"], numeric: true },
   { key: "billing_rate", label: "Billing Rate", numeric: true },
   { key: "billing_rate_per_day", label: "Billing Rate (Per Day)", aliases: ["per day rate"], numeric: true },
-  { key: "ot_rate", label: "OT Rate (Per Day)", aliases: ["overtime rate", "ot rate"], numeric: true },
+  { key: "ot_rate", label: "OT Rate (Per Hour)", aliases: ["overtime rate", "ot rate"], numeric: true },
   { key: "working_days", label: "Working days", aliases: ["present days", "duties"], numeric: true },
   { key: "ot_duties", label: "OT and Night duties", aliases: ["ot duties", "extra duty"], numeric: true },
   { key: "ot_amount", label: "OT Amount", numeric: true },
