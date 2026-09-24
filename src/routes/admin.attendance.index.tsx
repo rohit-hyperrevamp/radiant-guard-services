@@ -257,13 +257,30 @@ function AttendanceUnitsPage() {
                       allLabel={`All organizations (${organizations.length})`}
                     />
                     <LabeledMultiSelectFilter
+                      label="State"
+                      selected={stateFilter}
+                      onChange={(v) => {
+                        setStateFilter(v);
+                        setUnitFilter((prev) =>
+                          prev.filter((id) => {
+                            const u = windowUnits.find((x) => x.id === id);
+                            return !u || v.length === 0 || v.includes(u.billing_state || "");
+                          }),
+                        );
+                      }}
+                      options={stateOptions.map((s) => ({ value: s, label: s }))}
+                      allLabel={`All states (${stateOptions.length})`}
+                    />
+                    <LabeledMultiSelectFilter
                       label="Unit"
                       selected={unitFilter}
                       onChange={setUnitFilter}
-                      options={unitOptions.map((u) => ({
-                        value: u.id,
-                        label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
-                      }))}
+                      options={unitOptions
+                        .filter((u) => stateFilter.length === 0 || stateFilter.includes(u.billing_state || ""))
+                        .map((u) => ({
+                          value: u.id,
+                          label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
+                        }))}
                       allLabel={`All units (${unitOptions.length})`}
                     />
                   </div>
@@ -281,6 +298,7 @@ function AttendanceUnitsPage() {
                           setQ("");
                           setOrgFilter([]);
                           setUnitFilter([]);
+                          setStateFilter([]);
                           setStatusFilter("all");
                         }}
                       >
