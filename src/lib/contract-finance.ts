@@ -219,8 +219,13 @@ export function rateFor(
   finance: UnitFinance | undefined,
   designationId: string | null,
   candidateId?: string | null,
+  lineShift?: number | null,
 ): ResourceRate | null {
   if (!finance) return null;
+  if (designationId && lineShift) {
+    const own = finance.byDesignationShift.get(shiftKey(designationId, lineShift));
+    if (own) return own;
+  }
   if (designationId && candidateId) {
     const shift = finance.postingShift.get(candidateId);
     const byShift = shift ? finance.byDesignationShift.get(shiftKey(designationId, shift)) : undefined;

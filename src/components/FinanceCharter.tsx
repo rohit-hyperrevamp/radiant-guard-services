@@ -287,7 +287,7 @@ export function FinanceCharter({
       const unitId = e.unit_id ?? "";
       if (!unitId) continue;
       const finance = financeQ.data?.get(unitId);
-      const rate = rateFor(finance, e.designation_id, e.candidate_id);
+      const rate = rateFor(finance, e.designation_id, e.candidate_id, (e as any).shift_hours);
       const periodDays = periodsByUnit.get(unitId)?.totalDays ?? 1;
       if (!out.has(unitId)) out.set(unitId, new Map());
       const bucket = out.get(unitId)!;
@@ -588,7 +588,7 @@ export function FinanceCharter({
       const linesByUnit = new Map<string, Map<string, { qty: number; amount: number; monthly: number }>>();
       for (const entry of entries) {
         const entryUnitId = entry.unit_id ?? "";
-        const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id);
+        const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id, (entry as any).shift_hours);
         if (!entryUnitId || !rate) continue;
         const code = codeMap.get(entry.code);
         const rawDayValue = code?.day_value;
@@ -757,13 +757,13 @@ export function FinanceCharter({
       }
       const candidateById = new Map(candidateRows.map((candidate) => [String(candidate.id), candidate]));
 
-      type MisBucket = { candidateId: string; designationId: string | null; workingDays: number; otDays: number; otHours: number };
+      type MisBucket = { candidateId: string; designationId: string | null; shift: number | null; reliever: boolean; workingDays: number; otDays: number; otHours: number };
       const linesByUnit = new Map<string, Map<string, MisBucket>>();
       for (const e of entries) {
         const unitId = e.unit_id ?? "";
         if (!unitId) continue;
         const finance = financeMap.get(unitId);
-        const rate = rateFor(finance, e.designation_id, e.candidate_id);
+        const rate = rateFor(finance, e.designation_id, e.candidate_id, (e as any).shift_hours);
         if (!rate) continue;
         const code = codeMap.get(e.code);
         const raw = code?.day_value;
@@ -778,10 +778,14 @@ export function FinanceCharter({
 
         if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
         const bucket = linesByUnit.get(unitId)!;
-        const key = `${e.candidate_id}|${e.designation_id ?? ""}`;
+        const eShift = Number((e as any).shift_hours) || null;
+        const eRel = (e as any).is_reliever === true;
+        const key = `${e.candidate_id}|${e.designation_id ?? ""}|${eShift ?? ""}|${eRel ? "r" : ""}`;
         const line = bucket.get(key) ?? {
           candidateId: e.candidate_id,
           designationId: e.designation_id,
+          shift: eShift,
+          reliever: eRel,
           workingDays: 0,
           otDays: 0,
           otHours: 0,
@@ -827,7 +831,7 @@ export function FinanceCharter({
           : unitRow.name || unitRow.code;
         for (const line of lines.values()) {
           const finance = financeMap.get(u.id);
-          const rate = rateFor(finance, line.designationId, line.candidateId);
+          const rate = rateFor(finance, line.designationId, line.candidateId, line.shift);
           if (!rate) continue;
           const candidate = candidateById.get(line.candidateId);
           // The MIS rate is the invoice rate: monthly billing divided by the
@@ -870,7 +874,7 @@ export function FinanceCharter({
               sr_no: serial++, invoice_no: invoiceNo, invoice_date: invoiceDate,
               emp_code: candidate?.employee_code ?? "",
               employee_name: candidate?.full_name ?? nameById.get(line.candidateId) ?? "",
-              regular_reliever: candidate?.designation_id === line.designationId ? "Regular" : "Reliever",
+              regular_reliever: line.reliever ? "Reliever" : "Regular",
               doj: jd && jm && jy ? `${jd}-${jm}-${jy}` : "", entity,
               designation: `${rate.designationName} @ (${rate.shiftHours})`, branch_name: branchName,
               state: unitRow.billing_state ?? "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
