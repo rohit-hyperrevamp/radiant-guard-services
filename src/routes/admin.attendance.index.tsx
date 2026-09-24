@@ -82,6 +82,7 @@ function AttendanceUnitsPage() {
   const [q, setQ] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "approved">("all");
 
 
@@ -113,6 +114,14 @@ function AttendanceUnitsPage() {
       ),
     [windowUnits, orgFilter],
   );
+  const stateOptions = useMemo(() => {
+    const states = new Set<string>();
+    for (const u of windowUnits) {
+      if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) continue;
+      if (u.billing_state) states.add(u.billing_state);
+    }
+    return [...states].sort();
+  }, [windowUnits, orgFilter]);
   const organizations = useMemo(() => {
     const all = data?.organizations ?? [];
     const allowed = new Set(windowUnits.map((u) => u.customer_id));
