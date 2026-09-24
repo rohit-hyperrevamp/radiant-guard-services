@@ -514,7 +514,6 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   const [query, setQuery] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
-  const [cityFilter, setCityFilter] = useState<string[]>([]);
 
   // Internal / non-billable units carry cost with no customer revenue by
   // design — including them would make P&L negative by construction.
@@ -532,44 +531,31 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       ).sort((a, b) => a.label.localeCompare(b.label)),
     [rows],
   );
+  // States cascade from the selected organizations — picking an org narrows
+  // the state list to only the states that org actually operates in.
+  const orgScopedRows = useMemo(
+    () =>
+      orgFilter.length === 0
+        ? rows
+        : rows.filter((r) => orgFilter.includes(r.customer_id || r.customer_name)),
+    [rows, orgFilter],
+  );
   const stateOptions = useMemo(
     () =>
-      Array.from(new Set(rows.map((r) => r.billing_state).filter((s): s is string => !!s)))
+      Array.from(new Set(orgScopedRows.map((r) => r.billing_state).filter((s): s is string => !!s)))
         .sort()
         .map((s) => ({ value: s, label: s })),
-    [rows],
-  );
-  const cityOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rows
-            .filter(
-              (r) =>
-                stateFilter.length === 0 ||
-                (r.billing_state != null && stateFilter.includes(r.billing_state)),
-            )
-            .map((r) => r.billing_city)
-            .filter((c): c is string => !!c),
-        ),
-      )
-        .sort()
-        .map((c) => ({ value: c, label: c })),
-    [rows, stateFilter],
+    [orgScopedRows],
   );
 
   const scopedRows = useMemo(
     () =>
-      rows.filter((r) => {
-        if (orgFilter.length > 0 && !orgFilter.includes(r.customer_id || r.customer_name))
-          return false;
+      orgScopedRows.filter((r) => {
         if (stateFilter.length > 0 && !(r.billing_state && stateFilter.includes(r.billing_state)))
-          return false;
-        if (cityFilter.length > 0 && !(r.billing_city && cityFilter.includes(r.billing_city)))
           return false;
         return true;
       }),
-    [rows, orgFilter, stateFilter, cityFilter],
+    [orgScopedRows, stateFilter],
   );
 
   const totals = useMemo(() => {
@@ -608,7 +594,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
 
   const paged = usePaged(
     filtered,
-    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${cityFilter.join(",")}|${rows.length}`,
+    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${rows.length}`,
   );
 
   const exportCsv = () =>
@@ -674,38 +660,32 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       </div>
 
 
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <LabeledMultiSelectFilter
           label="Organization"
           selected={orgFilter}
-          onChange={setOrgFilter}
+          onChange={(v) => {
+            setOrgFilter(v);
+            // Drop selected states the newly chosen orgs don't operate in.
+            setStateFilter((prev) =>
+              prev.filter((s) =>
+                rows.some(
+                  (r) =>
+                    r.billing_state === s &&
+                    (v.length === 0 || v.includes(r.customer_id || r.customer_name)),
+                ),
+              ),
+            );
+          }}
           options={orgOptions}
           allLabel={`All organizations (${orgOptions.length})`}
         />
         <LabeledMultiSelectFilter
           label="State"
           selected={stateFilter}
-          onChange={(v) => {
-            setStateFilter(v);
-            setCityFilter((prev) =>
-              prev.filter((c) =>
-                rows.some(
-                  (r) =>
-                    r.billing_city === c &&
-                    (v.length === 0 || (r.billing_state != null && v.includes(r.billing_state))),
-                ),
-              ),
-            );
-          }}
+          onChange={setStateFilter}
           options={stateOptions}
           allLabel={`All states (${stateOptions.length})`}
-        />
-        <LabeledMultiSelectFilter
-          label="City"
-          selected={cityFilter}
-          onChange={setCityFilter}
-          options={cityOptions}
-          allLabel={`All cities (${cityOptions.length})`}
         />
       </div>
 
