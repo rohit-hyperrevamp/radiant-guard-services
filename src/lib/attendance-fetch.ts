@@ -8,6 +8,8 @@ export type AttendanceEntryFetchRow = {
   entry_date: string;
   code: string;
   ot_hours: number | string | null;
+  shift_hours?: number | null;
+  is_reliever?: boolean | null;
 };
 
 export async function fetchAttendanceEntriesForPeriod(params: {
@@ -21,7 +23,7 @@ export async function fetchAttendanceEntriesForPeriod(params: {
   if (unitIds.length === 0) return [];
 
   const rows: AttendanceEntryFetchRow[] = [];
-  const selectCols = `${params.includeUnitId ? "unit_id, " : ""}candidate_id, designation_id, entry_date, code, ot_hours`;
+  const selectCols = `${params.includeUnitId ? "unit_id, " : ""}candidate_id, designation_id, shift_hours, is_reliever, entry_date, code, ot_hours`;
 
   const fetched = await fetchInChunks<AttendanceEntryFetchRow>(unitIds, (chunk, from, to) =>
     supabase
