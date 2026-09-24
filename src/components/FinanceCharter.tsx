@@ -223,7 +223,8 @@ export function FinanceCharter({
     () => matchedUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
     [matchedUnits, safePage],
   );
-  const unitIds = useMemo(() => pageUnits.map((u) => u.id), [pageUnits]);
+  // Money tiles must cover every filtered site, not just the visible page.
+  const unitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
 
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
@@ -328,8 +329,8 @@ export function FinanceCharter({
     return out;
   }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
-  const rows = useMemo(() => {
-    return pageUnits
+  const allRows = useMemo(() => {
+    return matchedUnits
       .map((u) => {
         const finance: UnitFinance | undefined = financeQ.data?.get(u.id);
         const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
@@ -371,7 +372,9 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [pageUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
+  }, [matchedUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
+  const pageIdSet = useMemo(() => new Set(pageUnits.map((u) => u.id)), [pageUnits]);
+  const rows = useMemo(() => allRows.filter((r) => pageIdSet.has(r.unit.id)), [allRows, pageIdSet]);
 
   // Sites picked for finalisation — only those with approved attendance and no
   // number issued yet for the open period.
@@ -409,11 +412,11 @@ export function FinanceCharter({
 
 
   const totals = useMemo(() => {
-    const monthlyContracted = rows.reduce((s, r) => s + r.monthlyContracted, 0);
-    const contractedMtd = rows.reduce((s, r) => s + r.contractedMtd, 0);
-    const invoiceAmount = rows.reduce((s, r) => s + r.invoiceAmount, 0);
-    const payrollAmount = rows.reduce((s, r) => s + r.payrollAmount, 0);
-    const deductionAmount = rows.reduce((s, r) => s + r.deductionAmount, 0);
+    const monthlyContracted = allRows.reduce((s, r) => s + r.monthlyContracted, 0);
+    const contractedMtd = allRows.reduce((s, r) => s + r.contractedMtd, 0);
+    const invoiceAmount = allRows.reduce((s, r) => s + r.invoiceAmount, 0);
+    const payrollAmount = allRows.reduce((s, r) => s + r.payrollAmount, 0);
+    const deductionAmount = allRows.reduce((s, r) => s + r.deductionAmount, 0);
     return {
       monthlyContracted,
       contractedMtd,
@@ -425,7 +428,7 @@ export function FinanceCharter({
       marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
       realisationPct: pct(invoiceAmount, contractedMtd),
     };
-  }, [rows]);
+  }, [allRows]);
 
   // Register counts for the selected payroll period across the WHOLE charter (not just
   // the visible page): where every unit sits in the open → ready → processed
@@ -446,7 +449,7 @@ export function FinanceCharter({
 
 
   const exportCsv = () => {
-    const rowsForCsv = rows.map((r) => {
+    const rowsForCsv = allRows.map((r) => {
       if (mode === "payroll") {
         return {
           Name: r.unit.name || r.unit.code,
