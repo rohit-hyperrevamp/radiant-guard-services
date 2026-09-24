@@ -287,7 +287,7 @@ export function FinanceCharter({
       const unitId = e.unit_id ?? "";
       if (!unitId) continue;
       const finance = financeQ.data?.get(unitId);
-      const rate = rateFor(finance, e.designation_id);
+      const rate = rateFor(finance, e.designation_id, e.candidate_id);
       const periodDays = periodsByUnit.get(unitId)?.totalDays ?? 1;
       if (!out.has(unitId)) out.set(unitId, new Map());
       const bucket = out.get(unitId)!;
@@ -588,7 +588,7 @@ export function FinanceCharter({
       const linesByUnit = new Map<string, Map<string, { qty: number; amount: number; monthly: number }>>();
       for (const entry of entries) {
         const entryUnitId = entry.unit_id ?? "";
-        const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id);
+        const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id);
         if (!entryUnitId || !rate) continue;
         const code = codeMap.get(entry.code);
         const rawDayValue = code?.day_value;
@@ -763,7 +763,7 @@ export function FinanceCharter({
         const unitId = e.unit_id ?? "";
         if (!unitId) continue;
         const finance = financeMap.get(unitId);
-        const rate = rateFor(finance, e.designation_id);
+        const rate = rateFor(finance, e.designation_id, e.candidate_id);
         if (!rate) continue;
         const code = codeMap.get(e.code);
         const raw = code?.day_value;
@@ -827,7 +827,7 @@ export function FinanceCharter({
           : unitRow.name || unitRow.code;
         for (const line of lines.values()) {
           const finance = financeMap.get(u.id);
-          const rate = rateFor(finance, line.designationId);
+          const rate = rateFor(finance, line.designationId, line.candidateId);
           if (!rate) continue;
           const candidate = candidateById.get(line.candidateId);
           // The MIS rate is the invoice rate: monthly billing divided by the
