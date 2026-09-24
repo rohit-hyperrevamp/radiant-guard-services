@@ -725,6 +725,9 @@ function DashboardPage() {
           payrollCost += wages.earnedGross;
         }
 
+        if (!isInternal && finalInvoiceByUnit.has(u.unit_id))
+          invoiceAmount = finalInvoiceByUnit.get(u.unit_id)!;
+        if (postedPayroll.has(u.unit_id)) payrollCost = postedPayroll.get(u.unit_id)!;
         const variance = invoiceAmount - payrollCost;
         pnlByUnit.set(u.unit_id, {
           unit_id: u.unit_id,
@@ -740,6 +743,7 @@ function DashboardPage() {
           committed_payroll: committedPayroll,
           committed_strength: committedStrength,
           actual_strength: Number(u.actual_strength) || 0,
+          attendance_approved: approvedUnits.has(u.unit_id),
         });
       }
 

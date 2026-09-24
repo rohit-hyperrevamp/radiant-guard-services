@@ -57,6 +57,8 @@ export type UnitFinanceRow = {
   actual_payroll: number;
   committed_invoice: number;
   actual_invoice: number;
+  /** Attendance still open for the window — invoice/payroll not ready. */
+  attendance_open?: boolean;
 };
 
 export type Tone = "success" | "ok" | "warning" | "destructive";
