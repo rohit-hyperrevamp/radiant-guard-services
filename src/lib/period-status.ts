@@ -47,7 +47,7 @@ export async function fetchPeriodStatuses(
   const out: PeriodStatusMap = new Map();
   if (!ids.length) return out;
 
-  const [{ data: sheets }, { data: runs }] = await Promise.all([
+  const [{ data: sheets }, { data: runs }, { data: finals }] = await Promise.all([
     supabase
       .from("attendance_sheets" as never)
       .select("unit_id, status, tally_invoice_path")
@@ -60,7 +60,16 @@ export async function fetchPeriodStatuses(
       .in("unit_id", ids)
       .eq("period_start", periodStart)
       .eq("period_end", periodEnd),
+    supabase
+      .from("final_invoice_units" as never)
+      .select("unit_id")
+      .in("unit_id", ids)
+      .eq("period_start", periodStart)
+      .eq("period_end", periodEnd),
   ]);
+  // A generated final invoice has used its number for good, so the site is
+  // "Invoice processed" from that moment; the Tally copy can still be uploaded.
+  const finalised = new Set(((finals ?? []) as unknown as Array<{ unit_id: string }>).map((f) => f.unit_id));
 
   const sheetRows = ((sheets ?? []) as unknown) as Array<{
     unit_id: string;
@@ -91,7 +100,7 @@ export async function fetchPeriodStatuses(
       attendance,
       handedOff,
       payroll: money(run?.payroll_status),
-      invoice: sheet?.tally_invoice_path ? "processed" : ready ? "ready" : "open",
+      invoice: sheet?.tally_invoice_path || finalised.has(unitId) ? "processed" : ready ? "ready" : "open",
       runId: run?.id ?? null,
     });
   }

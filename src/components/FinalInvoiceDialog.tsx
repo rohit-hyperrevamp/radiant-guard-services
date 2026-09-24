@@ -162,6 +162,7 @@ export function FinalInvoiceDialog({
       await qc.invalidateQueries({ queryKey: [FINAL_INVOICE_QK] });
       await qc.invalidateQueries({ queryKey: ["invoice-number-series"] });
       await qc.invalidateQueries({ queryKey: ["invoice-number-registry"] });
+      await qc.invalidateQueries({ queryKey: ["period-status-v1"] });
       toast.success(
         issued.length === 1 ? `Final invoice ${issued[0]} generated` : `${issued.length} final invoices generated`,
       );
