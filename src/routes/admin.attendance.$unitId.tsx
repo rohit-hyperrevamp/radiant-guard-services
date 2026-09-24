@@ -5100,7 +5100,18 @@ function MusterRollPage() {
                               {mr.beyondAgreed ? "Add deployment" : "Unassigned"}
                             </button>
                           ) : (
-                            <span>{mr.emp.full_name || "—"}</span>
+                            <span className="inline-flex items-center gap-1">
+                              <span>{mr.emp.full_name || "—"}</span>
+                              {(unitHasBothShifts || desigHasBothShifts(mr.designationId)) &&
+                                (() => {
+                                  const s = parseVariant(mr.variant ?? "0").shift;
+                                  return s ? (
+                                    <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
+                                      {s}h
+                                    </span>
+                                  ) : null;
+                                })()}
+                            </span>
                           )}
 
                           {!mr.vacant && editable && (
