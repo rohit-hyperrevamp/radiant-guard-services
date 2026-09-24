@@ -510,10 +510,65 @@ export function InvoiceCoverageCard({ rows }: { rows: UnitFinanceRow[] }) {
 /** Unit-wise P&L: contracted MTD, actual invoice, actual payroll, profitability. */
 export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] }) {
   const [query, setQuery] = useState("");
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
 
   // Internal / non-billable units carry cost with no customer revenue by
   // design — including them would make P&L negative by construction.
   const rows = useMemo(() => allRows.filter((r) => !r.internal), [allRows]);
+
+  const orgOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          rows.map((r) => [
+            r.customer_id || r.customer_name,
+            { value: r.customer_id || r.customer_name, label: r.customer_name },
+          ]),
+        ).values(),
+      ).sort((a, b) => a.label.localeCompare(b.label)),
+    [rows],
+  );
+  const stateOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map((r) => r.billing_state).filter((s): s is string => !!s)))
+        .sort()
+        .map((s) => ({ value: s, label: s })),
+    [rows],
+  );
+  const cityOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .filter(
+              (r) =>
+                stateFilter.length === 0 ||
+                (r.billing_state != null && stateFilter.includes(r.billing_state)),
+            )
+            .map((r) => r.billing_city)
+            .filter((c): c is string => !!c),
+        ),
+      )
+        .sort()
+        .map((c) => ({ value: c, label: c })),
+    [rows, stateFilter],
+  );
+
+  const scopedRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (orgFilter.length > 0 && !orgFilter.includes(r.customer_id || r.customer_name))
+          return false;
+        if (stateFilter.length > 0 && !(r.billing_state && stateFilter.includes(r.billing_state)))
+          return false;
+        if (cityFilter.length > 0 && !(r.billing_city && cityFilter.includes(r.billing_city)))
+          return false;
+        return true;
+      }),
+    [rows, orgFilter, stateFilter, cityFilter],
+  );
 
   const totals = useMemo(() => {
     const committedProfit = rows.reduce(
