@@ -657,6 +657,75 @@ function DashboardPage() {
         }),
       );
 
+      // Invoice-page parity: billing-day divisor (unclamped), shift hours,
+      // billing type and configured extra charges — exactly what
+      // admin.invoice.$unitId uses to compute the taxable value.
+      const contractIds = Array.from(new Set(unitRows.map((u) => u.contract_id).filter(Boolean)));
+      const billingMeta = new Map<string, { bdb: string | null; shift: number }>();
+      const billingTypeByContract = new Map<string, string>();
+      const extrasByUnit = new Map<string, number>();
+      const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
+      {
+        const cChunks: string[][] = [];
+        for (let i = 0; i < contractIds.length; i += 200) cChunks.push(contractIds.slice(i, i + 200));
+        const [{ data: bdbs }, { data: bts }] = await Promise.all([
+          supabase
+            .from("billing_day_bases" as never)
+            .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
+          supabase.from("billing_types" as never).select("id, code"),
+        ]);
+        for (const b of (bdbs ?? []) as Record<string, unknown>[]) {
+          bdbMap.set(String(b.id), {
+            method: b.method as never,
+            fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
+            weeklyOffDay: b.weekly_off_day == null ? null : Number(b.weekly_off_day),
+            includedWeekdays: Array.isArray(b.included_weekdays)
+              ? (b.included_weekdays as unknown[]).map(Number).filter((n) => n >= 0 && n <= 6)
+              : null,
+          });
+        }
+        const btCode = new Map(
+          ((bts ?? []) as { id: string; code: string | null }[]).map((b) => [b.id, b.code ?? "man_days"]),
+        );
+        await Promise.all([
+          ...cChunks.map(async (ids) => {
+            const [{ data: crs }, { data: ccs }] = await Promise.all([
+              supabase
+                .from("contract_resources" as never)
+                .select("contract_id, designation_id, billing_day_base_id, shift_hours")
+                .in("contract_id", ids),
+              supabase.from("client_contracts").select("id, billing_type_id").in("id", ids),
+            ]);
+            for (const r of (crs ?? []) as Record<string, unknown>[]) {
+              const h = Number(r.shift_hours);
+              billingMeta.set(`${r.contract_id}|${r.designation_id ?? ""}`, {
+                bdb: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
+                shift: Number.isFinite(h) && h > 0 ? h : 8,
+              });
+            }
+            for (const c of (ccs ?? []) as { id: string; billing_type_id: string | null }[]) {
+              billingTypeByContract.set(
+                c.id,
+                c.billing_type_id ? (btCode.get(c.billing_type_id) ?? "man_days") : "man_days",
+              );
+            }
+          }),
+          ...chunks.map(async (ids) => {
+            const { data: ex } = await supabase
+              .from("invoice_extra_charges" as never)
+              .select("unit_id, quantity, rate, enabled")
+              .in("unit_id", ids)
+              .eq("period_start", monthStart)
+              .eq("period_end", monthEnd)
+              .eq("enabled", true);
+            for (const e of (ex ?? []) as { unit_id: string; quantity: number; rate: number }[]) {
+              const amt = Math.round((Number(e.quantity) || 0) * (Number(e.rate) || 0) * 100) / 100;
+              extrasByUnit.set(e.unit_id, (extrasByUnit.get(e.unit_id) ?? 0) + amt);
+            }
+          }),
+        ]);
+      }
+
       const pnlByUnit = new Map<string, PnLRow>();
       for (const u of unitRows) {
         const resMap = resByContractDesig.get(u.contract_id) ?? new Map<string, ResourceRow>();
@@ -711,20 +780,47 @@ function DashboardPage() {
             periodDates: periodDateObjects,
             epfCapEnabled: u.epf_cap_enabled ?? true,
           });
+          // Same maths as the Invoices page (contractBillableMonthly +
+          // invoiceMathFor): saved components + benefits + employer lines,
+          // rate = contracted ÷ billing days rounded to 2 dp, × billed duties.
+          const sumSaved = (items: { amount?: unknown }[] | undefined) =>
+            (items ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
           const contractedInvoice =
-            resource.components.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) +
-            resource.employerContributions.reduce(
-              (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
-              0,
-            );
+            Math.round(
+              (sumSaved(resource.components) +
+                sumSaved(resource.benefits) +
+                sumSaved(resource.employerContributions)) *
+                100,
+            ) / 100;
           const payrollDays =
-            resolvePayrollDayCount(resource.payrollDayBase, periodDates) ?? wages.baseDays;
-          const earnedInvoice =
-            payrollDays > 0 ? (contractedInvoice / payrollDays) * totals.tDays : 0;
+            resolvePayrollDayCount(resource.payrollDayBase, periodDates) ??
+            (wages.baseDays || periodDates.length || 30);
+          const meta = billingMeta.get(`${u.contract_id}|${p.designation_id}`);
+          const billingDays =
+            resolvePayrollDayCount(
+              (meta?.bdb ? bdbMap.get(meta.bdb) : null) ?? resource.payrollDayBase ?? null,
+              periodDates,
+              { clampToPeriod: false },
+            ) ?? payrollDays;
+          const mode = billingTypeByContract.get(u.contract_id) ?? "man_days";
+          const billedDays = Math.round(totals.tDays * 100) / 100;
+          const shiftHours = meta?.shift ?? 8;
+          let earnedInvoice: number;
+          if (mode === "lumpsum" || mode === "man_months") earnedInvoice = contractedInvoice;
+          else if (mode === "man_hours") {
+            const perHour =
+              billingDays > 0 ? Math.round((contractedInvoice / billingDays / shiftHours) * 100) / 100 : 0;
+            earnedInvoice =
+              Math.round(perHour * Math.round(billedDays * shiftHours * 100) / 100 * 100) / 100;
+          } else {
+            const perDay = billingDays > 0 ? Math.round((contractedInvoice / billingDays) * 100) / 100 : 0;
+            earnedInvoice = Math.round(perDay * billedDays * 100) / 100;
+          }
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += wages.earnedGross;
         }
 
+        if (!isInternal) invoiceAmount = round2(invoiceAmount + (extrasByUnit.get(u.unit_id) ?? 0));
         if (!isInternal && finalInvoiceByUnit.has(u.unit_id))
           invoiceAmount = finalInvoiceByUnit.get(u.unit_id)!;
         if (postedPayroll.has(u.unit_id)) payrollCost = postedPayroll.get(u.unit_id)!;
