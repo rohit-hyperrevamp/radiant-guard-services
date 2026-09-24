@@ -1192,7 +1192,9 @@ function PayrollUnitPage() {
       const otDays = line.otDays;
       const workingDays = line.workingDays;
       const otHours = otDays;
-      const otRate = line.otRate;
+      // OT rate is hourly: the invoice's per-duty rate divided by the
+      // contractual shift length (8h or 12h unit).
+      const otRate = r2(line.otRate / (m.shiftHours > 0 ? m.shiftHours : 8));
       const otAmount = line.otAmount;
       const regular = line.regularBilling;
       const otBilling = line.otBilling;
