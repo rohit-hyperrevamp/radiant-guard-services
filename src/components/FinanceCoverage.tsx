@@ -98,14 +98,16 @@ function Tile({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-3",
+        "rounded-2xl border p-3 bg-gradient-to-br",
         tone === "success"
-          ? "border-emerald-500/40 bg-emerald-500/10"
+          ? "border-emerald-500/40 from-emerald-500/15 to-emerald-500/5"
           : tone === "warning"
-            ? "border-amber-500/40 bg-amber-500/10"
+            ? "border-amber-500/40 from-amber-500/15 to-amber-500/5"
             : tone === "destructive"
-              ? "border-destructive/40 bg-destructive/10"
-              : "border-border bg-background/60",
+              ? "border-destructive/40 from-destructive/15 to-destructive/5"
+              : tone === "accent"
+                ? "border-primary/30 from-primary/10 to-primary/5"
+                : "border-border from-background/80 to-background/40",
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">

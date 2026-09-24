@@ -1033,11 +1033,15 @@ function DashboardPage() {
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
   // any client-billing data, so no profit can be derived from what renders.
   const canSeeCommercial = can("invoice");
+  const charterByUnitId = new Map(dashboardUnits.map((u) => [u.id, u]));
   const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
     unit_id: r.unit_id,
     unit_code: r.unit_code,
     unit_name: r.unit_name,
     customer_name: r.customer_name,
+    customer_id: charterByUnitId.get(r.unit_id)?.customer_id || undefined,
+    billing_state: charterByUnitId.get(r.unit_id)?.billing_state ?? null,
+    billing_city: charterByUnitId.get(r.unit_id)?.billing_city ?? null,
     internal: r.internal,
     committed_strength: r.committed_strength,
     actual_strength: r.actual_strength,
