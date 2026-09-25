@@ -569,6 +569,13 @@ export type Unit = {
   branchSapCode: string;
   /** MIS is sent on its own; excluded from combined MIS exports. */
   separateMis?: boolean;
+  clientType?: string;
+  hrExecutiveId?: string;
+  mappingPayrollWindowId?: string;
+  operationsManagerId?: string;
+  accountManagerId?: string;
+  dividingFactor?: string;
+  complianceFrequency?: string;
   branchId: string | null;
   customerId: string | null;
   onboardingDate: string;
@@ -666,6 +673,13 @@ type UnitRow = {
   zone?: string | null;
   branch_sap_code?: string | null;
   separate_mis?: boolean | null;
+  client_type?: string | null;
+  hr_executive_id?: string | null;
+  mapping_payroll_window_id?: string | null;
+  operations_manager_id?: string | null;
+  account_manager_id?: string | null;
+  dividing_factor?: number | null;
+  compliance_frequency?: string | null;
   branch_id: string | null;
   customer_id: string | null;
   onboarding_date: string | null;
@@ -744,6 +758,13 @@ function rowToUnit(r: UnitRow): Unit {
     zone: r.zone ?? "",
     branchSapCode: r.branch_sap_code ?? "",
     separateMis: r.separate_mis === true,
+    clientType: r.client_type ?? "",
+    hrExecutiveId: r.hr_executive_id ?? "",
+    mappingPayrollWindowId: r.mapping_payroll_window_id ?? "",
+    operationsManagerId: r.operations_manager_id ?? "",
+    accountManagerId: r.account_manager_id ?? "",
+    dividingFactor: r.dividing_factor == null ? "" : String(r.dividing_factor),
+    complianceFrequency: r.compliance_frequency ?? "",
     branchId: r.branch_id,
     customerId: r.customer_id,
     onboardingDate: r.onboarding_date ?? "",
@@ -818,6 +839,13 @@ function unitToRow(data: Omit<Unit, "id">) {
     zone: data.zone?.trim() || null,
     branch_sap_code: data.branchSapCode?.trim() || null,
     separate_mis: data.separateMis === true,
+    client_type: data.clientType?.trim() || null,
+    hr_executive_id: data.hrExecutiveId || null,
+    mapping_payroll_window_id: data.mappingPayrollWindowId || null,
+    operations_manager_id: data.operationsManagerId || null,
+    account_manager_id: data.accountManagerId || null,
+    dividing_factor: data.dividingFactor && Number.isFinite(Number(data.dividingFactor)) ? Number(data.dividingFactor) : null,
+    compliance_frequency: data.complianceFrequency || null,
     branch_id: data.branchId || null,
     customer_id: data.customerId || null,
     onboarding_date: data.onboardingDate || null,

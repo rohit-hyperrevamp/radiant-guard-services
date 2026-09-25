@@ -60,6 +60,7 @@ import {
   saveClientAttributeValues,
 } from "@/lib/mis-template";
 import { cn } from "@/lib/utils";
+import { EmployeePicker } from "@/components/EmployeePicker";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
@@ -1033,6 +1034,7 @@ function UnitFormDialog({
     { key: "deployment", label: "Deployment", caption: "Deployment address and map location" },
     { key: "statutory", label: "Statutory", caption: "Tax and welfare settings" },
     { key: "inclusions", label: "Inclusions", caption: "Contract charges and benefits" },
+    { key: "mappings", label: "Mappings", caption: "Client type, people and pay cycle" },
     { key: "review", label: "Review", caption: "Contacts, deployment and final check" },
   ];
   const validateStep = (key: string) => {
@@ -1046,8 +1048,8 @@ function UnitFormDialog({
   const isStepComplete = (key: string): boolean => {
     if (["organization", "details", "billing", "inclusions"].includes(key)) return !validateStep(key);
     if (key === "deployment") return form.shippingSameAsBilling || form.shippingSameAsOrg || Boolean(form.shippingAddress1.trim());
-    if (key === "statutory") return true;
-    return steps.slice(0, 6).every((step) => isStepComplete(step.key));
+    if (key === "statutory" || key === "mappings") return true;
+    return steps.filter((step) => step.key !== "review").every((step) => isStepComplete(step.key));
   };
   const requestStep = (key: string) => {
     const target = steps.findIndex((step) => step.key === key);
@@ -1686,6 +1688,11 @@ function UnitFormDialog({
 
 
 
+          {/* MAPPINGS — all optional */}
+          <div className={stepKey === "mappings" ? "space-y-5" : "hidden"}>
+          <MappingsSection form={form} set={set} />
+          </div>
+
           {/* OTHER */}
           <div className={stepKey === "review" ? "space-y-5" : "hidden"}>
           <Section title="Other details">
@@ -2094,5 +2101,104 @@ function UnitDeployment({
         </div>
       </div>
     </div>
+  );
+}
+
+
+const CLIENT_TYPE_PRESETS = ["Unit", "Bank", "Miscellaneous"];
+
+function MappingsSection({
+  form,
+  set,
+}: {
+  form: Omit<Unit, "id">;
+  set: <K extends keyof Omit<Unit, "id">>(k: K, v: Omit<Unit, "id">[K]) => void;
+}) {
+  const windowsQ = useQuery({
+    queryKey: ["payroll-windows-mapping"],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payroll_windows")
+        .select("id,label,window_start_day,window_end_day,processing_day,enabled")
+        .order("window_start_day", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; label: string | null; window_start_day: number; window_end_day: number; processing_day: number | null; enabled: boolean | null }>;
+    },
+  });
+  const windows = windowsQ.data ?? [];
+  const selectedWindow = windows.find((w) => w.id === form.mappingPayrollWindowId);
+  const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
+  const clientType = form.clientType ?? "";
+  const isCustomType = clientType !== "" && !CLIENT_TYPE_PRESETS.includes(clientType);
+  const [otherMode, setOtherMode] = useState(isCustomType);
+  const typeSelectValue = otherMode || isCustomType ? "__other" : clientType || "__none";
+
+  return (
+    <Section title="Mappings">
+      <p className="mb-3 text-xs text-muted-foreground">Every field here is optional.</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Client type">
+          <Select
+            value={typeSelectValue}
+            onValueChange={(v) => {
+              if (v === "__other") { setOtherMode(true); if (CLIENT_TYPE_PRESETS.includes(clientType)) set("clientType", ""); return; }
+              setOtherMode(false);
+              set("clientType", v === "__none" ? "" : v);
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Not set</SelectItem>
+              {CLIENT_TYPE_PRESETS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              <SelectItem value="__other">Other…</SelectItem>
+            </SelectContent>
+          </Select>
+          {typeSelectValue === "__other" && (
+            <Input className="mt-2" value={clientType} onChange={(e) => set("clientType", e.target.value)} placeholder="Enter client type" />
+          )}
+        </Field>
+        <Field label="HR executive">
+          <EmployeePicker value={form.hrExecutiveId ?? ""} onChange={(id) => set("hrExecutiveId", id)} placeholder="Select HR executive" />
+        </Field>
+        <Field label="Pay cycle window">
+          <Select value={form.mappingPayrollWindowId || "__none"} onValueChange={(v) => set("mappingPayrollWindowId", v === "__none" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Not set</SelectItem>
+              {windows.filter((w) => w.enabled !== false || w.id === form.mappingPayrollWindowId).map((w) => (
+                <SelectItem key={w.id} value={w.id}>{w.label || `${w.window_start_day} to ${w.window_end_day}`}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Pay date">
+          <div className="modern-form-toggle">
+            <span className="text-sm font-medium text-foreground">
+              {selectedWindow?.processing_day ? `${ordinal(selectedWindow.processing_day)} of the month` : "Set by the pay cycle window"}
+            </span>
+          </div>
+        </Field>
+        <Field label="Operations manager (OM)">
+          <EmployeePicker value={form.operationsManagerId ?? ""} onChange={(id) => set("operationsManagerId", id)} placeholder="Select operations manager" />
+        </Field>
+        <Field label="Account manager (AM)">
+          <EmployeePicker value={form.accountManagerId ?? ""} onChange={(id) => set("accountManagerId", id)} placeholder="Select account manager" />
+        </Field>
+        <Field label="Dividing factor">
+          <Input type="number" inputMode="decimal" step="0.01" min="0" value={form.dividingFactor ?? ""} onChange={(e) => set("dividingFactor", e.target.value)} placeholder="e.g. 26" />
+        </Field>
+        <Field label="Compliance">
+          <Select value={form.complianceFrequency || "__none"} onValueChange={(v) => set("complianceFrequency", v === "__none" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Not set</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="quarterly">Quarterly</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
+    </Section>
   );
 }
