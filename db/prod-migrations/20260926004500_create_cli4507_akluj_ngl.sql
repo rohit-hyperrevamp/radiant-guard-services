@@ -20,17 +20,19 @@ UPDATE nr SET id=gen_random_uuid(), contract_id=(SELECT id FROM nc), created_at=
 INSERT INTO contract_resources SELECT * FROM nr;
 
 -- postings: site lines, primaries elsewhere untouched
+-- Sagar (new, from 1 Sep) = posted guard here; Pradip/Prakash keep CLI2176 primary and are relief ED here
+UPDATE candidate_units SET is_primary=false WHERE candidate_id=(SELECT id FROM candidates WHERE employee_code='49263') AND is_primary;
 INSERT INTO candidate_units(candidate_id,unit_id,designation_id,is_primary,is_reliever,sort_order)
- SELECT c.id,(SELECT id FROM nu),'aad77ba7-98d2-44cb-a0f1-b598eed740f4',false,false,0 FROM candidates c WHERE c.employee_code IN ('47494','49263','26417');
+ SELECT c.id,(SELECT id FROM nu),'aad77ba7-98d2-44cb-a0f1-b598eed740f4',c.employee_code='49263',c.employee_code<>'49263',0 FROM candidates c WHERE c.employee_code IN ('47494','49263','26417');
 
 CREATE TEMP TABLE g(emp text, s text);
 INSERT INTO g VALUES
- ('47494','PPWPPA.........................'),
+ ('47494','PP.PP..........................'),
  ('49263','.........WAPPPPPWPPPPPPWPPPPPPW'),
- ('26417','.....PPPPWP....................');
+ ('26417','.....RRRR.R....................');
 INSERT INTO attendance_entries(unit_id,candidate_id,designation_id,shift_hours,is_reliever,entry_date,code,ot_hours)
- SELECT (SELECT id FROM nu), c.id,'aad77ba7-98d2-44cb-a0f1-b598eed740f4',8,false,'2026-08-21'::date+i-1,
-  CASE substr(g.s,i,1) WHEN 'P' THEN 'P' WHEN 'W' THEN 'WO' ELSE 'A' END,0
+ SELECT (SELECT id FROM nu), c.id,'aad77ba7-98d2-44cb-a0f1-b598eed740f4',CASE WHEN substr(g.s,i,1)='R' THEN 0 ELSE 8 END,substr(g.s,i,1)='R','2026-08-21'::date+i-1,
+  CASE substr(g.s,i,1) WHEN 'P' THEN 'P' WHEN 'W' THEN 'WO' WHEN 'A' THEN 'A' ELSE '' END,CASE WHEN substr(g.s,i,1)='R' THEN 1 ELSE 0 END
  FROM g JOIN candidates c ON c.employee_code=g.emp, generate_series(1,31) i WHERE substr(g.s,i,1)<>'.';
 SELECT ca.employee_code,ae.code,count(*) FROM attendance_entries ae JOIN candidates ca ON ca.id=ae.candidate_id
  WHERE ae.unit_id=(SELECT id FROM nu) GROUP BY 1,2 ORDER BY 1,2;
