@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
-import { ROLE_KEYS } from "@/lib/role-keys";
+import { CONTROL_CENTER_ROLES, ROLE_KEYS } from "@/lib/role-keys";
 import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
 import { fmtINR, computeWages, type ContractResourceLike } from "@/lib/payroll-calc";
 import { useIsMobile } from "@/hooks/use-mobile";
