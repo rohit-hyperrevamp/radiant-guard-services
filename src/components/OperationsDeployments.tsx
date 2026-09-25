@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -84,6 +85,10 @@ function matchesKeywords(haystack: string, query: string): boolean {
 
 export function OperationsDeployments() {
   const qc = useQueryClient();
+  const { isSuperAdmin, can, canSub } = useCurrentPermissions();
+  // Mapping field officers to units needs edit rights on units — view-only
+  // roles (e.g. Control Center staff) see the roster without switch controls.
+  const canMap = isSuperAdmin || canSub("organizations", "unit_manager", "edit") || can("organizations", "edit");
   const [view, setView] = useState<"unit" | "officer">("unit");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -295,7 +300,7 @@ export function OperationsDeployments() {
             </label>
             <span className="flex items-center gap-2">
               {selected.size > 0 && <span>{selected.size} selected</span>}
-              {selected.size > 0 && (
+              {canMap && selected.size > 0 && (
                 <>
                   <Button
                     size="sm"
@@ -336,9 +341,11 @@ export function OperationsDeployments() {
                     </div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-[11px]" onClick={() => setSwitchUnits([u])}>
-                  <Repeat className="h-3 w-3" /> Switch officer
-                </Button>
+                {canMap && (
+                  <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-[11px]" onClick={() => setSwitchUnits([u])}>
+                    <Repeat className="h-3 w-3" /> Switch officer
+                  </Button>
+                )}
               </li>
             );
           })}
