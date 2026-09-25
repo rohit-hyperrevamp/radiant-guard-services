@@ -686,6 +686,8 @@ type UnitRow = {
   compliance_manager_id?: string | null;
   dividing_factor?: number | null;
   compliance_frequency?: string | null;
+  compliance_report_format?: string | null;
+  salary_slip_required?: boolean | null;
   branch_id: string | null;
   customer_id: string | null;
   onboarding_date: string | null;
