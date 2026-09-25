@@ -71,9 +71,10 @@ function normalizeWords(text: string): string {
   out = out.replace(/\bdedh\b|\ddedh\b/g, "1.5");
   out = out.replace(/\bdhai\b/g, "2.5");
   out = out.replace(/\badha\b|\aadha\b/g, "0.5");
-  // Spoken fractions using "half".
-  out = out.replace(/half\s+an\s+hour|half\s+hour/, "0.5 hours");
+  // Spoken fractions using "half" — "and a half" must run before the
+  // half-an-hour rule so "one and a half hours" is not eaten as "half hour".
   out = out.replace(/\band\s+a\s+half\b|\band\s+half\b|\ba\s+half\b|\bone\s+half\b/g, " point five ");
+  out = out.replace(/\bhalf\s+(?:an\s+)?hours?\b/, "0.5 hours");
   // "sava two hours" -> 2.25, "paune two hours" -> 1.75.
   out = out.replace(/\bsava\s+(\d+(?:\.\d+)?)/g, (_m, n: string) => String(parseFloat(n) + 0.25));
   out = out.replace(/\bpaune\s+(\d+(?:\.\d+)?)/g, (_m, n: string) => String(Math.max(0, parseFloat(n) - 0.25)));
