@@ -415,18 +415,44 @@ function MyAttendancePage() {
                 </div>
 
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">In</div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {fmtHM(p?.check_in_at ?? null)}
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5">
+                    <PunchPhoto
+                      shot={p?.check_in_photo_path
+                        ? { path: p.check_in_photo_path, label: "Log in", at: p.check_in_at, lat: p.check_in_lat, lng: p.check_in_lng, place: p.check_in_place ?? null }
+                        : null}
+                      onOpen={setOpenShot}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">In</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        {fmtHM(p?.check_in_at ?? null)}
+                      </div>
+                      {p?.check_in_place && (
+                        <div className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground" title={p.check_in_place}>
+                          {p.check_in_place}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">Out</div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {fmtHM(p?.check_out_at ?? null)}
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5">
+                    <PunchPhoto
+                      shot={p?.check_out_photo_path
+                        ? { path: p.check_out_photo_path, label: "Log out", at: p.check_out_at, lat: p.check_out_lat, lng: p.check_out_lng, place: p.check_out_place ?? null }
+                        : null}
+                      onOpen={setOpenShot}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">Out</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        {fmtHM(p?.check_out_at ?? null)}
+                      </div>
+                      {p?.check_out_place && (
+                        <div className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground" title={p.check_out_place}>
+                          {p.check_out_place}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
