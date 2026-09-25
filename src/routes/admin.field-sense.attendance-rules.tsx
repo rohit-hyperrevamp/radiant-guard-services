@@ -114,12 +114,14 @@ function AttendanceRulesPage() {
   const [pickId, setPickId] = useState("");
   const [pickMode, setPickMode] = useState<Mode>("anywhere");
   const saveOverride = useMutation({
-    mutationFn: async ({ candidate_id, mode }: { candidate_id: string; mode: Mode }) => {
+    mutationFn: async ({ candidate_id, mode, require_selfie }: { candidate_id: string; mode: Mode; require_selfie?: boolean | null }) => {
+      const row: Record<string, unknown> = { candidate_id, mode, updated_at: new Date().toISOString() };
+      if (require_selfie !== undefined) row.require_selfie = require_selfie;
       const { error } = await supabase
         .from("attendance_location_overrides" as never)
-        .upsert({ candidate_id, mode, updated_at: new Date().toISOString() } as never, { onConflict: "candidate_id" });
+        .upsert(row as never, { onConflict: "candidate_id" });
       if (error) throw error;
-      void logActivity({ module: MODULE, action: "update", entityType: "attendance_location_overrides", entityId: candidate_id, after: { mode } });
+      void logActivity({ module: MODULE, action: "update", entityType: "attendance_location_overrides", entityId: candidate_id, after: { mode, require_selfie } });
     },
     onSuccess: () => { toast.success("Person rule saved"); setPickId(""); void qc.invalidateQueries({ queryKey: ["att-rules-overrides"] }); },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
@@ -243,6 +245,7 @@ function AttendanceRulesPage() {
                 <tr>
                   <th className="px-4 py-2">Employee</th>
                   <th className="px-4 py-2">Where they can mark</th>
+                  <th className="px-4 py-2">Face photo</th>
                   <th className="px-4 py-2 w-16" />
                 </tr>
               </thead>
