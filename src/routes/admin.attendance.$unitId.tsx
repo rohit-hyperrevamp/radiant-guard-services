@@ -1747,7 +1747,10 @@ function MusterRollPage() {
             l.id,
           );
         }
-      } else {
+      } else if (assigned || candidatesWithEntries.has(emp.id)) {
+        // Only people genuinely posted here (or with saved attendance) get a
+        // default line. Someone whose only line was just deleted must not
+        // re-appear under their master designation.
         pushRow(emp.designation_id, lineVariant(0, !assigned), true, null);
       }
 
@@ -2062,6 +2065,18 @@ function MusterRollPage() {
         next.delete(mr.key);
         return next;
       });
+      // If that was the person's last line here, drop them from this sheet
+      // entirely instead of falling back to their master designation.
+      const otherLines = musterRows.some(
+        (r) => !r.vacant && r.candidateId === mr.candidateId && r.key !== mr.key,
+      );
+      if (!otherLines) {
+        setManualRosterIds((prev) => {
+          const next = new Set(prev);
+          next.delete(mr.candidateId);
+          return next;
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
       logActivity({
