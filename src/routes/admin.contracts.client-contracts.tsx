@@ -43,6 +43,7 @@ import {
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
+import { CopyableId } from "@/components/CopyableId";
 import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";

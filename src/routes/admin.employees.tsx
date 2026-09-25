@@ -151,6 +151,7 @@ import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-export-dialog";
+import { CopyableId } from "@/components/CopyableId";
 import { fetchAllPages } from "@/lib/supabase-batch";
 
 type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string };
