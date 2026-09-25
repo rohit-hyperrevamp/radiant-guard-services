@@ -29,6 +29,12 @@
 
 ## Current request
 
+- [x] Expand the HR Executive client portfolio to the full dashboard width.
+- [x] Prevent client-table text overlap and keep wide columns internally scrollable.
+- [x] Make dashboard clients link directly to their matching Clients-page record.
+- [x] Make client type, dividing factor, pay cycle, and pay date filters independently combinable.
+- [x] Run TypeScript validation.
+
 - [x] Reconcile all 12-hour Maharashtra L&T guard contracts to their correct district rate-sheet columns.
 - [x] Show final Billing instead of Gross and remove duplicate Billing/day from resource cards.
 - [x] Show 27-, 26-, 25-, and 24-day billing rates together for every contract resource.
