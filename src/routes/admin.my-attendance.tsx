@@ -497,7 +497,52 @@ function MyAttendancePage() {
           </div>
         )}
       </section>
+
+      <PunchShotViewer shot={openShot} onClose={() => setOpenShot(null)} />
     </div>
+  );
+}
+
+function PunchShotViewer({ shot, onClose }: { shot: PunchShot | null; onClose: () => void }) {
+  const urlQ = useQuery({
+    queryKey: ["selfie-url", shot?.path],
+    enabled: !!shot?.path,
+    staleTime: 50 * 60_000,
+    queryFn: () => selfieUrl(shot!.path),
+  });
+  const map = shot ? mapsUrl(shot.lat, shot.lng) : null;
+  return (
+    <Dialog open={!!shot} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{shot?.label} photo</DialogTitle>
+        </DialogHeader>
+        <div className="overflow-auto rounded-xl bg-muted">
+          {urlQ.data ? (
+            <img
+              src={urlQ.data}
+              alt={shot?.label ?? "Punch photo"}
+              onDoubleClick={(e) => {
+                const img = e.currentTarget;
+                img.style.width = img.style.width === "200%" ? "100%" : "200%";
+              }}
+              className="mx-auto block h-auto w-full cursor-zoom-in"
+            />
+          ) : (
+            <div className="p-6 text-center text-xs text-muted-foreground">Loading photo…</div>
+          )}
+        </div>
+        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+          <div><span className="font-semibold text-foreground">Time:</span> {shot?.at ? new Date(shot.at).toLocaleString("en-IN") : "—"}</div>
+          <div>
+            <span className="font-semibold text-foreground">Coordinates:</span>{" "}
+            {shot?.lat != null ? `${Number(shot.lat).toFixed(6)}, ${Number(shot.lng).toFixed(6)}` : "—"}
+            {map ? <a href={map} target="_blank" rel="noreferrer" className="ml-2 font-semibold text-primary">Map</a> : null}
+          </div>
+          <div className="sm:col-span-2"><span className="font-semibold text-foreground">Place:</span> {shot?.place ?? "—"}</div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
