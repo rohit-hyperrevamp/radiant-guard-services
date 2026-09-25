@@ -14,10 +14,13 @@ export function EmployeePicker({
   value,
   onChange,
   placeholder = "Select employee",
+  roleKey,
 }: {
   value: string;
   onChange: (id: string) => void;
   placeholder?: string;
+  /** When set, only employees with this role_key are listed. */
+  roleKey?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
