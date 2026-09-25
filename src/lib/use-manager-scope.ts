@@ -161,6 +161,7 @@ async function loadHrExecutiveUnits(candidateId: string) {
 export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
   const { candidateId, isSuperAdmin, isFieldOfficer, roleKey, isLoading: roleLoading } = useCurrentUserRole();
   const enabled = !!candidateId && !isSuperAdmin && !isFieldOfficer;
+  const mustScope = roleKey === ROLE_KEYS.HR_EXECUTIVE;
 
   const q = useQuery({
     queryKey: ["manager-fo-scope", candidateId],
@@ -169,7 +170,7 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     queryFn: async () => {
       const [fieldOfficerIds, hrScope] = await Promise.all([
         loadSubtree(candidateId!),
-        roleKey === ROLE_KEYS.HR_EXECUTIVE || roleKey === ROLE_KEYS.HR ? loadHrExecutiveUnits(candidateId!) : Promise.resolve({ unitIds: [], customerIds: [] })
+        mustScope ? loadHrExecutiveUnits(candidateId!) : Promise.resolve({ unitIds: [], customerIds: [] })
       ]);
       
       const { unitIds: foUnitIds, customerIds: foCustomerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
@@ -191,7 +192,9 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
 
   return {
     isLoading: roleLoading || (enabled && q.isLoading),
-    isScoped: enabled && (fieldOfficerIds.size > 0 || unitIds.size > 0),
+    // An HR Executive with no assignments must see zero units, never the
+    // company-wide fallback used by ordinary managers with no reportees.
+    isScoped: enabled && (mustScope || fieldOfficerIds.size > 0 || unitIds.size > 0),
     candidateId,
     fieldOfficerIds,
     unitIds,
