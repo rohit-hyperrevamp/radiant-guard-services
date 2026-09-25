@@ -1567,6 +1567,18 @@ function MusterRollPage() {
         toast.info(`${cand.full_name} already has this line on the sheet`);
         return;
       }
+      // Guard against silently giving one person two regular designations.
+      const otherRegular = here.find(
+        (l) => !l.is_reliever && (l.designation_id ?? null) !== designationId,
+      );
+      if (!editLine && !asReliever && otherRegular) {
+        const ok = await confirm({
+          title: "Add a second designation?",
+          description: `${cand.full_name} is already on this sheet as ${allDesigNames.get(otherRegular.designation_id ?? "") ?? "another designation"}. Add another regular line as ${allDesigNames.get(designationId ?? "") ?? "this designation"}? Use the pencil on the existing line to change designation instead.`,
+          confirmText: "Add second line",
+        } as never);
+        if (!ok) return;
+      }
       // First regular line at this unit makes it the guard's main unit; more
       // regular lines here (e.g. 8h + 12h) stay regular without moving it.
       const primaryHere = here.some((l) => l.is_primary && l.id !== editLine?.lineId);
@@ -1747,7 +1759,10 @@ function MusterRollPage() {
             l.id,
           );
         }
-      } else {
+      } else if (assigned || candidatesWithEntries.has(emp.id)) {
+        // Only people genuinely posted here (or with saved attendance) get a
+        // default line. Someone whose only line was just deleted must not
+        // re-appear under their master designation.
         pushRow(emp.designation_id, lineVariant(0, !assigned), true, null);
       }
 
@@ -2062,6 +2077,18 @@ function MusterRollPage() {
         next.delete(mr.key);
         return next;
       });
+      // If that was the person's last line here, drop them from this sheet
+      // entirely instead of falling back to their master designation.
+      const otherLines = musterRows.some(
+        (r) => !r.vacant && r.candidateId === mr.candidateId && r.key !== mr.key,
+      );
+      if (!otherLines) {
+        setManualRosterIds((prev) => {
+          const next = new Set(prev);
+          next.delete(mr.candidateId);
+          return next;
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
       logActivity({
