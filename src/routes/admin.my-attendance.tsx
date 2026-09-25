@@ -133,6 +133,7 @@ function MyAttendancePage() {
   });
   const [monthDate, setMonthDate] = useState<Date>(() => new Date());
   const [search, setSearch] = useState("");
+  const [openShot, setOpenShot] = useState<PunchShot | null>(null);
 
   useEffect(() => {
     void (async () => {
