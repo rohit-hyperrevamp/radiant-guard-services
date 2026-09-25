@@ -40,9 +40,9 @@ const MODES: { value: Mode; label: string; hint: string }[] = [
 ];
 const MODULE = "Attendance Location Rules";
 
-type Policy = { role_key: string; mode: Mode; radius_m: number; capture_missing_coords: boolean };
+type Policy = { role_key: string; mode: Mode; radius_m: number; capture_missing_coords: boolean; require_selfie: boolean };
 type Role = { key: string; name: string };
-type Override = { candidate_id: string; mode: Mode; notes: string | null; updated_at: string };
+type Override = { candidate_id: string; mode: Mode; require_selfie: boolean | null; notes: string | null; updated_at: string };
 type Cand = { id: string; full_name: string | null; employee_code: string | null; role_key: string | null };
 
 function AttendanceRulesPage() {
@@ -159,6 +159,7 @@ function AttendanceRulesPage() {
                 <th className="px-4 py-2">Where they can mark</th>
                 <th className="px-4 py-2">Allowed distance (m)</th>
                 <th className="px-4 py-2">Save new site locations</th>
+                <th className="px-4 py-2">Face photo required</th>
               </tr>
             </thead>
             <tbody>
