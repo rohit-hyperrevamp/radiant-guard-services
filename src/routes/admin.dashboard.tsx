@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
+import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
 import { DashboardShell } from "@/components/LiveFeed";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -246,6 +247,7 @@ function DashboardPage() {
   // Transport owns fleet and assets only — no payroll window, no leadership
   // snapshot, no client money. Their homepage is vehicles + assets combined.
   const showTransportDashboard = roleKey === ROLE_KEYS.TRANSPORT;
+  const showHrExecutiveDashboard = roleKey === ROLE_KEYS.HR_EXECUTIVE;
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();
@@ -287,7 +289,7 @@ function DashboardPage() {
   // independent query so the dashboard is usable immediately.
   const countsQuery = useQuery({
     queryKey: ["dashboard-counts", year, month, periodSelection.selectedKey],
-    enabled: !permsLoading && !showInventoryDashboard && !showTransportDashboard,
+    enabled: !permsLoading && !showInventoryDashboard && !showTransportDashboard && !showHrExecutiveDashboard,
     staleTime: 2 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
@@ -1172,6 +1174,21 @@ function DashboardPage() {
     return (
       <div className="flex min-h-[40vh] items-center justify-center p-6 text-sm text-muted-foreground">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/70" />
+      </div>
+    );
+  }
+
+  if (showHrExecutiveDashboard) {
+    return (
+      <div className="px-0 py-1 sm:p-6">
+        <DashboardShell>
+          <PageHeader
+            title="My clients"
+            description="Clients you look after as HR executive — pay cycle, pay date, dividing factor and compliance at a glance."
+            crumbs={[{ label: "Dashboard" }]}
+          />
+          <HrExecutiveDashboard />
+        </DashboardShell>
       </div>
     );
   }

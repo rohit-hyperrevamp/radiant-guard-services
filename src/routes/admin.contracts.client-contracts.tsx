@@ -2366,7 +2366,7 @@ function ClientContractsPage() {
   const canApprove = isSuperAdmin || can("contracts", "approve");
   const canEdit = isSuperAdmin || can("contracts", "edit");
   const canDelete = isSuperAdmin || can("contracts", "delete");
-  const isHrReadOnly = !isSuperAdmin && roleKey === "hr";
+  const isHrReadOnly = !isSuperAdmin && (roleKey === "hr" || roleKey === "hr_executive");
   const units = useMemo(
     () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
       id: item.unitId,
