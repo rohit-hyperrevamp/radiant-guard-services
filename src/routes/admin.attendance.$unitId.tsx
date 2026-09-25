@@ -4927,7 +4927,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                             mr.candidateId || null,
                           );
                           const hours =
-                            Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
+                            Math.round((Number(entry?.ot_hours) || 0) * rowShift * 100) / 100;
                           return (
                             <td
                               key={cell.date}
@@ -4957,8 +4957,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                           {Math.round(
                             totals.otDays *
                               shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
-                              4,
-                          ) / 4}
+                              100,
+                          ) / 100}
                           h
                         </td>
                       </tr>,
@@ -5415,10 +5415,9 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
-                        // Stored value is ED *days*; the grid shows clock hours.
-                        // Snap to the nearest quarter hour so legacy rounded
-                        // day-values (0.13 d) read as a clean 1h, not 1.04h.
-                        const hrs = Math.round(otDaysCell * rowShift * 4) / 4;
+                        // Stored value is ED *days*; the grid shows clock hours
+                        // to 2 decimals so 1h 35m reads 1.58, never snapped.
+                        const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
 
                         const isSelected = otSelectedCells.has(`${mr.key}|${date}`);
                         return (
@@ -5507,8 +5506,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         {Math.round(
                           totals.otDays *
                             shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
-                            4,
-                        ) / 4}
+                            100,
+                        ) / 100}
                       </td>
                     </tr>,
                   ];
