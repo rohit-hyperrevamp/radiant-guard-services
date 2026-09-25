@@ -196,7 +196,7 @@ function UnitManagerPage() {
 
   const [query, setQuery] = useState(client ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("active");
-  const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [cityFilter, setCityFilter] = useState<string[]>([]);
   const [formOpen, setFormOpen] = useState(false);
@@ -229,11 +229,12 @@ function UnitManagerPage() {
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
       });
+    const orgSet = new Set(orgFilter);
     const stateSet = new Set(stateFilter);
     const citySet = new Set(cityFilter);
     const filtered = list.filter((u) => {
       if (statusFilter !== "all" && u.status !== statusFilter) return false;
-      if (orgFilter !== "all" && u.customerId !== orgFilter) return false;
+      if (orgSet.size && (!u.customerId || !orgSet.has(u.customerId))) return false;
       if (stateSet.size && !stateSet.has(u.stateLabel)) return false;
       if (citySet.size && !citySet.has(u.cityLabel)) return false;
       return true;
@@ -257,27 +258,35 @@ function UnitManagerPage() {
   const pg = usePagination(rows);
 
   const orgOptions = useMemo(
-    () => [...scopedCustomers].sort((a, b) => a.name.localeCompare(b.name)),
+    () => [...scopedCustomers]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((customer) => ({ value: customer.id, label: customer.name })),
     [scopedCustomers],
   );
 
   // State / city come from the client's billing address, which is already
   // populated for almost every client.
+  const unitsForSelectedOrganizations = useMemo(() => {
+    if (orgFilter.length === 0) return scopedUnits;
+    const selected = new Set(orgFilter);
+    return scopedUnits.filter((unit) => unit.customerId && selected.has(unit.customerId));
+  }, [scopedUnits, orgFilter]);
+
   const stateOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const u of scopedUnits) if (u.billingState?.trim()) set.add(u.billingState.trim());
+    for (const u of unitsForSelectedOrganizations) if (u.billingState?.trim()) set.add(u.billingState.trim());
     return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
-  }, [scopedUnits]);
+  }, [unitsForSelectedOrganizations]);
 
   const cityOptions = useMemo(() => {
     const picked = new Set(stateFilter);
     const set = new Set<string>();
-    for (const u of scopedUnits) {
+    for (const u of unitsForSelectedOrganizations) {
       if (picked.size && !picked.has((u.billingState || "").trim())) continue;
       if (u.billingCity?.trim()) set.add(u.billingCity.trim());
     }
     return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
-  }, [scopedUnits, stateFilter]);
+  }, [unitsForSelectedOrganizations, stateFilter]);
 
   const activeCount = scopedUnits.filter((u) => u.status === "active").length;
 
@@ -312,23 +321,45 @@ function UnitManagerPage() {
               className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
             />
           </div>
-          <Select value={orgFilter} onValueChange={setOrgFilter}>
-            <SelectTrigger className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-[220px]">
-              <SelectValue placeholder="All organisations" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All organisations</SelectItem>
-              {orgOptions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MultiSelectFilter
+            options={orgOptions}
+            selected={orgFilter}
+            onChange={(next) => {
+              setOrgFilter(next);
+              const selectedOrganizations = new Set(next);
+              const eligibleUnits = next.length === 0
+                ? scopedUnits
+                : scopedUnits.filter((unit) => unit.customerId && selectedOrganizations.has(unit.customerId));
+              const eligibleStates = new Set(
+                eligibleUnits.map((unit) => unit.billingState?.trim()).filter((value): value is string => Boolean(value)),
+              );
+              const nextStates = stateFilter.filter((state) => eligibleStates.has(state));
+              setStateFilter(nextStates);
+              const selectedStates = new Set(nextStates);
+              const eligibleCities = new Set(
+                eligibleUnits
+                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.billingState || "").trim()))
+                  .map((unit) => unit.billingCity?.trim())
+                  .filter((value): value is string => Boolean(value)),
+              );
+              setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
+            }}
+            allLabel="All organisations"
+            className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-auto sm:min-w-52"
+          />
           <MultiSelectFilter
             options={stateOptions}
             selected={stateFilter}
             onChange={(next) => {
               setStateFilter(next);
-              setCityFilter([]);
+              const selectedStates = new Set(next);
+              const eligibleCities = new Set(
+                unitsForSelectedOrganizations
+                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.billingState || "").trim()))
+                  .map((unit) => unit.billingCity?.trim())
+                  .filter((value): value is string => Boolean(value)),
+              );
+              setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
             }}
             allLabel="All states"
             className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-auto sm:min-w-36"
