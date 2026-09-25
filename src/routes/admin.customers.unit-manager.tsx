@@ -348,15 +348,15 @@ function UnitManagerPage() {
                 ? scopedUnits
                 : scopedUnits.filter((unit) => unit.customerId && selectedOrganizations.has(unit.customerId));
               const eligibleStates = new Set(
-                eligibleUnits.map((unit) => unit.billingState?.trim()).filter((value): value is string => Boolean(value)),
+                eligibleUnits.map((unit) => (unit.clientState || unit.billingState || "").trim()).filter((value): value is string => Boolean(value)),
               );
               const nextStates = stateFilter.filter((state) => eligibleStates.has(state));
               setStateFilter(nextStates);
               const selectedStates = new Set(nextStates);
               const eligibleCities = new Set(
                 eligibleUnits
-                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.billingState || "").trim()))
-                  .map((unit) => unit.billingCity?.trim())
+                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.clientState || unit.billingState || "").trim()))
+                  .map((unit) => (unit.clientCity || unit.billingCity || "").trim())
                   .filter((value): value is string => Boolean(value)),
               );
               setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
@@ -372,8 +372,8 @@ function UnitManagerPage() {
               const selectedStates = new Set(next);
               const eligibleCities = new Set(
                 unitsForSelectedOrganizations
-                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.billingState || "").trim()))
-                  .map((unit) => unit.billingCity?.trim())
+                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.clientState || unit.billingState || "").trim()))
+                  .map((unit) => (unit.clientCity || unit.billingCity || "").trim())
                   .filter((value): value is string => Boolean(value)),
               );
               setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
