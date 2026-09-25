@@ -2,10 +2,11 @@
  * Parses spoken duration phrases like:
  *   "1 hour 30 minutes"      -> { hours: 1, minutes: 30 }
  *   "one and a half hours"   -> { hours: 1.5, minutes: 0 }
- *   "90 minutes"             -> { hours: 0, minutes: 90 }
+ *   "90 minutes"             -> { hours: 1, minutes: 30 }
  *   "half an hour"           -> { hours: 0, minutes: 30 }
  *   "two hours"              -> { hours: 2, minutes: 0 }
  *   "one thirty"             -> { hours: 1, minutes: 30 }
+ *   "ek ghanta tees minute"  -> { hours: 1, minutes: 30 }
  * Returns null when nothing duration-like is recognised.
  */
 export interface ParsedDuration {
@@ -43,21 +44,45 @@ const WORD_NUMBERS: Record<string, string> = {
   seventy: "70",
   eighty: "80",
   ninety: "90",
+  // Common Hindi/Hinglish numerals heard in speech.
+  ek: "1",
+  do: "2",
+  teen: "3",
+  char: "4",
+  chaar: "4",
+  paanch: "5",
+  panch: "5",
+  chhah: "6",
+  cheh: "6",
+  saat: "7",
+  aath: "8",
+  nau: "9",
+  das: "10",
+  bees: "20",
+  tees: "30",
+  chalis: "40",
+  pachas: "50",
+  saath: "7",
 };
 
 function normalizeWords(text: string): string {
   let out = ` ${text.toLowerCase()} `;
-  // Common spoken fractions.
-  out = out.replace(/half\s+an\s+hour|half\s+an?\s+hour|half\s+hour/, "0.5 hours");
-  out = out.replace(/and\s+a\s+half|and\s+half|and\s+half/, " point five ");
-  out = out.replace(/a\s+half|one\s+half/, " point five ");
-  out = out.replace(/a\s+quarter/, " 0.25 ");
-  out = out.replace(/\ban\b|\ba\b(?= (?:hour|hr))/, " 1 ");
+  // Standalone Hindi fraction words.
+  out = out.replace(/\bdedh\b|\ddedh\b/g, "1.5");
+  out = out.replace(/\bdhai\b/g, "2.5");
+  out = out.replace(/\badha\b|\aadha\b/g, "0.5");
+  // Spoken fractions using "half".
+  out = out.replace(/half\s+an\s+hour|half\s+hour/, "0.5 hours");
+  out = out.replace(/\band\s+a\s+half\b|\band\s+half\b|\ba\s+half\b|\bone\s+half\b/g, " point five ");
+  // "sava two hours" -> 2.25, "paune two hours" -> 1.75.
+  out = out.replace(/\bsava\s+(\d+(?:\.\d+)?)/g, (_m, n: string) => String(parseFloat(n) + 0.25));
+  out = out.replace(/\bpaune\s+(\d+(?:\.\d+)?)/g, (_m, n: string) => String(Math.max(0, parseFloat(n) - 0.25)));
   // Word numbers -> digits. Longer keys first so "sixty" wins over "six".
   const keys = Object.keys(WORD_NUMBERS).sort((a, b) => b.length - a.length);
   for (const key of keys) {
     out = out.replace(new RegExp(`\\b${key}\\b`, "g"), WORD_NUMBERS[key]);
   }
+  out = out.replace(/\ban\b|\ba\b(?= (?:hour|hr))/, " 1 ");
   // Spoken decimal: "1 point five" -> "1.5", "one point three zero" -> "1.30".
   out = out.replace(/point\s+zero/gi, " point 0 ");
   out = out.replace(/point\s+five/gi, " point 5 ");
@@ -69,7 +94,7 @@ export function parseDurationWords(text: string): ParsedDuration | null {
   const clean = normalizeWords(text);
   if (!clean.trim()) return null;
 
-  const hourMatch = clean.match(/([\d.]+)\s*(?:hours?|hrs?|hr|ghanta|ghante|ghanta|ghnte)/);
+  const hourMatch = clean.match(/([\d.]+)\s*(?:hours?|hrs?|hr|ghanta|ghante|ghnte)/);
   const minuteMatch = clean.match(/([\d.]+)\s*(?:minutes?|mins?|min|minute|minit|minits)/);
 
   let hours = hourMatch ? parseFloat(hourMatch[1]) : 0;
@@ -102,16 +127,17 @@ export function parseDurationWords(text: string): ParsedDuration | null {
     }
   }
 
-  hours = Number.isFinite(hours) ? Math.max(0, Math.min(48, hours)) : 0;
-  minutes = Number.isFinite(minutes) ? Math.max(0, Math.min(59, minutes)) : 0;
+  hours = Number.isFinite(hours) ? Math.max(0, hours) : 0;
+  minutes = Number.isFinite(minutes) ? Math.max(0, minutes) : 0;
   if (hours === 0 && minutes === 0) return null;
 
-  // Roll excessive minutes into hours (e.g. "90 minutes").
+  // Roll excessive minutes into hours (e.g. "90 minutes" -> 1h 30m).
   if (minutes >= 60) {
     hours += Math.floor(minutes / 60);
     minutes = minutes % 60;
   }
-  hours = Math.min(48, hours);
+  hours = Math.max(0, Math.min(48, hours));
+  minutes = Math.max(0, Math.min(59, minutes));
   if (hours === 48) minutes = 0;
 
   return { hours, minutes };
