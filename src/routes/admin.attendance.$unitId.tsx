@@ -31,6 +31,18 @@ import {
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
+import { parseDurationWords } from "@/lib/voice-duration";
+
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
@@ -3588,7 +3600,7 @@ function MusterRollPage() {
     try {
       recognition.start();
       setOtListening(true);
-ge      toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
+toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
     } catch {
       setOtListening(false);
       toast.error("Could not start the microphone");
