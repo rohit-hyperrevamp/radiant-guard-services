@@ -32,7 +32,7 @@ async function fetchMyClients() {
   if (!me) return { rows: [] as Row[], windows: new Map<string, string>(), people: new Map<string, string>() };
   const rows: Row[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("units")
       .select("id,code,name,status,client_type,mapping_payroll_window_id,mapping_pay_day,dividing_factor,compliance_frequency,salary_slip_required,payroll_manager_id,customers:customer_id(name,code)")
       .eq("hr_executive_id", me as string)
