@@ -604,6 +604,7 @@ export type Unit = {
   clientAddress?: string;
   clientState?: string;
   clientCity?: string;
+  clientDistrict?: string;
   clientPincode?: string;
   shippingSameAsBilling: boolean;
   shippingSameAsOrg: boolean;
@@ -717,6 +718,7 @@ type UnitRow = {
   client_address?: string | null;
   client_state?: string | null;
   client_city?: string | null;
+  client_district?: string | null;
   client_pincode?: string | null;
   shipping_same_as_billing: boolean;
   shipping_same_as_org: boolean;
@@ -811,6 +813,7 @@ function rowToUnit(r: UnitRow): Unit {
     clientAddress: r.client_address ?? "",
     clientState: r.client_state ?? "",
     clientCity: r.client_city ?? "",
+    clientDistrict: r.client_district ?? "",
     clientPincode: r.client_pincode ?? "",
     shippingSameAsBilling: r.shipping_same_as_billing,
     shippingSameAsOrg: r.shipping_same_as_org,
@@ -901,6 +904,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     client_address: data.clientAddress?.trim() || [data.billingAddress1, data.billingAddress2].map((v) => (v ?? "").trim()).filter(Boolean).join(", ") || null,
     client_state: data.clientState?.trim() || data.billingState || null,
     client_city: data.clientCity?.trim() || data.billingCity || null,
+    client_district: data.clientDistrict?.trim() || data.billingDistrict || null,
     client_pincode: data.clientPincode?.trim() || data.billingPincode || null,
     shipping_same_as_billing: data.shippingSameAsBilling,
     shipping_same_as_org: data.shippingSameAsOrg,
