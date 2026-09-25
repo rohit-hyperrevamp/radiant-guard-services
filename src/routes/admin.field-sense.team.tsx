@@ -1,3 +1,5 @@
+import { selfieUrl } from "@/lib/attendance-selfie";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FieldSenseAdminGuard } from "@/components/FieldSenseAdminGuard";
 import { useEffect, useMemo, useState } from "react";
@@ -36,6 +38,7 @@ type Row = {
   last_lat: number | null;
   last_lng: number | null;
   last_seen_at: string | null;
+  photo_path: string | null;
   in_meeting_unit: string | null;
   work_ms: number | null;
   km_today: number;
@@ -95,7 +98,7 @@ function MyTeamPage() {
           .order("full_name", { ascending: true }),
         supabase
           .from("self_attendance_punches" as never)
-          .select("candidate_id, check_in_at, check_out_at, last_lat, last_lng, last_seen_at")
+          .select("candidate_id, check_in_at, check_out_at, last_lat, last_lng, last_seen_at, check_in_photo_path")
           .eq("punch_date", selectedDate),
         supabase
           .from("field_visits" as never)
@@ -117,6 +120,7 @@ function MyTeamPage() {
         last_lat: number | null;
         last_lng: number | null;
         last_seen_at: string | null;
+        check_in_photo_path: string | null;
       }>;
       const visits = ((visitsRes.data ?? []) as unknown) as Array<{
         candidate_id: string;
@@ -185,6 +189,7 @@ function MyTeamPage() {
           last_lat: p?.last_lat ?? null,
           last_lng: p?.last_lng ?? null,
           last_seen_at: p?.last_seen_at ?? null,
+          photo_path: p?.check_in_photo_path ?? null,
           in_meeting_unit: inMeetingUnit,
           work_ms: workMs != null ? Math.max(0, workMs) : null,
           km_today: Number((kmByCand.get(f.id) ?? 0).toFixed(2)),
@@ -304,12 +309,41 @@ function StatusPill({ row }: { row: Row }) {
   );
 }
 
+function SelfieThumb({ path, name }: { path: string | null; name: string }) {
+  const [open, setOpen] = useState(false);
+  const q = useQuery({ queryKey: ["selfie-url", path], enabled: !!path, staleTime: 50 * 60_000, queryFn: () => selfieUrl(path) });
+  if (!path) return null;
+  if (!q.data) return <span className="h-9 w-9 flex-none animate-pulse rounded-lg bg-muted" />;
+  return (
+    <>
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }} aria-label={`Check-in photo of ${name}`}>
+        <img src={q.data} alt="" className="h-9 w-9 flex-none rounded-lg object-cover ring-1 ring-border" />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>{name} · Log in photo</DialogTitle></DialogHeader>
+          <div className="max-h-[75vh] overflow-auto">
+            <img src={q.data} alt="" className="w-full cursor-zoom-in rounded-xl transition-transform" onClick={(e) => { const el = e.currentTarget; el.style.transform = el.style.transform ? "" : "scale(2)"; el.style.transformOrigin = "top left"; }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function LocationCell({ row }: { row: Row }) {
   if (row.last_lat == null || row.last_lng == null) {
-    return <span className="text-[11px] italic text-muted-foreground">no ping yet</span>;
+    return (
+      <span className="inline-flex items-center gap-2">
+        <SelfieThumb path={row.photo_path} name={row.full_name} />
+        <span className="text-[11px] italic text-muted-foreground">no ping yet</span>
+      </span>
+    );
   }
   const href = `https://www.google.com/maps/search/?api=1&query=${row.last_lat},${row.last_lng}`;
   return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+    <SelfieThumb path={row.photo_path} name={row.full_name} />
     <a
       href={href}
       target="_blank"
@@ -319,6 +353,7 @@ function LocationCell({ row }: { row: Row }) {
       <MapPin className="h-3.5 w-3.5 flex-none" />
       <span className="truncate font-mono">{Number(row.last_lat).toFixed(4)}, {Number(row.last_lng).toFixed(4)}</span>
     </a>
+    </span>
   );
 }
 

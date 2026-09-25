@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
+import { OfficerDayMap } from "@/components/OfficerDayMap";
 
 export const Route = createFileRoute("/admin/field-sense/officer/$id")({
   component: () => (<FieldSenseAdminGuard sub="day_patrol"><OfficerViewPage /></FieldSenseAdminGuard>),
@@ -78,6 +79,7 @@ function OfficerViewPage() {
           Viewing archived trail — {historyLabel}. Live actions are disabled.
         </div>
       )}
+      <OfficerDayMap candidateId={id} date={date} />
       <FieldOfficerFieldSense candidateId={id} viewDate={date} />
     </div>
   );
