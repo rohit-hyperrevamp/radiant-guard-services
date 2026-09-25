@@ -137,7 +137,7 @@ async function loadHrExecutiveUnits(candidateId: string) {
   const { data, error } = await supabase
     .from("units")
     .select("id,is_billable,customer_id")
-    .eq("hr_executive_id", candidateId);
+    .eq("hr_executive_id" as never, candidateId as never);
   if (error) throw error;
   
   const unitIds = new Set<string>();
