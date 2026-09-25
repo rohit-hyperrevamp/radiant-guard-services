@@ -3458,7 +3458,29 @@ function MusterRollPage() {
 
   const openOtPickerForSelection = () => {
     if (otSelectedCells.size === 0) return;
-    setOtPickerCells(Array.from(otSelectedCells).sort());
+    const cells = Array.from(otSelectedCells).sort();
+    setOtPickerCells(cells);
+    // Prefill the custom boxes with the cell's existing ED so a spoken
+    // duration (e.g. "1 hour 35 minutes") reads back exactly as entered.
+    const first = cells[0] ?? null;
+    if (first) {
+      const { rowKey } = splitCellKey(first);
+      const row = findRow(rowKey);
+      const storedDays = entryMap.get(first)?.ot_hours ?? 0;
+      const shift = row
+        ? shiftHoursFor(shiftMap, unitId, row.designationId ?? null, row.candidateId || null)
+        : 8;
+      const hours = Math.round(storedDays * shift * 100) / 100;
+      if (hours > 0) {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        setOtCustomHours(String(h));
+        setOtCustomMinutes(m ? String(m) : "");
+      } else {
+        setOtCustomHours("");
+        setOtCustomMinutes("");
+      }
+    }
     setOtPickerOpen(true);
   };
 
@@ -3500,6 +3522,15 @@ function MusterRollPage() {
     const row = findRow(k);
     if (row?.shiftHours === 8 || row?.shiftHours === 12) return row.shiftHours;
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null, row?.candidateId || null);
+  };
+
+  // Clock duration label: 1.58 -> "1h 35m", 1.5 -> "1h 30m", 2 -> "2h".
+  const formatEdDuration = (h: number) => {
+    const totalMin = Math.round(h * 60);
+    const hh = Math.floor(totalMin / 60);
+    const mm = totalMin % 60;
+    if (hh === 0) return `${mm}m`;
+    return mm ? `${hh}h ${mm}m` : `${hh}h`;
   };
 
   const applyCodeToCells = async (
@@ -3635,7 +3666,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
       setOtSelAnchor(null);
       toast.success(
         hours > 0
-          ? `Set ${hours}h ED on ${count} cell${count > 1 ? "s" : ""}`
+          ? `Set ${formatEdDuration(hours)} ED on ${count} cell${count > 1 ? "s" : ""}`
           : `Cleared ED on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
@@ -4927,7 +4958,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                             mr.candidateId || null,
                           );
                           const hours =
-                            Math.round((Number(entry?.ot_hours) || 0) * rowShift * 4) / 4;
+                            Math.round((Number(entry?.ot_hours) || 0) * rowShift * 100) / 100;
                           return (
                             <td
                               key={cell.date}
@@ -4957,8 +4988,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                           {Math.round(
                             totals.otDays *
                               shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
-                              4,
-                          ) / 4}
+                              100,
+                          ) / 100}
                           h
                         </td>
                       </tr>,
@@ -5415,10 +5446,9 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
-                        // Stored value is ED *days*; the grid shows clock hours.
-                        // Snap to the nearest quarter hour so legacy rounded
-                        // day-values (0.13 d) read as a clean 1h, not 1.04h.
-                        const hrs = Math.round(otDaysCell * rowShift * 4) / 4;
+                        // Stored value is ED *days*; the grid shows clock hours
+                        // to 2 decimals so 1h 35m reads 1.58, never snapped.
+                        const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
 
                         const isSelected = otSelectedCells.has(`${mr.key}|${date}`);
                         return (
@@ -5475,7 +5505,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                                 ? `Before joining date (${mr.emp.doj})`
                                 : isFuture
                                   ? "Future date — cannot mark extra duty"
-                                  : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`
+                                  : `ED for ${date}${hrs > 0 ? ` · ${formatEdDuration(hrs)}` : ""}`
                             }
                           >
                             {(() => {
@@ -5507,8 +5537,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         {Math.round(
                           totals.otDays *
                             shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
-                            4,
-                        ) / 4}
+                            100,
+                        ) / 100}
                       </td>
                     </tr>,
                   ];
