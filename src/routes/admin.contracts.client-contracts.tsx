@@ -2464,21 +2464,37 @@ function ClientContractsPage() {
     return due >= renewalWindow.from && due <= renewalWindow.to;
   };
 
+  // State/City options only come from contracts that match every other filter.
+  const optionPool = useMemo(
+    () =>
+      enriched.filter((c) => {
+        if (c.recordType !== tab) return false;
+        if (renewalOnly && !isUpForRenewal(c)) return false;
+        if (statusFilter.length > 0 && !statusFilter.includes(deriveStatus(c))) return false;
+        if (orgFilter.length > 0 && !orgFilter.includes(c.orgId)) return false;
+        if (unitFilter.length > 0 && !unitFilter.includes(c.unitId)) return false;
+        if (windowFilter !== "all" && (c.payrollWindowId ?? "") !== windowFilter) return false;
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [enriched, tab, renewalOnly, renewalWindow, statusFilter, orgFilter, unitFilter, windowFilter],
+  );
+
   const stateOptions = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const c of enriched) {
+    for (const c of optionPool) {
       const label = (c.stateLabel ?? "").trim();
       if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
     }
     return Array.from(seen.values())
       .sort((a, b) => a.localeCompare(b))
       .map((label) => ({ value: label, label }));
-  }, [enriched]);
+  }, [optionPool]);
 
   const cityOptions = useMemo(() => {
     const selected = new Set(stateFilter.map((s) => s.toLowerCase()));
     const seen = new Map<string, string>();
-    for (const c of enriched) {
+    for (const c of optionPool) {
       const state = (c.stateLabel ?? "").trim();
       if (selected.size && !selected.has(state.toLowerCase())) continue;
       const label = (c.cityLabel ?? "").trim();
@@ -2487,7 +2503,16 @@ function ClientContractsPage() {
     return Array.from(seen.values())
       .sort((a, b) => a.localeCompare(b))
       .map((label) => ({ value: label, label }));
-  }, [enriched, stateFilter]);
+  }, [optionPool, stateFilter]);
+
+  useEffect(() => {
+    const ok = new Set(stateOptions.map((o) => o.value.toLowerCase()));
+    setStateFilter((cur) => (cur.every((s) => ok.has(s.toLowerCase())) ? cur : cur.filter((s) => ok.has(s.toLowerCase()))));
+  }, [stateOptions]);
+  useEffect(() => {
+    const ok = new Set(cityOptions.map((o) => o.value.toLowerCase()));
+    setCityFilter((cur) => (cur.every((s) => ok.has(s.toLowerCase())) ? cur : cur.filter((s) => ok.has(s.toLowerCase()))));
+  }, [cityOptions]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
