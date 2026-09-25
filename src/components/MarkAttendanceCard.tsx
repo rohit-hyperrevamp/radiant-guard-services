@@ -23,6 +23,7 @@ import {
 } from "@/lib/self-attendance";
 
 import { isNativePlatform } from "@/lib/native";
+import { captureAttendanceSelfie } from "@/lib/attendance-selfie";
 import { cn } from "@/lib/utils";
 
 // In-memory reverse-geocode cache keyed by rounded coords.
@@ -205,6 +206,18 @@ export function MarkAttendanceCard({
     ? rule.mode === "anywhere" ? undefined : rule.units
     : allowedUnitsProp;
   const proximityThresholdM = rule?.radius_m ?? proximityProp;
+  const meNameQ = useQuery({
+    queryKey: ["attendance-me-name", candidateId],
+    enabled: !!candidateId,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("candidates" as never).select("full_name, employee_code").eq("id", candidateId!).maybeSingle();
+      const r = data as { full_name?: string; employee_code?: string } | null;
+      return [r?.full_name, r?.employee_code].filter(Boolean).join(" · ") || "Employee";
+    },
+  });
+  const takeSelfie = (action: "in" | "out", geo: import("@/lib/self-attendance").Geo) =>
+    captureAttendanceSelfie({ candidateId: candidateId!, name: meNameQ.data ?? "Employee", action, geo });
   const qc = useQueryClient();
   const [busy, setBusy] = useState<"in" | "out" | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -303,8 +316,10 @@ export function MarkAttendanceCard({
 
   const performCheckIn = async (unitId: string | null, geo: import("@/lib/self-attendance").Geo | null, face: boolean) => {
     if (!candidateId) throw new Error("Profile not ready.");
+    if (!geo) throw new Error("Location is required.");
+    const photo = await takeSelfie("in", geo);
     const [row, battery, network] = await Promise.allSettled([
-      checkIn(candidateId, geo, face, unitId),
+      checkIn(candidateId, geo, face, unitId, photo),
       readBattery(),
       readNetworkType(),
     ]);
@@ -429,7 +444,8 @@ export function MarkAttendanceCard({
         .sort((a, b) => a.distance - b.distance)[0];
       const confirmed = await confirmPunch("out", nearest?.unit.name ?? "Current GPS location");
       if (!confirmed) return null;
-      return await checkOut(punch.id, geo, face);
+      const photo = await takeSelfie("out", geo);
+      return await checkOut(punch.id, geo, face, photo);
     },
     onSuccess: (row) => {
       if (!row) return;
