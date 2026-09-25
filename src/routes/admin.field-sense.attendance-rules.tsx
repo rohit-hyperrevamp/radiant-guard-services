@@ -40,9 +40,9 @@ const MODES: { value: Mode; label: string; hint: string }[] = [
 ];
 const MODULE = "Attendance Location Rules";
 
-type Policy = { role_key: string; mode: Mode; radius_m: number; capture_missing_coords: boolean };
+type Policy = { role_key: string; mode: Mode; radius_m: number; capture_missing_coords: boolean; require_selfie: boolean };
 type Role = { key: string; name: string };
-type Override = { candidate_id: string; mode: Mode; notes: string | null; updated_at: string };
+type Override = { candidate_id: string; mode: Mode; require_selfie: boolean | null; notes: string | null; updated_at: string };
 type Cand = { id: string; full_name: string | null; employee_code: string | null; role_key: string | null };
 
 function AttendanceRulesPage() {
@@ -114,12 +114,14 @@ function AttendanceRulesPage() {
   const [pickId, setPickId] = useState("");
   const [pickMode, setPickMode] = useState<Mode>("anywhere");
   const saveOverride = useMutation({
-    mutationFn: async ({ candidate_id, mode }: { candidate_id: string; mode: Mode }) => {
+    mutationFn: async ({ candidate_id, mode, require_selfie }: { candidate_id: string; mode: Mode; require_selfie?: boolean | null }) => {
+      const row: Record<string, unknown> = { candidate_id, mode, updated_at: new Date().toISOString() };
+      if (require_selfie !== undefined) row.require_selfie = require_selfie;
       const { error } = await supabase
         .from("attendance_location_overrides" as never)
-        .upsert({ candidate_id, mode, updated_at: new Date().toISOString() } as never, { onConflict: "candidate_id" });
+        .upsert(row as never, { onConflict: "candidate_id" });
       if (error) throw error;
-      void logActivity({ module: MODULE, action: "update", entityType: "attendance_location_overrides", entityId: candidate_id, after: { mode } });
+      void logActivity({ module: MODULE, action: "update", entityType: "attendance_location_overrides", entityId: candidate_id, after: { mode, require_selfie } });
     },
     onSuccess: () => { toast.success("Person rule saved"); setPickId(""); void qc.invalidateQueries({ queryKey: ["att-rules-overrides"] }); },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
@@ -159,11 +161,12 @@ function AttendanceRulesPage() {
                 <th className="px-4 py-2">Where they can mark</th>
                 <th className="px-4 py-2">Allowed distance (m)</th>
                 <th className="px-4 py-2">Save new site locations</th>
+                <th className="px-4 py-2">Face photo required</th>
               </tr>
             </thead>
             <tbody>
               {rolePg.pageRows.map((r) => {
-                const p: Policy = policyMap[r.key] ?? { role_key: r.key, mode: "home_unit", radius_m: 300, capture_missing_coords: true };
+                const p: Policy = policyMap[r.key] ?? { role_key: r.key, mode: "home_unit", radius_m: 300, capture_missing_coords: true, require_selfie: r.key === "field_officer" || r.key === "guard" };
                 return (
                   <tr key={r.key} className="border-t border-border/50">
                     <td className="px-4 py-2 font-medium text-foreground">{r.name}</td>
@@ -196,6 +199,13 @@ function AttendanceRulesPage() {
                         checked={p.capture_missing_coords}
                         disabled={!canEdit}
                         onCheckedChange={(v) => savePolicy.mutate({ ...p, capture_missing_coords: v })}
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Switch
+                        checked={p.require_selfie}
+                        disabled={!canEdit}
+                        onCheckedChange={(v) => savePolicy.mutate({ ...p, require_selfie: v })}
                       />
                     </td>
                   </tr>
@@ -235,6 +245,7 @@ function AttendanceRulesPage() {
                 <tr>
                   <th className="px-4 py-2">Employee</th>
                   <th className="px-4 py-2">Where they can mark</th>
+                  <th className="px-4 py-2">Face photo</th>
                   <th className="px-4 py-2 w-16" />
                 </tr>
               </thead>
@@ -250,6 +261,22 @@ function AttendanceRulesPage() {
                         <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {MODES.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <Select
+                        value={o.require_selfie === null || o.require_selfie === undefined ? "default" : o.require_selfie ? "yes" : "no"}
+                        disabled={!canEdit}
+                        onValueChange={(v) =>
+                          saveOverride.mutate({ candidate_id: o.candidate_id, mode: o.mode, require_selfie: v === "default" ? null : v === "yes" })
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Role default</SelectItem>
+                          <SelectItem value="yes">Required</SelectItem>
+                          <SelectItem value="no">Not required</SelectItem>
                         </SelectContent>
                       </Select>
                     </td>
