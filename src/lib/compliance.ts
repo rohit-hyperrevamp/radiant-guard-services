@@ -1,16 +1,111 @@
-export async function fetchComplianceIssues(
-  ym?: string,
-  scope?: { unitIds?: string[]; customerIds?: string[] },
-): Promise<ComplianceIssue[]> {
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Compliance engine.
+ *
+ * A single place that sweeps every operating domain — organizations, contracts,
+ * employees, attendance, uniform, vehicles, assets, payroll, invoice and the
+ * control center — and returns a flat list of exceptions ("anything red").
+ * The Compliance page renders, scores and filters this list; nothing here is
+ * hardcoded UI, so new checks can be added without touching the page.
+ */
+
+export type Severity = "critical" | "high" | "medium" | "low";
+
+export type DomainKey =
+  | "organizations"
+  | "contracts"
+  | "employees"
+  | "attendance"
+  | "uniform"
+  | "vehicles"
+  | "assets"
+  | "payroll"
+  | "invoice"
+  | "control_center";
+
+export type ComplianceIssue = {
+  id: string;
+  domain: DomainKey;
+  check: string;
+  severity: Severity;
+  subject: string;
+  detail: string;
+  dueDate?: string | null;
+  daysLeft?: number | null;
+  href?: string;
+};
+
+export const DOMAIN_META: Record<DomainKey, { label: string; href: string }> = {
+  organizations: { label: "Organizations", href: "/admin/customers" },
+  contracts: { label: "Contracts", href: "/admin/contracts/client-contracts" },
+  employees: { label: "Employees", href: "/admin/employees" },
+  attendance: { label: "Attendance", href: "/admin/attendance" },
+  uniform: { label: "Uniform", href: "/admin/inventory" },
+  vehicles: { label: "Vehicles", href: "/admin/vehicles/inventory" },
+  assets: { label: "Assets", href: "/admin/assets/inventory" },
+  payroll: { label: "Payroll", href: "/admin/payroll" },
+  invoice: { label: "Invoice", href: "/admin/invoice" },
+  control_center: { label: "Control Center", href: "/admin/control-center" },
+};
+
+export const SEVERITY_WEIGHT: Record<Severity, number> = {
+  critical: 8,
+  high: 4,
+  medium: 2,
+  low: 1,
+};
+
+export const SEVERITY_ORDER: Severity[] = ["critical", "high", "medium", "low"];
+
+const today = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+export function daysUntil(date: string | null | undefined): number | null {
+  if (!date) return null;
+  const d = new Date(String(date).slice(0, 10) + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.round((d.getTime() - today().getTime()) / 86400000);
+}
+
+function iso(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function expirySeverity(days: number | null): Severity | null {
+  if (days == null) return null;
+  if (days < 0) return "critical";
+  if (days <= 15) return "high";
+  if (days <= 45) return "medium";
+  if (days <= 90) return "low";
+  return null;
+}
+
+function age(dob: string | null | undefined): number | null {
+  if (!dob) return null;
+  const d = new Date(String(dob).slice(0, 10) + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / (365.25 * 86400000));
+}
+
+const vehicleName = (v: unknown) => {
+  const rec = (Array.isArray(v) ? v[0] : v) as { vehicle_number?: string | null; name?: string | null } | null;
+  return rec?.vehicle_number || rec?.name || "Vehicle";
+};
+
+type Row = Record<string, unknown>;
+const rows = (res: { data: unknown }) => ((res.data ?? []) as Row[]);
+const str = (v: unknown) => (v == null ? "" : String(v));
+const num = (v: unknown) => (v == null ? 0 : Number(v) || 0);
+
+export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssue[]> {
   const t = today();
   const todayIso = iso(t);
   const [py, pm] = ym ? ym.split("-").map(Number) : [t.getFullYear(), t.getMonth() + 1];
   const monthStart = iso(new Date(py, pm - 1, 1));
-  const uIds = scope?.unitIds;
-  const cIds = scope?.customerIds;
-
-  const uIds = scope?.unitIds;
-  const cIds = scope?.customerIds;
 
   const [
     unitsR,
@@ -32,14 +127,14 @@ export async function fetchComplianceIssues(
     dayBasesR,
     orgR,
   ] = await Promise.all([
-    (uIds ? (uIds ? supabase.from("units").select("id, code, name, status, customer_id, branch_id, gst_number, latitude, longitude, contract_end_date, emergency_contact_mobile, uniform_included, uniform_fee_amount").in("id", uIds) : supabase.from("units").select("id, code, name, status, customer_id, branch_id, gst_number, latitude, longitude, contract_end_date, emergency_contact_mobile, uniform_included, uniform_fee_amount")).in("id", uIds) : supabase.from("units").select("id, code, name, status, customer_id, branch_id, gst_number, latitude, longitude, contract_end_date, emergency_contact_mobile, uniform_included, uniform_fee_amount")),
-    (cIds ? (cIds ? supabase.from("customers").select("id, code, name, status, billing_email, billing_phone, contract_end_date").in("id", cIds) : supabase.from("customers").select("id, code, name, status, billing_email, billing_phone, contract_end_date")).in("id", cIds) : supabase.from("customers").select("id, code, name, status, billing_email, billing_phone, contract_end_date")),
-    (uIds ? (uIds ? supabase.from("client_contracts").select("id, contract_code, unit_id, status, approval_status, record_type, start_date, end_date, expiry_date").in("unit_id", uIds) : supabase.from("client_contracts").select("id, contract_code, unit_id, status, approval_status, record_type, start_date, end_date, expiry_date")).in("unit_id", uIds) : supabase.from("client_contracts").select("id, contract_code, unit_id, status, approval_status, record_type, start_date, end_date, expiry_date")),
-    (uIds ? (uIds ? supabase.from("candidates").select("id, full_name, employee_code, status, is_enabled, is_disabled, role_key, non_billable, unit_id, date_of_birth, aadhaar_number, pan_number, bank_account_number, email, offboarded_at, esic_card_url").in("unit_id", uIds) : supabase.from("candidates").select("id, full_name, employee_code, status, is_enabled, is_disabled, role_key, non_billable, unit_id, date_of_birth, aadhaar_number, pan_number, bank_account_number, email, offboarded_at, esic_card_url")).in("unit_id", uIds) : supabase.from("candidates").select("id, full_name, employee_code, status, is_enabled, is_disabled, role_key, non_billable, unit_id, date_of_birth, aadhaar_number, pan_number, bank_account_number, email, offboarded_at, esic_card_url")),
-    (uIds ? (uIds ? supabase.from("attendance_entries").select("candidate_id, unit_id, code").eq("entry_date", todayIso).in("unit_id", uIds) : supabase.from("attendance_entries").select("candidate_id, unit_id, code").eq("entry_date", todayIso)).in("unit_id", uIds) : supabase.from("attendance_entries").select("candidate_id, unit_id, code").eq("entry_date", todayIso)),
+    supabase.from("units").select("id, code, name, status, customer_id, branch_id, gst_number, latitude, longitude, contract_end_date, emergency_contact_mobile, uniform_included, uniform_fee_amount"),
+    supabase.from("customers").select("id, code, name, status, billing_email, billing_phone, contract_end_date"),
+    supabase.from("client_contracts").select("id, contract_code, unit_id, status, approval_status, record_type, start_date, end_date, expiry_date"),
+    supabase.from("candidates").select("id, full_name, employee_code, status, is_enabled, is_disabled, role_key, non_billable, unit_id, date_of_birth, aadhaar_number, pan_number, bank_account_number, email, offboarded_at, esic_card_url"),
+    supabase.from("attendance_entries").select("candidate_id, unit_id, code").eq("entry_date", todayIso),
     supabase.from("attendance_codes").select("code, label, counts_as_present, enabled"),
-    (uIds ? (uIds ? supabase.from("attendance_sheets").select("id, unit_id, status, period_start, period_end").gte("period_start", monthStart).in("unit_id", uIds) : supabase.from("attendance_sheets").select("id, unit_id, status, period_start, period_end").gte("period_start", monthStart)).in("unit_id", uIds) : supabase.from("attendance_sheets").select("id, unit_id, status, period_start, period_end").gte("period_start", monthStart)),
-    (uIds ? (uIds ? supabase.from("payroll_runs").select("id, unit_id, status, payroll_status, invoice_status, period_start, period_end").gte("period_start", monthStart).in("unit_id", uIds) : supabase.from("payroll_runs").select("id, unit_id, status, payroll_status, invoice_status, period_start, period_end").gte("period_start", monthStart)).in("unit_id", uIds) : supabase.from("payroll_runs").select("id, unit_id, status, payroll_status, invoice_status, period_start, period_end").gte("period_start", monthStart)),
+    supabase.from("attendance_sheets").select("id, unit_id, status, period_start, period_end").gte("period_start", monthStart),
+    supabase.from("payroll_runs").select("id, unit_id, status, payroll_status, invoice_status, period_start, period_end").gte("period_start", monthStart),
     supabase.from("inv_issuances").select("id, issuance_number, status, issuance_date, acknowledged_at, destination_type"),
     supabase.from("inv_stock_balances").select("id, qty, item_id, size_value, location_type, location_id, inv_items(name, code)"),
     supabase.from("vehicles").select("id, vehicle_number, name, enabled"),
