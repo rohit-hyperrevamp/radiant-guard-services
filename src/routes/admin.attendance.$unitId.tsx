@@ -3524,6 +3524,15 @@ function MusterRollPage() {
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null, row?.candidateId || null);
   };
 
+  // Clock duration label: 1.58 -> "1h 35m", 1.5 -> "1h 30m", 2 -> "2h".
+  const formatEdDuration = (h: number) => {
+    const totalMin = Math.round(h * 60);
+    const hh = Math.floor(totalMin / 60);
+    const mm = totalMin % 60;
+    if (hh === 0) return `${mm}m`;
+    return mm ? `${hh}h ${mm}m` : `${hh}h`;
+  };
+
   const applyCodeToCells = async (
     cells: string[],
     code: string,
@@ -3657,7 +3666,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
       setOtSelAnchor(null);
       toast.success(
         hours > 0
-          ? `Set ${hours}h ED on ${count} cell${count > 1 ? "s" : ""}`
+          ? `Set ${formatEdDuration(hours)} ED on ${count} cell${count > 1 ? "s" : ""}`
           : `Cleared ED on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
@@ -5496,7 +5505,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                                 ? `Before joining date (${mr.emp.doj})`
                                 : isFuture
                                   ? "Future date — cannot mark extra duty"
-                                  : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`
+                                  : `ED for ${date}${hrs > 0 ? ` · ${formatEdDuration(hrs)}` : ""}`
                             }
                           >
                             {(() => {
