@@ -36,6 +36,7 @@ import {
   type DomainKey,
   type Severity,
 } from "@/lib/compliance";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 
 function CompliancePageGated() {
   return (
@@ -143,6 +144,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function CompliancePage() {
+  const foScope = useOperationalUnitScope();
   const now = new Date();
   const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [ym, setYm] = useState(currentYm);
@@ -157,8 +159,8 @@ function CompliancePage() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["compliance-command-center", ym],
-    queryFn: () => fetchComplianceIssues(ym),
+    queryKey: ["compliance-command-center", ym, foScope.isScoped, Array.from(foScope.unitIds).join(",")],
+    queryFn: () => fetchComplianceIssues(ym, { unitIds: foScope.isScoped ? Array.from(foScope.unitIds) : undefined, customerIds: foScope.isScoped ? Array.from(foScope.customerIds) : undefined }),
     staleTime: 60_000,
     enabled: showExceptions,
   });

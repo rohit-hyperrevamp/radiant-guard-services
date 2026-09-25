@@ -2686,7 +2686,7 @@ function ClientContractsPage() {
             </span>
           )}
         </div>
-        <Button
+        {!isHrReadOnly && <Button
           variant="outline"
           disabled={filtered.length === 0}
           onClick={() =>
@@ -2718,7 +2718,7 @@ function ClientContractsPage() {
         >
           <Download className="mr-1.5 h-4 w-4" />
           <span className="sm:hidden">Export</span><span className="hidden sm:inline">Export Contracts</span>
-        </Button>
+        </Button>}
         {canEdit && (
           <input
             ref={importInputRef}
@@ -2919,7 +2919,7 @@ function ClientContractsPage() {
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
-                      <Button
+                      {!isHrReadOnly && <Button
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
@@ -2928,7 +2928,7 @@ function ClientContractsPage() {
                         title="View contract"
                       >
                         <Eye className="h-4 w-4" />
-                      </Button>
+                      </Button>}
                       {canEdit && (
                         <Button
                           size="sm"
@@ -3150,7 +3150,8 @@ function ClientContractsPage() {
           setEditing(c);
           setFormOpen(true);
         }}
-        canEdit={canEdit}
+        canEdit={canEdit && !isHrReadOnly}
+        hidePayableAndBelow={roleKey === "hr_executive"}
       />
 
 
@@ -3266,11 +3267,13 @@ function ContractViewDialog({
   onOpenChange,
   onEdit,
   canEdit,
+  hidePayableAndBelow,
 }: {
   contract: ViewContract | null;
   onOpenChange: (o: boolean) => void;
   onEdit: (c: ViewContract) => void;
   canEdit: boolean;
+  hidePayableAndBelow: boolean;
 }) {
   const resources = useContractResources(contract?.id ?? null);
   const designations = useDesignations();
@@ -3372,6 +3375,7 @@ function ContractViewDialog({
                       deductions={r.deductions ?? []}
                       employerContributions={r.employerContributions ?? []}
                       componentDescriptions={componentDescriptions}
+                      hidePayableAndBelow={hidePayableAndBelow}
                     />
                   </div>
                 );
@@ -6246,6 +6250,7 @@ export function SalaryBreakdownTable({
   deductions,
   employerContributions,
   componentDescriptions,
+  hidePayableAndBelow = false,
 }: {
   designationName: string;
   payrollDayBase: PayrollDayBase | undefined;
@@ -6254,6 +6259,7 @@ export function SalaryBreakdownTable({
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
   componentDescriptions?: Record<string, string>;
+  hidePayableAndBelow?: boolean;
 }) {
   const describeRow = (b: BenefitItem) =>
     describeComponentFormula(b, componentDescriptions?.[b.costComponentId] ?? null);
@@ -6487,12 +6493,13 @@ export function SalaryBreakdownTable({
               <td />
               <td className="text-right tabular-nums">{earnedDeductions.toFixed(2)}</td>
             </tr>
-            <tr className="bg-cyan-100 font-bold dark:bg-cyan-500/20">
+            {!hidePayableAndBelow && <tr className="bg-cyan-100 font-bold dark:bg-cyan-500/20">
               <td className="uppercase">Total Amount (Payable) Rs.</td>
               <td className="text-center tabular-nums">{netPayable.toFixed(2)}</td>
               <td />
               <td className="text-right text-base tabular-nums">{earnedNetPayable.toFixed(2)}</td>
-            </tr>
+            </tr>}
+            {!hidePayableAndBelow && <>
             <tr className="bg-muted/40">
               <td className="font-bold uppercase text-foreground">Employer Contribution</td>
               <td />
@@ -6596,6 +6603,7 @@ export function SalaryBreakdownTable({
                 <td className="text-right text-base tabular-nums">{earnedGrand.toFixed(2)}</td>
               </tr>
             )}
+            </>}
           </tbody>
         </table>
       </div>

@@ -501,12 +501,14 @@ function AdminLayout() {
         // Leadership-only analytics surfaces — hidden from field officers and
         // the operations team (their scope is sites, visits and deployments).
         if (g.key === "compliance") {
+          if (roleKey === "hr_executive") return false;
           if (isFieldOfficer || (roleKey && OPERATIONS_ROLES.has(roleKey))) return false;
           return isSuperAdmin || can("contracts") || can("employees");
         }
         // Client/organization masters are leadership surfaces — never for field officers.
         if (g.key === "org-manager" || g.key === "unit-manager") {
           if (isFieldOfficer) return false;
+          if (roleKey === "hr_executive" && g.key === "org-manager") return false;
         }
         if (g.key === "inventory" && isFieldOfficer) return true;
         if (!g.module) return true;

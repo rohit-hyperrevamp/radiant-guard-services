@@ -1184,7 +1184,7 @@ function DashboardPage() {
         <DashboardShell>
           <PageHeader
             title="My clients"
-            description="Clients you look after as HR executive — pay cycle, pay date, dividing factor and compliance at a glance."
+            description="Your assigned clients, payroll schedules, dividing factors and salary-slip requirements."
             crumbs={[{ label: "Dashboard" }]}
           />
           <HrExecutiveDashboard />

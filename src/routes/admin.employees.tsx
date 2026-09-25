@@ -2156,6 +2156,7 @@ function EmployeesPage() {
 
   const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
+  const isHrExecutive = roleKey === "hr_executive" && !isSuperAdmin;
   const canAddEmployee =
     isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? "");
   // Onboarding approval is scoped to the Employees → Approvals sub-module only.
@@ -4461,7 +4462,7 @@ function EmployeesPage() {
                   </Button>
                 </>
               )}
-              {mode === "employee" && (
+              {mode === "employee" && !isHrExecutive && (
                 <>
                   <Button
                     variant="outline"
@@ -4520,9 +4521,9 @@ function EmployeesPage() {
                       <RecordViewButton
                         record={c}
                         title="Employee details"
-                        onEdit={() => void openEditor(c.id)}
+                        onEdit={isHrExecutive ? undefined : () => void openEditor(c.id)}
                       />
-                      <Button
+                      {!isHrExecutive && <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => void openEditor(c.id)}
@@ -4536,7 +4537,7 @@ function EmployeesPage() {
                         ) : (
                           <Edit2 className="h-4 w-4" />
                         )}
-                      </Button>
+                      </Button>}
                     </>
                   );
                 })()}
@@ -4707,7 +4708,7 @@ function EmployeesPage() {
 
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <StatusBadge status={c.status} />
-                  {mode === "employee" && columnsVisible.active && (
+                  {mode === "employee" && columnsVisible.active && !isHrExecutive && (
                     <Switch
                       checked={c.is_enabled && c.status !== "inactive"}
                       onCheckedChange={async (v) => {
@@ -4792,7 +4793,7 @@ function EmployeesPage() {
                 </div>
               )}
 
-              {mode === "employee" && columnsVisible.role && (
+              {mode === "employee" && columnsVisible.role && !isHrExecutive && (
                 <div className="mt-1.5">
                   {c.role_key ? (
                     <Select
@@ -4877,7 +4878,7 @@ function EmployeesPage() {
                     </Button>
                   </>
                 )}
-                {mode === "employee" && (
+                {mode === "employee" && !isHrExecutive && (
                   <>
                     <Button
                       variant="outline"
@@ -4928,9 +4929,9 @@ function EmployeesPage() {
                 <RecordViewButton
                   record={c}
                   title="Employee details"
-                  onEdit={() => void openEditor(c.id)}
+                  onEdit={isHrExecutive ? undefined : () => void openEditor(c.id)}
                 />
-                <Button
+                {!isHrExecutive && <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => void openEditor(c.id)}
@@ -4944,7 +4945,7 @@ function EmployeesPage() {
                   ) : (
                     <Edit2 className="h-4 w-4" />
                   )}
-                </Button>
+                </Button>}
                 {mode === "candidate" && (
                   <Button
                     variant="ghost"

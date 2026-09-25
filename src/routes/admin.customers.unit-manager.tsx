@@ -62,6 +62,8 @@ import {
 import { cn } from "@/lib/utils";
 import { EmployeePicker } from "@/components/EmployeePicker";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
+import { useCurrentPermissions } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/role-keys";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
 import { pickEsicBranchId } from "@/lib/esic-auto-map";
@@ -175,6 +177,8 @@ function UnitManagerPage() {
   const { customers } = useCustomers();
   const { states } = useStates();
   const foScope = useOperationalUnitScope();
+  const { roleKey } = useCurrentPermissions();
+  const isHrExecutive = roleKey === ROLE_KEYS.HR_EXECUTIVE;
 
   // Field officers only ever see the clients they are mapped to.
   const scopedUnits = useMemo(
@@ -282,9 +286,9 @@ function UnitManagerPage() {
         ]}
         kpis={
           <>
-            <PageStat label="Total clients" value={units.length} icon={Warehouse} />
+            <PageStat label="Total clients" value={scopedUnits.length} icon={Warehouse} />
             <PageStat label="Active" value={activeCount} tone="accent" />
-            <PageStat label="Inactive" value={units.length - activeCount} tone="destructive" />
+            <PageStat label="Inactive" value={scopedUnits.length - activeCount} tone="destructive" />
           </>
         }
       />
@@ -339,7 +343,7 @@ function UnitManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
+        {!isHrExecutive && <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={() =>
@@ -465,7 +469,7 @@ function UnitManagerPage() {
             <Plus className="mr-1.5 h-4 w-4" />
             Add client
           </Button>
-        </div>
+        </div>}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.7)_inset,0_18px_40px_-30px_rgba(15,23,42,0.18)]">
@@ -536,7 +540,7 @@ function UnitManagerPage() {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <DeleteGuardButton
+                      {!isHrExecutive && <DeleteGuardButton
                         id={u.id}
                         entityLabel="unit"
                         checks={[
@@ -545,7 +549,7 @@ function UnitManagerPage() {
                           { table: "candidate_units", column: "unit_id", label: "candidate links" },
                         ]}
                         onDelete={() => setDeleting(u)}
-                      />
+                      />}
 
                     </div>
                   </td>
