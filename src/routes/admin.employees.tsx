@@ -151,6 +151,7 @@ import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-export-dialog";
+import { CopyableId } from "@/components/CopyableId";
 import { fetchAllPages } from "@/lib/supabase-batch";
 
 type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string };
@@ -4079,9 +4080,11 @@ function EmployeesPage() {
           )}
         >
           <td className="px-2.5 py-2 align-middle">
-            <span className="inline-flex items-center whitespace-nowrap rounded-md bg-secondary px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide tabular-nums text-muted-foreground">
-              {code}
-            </span>
+            <CopyableId
+              value={code}
+              label="Employee ID"
+              className="rounded-md bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wide tabular-nums text-muted-foreground"
+            />
           </td>
           <td className="px-2.5 py-2 align-middle">
             <HoverCard openDelay={250} closeDelay={100}>

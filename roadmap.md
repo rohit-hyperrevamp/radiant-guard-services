@@ -29,6 +29,9 @@
 
 ## Current request
 
+- [x] Copy-to-clipboard option for IDs (clients, contracts, employees) across list screens
+- [x] Mic input in the ED "Set ED hours" dialog — speak "1 hour 30 minutes", fills hours/minutes
+
 - [x] Make the Control Center home a Radar-only dashboard with live field officers first.
 - [x] Show the full Radar map, completed versus in-progress visits, and field officer deployment mapping.
 - [x] Restrict the Control Center left menu to Radar Dashboard, Day Patrol, Expenses, and Reports.

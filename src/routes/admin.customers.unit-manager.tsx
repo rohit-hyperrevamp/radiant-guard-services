@@ -59,6 +59,7 @@ import {
   loadClientAttributesForCustomer,
   saveClientAttributeValues,
 } from "@/lib/mis-template";
+import { CopyableId } from "@/components/CopyableId";
 import { cn } from "@/lib/utils";
 import { EmployeePicker } from "@/components/EmployeePicker";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
@@ -550,7 +551,7 @@ function UnitManagerPage() {
             <tbody className="divide-y divide-border">
               {pg.pageRows.map((u) => (
                 <tr key={u.id} className="hover:bg-secondary/30">
-                  <td data-label="Client ID" className="px-5 py-3 font-mono text-xs font-semibold text-accent">{u.code}</td>
+                  <td data-label="Client ID" className="px-5 py-3"><CopyableId value={u.code} label="Client ID" /></td>
                   <td data-label="Name" className="px-5 py-3 font-semibold text-foreground" data-wrap="true">{u.name}</td>
                   <td data-label="Location" className="px-5 py-3 text-muted-foreground" data-wrap="true">
                     <div className="flex flex-wrap items-center gap-2">

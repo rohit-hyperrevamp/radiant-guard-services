@@ -43,6 +43,7 @@ import {
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { toast } from "sonner";
+import { CopyableId } from "@/components/CopyableId";
 import { confirmAction, notifySaved } from "@/components/ConfirmProvider";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
@@ -2914,8 +2915,8 @@ function ClientContractsPage() {
             <tbody className="divide-y divide-border">
               {pg.pageRows.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30">
-                  <td className="px-5 py-3 font-mono text-xs font-semibold text-accent" data-col="code">
-                    {tab === "client" ? c.contractCode : c.prospectCode}
+                  <td className="px-5 py-3" data-col="code">
+                    <CopyableId value={tab === "client" ? c.contractCode : c.prospectCode} label={tab === "client" ? "Contract ID" : "Prospect ID"} />
                   </td>
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="cell-primary">{c.orgName}</span>

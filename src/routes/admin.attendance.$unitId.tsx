@@ -26,9 +26,23 @@ import {
   Camera,
   Clock3,
   Pencil,
+  Mic,
+  Square,
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
+import { parseDurationWords } from "@/lib/voice-duration";
+
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
@@ -2169,6 +2183,8 @@ function MusterRollPage() {
   const [otPickerOpen, setOtPickerOpen] = useState(false);
   const [otCustomHours, setOtCustomHours] = useState("");
   const [otCustomMinutes, setOtCustomMinutes] = useState("");
+  const [otListening, setOtListening] = useState(false);
+  const otRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const [otPickerCells, setOtPickerCells] = useState<string[]>([]);
 
   // ---- OCR / Excel upload state ----
@@ -3532,6 +3548,64 @@ function MusterRollPage() {
   };
 
   const applyCodeToSelection = async (code: string) => applyCodeToCells(pickerCells, code);
+
+  // Voice input for the custom ED time: speak "1 hour 30 minutes" (or
+  // "one and a half hours", "90 minutes", "one thirty", …) and the hours /
+  // minutes boxes fill in automatically.
+  const toggleOtVoiceInput = () => {
+    if (otListening) {
+      otRecognitionRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) {
+      toast.error("Voice input is not supported in this browser — please type hours and minutes");
+      return;
+    }
+    const recognition = new Ctor();
+    otRecognitionRef.current = recognition;
+    recognition.lang = "en-IN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    let settled = false;
+    recognition.onresult = (event) => {
+      settled = true;
+      const transcript = Array.from(event.results as ArrayLike<{ 0: { transcript: string } }>)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      const parsed = parseDurationWords(transcript);
+      if (!parsed) {
+        toast.error(`Heard "${transcript}" — could not read a duration. Try "1 hour 30 minutes".`);
+        return;
+      }
+      setOtCustomHours(String(parsed.hours));
+      setOtCustomMinutes(parsed.minutes ? String(parsed.minutes) : "");
+      toast.success(`Heard ${parsed.hours} hr ${parsed.minutes} min — tap "Apply custom ED"`);
+    };
+    recognition.onerror = (event) => {
+      settled = true;
+      if (event.error !== "aborted" && event.error !== "no-speech") {
+        toast.error("Could not hear you — check microphone permission and try again");
+      }
+    };
+    recognition.onend = () => {
+      if (!settled) toast.error("Didn't catch that — tap the mic and say e.g. \"1 hour 30 minutes\"");
+      setOtListening(false);
+      otRecognitionRef.current = null;
+    };
+    try {
+      recognition.start();
+      setOtListening(true);
+toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
+    } catch {
+      setOtListening(false);
+      toast.error("Could not start the microphone");
+    }
+  };
 
   // `hours` is ED in clock hours (0.5 – 16). It is stored as ED *days*,
   // converted with each row's contractual shift length (8h or 12h).
@@ -5690,9 +5764,38 @@ function MusterRollPage() {
             })}
           </div>
           <div className="mt-3 rounded-lg border border-border p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Custom time
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Custom time
+              </div>
+              <button
+                type="button"
+                onClick={toggleOtVoiceInput}
+                aria-label={otListening ? "Stop voice input" : "Speak the ED duration"}
+                title={otListening ? "Stop listening" : "Speak e.g. \"1 hour 30 minutes\""}
+                className={
+                  otListening
+                    ? "inline-flex h-9 items-center gap-1.5 rounded-full bg-destructive px-3 text-xs font-semibold text-destructive-foreground shadow-sm"
+                    : "inline-flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-sm"
+                }
+              >
+                {otListening ? (
+                  <Square className="h-3.5 w-3.5" />
+                ) : (
+                  <Mic className="h-3.5 w-3.5" />
+                )}
+                {otListening ? "Stop" : "Speak"}
+              </button>
             </div>
+            {otListening ? (
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                </span>
+                Listening… say e.g. "1 hour 30 minutes"
+              </div>
+            ) : null}
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
