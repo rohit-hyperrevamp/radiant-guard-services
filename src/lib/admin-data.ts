@@ -577,6 +577,7 @@ export type Unit = {
   payrollManagerId?: string;
   complianceManagerId?: string;
   dividingFactor?: string;
+  mappingPayDay?: string;
   complianceFrequency?: string;
   complianceReportFormat?: string;
   salarySlipRequired?: boolean | null;
@@ -685,6 +686,7 @@ type UnitRow = {
   payroll_manager_id?: string | null;
   compliance_manager_id?: string | null;
   dividing_factor?: number | null;
+  mapping_pay_day?: number | null;
   compliance_frequency?: string | null;
   compliance_report_format?: string | null;
   salary_slip_required?: boolean | null;
@@ -774,6 +776,7 @@ function rowToUnit(r: UnitRow): Unit {
     payrollManagerId: r.payroll_manager_id ?? "",
     complianceManagerId: r.compliance_manager_id ?? "",
     dividingFactor: r.dividing_factor == null ? "" : String(r.dividing_factor),
+    mappingPayDay: r.mapping_pay_day == null ? "" : String(r.mapping_pay_day),
     complianceFrequency: r.compliance_frequency ?? "",
     complianceReportFormat: r.compliance_report_format ?? "",
     salarySlipRequired: r.salary_slip_required == null ? null : Boolean(r.salary_slip_required),
@@ -859,6 +862,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     payroll_manager_id: data.payrollManagerId || null,
     compliance_manager_id: data.complianceManagerId || null,
     dividing_factor: data.dividingFactor && Number.isFinite(Number(data.dividingFactor)) ? Number(data.dividingFactor) : null,
+    mapping_pay_day: data.mappingPayDay && Number.isInteger(Number(data.mappingPayDay)) && Number(data.mappingPayDay) >= 1 && Number(data.mappingPayDay) <= 31 ? Number(data.mappingPayDay) : null,
     compliance_frequency: data.complianceFrequency || null,
     compliance_report_format: data.complianceReportFormat || null,
     salary_slip_required: data.salarySlipRequired == null ? null : Boolean(data.salarySlipRequired),

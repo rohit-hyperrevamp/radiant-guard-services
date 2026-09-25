@@ -2173,11 +2173,7 @@ function MappingsSection({
           </Select>
         </Field>
         <Field label="Pay date">
-          <div className="modern-form-toggle">
-            <span className="text-sm font-medium text-foreground">
-              {selectedWindow?.processing_day ? `${ordinal(selectedWindow.processing_day)} of the month` : "Set by the pay cycle window"}
-            </span>
-          </div>
+          <Input type="number" inputMode="numeric" min="1" max="31" step="1" value={form.mappingPayDay ?? ""} onChange={(e) => set("mappingPayDay", e.target.value)} placeholder={selectedWindow?.processing_day ? `Default ${ordinal(selectedWindow.processing_day)}` : "Day of month, e.g. 7"} />
         </Field>
         <Field label="Operations manager (OM)">
           <EmployeePicker value={form.operationsManagerId ?? ""} onChange={(id) => set("operationsManagerId", id)} placeholder="Select operations manager" />
