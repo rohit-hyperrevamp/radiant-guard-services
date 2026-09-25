@@ -156,6 +156,7 @@ const fieldSenseChildren: LeafItem[] = [
   { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
   { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
   { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
+  { to: "/admin/field-sense/attendance-rules", label: "Attendance Rules", icon: MapPin, sub: "day_patrol" },
 ];
 
 const controlCenterRadarChildren: LeafItem[] = [
@@ -163,6 +164,7 @@ const controlCenterRadarChildren: LeafItem[] = [
   { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
   { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
   { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
+  { to: "/admin/field-sense/attendance-rules", label: "Attendance Rules", icon: MapPin, sub: "day_patrol" },
 ];
 
 
