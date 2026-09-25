@@ -265,6 +265,22 @@ function AttendanceRulesPage() {
                       </Select>
                     </td>
                     <td className="px-4 py-2">
+                      <Select
+                        value={o.require_selfie === null || o.require_selfie === undefined ? "default" : o.require_selfie ? "yes" : "no"}
+                        disabled={!canEdit}
+                        onValueChange={(v) =>
+                          saveOverride.mutate({ candidate_id: o.candidate_id, mode: o.mode, require_selfie: v === "default" ? null : v === "yes" })
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Role default</SelectItem>
+                          <SelectItem value="yes">Required</SelectItem>
+                          <SelectItem value="no">Not required</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-4 py-2">
                       {canEdit && (
                         <Button variant="ghost" size="icon" aria-label="Remove person rule" onClick={() => deleteOverride.mutate(o.candidate_id)}>
                           <Trash2 className="h-4 w-4" />
