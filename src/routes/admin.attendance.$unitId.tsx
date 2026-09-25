@@ -1567,6 +1567,18 @@ function MusterRollPage() {
         toast.info(`${cand.full_name} already has this line on the sheet`);
         return;
       }
+      // Guard against silently giving one person two regular designations.
+      const otherRegular = here.find(
+        (l) => !l.is_reliever && (l.designation_id ?? null) !== designationId,
+      );
+      if (!editLine && !asReliever && otherRegular) {
+        const ok = await confirm({
+          title: "Add a second designation?",
+          description: `${cand.full_name} is already on this sheet as ${allDesigNames.get(otherRegular.designation_id ?? "") ?? "another designation"}. Add another regular line as ${allDesigNames.get(designationId ?? "") ?? "this designation"}? Use the pencil on the existing line to change designation instead.`,
+          confirmText: "Add second line",
+        } as never);
+        if (!ok) return;
+      }
       // First regular line at this unit makes it the guard's main unit; more
       // regular lines here (e.g. 8h + 12h) stay regular without moving it.
       const primaryHere = here.some((l) => l.is_primary && l.id !== editLine?.lineId);
