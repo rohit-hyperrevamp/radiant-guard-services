@@ -78,6 +78,9 @@ import {
 } from "@/lib/deployment";
 
 export const Route = createFileRoute("/admin/customers/unit-manager")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    client: typeof search.client === "string" ? search.client : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Clients | Radiant Guard Services" },
@@ -172,6 +175,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
 }
 
 function UnitManagerPage() {
+  const { client } = Route.useSearch();
   const { units, addUnit, updateUnit, deleteUnit } = useUnits();
   const { branches } = useBranches();
   const { customers } = useCustomers();
@@ -190,7 +194,7 @@ function UnitManagerPage() {
     [customers, foScope.isScoped, foScope.customerIds],
   );
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(client ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [stateFilter, setStateFilter] = useState<string[]>([]);
@@ -198,6 +202,10 @@ function UnitManagerPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
+
+  useEffect(() => {
+    if (client) setQuery(client);
+  }, [client]);
 
   const branchById = useMemo(() => new Map(branches.map((b) => [b.id, b])), [branches]);
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);

@@ -1181,14 +1181,12 @@ function DashboardPage() {
   if (showHrExecutiveDashboard) {
     return (
       <div className="px-0 py-1 sm:p-6">
-        <DashboardShell>
-          <PageHeader
-            title="My clients"
-            description="Your assigned clients, payroll schedules, dividing factors and salary-slip requirements."
-            crumbs={[{ label: "Dashboard" }]}
-          />
-          <HrExecutiveDashboard />
-        </DashboardShell>
+        <PageHeader
+          title="My clients"
+          description="Your assigned clients, payroll schedules, dividing factors and salary-slip requirements."
+          crumbs={[{ label: "Dashboard" }]}
+        />
+        <HrExecutiveDashboard />
       </div>
     );
   }

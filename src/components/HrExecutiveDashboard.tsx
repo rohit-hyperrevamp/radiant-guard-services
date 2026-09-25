@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Building2, CalendarDays, Landmark, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageStat } from "@/components/PageHeader";
@@ -66,7 +67,7 @@ function Breakdown({ title, items, active, onPick }: { title: string; items: [st
 export function HrExecutiveDashboard() {
   const q = useQuery({ queryKey: ["hr-executive-clients"], queryFn: fetchMyClients, staleTime: 60_000 });
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<{ kind: "df" | "cycle" | "day" | "type"; value: string } | null>(null);
+  const [filters, setFilters] = useState<Partial<Record<"df" | "cycle" | "day" | "type", string>>>({});
   const [page, setPage] = useState(0);
   const view = useMemo(() => {
     const rows = q.data?.rows ?? [];
@@ -81,12 +82,20 @@ export function HrExecutiveDashboard() {
     };
     const pick = { df, cycle, day, type };
     const term = search.trim().toLowerCase();
-    const filtered = rows.filter((r) => (!filter || pick[filter.kind](r) === filter.value)
+    const filtered = rows.filter((r) => Object.entries(filters).every(([kind, value]) => pick[kind as keyof typeof pick](r) === value)
       && (!term || [r.code, r.name, r.customers?.name].some((v) => (v ?? "").toLowerCase().includes(term))));
     return { rows, filtered, cycle, df, day, type, byDf: count(df), byCycle: count(cycle), byDay: count(day), byType: count(type) };
-  }, [q.data, search, filter]);
-  const setF = (kind: "df" | "cycle" | "day" | "type") => (value: string | null) => { setFilter(value ? { kind, value } : null); setPage(0); };
-  const active = (kind: string) => filter?.kind === kind ? filter.value : null;
+  }, [q.data, search, filters]);
+  const setF = (kind: "df" | "cycle" | "day" | "type") => (value: string | null) => {
+    setFilters((current) => {
+      const next = { ...current };
+      if (value) next[kind] = value;
+      else delete next[kind];
+      return next;
+    });
+    setPage(0);
+  };
+  const active = (kind: "df" | "cycle" | "day" | "type") => filters[kind] ?? null;
   const pages = Math.max(1, Math.ceil(view.filtered.length / PAGE));
   const shown = view.filtered.slice(page * PAGE, page * PAGE + PAGE);
   const organizations = new Set(view.rows.map((r) => r.customers?.code || r.customers?.name).filter(Boolean)).size;
@@ -105,23 +114,33 @@ export function HrExecutiveDashboard() {
         <Breakdown title="By pay cycle" items={view.byCycle} active={active("cycle")} onPick={setF("cycle")} />
         <Breakdown title="By pay date" items={view.byDay} active={active("day")} onPick={setF("day")} />
       </div>
-      <section className="overflow-hidden rounded-xl border border-border/60 bg-card/70 shadow-sm sm:rounded-2xl">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card/70 shadow-sm sm:rounded-2xl">
         <div className="flex flex-col gap-2 border-b border-border/60 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="flex items-center gap-2"><h2 className="font-display text-base font-semibold">My clients</h2>
-            {filter && <Badge variant="secondary" className="cursor-pointer" onClick={() => setF(filter.kind)(null)}>{filter.value} ×</Badge>}
+          <div className="flex min-w-0 flex-wrap items-center gap-2"><h2 className="font-display text-base font-semibold">My clients</h2>
+            {Object.entries(filters).map(([kind, value]) => (
+              <Badge key={kind} variant="secondary" className="cursor-pointer" onClick={() => setF(kind as "df" | "cycle" | "day" | "type")(null)}>
+                {value} ×
+              </Badge>
+            ))}
           </div>
           <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="h-10 rounded-xl border-border/60 bg-background pl-9" placeholder="Search client ID or name" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
           </div>
         </div>
-        <Table>
-          <TableHeader className="bg-secondary/50"><TableRow><TableHead>Client ID</TableHead><TableHead>Client</TableHead><TableHead>Organization</TableHead><TableHead>Type</TableHead><TableHead>Pay cycle</TableHead><TableHead>Pay date</TableHead><TableHead>Dividing factor</TableHead><TableHead>Salary slip</TableHead><TableHead>Payroll manager</TableHead></TableRow></TableHeader>
+        <Table className="min-w-[1260px] table-fixed">
+          <colgroup>
+            <col className="w-[110px]" /><col className="w-[280px]" /><col className="w-[250px]" />
+            <col className="w-[100px]" /><col className="w-[130px]" /><col className="w-[100px]" />
+            <col className="w-[130px]" /><col className="w-[110px]" /><col className="w-[190px]" />
+          </colgroup>
+          <TableHeader className="bg-secondary/50"><TableRow><TableHead className="px-4">Client ID</TableHead><TableHead className="px-4">Client</TableHead><TableHead className="px-4">Organization</TableHead><TableHead className="px-4">Type</TableHead><TableHead className="px-4">Pay cycle</TableHead><TableHead className="px-4">Pay date</TableHead><TableHead className="px-4">Dividing factor</TableHead><TableHead className="px-4">Salary slip</TableHead><TableHead className="px-4">Payroll manager</TableHead></TableRow></TableHeader>
           <TableBody>
             {shown.map((r) => <TableRow key={r.id}>
-              <TableCell className="font-mono text-xs font-semibold text-accent">{r.code}</TableCell><TableCell className="min-w-56 font-semibold">{r.name}</TableCell>
-              <TableCell className="min-w-48 text-muted-foreground">{r.customers?.name}</TableCell><TableCell>{view.type(r)}</TableCell><TableCell>{view.cycle(r)}</TableCell>
-              <TableCell>{view.day(r)}</TableCell><TableCell className="tabular-nums">{view.df(r)}</TableCell><TableCell>{r.salary_slip_required == null ? "—" : r.salary_slip_required ? "Yes" : "No"}</TableCell>
-              <TableCell className="min-w-44">{(r.payroll_manager_id && q.data?.people.get(r.payroll_manager_id)) || "—"}</TableCell>
+              <TableCell className="px-4 font-mono text-xs font-semibold"><Link to="/admin/customers/unit-manager" search={{ client: r.code ?? undefined }} className="text-accent hover:underline">{r.code || "—"}</Link></TableCell>
+              <TableCell className="px-4 font-semibold"><Link to="/admin/customers/unit-manager" search={{ client: r.code ?? undefined }} className="block truncate text-foreground hover:text-accent hover:underline" title={r.name ?? undefined}>{r.name || "—"}</Link></TableCell>
+              <TableCell className="truncate px-4 text-muted-foreground" title={r.customers?.name ?? undefined}>{r.customers?.name || "—"}</TableCell><TableCell className="truncate px-4" title={view.type(r)}>{view.type(r)}</TableCell><TableCell className="whitespace-nowrap px-4">{view.cycle(r)}</TableCell>
+              <TableCell className="whitespace-nowrap px-4">{view.day(r)}</TableCell><TableCell className="px-4 tabular-nums">{view.df(r)}</TableCell><TableCell className="px-4">{r.salary_slip_required == null ? "—" : r.salary_slip_required ? "Yes" : "No"}</TableCell>
+              <TableCell className="truncate px-4" title={(r.payroll_manager_id && q.data?.people.get(r.payroll_manager_id)) || undefined}>{(r.payroll_manager_id && q.data?.people.get(r.payroll_manager_id)) || "—"}</TableCell>
             </TableRow>)}
             {!shown.length && <TableRow><TableCell colSpan={9} className="h-28 text-center text-muted-foreground">{q.isLoading ? "Loading…" : "No clients match this view"}</TableCell></TableRow>}
           </TableBody>
