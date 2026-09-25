@@ -3537,6 +3537,64 @@ function MusterRollPage() {
 
   const applyCodeToSelection = async (code: string) => applyCodeToCells(pickerCells, code);
 
+  // Voice input for the custom ED time: speak "1 hour 30 minutes" (or
+  // "one and a half hours", "90 minutes", "one thirty", …) and the hours /
+  // minutes boxes fill in automatically.
+  const toggleOtVoiceInput = () => {
+    if (otListening) {
+      otRecognitionRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) {
+      toast.error("Voice input is not supported in this browser — please type hours and minutes");
+      return;
+    }
+    const recognition = new Ctor();
+    otRecognitionRef.current = recognition;
+    recognition.lang = "en-IN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    let settled = false;
+    recognition.onresult = (event) => {
+      settled = true;
+      const transcript = Array.from(event.results as ArrayLike<{ 0: { transcript: string } }>)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      const parsed = parseDurationWords(transcript);
+      if (!parsed) {
+        toast.error(`Heard "${transcript}" — could not read a duration. Try "1 hour 30 minutes".`);
+        return;
+      }
+      setOtCustomHours(String(parsed.hours));
+      setOtCustomMinutes(parsed.minutes ? String(parsed.minutes) : "");
+      toast.success(`Heard ${parsed.hours} hr ${parsed.minutes} min — tap "Apply custom ED"`);
+    };
+    recognition.onerror = (event) => {
+      settled = true;
+      if (event.error !== "aborted" && event.error !== "no-speech") {
+        toast.error("Could not hear you — check microphone permission and try again");
+      }
+    };
+    recognition.onend = () => {
+      if (!settled) toast.error("Didn't catch that — tap the mic and say e.g. \"1 hour 30 minutes\"");
+      setOtListening(false);
+      otRecognitionRef.current = null;
+    };
+    try {
+      recognition.start();
+      setOtListening(true);
+ge      toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
+    } catch {
+      setOtListening(false);
+      toast.error("Could not start the microphone");
+    }
+  };
+
   // `hours` is ED in clock hours (0.5 – 16). It is stored as ED *days*,
   // converted with each row's contractual shift length (8h or 12h).
   // Keep 4 decimals so 1h on an 8h shift (0.125 d) round-trips back to exactly 1h.
