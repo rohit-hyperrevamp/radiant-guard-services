@@ -5,10 +5,12 @@ import { isNativePlatform } from "@/lib/native";
  * - On native (iOS/Android) uses @capacitor/camera and prompts the OS camera.
  * - On web, falls back to a hidden `<input type="file" capture="environment">`.
  */
-export async function capturePhoto(): Promise<string | null> {
+export type CaptureOptions = { front?: boolean; title?: string };
+
+export async function capturePhoto(opts: CaptureOptions = {}): Promise<string | null> {
   if (isNativePlatform()) {
     try {
-      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const { Camera, CameraResultType, CameraSource, CameraDirection } = await import("@capacitor/camera");
       const res = await Camera.getPhoto({
         quality: 78,
         allowEditing: false,
@@ -16,6 +18,7 @@ export async function capturePhoto(): Promise<string | null> {
         source: CameraSource.Camera,
         saveToGallery: false,
         correctOrientation: true,
+        direction: opts.front ? CameraDirection.Front : CameraDirection.Rear,
       });
       return res.dataUrl ?? null;
     } catch (err) {
@@ -31,7 +34,7 @@ export async function capturePhoto(): Promise<string | null> {
     typeof navigator.mediaDevices.getUserMedia === "function"
   ) {
     try {
-      return await capturePhotoFromWebCamera();
+      return await capturePhotoFromWebCamera(opts);
     } catch (err) {
       console.warn("[capturePhoto] web camera failed", err);
     }
@@ -41,7 +44,7 @@ export async function capturePhoto(): Promise<string | null> {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    input.setAttribute("capture", "environment");
+    input.setAttribute("capture", opts.front ? "user" : "environment");
     input.style.position = "fixed";
     input.style.left = "-9999px";
     document.body.appendChild(input);
@@ -65,10 +68,10 @@ export async function capturePhoto(): Promise<string | null> {
   });
 }
 
-async function capturePhotoFromWebCamera(): Promise<string | null> {
+async function capturePhotoFromWebCamera(opts: CaptureOptions): Promise<string | null> {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
-      facingMode: { ideal: "environment" },
+      facingMode: { ideal: opts.front ? "user" : "environment" },
       width: { ideal: 1280 },
       height: { ideal: 960 },
     },
@@ -91,7 +94,7 @@ async function capturePhotoFromWebCamera(): Promise<string | null> {
 
     const overlay = document.createElement("div");
     overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-label", "Capture client photo");
+    overlay.setAttribute("aria-label", opts.title ?? "Capture client photo");
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
     overlay.style.zIndex = "2147483647";
@@ -106,7 +109,7 @@ async function capturePhotoFromWebCamera(): Promise<string | null> {
     overlay.style.gap = "12px";
 
     const title = document.createElement("div");
-    title.textContent = "Client photo";
+    title.textContent = opts.title ?? "Client photo";
     title.style.color = "white";
     title.style.font = "700 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
     title.style.letterSpacing = "0";
