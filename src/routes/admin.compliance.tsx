@@ -160,7 +160,7 @@ function CompliancePage() {
     refetch,
   } = useQuery({
     queryKey: ["compliance-command-center", ym, foScope.isScoped, Array.from(foScope.unitIds).join(",")],
-    queryFn: () => fetchComplianceIssues(ym, { unitIds: foScope.isScoped ? Array.from(foScope.unitIds) : undefined, customerIds: foScope.isScoped ? Array.from(foScope.customerIds) : undefined }),
+    queryFn: () => fetchComplianceIssues(ym),
     staleTime: 60_000,
     enabled: showExceptions,
   });

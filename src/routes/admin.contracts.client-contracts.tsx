@@ -2919,7 +2919,7 @@ function ClientContractsPage() {
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
-                      {!isHrReadOnly && <Button
+                      <Button
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
@@ -2928,7 +2928,7 @@ function ClientContractsPage() {
                         title="View contract"
                       >
                         <Eye className="h-4 w-4" />
-                      </Button>}
+                      </Button>
                       {canEdit && (
                         <Button
                           size="sm"
@@ -2944,7 +2944,7 @@ function ClientContractsPage() {
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
+                      {!isHrReadOnly && <Button
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
@@ -2960,7 +2960,7 @@ function ClientContractsPage() {
                         title="Export to Excel"
                       >
                         <FileSpreadsheet className="h-4 w-4" />
-                      </Button>
+                      </Button>}
                       {canEdit && (
                         <Button
                           size="sm"
