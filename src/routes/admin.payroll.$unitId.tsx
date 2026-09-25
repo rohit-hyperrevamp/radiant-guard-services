@@ -168,14 +168,6 @@ function PayrollUnitPage() {
   const operationalScope = useOperationalUnitScope();
   const scopeDenied = operationalScope.isScoped && !operationalScope.unitIds.has(unitId);
 
-  if (!operationalScope.isLoading && scopeDenied) {
-    return (
-      <div className="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 text-center">
-        <h1 className="font-display text-lg font-semibold">Payroll not available</h1>
-        <p className="mt-2 text-sm text-muted-foreground">This client is not assigned to your account.</p>
-      </div>
-    );
-  }
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
@@ -1704,6 +1696,15 @@ function PayrollUnitPage() {
     });
   };
 
+
+  if (!operationalScope.isLoading && scopeDenied) {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 text-center">
+        <h1 className="font-display text-lg font-semibold">Payroll not available</h1>
+        <p className="mt-2 text-sm text-muted-foreground">This client is not assigned to your account.</p>
+      </div>
+    );
+  }
 
   const attendanceApproved = sheet?.status === "approved";
   if (!attendanceApproved) {
