@@ -172,10 +172,10 @@ function DashboardErrorState({ error }: { error: Error }) {
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
     meta: [
-      { title: "Leadership Dashboard | Radiant Guard Services" },
-      { name: "description", content: "Leadership overview across operations, attendance, payroll, and invoicing." },
-      { property: "og:title", content: "Leadership Dashboard | Radiant Guard Services" },
-      { property: "og:description", content: "Leadership overview across operations, attendance, payroll, and invoicing." },
+      { title: "Dashboard | Radiant Guard Services" },
+      { name: "description", content: "Dashboard overview across operations, attendance, payroll, and invoicing." },
+      { property: "og:title", content: "Dashboard | Radiant Guard Services" },
+      { property: "og:description", content: "Dashboard overview across operations, attendance, payroll, and invoicing." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
