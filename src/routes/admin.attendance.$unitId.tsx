@@ -26,6 +26,8 @@ import {
   Camera,
   Clock3,
   Pencil,
+  Mic,
+  Square,
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
@@ -2169,6 +2171,8 @@ function MusterRollPage() {
   const [otPickerOpen, setOtPickerOpen] = useState(false);
   const [otCustomHours, setOtCustomHours] = useState("");
   const [otCustomMinutes, setOtCustomMinutes] = useState("");
+  const [otListening, setOtListening] = useState(false);
+  const otRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const [otPickerCells, setOtPickerCells] = useState<string[]>([]);
 
   // ---- OCR / Excel upload state ----
