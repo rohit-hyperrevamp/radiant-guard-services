@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
+import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -84,10 +85,10 @@ function matchesKeywords(haystack: string, query: string): boolean {
 
 export function OperationsDeployments() {
   const qc = useQueryClient();
-  const { isSuperAdmin, canSub, canEdit } = useCurrentPermissions();
+  const { isSuperAdmin, can, canSub } = useCurrentPermissions();
   // Mapping field officers to units needs edit rights on units — view-only
   // roles (e.g. Control Center staff) see the roster without switch controls.
-  const canMap = isSuperAdmin || canSub("organizations", "unit_manager", "edit") || canEdit("organizations");
+  const canMap = isSuperAdmin || canSub("organizations", "unit_manager", "edit") || can("organizations", "edit");
   const [view, setView] = useState<"unit" | "officer">("unit");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);

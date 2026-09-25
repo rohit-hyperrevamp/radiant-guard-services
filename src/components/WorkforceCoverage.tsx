@@ -52,6 +52,8 @@ const EXCLUDED_ROLE_KEYS = new Set([
   "leadership",
   "operations_manager",
   "vp_operations",
+  "control_center_head",
+  "control_center",
   "branch_manager",
   "inventory",
   "transport",

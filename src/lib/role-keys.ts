@@ -19,6 +19,8 @@ export const ROLE_KEYS = {
   OPERATIONS: "operations",
   OPERATIONS_MANAGER: "operations_manager",
   VP_OPERATIONS: "vp_operations",
+  CONTROL_CENTER_HEAD: "control_center_head",
+  CONTROL_CENTER: "control_center",
   FIELD_OFFICER: "field_officer",
   GUARD: "guard",
   SECURITY_GUARD: "security_guard",
@@ -45,6 +47,8 @@ export const ADMIN_CONSOLE_ROLES: ReadonlySet<string> = new Set([
   ROLE_KEYS.OPERATIONS,
   ROLE_KEYS.OPERATIONS_MANAGER,
   ROLE_KEYS.VP_OPERATIONS,
+  ROLE_KEYS.CONTROL_CENTER_HEAD,
+  ROLE_KEYS.CONTROL_CENTER,
 ]);
 
 /** Operations leadership team — the shared ops dashboard/RBAC subset. */
@@ -52,6 +56,14 @@ export const OPERATIONS_ROLES: ReadonlySet<string> = new Set([
   ROLE_KEYS.OPERATIONS,
   ROLE_KEYS.OPERATIONS_MANAGER,
   ROLE_KEYS.VP_OPERATIONS,
+  ROLE_KEYS.CONTROL_CENTER_HEAD,
+  ROLE_KEYS.CONTROL_CENTER,
+]);
+
+/** Control Center team — Radar-first dashboard. */
+export const CONTROL_CENTER_ROLES: ReadonlySet<string> = new Set([
+  ROLE_KEYS.CONTROL_CENTER_HEAD,
+  ROLE_KEYS.CONTROL_CENTER,
 ]);
 
 /** Frontline / mobile-first roles. */
