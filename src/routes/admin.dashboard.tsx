@@ -1,3 +1,6 @@
+import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
+import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
+import { FieldSenseLeaderboards } from "@/components/FieldSenseLeaderboards";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { useMemo, useState } from "react";
@@ -1233,7 +1236,12 @@ function DashboardPage() {
           />
           <OperationsRadarSummary expanded />
           <LiveFieldOfficersCard />
-          <AdminVisitProgressCard />
+          <div className="grid gap-4 xl:grid-cols-2">
+            <AdminVisitProgressCard />
+            <AdminFieldOfficerUnitsCard />
+          </div>
+          <AdminEscalationRequestsCard />
+          <FieldSenseLeaderboards />
           <OperationsClientLocations data={operationsOverview} />
           <OperationsDeployments />
           <OperationsOrgTree />
