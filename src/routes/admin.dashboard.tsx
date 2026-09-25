@@ -1231,8 +1231,8 @@ function DashboardPage() {
             description="Live field officers, site-visit progress, and field officer deployment."
             crumbs={[{ label: "Dashboard" }]}
           />
-          <LiveFieldOfficersCard />
           <OperationsRadarSummary expanded />
+          <LiveFieldOfficersCard />
           <AdminVisitProgressCard />
           <OperationsClientLocations data={operationsOverview} />
           <OperationsDeployments />
