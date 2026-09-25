@@ -4271,6 +4271,7 @@ function ResourcesSection({
   onDelete: (idx: number) => void;
 }) {
   const designations = useDesignations();
+  const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
   const rolesList = useRolesList();
   const dById = useMemo(
@@ -4415,6 +4416,7 @@ function ResourcesSection({
                       );
                     })}
                   </div>
+                  )}
                 </div>
               ))}
             </div>
