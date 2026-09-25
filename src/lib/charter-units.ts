@@ -37,6 +37,9 @@ export type CharterUnitRow = {
   customer_code: string;
   billing_state: string | null;
   billing_city: string | null;
+  /** Client Detail state/city (falls back to billing server-side). Drives filters. */
+  client_state?: string | null;
+  client_city?: string | null;
   contract_codes: string[];
   contract_end: string | null;
   active_employee_count: number;
