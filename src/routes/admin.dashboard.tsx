@@ -251,6 +251,7 @@ function DashboardPage() {
   // Operations focus: Radar access without payroll/invoicing. Their homepage is
   // field deployment, not money.
   const opsFocus = useOperationsFocus();
+  const isControlCenter = !!roleKey && CONTROL_CENTER_ROLES.has(roleKey);
   const managerScope = useManagerFieldOfficerScope();
   const operationsOverviewQ = useOperationsOverview();
   const operationsLiveQ = useOperationsRadarLive();
@@ -1254,7 +1255,16 @@ function DashboardPage() {
           ) : null
         }
         fullWidthBelow={
-          opsFocus ? (
+          opsFocus && isControlCenter ? (
+            <>
+              <OperationsRadarSummary />
+              <LiveFieldOfficersCard />
+              <AdminVisitProgressCard />
+              <OperationsDeployments />
+              <OperationsClientLocations data={operationsOverview} />
+              <OperationsOrgTree />
+            </>
+          ) : opsFocus ? (
             <>
               <OperationsRadarSummary />
               <AdminVisitProgressCard />
