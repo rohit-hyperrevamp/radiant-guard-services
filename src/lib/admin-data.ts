@@ -600,6 +600,11 @@ export type Unit = {
   billingDistrict: string;
   billingState: string;
   billingCountry: string;
+  /** Client Detail (site) address — defaults to billing, editable independently. */
+  clientAddress?: string;
+  clientState?: string;
+  clientCity?: string;
+  clientPincode?: string;
   shippingSameAsBilling: boolean;
   shippingSameAsOrg: boolean;
   shippingSalutation: string;
@@ -709,6 +714,10 @@ type UnitRow = {
   billing_district: string | null;
   billing_state: string | null;
   billing_country: string | null;
+  client_address?: string | null;
+  client_state?: string | null;
+  client_city?: string | null;
+  client_pincode?: string | null;
   shipping_same_as_billing: boolean;
   shipping_same_as_org: boolean;
   shipping_salutation: string | null;
@@ -799,6 +808,10 @@ function rowToUnit(r: UnitRow): Unit {
     billingDistrict: r.billing_district ?? "",
     billingState: r.billing_state ?? "",
     billingCountry: r.billing_country ?? "India",
+    clientAddress: r.client_address ?? "",
+    clientState: r.client_state ?? "",
+    clientCity: r.client_city ?? "",
+    clientPincode: r.client_pincode ?? "",
     shippingSameAsBilling: r.shipping_same_as_billing,
     shippingSameAsOrg: r.shipping_same_as_org,
     shippingSalutation: r.shipping_salutation ?? "",
@@ -885,6 +898,10 @@ function unitToRow(data: Omit<Unit, "id">) {
     billing_district: data.billingDistrict,
     billing_state: data.billingState,
     billing_country: data.billingCountry || "India",
+    client_address: data.clientAddress?.trim() || [data.billingAddress1, data.billingAddress2].map((v) => (v ?? "").trim()).filter(Boolean).join(", ") || null,
+    client_state: data.clientState?.trim() || data.billingState || null,
+    client_city: data.clientCity?.trim() || data.billingCity || null,
+    client_pincode: data.clientPincode?.trim() || data.billingPincode || null,
     shipping_same_as_billing: data.shippingSameAsBilling,
     shipping_same_as_org: data.shippingSameAsOrg,
     shipping_salutation: data.shippingSalutation,
