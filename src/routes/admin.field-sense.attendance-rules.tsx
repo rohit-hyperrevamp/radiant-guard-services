@@ -164,7 +164,7 @@ function AttendanceRulesPage() {
             </thead>
             <tbody>
               {rolePg.pageRows.map((r) => {
-                const p: Policy = policyMap[r.key] ?? { role_key: r.key, mode: "home_unit", radius_m: 300, capture_missing_coords: true };
+                const p: Policy = policyMap[r.key] ?? { role_key: r.key, mode: "home_unit", radius_m: 300, capture_missing_coords: true, require_selfie: r.key === "field_officer" || r.key === "guard" };
                 return (
                   <tr key={r.key} className="border-t border-border/50">
                     <td className="px-4 py-2 font-medium text-foreground">{r.name}</td>
@@ -197,6 +197,13 @@ function AttendanceRulesPage() {
                         checked={p.capture_missing_coords}
                         disabled={!canEdit}
                         onCheckedChange={(v) => savePolicy.mutate({ ...p, capture_missing_coords: v })}
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Switch
+                        checked={p.require_selfie}
+                        disabled={!canEdit}
+                        onCheckedChange={(v) => savePolicy.mutate({ ...p, require_selfie: v })}
                       />
                     </td>
                   </tr>
