@@ -27,7 +27,7 @@ INSERT INTO candidate_units(candidate_id,unit_id,designation_id,is_primary,is_re
 
 CREATE TEMP TABLE g(emp text, s text);
 INSERT INTO g VALUES
- ('47494','PP.PP..........................'),
+ ('47494','RR.RR..........................'),
  ('49263','.........WAPPPPPWPPPPPPWPPPPPPW'),
  ('26417','.....RRRR.R....................');
 INSERT INTO attendance_entries(unit_id,candidate_id,designation_id,shift_hours,is_reliever,entry_date,code,ot_hours)
