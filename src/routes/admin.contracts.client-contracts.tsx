@@ -4309,7 +4309,7 @@ function ResourcesSection({
           billingFixedDays: Number((bb as { fixed_days?: unknown; fixedDays?: unknown } | undefined)?.fixed_days ?? (bb as { fixedDays?: unknown } | undefined)?.fixedDays) || 0,
         };
       }),
-    [resources, dById],
+    [resources, dById, billingDayBases],
   );
 
   const currentPayrollPeriod = useMemo(() => {
