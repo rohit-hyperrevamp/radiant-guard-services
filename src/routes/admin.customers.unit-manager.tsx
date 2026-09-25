@@ -220,8 +220,8 @@ function UnitManagerPage() {
           ...u,
           branchLabel: br ? `${br.code} – ${stName}` : "—",
           customerLabel: u.customerId ? customerById.get(u.customerId)?.name ?? "—" : "—",
-          stateLabel: (u.billingState || "").trim(),
-          cityLabel: (u.billingCity || "").trim(),
+          stateLabel: (u.clientState || u.billingState || "").trim(),
+          cityLabel: (u.clientCity || u.billingCity || "").trim(),
         };
       })
       .sort((a, b) => {
@@ -277,7 +277,10 @@ function UnitManagerPage() {
 
   const stateOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const u of unitsForSelectedOrganizations) if (u.billingState?.trim()) set.add(u.billingState.trim());
+    for (const u of unitsForSelectedOrganizations) {
+      const st = (u.clientState || u.billingState || "").trim();
+      if (st) set.add(st);
+    }
     return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
   }, [unitsForSelectedOrganizations]);
 
@@ -285,8 +288,9 @@ function UnitManagerPage() {
     const picked = new Set(stateFilter);
     const set = new Set<string>();
     for (const u of unitsForSelectedOrganizations) {
-      if (picked.size && !picked.has((u.billingState || "").trim())) continue;
-      if (u.billingCity?.trim()) set.add(u.billingCity.trim());
+      if (picked.size && !picked.has((u.clientState || u.billingState || "").trim())) continue;
+      const ct = (u.clientCity || u.billingCity || "").trim();
+      if (ct) set.add(ct);
     }
     return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
   }, [unitsForSelectedOrganizations, stateFilter]);
@@ -344,15 +348,15 @@ function UnitManagerPage() {
                 ? scopedUnits
                 : scopedUnits.filter((unit) => unit.customerId && selectedOrganizations.has(unit.customerId));
               const eligibleStates = new Set(
-                eligibleUnits.map((unit) => unit.billingState?.trim()).filter((value): value is string => Boolean(value)),
+                eligibleUnits.map((unit) => (unit.clientState || unit.billingState || "").trim()).filter((value): value is string => Boolean(value)),
               );
               const nextStates = stateFilter.filter((state) => eligibleStates.has(state));
               setStateFilter(nextStates);
               const selectedStates = new Set(nextStates);
               const eligibleCities = new Set(
                 eligibleUnits
-                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.billingState || "").trim()))
-                  .map((unit) => unit.billingCity?.trim())
+                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.clientState || unit.billingState || "").trim()))
+                  .map((unit) => (unit.clientCity || unit.billingCity || "").trim())
                   .filter((value): value is string => Boolean(value)),
               );
               setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
@@ -368,8 +372,8 @@ function UnitManagerPage() {
               const selectedStates = new Set(next);
               const eligibleCities = new Set(
                 unitsForSelectedOrganizations
-                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.billingState || "").trim()))
-                  .map((unit) => unit.billingCity?.trim())
+                  .filter((unit) => selectedStates.size === 0 || selectedStates.has((unit.clientState || unit.billingState || "").trim()))
+                  .map((unit) => (unit.clientCity || unit.billingCity || "").trim())
                   .filter((value): value is string => Boolean(value)),
               );
               setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
@@ -1196,6 +1200,18 @@ function UnitFormDialog({
               </Field>
               <Field label="Client location">
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+              </Field>
+              <Field label="Client address">
+                <Input value={form.clientAddress ?? ""} onChange={(e) => set("clientAddress", e.target.value)} placeholder="Defaults to billing address" />
+              </Field>
+              <Field label="Client state">
+                <Input value={form.clientState ?? ""} onChange={(e) => set("clientState", e.target.value)} placeholder="Defaults to billing state" />
+              </Field>
+              <Field label="Client city">
+                <Input value={form.clientCity ?? ""} onChange={(e) => set("clientCity", e.target.value)} placeholder="Defaults to billing city" />
+              </Field>
+              <Field label="Client pin code">
+                <Input value={form.clientPincode ?? ""} onChange={(e) => set("clientPincode", e.target.value)} inputMode="numeric" placeholder="Defaults to billing pin code" />
               </Field>
               <Field label="Zone">
                 <Input value={form.zone} onChange={(e) => set("zone", e.target.value)} placeholder="Optional" />

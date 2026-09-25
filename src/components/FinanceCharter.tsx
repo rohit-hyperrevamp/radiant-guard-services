@@ -136,7 +136,7 @@ export function FinanceCharter({
   const stateOptions = useMemo(() => {
     const seen = new Map<string, string>();
     for (const u of units) {
-      const label = (u.billing_state ?? "").trim();
+      const label = (u.client_state || u.billing_state || "").trim();
       if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
     }
     return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
@@ -146,9 +146,9 @@ export function FinanceCharter({
     const selectedStates = new Set(stateFilter.map((s) => s.toLowerCase()));
     const seen = new Map<string, string>();
     for (const u of units) {
-      const state = (u.billing_state ?? "").trim();
+      const state = (u.client_state || u.billing_state || "").trim();
       if (selectedStates.size && !selectedStates.has(state.toLowerCase())) continue;
-      const label = (u.billing_city ?? "").trim();
+      const label = (u.client_city || u.billing_city || "").trim();
       if (label && !seen.has(label.toLowerCase())) seen.set(label.toLowerCase(), label);
     }
     return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
@@ -179,8 +179,8 @@ export function FinanceCharter({
     const stateSet = new Set(stateFilter.map((s) => s.toLowerCase()));
     const citySet = new Set(cityFilter.map((s) => s.toLowerCase()));
     const list = units.filter((u) => {
-      if (stateSet.size && !stateSet.has((u.billing_state ?? "").trim().toLowerCase())) return false;
-      if (citySet.size && !citySet.has((u.billing_city ?? "").trim().toLowerCase())) return false;
+      if (stateSet.size && !stateSet.has((u.client_state || u.billing_state || "").trim().toLowerCase())) return false;
+      if (citySet.size && !citySet.has((u.client_city || u.billing_city || "").trim().toLowerCase())) return false;
       if (!term) return true;
       return [u.name, u.code, u.customer_name, ...u.contract_codes]
         .filter(Boolean)
