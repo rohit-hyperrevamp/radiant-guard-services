@@ -6,6 +6,7 @@ import { subscribeLivePunches } from "@/lib/use-live-location-beacon";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
+import { AttendancePhotosSection } from "@/components/AttendancePhotosSection";
 
 export const Route = createFileRoute("/admin/field-sense/team")({
   component: () => (<FieldSenseAdminGuard sub="day_patrol"><MyTeamPage /></FieldSenseAdminGuard>),
@@ -270,6 +271,8 @@ function MyTeamPage() {
           </ul>
         )}
       </section>
+
+      <AttendancePhotosSection date={selectedDate} />
     </div>
   );
 }

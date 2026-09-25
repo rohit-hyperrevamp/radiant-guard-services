@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { DataPagination } from "@/components/DataPagination";
-import { usePagination } from "@/components/DataPagination";
+import { DataPagination, usePagination } from "@/components/DataPagination";
 import { selfieUrl } from "@/lib/attendance-selfie";
 import { mapsUrl } from "@/lib/self-attendance";
 
@@ -150,7 +149,7 @@ export function AttendancePhotosSection({ date }: { date: string }) {
     const all = dataQ.data ?? [];
     return s ? all.filter((r) => r.name.toLowerCase().includes(s) || (r.code ?? "").toLowerCase().includes(s)) : all;
   }, [dataQ.data, q]);
-  const pg = usePagination(filtered, 12);
+  const pg = usePagination(filtered, 20);
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -171,7 +170,7 @@ export function AttendancePhotosSection({ date }: { date: string }) {
         <div className="p-6 text-center text-xs italic text-muted-foreground">No one has punched in on this date.</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {pg.pageItems.map((r) => {
+          {pg.pageRows.map((r) => {
             const title = `${r.name}${r.code ? ` · ${r.code}` : ""}`;
             const inShot: Shot | null = r.check_in_photo_path
               ? { path: r.check_in_photo_path, title: `${title} — Log in`, at: r.check_in_at, lat: r.check_in_lat, lng: r.check_in_lng, acc: r.check_in_accuracy, place: r.check_in_place }
@@ -204,7 +203,7 @@ export function AttendancePhotosSection({ date }: { date: string }) {
           })}
         </div>
       )}
-      <div className="mt-3"><DataPagination {...pg} /></div>
+      <div className="mt-3"><DataPagination {...pg} label="people" /></div>
       <Viewer shot={open} onClose={() => setOpen(null)} />
     </section>
   );
