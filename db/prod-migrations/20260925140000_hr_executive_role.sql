@@ -44,7 +44,7 @@ USING (( SELECT current_user_has_permission('employees'::text, ''::text, 'view':
 -- HR executives also need to see people posted to their clients via candidate_units.
 CREATE POLICY "HR executives read people at their clients" ON public.candidates FOR SELECT TO authenticated
 USING (( SELECT current_user_role_key()) = 'hr_executive' AND id IN (
-  SELECT cu.candidate_id FROM public.candidate_units cu WHERE cu.unit_id = ANY (( SELECT current_user_unit_ids()))));
+  SELECT cu.candidate_id FROM public.candidate_units cu WHERE cu.unit_id IN (SELECT unnest(( SELECT current_user_unit_ids())))));
 
 UPDATE public.candidates c SET role_key = 'hr_executive'
 WHERE c.role_key = 'hr' AND EXISTS (SELECT 1 FROM public.units u WHERE u.hr_executive_id = c.id);
