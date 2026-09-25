@@ -147,6 +147,22 @@ export function FinanceCharter({
     return Array.from(seen.values()).sort((a, b) => a.localeCompare(b)).map((label) => ({ value: label, label }));
   }, [units, stateFilter]);
 
+  useEffect(() => {
+    const validStates = new Set(stateOptions.map((option) => option.value.toLowerCase()));
+    setStateFilter((current) => {
+      const next = current.filter((value) => validStates.has(value.toLowerCase()));
+      return next.length === current.length ? current : next;
+    });
+  }, [stateOptions]);
+
+  useEffect(() => {
+    const validCities = new Set(cityOptions.map((option) => option.value.toLowerCase()));
+    setCityFilter((current) => {
+      const next = current.filter((value) => validCities.has(value.toLowerCase()));
+      return next.length === current.length ? current : next;
+    });
+  }, [cityOptions]);
+
 
   // Search, then paginate, then load money for the visible page only. Contract
   // rates, attendance entries and period statuses are all fetched for these 25
@@ -1023,11 +1039,38 @@ export function FinanceCharter({
         )}
       </CharterTileGrid>
 
-      {filters}
+      {mode !== "invoice" && filters}
 
 
 
 
+
+      {mode === "invoice" && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {filters}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">State</label>
+            <MultiSelectFilter
+              selected={stateFilter}
+              onChange={(v) => {
+                setStateFilter(v);
+                setCityFilter([]);
+              }}
+              options={stateOptions}
+              allLabel={`All states (${stateOptions.length})`}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">City</label>
+            <MultiSelectFilter
+              selected={cityFilter}
+              onChange={setCityFilter}
+              options={cityOptions}
+              allLabel={`All cities (${cityOptions.length})`}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
         <div className="relative min-w-0 sm:w-72">
@@ -1065,21 +1108,25 @@ export function FinanceCharter({
             </SelectContent>
           </Select>
         )}
-        <MultiSelectFilter
-          selected={stateFilter}
-          onChange={(v) => {
-            setStateFilter(v);
-            setCityFilter([]);
-          }}
-          options={stateOptions}
-          allLabel="All states"
-        />
-        <MultiSelectFilter
-          selected={cityFilter}
-          onChange={setCityFilter}
-          options={cityOptions}
-          allLabel="All cities"
-        />
+        {mode !== "invoice" && (
+          <>
+            <MultiSelectFilter
+              selected={stateFilter}
+              onChange={(v) => {
+                setStateFilter(v);
+                setCityFilter([]);
+              }}
+              options={stateOptions}
+              allLabel="All states"
+            />
+            <MultiSelectFilter
+              selected={cityFilter}
+              onChange={setCityFilter}
+              options={cityOptions}
+              allLabel="All cities"
+            />
+          </>
+        )}
         <div className="hidden flex-1 sm:block" />
         <div className="col-span-2 flex items-center gap-1.5 overflow-x-auto sm:contents">
         {mode === "invoice" && (
