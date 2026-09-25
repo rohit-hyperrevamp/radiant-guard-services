@@ -172,18 +172,39 @@ export type AllowedUnit = {
   isPrimary?: boolean;
 };
 
+type AttendanceLocationRule = {
+  mode: "anywhere" | "assigned_unit" | "home_unit";
+  radius_m: number;
+  units: AllowedUnit[];
+};
+
 export function MarkAttendanceCard({
   candidateId,
   compact,
-  allowedUnits,
-  proximityThresholdM = 300,
+  allowedUnits: allowedUnitsProp,
+  proximityThresholdM: proximityProp = 300,
 }: {
   candidateId: string | null;
   compact?: boolean;
-  /** If provided, check-in is gated: user must be within `proximityThresholdM` of one of these units. */
+  /** Fallback only — the Control Center attendance location rule (server) wins. */
   allowedUnits?: AllowedUnit[];
   proximityThresholdM?: number;
 }) {
+  const ruleQ = useQuery({
+    queryKey: ["my-attendance-location-rule", candidateId],
+    enabled: !!candidateId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("my_attendance_location_rule" as never);
+      if (error) throw error;
+      return (data as AttendanceLocationRule | null) ?? null;
+    },
+  });
+  const rule = ruleQ.data ?? null;
+  const allowedUnits: AllowedUnit[] | undefined = rule
+    ? rule.mode === "anywhere" ? undefined : rule.units
+    : allowedUnitsProp;
+  const proximityThresholdM = rule?.radius_m ?? proximityProp;
   const qc = useQueryClient();
   const [busy, setBusy] = useState<"in" | "out" | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
