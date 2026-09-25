@@ -19,12 +19,12 @@ type PersonRow = {
 
 export type ManagerFieldOfficerScope = {
   isLoading: boolean;
-  /** True when the signed-in user has field officers reporting to them. */
+  /** True when the signed-in user has field officers reporting to them or is an HR executive for specific units. */
   isScoped: boolean;
   candidateId: string | null;
   /** Field officers anywhere below the signed-in user in the reporting chain. */
   fieldOfficerIds: Set<string>;
-  /** Billable client units those field officers cover. */
+  /** Billable client units those field officers cover or that the user manages as HR executive. */
   unitIds: Set<string>;
   /** Organizations owning those units. */
   customerIds: Set<string>;
@@ -133,15 +133,33 @@ async function loadUnitsForOfficers(officerIds: string[]) {
   return { unitIds: [...unitIds], customerIds: [...customerIds] };
 }
 
+async function loadHrExecutiveUnits(candidateId: string) {
+  const { data, error } = await supabase
+    .from("units")
+    .select("id,is_billable,customer_id")
+    .eq("hr_executive_id", candidateId);
+  if (error) throw error;
+  
+  const unitIds = new Set<string>();
+  const customerIds = new Set<string>();
+  for (const row of (data ?? [])) {
+    if (row.is_billable === false) continue;
+    unitIds.add(row.id);
+    if (row.customer_id) customerIds.add(row.customer_id);
+  }
+  return { unitIds: [...unitIds], customerIds: [...customerIds] };
+}
+
 /**
  * Cumulative scope for a manager: every field officer below them in the
- * reporting chain plus the client units those officers cover. Super admins and
+ * reporting chain plus the client units those officers cover. Also includes
+ * units assigned to the user as an HR Executive. Super admins and
  * field officers themselves are never scoped here (field officers use
  * `useFieldOfficerUnitScope`), and a manager with no field officer reportees
- * keeps their existing row-level-security reach.
+ * and no HR assignments keeps their existing row-level-security reach.
  */
 export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
-  const { candidateId, isSuperAdmin, isFieldOfficer, isLoading: roleLoading } = useCurrentUserRole();
+  const { candidateId, isSuperAdmin, isFieldOfficer, roleKey, isLoading: roleLoading } = useCurrentUserRole();
   const enabled = !!candidateId && !isSuperAdmin && !isFieldOfficer;
 
   const q = useQuery({
@@ -149,9 +167,21 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     enabled,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const fieldOfficerIds = await loadSubtree(candidateId!);
-      const { unitIds, customerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
-      return { fieldOfficerIds: [...fieldOfficerIds], unitIds, customerIds };
+      const [fieldOfficerIds, hrScope] = await Promise.all([
+        loadSubtree(candidateId!),
+        roleKey === ROLE_KEYS.HR_EXECUTIVE || roleKey === ROLE_KEYS.HR ? loadHrExecutiveUnits(candidateId!) : Promise.resolve({ unitIds: [], customerIds: [] })
+      ]);
+      
+      const { unitIds: foUnitIds, customerIds: foCustomerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
+      
+      const combinedUnitIds = new Set([...foUnitIds, ...hrScope.unitIds]);
+      const combinedCustomerIds = new Set([...foCustomerIds, ...hrScope.customerIds]);
+      
+      return { 
+        fieldOfficerIds: [...fieldOfficerIds], 
+        unitIds: [...combinedUnitIds], 
+        customerIds: [...combinedCustomerIds] 
+      };
     },
   });
 
@@ -161,7 +191,7 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
 
   return {
     isLoading: roleLoading || (enabled && q.isLoading),
-    isScoped: enabled && fieldOfficerIds.size > 0 || unitIds.size > 0,
+    isScoped: enabled && (fieldOfficerIds.size > 0 || unitIds.size > 0),
     candidateId,
     fieldOfficerIds,
     unitIds,
@@ -171,7 +201,7 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
 
 /**
  * Unit scope for list screens: a field officer's own units, or — for a manager
- * with field officers reporting to them — the units their officers cover.
+ * with field officers reporting to them or an HR Executive — the units they cover.
  * `isScoped` false means the screen keeps its company-wide reach.
  */
 export function useOperationalUnitScope(): {
