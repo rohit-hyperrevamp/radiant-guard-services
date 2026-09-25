@@ -22,7 +22,42 @@ import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { selfieUrl } from "@/lib/attendance-selfie";
 import { cn } from "@/lib/utils";
+
+type PunchShot = {
+  path: string;
+  label: string;
+  at: string | null;
+  lat: number | null;
+  lng: number | null;
+  place: string | null;
+};
+
+function PunchPhoto({ shot, onOpen }: { shot: PunchShot | null; onOpen: (s: PunchShot) => void }) {
+  const urlQ = useQuery({
+    queryKey: ["selfie-url", shot?.path],
+    enabled: !!shot?.path,
+    staleTime: 50 * 60_000,
+    queryFn: () => selfieUrl(shot!.path),
+  });
+  if (!shot) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(shot)}
+      className="relative block h-12 w-9 shrink-0 overflow-hidden rounded-lg border border-border bg-muted"
+      aria-label={`${shot.label} photo`}
+    >
+      {urlQ.data ? (
+        <img src={urlQ.data} alt={shot.label} className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-[8px] text-muted-foreground">…</span>
+      )}
+    </button>
+  );
+}
 
 export const Route = createFileRoute("/admin/my-attendance")({
   component: MyAttendancePage,
@@ -98,6 +133,7 @@ function MyAttendancePage() {
   });
   const [monthDate, setMonthDate] = useState<Date>(() => new Date());
   const [search, setSearch] = useState("");
+  const [openShot, setOpenShot] = useState<PunchShot | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -379,18 +415,44 @@ function MyAttendancePage() {
                 </div>
 
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">In</div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {fmtHM(p?.check_in_at ?? null)}
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5">
+                    <PunchPhoto
+                      shot={p?.check_in_photo_path
+                        ? { path: p.check_in_photo_path, label: "Log in", at: p.check_in_at, lat: p.check_in_lat, lng: p.check_in_lng, place: p.check_in_place ?? null }
+                        : null}
+                      onOpen={setOpenShot}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">In</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        {fmtHM(p?.check_in_at ?? null)}
+                      </div>
+                      {p?.check_in_place && (
+                        <div className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground" title={p.check_in_place}>
+                          {p.check_in_place}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">Out</div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {fmtHM(p?.check_out_at ?? null)}
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5">
+                    <PunchPhoto
+                      shot={p?.check_out_photo_path
+                        ? { path: p.check_out_photo_path, label: "Log out", at: p.check_out_at, lat: p.check_out_lat, lng: p.check_out_lng, place: p.check_out_place ?? null }
+                        : null}
+                      onOpen={setOpenShot}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">Out</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        {fmtHM(p?.check_out_at ?? null)}
+                      </div>
+                      {p?.check_out_place && (
+                        <div className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground" title={p.check_out_place}>
+                          {p.check_out_place}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -435,7 +497,52 @@ function MyAttendancePage() {
           </div>
         )}
       </section>
+
+      <PunchShotViewer shot={openShot} onClose={() => setOpenShot(null)} />
     </div>
+  );
+}
+
+function PunchShotViewer({ shot, onClose }: { shot: PunchShot | null; onClose: () => void }) {
+  const urlQ = useQuery({
+    queryKey: ["selfie-url", shot?.path],
+    enabled: !!shot?.path,
+    staleTime: 50 * 60_000,
+    queryFn: () => selfieUrl(shot!.path),
+  });
+  const map = shot ? mapsUrl(shot.lat, shot.lng) : null;
+  return (
+    <Dialog open={!!shot} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{shot?.label} photo</DialogTitle>
+        </DialogHeader>
+        <div className="overflow-auto rounded-xl bg-muted">
+          {urlQ.data ? (
+            <img
+              src={urlQ.data}
+              alt={shot?.label ?? "Punch photo"}
+              onDoubleClick={(e) => {
+                const img = e.currentTarget;
+                img.style.width = img.style.width === "200%" ? "100%" : "200%";
+              }}
+              className="mx-auto block h-auto w-full cursor-zoom-in"
+            />
+          ) : (
+            <div className="p-6 text-center text-xs text-muted-foreground">Loading photo…</div>
+          )}
+        </div>
+        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+          <div><span className="font-semibold text-foreground">Time:</span> {shot?.at ? new Date(shot.at).toLocaleString("en-IN") : "—"}</div>
+          <div>
+            <span className="font-semibold text-foreground">Coordinates:</span>{" "}
+            {shot?.lat != null ? `${Number(shot.lat).toFixed(6)}, ${Number(shot.lng).toFixed(6)}` : "—"}
+            {map ? <a href={map} target="_blank" rel="noreferrer" className="ml-2 font-semibold text-primary">Map</a> : null}
+          </div>
+          <div className="sm:col-span-2"><span className="font-semibold text-foreground">Place:</span> {shot?.place ?? "—"}</div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

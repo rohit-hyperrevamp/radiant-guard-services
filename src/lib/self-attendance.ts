@@ -24,6 +24,10 @@ export type SelfPunch = {
   battery_charging: boolean | null;
   network_type: string | null;
   unit_id?: string | null;
+  check_in_photo_path?: string | null;
+  check_out_photo_path?: string | null;
+  check_in_place?: string | null;
+  check_out_place?: string | null;
 };
 
 
