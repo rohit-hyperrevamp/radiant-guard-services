@@ -1232,9 +1232,11 @@ function DashboardPage() {
             crumbs={[{ label: "Dashboard" }]}
           />
           <LiveFieldOfficersCard />
-          <OperationsRadarSummary />
+          <OperationsRadarSummary expanded />
           <AdminVisitProgressCard />
+          <OperationsClientLocations data={operationsOverview} />
           <OperationsDeployments />
+          <OperationsOrgTree />
         </div>
       </div>
     );

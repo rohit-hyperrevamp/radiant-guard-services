@@ -63,7 +63,7 @@ export function useOperationsRadarLive() {
   });
 }
 
-export function OperationsRadarSummary() {
+export function OperationsRadarSummary({ expanded = false }: { expanded?: boolean }) {
   const qc = useQueryClient();
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
@@ -188,12 +188,14 @@ export function OperationsRadarSummary() {
             Field officers live now
           </h3>
         </div>
-        <Link
-          to="/admin/field-sense"
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-        >
-          Full map <ArrowUpRight className="h-3 w-3" />
-        </Link>
+        {!expanded && (
+          <Link
+            to="/admin/field-sense"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+          >
+            Full map <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        )}
       </header>
 
       <div className="grid grid-cols-3 gap-2 px-4 py-3">
@@ -203,7 +205,10 @@ export function OperationsRadarSummary() {
       </div>
 
       <div className="px-4 pb-4">
-        <div ref={mapEl} className="h-[300px] w-full overflow-hidden rounded-xl border border-border/50" />
+        <div
+          ref={mapEl}
+          className={`${expanded ? "h-[min(62vh,620px)] min-h-[440px]" : "h-[300px]"} w-full overflow-hidden rounded-xl border border-border/50`}
+        />
       </div>
     </section>
   );
