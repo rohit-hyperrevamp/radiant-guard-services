@@ -487,7 +487,7 @@ function AdminLayout() {
     { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
   ], []);
 
-  const visibleGroups = (() => {
+  const visibleGroups: GroupItem[] = (() => {
     if (isGuard) return guardGroups;
     if (isControlCenterRole) {
       const children = controlCenterRadarChildren.filter(
