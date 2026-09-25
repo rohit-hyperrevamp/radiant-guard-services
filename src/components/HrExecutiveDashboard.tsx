@@ -47,18 +47,21 @@ async function fetchMyClients() {
   return { rows, windows, people };
 }
 
-function Breakdown({ title, items, active, onPick }: { title: string; items: [string, number][]; active: string | null; onPick: (k: string | null) => void }) {
+function Breakdown({ title, items, active, onPick, onAll }: { title: string; items: [string, number][]; active: string[]; onPick: (k: string) => void; onAll: () => void }) {
   return (
     <div className="min-w-0">
       <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</div>
       <div className="flex flex-wrap gap-1.5">
+        <Button type="button" variant={!active.length ? "default" : "outline"} size="sm"
+          onClick={onAll} className="h-8 rounded-lg px-2.5 text-xs">
+          All <span className="tabular-nums opacity-70">{items.reduce((sum, [, count]) => sum + count, 0)}</span>
+        </Button>
         {items.map(([key, count]) => (
-          <Button key={key} type="button" variant={active === key ? "default" : "outline"} size="sm"
-            onClick={() => onPick(active === key ? null : key)} className="h-8 gap-2 rounded-lg px-2.5 text-xs">
+          <Button key={key} type="button" variant={active.includes(key) ? "default" : "outline"} size="sm"
+            onClick={() => onPick(key)} className="h-8 gap-2 rounded-lg px-2.5 text-xs">
             <span className="max-w-40 truncate">{key}</span><span className="tabular-nums opacity-70">{count}</span>
           </Button>
         ))}
-        {!items.length && <span className="text-xs text-muted-foreground">No data</span>}
       </div>
     </div>
   );
@@ -67,7 +70,7 @@ function Breakdown({ title, items, active, onPick }: { title: string; items: [st
 export function HrExecutiveDashboard() {
   const q = useQuery({ queryKey: ["hr-executive-clients"], queryFn: fetchMyClients, staleTime: 60_000 });
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<Partial<Record<"df" | "cycle" | "day" | "type", string>>>({});
+  const [filters, setFilters] = useState<Partial<Record<"df" | "cycle" | "day" | "type", string[]>>>({});
   const [page, setPage] = useState(0);
   const view = useMemo(() => {
     const rows = q.data?.rows ?? [];
@@ -82,20 +85,30 @@ export function HrExecutiveDashboard() {
     };
     const pick = { df, cycle, day, type };
     const term = search.trim().toLowerCase();
-    const filtered = rows.filter((r) => Object.entries(filters).every(([kind, value]) => pick[kind as keyof typeof pick](r) === value)
+    const filtered = rows.filter((r) => Object.entries(filters).every(([kind, values]) => values.includes(pick[kind as keyof typeof pick](r)))
       && (!term || [r.code, r.name, r.customers?.name].some((v) => (v ?? "").toLowerCase().includes(term))));
     return { rows, filtered, cycle, df, day, type, byDf: count(df), byCycle: count(cycle), byDay: count(day), byType: count(type) };
   }, [q.data, search, filters]);
-  const setF = (kind: "df" | "cycle" | "day" | "type") => (value: string | null) => {
+  const toggleF = (kind: "df" | "cycle" | "day" | "type") => (value: string) => {
     setFilters((current) => {
       const next = { ...current };
-      if (value) next[kind] = value;
+      const selected = current[kind] ?? [];
+      const updated = selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value];
+      if (updated.length) next[kind] = updated;
       else delete next[kind];
       return next;
     });
     setPage(0);
   };
-  const active = (kind: "df" | "cycle" | "day" | "type") => filters[kind] ?? null;
+  const clearF = (kind: "df" | "cycle" | "day" | "type") => () => {
+    setFilters((current) => {
+      const next = { ...current };
+      delete next[kind];
+      return next;
+    });
+    setPage(0);
+  };
+  const active = (kind: "df" | "cycle" | "day" | "type") => filters[kind] ?? [];
   const pages = Math.max(1, Math.ceil(view.filtered.length / PAGE));
   const shown = view.filtered.slice(page * PAGE, page * PAGE + PAGE);
   const organizations = new Set(view.rows.map((r) => r.customers?.code || r.customers?.name).filter(Boolean)).size;
@@ -129,10 +142,10 @@ export function HrExecutiveDashboard() {
           icon={Landmark}
           sub="Client bifurcation"
           accent="emerald"
-          active={active("type")?.toLowerCase() === "bank"}
+          active={active("type").some((value) => value.toLowerCase() === "bank")}
           onClick={() => {
             const bankType = view.byType.find(([key]) => key.toLowerCase() === "bank")?.[0];
-            if (bankType) setF("type")(active("type") === bankType ? null : bankType);
+            if (bankType) toggleF("type")(bankType);
           }}
         />
         <PageStat
@@ -144,19 +157,19 @@ export function HrExecutiveDashboard() {
         />
       </div>
       <div className="grid gap-4 border-y border-border/60 bg-card/45 px-3 py-4 sm:grid-cols-2 sm:px-4 xl:grid-cols-4">
-        <Breakdown title="By client type" items={view.byType} active={active("type")} onPick={setF("type")} />
-        <Breakdown title="By dividing factor" items={view.byDf} active={active("df")} onPick={setF("df")} />
-        <Breakdown title="By pay cycle" items={view.byCycle} active={active("cycle")} onPick={setF("cycle")} />
-        <Breakdown title="By pay date" items={view.byDay} active={active("day")} onPick={setF("day")} />
+        <Breakdown title="By client type" items={view.byType} active={active("type")} onPick={toggleF("type")} onAll={clearF("type")} />
+        <Breakdown title="By dividing factor" items={view.byDf} active={active("df")} onPick={toggleF("df")} onAll={clearF("df")} />
+        <Breakdown title="By pay cycle" items={view.byCycle} active={active("cycle")} onPick={toggleF("cycle")} onAll={clearF("cycle")} />
+        <Breakdown title="By pay date" items={view.byDay} active={active("day")} onPick={toggleF("day")} onAll={clearF("day")} />
       </div>
       <section className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card/70 shadow-sm sm:rounded-2xl">
         <div className="flex flex-col gap-2 border-b border-border/60 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex min-w-0 flex-wrap items-center gap-2"><h2 className="font-display text-base font-semibold">My clients</h2>
-            {Object.entries(filters).map(([kind, value]) => (
-              <Badge key={kind} variant="secondary" className="cursor-pointer" onClick={() => setF(kind as "df" | "cycle" | "day" | "type")(null)}>
+            {Object.entries(filters).flatMap(([kind, values]) => values.map((value) => (
+              <Badge key={`${kind}-${value}`} variant="secondary" className="cursor-pointer" onClick={() => toggleF(kind as "df" | "cycle" | "day" | "type")(value)}>
                 {value} ×
               </Badge>
-            ))}
+            )))}
           </div>
           <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="h-10 rounded-xl border-border/60 bg-background pl-9" placeholder="Search client ID or name" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
