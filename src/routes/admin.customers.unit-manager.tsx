@@ -2159,7 +2159,7 @@ function MappingsSection({
           )}
         </Field>
         <Field label="HR executive">
-          <EmployeePicker value={form.hrExecutiveId ?? ""} onChange={(id) => set("hrExecutiveId", id)} placeholder="Select HR executive" />
+          <EmployeePicker value={form.hrExecutiveId ?? ""} onChange={(id) => set("hrExecutiveId", id)} placeholder="Select HR executive" roleKey="hr" />
         </Field>
         <Field label="Pay cycle window">
           <Select value={form.mappingPayrollWindowId || "__none"} onValueChange={(v) => set("mappingPayrollWindowId", v === "__none" ? "" : v)}>
