@@ -6670,7 +6670,7 @@ function CandidateWizard({
   const [operationalMappings, setOperationalMappings] = useState<OperationalMapping[]>([]);
   const { customers: wizardCustomersRaw } = useCustomers();
   const wizardCustomers = useMemo(
-    () => wizardCustomersRaw.map((c) => ({ id: c.id, name: c.name })),
+    () => wizardCustomersRaw.filter((c) => c.status === "active").map((c) => ({ id: c.id, name: c.name })),
     [wizardCustomersRaw],
   );
   // Fast, dedicated query for non-billable home units — independent of the
