@@ -158,6 +158,13 @@ const fieldSenseChildren: LeafItem[] = [
   { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
 ];
 
+const controlCenterRadarChildren: LeafItem[] = [
+  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
+  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
+  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
+];
+
 
 
 function maskPhone(phone: string) {
@@ -407,6 +414,7 @@ function AdminLayout() {
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
   const isFieldOfficer = !isSuperAdmin && roleKey === "field_officer";
+  const isControlCenterRole = roleKey === "control_center_head" || roleKey === "control_center";
 
   const groups: GroupItem[] = useMemo(
     () => [
@@ -479,8 +487,21 @@ function AdminLayout() {
     { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
   ], []);
 
-  const visibleGroups = (() => {
+  const visibleGroups: GroupItem[] = (() => {
     if (isGuard) return guardGroups;
+    if (isControlCenterRole) {
+      const children = controlCenterRadarChildren.filter(
+        (item) => !item.sub || canSub("field_sense", item.sub),
+      );
+      return [{
+        key: "field-sense",
+        label: "Radar",
+        icon: Radio,
+        children,
+        activePrefixes: ["/admin/dashboard", "/admin/field-sense"],
+        module: "field_sense",
+      } satisfies GroupItem];
+    }
     if (isInventoryOnly) {
       return filteredInventoryChildren.map<GroupItem>((c, idx) => ({
         key: c.to,
