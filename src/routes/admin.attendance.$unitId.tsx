@@ -3458,7 +3458,29 @@ function MusterRollPage() {
 
   const openOtPickerForSelection = () => {
     if (otSelectedCells.size === 0) return;
-    setOtPickerCells(Array.from(otSelectedCells).sort());
+    const cells = Array.from(otSelectedCells).sort();
+    setOtPickerCells(cells);
+    // Prefill the custom boxes with the cell's existing ED so a spoken
+    // duration (e.g. "1 hour 35 minutes") reads back exactly as entered.
+    const first = cells[0] ?? null;
+    if (first) {
+      const { rowKey } = splitCellKey(first);
+      const row = findRow(rowKey);
+      const storedDays = entryMap.get(first)?.ot_hours ?? 0;
+      const shift = row
+        ? shiftHoursFor(shiftMap, unitId, row.designationId ?? null, row.candidateId || null)
+        : 8;
+      const hours = Math.round(storedDays * shift * 100) / 100;
+      if (hours > 0) {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        setOtCustomHours(String(h));
+        setOtCustomMinutes(m ? String(m) : "");
+      } else {
+        setOtCustomHours("");
+        setOtCustomMinutes("");
+      }
+    }
     setOtPickerOpen(true);
   };
 
