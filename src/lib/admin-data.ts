@@ -578,6 +578,8 @@ export type Unit = {
   complianceManagerId?: string;
   dividingFactor?: string;
   complianceFrequency?: string;
+  complianceReportFormat?: string;
+  salarySlipRequired?: boolean | null;
   branchId: string | null;
   customerId: string | null;
   onboardingDate: string;
@@ -771,6 +773,8 @@ function rowToUnit(r: UnitRow): Unit {
     complianceManagerId: r.compliance_manager_id ?? "",
     dividingFactor: r.dividing_factor == null ? "" : String(r.dividing_factor),
     complianceFrequency: r.compliance_frequency ?? "",
+    complianceReportFormat: r.compliance_report_format ?? "",
+    salarySlipRequired: r.salary_slip_required == null ? null : Boolean(r.salary_slip_required),
     branchId: r.branch_id,
     customerId: r.customer_id,
     onboardingDate: r.onboarding_date ?? "",
@@ -854,6 +858,8 @@ function unitToRow(data: Omit<Unit, "id">) {
     compliance_manager_id: data.complianceManagerId || null,
     dividing_factor: data.dividingFactor && Number.isFinite(Number(data.dividingFactor)) ? Number(data.dividingFactor) : null,
     compliance_frequency: data.complianceFrequency || null,
+    compliance_report_format: data.complianceReportFormat || null,
+    salary_slip_required: data.salarySlipRequired == null ? null : Boolean(data.salarySlipRequired),
     branch_id: data.branchId || null,
     customer_id: data.customerId || null,
     onboarding_date: data.onboardingDate || null,

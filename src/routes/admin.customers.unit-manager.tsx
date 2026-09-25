@@ -2204,6 +2204,27 @@ function MappingsSection({
             </SelectContent>
           </Select>
         </Field>
+        <Field label="Compliance report">
+          <Select value={form.complianceReportFormat || "__none"} onValueChange={(v) => set("complianceReportFormat", v === "__none" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Not set</SelectItem>
+              <SelectItem value="hard_copy">Hard copy</SelectItem>
+              <SelectItem value="soft_copy">Soft copy</SelectItem>
+              <SelectItem value="hard_and_soft">Hard &amp; Soft both</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Salary slip to be sent">
+          <Select value={form.salarySlipRequired == null ? "__none" : form.salarySlipRequired ? "yes" : "no"} onValueChange={(v) => set("salarySlipRequired", v === "__none" ? null : v === "yes")}>
+            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Not set</SelectItem>
+              <SelectItem value="yes">Yes</SelectItem>
+              <SelectItem value="no">No</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
       </div>
     </Section>
   );
