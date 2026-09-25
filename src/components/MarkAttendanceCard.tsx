@@ -291,11 +291,15 @@ export function MarkAttendanceCard({
     enabled: !!candidateId,
     queryFn: async () => {
       if (!candidateId) return null;
+      // Only a visit started today can block logout — older unclosed visits are stale.
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
       const { data, error } = await supabase
         .from("field_visits" as never)
         .select("id")
         .eq("candidate_id", candidateId)
         .is("check_out_at", null)
+        .gte("check_in_at", startOfDay.toISOString())
         .limit(1)
         .maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
