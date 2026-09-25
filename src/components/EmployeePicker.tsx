@@ -20,7 +20,7 @@ export function EmployeePicker({
   onChange: (id: string) => void;
   placeholder?: string;
   /** When set, only employees with this role_key are listed. */
-  roleKey?: string;
+  roleKey?: string | string[];
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -41,7 +41,7 @@ export function EmployeePicker({
   });
 
   const listQ = useQuery({
-    queryKey: ["employee-picker-search", term, roleKey ?? ""],
+    queryKey: ["employee-picker-search", term, Array.isArray(roleKey) ? roleKey.join(",") : roleKey ?? ""],
     enabled: open,
     staleTime: 60_000,
     queryFn: async () => {
@@ -51,7 +51,7 @@ export function EmployeePicker({
         .not("employee_code", "is", null)
         .order("full_name", { ascending: true })
         .limit(30);
-      if (roleKey) q = q.eq("role_key", roleKey);
+      if (Array.isArray(roleKey) ? roleKey.length : roleKey) q = Array.isArray(roleKey) ? q.in("role_key", roleKey) : q.eq("role_key", roleKey!);
       if (term) {
         const safe = term.replace(/[%,()]/g, " ");
         q = q.or(`full_name.ilike.%${safe}%,employee_code.ilike.%${safe}%`);

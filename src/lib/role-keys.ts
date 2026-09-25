@@ -5,6 +5,7 @@ export const ROLE_KEYS = {
   SUPER_ADMIN: "super_admin",
   ADMIN: "admin",
   HR: "hr",
+  HR_EXECUTIVE: "hr_executive",
   LEADERSHIP: "leadership",
   BRANCH_MANAGER: "branch_manager",
   BRANCH_ADMIN: "branch_admin",
