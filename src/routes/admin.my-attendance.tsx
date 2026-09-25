@@ -22,7 +22,42 @@ import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { selfieUrl } from "@/lib/attendance-selfie";
 import { cn } from "@/lib/utils";
+
+type PunchShot = {
+  path: string;
+  label: string;
+  at: string | null;
+  lat: number | null;
+  lng: number | null;
+  place: string | null;
+};
+
+function PunchPhoto({ shot, onOpen }: { shot: PunchShot | null; onOpen: (s: PunchShot) => void }) {
+  const urlQ = useQuery({
+    queryKey: ["selfie-url", shot?.path],
+    enabled: !!shot?.path,
+    staleTime: 50 * 60_000,
+    queryFn: () => selfieUrl(shot!.path),
+  });
+  if (!shot) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(shot)}
+      className="relative block h-12 w-9 shrink-0 overflow-hidden rounded-lg border border-border bg-muted"
+      aria-label={`${shot.label} photo`}
+    >
+      {urlQ.data ? (
+        <img src={urlQ.data} alt={shot.label} className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-[8px] text-muted-foreground">…</span>
+      )}
+    </button>
+  );
+}
 
 export const Route = createFileRoute("/admin/my-attendance")({
   component: MyAttendancePage,
