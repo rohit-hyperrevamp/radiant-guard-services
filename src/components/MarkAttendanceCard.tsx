@@ -329,14 +329,17 @@ export function MarkAttendanceCard({
       const geo: import("@/lib/self-attendance").Geo = await getCurrentPosition();
 
       if (gated) {
-        const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
+        const units = allowedUnits ?? [];
         if (units.length === 0) {
-          throw new Error("No client locations are configured for you. Ask your admin to set client coordinates.");
+          throw new Error("No site is mapped to you for attendance. Ask your admin to map your site.");
         }
         const withDist = units
           .map((u) => ({
             unit: u,
-            distance: distanceMeters({ lat: geo!.lat, lng: geo!.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
+            // -1 = site has no saved location yet; this punch will set it.
+            distance: u.latitude == null || u.longitude == null
+              ? -1
+              : distanceMeters({ lat: geo!.lat, lng: geo!.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
           }))
           .sort((a, b) => a.distance - b.distance);
 
@@ -717,7 +720,7 @@ export function MarkAttendanceCard({
                         inRange ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
                       )}
                     >
-                      {inRange ? formatDistance(n.distance) : `${formatDistance(n.distance)} away`}
+                      {n.distance < 0 ? "Sets location" : inRange ? formatDistance(n.distance) : `${formatDistance(n.distance)} away`}
                     </span>
                   </button>
                 );
