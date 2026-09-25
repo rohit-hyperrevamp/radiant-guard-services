@@ -1235,7 +1235,7 @@ function DashboardPage() {
           opsFocus ? (
             <PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} />
           ) : can("employees") ? (
-            <PeopleInsightsSection compact />
+            <PeopleInsightsSection compact hideLive={roleKey === "hr"} />
           ) : null
         }
         fullWidthBelow={

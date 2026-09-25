@@ -1,3 +1,4 @@
+import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
@@ -3929,8 +3930,9 @@ function EmployeesPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Reject failed"),
   });
 
+  const isHrHead = useIsHrHead();
   const canEditInactiveProfile =
-    isSuperAdmin || roleKey === "leadership" || roleKey === "super_admin";
+    isSuperAdmin || roleKey === "leadership" || roleKey === "super_admin" || isHrHead;
 
   const openEditor = async (candidateId: string) => {
     setOpeningCandidateId(candidateId);
@@ -7768,7 +7770,8 @@ function CandidateWizard({
   const { isFieldOfficer: wizardIsFieldOfficer } = useCurrentUserRole();
   // Super Admin may jump freely between steps, even with earlier steps incomplete.
   const { isSuperAdmin: wizardIsSuperAdmin, roleKey: wizardRoleKey } = useCurrentPermissions();
-  const canSkipSteps = wizardIsSuperAdmin || wizardRoleKey === "super_admin";
+  const wizardIsHrHead = useIsHrHead();
+  const canSkipSteps = wizardIsSuperAdmin || wizardRoleKey === "super_admin" || wizardIsHrHead;
   const steps = useMemo(
     () => [
       { key: "aadhaar", label: "Aadhaar", caption: "Identity" },

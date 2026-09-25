@@ -1,3 +1,4 @@
+import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -210,7 +211,8 @@ function CandidateDetailsPage() {
   }, [form, baselinePayload]);
 
   const { roleKey, isSuperAdmin } = useCurrentPermissions();
-  const canEditInactiveProfile = isSuperAdmin || roleKey === "leadership" || roleKey === "super_admin";
+  const isHrHead = useIsHrHead();
+  const canEditInactiveProfile = isSuperAdmin || roleKey === "leadership" || roleKey === "super_admin" || isHrHead;
   const editLocked = form?.status === "inactive" && !canEditInactiveProfile;
 
   const handleSave = async (closeAfter = false) => {
