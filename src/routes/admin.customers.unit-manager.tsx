@@ -59,6 +59,7 @@ import {
   loadClientAttributesForCustomer,
   saveClientAttributeValues,
 } from "@/lib/mis-template";
+import { CopyableId } from "@/components/CopyableId";
 import { cn } from "@/lib/utils";
 import { EmployeePicker } from "@/components/EmployeePicker";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
