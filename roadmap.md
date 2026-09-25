@@ -29,6 +29,11 @@
 
 ## Current request
 
+- [x] Make the Control Center home a Radar-only dashboard with live field officers first.
+- [x] Show the full Radar map, completed versus in-progress visits, and field officer deployment mapping.
+- [x] Restrict the Control Center left menu to Radar Dashboard, Day Patrol, Expenses, and Reports.
+- [ ] Verify the Control Center dashboard live as Shiv Shankar Kumar after deployment.
+
 - [x] Expand the HR Executive client portfolio to the full dashboard width.
 - [x] Prevent client-table text overlap and keep wide columns internally scrollable.
 - [x] Make dashboard clients link directly to their matching Clients-page record.

@@ -1222,6 +1222,24 @@ function DashboardPage() {
     );
   }
 
+  if (isControlCenter) {
+    return (
+      <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
+        <div className="space-y-4">
+          <PageHeader
+            title="Radar"
+            description="Live field officers, site-visit progress, and field officer deployment."
+            crumbs={[{ label: "Dashboard" }]}
+          />
+          <LiveFieldOfficersCard />
+          <OperationsRadarSummary />
+          <AdminVisitProgressCard />
+          <OperationsDeployments />
+        </div>
+      </div>
+    );
+  }
+
   // RBAC: commercial figures never reach the render tree for roles without
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
   // any client-billing data, so no profit can be derived from what renders.
@@ -1255,16 +1273,7 @@ function DashboardPage() {
           ) : null
         }
         fullWidthBelow={
-          opsFocus && isControlCenter ? (
-            <>
-              <OperationsRadarSummary />
-              <LiveFieldOfficersCard />
-              <AdminVisitProgressCard />
-              <OperationsDeployments />
-              <OperationsClientLocations data={operationsOverview} />
-              <OperationsOrgTree />
-            </>
-          ) : opsFocus ? (
+          opsFocus ? (
             <>
               <OperationsRadarSummary />
               <AdminVisitProgressCard />
