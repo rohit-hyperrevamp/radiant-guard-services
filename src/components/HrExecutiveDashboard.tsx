@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Building2, CalendarDays, Landmark, Search, Users } from "lucide-react";
+import { Building2, CalendarRange, Landmark, MapPin, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageStat } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -99,14 +99,49 @@ export function HrExecutiveDashboard() {
   const pages = Math.max(1, Math.ceil(view.filtered.length / PAGE));
   const shown = view.filtered.slice(page * PAGE, page * PAGE + PAGE);
   const organizations = new Set(view.rows.map((r) => r.customers?.code || r.customers?.name).filter(Boolean)).size;
+  const payCycles = new Set(
+    view.rows
+      .map((r) => view.cycle(r))
+      .filter((value) => value !== "Not set"),
+  ).size;
+  const banks = view.rows.filter((r) => r.client_type?.trim().toLowerCase() === "bank").length;
 
   return (
     <div className="space-y-4 sm:space-y-5">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-        <PageStat label="My clients" value={q.isLoading ? "…" : view.rows.length} icon={Users} accent="sky" />
-        <PageStat label="Organizations" value={q.isLoading ? "…" : organizations} icon={Building2} accent="violet" />
-        <PageStat label="Banks" value={q.isLoading ? "…" : view.rows.filter((r) => r.client_type?.toLowerCase() === "bank").length} icon={Landmark} accent="emerald" />
-        <PageStat label="Salary slips" value={q.isLoading ? "…" : view.rows.filter((r) => r.salary_slip_required).length} icon={CalendarDays} accent="amber" />
+        <PageStat
+          label="Organizations"
+          value={q.isLoading ? "…" : organizations}
+          icon={Building2}
+          sub="Across your portfolio"
+          accent="violet"
+        />
+        <PageStat
+          label="Clients"
+          value={q.isLoading ? "…" : view.rows.length}
+          icon={MapPin}
+          sub="Mapped to you"
+          accent="sky"
+        />
+        <PageStat
+          label="Banks"
+          value={q.isLoading ? "…" : banks}
+          icon={Landmark}
+          sub="Client bifurcation"
+          accent="emerald"
+          active={active("type")?.toLowerCase() === "bank"}
+          onClick={() => {
+            const bankType = view.byType.find(([key]) => key.toLowerCase() === "bank")?.[0];
+            if (bankType) setF("type")(active("type") === bankType ? null : bankType);
+          }}
+        />
+        <PageStat
+          label="Pay cycles"
+          value={q.isLoading ? "…" : payCycles}
+          icon={CalendarRange}
+          sub="Configured schedules"
+          accent="amber"
+        />
       </div>
       <div className="grid gap-4 border-y border-border/60 bg-card/45 px-3 py-4 sm:grid-cols-2 sm:px-4 xl:grid-cols-4">
         <Breakdown title="By client type" items={view.byType} active={active("type")} onPick={setF("type")} />
