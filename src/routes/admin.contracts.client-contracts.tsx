@@ -4271,6 +4271,7 @@ function ResourcesSection({
   onDelete: (idx: number) => void;
 }) {
   const designations = useDesignations();
+  const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
   const rolesList = useRolesList();
   const dById = useMemo(
@@ -4297,13 +4298,18 @@ function ResourcesSection({
           0,
         );
         const monthly = gross + employer;
+        const bb = r.billingDayBaseId
+          ? billingDayBases.find((b) => b.id === r.billingDayBaseId)
+          : undefined;
         return {
           label: dById.get(r.designationId)?.name ?? "Resource",
           shiftHours: r.shiftHours,
           monthly,
+          billingMethod: (bb as { method?: string } | undefined)?.method ?? null,
+          billingFixedDays: Number((bb as { fixed_days?: unknown; fixedDays?: unknown } | undefined)?.fixed_days ?? (bb as { fixedDays?: unknown } | undefined)?.fixedDays) || 0,
         };
       }),
-    [resources, dById],
+    [resources, dById, billingDayBases],
   );
 
   const currentPayrollPeriod = useMemo(() => {
@@ -4369,6 +4375,20 @@ function ResourcesSection({
                       Monthly {fmtRate(d.monthly)}
                     </span>
                   </div>
+                  {d.billingMethod === "actual_days" || (d.billingMethod === "fixed_days" && d.billingFixedDays > 0) ? (
+                    <div className="rounded-md border border-accent bg-accent/10 px-2 py-1.5">
+                      <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
+                        <span>{currentPayrollPeriodDays}-day payroll period</span>
+                        <span className="font-medium text-accent">Current</span>
+                      </div>
+                      <div className="mt-0.5 text-sm font-semibold text-foreground">
+                        {fmtRate(d.monthly / (d.billingMethod === "actual_days" ? currentPayrollPeriodDays : d.billingFixedDays))}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        ÷ {d.billingMethod === "actual_days" ? `${currentPayrollPeriodDays} days in month` : `${d.billingFixedDays} billing days`}
+                      </div>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                     {billingRateScenarios.map((scenario) => {
                       const isCurrent = scenario.calendarDays === currentPayrollPeriodDays;
@@ -4396,6 +4416,7 @@ function ResourcesSection({
                       );
                     })}
                   </div>
+                  )}
                 </div>
               ))}
             </div>
