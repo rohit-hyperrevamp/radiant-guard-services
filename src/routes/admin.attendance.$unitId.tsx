@@ -2167,6 +2167,8 @@ function MusterRollPage() {
   const [isOtDragging, setIsOtDragging] = useState(false);
   const [otSelectedCells, setOtSelectedCells] = useState<Set<string>>(new Set());
   const [otPickerOpen, setOtPickerOpen] = useState(false);
+  const [otCustomHours, setOtCustomHours] = useState("");
+  const [otCustomMinutes, setOtCustomMinutes] = useState("");
   const [otPickerCells, setOtPickerCells] = useState<string[]>([]);
 
   // ---- OCR / Excel upload state ----
@@ -5686,6 +5688,53 @@ function MusterRollPage() {
                 </Button>
               );
             })}
+          </div>
+          <div className="mt-3 rounded-lg border border-border p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Custom time
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={48}
+                inputMode="numeric"
+                value={otCustomHours}
+                onChange={(e) => setOtCustomHours(e.target.value)}
+                placeholder="0"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+              <span className="shrink-0 text-xs text-muted-foreground">hrs</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                inputMode="numeric"
+                value={otCustomMinutes}
+                onChange={(e) => setOtCustomMinutes(e.target.value)}
+                placeholder="0"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+              <span className="shrink-0 text-xs text-muted-foreground">min</span>
+            </div>
+            <Button
+              type="button"
+              className="mt-2 h-10 w-full rounded-lg text-sm font-medium"
+              disabled={
+                (Number(otCustomHours) || 0) <= 0 && (Number(otCustomMinutes) || 0) <= 0
+              }
+              onClick={() => {
+                const h = Math.max(0, Math.min(48, Math.floor(Number(otCustomHours) || 0)));
+                const m = Math.max(0, Math.min(59, Math.floor(Number(otCustomMinutes) || 0)));
+                const total = h + m / 60;
+                if (total <= 0) return;
+                applyOtToSelection(Math.round(total * 100) / 100);
+                setOtCustomHours("");
+                setOtCustomMinutes("");
+              }}
+            >
+              Apply custom ED
+            </Button>
           </div>
           <Button
             type="button"
