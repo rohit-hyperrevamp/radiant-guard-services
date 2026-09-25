@@ -101,6 +101,7 @@ export function FinanceCharter({
   windowsByUnit,
   statusFilter = "all",
   onStatusFilterChange,
+  filterResetKey = 0,
 }: {
   mode: "invoice" | "payroll";
   units: CharterUnitRow[];
@@ -114,6 +115,7 @@ export function FinanceCharter({
   windowsByUnit: Map<string, PayrollWindow>;
   statusFilter?: "all" | MoneyStatus;
   onStatusFilterChange?: (value: "all" | MoneyStatus) => void;
+  filterResetKey?: number;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -125,6 +127,11 @@ export function FinanceCharter({
   // billing state and city exactly like Contracts.
   const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [cityFilter, setCityFilter] = useState<string[]>([]);
+
+  useEffect(() => {
+    setStateFilter([]);
+    setCityFilter([]);
+  }, [filterResetKey]);
 
   const stateOptions = useMemo(() => {
     const seen = new Map<string, string>();

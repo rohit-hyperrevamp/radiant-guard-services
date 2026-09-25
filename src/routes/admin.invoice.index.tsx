@@ -29,6 +29,7 @@ function InvoiceUnitsPage() {
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | MoneyStatus>("all");
+  const [filterResetKey, setFilterResetKey] = useState(0);
 
   const { data, isLoading, error } = useQuery({
     queryKey: CHARTER_UNITS_QK,
@@ -126,6 +127,7 @@ function InvoiceUnitsPage() {
                   setOrgFilter([]);
                   setUnitFilter([]);
                   setStatusFilter("all");
+                  setFilterResetKey((key) => key + 1);
                 }}
               >
                 <X className="h-3.5 w-3.5" /> Clear
@@ -153,6 +155,7 @@ function InvoiceUnitsPage() {
               windowsByUnit={windowsByUnit}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
+              filterResetKey={filterResetKey}
               filters={
                 <>
                   <LabeledMultiSelectFilter
