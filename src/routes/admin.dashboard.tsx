@@ -172,10 +172,10 @@ function DashboardErrorState({ error }: { error: Error }) {
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
     meta: [
-      { title: "Leadership Dashboard | Radiant Guard Services" },
-      { name: "description", content: "Leadership overview across operations, attendance, payroll, and invoicing." },
-      { property: "og:title", content: "Leadership Dashboard | Radiant Guard Services" },
-      { property: "og:description", content: "Leadership overview across operations, attendance, payroll, and invoicing." },
+      { title: "Dashboard | Radiant Guard Services" },
+      { name: "description", content: "Dashboard overview across operations, attendance, payroll, and invoicing." },
+      { property: "og:title", content: "Dashboard | Radiant Guard Services" },
+      { property: "og:description", content: "Dashboard overview across operations, attendance, payroll, and invoicing." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -1304,7 +1304,7 @@ function DashboardPage() {
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                <Sparkles className="h-3 w-3" /> Leadership snapshot
+                <Sparkles className="h-3 w-3" /> Snapshot
               </div>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="font-display text-2xl font-bold leading-none tracking-tight text-foreground sm:text-[26px]">
