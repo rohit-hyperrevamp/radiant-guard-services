@@ -41,7 +41,7 @@ export function EmployeePicker({
   });
 
   const listQ = useQuery({
-    queryKey: ["employee-picker-search", term],
+    queryKey: ["employee-picker-search", term, roleKey ?? ""],
     enabled: open,
     staleTime: 60_000,
     queryFn: async () => {
@@ -51,6 +51,7 @@ export function EmployeePicker({
         .not("employee_code", "is", null)
         .order("full_name", { ascending: true })
         .limit(30);
+      if (roleKey) q = q.eq("role_key", roleKey);
       if (term) {
         const safe = term.replace(/[%,()]/g, " ");
         q = q.or(`full_name.ilike.%${safe}%,employee_code.ilike.%${safe}%`);
