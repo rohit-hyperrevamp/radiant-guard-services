@@ -36,6 +36,7 @@ import {
   type DomainKey,
   type Severity,
 } from "@/lib/compliance";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 
 function CompliancePageGated() {
   return (
