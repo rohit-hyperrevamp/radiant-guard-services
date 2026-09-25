@@ -129,7 +129,7 @@ export async function fetchTodayPunch(candidateId: string): Promise<SelfPunch | 
   return (data as SelfPunch | null) ?? null;
 }
 
-export async function checkIn(candidateId: string, geo: Geo | null, faceVerified: boolean, unitId?: string | null): Promise<SelfPunch> {
+export async function checkIn(candidateId: string, geo: Geo | null, faceVerified: boolean, unitId?: string | null, photo?: { path: string; place: string | null } | null): Promise<SelfPunch> {
   // A punch is accepted at ANY unit the person is assigned to (primary or
   // reliever) — the GPS proximity check at the unit's coordinates is the gate.
   // Whether the day is paid as duty or extra duty stays a payroll decision.
@@ -143,6 +143,7 @@ export async function checkIn(candidateId: string, geo: Geo | null, faceVerified
     check_in_accuracy: geo?.accuracy ?? null,
     check_in_face_verified: faceVerified,
   };
+  if (photo) { row.check_in_photo_path = photo.path; row.check_in_place = photo.place; }
   if (unitId) row.unit_id = unitId;
   const { data, error } = await supabase
     .from("self_attendance_punches" as never)
@@ -158,6 +159,7 @@ export async function checkOut(
   id: string,
   geo: Geo | null,
   faceVerified: boolean,
+  photo?: { path: string; place: string | null } | null,
 ): Promise<SelfPunch> {
   const { data, error } = await supabase
     .from("self_attendance_punches" as never)
@@ -167,6 +169,7 @@ export async function checkOut(
       check_out_lng: geo?.lng ?? null,
       check_out_accuracy: geo?.accuracy ?? null,
       check_out_face_verified: faceVerified,
+      ...(photo ? { check_out_photo_path: photo.path, check_out_place: photo.place } : {}),
     } as never)
     .eq("id", id)
     .select("*")
