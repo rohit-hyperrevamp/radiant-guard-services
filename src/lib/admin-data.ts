@@ -574,6 +574,8 @@ export type Unit = {
   mappingPayrollWindowId?: string;
   operationsManagerId?: string;
   accountManagerId?: string;
+  payrollManagerId?: string;
+  complianceManagerId?: string;
   dividingFactor?: string;
   complianceFrequency?: string;
   branchId: string | null;
@@ -678,6 +680,8 @@ type UnitRow = {
   mapping_payroll_window_id?: string | null;
   operations_manager_id?: string | null;
   account_manager_id?: string | null;
+  payroll_manager_id?: string | null;
+  compliance_manager_id?: string | null;
   dividing_factor?: number | null;
   compliance_frequency?: string | null;
   branch_id: string | null;
@@ -763,6 +767,8 @@ function rowToUnit(r: UnitRow): Unit {
     mappingPayrollWindowId: r.mapping_payroll_window_id ?? "",
     operationsManagerId: r.operations_manager_id ?? "",
     accountManagerId: r.account_manager_id ?? "",
+    payrollManagerId: r.payroll_manager_id ?? "",
+    complianceManagerId: r.compliance_manager_id ?? "",
     dividingFactor: r.dividing_factor == null ? "" : String(r.dividing_factor),
     complianceFrequency: r.compliance_frequency ?? "",
     branchId: r.branch_id,
@@ -844,6 +850,8 @@ function unitToRow(data: Omit<Unit, "id">) {
     mapping_payroll_window_id: data.mappingPayrollWindowId || null,
     operations_manager_id: data.operationsManagerId || null,
     account_manager_id: data.accountManagerId || null,
+    payroll_manager_id: data.payrollManagerId || null,
+    compliance_manager_id: data.complianceManagerId || null,
     dividing_factor: data.dividingFactor && Number.isFinite(Number(data.dividingFactor)) ? Number(data.dividingFactor) : null,
     compliance_frequency: data.complianceFrequency || null,
     branch_id: data.branchId || null,

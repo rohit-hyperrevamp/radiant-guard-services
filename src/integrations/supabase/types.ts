@@ -4953,6 +4953,7 @@ export type Database = {
           branch_id: string | null
           closing_date: string | null
           code: string
+          compliance_manager_id: string | null
           contract_end_date: string | null
           contract_start_date: string | null
           created_at: string
@@ -4979,6 +4980,7 @@ export type Database = {
           nearby_hospital_name: string
           onboarding_date: string | null
           pan_number: string
+          payroll_manager_id: string | null
           recruitment_fee_amount: number
           recruitment_fee_enabled: boolean
           reporting_officers: Json
@@ -5017,6 +5019,7 @@ export type Database = {
           branch_id?: string | null
           closing_date?: string | null
           code: string
+          compliance_manager_id?: string | null
           contract_end_date?: string | null
           contract_start_date?: string | null
           created_at?: string
@@ -5043,6 +5046,7 @@ export type Database = {
           nearby_hospital_name?: string
           onboarding_date?: string | null
           pan_number?: string
+          payroll_manager_id?: string | null
           recruitment_fee_amount?: number
           recruitment_fee_enabled?: boolean
           reporting_officers?: Json
@@ -5081,6 +5085,7 @@ export type Database = {
           branch_id?: string | null
           closing_date?: string | null
           code?: string
+          compliance_manager_id?: string | null
           contract_end_date?: string | null
           contract_start_date?: string | null
           created_at?: string
@@ -5107,6 +5112,7 @@ export type Database = {
           nearby_hospital_name?: string
           onboarding_date?: string | null
           pan_number?: string
+          payroll_manager_id?: string | null
           recruitment_fee_amount?: number
           recruitment_fee_enabled?: boolean
           reporting_officers?: Json
@@ -5137,6 +5143,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "units_compliance_manager_id_fkey"
+            columns: ["compliance_manager_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "units_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -5148,6 +5161,13 @@ export type Database = {
             columns: ["esic_branch_id"]
             isOneToOne: false
             referencedRelation: "esic_branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_payroll_manager_id_fkey"
+            columns: ["payroll_manager_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
             referencedColumns: ["id"]
           },
         ]

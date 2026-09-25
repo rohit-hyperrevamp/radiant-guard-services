@@ -2185,6 +2185,12 @@ function MappingsSection({
         <Field label="Account manager (AM)">
           <EmployeePicker value={form.accountManagerId ?? ""} onChange={(id) => set("accountManagerId", id)} placeholder="Select account manager" />
         </Field>
+        <Field label="Payroll manager">
+          <EmployeePicker value={form.payrollManagerId ?? ""} onChange={(id) => set("payrollManagerId", id)} placeholder="Select payroll manager" roleKey="hr" />
+        </Field>
+        <Field label="Compliance manager">
+          <EmployeePicker value={form.complianceManagerId ?? ""} onChange={(id) => set("complianceManagerId", id)} placeholder="Select compliance manager" roleKey="hr" />
+        </Field>
         <Field label="Dividing factor">
           <Input type="number" inputMode="decimal" step="0.01" min="0" value={form.dividingFactor ?? ""} onChange={(e) => set("dividingFactor", e.target.value)} placeholder="e.g. 26" />
         </Field>
