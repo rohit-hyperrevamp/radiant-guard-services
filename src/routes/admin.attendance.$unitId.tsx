@@ -5764,9 +5764,38 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             })}
           </div>
           <div className="mt-3 rounded-lg border border-border p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Custom time
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Custom time
+              </div>
+              <button
+                type="button"
+                onClick={toggleOtVoiceInput}
+                aria-label={otListening ? "Stop voice input" : "Speak the ED duration"}
+                title={otListening ? "Stop listening" : "Speak e.g. \"1 hour 30 minutes\""}
+                className={
+                  otListening
+                    ? "inline-flex h-9 items-center gap-1.5 rounded-full bg-destructive px-3 text-xs font-semibold text-destructive-foreground shadow-sm"
+                    : "inline-flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-sm"
+                }
+              >
+                {otListening ? (
+                  <Square className="h-3.5 w-3.5" />
+                ) : (
+                  <Mic className="h-3.5 w-3.5" />
+                )}
+                {otListening ? "Stop" : "Speak"}
+              </button>
             </div>
+            {otListening ? (
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                </span>
+                Listening… say e.g. "1 hour 30 minutes"
+              </div>
+            ) : null}
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
