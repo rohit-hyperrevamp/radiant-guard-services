@@ -1210,6 +1210,9 @@ function UnitFormDialog({
               <Field label="Client city">
                 <Input value={form.clientCity ?? ""} onChange={(e) => set("clientCity", e.target.value)} placeholder="Defaults to billing city" />
               </Field>
+              <Field label="Client district">
+                <Input value={form.clientDistrict ?? ""} onChange={(e) => set("clientDistrict", e.target.value)} placeholder="Defaults to billing district" />
+              </Field>
               <Field label="Client pin code">
                 <Input value={form.clientPincode ?? ""} onChange={(e) => set("clientPincode", e.target.value)} inputMode="numeric" placeholder="Defaults to billing pin code" />
               </Field>
