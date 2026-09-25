@@ -177,6 +177,8 @@ type AttendanceLocationRule = {
   mode: "anywhere" | "assigned_unit" | "home_unit";
   radius_m: number;
   units: AllowedUnit[];
+  /** When false (e.g. laptop-based office staff), no face photo is taken at log in / log out. */
+  require_selfie?: boolean;
 };
 
 export function MarkAttendanceCard({
@@ -206,6 +208,8 @@ export function MarkAttendanceCard({
     ? rule.mode === "anywhere" ? undefined : rule.units
     : allowedUnitsProp;
   const proximityThresholdM = rule?.radius_m ?? proximityProp;
+  // Default to requiring the photo when no rule is loaded yet (safe side).
+  const selfieRequired = rule?.require_selfie !== false;
   const meNameQ = useQuery({
     queryKey: ["attendance-me-name", candidateId],
     enabled: !!candidateId,
@@ -317,7 +321,7 @@ export function MarkAttendanceCard({
   const performCheckIn = async (unitId: string | null, geo: import("@/lib/self-attendance").Geo | null, face: boolean) => {
     if (!candidateId) throw new Error("Profile not ready.");
     if (!geo) throw new Error("Location is required.");
-    const photo = await takeSelfie("in", geo);
+    const photo = selfieRequired ? await takeSelfie("in", geo) : null;
     const [row, battery, network] = await Promise.allSettled([
       checkIn(candidateId, geo, face, unitId, photo),
       readBattery(),
@@ -336,7 +340,7 @@ export function MarkAttendanceCard({
     mutationFn: async () => {
       if (!candidateId) throw new Error("Profile not ready.");
       let face = false;
-      if (isNativePlatform()) {
+      if (selfieRequired && isNativePlatform()) {
         face = await verifyFaceForAttendance("Attendance login");
       }
       // Location is MANDATORY for every attendance punch. Attendance cannot be
@@ -431,7 +435,7 @@ export function MarkAttendanceCard({
       if (!punch?.id) throw new Error("No active attendance login.");
       if (openVisitQ.data?.id) throw new Error("Complete your active client visit before logging out.");
       let face = false;
-      if (isNativePlatform()) {
+      if (selfieRequired && isNativePlatform()) {
         face = await verifyFaceForAttendance("Attendance logout");
       }
       const geo = await getCurrentPosition();
@@ -444,7 +448,7 @@ export function MarkAttendanceCard({
         .sort((a, b) => a.distance - b.distance)[0];
       const confirmed = await confirmPunch("out", nearest?.unit.name ?? "Current GPS location");
       if (!confirmed) return null;
-      const photo = await takeSelfie("out", geo);
+      const photo = selfieRequired ? await takeSelfie("out", geo) : null;
       return await checkOut(punch.id, geo, face, photo);
     },
     onSuccess: (row) => {
