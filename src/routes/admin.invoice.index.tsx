@@ -29,6 +29,7 @@ function InvoiceUnitsPage() {
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | MoneyStatus>("all");
+  const [filterResetKey, setFilterResetKey] = useState(0);
 
   const { data, isLoading, error } = useQuery({
     queryKey: CHARTER_UNITS_QK,
@@ -112,37 +113,6 @@ function InvoiceUnitsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <LabeledMultiSelectFilter
-              label="Organization"
-              selected={orgFilter}
-              onChange={(v) => {
-                setOrgFilter(v);
-                setUnitFilter((prev) =>
-                  prev.filter((id) => {
-                    const u = windowUnits.find((x) => x.id === id);
-                    return !u || v.length === 0 || v.includes(u.customer_id || u.customer_name);
-                  }),
-                );
-              }}
-              options={organizations.map((o) => ({
-                value: o.id,
-                label: o.code ? `${o.code} · ${o.name}` : o.name,
-              }))}
-              allLabel={`All organizations (${organizations.length})`}
-            />
-            <LabeledMultiSelectFilter
-              label="Unit"
-              selected={unitFilter}
-              onChange={setUnitFilter}
-              options={unitOptions.map((u) => ({
-                value: u.id,
-                label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
-              }))}
-              allLabel={`All units (${unitOptions.length})`}
-            />
-          </div>
-
           {anyFilter && (
             <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               <span>
@@ -157,6 +127,7 @@ function InvoiceUnitsPage() {
                   setOrgFilter([]);
                   setUnitFilter([]);
                   setStatusFilter("all");
+                  setFilterResetKey((key) => key + 1);
                 }}
               >
                 <X className="h-3.5 w-3.5" /> Clear
@@ -184,6 +155,39 @@ function InvoiceUnitsPage() {
               windowsByUnit={windowsByUnit}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
+              filterResetKey={filterResetKey}
+              filters={
+                <>
+                  <LabeledMultiSelectFilter
+                    label="Organization"
+                    selected={orgFilter}
+                    onChange={(v) => {
+                      setOrgFilter(v);
+                      setUnitFilter((prev) =>
+                        prev.filter((id) => {
+                          const u = windowUnits.find((x) => x.id === id);
+                          return !u || v.length === 0 || v.includes(u.customer_id || u.customer_name);
+                        }),
+                      );
+                    }}
+                    options={organizations.map((o) => ({
+                      value: o.id,
+                      label: o.code ? `${o.code} · ${o.name}` : o.name,
+                    }))}
+                    allLabel={`All organizations (${organizations.length})`}
+                  />
+                  <LabeledMultiSelectFilter
+                    label="Unit"
+                    selected={unitFilter}
+                    onChange={setUnitFilter}
+                    options={unitOptions.map((u) => ({
+                      value: u.id,
+                      label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
+                    }))}
+                    allLabel={`All units (${unitOptions.length})`}
+                  />
+                </>
+              }
             />
           )}
         </div>
