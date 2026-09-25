@@ -680,6 +680,8 @@ type UnitRow = {
   mapping_payroll_window_id?: string | null;
   operations_manager_id?: string | null;
   account_manager_id?: string | null;
+  payroll_manager_id?: string | null;
+  compliance_manager_id?: string | null;
   dividing_factor?: number | null;
   compliance_frequency?: string | null;
   branch_id: string | null;
