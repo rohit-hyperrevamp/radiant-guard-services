@@ -267,10 +267,13 @@ function UnitManagerPage() {
   // State / city come from the client's billing address, which is already
   // populated for almost every client.
   const unitsForSelectedOrganizations = useMemo(() => {
-    if (orgFilter.length === 0) return scopedUnits;
     const selected = new Set(orgFilter);
-    return scopedUnits.filter((unit) => unit.customerId && selected.has(unit.customerId));
-  }, [scopedUnits, orgFilter]);
+    return scopedUnits.filter((unit) => {
+      if (statusFilter !== "all" && unit.status !== statusFilter) return false;
+      if (selected.size && (!unit.customerId || !selected.has(unit.customerId))) return false;
+      return true;
+    });
+  }, [scopedUnits, orgFilter, statusFilter]);
 
   const stateOptions = useMemo(() => {
     const set = new Set<string>();
@@ -287,6 +290,16 @@ function UnitManagerPage() {
     }
     return [...set].sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: v }));
   }, [unitsForSelectedOrganizations, stateFilter]);
+
+  // Drop selections that are no longer possible for the current organisation/status/state.
+  useEffect(() => {
+    const ok = new Set(stateOptions.map((o) => o.value));
+    setStateFilter((cur) => (cur.every((s) => ok.has(s)) ? cur : cur.filter((s) => ok.has(s))));
+  }, [stateOptions]);
+  useEffect(() => {
+    const ok = new Set(cityOptions.map((o) => o.value));
+    setCityFilter((cur) => (cur.every((s) => ok.has(s)) ? cur : cur.filter((s) => ok.has(s))));
+  }, [cityOptions]);
 
   const activeCount = scopedUnits.filter((u) => u.status === "active").length;
 
