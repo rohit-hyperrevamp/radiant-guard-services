@@ -1563,7 +1563,19 @@ function MusterRollPage() {
           (l.shift_hours ?? null) === shiftHours &&
           l.is_reliever === asReliever,
       );
-      if (lineExists && !editLine) {
+      // A candidate_units line is a long-lived unit mapping, not proof that the
+      // person is already present in this payroll period. Reuse that mapping
+      // when adding them to a later sheet; only reject an exact line that is
+      // already visible on the current sheet.
+      const selectedVariant = lineVariant(shiftHours ?? 0, asReliever);
+      const currentSheetLineExists = musterRows.some(
+        (row) =>
+          !row.vacant &&
+          row.candidateId === cand.id &&
+          (row.designationId ?? null) === designationId &&
+          (row.variant ?? "0") === selectedVariant,
+      );
+      if (currentSheetLineExists && !editLine) {
         toast.info(`${cand.full_name} already has this line on the sheet`);
         return;
       }
@@ -1597,7 +1609,7 @@ function MusterRollPage() {
         const { error } = await supabase.from("candidate_units").insert(payload as never);
         if (error) throw error;
       }
-      const newVariant = lineVariant(shiftHours ?? 0, asReliever);
+      const newVariant = selectedVariant;
       // Editing a line moves its saved days onto the new line.
       if (editLine) {
         const old = parseVariant(editLine.variant);
