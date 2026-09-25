@@ -2167,6 +2167,8 @@ function MusterRollPage() {
   const [isOtDragging, setIsOtDragging] = useState(false);
   const [otSelectedCells, setOtSelectedCells] = useState<Set<string>>(new Set());
   const [otPickerOpen, setOtPickerOpen] = useState(false);
+  const [otCustomHours, setOtCustomHours] = useState("");
+  const [otCustomMinutes, setOtCustomMinutes] = useState("");
   const [otPickerCells, setOtPickerCells] = useState<string[]>([]);
 
   // ---- OCR / Excel upload state ----
