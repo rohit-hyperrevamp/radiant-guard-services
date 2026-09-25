@@ -161,7 +161,7 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
 
   return {
     isLoading: roleLoading || (enabled && q.isLoading),
-    isScoped: enabled && fieldOfficerIds.size > 0,
+    isScoped: enabled && fieldOfficerIds.size > 0 || unitIds.size > 0,
     candidateId,
     fieldOfficerIds,
     unitIds,
