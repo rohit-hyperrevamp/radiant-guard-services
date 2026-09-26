@@ -42,7 +42,9 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[
 /** Burns a GPS stamp (place, lat/long, accuracy, time, name) into the photo. */
 async function stamp(dataUrl: string, info: { name: string; action: string; geo: Geo; place: string | null; at: Date }): Promise<Blob> {
   const img = await loadImage(dataUrl);
-  const maxW = 1280;
+  // Attendance photos are identity thumbnails, not documents. Keep them tiny
+  // so mobile uploads are fast and long-term private storage stays economical.
+  const maxW = 420;
   const scale = Math.min(1, maxW / img.width);
   const w = Math.round(img.width * scale);
   const h = Math.round(img.height * scale);
@@ -52,7 +54,7 @@ async function stamp(dataUrl: string, info: { name: string; action: string; geo:
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(img, 0, 0, w, h);
 
-  const fs = Math.max(14, Math.round(w / 38));
+  const fs = Math.max(11, Math.round(w / 38));
   const pad = Math.round(fs * 0.8);
   ctx.font = `600 ${fs}px system-ui, sans-serif`;
   const place = wrap(ctx, info.place ?? "Location name unavailable", w - pad * 2);
@@ -72,7 +74,7 @@ async function stamp(dataUrl: string, info: { name: string; action: string; geo:
     ctx.fillText(l, pad, h - boxH + pad + lh * (i + 0.8));
   });
   return await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not save photo."))), "image/jpeg", 0.85),
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not save photo."))), "image/jpeg", 0.38),
   );
 }
 
