@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DigilockerCallbackRouteImport } from './routes/digilocker.callback'
 import { Route as AdminWorkflowManagerRouteImport } from './routes/admin.workflow-manager'
 import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
+import { Route as AdminTrainingRouteImport } from './routes/admin.training'
 import { Route as AdminSystemLogsRouteImport } from './routes/admin.system-logs'
 import { Route as AdminServiceTypeManagerRouteImport } from './routes/admin.service-type-manager'
 import { Route as AdminRolesManagerRouteImport } from './routes/admin.roles-manager'
@@ -173,6 +174,11 @@ const AdminWorkflowManagerRoute = AdminWorkflowManagerRouteImport.update({
 const AdminVehiclesRoute = AdminVehiclesRouteImport.update({
   id: '/vehicles',
   path: '/vehicles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTrainingRoute = AdminTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSystemLogsRoute = AdminSystemLogsRouteImport.update({
@@ -791,6 +797,7 @@ export interface FileRoutesByFullPath {
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
+  '/admin/training': typeof AdminTrainingRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/admin/workflow-manager': typeof AdminWorkflowManagerRoute
   '/digilocker/callback': typeof DigilockerCallbackRoute
@@ -904,6 +911,7 @@ export interface FileRoutesByTo {
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
+  '/admin/training': typeof AdminTrainingRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/admin/workflow-manager': typeof AdminWorkflowManagerRoute
   '/digilocker/callback': typeof DigilockerCallbackRoute
@@ -1022,6 +1030,7 @@ export interface FileRoutesById {
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
+  '/admin/training': typeof AdminTrainingRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/admin/workflow-manager': typeof AdminWorkflowManagerRoute
   '/digilocker/callback': typeof DigilockerCallbackRoute
@@ -1141,6 +1150,7 @@ export interface FileRouteTypes {
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
+    | '/admin/training'
     | '/admin/vehicles'
     | '/admin/workflow-manager'
     | '/digilocker/callback'
@@ -1254,6 +1264,7 @@ export interface FileRouteTypes {
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
+    | '/admin/training'
     | '/admin/vehicles'
     | '/admin/workflow-manager'
     | '/digilocker/callback'
@@ -1371,6 +1382,7 @@ export interface FileRouteTypes {
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
+    | '/admin/training'
     | '/admin/vehicles'
     | '/admin/workflow-manager'
     | '/digilocker/callback'
@@ -1513,6 +1525,13 @@ declare module '@tanstack/react-router' {
       path: '/vehicles'
       fullPath: '/admin/vehicles'
       preLoaderRoute: typeof AdminVehiclesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/training': {
+      id: '/admin/training'
+      path: '/training'
+      fullPath: '/admin/training'
+      preLoaderRoute: typeof AdminTrainingRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/system-logs': {
@@ -2452,6 +2471,7 @@ interface AdminRouteChildren {
   AdminRolesManagerRoute: typeof AdminRolesManagerRoute
   AdminServiceTypeManagerRoute: typeof AdminServiceTypeManagerRoute
   AdminSystemLogsRoute: typeof AdminSystemLogsRoute
+  AdminTrainingRoute: typeof AdminTrainingRoute
   AdminVehiclesRoute: typeof AdminVehiclesRouteWithChildren
   AdminWorkflowManagerRoute: typeof AdminWorkflowManagerRoute
   AdminCandidatesRehireRoute: typeof AdminCandidatesRehireRoute
@@ -2520,6 +2540,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRolesManagerRoute: AdminRolesManagerRoute,
   AdminServiceTypeManagerRoute: AdminServiceTypeManagerRoute,
   AdminSystemLogsRoute: AdminSystemLogsRoute,
+  AdminTrainingRoute: AdminTrainingRoute,
   AdminVehiclesRoute: AdminVehiclesRouteWithChildren,
   AdminWorkflowManagerRoute: AdminWorkflowManagerRoute,
   AdminCandidatesRehireRoute: AdminCandidatesRehireRoute,
