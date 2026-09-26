@@ -1749,6 +1749,7 @@ function MusterRollPage() {
       // "regularly assigned to this unit", not "this is their only unit".
       const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
       const lines = ((emp as { lines?: UnitLine[] }).lines ?? []) as UnitLine[];
+      const savedLines = entries.filter((e) => e.candidate_id === emp.id);
       const pushRow = (
         designationId: string | null,
         variant: string,
@@ -1785,17 +1786,18 @@ function MusterRollPage() {
             l.id,
           );
         }
-      } else if (assigned || candidatesWithEntries.has(emp.id)) {
-        // Only people genuinely posted here (or with saved attendance) get a
-        // default line. Someone whose only line was just deleted must not
-        // re-appear under their master designation.
+      } else if (assigned && savedLines.length === 0) {
+        // A legacy employee may be assigned through candidates.unit_id without
+        // a candidate_units line. Give them a default line only on an empty
+        // sheet. When saved attendance exists, its designation/duty/reliever
+        // variants below are authoritative; adding this fallback too creates a
+        // second, undeletable-looking row for the same employee.
         pushRow(emp.designation_id, lineVariant(0, !assigned), true, null);
       }
 
       // Lines that only exist through saved attendance (e.g. an older
       // designation or duty length) still show so they can be edited/removed.
-      for (const e of entries) {
-        if (e.candidate_id !== emp.id) continue;
+      for (const e of savedLines) {
         pushRow(e.designation_id, lineVariant(e.shift_hours, e.is_reliever), false, null);
       }
 
