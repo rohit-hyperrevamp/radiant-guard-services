@@ -60,6 +60,7 @@ type UnitRow = {
   customer_name: string;
   customer_code: string;
   billing_state: string | null;
+  client_state?: string | null;
   contract_codes: string[];
   contract_end: string | null;
   active_employee_count: number;
@@ -76,6 +77,10 @@ type AttendancePageData = {
 // Only active employees appear on attendance. Field officers are on Radiant's own
 // payroll (non-billable) and are intentionally excluded from the muster roll.
 const ACTIVE_EMPLOYEE_STATUSES = ["active"] as const;
+
+// Filters follow the Client Detail state (falls back to billing when blank).
+const stOf = (u: { client_state?: string | null; billing_state: string | null }) =>
+  (u.client_state || u.billing_state || "").trim();
 
 function AttendanceUnitsPage() {
   const search = Route.useSearch();
@@ -118,7 +123,7 @@ function AttendanceUnitsPage() {
     const states = new Set<string>();
     for (const u of windowUnits) {
       if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) continue;
-      if (u.billing_state) states.add(u.billing_state);
+      if (stOf(u)) states.add(stOf(u));
     }
     return [...states].sort();
   }, [windowUnits, orgFilter]);
@@ -143,7 +148,7 @@ function AttendanceUnitsPage() {
     return windowUnits.filter((u) => {
       if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
       if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
-      if (stateFilter.length > 0 && !stateFilter.includes(u.billing_state || "")) return false;
+      if (stateFilter.length > 0 && !stateFilter.includes(stOf(u))) return false;
       if (term) {
         const hay = [
           u.customer_name,
@@ -244,7 +249,7 @@ function AttendanceUnitsPage() {
                           prev.filter((s) =>
                             windowUnits.some(
                               (u) =>
-                                u.billing_state === s &&
+                                stOf(u) === s &&
                                 (v.length === 0 || v.includes(u.customer_id || u.customer_name)),
                             ),
                           ),
@@ -264,7 +269,7 @@ function AttendanceUnitsPage() {
                         setUnitFilter((prev) =>
                           prev.filter((id) => {
                             const u = windowUnits.find((x) => x.id === id);
-                            return !u || v.length === 0 || v.includes(u.billing_state || "");
+                            return !u || v.length === 0 || v.includes(stOf(u));
                           }),
                         );
                       }}
@@ -276,7 +281,7 @@ function AttendanceUnitsPage() {
                       selected={unitFilter}
                       onChange={setUnitFilter}
                       options={unitOptions
-                        .filter((u) => stateFilter.length === 0 || stateFilter.includes(u.billing_state || ""))
+                        .filter((u) => stateFilter.length === 0 || stateFilter.includes(stOf(u)))
                         .map((u) => ({
                           value: u.id,
                           label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
