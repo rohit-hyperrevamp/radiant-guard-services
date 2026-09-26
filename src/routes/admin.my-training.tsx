@@ -54,11 +54,6 @@ function MyTrainingPage() {
   const modules = useMemo(() => modulesQ.data ?? [], [modulesQ.data]);
   const selected = modules.find((m) => m.id === selectedId) ?? null;
 
-  // Auto-select the first document so the reader is never empty when docs exist.
-  useEffect(() => {
-    if (!selectedId && modules.length > 0) setSelectedId(modules[0].id);
-  }, [modules, selectedId]);
-
   const loadSignedUrl = async (m: TrainingModule) => {
     setViewerLoading(true);
     setViewerError(null);
@@ -79,17 +74,17 @@ function MyTrainingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  const selectedIndex = selected ? modules.findIndex((module) => module.id === selected.id) : -1;
+
   return (
-    <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-0 w-full flex-col gap-3 overflow-hidden px-3 pb-2 pt-3 sm:h-[calc(100dvh-5rem)] sm:px-5 sm:pb-4 sm:pt-4 lg:gap-4 lg:px-6">
+      <div className={cn("grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3", selected && "hidden lg:grid")}>
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
           <BookOpen className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-black sm:text-2xl">Training</h1>
-          <p className="truncate text-sm text-muted-foreground">
-            Documents and guides for your role. Tap one to read it here.
-          </p>
+          <h1 className="truncate text-xl font-black">Training</h1>
+          <p className="truncate text-xs text-muted-foreground sm:text-sm">Documents and guides for your role</p>
         </div>
       </div>
 
@@ -108,46 +103,50 @@ function MyTrainingPage() {
           </div>
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-4">
           {/* Document list */}
           <div
             className={cn(
-              "min-h-0 flex-col gap-2 overflow-y-auto rounded-2xl border bg-card p-3",
+              "min-h-0 flex-col overflow-y-auto bg-card lg:gap-1.5 lg:rounded-lg lg:border lg:p-2",
               selected ? "hidden lg:flex" : "flex",
             )}
           >
+            <div className="mb-2 flex items-center justify-between border-b px-1 pb-3 lg:hidden">
+              <p className="text-sm font-semibold">Your documents</p>
+              <p className="text-xs text-muted-foreground">{modules.length} available</p>
+            </div>
             {modules.map((m, i) => {
               const active = m.id === selectedId;
               return (
-                <button
+                <Button
                   key={m.id}
-                  type="button"
+                  variant="ghost"
                   onClick={() => setSelectedId(m.id)}
                   className={cn(
-                    "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                    "h-auto w-full justify-start gap-3 rounded-lg border-0 px-2 py-3 text-left lg:py-2.5",
                     active
-                      ? "border-primary bg-primary/5"
-                      : "border-transparent hover:border-border hover:bg-muted/50",
+                      ? "bg-primary/10 hover:bg-primary/10"
+                      : "hover:bg-muted/60",
                   )}
                 >
                   <div
                     className={cn(
-                      "grid h-9 w-9 shrink-0 place-items-center rounded-lg text-sm font-bold",
+                      "grid h-9 w-9 shrink-0 place-items-center rounded-md text-sm font-bold",
                       active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                     )}
                   >
                     {i + 1}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{m.title}</p>
+                    <p className="truncate text-sm font-semibold leading-5">{m.title}</p>
                     {m.description ? (
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{m.description}</p>
+                      <p className="mt-0.5 line-clamp-2 whitespace-normal text-xs font-normal text-muted-foreground">{m.description}</p>
                     ) : null}
-                    <p className="mt-1 text-[11px] text-muted-foreground">
+                    <p className="mt-1 text-[11px] font-normal text-muted-foreground">
                       PDF{formatSize(m.size_bytes) ? ` · ${formatSize(m.size_bytes)}` : ""}
                     </p>
                   </div>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -155,13 +154,13 @@ function MyTrainingPage() {
           {/* In-app reader */}
           <div
             className={cn(
-              "min-h-0 flex-col overflow-hidden rounded-2xl border bg-card",
+              "min-h-0 flex-col overflow-hidden bg-card lg:rounded-lg lg:border",
               selected ? "flex" : "hidden lg:flex",
             )}
           >
             {selected ? (
               <>
-                <div className="flex items-center gap-2 border-b px-3 py-2">
+                <div className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b px-1 sm:px-2 lg:px-3">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -173,6 +172,9 @@ function MyTrainingPage() {
                   </Button>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{selected.title}</p>
+                    <p className="text-[11px] text-muted-foreground lg:hidden">
+                      Document {selectedIndex + 1} of {modules.length}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -202,7 +204,7 @@ function MyTrainingPage() {
                   ) : signedUrl ? (
                     <iframe
                       key={signedUrl}
-                      src={signedUrl}
+                      src={`${signedUrl}#toolbar=1&navpanes=0&view=FitH`}
                       title={selected.title}
                       className="h-full w-full border-0"
                     />
