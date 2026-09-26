@@ -35,6 +35,7 @@ import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
 import { Route as AdminOrgSettingsRouteImport } from './routes/admin.org-settings'
 import { Route as AdminOffboardingReasonManagerRouteImport } from './routes/admin.offboarding-reason-manager'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
+import { Route as AdminMyTrainingRouteImport } from './routes/admin.my-training'
 import { Route as AdminMyReporteesRouteImport } from './routes/admin.my-reportees'
 import { Route as AdminMyInventoryRouteImport } from './routes/admin.my-inventory'
 import { Route as AdminMyAttendanceRouteImport } from './routes/admin.my-attendance'
@@ -257,6 +258,11 @@ const AdminOffboardingReasonManagerRoute =
 const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMyTrainingRoute = AdminMyTrainingRouteImport.update({
+  id: '/my-training',
+  path: '/my-training',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMyReporteesRoute = AdminMyReporteesRouteImport.update({
@@ -782,6 +788,7 @@ export interface FileRoutesByFullPath {
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/my-reportees': typeof AdminMyReporteesRoute
+  '/admin/my-training': typeof AdminMyTrainingRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/offboarding-reason-manager': typeof AdminOffboardingReasonManagerRoute
   '/admin/org-settings': typeof AdminOrgSettingsRoute
@@ -897,6 +904,7 @@ export interface FileRoutesByTo {
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/my-reportees': typeof AdminMyReporteesRoute
+  '/admin/my-training': typeof AdminMyTrainingRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/offboarding-reason-manager': typeof AdminOffboardingReasonManagerRoute
   '/admin/org-settings': typeof AdminOrgSettingsRoute
@@ -1015,6 +1023,7 @@ export interface FileRoutesById {
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/my-reportees': typeof AdminMyReporteesRoute
+  '/admin/my-training': typeof AdminMyTrainingRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/offboarding-reason-manager': typeof AdminOffboardingReasonManagerRoute
   '/admin/org-settings': typeof AdminOrgSettingsRoute
@@ -1135,6 +1144,7 @@ export interface FileRouteTypes {
     | '/admin/my-attendance'
     | '/admin/my-inventory'
     | '/admin/my-reportees'
+    | '/admin/my-training'
     | '/admin/notifications'
     | '/admin/offboarding-reason-manager'
     | '/admin/org-settings'
@@ -1250,6 +1260,7 @@ export interface FileRouteTypes {
     | '/admin/my-attendance'
     | '/admin/my-inventory'
     | '/admin/my-reportees'
+    | '/admin/my-training'
     | '/admin/notifications'
     | '/admin/offboarding-reason-manager'
     | '/admin/org-settings'
@@ -1367,6 +1378,7 @@ export interface FileRouteTypes {
     | '/admin/my-attendance'
     | '/admin/my-inventory'
     | '/admin/my-reportees'
+    | '/admin/my-training'
     | '/admin/notifications'
     | '/admin/offboarding-reason-manager'
     | '/admin/org-settings'
@@ -1637,6 +1649,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/admin/notifications'
       preLoaderRoute: typeof AdminNotificationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/my-training': {
+      id: '/admin/my-training'
+      path: '/my-training'
+      fullPath: '/admin/my-training'
+      preLoaderRoute: typeof AdminMyTrainingRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/my-reportees': {
@@ -2456,6 +2475,7 @@ interface AdminRouteChildren {
   AdminMyAttendanceRoute: typeof AdminMyAttendanceRoute
   AdminMyInventoryRoute: typeof AdminMyInventoryRoute
   AdminMyReporteesRoute: typeof AdminMyReporteesRoute
+  AdminMyTrainingRoute: typeof AdminMyTrainingRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminOffboardingReasonManagerRoute: typeof AdminOffboardingReasonManagerRoute
   AdminOrgSettingsRoute: typeof AdminOrgSettingsRoute
@@ -2525,6 +2545,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMyAttendanceRoute: AdminMyAttendanceRoute,
   AdminMyInventoryRoute: AdminMyInventoryRoute,
   AdminMyReporteesRoute: AdminMyReporteesRoute,
+  AdminMyTrainingRoute: AdminMyTrainingRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminOffboardingReasonManagerRoute: AdminOffboardingReasonManagerRoute,
   AdminOrgSettingsRoute: AdminOrgSettingsRoute,

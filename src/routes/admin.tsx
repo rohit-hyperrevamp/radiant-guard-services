@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Bell,
+  BookOpen,
   Building2,
   Boxes,
   ChevronDown,
@@ -303,6 +304,7 @@ function AdminLayout() {
         pathname === "/admin/my-inventory" ||
         pathname === "/admin/profile" ||
         pathname === "/admin/my-attendance" ||
+        pathname === "/admin/my-training" ||
         pathname === "/admin/notifications" ||
         pathname.startsWith("/admin/my-inventory/") ||
         pathname.startsWith("/admin/notifications/");
@@ -434,6 +436,7 @@ function AdminLayout() {
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
+      { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
       { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
@@ -487,6 +490,7 @@ function AdminLayout() {
     { key: "dashboard", label: "My Dashboard", icon: LayoutGrid, to: "/admin/employee-dashboard", activePrefixes: ["/admin/employee-dashboard"] },
     { key: "my-inventory", label: "My Uniform", icon: Boxes, to: "/admin/my-inventory", activePrefixes: ["/admin/my-inventory"] },
     { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
+    { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
   ], []);
 
   const visibleGroups: GroupItem[] = (() => {
@@ -495,14 +499,17 @@ function AdminLayout() {
       const children = controlCenterRadarChildren.filter(
         (item) => !item.sub || canSub("field_sense", item.sub),
       );
-      return [{
-        key: "field-sense",
-        label: "Radar",
-        icon: Radio,
-        children,
-        activePrefixes: ["/admin/dashboard", "/admin/field-sense"],
-        module: "field_sense",
-      } satisfies GroupItem];
+      return [
+        {
+          key: "field-sense",
+          label: "Radar",
+          icon: Radio,
+          children,
+          activePrefixes: ["/admin/dashboard", "/admin/field-sense"],
+          module: "field_sense",
+        } satisfies GroupItem,
+        { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
+      ];
     }
     if (isInventoryOnly) {
       return filteredInventoryChildren.map<GroupItem>((c, idx) => ({
@@ -843,7 +850,7 @@ function AdminLayout() {
       {(() => {
         const bottomItems: BottomNavItem[] = (() => {
           if (isGuard) {
-            const guardBottomKeys = ["dashboard", "my-inventory", "my-attendance"];
+            const guardBottomKeys = ["dashboard", "my-inventory", "my-attendance", "training"];
             return guardGroups
               .filter((g) => guardBottomKeys.includes(g.key))
               .sort((a, b) => guardBottomKeys.indexOf(a.key) - guardBottomKeys.indexOf(b.key))
@@ -891,6 +898,7 @@ function AdminLayout() {
                { key: "fo-radar", to: "/admin/field-sense", label: "Site Visits", icon: MapPin, active: isActive("/admin/field-sense") },
               { key: "fo-uniform", to: "/admin/inventory", label: "Uniform", icon: Boxes, active: isActive("/admin/inventory") },
               { key: "fo-my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") },
+              { key: "fo-training", to: "/admin/my-training", label: "Training", icon: BookOpen, active: isActive("/admin/my-training") },
             ]
           : visibleGroups.flatMap((g) => {
               const to = g.to ?? g.children?.[0]?.to;
