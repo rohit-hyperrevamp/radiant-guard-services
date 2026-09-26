@@ -29,6 +29,8 @@
 
 ## Current request
 
+- [x] Move attendance photos beside their respective Day Patrol punch-in/out times and remove the separate gallery.
+- [x] Compress new attendance photos to low-resolution JPEG thumbnails before upload.
 - [x] Copy-to-clipboard option for IDs (clients, contracts, employees) across list screens
 - [x] Mic input in the ED "Set ED hours" dialog — speak "1 hour 30 minutes", fills hours/minutes
 - [x] Prevent legacy zero-hour fallback rows from duplicating employees with saved attendance lines across clients

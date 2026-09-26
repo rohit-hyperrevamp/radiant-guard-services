@@ -8,7 +8,6 @@ import { subscribeLivePunches } from "@/lib/use-live-location-beacon";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
-import { AttendancePhotosSection } from "@/components/AttendancePhotosSection";
 
 export const Route = createFileRoute("/admin/field-sense/team")({
   component: () => (<FieldSenseAdminGuard sub="day_patrol"><MyTeamPage /></FieldSenseAdminGuard>),
@@ -19,6 +18,10 @@ export const Route = createFileRoute("/admin/field-sense/team")({
     meta: [
       { title: "Radar — Day Patrol" },
       { name: "description", content: "Field officer roster with punch-in status, current location and travel distance." },
+      { property: "og:title", content: "Radar — Day Patrol" },
+      { property: "og:description", content: "Field officer roster with punch-in status, current location and travel distance." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -38,7 +41,8 @@ type Row = {
   last_lat: number | null;
   last_lng: number | null;
   last_seen_at: string | null;
-  photo_path: string | null;
+  check_in_photo_path: string | null;
+  check_out_photo_path: string | null;
   in_meeting_unit: string | null;
   work_ms: number | null;
   km_today: number;
@@ -98,7 +102,7 @@ function MyTeamPage() {
           .order("full_name", { ascending: true }),
         supabase
           .from("self_attendance_punches" as never)
-          .select("candidate_id, check_in_at, check_out_at, last_lat, last_lng, last_seen_at, check_in_photo_path")
+          .select("candidate_id, check_in_at, check_out_at, last_lat, last_lng, last_seen_at, check_in_photo_path, check_out_photo_path")
           .eq("punch_date", selectedDate),
         supabase
           .from("field_visits" as never)
@@ -121,6 +125,7 @@ function MyTeamPage() {
         last_lng: number | null;
         last_seen_at: string | null;
         check_in_photo_path: string | null;
+        check_out_photo_path: string | null;
       }>;
       const visits = ((visitsRes.data ?? []) as unknown) as Array<{
         candidate_id: string;
@@ -189,7 +194,8 @@ function MyTeamPage() {
           last_lat: p?.last_lat ?? null,
           last_lng: p?.last_lng ?? null,
           last_seen_at: p?.last_seen_at ?? null,
-          photo_path: p?.check_in_photo_path ?? null,
+          check_in_photo_path: p?.check_in_photo_path ?? null,
+          check_out_photo_path: p?.check_out_photo_path ?? null,
           in_meeting_unit: inMeetingUnit,
           work_ms: workMs != null ? Math.max(0, workMs) : null,
           km_today: Number((kmByCand.get(f.id) ?? 0).toFixed(2)),
@@ -277,7 +283,6 @@ function MyTeamPage() {
         )}
       </section>
 
-      <AttendancePhotosSection date={selectedDate} />
     </div>
   );
 }
@@ -313,15 +318,15 @@ function SelfieThumb({ path, name }: { path: string | null; name: string }) {
   const [open, setOpen] = useState(false);
   const q = useQuery({ queryKey: ["selfie-url", path], enabled: !!path, staleTime: 50 * 60_000, queryFn: () => selfieUrl(path) });
   if (!path) return null;
-  if (!q.data) return <span className="h-9 w-9 flex-none animate-pulse rounded-lg bg-muted" />;
+  if (!q.data) return <span className="h-7 w-7 flex-none animate-pulse rounded-md bg-muted" />;
   return (
     <>
-      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }} aria-label={`Check-in photo of ${name}`}>
-        <img src={q.data} alt="" className="h-9 w-9 flex-none rounded-lg object-cover ring-1 ring-border" />
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }} aria-label={`Attendance photo of ${name}`} className="shrink-0">
+        <img src={q.data} alt="" className="h-7 w-7 rounded-md object-cover ring-1 ring-border" loading="lazy" />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>{name} · Log in photo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{name}</DialogTitle></DialogHeader>
           <div className="max-h-[75vh] overflow-auto">
             <img src={q.data} alt="" className="w-full cursor-zoom-in rounded-xl transition-transform" onClick={(e) => { const el = e.currentTarget; el.style.transform = el.style.transform ? "" : "scale(2)"; el.style.transformOrigin = "top left"; }} />
           </div>
@@ -333,17 +338,11 @@ function SelfieThumb({ path, name }: { path: string | null; name: string }) {
 
 function LocationCell({ row }: { row: Row }) {
   if (row.last_lat == null || row.last_lng == null) {
-    return (
-      <span className="inline-flex items-center gap-2">
-        <SelfieThumb path={row.photo_path} name={row.full_name} />
-        <span className="text-[11px] italic text-muted-foreground">no ping yet</span>
-      </span>
-    );
+    return <span className="text-[11px] italic text-muted-foreground">no ping yet</span>;
   }
   const href = `https://www.google.com/maps/search/?api=1&query=${row.last_lat},${row.last_lng}`;
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
-    <SelfieThumb path={row.photo_path} name={row.full_name} />
     <a
       href={href}
       target="_blank"
@@ -388,7 +387,10 @@ function TeamRow({ row }: { row: Row }) {
         </Link>
       </div>
       <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 md:hidden">
-        <div className="text-[11px] text-muted-foreground">In {timeShort(row.punch_in)} · Out {timeShort(row.punch_out)}</div>
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          In <SelfieThumb path={row.check_in_photo_path} name={`${row.full_name} · Log in`} /> {timeShort(row.punch_in)}
+          <span className="ml-1">· Out</span> <SelfieThumb path={row.check_out_photo_path} name={`${row.full_name} · Log out`} /> {timeShort(row.punch_out)}
+        </div>
         <div className="text-[11px] font-semibold text-foreground">{fmtDur(row.work_ms)}</div>
         <div className="text-[11px] font-semibold text-foreground">{row.km_today.toFixed(2)} km</div>
         <LocationCell row={row} />
@@ -401,8 +403,14 @@ function TeamRow({ row }: { row: Row }) {
       <div className="hidden min-w-0 md:block">
         <StatusPill row={row} />
       </div>
-      <div className="hidden text-[12px] font-semibold text-foreground md:block">{timeShort(row.punch_in)}</div>
-      <div className="hidden text-[12px] font-semibold text-foreground md:block">{timeShort(row.punch_out)}</div>
+      <div className="hidden items-center gap-1.5 text-[12px] font-semibold text-foreground md:flex">
+        <SelfieThumb path={row.check_in_photo_path} name={`${row.full_name} · Log in`} />
+        {timeShort(row.punch_in)}
+      </div>
+      <div className="hidden items-center gap-1.5 text-[12px] font-semibold text-foreground md:flex">
+        <SelfieThumb path={row.check_out_photo_path} name={`${row.full_name} · Log out`} />
+        {timeShort(row.punch_out)}
+      </div>
       <div className="hidden text-[12px] font-semibold tabular-nums text-foreground md:block">{fmtDur(row.work_ms)}</div>
       <div className="hidden text-[12px] font-semibold tabular-nums text-foreground md:block">{row.km_today.toFixed(2)} km</div>
       <Link
