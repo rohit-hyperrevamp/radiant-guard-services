@@ -11,6 +11,7 @@ export type AttendanceUnitContext = {
   branch_id: string | null;
   customer_id: string | null;
   billing_state: string | null;
+  client_state?: string | null;
 };
 
 const FIELD_OFFICER_ROLE_KEYS = new Set(["field_officer", "field_officer"]);
@@ -54,7 +55,7 @@ export function matchesAttendanceScope(unit: AttendanceUnitContext, assignment: 
   if (assignment.scope_type === "unit") return assignment.scope_id === unit.id;
   if (assignment.scope_type === "branch") return Boolean(unit.branch_id) && assignment.scope_id === unit.branch_id;
   if (assignment.scope_type === "customer") return Boolean(unit.customer_id) && assignment.scope_id === unit.customer_id;
-  if (assignment.scope_type === "state") return Boolean(unit.billing_state) && assignment.scope_id === unit.billing_state;
+  if (assignment.scope_type === "state") { const st = unit.client_state || unit.billing_state; return Boolean(st) && assignment.scope_id === st; }
   return false;
 }
 
