@@ -499,14 +499,17 @@ function AdminLayout() {
       const children = controlCenterRadarChildren.filter(
         (item) => !item.sub || canSub("field_sense", item.sub),
       );
-      return [{
-        key: "field-sense",
-        label: "Radar",
-        icon: Radio,
-        children,
-        activePrefixes: ["/admin/dashboard", "/admin/field-sense"],
-        module: "field_sense",
-      } satisfies GroupItem];
+      return [
+        {
+          key: "field-sense",
+          label: "Radar",
+          icon: Radio,
+          children,
+          activePrefixes: ["/admin/dashboard", "/admin/field-sense"],
+          module: "field_sense",
+        } satisfies GroupItem,
+        { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
+      ];
     }
     if (isInventoryOnly) {
       return filteredInventoryChildren.map<GroupItem>((c, idx) => ({
