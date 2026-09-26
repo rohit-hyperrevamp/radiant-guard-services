@@ -221,6 +221,13 @@ const tiles: Tile[] = [
     description: "Client-wise MIS formats.",
     icon: FileSpreadsheet,
   },
+  {
+    to: "/admin/training",
+    label: "Training",
+    description: "Role-wise training documents.",
+    icon: FileBadge,
+  },
+
 
 
 ];
