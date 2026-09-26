@@ -191,13 +191,6 @@ export function AttendanceCharter({
     [periodsByUnit],
   );
 
-  const statusQ = useQuery({
-    queryKey: [PERIOD_STATUS_QK, periodKey],
-    enabled: unitIds.length > 0,
-    staleTime: 0,
-    queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
-  });
-
   // Sheet reads that are still running in the background (dialog may be closed).
   const scanJobsQ = useQuery({
     queryKey: [SCAN_JOBS_QK, unitIds.join(",")],
@@ -314,7 +307,7 @@ export function AttendanceCharter({
         const projectedHours = headsForProjection * period.elapsedDays * unitShift;
         const actualHours = people.reduce((s, p) => s + p.actualHours, 0);
         const otHours = people.reduce((s, p) => s + p.otDays * p.shiftHours, 0);
-        const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
+        const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,
           attendance: "none",
           handedOff: false,
@@ -338,7 +331,7 @@ export function AttendanceCharter({
           mtdPct: pct(actualHours, projectedHours),
         };
       });
-  }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx]);
+  }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, allStatusQ.data, periodsByUnit, year, monthIdx]);
 
 
   const exportCsv = () => {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -111,18 +111,41 @@ export async function fetchPeriodStatuses(
 export async function fetchPeriodStatusesForUnitPeriods(
   periods: Map<string, { start: string; end: string }>,
 ): Promise<PeriodStatusMap> {
-  const grouped = new Map<string, { start: string; end: string; unitIds: string[] }>();
-  for (const [unitId, period] of periods) {
-    const key = `${period.start}|${period.end}`;
-    const group = grouped.get(key) ?? { ...period, unitIds: [] };
-    group.unitIds.push(unitId);
-    grouped.set(key, group);
-  }
-  const maps = await Promise.all(
-    Array.from(grouped.values()).map((group) => fetchPeriodStatuses(group.unitIds, group.start, group.end)),
-  );
   const out: PeriodStatusMap = new Map();
-  for (const map of maps) for (const [unitId, status] of map) out.set(unitId, status);
+  if (periods.size === 0) return out;
+
+  const requested = Array.from(periods, ([unit_id, period]) => ({
+    unit_id,
+    period_start: period.start,
+    period_end: period.end,
+  }));
+  const { data, error } = await supabase.rpc("batch_period_statuses" as never, { p_periods: requested } as never);
+  if (error) throw error;
+
+  const rows = ((data ?? []) as unknown) as Array<{
+    unit_id: string;
+    attendance_status: AttendanceStatus | null;
+    tally_invoice_path: string | null;
+    run_id: string | null;
+    run_status: string | null;
+    payroll_status: string | null;
+    invoice_status: string | null;
+    finalised: boolean;
+  }>;
+  for (const row of rows) {
+    const attendance = row.attendance_status ?? "none";
+    const ready = attendance === "approved";
+    const money = (value: string | null): MoneyStatus =>
+      value === "processed" ? "processed" : ready ? "ready" : "open";
+    out.set(row.unit_id, {
+      unitId: row.unit_id,
+      attendance,
+      handedOff: ["submitted", "approved"].includes(row.run_status ?? ""),
+      payroll: money(row.payroll_status),
+      invoice: row.tally_invoice_path || row.finalised ? "processed" : money(row.invoice_status),
+      runId: row.run_id,
+    });
+  }
   return out;
 }
 
@@ -174,22 +197,27 @@ export async function setMoneyStatus(params: {
  */
 export function useAttendanceMoneyRealtime() {
   const qc = useQueryClient();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const invalidate = () => {
-      qc.invalidateQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0];
-          if (typeof key !== "string") return false;
-          return (
-            key === PERIOD_STATUS_QK ||
-            key.startsWith("attendance") ||
-            key.startsWith("finance-charter") ||
-            key.startsWith("payroll") ||
-            key.startsWith("invoice") ||
-            key.startsWith("live-contract-deductions")
-          );
-        },
-      });
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        void qc.invalidateQueries({
+          predicate: (query) => {
+            const key = query.queryKey[0];
+            if (typeof key !== "string") return false;
+            return (
+              key === PERIOD_STATUS_QK ||
+              key.startsWith("attendance") ||
+              key.startsWith("finance-charter") ||
+              key.startsWith("payroll") ||
+              key.startsWith("invoice") ||
+              key.startsWith("live-contract-deductions")
+            );
+          },
+        });
+      }, 1200);
     };
 
     const channel = supabase
@@ -200,6 +228,7 @@ export function useAttendanceMoneyRealtime() {
       .subscribe();
 
     return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
       supabase.removeChannel(channel);
     };
   }, [qc]);

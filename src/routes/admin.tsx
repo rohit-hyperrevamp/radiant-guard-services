@@ -377,31 +377,15 @@ function AdminLayout() {
     return () => { alive = false; clearInterval(t); };
   }, [isReady, user, isSuperAdmin, logout]);
 
-  // A fresh sign-in may leave anonymous query results in cache. Clear those
-  // once after sign-in, but never invalidate the entire application on token
-  // refresh/initial-session events: that refetched the very large payroll
-  // computation and every supporting query together, causing screen-wide
-  // reflow and flicker while users were reading the register.
+  // Session hydration is handled once by the root shell. This listener only
+  // tears down signed-in data on logout; duplicating sign-in invalidation here
+  // caused every expensive screen query to start again.
   const queryClient = useQueryClient();
   useEffect(() => {
-    // supabase-js re-emits SIGNED_IN on token refresh and when the tab regains
-    // focus. Invalidating everything on those events blanked the whole screen
-    // (payroll register included). Only wipe the cache when the signed-in
-    // identity actually changes.
-    let lastUserId: string | null = null;
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      const nextId = session?.user?.id ?? null;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        lastUserId = null;
         queryClient.clear();
-        return;
       }
-      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
-      if (!nextId || nextId === lastUserId) return;
-      const isFirstObservation = lastUserId === null;
-      lastUserId = nextId;
-      if (isFirstObservation) return;
-      queryClient.invalidateQueries();
     });
     return () => data.subscription.unsubscribe();
   }, [queryClient]);

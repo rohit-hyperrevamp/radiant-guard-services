@@ -29,6 +29,8 @@
 
 ## Current request
 
+- [x] Diagnose the sudden global slowdown against the live database and isolate Training from the regression.
+- [x] Remove duplicate Attendance/Payroll/Invoice period-status reads and debounce realtime refresh storms.
 - [x] Move attendance photos beside their respective Day Patrol punch-in/out times and remove the separate gallery.
 - [x] Compress new attendance photos to low-resolution JPEG thumbnails before upload.
 - [x] Copy-to-clipboard option for IDs (clients, contracts, employees) across list screens

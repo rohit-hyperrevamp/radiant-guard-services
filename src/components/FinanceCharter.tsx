@@ -286,13 +286,6 @@ export function FinanceCharter({
     },
   });
 
-  const statusQ = useQuery({
-    queryKey: [PERIOD_STATUS_QK, periodKey],
-    enabled: unitIds.length > 0,
-    staleTime: 0,
-    queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
-  });
-
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
     for (const u of units) for (const g of u.security_guards) m.set(g.id, g.name);
@@ -375,7 +368,7 @@ export function FinanceCharter({
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
         const deductionAmount = people.reduce((s, p) => s + p.deductionAmount, 0);
         const netPayrollAmount = Math.max(0, payrollAmount - deductionAmount);
-        const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
+        const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,
           attendance: "none",
           handedOff: false,
@@ -404,7 +397,7 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [matchedUnits, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
+  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
   const pageIdSet = useMemo(() => new Set(pageUnits.map((u) => u.id)), [pageUnits]);
   const rows = useMemo(() => allRows.filter((r) => pageIdSet.has(r.unit.id)), [allRows, pageIdSet]);
 
@@ -971,8 +964,8 @@ export function FinanceCharter({
   };
 
   const loading = mode === "invoice"
-    ? entriesQ.isLoading || financeQ.isLoading || statusQ.isLoading
-    : statusQ.isLoading;
+    ? entriesQ.isLoading || financeQ.isLoading || allStatusQ.isLoading
+    : allStatusQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
 
