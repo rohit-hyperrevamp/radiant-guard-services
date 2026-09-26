@@ -1816,6 +1816,7 @@ function OperationalMappingPicker({
           .select("id,code,name,customer_id,branch_id,is_billable")
           .in("customer_id", ids)
           .order("name", { ascending: true })
+          .order("id", { ascending: true })
           .range(from, to),
       );
       return rows ?? [];

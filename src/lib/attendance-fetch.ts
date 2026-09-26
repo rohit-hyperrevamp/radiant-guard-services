@@ -23,7 +23,7 @@ export async function fetchAttendanceEntriesForPeriod(params: {
   if (unitIds.length === 0) return [];
 
   const rows: AttendanceEntryFetchRow[] = [];
-  const selectCols = `${params.includeUnitId ? "unit_id, " : ""}candidate_id, designation_id, shift_hours, is_reliever, entry_date, code, ot_hours`;
+  const selectCols = `id, ${params.includeUnitId ? "unit_id, " : ""}candidate_id, designation_id, shift_hours, is_reliever, entry_date, code, ot_hours`;
 
   const fetched = await fetchInChunks<AttendanceEntryFetchRow>(unitIds, (chunk, from, to) =>
     supabase
@@ -32,10 +32,21 @@ export async function fetchAttendanceEntriesForPeriod(params: {
       .gte("entry_date", params.start)
       .lte("entry_date", params.end)
       .in("unit_id", chunk)
+      // A unique tie-breaker is mandatory: with only entry_date, rows sharing a
+      // date are returned in an unstable order across 1000-row pages, so some
+      // days were silently skipped and others repeated (MIS 25 vs sheet 26).
       .order("entry_date", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, to),
   );
-  rows.push(...fetched);
+  // Belt and braces: one row per (unit, person, line, day) — never double-count.
+  const seen = new Set<string>();
+  for (const r of fetched as (AttendanceEntryFetchRow & { id?: string })[]) {
+    const key = r.id ?? `${r.unit_id ?? ""}|${r.candidate_id}|${r.designation_id ?? ""}|${r.shift_hours ?? ""}|${r.is_reliever ? 1 : 0}|${r.entry_date}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push(r);
+  }
 
   return rows;
 }
