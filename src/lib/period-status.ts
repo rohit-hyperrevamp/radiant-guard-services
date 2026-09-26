@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -174,22 +174,27 @@ export async function setMoneyStatus(params: {
  */
 export function useAttendanceMoneyRealtime() {
   const qc = useQueryClient();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const invalidate = () => {
-      qc.invalidateQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0];
-          if (typeof key !== "string") return false;
-          return (
-            key === PERIOD_STATUS_QK ||
-            key.startsWith("attendance") ||
-            key.startsWith("finance-charter") ||
-            key.startsWith("payroll") ||
-            key.startsWith("invoice") ||
-            key.startsWith("live-contract-deductions")
-          );
-        },
-      });
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        void qc.invalidateQueries({
+          predicate: (query) => {
+            const key = query.queryKey[0];
+            if (typeof key !== "string") return false;
+            return (
+              key === PERIOD_STATUS_QK ||
+              key.startsWith("attendance") ||
+              key.startsWith("finance-charter") ||
+              key.startsWith("payroll") ||
+              key.startsWith("invoice") ||
+              key.startsWith("live-contract-deductions")
+            );
+          },
+        });
+      }, 1200);
     };
 
     const channel = supabase
@@ -200,6 +205,7 @@ export function useAttendanceMoneyRealtime() {
       .subscribe();
 
     return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
       supabase.removeChannel(channel);
     };
   }, [qc]);
