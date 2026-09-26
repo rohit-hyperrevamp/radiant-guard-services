@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Bell,
+  BookOpen,
   Building2,
   Boxes,
   ChevronDown,
@@ -434,6 +435,7 @@ function AdminLayout() {
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
+      { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
       { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
@@ -487,6 +489,7 @@ function AdminLayout() {
     { key: "dashboard", label: "My Dashboard", icon: LayoutGrid, to: "/admin/employee-dashboard", activePrefixes: ["/admin/employee-dashboard"] },
     { key: "my-inventory", label: "My Uniform", icon: Boxes, to: "/admin/my-inventory", activePrefixes: ["/admin/my-inventory"] },
     { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
+    { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
   ], []);
 
   const visibleGroups: GroupItem[] = (() => {
