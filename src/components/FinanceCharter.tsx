@@ -775,7 +775,7 @@ export function FinanceCharter({
       for (const chunkIds of chunkOf(ids, 100)) {
         const { data, error: unitsErr } = await supabase
           .from("units")
-          .select("id, code, name, customer_id, billing_state, billing_district, billing_city, billing_pincode, billing_address1, billing_address2, gst_number, branch_sap_code, zone")
+          .select("id, code, name, customer_id, billing_state, billing_district, billing_city, billing_pincode, billing_address1, billing_address2, client_state, client_district, client_city, client_pincode, client_address, gst_number, branch_sap_code, zone")
           .in("id", chunkIds);
         if (unitsErr) throw new Error(unitsErr.message);
         unitRows.push(...((data ?? []) as any[]));
@@ -912,7 +912,7 @@ export function FinanceCharter({
               regular_reliever: line.reliever ? "Reliever" : "Regular",
               doj: jd && jm && jy ? `${jd}-${jm}-${jy}` : "", entity,
               designation: `${rate.designationName} @ (${rate.shiftHours})`, branch_name: branchName,
-              state: unitRow.billing_state ?? "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
+              state: unitRow.client_state || unitRow.billing_state || "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
               month_days: periodDays, month_rate: periodDays, billing_rate: rate.billRate,
               billing_rate_per_day: round(perDay), ot_rate: round(otRate), working_days: round(workingDays),
               ot_duties: round(otDuties), ot_amount: round(otAmount),

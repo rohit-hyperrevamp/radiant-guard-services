@@ -49,6 +49,7 @@ export type UnitFinanceRow = {
   customer_name: string;
   customer_id?: string;
   billing_state?: string | null;
+  client_state?: string | null;
   billing_city?: string | null;
   internal: boolean;
   committed_strength: number;
@@ -544,7 +545,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   );
   const stateOptions = useMemo(
     () =>
-      Array.from(new Set(orgScopedRows.map((r) => r.billing_state).filter((s): s is string => !!s)))
+      Array.from(new Set(orgScopedRows.map((r) => r.client_state || r.billing_state).filter((s): s is string => !!s)))
         .sort()
         .map((s) => ({ value: s, label: s })),
     [orgScopedRows],
@@ -553,7 +554,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   const scopedRows = useMemo(
     () =>
       orgScopedRows.filter((r) => {
-        if (stateFilter.length > 0 && !(r.billing_state && stateFilter.includes(r.billing_state)))
+        if (stateFilter.length > 0 && !((r.client_state || r.billing_state) && stateFilter.includes((r.client_state || r.billing_state) as string)))
           return false;
         return true;
       }),
@@ -668,7 +669,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
               prev.filter((s) =>
                 rows.some(
                   (r) =>
-                    r.billing_state === s &&
+                    (r.client_state || r.billing_state) === s &&
                     (v.length === 0 || v.includes(r.customer_id || r.customer_name)),
                 ),
               ),
