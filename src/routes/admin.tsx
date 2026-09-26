@@ -304,6 +304,7 @@ function AdminLayout() {
         pathname === "/admin/my-inventory" ||
         pathname === "/admin/profile" ||
         pathname === "/admin/my-attendance" ||
+        pathname === "/admin/my-training" ||
         pathname === "/admin/notifications" ||
         pathname.startsWith("/admin/my-inventory/") ||
         pathname.startsWith("/admin/notifications/");
@@ -846,7 +847,7 @@ function AdminLayout() {
       {(() => {
         const bottomItems: BottomNavItem[] = (() => {
           if (isGuard) {
-            const guardBottomKeys = ["dashboard", "my-inventory", "my-attendance"];
+            const guardBottomKeys = ["dashboard", "my-inventory", "my-attendance", "training"];
             return guardGroups
               .filter((g) => guardBottomKeys.includes(g.key))
               .sort((a, b) => guardBottomKeys.indexOf(a.key) - guardBottomKeys.indexOf(b.key))
@@ -894,6 +895,7 @@ function AdminLayout() {
                { key: "fo-radar", to: "/admin/field-sense", label: "Site Visits", icon: MapPin, active: isActive("/admin/field-sense") },
               { key: "fo-uniform", to: "/admin/inventory", label: "Uniform", icon: Boxes, active: isActive("/admin/inventory") },
               { key: "fo-my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") },
+              { key: "fo-training", to: "/admin/my-training", label: "Training", icon: BookOpen, active: isActive("/admin/my-training") },
             ]
           : visibleGroups.flatMap((g) => {
               const to = g.to ?? g.children?.[0]?.to;
