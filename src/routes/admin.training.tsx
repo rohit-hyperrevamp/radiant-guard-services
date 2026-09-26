@@ -134,7 +134,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
         await supabase.storage.from(BUCKET).remove([path]);
         throw error;
       }
-      await logActivity({ module: MODULE, action: "create", description: `Added "${title.trim()}" for ${roleLabel}` } as never);
+      await logActivity({ module: MODULE, action: "create", entityType: "training_module", entityLabel: `Added "${title.trim()}" for ${roleLabel}` });
     },
     onSuccess: () => { toast.success("Document added"); setTitle(""); setDescription(""); setFile(null); refresh(); },
     onError: (e: Error) => toast.error(e.message),
@@ -144,7 +144,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
     mutationFn: async (m: TrainingModule) => {
       const { error } = await db.from("training_modules").update({ is_active: !m.is_active }).eq("id", m.id);
       if (error) throw error;
-      await logActivity({ module: MODULE, action: m.is_active ? "disable" : "enable", description: `${m.is_active ? "Disabled" : "Enabled"} "${m.title}"` } as never);
+      await logActivity({ module: MODULE, action: m.is_active ? "disable" : "enable", entityType: "training_module", entityLabel: `${m.is_active ? "Disabled" : "Enabled"} "${m.title}"` });
     },
     onSuccess: refresh,
     onError: (e: Error) => toast.error(e.message),
@@ -155,7 +155,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
       const { error } = await db.from("training_modules").delete().eq("id", m.id);
       if (error) throw error;
       await supabase.storage.from(BUCKET).remove([m.file_path]);
-      await logActivity({ module: MODULE, action: "delete", description: `Deleted "${m.title}" from ${roleLabel}` } as never);
+      await logActivity({ module: MODULE, action: "delete", entityType: "training_module", entityLabel: `Deleted "${m.title}" from ${roleLabel}` });
     },
     onSuccess: () => { toast.success("Deleted"); refresh(); },
     onError: (e: Error) => toast.error(e.message),
