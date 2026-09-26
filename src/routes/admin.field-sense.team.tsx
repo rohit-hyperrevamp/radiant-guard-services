@@ -18,6 +18,10 @@ export const Route = createFileRoute("/admin/field-sense/team")({
     meta: [
       { title: "Radar — Day Patrol" },
       { name: "description", content: "Field officer roster with punch-in status, current location and travel distance." },
+      { property: "og:title", content: "Radar — Day Patrol" },
+      { property: "og:description", content: "Field officer roster with punch-in status, current location and travel distance." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
