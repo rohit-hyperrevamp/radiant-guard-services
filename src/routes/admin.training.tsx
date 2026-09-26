@@ -191,10 +191,10 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
             <tr><th className="p-2">#</th><th className="p-2">Document</th><th className="p-2">Size</th><th className="p-2">Added</th><th className="p-2">Active</th><th className="p-2 text-right">Actions</th></tr>
           </thead>
           <tbody>
-            {pg.pageItems.length === 0 && (
+            {pg.pageRows.length === 0 && (
               <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No documents yet for this role.</td></tr>
             )}
-            {pg.pageItems.map((m) => (
+            {pg.pageRows.map((m) => (
               <tr key={m.id} className="border-t border-border">
                 <td className="p-2">{m.sort_order}</td>
                 <td className="p-2">
