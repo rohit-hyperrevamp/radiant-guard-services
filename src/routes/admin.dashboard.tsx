@@ -848,9 +848,10 @@ function DashboardPage() {
         if (!isInternal) invoiceAmount = round2(invoiceAmount + (extrasByUnit.get(u.unit_id) ?? 0));
         if (!isInternal && finalInvoiceByUnit.has(u.unit_id))
           invoiceAmount = finalInvoiceByUnit.get(u.unit_id)!;
-        if (postedPayroll.has(u.unit_id)) payrollCost = postedPayroll.get(u.unit_id)!;
-        if (postedEmployerContribution.has(u.unit_id))
-          employerContribution = postedEmployerContribution.get(u.unit_id)!;
+        const postedGross = postedPayroll.get(u.unit_id);
+        if (postedGross != null) payrollCost = postedGross;
+        const postedEmployer = postedEmployerContribution.get(u.unit_id);
+        if (postedEmployer != null) employerContribution = postedEmployer;
         const variance = invoiceAmount - payrollCost - employerContribution;
         pnlByUnit.set(u.unit_id, {
           unit_id: u.unit_id,
@@ -1712,7 +1713,7 @@ function StatusTile({
         className={`relative mt-auto grid min-w-0 gap-1.5 pb-2 sm:gap-3 sm:pb-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div className="min-w-0">
-          <div className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
             {approved}
           </div>
           <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
@@ -1720,7 +1721,7 @@ function StatusTile({
           </div>
         </div>
         <div className="min-w-0">
-          <div className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
             {pending}
           </div>
           <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
@@ -1729,7 +1730,7 @@ function StatusTile({
         </div>
         {middle && (
           <div className="min-w-0">
-            <div className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
               {middle.value}
             </div>
             <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
@@ -1739,7 +1740,7 @@ function StatusTile({
         )}
         {open != null && (
           <div className="min-w-0">
-            <div className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
               {open}
             </div>
             <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
