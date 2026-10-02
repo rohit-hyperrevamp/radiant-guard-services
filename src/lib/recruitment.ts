@@ -52,7 +52,18 @@ export type RecCandidate = {
   referred_by: string; opening_id: string | null; resume_path: string; resume_name: string; stage: RecStage;
   total_rounds: number; rounds_cleared: number; notes: string; lost_reason: string; offer: RecOffer;
   employee_candidate_id: string | null; onboarded_at: string | null; stage_changed_at: string; created_at: string;
+  employee_details?: Record<string, string | boolean> | null;
 };
+
+/** Fields the recruiter must fill before the offer can go to the HR Head (mirrors rec_send_to_hr_head). */
+export const REQUIRED_EMPLOYEE_DETAILS: [string, string][] = [
+  ["date_of_birth", "Date of birth"], ["gender", "Gender"], ["aadhaar_number", "Aadhaar"], ["pan_number", "PAN"],
+  ["permanent_address1", "Permanent address"], ["permanent_city", "City"], ["permanent_state", "State"], ["permanent_pincode", "Pincode"],
+  ["bank_account_number", "Bank account"], ["bank_ifsc", "IFSC"], ["emergency_contact_name", "Emergency contact"], ["emergency_contact_mobile", "Emergency mobile"],
+];
+export function missingEmployeeDetails(d: RecCandidate["employee_details"]): string[] {
+  return REQUIRED_EMPLOYEE_DETAILS.filter(([k]) => !String(d?.[k] ?? "").trim()).map(([, l]) => l);
+}
 export type RecInterview = {
   id: string; candidate_id: string; round_no: number; round_name: string; interviewer_id: string; scheduled_at: string;
   mode: string; location: string; status: string; feedback: string; rating: number | null; decided_at: string | null; created_by: string | null; created_at: string;
