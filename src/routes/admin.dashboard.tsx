@@ -1176,9 +1176,17 @@ function DashboardPage() {
             />
           ),
         });
+      if (pendingOnboarding > 0)
+        t.push({
+          key: "onb",
+          module: "recruitment" as never,
+          node: (
+            <MetricTile icon={UserPlus} label="Pending onboarding" sub="Set up salary & onboard" value={pendingOnboarding} accent="rose" to="/admin/hr/recruitment/onboarding" />
+          ),
+        });
     }
     return t;
-  }, [data, can, opsFocus, operationsOverview, liveOfficerCount]);
+  }, [data, can, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding]);
 
   if (permsLoading) {
     return (
@@ -1318,6 +1326,7 @@ function DashboardPage() {
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
   // any client-billing data, so no profit can be derived from what renders.
   const canSeeCommercial = can("invoice");
+  const pendingOnboarding = usePendingOnboardingCount();
   const charterByUnitId = new Map(dashboardUnits.map((u) => [u.id, u]));
   const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
     unit_id: r.unit_id,
@@ -1522,21 +1531,6 @@ function Shell({
     >
       {children}
     </Link>
-  );
-}
-
-/** Dashboard-wide action strip: a "Pending onboarding" tile (when any) plus assigned interviews. */
-function MyUpcomingInterviewsCard() {
-  const pending = usePendingOnboardingCount();
-  return (
-    <div className="space-y-4 empty:hidden">
-      {pending > 0 && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricTile icon={UserPlus} label="Pending onboarding" sub="Set up salary & onboard" value={pending} accent="rose" to="/admin/hr/recruitment/onboarding" />
-        </div>
-      )}
-      <InterviewsOnlyCard />
-    </div>
   );
 }
 
