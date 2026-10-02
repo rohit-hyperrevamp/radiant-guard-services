@@ -3969,6 +3969,15 @@ function EmployeesPage() {
     }
   };
 
+  const openedFromSearchRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = routeSearch.edit;
+    if (!id || openedFromSearchRef.current === id) return;
+    openedFromSearchRef.current = id;
+    void openEditor(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSearch.edit]);
+
   const renderRows = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
     const empCols = 4 + Object.values(columnsVisible).filter(Boolean).length;
     const candCols = 8;
