@@ -390,11 +390,13 @@ const Input = React.forwardRef<
       />
     );
   }
+  // onChange is destructured above, so it must be forwarded explicitly —
+  // otherwise date and number boxes look filled but never report the value.
   if (type === "date") {
-    return <DateInput className={className} {...props} ref={ref} />;
+    return <DateInput className={className} onChange={onChange} {...props} ref={ref} />;
   }
   if (type === "number") {
-    return <NumberInput className={className} {...props} ref={ref} />;
+    return <NumberInput className={className} onChange={onChange} {...props} ref={ref} />;
   }
   const capOff = !shouldCapitalize(type, inputMode, autoCapitalize);
   return (
