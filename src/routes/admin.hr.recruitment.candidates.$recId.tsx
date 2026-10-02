@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { EmployeePicker } from "@/components/EmployeePicker";
 import { InterviewResultDialog } from "@/components/recruitment/InterviewResultDialog";
+import { EmployeeDetailsDialog } from "@/components/recruitment/EmployeeDetailsDialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { createNotification } from "@/lib/notifications";
@@ -18,7 +19,7 @@ import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  addEvent, employeeNames, fetchCandidate, fetchMasters, fetchOpenings, fmtDateTime, inr, notifyEmployee, notifyOnboarders,
+  addEvent, employeeNames, fetchCandidate, fetchMasters, fetchOpenings, fmtDateTime, inr, missingEmployeeDetails, notifyEmployee, notifyOnboarders,
   openResume, PUNE_HOME_UNIT, QK, recDb, REC_MODULE, stageLabel, stageTone, uploadResume,
   type RecCandidate, type RecInterview, type RecOffer,
 } from "@/lib/recruitment";
@@ -61,6 +62,7 @@ function CandidatePage() {
   const [closeAs, setCloseAs] = useState<"rejected" | "withdrawn" | null>(null);
   const [offerOpen, setOfferOpen] = useState(false);
   const [resched, setResched] = useState<RecInterview | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!c) return <div className="p-6 text-sm text-muted-foreground">Candidate not found or you don't have access.</div>;
@@ -81,6 +83,7 @@ function CandidatePage() {
     return iv ? namesQ.data?.get(iv.interviewer_id) ?? "" : "";
   };
   const closed = ["onboarded", "rejected", "withdrawn", "pending_onboarding"].includes(c.stage);
+  const missing = missingEmployeeDetails(c.employee_details);
 
   async function setStage(stage: string, extra: Partial<RecCandidate> = {}) {
     const { error } = await recDb.from("rec_candidates").update({ stage, ...extra }).eq("id", c!.id);
@@ -215,11 +218,28 @@ function CandidatePage() {
 
       {(c.stage === "hr_approved" || c.stage === "pending_onboarding" || c.stage === "onboarded") && (
         <section className="space-y-3 rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-sm font-semibold">Offer &amp; onboarding</h2>
-            {isRecruiter && c.stage === "hr_approved" && <Button size="sm" onClick={() => setOfferOpen(true)}><Send className="mr-1 h-4 w-4" />Send to HR Head</Button>}
+            <div className="flex flex-wrap gap-2">
+              {isRecruiter && c.stage !== "onboarded" && <Button size="sm" variant="outline" onClick={() => setDetailsOpen(true)}><FileText className="mr-1 h-4 w-4" />{missing.length ? "Fill employee details" : "Edit employee details"}</Button>}
+              {isRecruiter && c.stage === "hr_approved" && <Button size="sm" disabled={missing.length > 0} onClick={() => setOfferOpen(true)}><Send className="mr-1 h-4 w-4" />Send to HR Head</Button>}
+            </div>
           </div>
-          {isRecruiter && c.stage === "hr_approved" && <p className="text-sm text-muted-foreground">All rounds approved. Fill in the offer and send it to the HR Head to onboard.</p>}
+          {isRecruiter && c.stage === "hr_approved" && (
+            <p className="text-sm text-muted-foreground">
+              {missing.length
+                ? `All rounds approved. Fill the employee details first (missing: ${missing.join(", ")}), then send the offer to the HR Head — they only set the salary.`
+                : "Employee details complete. Send the offer to the HR Head — they only set the salary."}
+            </p>
+          )}
+          {c.stage !== "hr_approved" && c.employee_details && Object.keys(c.employee_details).length > 0 && (
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-4">
+              <Item k="Aadhaar" v={String(c.employee_details.aadhaar_number ?? "")} />
+              <Item k="PAN" v={String(c.employee_details.pan_number ?? "")} />
+              <Item k="Blood group" v={String(c.employee_details.blood_group ?? "")} />
+              <Item k="Bank / IFSC" v={[c.employee_details.bank_account_number, c.employee_details.bank_ifsc].filter(Boolean).join(" · ")} />
+            </dl>
+          )}
           {c.offer?.monthly_ctc ? (
             <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-4">
               <Item k="Monthly CTC" v={inr(c.offer.monthly_ctc)} />
@@ -251,6 +271,7 @@ function CandidatePage() {
       {resched && <RescheduleDialog interview={resched} candidate={c} onClose={() => setResched(null)} />}
       {closeAs && <CloseDialog candidate={c} as={closeAs} onClose={() => setCloseAs(null)} />}
       {offerOpen && <OfferDialog candidate={c} openingDefaults={{ designation_id: opening?.designation_id ?? "", department_id: opening?.department_id ?? "", branch_id: opening?.branch_id ?? "" }} masters={mq.data} onClose={() => setOfferOpen(false)} />}
+      {detailsOpen && <EmployeeDetailsDialog candidate={c} onClose={() => setDetailsOpen(false)} />}
     </div>
   );
 }
