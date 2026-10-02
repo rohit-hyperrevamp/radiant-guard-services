@@ -972,6 +972,7 @@ type Candidate = {
   full_name: string;
   photo_url: string;
   aadhaar_image_url: string;
+  aadhaar_back_image_url: string;
   signature_url: string;
   date_of_birth: string | null;
   gender: string;
@@ -6506,6 +6507,7 @@ function emptyForm(): CandidateForm {
     full_name: "",
     photo_url: "",
     aadhaar_image_url: "",
+    aadhaar_back_image_url: "",
     signature_url: "",
     date_of_birth: null,
     gender: "",
@@ -7105,7 +7107,7 @@ function CandidateWizard({
   // ----- File upload helper ----- //
   const uploadFile = async (
     file: File,
-    slot: "photo" | "signature" | "aadhaar" | "pan",
+    slot: "photo" | "signature" | "aadhaar" | "aadhaar_back" | "pan",
   ): Promise<string> => {
     const { blob, ext, contentType } = await prepareUpload(file);
     const path = `${slot}/${form.aadhaar_number || "NEW"}-${Date.now()}.${ext}`;
@@ -7123,7 +7125,7 @@ function CandidateWizard({
     return signed.signedUrl;
   };
 
-  const handleFile = async (file: File | null, slot: "photo" | "signature" | "aadhaar" | "pan") => {
+  const handleFile = async (file: File | null, slot: "photo" | "signature" | "aadhaar" | "aadhaar_back" | "pan") => {
     if (!file) return;
     const isImage = file.type.startsWith("image/");
     const isPdf = file.type === "application/pdf";
@@ -7131,7 +7133,7 @@ function CandidateWizard({
       toast.error("Photograph must be an image");
       return;
     }
-    if ((slot === "aadhaar" || slot === "signature" || slot === "pan") && !isImage && !isPdf) {
+    if ((slot === "aadhaar" || slot === "aadhaar_back" || slot === "signature" || slot === "pan") && !isImage && !isPdf) {
       toast.error("Only image or PDF files are allowed");
       return;
     }
@@ -7141,6 +7143,7 @@ function CandidateWizard({
       if (slot === "photo") set("photo_url", url);
       else if (slot === "signature") set("signature_url", url);
       else if (slot === "pan") set("pan_image_url", url);
+      else if (slot === "aadhaar_back") set("aadhaar_back_image_url", url);
       else set("aadhaar_image_url", url);
       toast.success(`${slot[0].toUpperCase() + slot.slice(1)} uploaded`);
     } catch (e) {
@@ -7207,7 +7210,7 @@ function CandidateWizard({
   // ----- Profile completion meter ----- //
   const completionChecks: Array<{ key: string; ok: boolean }> = [
     { key: "Photograph", ok: !!form.photo_url },
-    { key: "Aadhaar verified / uploaded", ok: digilockerVerified || !!form.aadhaar_image_url },
+    { key: "Aadhaar verified / uploaded", ok: digilockerVerified || (!!form.aadhaar_image_url && !!form.aadhaar_back_image_url) },
     { key: "PAN upload", ok: !!form.pan_image_url },
     { key: "Signature", ok: !!form.signature_url },
     { key: "Full name", ok: !!form.full_name.trim() },
@@ -7263,7 +7266,7 @@ function CandidateWizard({
   const profileComplete = completionDone === completionTotal;
 
   const uploadsComplete =
-    !!form.photo_url && !!form.aadhaar_image_url && !!form.signature_url && !!form.pan_image_url;
+    !!form.photo_url && !!form.aadhaar_image_url && !!form.aadhaar_back_image_url && !!form.signature_url && !!form.pan_image_url;
 
   // ----- Build payload helper ----- //
   const buildPayload = (status: string) => {
@@ -7664,7 +7667,7 @@ function CandidateWizard({
     setSaveError(null);
     if (!isEditingEmployeeProfile) {
       if (!form.photo_url) return failValidation("Photograph is required");
-      if (!digilockerVerified && !form.aadhaar_image_url)
+      if (!digilockerVerified && (!form.aadhaar_image_url || !form.aadhaar_back_image_url))
         return failValidation(
           verificationEnabled
             ? "Verify the Aadhaar via DigiLocker, or upload an Aadhaar copy"
@@ -7904,7 +7907,8 @@ function CandidateWizard({
     }
     if (key === "uploads") {
       if (!form.photo_url) return "Upload the photograph";
-      if (!form.aadhaar_image_url) return "Upload the Aadhaar card";
+      if (!form.aadhaar_image_url) return "Upload the Aadhaar card (front)";
+      if (!form.aadhaar_back_image_url) return "Upload the Aadhaar card (back)";
       if (!form.pan_image_url) return "Upload the PAN card";
       if (!form.signature_url) return "Upload the signature";
       return null;
@@ -9766,12 +9770,20 @@ function CandidateWizard({
                           uploading={uploading === "photo"}
                         />
                         <UploadTile
-                          label="Aadhaar Card"
+                          label="Aadhaar Card (Front)"
                           required={!digilockerVerified}
                           url={form.aadhaar_image_url}
                           accept="image/*,application/pdf"
                           onPick={(f) => handleFile(f, "aadhaar")}
                           uploading={uploading === "aadhaar"}
+                        />
+                        <UploadTile
+                          label="Aadhaar Card (Back)"
+                          required={!digilockerVerified}
+                          url={form.aadhaar_back_image_url}
+                          accept="image/*,application/pdf"
+                          onPick={(f) => handleFile(f, "aadhaar_back")}
+                          uploading={uploading === "aadhaar_back"}
                         />
                         <UploadTile
                           label="PAN Card"
