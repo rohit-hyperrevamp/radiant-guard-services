@@ -385,17 +385,17 @@ function OfferDialog({ candidate, openingDefaults, masters, onClose }: { candida
     setBusy(true);
     try {
       const offer: RecOffer = { ...f, monthly_ctc: Number(f.monthly_ctc), monthly_gross: Number(f.monthly_gross || 0), unit_id: PUNE_HOME_UNIT };
-      const { error: e1 } = await recDb.from("rec_candidates").update({ offer, stage: "pending_onboarding" }).eq("id", candidate.id);
-      if (e1) throw e1;
-      const { error: e2 } = await recDb.from("rec_onboarding_requests").insert({ candidate_id: candidate.id, offer });
-      if (e2) throw e2;
-      await addEvent(candidate.id, "sent_to_hr_head", `Offer ${inr(offer.monthly_ctc)} / month, joining ${offer.joining_date}`);
+      const { error } = await recDb.rpc("rec_send_to_hr_head", { _candidate_id: candidate.id, _offer: offer });
+      if (error) throw error;
       void logActivity({ module: REC_MODULE, action: "submit", entityType: "rec_onboarding_requests", entityId: candidate.id, entityLabel: candidate.code, details: { offer } });
-      void notifyOnboarders("Candidate ready to onboard", `${candidate.full_name} (${candidate.code}) is waiting for onboarding.`, "/admin/hr/recruitment/onboarding");
+      void notifyOnboarders("Set up salary & onboard", `${candidate.full_name} (${candidate.code}) — offer ${inr(offer.monthly_ctc)}/month, joining ${offer.joining_date}.`, "/admin/hr/recruitment/onboarding");
       await qc.invalidateQueries({ queryKey: ["rec"] });
-      toast.success("Sent to HR Head");
+      toast.success("Sent to HR Head for salary set-up and onboarding");
       onClose();
-    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+    } catch (e) {
+      const err = e as { message?: string; details?: string };
+      toast.error(err?.message || err?.details || "Could not send to HR Head");
+    } finally { setBusy(false); }
   }
   const sel = (k: "designation_id" | "department_id" | "branch_id", items: { id: string; name: string }[]) => (
     <Select value={f[k] || "none"} onValueChange={(v) => setF({ ...f, [k]: v === "none" ? "" : v })}>

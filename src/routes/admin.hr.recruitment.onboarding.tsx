@@ -47,9 +47,17 @@ function OnboardingQueue() {
       if (error) throw error;
       void logActivity({ module: REC_MODULE, action: "onboard", entityType: "rec_onboarding_requests", entityId: r.id, entityLabel: `${r.rec_candidates?.full_name ?? ""} → ${data}` });
       if (r.requested_by) void createNotification({ userId: r.requested_by, type: "recruitment", title: "Candidate onboarded", message: `${r.rec_candidates?.full_name} onboarded as employee ${data}.`, link: `/admin/hr/recruitment/candidates/${r.candidate_id}` }).catch(() => undefined);
-      toast.success(`Onboarded — employee ID ${data}`);
+      const doj = r.offer?.joining_date;
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      toast.success(`Employee ID ${data} created — ${doj && doj > today ? `goes live on ${doj}` : "live now"}. Set up the salary next.`);
       await qc.invalidateQueries({ queryKey: ["rec"] });
-    } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+      const { data: emp } = await recDb.from("rec_onboarding_requests").select("employee_candidate_id").eq("id", r.id).maybeSingle();
+      const empId = (emp as { employee_candidate_id?: string } | null)?.employee_candidate_id;
+      if (empId) void navigate({ to: "/admin/employees", search: { tab: "employee", edit: empId } });
+    } catch (e) {
+      const err = e as { message?: string; details?: string };
+      toast.error(err?.message || err?.details || "Could not onboard");
+    } finally { setBusy(null); }
   }
 
   return (
