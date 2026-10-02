@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import favicon from "../assets/radiant-logo-v2.png";
 import { Button } from "@/components/ui/button";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
+import { Toaster } from "@/components/ui/sonner";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
@@ -406,6 +407,7 @@ function RootComponent() {
           <Outlet />
           <NativeAppLock />
           <ExportChooser />
+          <Toaster richColors position="top-center" />
         </ConfirmProvider>
       </LanguageProvider>
     </QueryClientProvider>

@@ -154,7 +154,7 @@ import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-e
 import { CopyableId } from "@/components/CopyableId";
 import { fetchAllPages } from "@/lib/supabase-batch";
 
-type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string };
+type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string; edit?: string };
 
 const EMPTY_WAGE: ContractResource = {
   designationId: "",
@@ -913,6 +913,7 @@ export const Route = createFileRoute("/admin/employees")({
   validateSearch: (search: Record<string, unknown>): EmployeesSearch => ({
     tab: search.tab === "candidate" || search.tab === "employee" ? search.tab : undefined,
     rehire: typeof search.rehire === "string" ? search.rehire : undefined,
+    edit: typeof search.edit === "string" ? search.edit : undefined,
   }),
   head: () => ({
     meta: [
@@ -3967,6 +3968,15 @@ function EmployeesPage() {
       setOpeningCandidateId(null);
     }
   };
+
+  const openedFromSearchRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = routeSearch.edit;
+    if (!id || openedFromSearchRef.current === id) return;
+    openedFromSearchRef.current = id;
+    void openEditor(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSearch.edit]);
 
   const renderRows = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
     const empCols = 4 + Object.values(columnsVisible).filter(Boolean).length;
