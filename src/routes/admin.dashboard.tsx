@@ -69,6 +69,7 @@ import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
+import { cn } from "@/lib/utils";
 
 type ContractExpiringRow = {
   id: string;
@@ -211,7 +212,10 @@ type PnLRow = {
   customer_name: string;
   contract_value: number;
   invoice_amount: number;
+  /** Gross wages earned from attendance for this payroll window. */
   payroll_cost: number;
+  /** Employer-side statutory and contractual costs earned for this window. */
+  employer_contribution: number;
   variance: number;
   variance_pct: number;
   /** Full-month contracted payroll cost (components + ER + benefits) × headcount. */
@@ -448,8 +452,9 @@ function DashboardPage() {
       !opsFocus &&
       !lightMode &&
       (can("payroll") || can("invoice") || can("contracts")),
-    staleTime: 5 * 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -603,6 +608,7 @@ function DashboardPage() {
       for (let i = 0; i < unitIdList.length; i += 200) chunks.push(unitIdList.slice(i, i + 200));
       const approvedUnits = new Set<string>();
       const postedPayroll = new Map<string, number>();
+      const postedEmployerContribution = new Map<string, number>();
       const finalInvoiceByUnit = new Map<string, number>();
       await Promise.all(
         chunks.map(async (ids) => {
@@ -638,6 +644,11 @@ function DashboardPage() {
               postedPayroll.set(
                 s.unit_id,
                 (postedPayroll.get(s.unit_id) ?? 0) + (Number(s.gross) || 0),
+              );
+              postedEmployerContribution.set(
+                s.unit_id,
+                (postedEmployerContribution.get(s.unit_id) ?? 0) +
+                  (Number(s.total_employer) || 0),
               );
             }
           }
@@ -770,6 +781,7 @@ function DashboardPage() {
         // Actuals: duty totals already aggregated per employee × designation.
         let invoiceAmount = 0;
         let payrollCost = 0;
+        let employerContribution = 0;
         for (const p of pairsByUnit.get(u.unit_id) ?? []) {
           const resRow = resMap.get(p.designation_id);
           if (!resRow) continue;
@@ -830,13 +842,17 @@ function DashboardPage() {
           }
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += wages.earnedGross;
+          employerContribution += wages.totalEmployerContributions;
         }
 
         if (!isInternal) invoiceAmount = round2(invoiceAmount + (extrasByUnit.get(u.unit_id) ?? 0));
         if (!isInternal && finalInvoiceByUnit.has(u.unit_id))
           invoiceAmount = finalInvoiceByUnit.get(u.unit_id)!;
-        if (postedPayroll.has(u.unit_id)) payrollCost = postedPayroll.get(u.unit_id)!;
-        const variance = invoiceAmount - payrollCost;
+        const postedGross = postedPayroll.get(u.unit_id);
+        if (postedGross != null) payrollCost = postedGross;
+        const postedEmployer = postedEmployerContribution.get(u.unit_id);
+        if (postedEmployer != null) employerContribution = postedEmployer;
+        const variance = invoiceAmount - payrollCost - employerContribution;
         pnlByUnit.set(u.unit_id, {
           unit_id: u.unit_id,
           unit_code: u.unit_code,
@@ -845,6 +861,7 @@ function DashboardPage() {
           contract_value: contractValue,
           invoice_amount: invoiceAmount,
           payroll_cost: payrollCost,
+          employer_contribution: employerContribution,
           variance,
           variance_pct: invoiceAmount > 0 ? (variance / invoiceAmount) * 100 : 0,
           internal: isInternal,
@@ -863,8 +880,9 @@ function DashboardPage() {
           contract: s.contract + r.contract_value,
           invoice: s.invoice + r.invoice_amount,
           payroll: s.payroll + r.payroll_cost,
+          employer: s.employer + r.employer_contribution,
         }),
-        { contract: 0, invoice: 0, payroll: 0 },
+        { contract: 0, invoice: 0, payroll: 0, employer: 0 },
       );
 
       return { pnlRows, pnlTotals };
@@ -926,7 +944,7 @@ function DashboardPage() {
       ...countsQuery.data,
       ...(scopedCountsQuery.data ?? {}),
       pnlRows: pnlQuery.data?.pnlRows ?? ([] as PnLRow[]),
-      pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0 },
+      pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0, employer: 0 },
     };
   }, [countsQuery.data, scopedCountsQuery.data, pnlQuery.data]);
 
@@ -1341,8 +1359,10 @@ function DashboardPage() {
     actual_strength: r.actual_strength,
     committed_payroll: r.committed_payroll,
     actual_payroll: r.payroll_cost,
+    actual_employer_contribution: r.employer_contribution,
     committed_invoice: canSeeCommercial ? r.contract_value : 0,
     actual_invoice: canSeeCommercial ? r.invoice_amount : 0,
+    attendance_open: !r.attendance_approved,
   }));
 
   return (
@@ -1601,7 +1621,7 @@ function MetricTile({
     <Shell to={to} search={search} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
         </div>
         <span
@@ -1638,7 +1658,7 @@ function DualTile({
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
         </div>
         <div className="min-w-0 max-w-[58%] flex flex-col items-end overflow-hidden text-right">
@@ -1693,37 +1713,37 @@ function StatusTile({
         className={`relative mt-auto grid min-w-0 gap-1.5 pb-2 sm:gap-3 sm:pb-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div className="min-w-0">
-          <div className="whitespace-nowrap font-display text-[24px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
             {approved}
           </div>
-          <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
+          <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
             {approvedLabel}
           </div>
         </div>
         <div className="min-w-0">
-          <div className="whitespace-nowrap font-display text-[24px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
             {pending}
           </div>
-          <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
+          <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
             {pendingLabel}
           </div>
         </div>
         {middle && (
           <div className="min-w-0">
-            <div className="whitespace-nowrap font-display text-[24px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
               {middle.value}
             </div>
-            <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
+            <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
               {middle.label}
             </div>
           </div>
         )}
         {open != null && (
           <div className="min-w-0">
-            <div className="whitespace-nowrap font-display text-[24px] font-medium tabular-nums leading-none text-foreground sm:text-[26px]">
+            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
               {open}
             </div>
-            <div className="mt-0.5 truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.1em]">
+            <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
               {openLabel}
             </div>
           </div>
@@ -1779,7 +1799,7 @@ function ContractsTile({
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
         </div>
         <div

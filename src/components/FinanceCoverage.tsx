@@ -56,6 +56,7 @@ export type UnitFinanceRow = {
   actual_strength: number;
   committed_payroll: number;
   actual_payroll: number;
+  actual_employer_contribution: number;
   committed_invoice: number;
   actual_invoice: number;
   /** Attendance still open for the window — invoice/payroll not ready. */
@@ -127,7 +128,7 @@ function Tile({
       </div>
       <div
         className={cn(
-          "mt-1 whitespace-nowrap text-lg font-semibold whitespace-nowrap tabular-nums",
+          "mt-1 min-w-0 truncate text-base font-semibold tabular-nums xl:text-lg",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
@@ -512,7 +513,7 @@ export function InvoiceCoverageCard({ rows }: { rows: UnitFinanceRow[] }) {
   );
 }
 
-/** Unit-wise P&L: contracted MTD, actual invoice, actual payroll, profitability. */
+/** Unit-wise P&L from live attendance: invoice, earned gross, employer cost and profitability. */
 export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] }) {
   const [query, setQuery] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
@@ -564,11 +565,16 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   const totals = useMemo(() => {
     const ready = scopedRows.filter((r) => !r.attendance_open);
     const invoice = ready.reduce((s, r) => s + r.actual_invoice, 0);
-    const payroll = ready.reduce((s, r) => s + r.actual_payroll, 0);
-    const profit = invoice - payroll;
+    const earnedGross = ready.reduce((s, r) => s + r.actual_payroll, 0);
+    const employerContribution = ready.reduce(
+      (s, r) => s + r.actual_employer_contribution,
+      0,
+    );
+    const profit = invoice - earnedGross - employerContribution;
     return {
       invoice,
-      payroll,
+      earnedGross,
+      employerContribution,
       profit,
       margin: invoice > 0 ? (profit / invoice) * 100 : 0,
       ready: ready.length,
@@ -586,7 +592,9 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         )
       : scopedRows;
     const val = (r: UnitFinanceRow) =>
-      r.attendance_open ? -Infinity : r.actual_invoice - r.actual_payroll;
+      r.attendance_open
+        ? -Infinity
+        : r.actual_invoice - r.actual_payroll - r.actual_employer_contribution;
     return [...list].sort((a, b) => val(b) - val(a));
   }, [scopedRows, query]);
 
@@ -602,8 +610,17 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         Unit: r.unit_name,
         Organisation: r.customer_name,
         Invoice: r.attendance_open ? "##" : Math.round(r.actual_invoice),
-        Payroll: r.attendance_open ? "##" : Math.round(r.actual_payroll),
-        Profitability: r.attendance_open ? "##" : Math.round(r.actual_invoice - r.actual_payroll),
+        "Earned Gross": r.attendance_open ? "##" : Math.round(r.actual_payroll),
+        "Employer Contribution": r.attendance_open
+          ? "##"
+          : Math.round(r.actual_employer_contribution),
+        Profitability: r.attendance_open
+          ? "##"
+          : Math.round(r.actual_invoice - r.actual_payroll - r.actual_employer_contribution),
+        Margin:
+          r.attendance_open || r.actual_invoice <= 0
+            ? "##"
+            : `${(((r.actual_invoice - r.actual_payroll - r.actual_employer_contribution) / r.actual_invoice) * 100).toFixed(1)}%`,
         Status: r.attendance_open ? "Attendance open" : "Ready",
       })),
     );
@@ -617,7 +634,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           </div>
           <h2 className="text-base font-semibold">Client Profitability</h2>
           <p className="text-xs text-muted-foreground">
-            Invoice and payroll for the selected payroll window. Sites with attendance still open show ##.
+            Live unit-level invoice, earned gross and employer contribution for the selected payroll window. Sites with attendance still open show ##.
           </p>
         </div>
         <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
@@ -626,19 +643,26 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         </Button>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <Tile
-          label="Invoice amount"
+          label="Invoice"
           value={fmtINR(totals.invoice)}
           sub={`${totals.ready} site${totals.ready === 1 ? "" : "s"} ready`}
           icon={Receipt}
           tone="accent"
         />
         <Tile
-          label="Payroll"
-          value={fmtINR(totals.payroll)}
-          sub="Generated payroll"
+          label="Earned gross"
+          value={fmtINR(totals.earnedGross)}
+          sub="Gross earned from attendance"
           icon={Wallet}
+          tone="accent"
+        />
+        <Tile
+          label="Employer contribution"
+          value={fmtINR(totals.employerContribution)}
+          sub="Employer-side cost"
+          icon={Banknote}
           tone="accent"
         />
         <Tile
@@ -649,11 +673,11 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           tone={totals.profit < 0 ? "destructive" : "success"}
         />
         <Tile
-          label="Attendance open"
-          value={String(totals.open)}
-          sub="Sites not yet ready — shown as ##"
+          label="Margin"
+          value={`${totals.margin.toFixed(1)}%`}
+          sub={`${totals.open} site${totals.open === 1 ? "" : "s"} awaiting attendance`}
           icon={Gauge}
-          tone={totals.open > 0 ? "warning" : "success"}
+          tone={totals.margin < 0 ? "destructive" : "success"}
         />
       </div>
 
@@ -698,12 +722,13 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       </div>
 
       <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left font-semibold">Client</th>
               <th className="px-3 py-2 text-right font-semibold">Invoice</th>
-              <th className="px-3 py-2 text-right font-semibold">Payroll</th>
+              <th className="px-3 py-2 text-right font-semibold">Earned Gross</th>
+              <th className="px-3 py-2 text-right font-semibold">Employer Contribution</th>
               <th className="px-3 py-2 text-right font-semibold">Profitability</th>
               <th className="px-3 py-2 text-right font-semibold">Margin</th>
             </tr>
@@ -711,13 +736,14 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
                   No units to report for this cycle.
                 </td>
               </tr>
             )}
             {paged.pageRows.map((r) => {
-              const profit = r.actual_invoice - r.actual_payroll;
+              const profit =
+                r.actual_invoice - r.actual_payroll - r.actual_employer_contribution;
               const margin = r.actual_invoice > 0 ? (profit / r.actual_invoice) * 100 : 0;
               if (r.attendance_open) {
                 return (
@@ -726,6 +752,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
                       <div className="font-medium">{r.unit_name}</div>
                       <div className="text-[11px] text-muted-foreground">{r.customer_name}</div>
                     </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">##</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">##</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">##</td>
                     <td colSpan={2} className="px-3 py-2 text-right">
@@ -750,6 +777,9 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
                     {fmtINR(r.actual_payroll)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                    {fmtINR(r.actual_employer_contribution)}
                   </td>
                   <td
                     className={cn(
