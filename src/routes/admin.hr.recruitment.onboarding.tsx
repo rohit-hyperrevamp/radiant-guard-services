@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ type Row = RecOnboarding & { rec_candidates: RecCandidate | null; requested_by?:
 
 function OnboardingQueue() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const q = useQuery({ queryKey: QK.onboarding, queryFn: fetchOnboarding });
   const mq = useQuery({ queryKey: QK.masters, queryFn: fetchMasters, staleTime: 600_000 });
   const [tab, setTab] = useState<"pending" | "done">("pending");
@@ -62,7 +63,7 @@ function OnboardingQueue() {
 
   return (
     <div className="space-y-4">
-      <PageHeader eyebrow="Recruitment" title="Onboarding Requests" description="Review the offer and onboard. The employee ID is generated automatically." icon={BadgeCheck} />
+      <PageHeader eyebrow="Recruitment" title="Onboarding Requests" description="Review the offer, onboard and set up the salary. The employee ID is generated automatically and the person goes live on the joining date." icon={BadgeCheck} />
       <div className="flex gap-2">
         {(["pending", "done"] as const).map((t) => <Button key={t} size="sm" variant={tab === t ? "default" : "outline"} onClick={() => { setTab(t); setPage(0); }}>{t === "pending" ? "Pending" : "Decided"}</Button>)}
       </div>
@@ -83,7 +84,7 @@ function OnboardingQueue() {
                   {r.status === "pending" ? (
                     <>
                       <Button size="sm" variant="outline" onClick={() => setSendBack(r)}>Send back</Button>
-                      <Button size="sm" disabled={busy === r.id} onClick={() => onboard(r)}>{busy === r.id ? "Onboarding…" : "Onboard"}</Button>
+                      <Button size="sm" disabled={busy === r.id} onClick={() => onboard(r)}>{busy === r.id ? "Onboarding…" : "Onboard & set up salary"}</Button>
                     </>
                   ) : r.status === "onboarded" && r.employee_candidate_id ? (
                     <Link to="/admin/candidates/$id/details" params={{ id: r.employee_candidate_id }} className="self-center text-sm font-medium text-accent">Onboarded · open employee →</Link>

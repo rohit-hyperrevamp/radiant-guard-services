@@ -154,7 +154,7 @@ import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-e
 import { CopyableId } from "@/components/CopyableId";
 import { fetchAllPages } from "@/lib/supabase-batch";
 
-type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string };
+type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string; edit?: string };
 
 const EMPTY_WAGE: ContractResource = {
   designationId: "",
@@ -913,6 +913,7 @@ export const Route = createFileRoute("/admin/employees")({
   validateSearch: (search: Record<string, unknown>): EmployeesSearch => ({
     tab: search.tab === "candidate" || search.tab === "employee" ? search.tab : undefined,
     rehire: typeof search.rehire === "string" ? search.rehire : undefined,
+    edit: typeof search.edit === "string" ? search.edit : undefined,
   }),
   head: () => ({
     meta: [
