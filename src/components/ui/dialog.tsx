@@ -225,6 +225,13 @@ const DialogContent = React.forwardRef<
             className,
           )}
           {...props}
+          onInteractOutside={(e) => {
+            // Clicking the shared "Save these changes?" prompt must not close the form behind it,
+            // otherwise the confirmed action re-clicks a button that no longer exists.
+            const t = e.target as HTMLElement | null;
+            if (t?.closest?.("[role='alertdialog']")) e.preventDefault();
+            props.onInteractOutside?.(e);
+          }}
         >
           {children}
           <DialogPrimitive.Close data-dialog-close className="absolute right-2.5 top-[max(0.625rem,env(safe-area-inset-top))] z-10 grid h-10 w-10 place-items-center rounded-full border border-border/70 bg-card text-foreground shadow-sm ring-offset-background transition hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none sm:right-3 sm:top-3 sm:h-8 sm:w-8">
