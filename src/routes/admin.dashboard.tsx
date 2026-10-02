@@ -69,6 +69,7 @@ import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
+import { cn } from "@/lib/utils";
 
 type ContractExpiringRow = {
   id: string;
