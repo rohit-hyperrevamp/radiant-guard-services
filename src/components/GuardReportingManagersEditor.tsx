@@ -33,6 +33,7 @@ export function GuardReportingManagersEditor({
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [foSearch, setFoSearch] = useState("");
   const { isFieldOfficer, isSuperAdmin, candidateId: myCandidateId } = useCurrentUserRole();
   // A field officer onboards only into their own units, so they are the
   // reporting manager by default and cannot pick other officers.
@@ -230,11 +231,24 @@ export function GuardReportingManagersEditor({
 
       {open && (
         <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
-          <div className="max-h-56 overflow-y-auto rounded-md border border-border/60 bg-background/70 p-1">
+          <input
+            type="search"
+            value={foSearch}
+            onChange={(e) => setFoSearch(e.target.value)}
+            placeholder={`Search ${officers.length} field officers by name, ID or phone…`}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          <div className="max-h-96 overflow-y-auto rounded-md border border-border/60 bg-background/70 p-1">
             {officers.length === 0 && !loadingOfficers && (
               <div className="p-3 text-xs text-muted-foreground">No active Field Officers found.</div>
             )}
-            {officers.map((o) => {
+            {officers
+              .filter((o) => {
+                const q = foSearch.trim().toLowerCase();
+                if (!q) return true;
+                return [o.full_name, o.employee_code, o.mobile].some((v) => (v ?? "").toLowerCase().includes(q));
+              })
+              .map((o) => {
               const checked = pendingIds.has(o.id);
               return (
                 <label
