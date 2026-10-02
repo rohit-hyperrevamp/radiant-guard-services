@@ -39,13 +39,27 @@ export function GuardReportingManagersEditor({
   // reporting manager by default and cannot pick other officers.
   const selfOnly = isFieldOfficer && !isSuperAdmin && !!myCandidateId;
 
+  // Any active employee can be a reporting manager (admin staff report within
+  // admin, guards to field officers, etc.), so load everyone, not just FOs.
   const { data: allOfficers = [], isLoading: loadingOfficers } = useQuery({
-    queryKey: ["active-field-officers"],
+    queryKey: ["all-active-employees-as-managers"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("list_active_field_officers" as never);
-      if (error) throw error;
-      return (data as FieldOfficerRow[]) ?? [];
+      const rows: FieldOfficerRow[] = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("candidates" as never)
+          .select("id,full_name,employee_code,mobile")
+          .eq("status", "active")
+          .order("full_name", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        rows.push(...((data as FieldOfficerRow[]) ?? []));
+        if (!data || data.length < pageSize) break;
+      }
+      return rows;
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const officers = useMemo(
@@ -184,7 +198,7 @@ export function GuardReportingManagersEditor({
             <div className="text-[11px] text-muted-foreground">
               {selfOnly
                 ? "You are the reporting manager for candidates you onboard."
-                : "Field Officers this guard reports to. Multiple allowed for guards covering more than one unit."}
+                : "People this employee reports to. Any active employee can be picked; multiple allowed."}
             </div>
           </div>
         </div>
@@ -235,12 +249,12 @@ export function GuardReportingManagersEditor({
             type="search"
             value={foSearch}
             onChange={(e) => setFoSearch(e.target.value)}
-            placeholder={`Search ${officers.length} field officers by name, ID or phone…`}
+            placeholder={`Search ${officers.length} employees by name, ID or phone…`}
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
           <div className="max-h-96 overflow-y-auto rounded-md border border-border/60 bg-background/70 p-1">
             {officers.length === 0 && !loadingOfficers && (
-              <div className="p-3 text-xs text-muted-foreground">No active Field Officers found.</div>
+              <div className="p-3 text-xs text-muted-foreground">No active employees found.</div>
             )}
             {officers
               .filter((o) => {
