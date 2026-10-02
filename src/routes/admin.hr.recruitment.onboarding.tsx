@@ -31,11 +31,11 @@ function OnboardingQueue() {
   const navigate = useNavigate();
   const q = useQuery({ queryKey: QK.onboarding, queryFn: fetchOnboarding });
   const mq = useQuery({ queryKey: QK.masters, queryFn: fetchMasters, staleTime: 600_000 });
-  const [tab, setTab] = useState<"pending" | "done">("pending");
+  const tab = "pending" as const;
   const [page, setPage] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [sendBack, setSendBack] = useState<Row | null>(null);
-  const rows = ((q.data ?? []) as Row[]).filter((r) => tab === "pending" ? r.status === "pending" : r.status !== "pending");
+  const rows = ((q.data ?? []) as Row[]).filter((r) => tab === "pending" ? r.status === "pending" : true);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const namesQ = useQuery({ queryKey: ["rec", "onb-names", pageRows.map((r) => r.offer?.reports_to ?? "").join(",")], queryFn: () => employeeNames(pageRows.map((r) => r.offer?.reports_to ?? "")) });
@@ -64,9 +64,6 @@ function OnboardingQueue() {
   return (
     <div className="space-y-4">
       <PageHeader eyebrow="Recruitment" title="Onboarding Requests" description="Review the offer, onboard and set up the salary. The employee ID is generated automatically and the person goes live on the joining date." icon={BadgeCheck} />
-      <div className="flex gap-2">
-        {(["pending", "done"] as const).map((t) => <Button key={t} size="sm" variant={tab === t ? "default" : "outline"} onClick={() => { setTab(t); setPage(0); }}>{t === "pending" ? "Pending" : "Decided"}</Button>)}
-      </div>
       {q.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!q.isLoading && pageRows.length === 0 && <p className="text-sm text-muted-foreground">No requests.</p>}
       <div className="space-y-3">

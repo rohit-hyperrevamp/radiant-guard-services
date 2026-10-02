@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BadgeCheck, CalendarClock, UsersRound } from "lucide-react";
+import { CalendarClock, UsersRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchMyInterviews, fetchOnboarding, fmtDateTime, inr, QK } from "@/lib/recruitment";
+import { fetchMyInterviews, fetchOnboarding, fmtDateTime, QK } from "@/lib/recruitment";
 
 type RecruitmentSummary = {
   pipeline: number;
@@ -25,15 +25,12 @@ type RecruitmentSummary = {
 
 export function MyUpcomingInterviewsCard() {
   return (
-    <div className="space-y-4 empty:hidden">
-      <PendingOnboardingCard />
-      <InterviewsCard />
-    </div>
+    <InterviewsCard />
   );
 }
 
-/** Recruits sent to the HR Head, waiting for onboarding + salary setup. Only shown to people allowed to onboard. */
-function PendingOnboardingCard() {
+/** Count of recruits waiting for onboarding + salary — only for people allowed to onboard (else 0). */
+export function usePendingOnboardingCount() {
   const canQ = useQuery({
     queryKey: ["rec", "can-onboard"],
     queryFn: async () => {
@@ -43,30 +40,7 @@ function PendingOnboardingCard() {
     staleTime: 300_000,
   });
   const q = useQuery({ queryKey: QK.onboarding, queryFn: fetchOnboarding, enabled: canQ.data === true });
-  const rows = (q.data ?? []).filter((r) => r.status === "pending");
-  if (!canQ.data || rows.length === 0) return null;
-  return (
-    <section className="overflow-hidden rounded-2xl border border-primary/40 bg-card/80">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-semibold"><BadgeCheck className="h-4 w-4 text-primary" />New joiners · set up salary &amp; onboard ({rows.length})</div>
-        <Link to="/admin/hr/recruitment/onboarding" className="text-xs font-semibold text-accent hover:underline">View all</Link>
-      </div>
-      <div className="divide-y divide-border/60">
-        {rows.slice(0, 6).map((r) => {
-          const o = (r.offer ?? {}) as { monthly_ctc?: number; joining_date?: string };
-          return (
-            <Link key={r.id} to="/admin/hr/recruitment/onboarding" className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-accent/5">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{r.rec_candidates?.full_name ?? "Candidate"} <span className="text-xs font-normal text-muted-foreground">{r.rec_candidates?.code}</span></div>
-                <div className="mt-0.5 text-xs text-muted-foreground">Offer {o.monthly_ctc ? inr(o.monthly_ctc) : "—"}/month · joining <span className="font-semibold text-foreground">{o.joining_date ?? "—"}</span> · sent {fmtDateTime(r.created_at)}</div>
-              </div>
-              <span className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Onboard &amp; set up salary</span>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
+  return canQ.data ? (q.data ?? []).filter((r) => r.status === "pending").length : 0;
 }
 
 function InterviewsCard() {

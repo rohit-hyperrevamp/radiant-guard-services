@@ -32,7 +32,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
 import { UnitAttendanceCoverage } from "@/components/UnitAttendanceCoverage";
 import { DashboardShell } from "@/components/LiveFeed";
-import { MyUpcomingInterviewsCard } from "@/components/recruitment/RecruitmentDashboardCards";
+import { MyUpcomingInterviewsCard as InterviewsOnlyCard, usePendingOnboardingCount } from "@/components/recruitment/RecruitmentDashboardCards";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
@@ -1522,6 +1522,21 @@ function Shell({
     >
       {children}
     </Link>
+  );
+}
+
+/** Dashboard-wide action strip: a "Pending onboarding" tile (when any) plus assigned interviews. */
+function MyUpcomingInterviewsCard() {
+  const pending = usePendingOnboardingCount();
+  return (
+    <div className="space-y-4 empty:hidden">
+      {pending > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <MetricTile icon={UserPlus} label="Pending onboarding" sub="Set up salary & onboard" value={pending} accent="rose" to="/admin/hr/recruitment/onboarding" />
+        </div>
+      )}
+      <InterviewsOnlyCard />
+    </div>
   );
 }
 
