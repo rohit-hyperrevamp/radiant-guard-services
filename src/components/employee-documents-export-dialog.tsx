@@ -68,7 +68,8 @@ function collectDocs(row: Record<string, any>): DocItem[] {
     if (typeof url === "string" && /^https?:\/\//i.test(url)) out.push({ label, url });
   };
   push("Photograph", row.photo_url);
-  push("Aadhaar card image", row.aadhaar_image_url);
+  push("Aadhaar card front", row.aadhaar_image_url);
+  push("Aadhaar card back", row.aadhaar_back_image_url);
   push("PAN card image", row.pan_image_url);
   push("Signature", row.signature_url);
   const proofs = Array.isArray(row.identification_proofs) ? row.identification_proofs : [];
@@ -233,7 +234,7 @@ export function EmployeeDocumentsExportDialog({
         const { data, error } = await supabase
           .from("candidates" as never)
           .select(
-            "id,full_name,employee_code,candidate_code,mobile,email,aadhaar_number,pan_number,photo_url,aadhaar_image_url,pan_image_url,signature_url,identification_proofs,documents,offboarding_details,offboarded_at,status,is_enabled,unit_id,designation_id,role_key,reports_to",
+            "id,full_name,employee_code,candidate_code,mobile,email,aadhaar_number,pan_number,photo_url,aadhaar_image_url,aadhaar_back_image_url,pan_image_url,signature_url,identification_proofs,documents,offboarding_details,offboarded_at,status,is_enabled,unit_id,designation_id,role_key,reports_to",
           )
           .in("id", ids.slice(i, i + 200));
         if (error) throw error;

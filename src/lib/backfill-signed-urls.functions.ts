@@ -43,12 +43,12 @@ export const backfillSignedUrls = createServerFn({ method: "POST" })
     };
 
     // ---- candidates ----
-    const cRes = await admin.from("candidates").select("id, photo_url, aadhaar_image_url, signature_url, pan_image_url");
+    const cRes = await admin.from("candidates").select("id, photo_url, aadhaar_image_url, aadhaar_back_image_url, signature_url, pan_image_url");
     if (cRes.error) throw new Error(cRes.error.message);
     for (const row of cRes.data ?? []) {
       report.candidates.scanned++;
       const update: Record<string, string> = {};
-      for (const field of ["photo_url", "aadhaar_image_url", "signature_url", "pan_image_url"]) {
+      for (const field of ["photo_url", "aadhaar_image_url", "aadhaar_back_image_url", "signature_url", "pan_image_url"]) {
         const url = row[field] as string | null;
         const path = url ? extractPath(url, "candidate-files") : null;
         if (!path) continue;

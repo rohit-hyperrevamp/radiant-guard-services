@@ -886,7 +886,8 @@ export function IdentificationSection({ form, set, setSection, hideWeapon = fals
   const weapon = form.other_info?.weapon_license ?? { has_weapon: false, uan: "", number: "", valid_until: "", valid_area: "" };
   const uploaded = [
     { label: "Photo", url: form.photo_url },
-    { label: "Aadhaar Card", url: form.aadhaar_image_url, number: form.aadhaar_number },
+    { label: "Aadhaar (Front)", url: form.aadhaar_image_url, number: form.aadhaar_number },
+    { label: "Aadhaar (Back)", url: form.aadhaar_back_image_url },
     { label: "PAN Card", url: form.pan_image_url, number: form.pan_number },
     { label: "Signature", url: form.signature_url },
   ];

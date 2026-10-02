@@ -669,6 +669,7 @@ export type Database = {
       candidates: {
         Row: {
           aadhaar_image_url: string
+          aadhaar_back_image_url: string | null
           aadhaar_number: string
           alt_mobile: string
           application_date: string
@@ -761,6 +762,7 @@ export type Database = {
         }
         Insert: {
           aadhaar_image_url?: string
+          aadhaar_back_image_url?: string | null
           aadhaar_number?: string
           alt_mobile?: string
           application_date?: string
@@ -853,6 +855,7 @@ export type Database = {
         }
         Update: {
           aadhaar_image_url?: string
+          aadhaar_back_image_url?: string | null
           aadhaar_number?: string
           alt_mobile?: string
           application_date?: string
