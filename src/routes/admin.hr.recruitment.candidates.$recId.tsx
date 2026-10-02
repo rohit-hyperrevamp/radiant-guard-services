@@ -71,7 +71,15 @@ function CandidatePage() {
   const hasScheduledNext = interviews.some((i) => i.round_no === nextRound && i.status === "scheduled");
   const canSchedule = ACTIVE_FOR_SCHEDULE.includes(c.stage) && nextRound <= c.total_rounds && !hasScheduledNext;
   const refresh = () => qc.invalidateQueries({ queryKey: ["rec"] });
-  const current = interviews.find((i) => i.status === "scheduled" && (isRecruiter || i.interviewer_id === meQ.data));
+  // Only the assigned interviewer decides a round; recruiters may only reschedule/cancel.
+  const current = interviews.find((i) => i.status === "scheduled" && i.interviewer_id === meQ.data);
+  const pendingForOthers = !current && isRecruiter ? interviews.find((i) => i.status === "scheduled") : undefined;
+  const interviewerFor = (details: string) => {
+    const m = details.match(/Round (\d)/i);
+    if (!m) return "";
+    const iv = [...interviews].reverse().find((i) => i.round_no === Number(m[1]));
+    return iv ? namesQ.data?.get(iv.interviewer_id) ?? "" : "";
+  };
   const closed = ["onboarded", "rejected", "withdrawn", "pending_onboarding"].includes(c.stage);
 
   async function setStage(stage: string, extra: Partial<RecCandidate> = {}) {
@@ -102,6 +110,9 @@ function CandidatePage() {
                 <Button variant="destructive" onClick={() => setResult({ i: current, d: "rejected" })}><X />Reject</Button>
                 <Button variant="outline" onClick={() => setResched(current)}><CalendarClock />Reschedule</Button>
               </>
+            )}
+            {pendingForOthers && (
+              <Button variant="outline" onClick={() => setResched(pendingForOthers)}><CalendarClock />Reschedule round {pendingForOthers.round_no}</Button>
             )}
             {isRecruiter && c.stage === "new" && <Button variant="outline" onClick={() => setStage("screening")}><UserCheck />Move to screening</Button>}
             {isRecruiter && c.stage === "on_hold" && <Button variant="outline" onClick={() => setStage(c.rounds_cleared ? `round_${Math.min(3, c.rounds_cleared + 1)}` : "screening")}><UserCheck />Resume hiring</Button>}
@@ -230,7 +241,7 @@ function CandidatePage() {
         <h2 className="mb-2 font-display text-sm font-semibold">Timeline</h2>
         <ul className="space-y-2 text-sm">
           {(q.data?.events ?? []).map((e) => (
-            <li key={e.id} className="flex gap-3"><span className="w-28 shrink-0 text-xs text-muted-foreground">{fmtDateTime(e.created_at)}</span><span><span className="font-medium capitalize">{e.event.replace(/_/g, " ")}</span>{e.details ? ` — ${e.details.replace(/round_(\d)/g, "Round $1").replace(/_/g, " ")}` : ""}</span></li>
+            <li key={e.id} className="flex gap-3"><span className="w-28 shrink-0 text-xs text-muted-foreground">{fmtDateTime(e.created_at)}</span><span><span className="font-medium capitalize">{e.event.replace(/_/g, " ")}</span>{e.details ? ` — ${e.details.replace(/round_(\d)/g, "Round $1").replace(/_/g, " ")}` : ""}{e.event.startsWith("interview_") && interviewerFor(e.details) ? <span className="text-muted-foreground"> · Interviewer: {interviewerFor(e.details)}</span> : null}</span></li>
           ))}
         </ul>
       </section>
