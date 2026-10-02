@@ -932,6 +932,7 @@ function DashboardPage() {
 
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
+  const pendingOnboarding = usePendingOnboardingCount();
   const tiles = useMemo(() => {
     const t: { key: string; module: string; node: React.ReactNode }[] = [];
     if (data && opsFocus) {
@@ -1326,7 +1327,6 @@ function DashboardPage() {
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
   // any client-billing data, so no profit can be derived from what renders.
   const canSeeCommercial = can("invoice");
-  const pendingOnboarding = usePendingOnboardingCount();
   const charterByUnitId = new Map(dashboardUnits.map((u) => [u.id, u]));
   const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
     unit_id: r.unit_id,
