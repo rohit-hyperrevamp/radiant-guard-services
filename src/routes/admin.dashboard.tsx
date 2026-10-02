@@ -1534,6 +1534,10 @@ function Shell({
   );
 }
 
+function MyUpcomingInterviewsCard() {
+  return <InterviewsOnlyCard />;
+}
+
 function TileHeader({
   Icon,
   accent,
