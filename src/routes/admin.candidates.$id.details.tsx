@@ -573,12 +573,19 @@ function UnitMappingSection({ candidateId, candidateName, primaryUnitId }: { can
     queryKey: ["units-for-mapping"],
     staleTime: 60_000,
     queryFn: async (): Promise<UnitRow[]> => {
-      const { data, error } = await supabase
-        .from("units" as never)
-        .select("id,code,name,location,customer_id")
-        .order("code", { ascending: true });
-      if (error) throw error;
-      return ((data as unknown) as UnitRow[]) ?? [];
+      const all: UnitRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("units" as never)
+          .select("id,code,name,location,customer_id")
+          .order("code", { ascending: true })
+          .range(from, from + 999);
+        if (error) throw error;
+        const rows = ((data as unknown) as UnitRow[]) ?? [];
+        all.push(...rows);
+        if (rows.length < 1000) break;
+      }
+      return all;
     },
   });
 
