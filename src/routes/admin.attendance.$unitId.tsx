@@ -401,7 +401,7 @@ function MusterRollPage() {
       const { data: raw, error } = await supabase
         .from("units")
         .select(
-          "id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
+          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -590,7 +590,7 @@ function MusterRollPage() {
         // Muster rolls are billable-only for client units. Non-billable staff
         // (field officers, branch managers, HR, etc.) only appear on the
         // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
-        .filter((c) => !c.is_non_billable || unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1")
+        .filter((c) => !c.is_non_billable || (unit as { is_billable?: boolean | null } | null)?.is_billable === false)
         .sort((a, b) =>
           (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name),
         );
@@ -1526,7 +1526,7 @@ function MusterRollPage() {
       // Non-billable staff (field officers, branch managers, HR…) never belong on a
       // client muster roll — mapping them here silently produces an empty roster.
       const rows = (data ?? []).filter((r) => {
-        if (unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1") return true;
+        if ((unit as { is_billable?: boolean | null } | null)?.is_billable === false) return true;
         const roleKey = ((r as { role_key?: string | null }).role_key || "").toLowerCase();
         return (
           !isNonBillableRoleKey(roleKey) && (r as { non_billable?: boolean }).non_billable !== true
@@ -3848,7 +3848,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
 
   // Attendance requires an active contract for the viewed period. Without one
   // there is nothing to bill or pay against, so the register stays hidden.
-  if (!contractInfoLoading && contractInfo && !contractInfo.contractId) {
+  if (!contractInfoLoading && contractInfo && !contractInfo.contractId && (unit as { is_billable?: boolean | null } | null)?.is_billable !== false) {
     return (
       <div className="space-y-3 px-0 py-2 sm:space-y-4 sm:px-6 sm:py-6">
         <div className="mobile-glass-surface rounded-xl border border-border/60 bg-card/80 p-6 text-center shadow-sm sm:rounded-2xl sm:p-10">
