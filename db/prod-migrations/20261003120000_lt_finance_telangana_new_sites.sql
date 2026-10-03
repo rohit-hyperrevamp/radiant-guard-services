@@ -41,7 +41,7 @@ select (jsonb_populate_record(null::public.client_contracts, to_jsonb(tc.*) || j
   'id', gen_random_uuid(), 'contract_code', nl.con, 'unit_id', u.id,
   'start_date', '2026-05-21', 'end_date', '2026-12-20', 'expiry_date', '2026-12-20',
   'original_start_date', '2026-05-21', 'renewal_count', 0, 'approved_at', now(),
-  'signed_at', null, 'signed_pdf_url', null, 'company_signature_data', null,
+  'description', nl.name||' - '||nl.code,
   'created_at', now(), 'updated_at', now()))).*
 from nl join public.units u on u.code = nl.code, tc
 where not exists (select 1 from public.client_contracts x where x.contract_code = nl.con);
