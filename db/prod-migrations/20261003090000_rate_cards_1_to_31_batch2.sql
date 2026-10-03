@@ -7,7 +7,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON11510','unit_id',u,'description','Olikara Engineering - SG 26 days 12h - CLI1476',
    'start_date','2025-04-01','original_start_date','2025-04-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON11510');
@@ -19,7 +19,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON9708','unit_id',u,'description','Ramamani Iyengar Yoga Institute - SG 30/31 days 8h - CLI2553',
    'start_date','2024-09-01','original_start_date','2024-09-01','end_date','2026-12-31','expiry_date','2026-12-31','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON9708');
@@ -31,7 +31,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON14082','unit_id',u,'description','Brodersen Systems - SG 26 days 12h, billed 30 days - CLI2627',
    'start_date','2025-12-01','original_start_date','2025-12-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON14082');
@@ -43,7 +43,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON16107','unit_id',u,'description','Bijjargi Automotives KIA Dharashiv - SG 30 days 8h - CLI3032',
    'start_date','2026-07-01','original_start_date','2026-07-01','end_date','2026-12-31','expiry_date','2026-12-31','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON16107');
@@ -55,7 +55,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON12212','unit_id',u,'description','Quest Flow Controls - SG 26 days 8h, billed 30 days - CLI3072',
    'start_date','2025-06-01','original_start_date','2025-06-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON12212');
@@ -67,7 +67,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON11883','unit_id',u,'description','Ephemeral Spaces - SG 26 days 12h, billed 30 days - CLI3364',
    'start_date','2025-04-01','original_start_date','2025-04-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON11883');
@@ -79,7 +79,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON12210','unit_id',u,'description','Executive Car Rental Lohegaon - SG 26 days 12h, billed 30 days - CLI3454',
    'start_date','2025-06-01','original_start_date','2025-06-01','end_date','2026-12-31','expiry_date','2026-12-31','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON12210');
@@ -91,7 +91,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON12211','unit_id',u,'description','Executive Car Rental Thergaon - SG 26 days 12h, billed 30 days - CLI3455',
    'start_date','2025-06-01','original_start_date','2025-06-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON12211');
@@ -103,7 +103,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON12379','unit_id',u,'description','Diamond Healthcare - SG 26/27 days 12h - CLI3465',
    'start_date','2025-07-01','original_start_date','2025-07-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON12379');
@@ -115,7 +115,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON11876','unit_id',u,'description','Industrial Electronic & Allied - SG 26/27 days 12h - CLI322',
    'start_date','2025-04-01','original_start_date','2025-04-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON11876');
@@ -127,7 +127,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON14085','unit_id',u,'description','Pronk Multiservice Chakan - SG 26 days 12h, billed 30/31 days - CLI3939',
    'start_date','2025-12-01','original_start_date','2025-12-01','end_date','2026-12-31','expiry_date','2026-12-31','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON14085');
@@ -139,7 +139,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON16106','unit_id',u,'description','Bijjargi Automotives Solapur - SG 30 days 8h - CLI1299',
    'start_date','2026-07-01','original_start_date','2026-07-01','end_date','2026-12-31','expiry_date','2026-12-31','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON16106');
@@ -151,7 +151,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON14297','unit_id',u,'description','Fulham India - SG and Lady Bouncer, 26 days - CLI1473',
    'start_date','2026-03-01','original_start_date','2026-03-01','end_date','2027-02-28','expiry_date','2027-02-28','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON14297');
@@ -164,7 +164,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON12222','unit_id',u,'description','Left Right Mind - SG, billed 30.41 days - CLI1565',
    'start_date','2025-06-01','original_start_date','2025-06-01','end_date','2026-12-01','expiry_date','2026-12-01','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON12222');
@@ -176,7 +176,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON15286','unit_id',u,'description','New Balance IT Services - SG 26 days 8h, billed 30/31 days - CLI336',
    'start_date','2026-05-01','original_start_date','2026-05-01','end_date','2027-04-30','expiry_date','2027-04-30','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON15286');
@@ -188,7 +188,7 @@ DO $$ DECLARE sc client_contracts; u uuid; BEGIN
   INSERT INTO client_contracts SELECT * FROM jsonb_populate_record(null::client_contracts, to_jsonb(sc) || jsonb_build_object(
    'id',gen_random_uuid(),'contract_code','CON13969','unit_id',u,'description','Turbo Energy - SG 30 days 8h - CLI364',
    'start_date','2025-10-01','original_start_date','2025-10-01','end_date','2026-12-31','expiry_date','2026-12-31','service_type_id','b10a1dd8-116e-4c1d-856e-4b3785c04bd1',
-   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','contract',
+   'payroll_window_id','9676d05d-fbb3-4d9a-bdca-b4b9ac65db0c','status','active','approval_status','approved','approved_at',now(),'record_type','client',
    'signed_pdf_url','','signed_at',null,'renewal_count',0,'created_at',now(),'updated_at',now()));
  END IF; END $$;
 DELETE FROM public.contract_resources WHERE contract_id=(SELECT id FROM public.client_contracts WHERE contract_code='CON13969');
