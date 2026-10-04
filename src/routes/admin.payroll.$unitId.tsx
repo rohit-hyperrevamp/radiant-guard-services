@@ -24,6 +24,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { logActivity } from "@/lib/activity-log";
 import { normShift, shiftKey } from "@/lib/shift-resources";
+import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import {
   applyEpfBreakdownToWageComputation,
@@ -506,10 +507,11 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources")
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
         resources = r ?? [];
+        resources = await applyRateRevisionsForPeriod(resources as Record<string, unknown>[], start, end);
       }
 
       // 3b. Per-employee Additions & Deductions (Control Center catalog).
