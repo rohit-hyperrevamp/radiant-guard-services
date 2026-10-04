@@ -530,3 +530,8 @@
 - [x] Grant Recruitment access to HR and recruiter Sanskriti (employee 43930).
 - [x] Ensure assigned interviewers can open candidate details and see interviews on their dashboard.
 - [ ] Verify recruiter-created and assigned interview flows end to end in production — blocked until the updated app is published; database policies and live records are verified.
+## Recruitment supporting documents
+
+- [x] Add optional recruiter-only uploads for education, salary, resignation, relieving, and miscellaneous documents.
+- [x] Secure document metadata and private files through Recruitment access.
+- [x] Verify upload, open, add, and remove implementation; run TypeScript validation.

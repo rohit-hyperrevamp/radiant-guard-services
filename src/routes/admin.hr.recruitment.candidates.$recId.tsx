@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmployeePicker } from "@/components/EmployeePicker";
 import { InterviewResultDialog } from "@/components/recruitment/InterviewResultDialog";
 import { EmployeeDetailsDialog } from "@/components/recruitment/EmployeeDetailsDialog";
+import { CandidateDocumentsSection } from "@/components/recruitment/CandidateDocumentsSection";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { createNotification } from "@/lib/notifications";
@@ -215,6 +216,8 @@ function CandidatePage() {
           )}
         </section>
       </div>
+
+      {isRecruiter && <CandidateDocumentsSection candidate={c} />}
 
       {(c.stage === "hr_approved" || c.stage === "pending_onboarding" || c.stage === "onboarded") && (
         <section className="space-y-3 rounded-xl border border-border bg-card p-4">

@@ -75,6 +75,39 @@ export type RecOnboarding = {
   employee_candidate_id: string | null; created_at: string;
 };
 
+export type RecCandidateDocumentCategory =
+  | "10th_certificate"
+  | "12th_certificate"
+  | "graduation_certificate"
+  | "salary_slip"
+  | "resignation_letter"
+  | "relieving_letter"
+  | "experience_letter"
+  | "other";
+
+export type RecCandidateDocument = {
+  id: string;
+  candidate_id: string;
+  category: RecCandidateDocumentCategory;
+  file_name: string;
+  file_path: string;
+  content_type: string;
+  file_size: number;
+  uploaded_by: string | null;
+  created_at: string;
+};
+
+export const REC_DOCUMENT_CATEGORIES: { key: RecCandidateDocumentCategory; label: string; multiple?: boolean }[] = [
+  { key: "10th_certificate", label: "10th certificate" },
+  { key: "12th_certificate", label: "12th certificate" },
+  { key: "graduation_certificate", label: "Graduation certificate" },
+  { key: "salary_slip", label: "Last salary slips", multiple: true },
+  { key: "resignation_letter", label: "Resignation letter" },
+  { key: "relieving_letter", label: "Relieving letter" },
+  { key: "experience_letter", label: "Experience letter" },
+  { key: "other", label: "Other miscellaneous documents", multiple: true },
+];
+
 export const QK = {
   openings: ["rec", "openings"] as const,
   candidates: ["rec", "candidates"] as const,
@@ -83,6 +116,7 @@ export const QK = {
   myInterviews: ["rec", "my-interviews"] as const,
   onboarding: ["rec", "onboarding"] as const,
   masters: ["rec", "masters"] as const,
+  documents: (candidateId: string) => ["rec", "candidate-documents", candidateId] as const,
 };
 
 async function fetchAll<T>(build: () => any): Promise<T[]> {
@@ -176,6 +210,47 @@ export async function uploadResume(candidateId: string, file: File) {
   const { error: e2 } = await recDb.from("rec_candidates").update({ resume_path: path, resume_name: file.name }).eq("id", candidateId);
   if (e2) throw e2;
   return path;
+}
+
+export const fetchCandidateDocuments = (candidateId: string) =>
+  fetchAll<RecCandidateDocument>(() =>
+    recDb.from("rec_candidate_documents").select("*").eq("candidate_id", candidateId).order("created_at", { ascending: false }),
+  );
+
+export async function uploadCandidateDocument(candidateId: string, category: RecCandidateDocumentCategory, file: File) {
+  const safe = file.name.replace(/[^A-Za-z0-9._-]+/g, "_");
+  const path = `documents/${candidateId}/${category}/${Date.now()}_${safe}`;
+  const { error: uploadError } = await recDb.storage.from(REC_BUCKET).upload(path, file, {
+    upsert: false,
+    contentType: file.type || undefined,
+  });
+  if (uploadError) throw uploadError;
+  const { data, error } = await recDb.from("rec_candidate_documents").insert({
+    candidate_id: candidateId,
+    category,
+    file_name: file.name,
+    file_path: path,
+    content_type: file.type || "",
+    file_size: file.size,
+  }).select("*").single();
+  if (error) {
+    await recDb.storage.from(REC_BUCKET).remove([path]);
+    throw error;
+  }
+  return data as RecCandidateDocument;
+}
+
+export async function openCandidateDocument(path: string) {
+  const { data, error } = await recDb.storage.from(REC_BUCKET).createSignedUrl(path, 300);
+  if (error) throw error;
+  window.open(data.signedUrl, "_blank", "noopener");
+}
+
+export async function removeCandidateDocument(document: RecCandidateDocument) {
+  const { error: storageError } = await recDb.storage.from(REC_BUCKET).remove([document.file_path]);
+  if (storageError) throw storageError;
+  const { error } = await recDb.from("rec_candidate_documents").delete().eq("id", document.id);
+  if (error) throw error;
 }
 
 export async function openResume(path: string) {
