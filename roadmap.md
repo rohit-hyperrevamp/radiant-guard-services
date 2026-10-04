@@ -532,6 +532,6 @@
 - [ ] Verify recruiter-created and assigned interview flows end to end in production — blocked until the updated app is published; database policies and live records are verified.
 ## Recruitment supporting documents
 
-- [ ] Add optional recruiter-only uploads for education, salary, resignation, relieving, and miscellaneous documents.
-- [ ] Secure document metadata and private files through Recruitment access.
-- [ ] Verify upload, open, replace/add, and remove flows; run TypeScript validation.
+- [x] Add optional recruiter-only uploads for education, salary, resignation, relieving, and miscellaneous documents.
+- [x] Secure document metadata and private files through Recruitment access.
+- [x] Verify upload, open, add, and remove implementation; run TypeScript validation.
