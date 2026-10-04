@@ -1643,7 +1643,7 @@ function UnitFormDialog({
                             : "custom"
                       }
                       onValueChange={(v) =>
-                        set("phDayValue", v === "default" ? null : v === "custom" ? Number(form.phDayValue ?? 1) || 1 : Number(v))
+                        set("phDayValue", v === "default" ? null : v === "custom" ? ([1, 1.5, 2].includes(Number(form.phDayValue)) || form.phDayValue == null ? 2.5 : Number(form.phDayValue)) : Number(v))
                       }
                     >
                       <SelectTrigger>
@@ -1657,7 +1657,7 @@ function UnitFormDialog({
                         <SelectItem value="custom">Custom…</SelectItem>
                       </SelectContent>
                     </Select>
-                    {form.phDayValue != null && ![1, 1.5, 2].includes(Number(form.phDayValue)) || (form.phDayValue != null && false) ? (
+                    {form.phDayValue != null && ![1, 1.5, 2].includes(Number(form.phDayValue)) ? (
                       <Input
                         type="number"
                         min={0}
