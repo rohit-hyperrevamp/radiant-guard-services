@@ -83,22 +83,42 @@ async function relayOtp(action: "send" | "verify", phone: string, otp?: string):
  */
 const MSG91_OTP_TEMPLATE_ID = "";
 
-export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<void> {
+/** Send through the configured MSG91 OTP Widget, which applies the account's DLT template. Returns the request ID. */
+export async function sendMsg91WidgetOtp(phone: string): Promise<string> {
+  const response = await fetch(`${MSG91_API}/widget/sendOtp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ widgetId: WIDGET_ID, tokenAuth: WIDGET_TOKEN, identifier: `91${phone}` }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
+  if (!response.ok || payload.type?.toLowerCase() !== "success" || !payload.message) {
+    console.error("[otp] widget send failed", response.status, JSON.stringify(payload));
+    throw new Error(msg91Error(payload.message, "Could not send the code. Please try again."));
+  }
+  return payload.message;
+}
+
+export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<string | undefined> {
+  const configuredTemplate = process.env["MSG91_OTP_TEMPLATE_ID"] || MSG91_OTP_TEMPLATE_ID;
+  if (!configuredTemplate) {
+    try {
+      return await sendMsg91WidgetOtp(phone);
+    } catch (e) {
+      console.warn("[otp] widget send unavailable, using account default OTP template", e);
+    }
+  }
   const authKey = process.env["MSG91_AUTH_KEY"];
   if (!authKey) {
-    if (allowRelay) return relayOtp("send", phone);
+    if (allowRelay) {
+      await relayOtp("send", phone);
+      return undefined;
+    }
     throw new Error("SMS service is not configured on this deployment.");
   }
   const templateId = process.env["MSG91_OTP_TEMPLATE_ID"] || MSG91_OTP_TEMPLATE_ID;
-  if (!templateId) {
-    console.error("[otp] MSG91 OTP template ID is missing; SMS would be held by the operator.");
-    throw new Error("SMS sign-in is being configured. Please contact your administrator.");
-  }
-  const query = new URLSearchParams({
-    mobile: `91${phone}`,
-    template_id: templateId,
-    otp_length: "4",
-  });
+  // Without a template ID, MSG91 uses the account's default OTP template.
+  const query = new URLSearchParams({ mobile: `91${phone}`, otp_length: "4" });
+  if (templateId) query.set("template_id", templateId);
   const response = await fetch(`${MSG91_API}/otp?${query}`, {
     method: "POST",
     headers: { authkey: authKey },
@@ -107,6 +127,7 @@ export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<vo
   if (!response.ok || payload.type?.toLowerCase() !== "success") {
     throw new Error(msg91Error(payload.message, "Could not send the code. Please try again."));
   }
+  return undefined;
 }
 
 export async function verifyMsg91PhoneOtp(

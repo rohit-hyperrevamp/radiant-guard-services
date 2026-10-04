@@ -20,22 +20,22 @@ type OtpMode = "sms" | "fixed";
 
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
-  .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
+  .handler(async ({ data }): Promise<{ mode: OtpMode; requestId?: string }> => {
     const { resolveOtpMode, assertRegisteredPhone, sendMsg91Otp } = await import("@/lib/otp.server");
     await assertRegisteredPhone(data.phone);
     const mode = await resolveOtpMode(data.phone);
-    if (mode === "sms") await sendMsg91Otp(data.phone);
-    return { mode };
+    const requestId = mode === "sms" ? await sendMsg91Otp(data.phone) : undefined;
+    return { mode, requestId };
   });
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
-  .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
+  .handler(async ({ data }): Promise<{ mode: OtpMode; requestId?: string }> => {
     const { resolveOtpMode, assertRegisteredPhone, sendMsg91Otp } = await import("@/lib/otp.server");
     await assertRegisteredPhone(data.phone);
     const mode = await resolveOtpMode(data.phone);
-    if (mode === "sms") await sendMsg91Otp(data.phone);
-    return { mode };
+    const requestId = mode === "sms" ? await sendMsg91Otp(data.phone) : undefined;
+    return { mode, requestId };
   });
 
 export const verifyLoginOtp = createServerFn({ method: "POST" })
