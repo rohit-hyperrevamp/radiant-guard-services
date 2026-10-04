@@ -426,8 +426,10 @@ function MusterRollPage() {
   // Per-unit duty value of one PH-marked day. NULL = use the PH code's day_value.
   const unitPhDayValueRaw = (unit as { ph_day_value?: number | string | null } | null | undefined)
     ?.ph_day_value;
-  const unitPhDayValue =
-    unitPhDayValueRaw == null || Number.isNaN(Number(unitPhDayValueRaw))
+  // PH switched off for this client → a PH mark counts 0 days.
+  const unitPhDayValue = !phEnabled
+    ? 0
+    : unitPhDayValueRaw == null || Number.isNaN(Number(unitPhDayValueRaw))
       ? null
       : Number(unitPhDayValueRaw);
 

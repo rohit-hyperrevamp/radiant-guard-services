@@ -190,7 +190,8 @@ function PayrollUnitPage() {
       return {
         enabled: Boolean(row?.ph_enabled),
         multiplier: Number(row?.ph_multiplier ?? 1) || 1,
-        dayValue: dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
+        // PH off for this client → PH marks count 0 days.
+        dayValue: !row?.ph_enabled ? 0 : dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
       };
     },
   });
