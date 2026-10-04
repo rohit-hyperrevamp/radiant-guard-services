@@ -10,3 +10,5 @@
 - Recruitment uses `rec_*` tables gated by `current_user_can_recruit()`; `rec_onboard_candidate` (approvers from workflow `recruitment_onboarding`) inserts into `candidates` so `set_employee_code` issues the ID — one ID series.
 - Recruitment interview lists include assigned interviews and recruiter-created interviews; HR holds recruitment RBAC, while assigned interviewers get assignment-scoped candidate access and leadership uses a summary RPC — keeps access narrow and auditable.
 - Dashboard profitability is unit-level and live: invoice minus earned gross and employer contribution, with posted invoice/payroll values overriding computed attendance values — keeps P&L aligned with operational records.
+
+- Contract rate changes are versioned in `contract_rate_revisions` (new_rate → approved with applicable date → previous expired); payroll/invoice resolve rates per period via `applyRateRevisionsForPeriod`, splitting by calendar days mid-period, and a daily job promotes due rates onto `contract_resources` — past periods keep old rates.

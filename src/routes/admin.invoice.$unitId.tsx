@@ -35,6 +35,7 @@ import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { normShift, shiftKey } from "@/lib/shift-resources";
+import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -442,10 +443,11 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources" as never)
           .select(
-            "designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours",
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
+        resources = await applyRateRevisionsForPeriod(resources as Record<string, unknown>[], start, end);
       }
 
       // 3b. Per-employee Additions & Deductions in the invoice window.
