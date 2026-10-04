@@ -239,7 +239,7 @@ export function ResourceRateRevisions({
     <div className="mt-2 space-y-1.5 border-t border-border pt-2">
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
         <span className="text-muted-foreground">
-          Current rate: {fmtDate(active?.effective_from ?? contractStartDate || null)} – {fmtDate(active?.effective_to ?? contractEndDate || null)}
+          Current rate: {fmtDate(active?.effective_from ?? contractStartDate ?? null)} – {fmtDate(active?.effective_to ?? contractEndDate ?? null)}
         </span>
         {scheduled && (
           <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
@@ -272,6 +272,9 @@ export function ResourceRateRevisions({
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
             <span className="font-semibold">
               Current {fmt(billing(resource))} → New {fmt(billing(draftResource))}
+            </span>
+            <span className="text-muted-foreground">
+              Contract validity: {fmtDate(contractStartDate || null)} – {fmtDate(contractEndDate || null)}
             </span>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
