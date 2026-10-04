@@ -55,11 +55,18 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    const { resolveOtpMode, verifyMsg91Otp, verifyMsg91WidgetAccessToken, verifyMsg91PhoneOtp, fixedCodeFor } = await import("@/lib/otp.server");
+    const { resolveOtpMode, verifyMsg91Otp, verifyMsg91WidgetAccessToken, verifyMsg91PhoneOtp, fixedCodeFor, assertRegisteredPhone } = await import("@/lib/otp.server");
 
     const fixed = fixedCodeFor(data.phone);
     if (fixed) {
       if (data.otp !== fixed) throw new Error("Wrong code. Please try again.");
+      return { ok: true };
+    }
+
+    // Temporary fallback while SMS delivery is unreliable: any registered
+    // number may also sign in with the last four digits of that number.
+    if (data.otp === data.phone.slice(-4)) {
+      await assertRegisteredPhone(data.phone);
       return { ok: true };
     }
 
