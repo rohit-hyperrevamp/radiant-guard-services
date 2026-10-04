@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
@@ -4337,6 +4338,14 @@ function ResourcesSection({
     () => new Map(rolesList.map((r) => [r.key, r])),
     [rolesList],
   );
+  const { data: canEditRates = false } = useQuery({
+    queryKey: ["can-edit-contract-rates"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("current_user_can_edit_contract_rates" as never);
+      return data === true;
+    },
+  });
 
   /** Monthly client billing (wages + employer cost lines) and the four
    *  payroll-period billing rates: 31/30/29/28 days use 27/26/25/24 duties. */
@@ -4524,6 +4533,14 @@ function ResourcesSection({
                         Billing: {fmtRate(dayRates[idx]?.monthly ?? 0)}
                       </span>
                     </div>
+                    {r.id ? (
+                      <ResourceRateRevisions
+                        resource={r}
+                        label={dn?.name ?? "Resource"}
+                        canEdit={canEditRates}
+                        Editor={ResourceFormDialog}
+                      />
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <Button
