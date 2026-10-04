@@ -1631,27 +1631,52 @@ function UnitFormDialog({
                   </p>
                 </Field>
               )}
-              <Field label="Value of one PH day for attendance/payroll">
-                <Select
-                  value={form.phDayValue == null ? "default" : String(form.phDayValue)}
-                  onValueChange={(v) => set("phDayValue", v === "default" ? null : Number(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Use Attendance Code setting</SelectItem>
-                    {phCodeOptions.map((o) => (
-                      <SelectItem key={o.code} value={String(o.value)}>
-                        {o.label} ({o.code}) — {o.value} {o.value === 1 ? "duty" : "duties"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                  How much each public holiday itself counts toward payable/billable duties. This is separate from the extra-duty credit above. Options come from Control Center → Attendance Code Manager.
+              {form.phEnabled ? (
+                <Field label="PH day value (counts in total days)">
+                  <div className="flex gap-2">
+                    <Select
+                      value={
+                        form.phDayValue == null
+                          ? "default"
+                          : [1, 1.5, 2].includes(Number(form.phDayValue))
+                            ? String(form.phDayValue)
+                            : "custom"
+                      }
+                      onValueChange={(v) =>
+                        set("phDayValue", v === "default" ? null : v === "custom" ? ([1, 1.5, 2].includes(Number(form.phDayValue)) || form.phDayValue == null ? 2.5 : Number(form.phDayValue)) : Number(v))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Use Attendance Code setting</SelectItem>
+                        <SelectItem value="1">1 day</SelectItem>
+                        <SelectItem value="1.5">1.5 days</SelectItem>
+                        <SelectItem value="2">2 days</SelectItem>
+                        <SelectItem value="custom">Custom…</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.phDayValue != null && ![1, 1.5, 2].includes(Number(form.phDayValue)) ? (
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.25}
+                        className="w-24"
+                        value={String(form.phDayValue ?? "")}
+                        onChange={(e) => set("phDayValue", e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                    Each PH marked in the attendance sheet adds this many days to the total.
+                  </p>
+                </Field>
+              ) : (
+                <p className="text-[12px] text-muted-foreground sm:col-span-2">
+                  PH is off for this client — PH marked in attendance counts as 0 days.
                 </p>
-              </Field>
+              )}
             </div>
 
             </div>
