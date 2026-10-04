@@ -535,3 +535,9 @@
 - [x] Add optional recruiter-only uploads for education, salary, resignation, relieving, and miscellaneous documents.
 - [x] Secure document metadata and private files through Recruitment access.
 - [x] Verify upload, open, add, and remove implementation; run TypeScript validation.
+
+## Contract rate history visibility
+
+- [x] Keep every superseded rate visible as Expired after approving its replacement.
+- [x] Show the expired rate's validity and monthly billing on the resource card.
+- [x] Allow direct previous-versus-current rate comparison after approval.

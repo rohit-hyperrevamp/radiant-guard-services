@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Copy, Edit2, GitCompare, Loader2, X } from "lucide-react";
+import { CheckCircle2, Copy, Edit2, GitCompare, History, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,7 @@ export function ResourceRateRevisions({
   const [busy, setBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [compareExpiredId, setCompareExpiredId] = useState<string | null>(null);
   const [approveOpen, setApproveOpen] = useState(false);
   const [date, setDate] = useState("");
 
@@ -111,6 +112,12 @@ export function ResourceRateRevisions({
   const active = revs.find((r) => r.status === "approved" && r.promoted_at) ?? null;
   const history = revs.filter((r) => r.status === "expired");
   const draftResource = useMemo(() => (draft ? revToResource(resource, draft) : null), [draft, resource]);
+  const comparedExpired = history.find((r) => r.id === compareExpiredId) ?? null;
+  const comparisonBase = useMemo(
+    () => (comparedExpired ? revToResource(resource, comparedExpired) : resource),
+    [comparedExpired, resource],
+  );
+  const comparisonTarget = comparedExpired ? resource : draftResource;
 
   if (!resource.id) return null;
 
@@ -216,11 +223,11 @@ export function ResourceRateRevisions({
 
   // Comparison rows by item name across wages, deductions, employer cost.
   const compareRows = (() => {
-    if (!draftResource) return [];
+    if (!comparisonTarget) return [];
     const groups: [string, { name?: string; amount?: unknown }[], { name?: string; amount?: unknown }[]][] = [
-      ["Wages", resource.components, draftResource.components],
-      ["Deductions", resource.deductions, draftResource.deductions],
-      ["Employer cost", resource.employerContributions, draftResource.employerContributions],
+      ["Wages", comparisonBase.components, comparisonTarget.components],
+      ["Deductions", comparisonBase.deductions, comparisonTarget.deductions],
+      ["Employer cost", comparisonBase.employerContributions, comparisonTarget.employerContributions],
     ];
     return groups.map(([g, a, b]) => {
       const names = Array.from(new Set([...a, ...b].map((x) => String(x.name ?? ""))));
@@ -246,17 +253,42 @@ export function ResourceRateRevisions({
             Next rate approved · applies from {fmtDate(scheduled.effective_from)} ({fmt(sum(scheduled.components) + sum(scheduled.employer_contributions))})
           </span>
         )}
-        {history.length > 0 && (
-          <span className="text-muted-foreground" title={history.map((h) => `Expired ${fmtDate(h.effective_to)}: ${fmt(sum(h.components) + sum(h.employer_contributions))}`).join("\n")}>
-            {history.length} expired rate{history.length > 1 ? "s" : ""}
-          </span>
-        )}
         {!draft && canEdit && (
           <Button type="button" size="sm" variant="outline" className="ml-auto h-7 text-[11px]" disabled={busy} onClick={createCopy}>
             <Copy className="mr-1 h-3 w-3" /> Copy as new rate
           </Button>
         )}
       </div>
+
+      {history.length > 0 && (
+        <div className="space-y-1.5">
+          {history.map((expiredRate) => {
+            const expiredResource = revToResource(resource, expiredRate);
+            return (
+              <div key={expiredRate.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-2 text-xs">
+                <History className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Expired</span>
+                <span className="font-medium tabular-nums">{fmt(billing(expiredResource))}</span>
+                <span className="text-muted-foreground">
+                  {fmtDate(expiredRate.effective_from ?? contractStartDate ?? null)} – {fmtDate(expiredRate.effective_to)}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7 text-[11px]"
+                  onClick={() => {
+                    setCompareExpiredId(expiredRate.id);
+                    setCompareOpen(true);
+                  }}
+                >
+                  <GitCompare className="mr-1 h-3 w-3" /> Compare with current
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {draft && draftResource && (
         <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-2">
@@ -265,7 +297,7 @@ export function ResourceRateRevisions({
               <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">New rate</span>
               <span className="text-muted-foreground">Not used until approved</span>
             </div>
-            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setCompareOpen(true)}>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => { setCompareExpiredId(null); setCompareOpen(true); }}>
               <GitCompare className="mr-1 h-3 w-3" /> Review current vs new
             </Button>
           </div>
@@ -299,18 +331,22 @@ export function ResourceRateRevisions({
         <Editor open={editOpen} onOpenChange={setEditOpen} initial={draftResource} onSubmit={saveDraft} />
       )}
 
-      <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
+      <Dialog open={compareOpen} onOpenChange={(open) => { setCompareOpen(open); if (!open) setCompareExpiredId(null); }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{label} — Current vs New rate</DialogTitle>
-            <DialogDescription>Monthly amounts. The new rate is not used until approved.</DialogDescription>
+            <DialogTitle>{label} — {comparedExpired ? "Previous vs Current rate" : "Current vs New rate"}</DialogTitle>
+            <DialogDescription>
+              {comparedExpired
+                ? `The previous rate expired on ${fmtDate(comparedExpired.effective_to)}. Monthly amounts are retained for historical comparison.`
+                : "Monthly amounts. The new rate is not used until approved."}
+            </DialogDescription>
           </DialogHeader>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-muted-foreground">
                 <th className="py-1.5">Item</th>
-                <th className="py-1.5 text-right">Current (Approved)</th>
-                <th className="py-1.5 text-right">New rate</th>
+                <th className="py-1.5 text-right">{comparedExpired ? "Previous (Expired)" : "Current (Approved)"}</th>
+                <th className="py-1.5 text-right">{comparedExpired ? "Current (Approved)" : "New rate"}</th>
                 <th className="py-1.5 text-right">Change</th>
               </tr>
             </thead>
@@ -330,17 +366,17 @@ export function ResourceRateRevisions({
                   ))}
                 </Fragment>
               ))}
-              {draftResource && (
+              {comparisonTarget && (
                 <tr className="font-semibold">
                   <td className="pt-3">Monthly billing</td>
-                  <td className="pt-3 text-right tabular-nums">{fmt(billing(resource))}</td>
-                  <td className="pt-3 text-right tabular-nums">{fmt(billing(draftResource))}</td>
-                  <td className="pt-3 text-right tabular-nums">{fmt(billing(draftResource) - billing(resource))}</td>
+                  <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonBase))}</td>
+                  <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonTarget))}</td>
+                  <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonTarget) - billing(comparisonBase))}</td>
                 </tr>
               )}
             </tbody>
           </table>
-          {canEdit && (
+          {canEdit && !comparedExpired && (
             <DialogFooter>
               <Button type="button" onClick={() => { setDate(""); setApproveOpen(true); }}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve new rate
