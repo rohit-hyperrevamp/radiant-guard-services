@@ -4162,6 +4162,8 @@ function ContractFormDialog({
           <ResourcesSection
             resources={resources}
             payrollWindow={selectedWindow}
+            contractStartDate={startDate}
+            contractEndDate={endDate}
             onAdd={() =>
               setResourceDialog({ open: true, index: null, initial: null })
             }
@@ -4310,6 +4312,8 @@ function DecimalAmountInput({
 function ResourcesSection({
   resources,
   payrollWindow,
+  contractStartDate,
+  contractEndDate,
   onAdd,
   onEdit,
   onCopy,
@@ -4317,6 +4321,8 @@ function ResourcesSection({
 }: {
   resources: ContractResource[];
   payrollWindow?: PayrollWindow;
+  contractStartDate: string;
+  contractEndDate: string;
   onAdd: () => void;
   onEdit: (idx: number) => void;
   onCopy: (idx: number) => void;
@@ -4512,6 +4518,11 @@ function ResourcesSection({
                       <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
                         Qty {r.quantity}
                       </span>
+                      {r.id && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                          Approved
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {r.components.map((c) => (
@@ -4539,6 +4550,8 @@ function ResourcesSection({
                         label={dn?.name ?? "Resource"}
                         canEdit={canEditRates}
                         Editor={ResourceFormDialog}
+                        contractStartDate={contractStartDate}
+                        contractEndDate={contractEndDate}
                       />
                     ) : null}
                   </div>

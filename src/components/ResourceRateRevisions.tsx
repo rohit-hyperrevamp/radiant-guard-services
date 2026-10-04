@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { logActivity } from "@/lib/activity-log";
+import { confirmAction } from "@/components/ConfirmProvider";
 import type { ContractResource } from "@/routes/admin.contracts.client-contracts";
 
 type Rev = {
@@ -66,11 +67,15 @@ export function ResourceRateRevisions({
   label,
   canEdit,
   Editor,
+  contractStartDate,
+  contractEndDate,
 }: {
   resource: ContractResource;
   label: string;
   canEdit: boolean;
   Editor: ComponentType<EditorProps>;
+  contractStartDate: string;
+  contractEndDate: string;
 }) {
   const [revs, setRevs] = useState<Rev[]>([]);
   const [contractId, setContractId] = useState<string | null>(null);
@@ -160,17 +165,37 @@ export function ResourceRateRevisions({
 
   async function discard() {
     if (!draft) return;
+    const confirmed = await confirmAction({
+      title: "Discard new rate?",
+      description: "This new rate and all changes made to it will be permanently discarded. The approved rate will remain unchanged.",
+      confirmText: "Discard new rate",
+      cancelText: "Keep new rate",
+      destructive: true,
+      tone: "warning",
+    });
+    if (!confirmed) return;
+    setBusy(true);
     const { error } = await supabase
       .from("contract_rate_revisions" as never)
       .update({ status: "discarded" } as never)
       .eq("id", draft.id);
+    setBusy(false);
     if (error) return toast.error(error.message);
     void logActivity({ module: "Contract Rate Card", action: "delete", entityType: "contract_rate_revisions", entityId: draft.id, entityLabel: `${label} new rate` });
+    toast.success("New rate discarded");
     void load();
   }
 
   async function approve() {
     if (!draft || !date) return toast.error("Choose the applicable date");
+    const confirmed = await confirmAction({
+      title: "Approve new rate?",
+      description: `The new rate will apply from ${fmtDate(date)}. The current approved rate will end on the previous day, and earlier payroll and invoices will remain unchanged.`,
+      confirmText: "Approve new rate",
+      cancelText: "Cancel",
+      tone: "success",
+    });
+    if (!confirmed) return;
     setBusy(true);
     const { error } = await supabase.rpc("approve_contract_rate_revision" as never, {
       _id: draft.id,
@@ -213,8 +238,8 @@ export function ResourceRateRevisions({
   return (
     <div className="mt-2 space-y-1.5 border-t border-border pt-2">
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-700 dark:text-emerald-400">
-          Approved{active?.effective_from ? ` · from ${fmtDate(active.effective_from)}` : ""}
+        <span className="text-muted-foreground">
+          Current rate: {fmtDate(active?.effective_from ?? contractStartDate ?? null)} – {fmtDate(active?.effective_to ?? contractEndDate ?? null)}
         </span>
         {scheduled && (
           <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
@@ -235,17 +260,24 @@ export function ResourceRateRevisions({
 
       {draft && draftResource && (
         <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-2">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">New rate</span>
-            <span className="text-muted-foreground">Not used until approved</span>
-            <span className="ml-auto font-semibold">
-              Current {fmt(billing(resource))} → New {fmt(billing(draftResource))}
-            </span>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">New rate</span>
+              <span className="text-muted-foreground">Not used until approved</span>
+            </div>
             <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setCompareOpen(true)}>
               <GitCompare className="mr-1 h-3 w-3" /> Review current vs new
             </Button>
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold">
+              Current {fmt(billing(resource))} → New {fmt(billing(draftResource))}
+            </span>
+            <span className="text-muted-foreground">
+              Contract validity: {fmtDate(contractStartDate || null)} – {fmtDate(contractEndDate || null)}
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {canEdit && (
               <>
                 <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setEditOpen(true)}>
@@ -254,7 +286,7 @@ export function ResourceRateRevisions({
                 <Button type="button" size="sm" className="h-7 text-[11px]" onClick={() => { setDate(""); setApproveOpen(true); }}>
                   <CheckCircle2 className="mr-1 h-3 w-3" /> Approve
                 </Button>
-                <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={discard}>
+                <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" disabled={busy} onClick={discard}>
                   <X className="mr-1 h-3 w-3" /> Discard
                 </Button>
               </>
