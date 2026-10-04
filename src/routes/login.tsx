@@ -127,7 +127,7 @@ function LoginPage() {
         movedToOtp = true;
       }
 
-      setOtpRequestId(null);
+      setOtpRequestId(result.requestId ?? null);
       setResendIn(30);
       toast.success(
         result.mode === "sms"
