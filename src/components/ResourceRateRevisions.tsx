@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, Copy, Edit2, GitCompare, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -284,8 +284,8 @@ export function ResourceRateRevisions({
             </thead>
             <tbody>
               {compareRows.map((g) => (
-                <>
-                  <tr key={g.group}><td colSpan={4} className="pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{g.group}</td></tr>
+                <Fragment key={g.group}>
+                  <tr><td colSpan={4} className="pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{g.group}</td></tr>
                   {g.lines.map((l) => (
                     <tr key={g.group + l.name} className="border-b border-border/50">
                       <td className="py-1">{l.name}</td>
@@ -296,7 +296,7 @@ export function ResourceRateRevisions({
                       </td>
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
               {draftResource && (
                 <tr className="font-semibold">
