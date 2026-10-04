@@ -100,18 +100,25 @@ export async function sendMsg91WidgetOtp(phone: string): Promise<string> {
 
 export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<string | undefined> {
   const configuredTemplate = process.env["MSG91_OTP_TEMPLATE_ID"] || MSG91_OTP_TEMPLATE_ID;
-  if (!configuredTemplate) return sendMsg91WidgetOtp(phone);
+  if (!configuredTemplate) {
+    try {
+      return await sendMsg91WidgetOtp(phone);
+    } catch (e) {
+      console.warn("[otp] widget send unavailable, using account default OTP template", e);
+    }
+  }
   const authKey = process.env["MSG91_AUTH_KEY"];
   if (!authKey) {
-    if (allowRelay) return relayOtp("send", phone);
+    if (allowRelay) {
+      await relayOtp("send", phone);
+      return undefined;
+    }
     throw new Error("SMS service is not configured on this deployment.");
   }
   const templateId = process.env["MSG91_OTP_TEMPLATE_ID"] || MSG91_OTP_TEMPLATE_ID;
-  const query = new URLSearchParams({
-    mobile: `91${phone}`,
-    template_id: templateId,
-    otp_length: "4",
-  });
+  // Without a template ID, MSG91 uses the account's default OTP template.
+  const query = new URLSearchParams({ mobile: `91${phone}`, otp_length: "4" });
+  if (templateId) query.set("template_id", templateId);
   const response = await fetch(`${MSG91_API}/otp?${query}`, {
     method: "POST",
     headers: { authkey: authKey },
