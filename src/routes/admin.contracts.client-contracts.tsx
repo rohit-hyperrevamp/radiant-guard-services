@@ -4426,6 +4426,7 @@ function ResourcesSection({
         <button
           type="button"
           onClick={onAdd}
+          disabled={!canManageResources}
           className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-card px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-accent hover:bg-accent/5 hover:text-foreground"
         >
           <Users className="h-6 w-6 opacity-60" />
