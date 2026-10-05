@@ -301,7 +301,9 @@ function PayrollUnitPage() {
 
 
   const queryClient = useQueryClient();
-  const { can } = useCurrentPermissions();
+  const { can, canAction } = useCurrentPermissions();
+  const canSubmitPayroll = canAction("payroll", "submit", "edit");
+  const canReopenPayroll = canAction("payroll", "reopen", "approve");
   const { data: canApprove = false } = useQuery({
     queryKey: ["can-approve-payroll"],
     staleTime: 5 * 60_000,
@@ -1894,7 +1896,7 @@ function PayrollUnitPage() {
           {sheet?.status !== "approved" && (
             <span className="text-xs text-amber-700">Approve attendance first to submit payroll.</span>
           )}
-          {sheet?.status === "approved" && (runStatus === "draft" || runStatus === "rejected") && !canApprove && (
+          {sheet?.status === "approved" && (runStatus === "draft" || runStatus === "rejected") && !canApprove && canSubmitPayroll && (
             <Button size="sm" onClick={() => transitionRun.mutate({ status: "submitted" })} disabled={transitionRun.isPending}>
               <Send className="mr-1.5 h-4 w-4" /> Submit for Approval
             </Button>
@@ -1911,6 +1913,11 @@ function PayrollUnitPage() {
           )}
           {runStatus === "submitted" && !canApprove && (
             <span className="text-xs text-muted-foreground">Awaiting payroll approver</span>
+          )}
+          {runStatus === "approved" && !isProcessed && canReopenPayroll && (
+            <Button size="sm" variant="outline" onClick={() => transitionRun.mutate({ status: "draft" })} disabled={transitionRun.isPending}>
+              <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
+            </Button>
           )}
           {runStatus === "approved" && !isProcessed && !canProcess && (
             <span className="text-xs text-muted-foreground">Approved · awaiting payroll processor</span>

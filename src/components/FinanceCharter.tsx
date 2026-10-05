@@ -194,8 +194,8 @@ export function FinanceCharter({
   // windows and period statuses are also fetched (ids + status only — cheap)
   // for every searched unit. This also lets status filtering happen before pagination.
   const allUnitIds = useMemo(() => searchedUnits.map((u) => u.id), [searchedUnits]);
-  const { can, isSuperAdmin } = useCurrentPermissions();
-  const canFinalise = mode === "invoice" && (isSuperAdmin || can("invoicing", "edit") || can("invoice", "edit"));
+  const { canAction, isSuperAdmin } = useCurrentPermissions();
+  const canFinalise = mode === "invoice" && (isSuperAdmin || canAction("invoice", "finalise", "edit"));
   const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : []);
 
   // Attendance edits (including overtime) push straight through to these

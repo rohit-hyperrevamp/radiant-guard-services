@@ -190,8 +190,9 @@ function PayrollUnitPage() {
   const queryClient = useQueryClient();
   const tallyInvoiceInputRef = useRef<HTMLInputElement>(null);
   const [uploadingTallyInvoice, setUploadingTallyInvoice] = useState(false);
-  const { can } = useCurrentPermissions();
-  const canUploadTallyInvoice = can("invoice", "edit");
+  const { can, canAction } = useCurrentPermissions();
+  const canUploadTallyInvoice = canAction("invoice", "upload_tally", "edit");
+  const canFinaliseInvoice = canAction("invoice", "finalise", "edit");
   // Invoice numbers only exist once the invoice has been finalised.
   const finalInvoicesQ = useFinalInvoicesForUnits([unitId]);
   const finalInvoice = finalInvoicesQ.data?.get(unitPeriodKey(unitId, start, end)) ?? null;
@@ -1530,7 +1531,7 @@ function PayrollUnitPage() {
               Upload Tally Invoice
             </Button>
           )}
-          {can("invoice", "edit") && !finalInvoice && (
+          {canFinaliseInvoice && !finalInvoice && (
             <Button size="sm" disabled={sheet?.status !== "approved"} onClick={() => setFinalDialogOpen(true)}>
               <FileCheck2 className="mr-1.5 h-4 w-4" /> Generate Final Invoice
             </Button>
