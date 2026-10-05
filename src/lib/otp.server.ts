@@ -94,7 +94,7 @@ export async function sendMsg91WidgetOtp(phone: string): Promise<string> {
   const response = await fetch(`${MSG91_API}/widget/sendOtp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ widgetId: WIDGET_ID, tokenAuth: WIDGET_TOKEN, identifier: `91${phone}` }),
+    body: JSON.stringify({ widgetId: widgetId(), tokenAuth: WIDGET_TOKEN, identifier: `91${phone}` }),
   });
   const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
   if (!response.ok || payload.type?.toLowerCase() !== "success" || !payload.message) {
@@ -173,7 +173,7 @@ export async function verifyMsg91Otp(requestId: string, otp: string): Promise<vo
   const response = await fetch(`${MSG91_API}/widget/verifyOtp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ widgetId: WIDGET_ID, tokenAuth: WIDGET_TOKEN, reqId: requestId, otp }),
+    body: JSON.stringify({ widgetId: widgetId(), tokenAuth: WIDGET_TOKEN, reqId: requestId, otp }),
   });
   const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
   if (!response.ok || payload.type?.toLowerCase() !== "success") {
