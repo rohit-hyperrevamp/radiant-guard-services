@@ -1868,8 +1868,16 @@ function MusterRollPage() {
       }
     }
 
+    // Only the contract's designations belong on the muster. A line on any
+    // other designation is hidden unless attendance was already saved on it
+    // this period (kept so that saved data can still be corrected/removed).
+    const onContract = new Set(contractDesignations.map((d) => d.designationId));
+    const savedPairs = new Set((entries ?? []).map((e) => `${e.candidate_id}|${e.designation_id ?? ""}`));
+    const kept = onContract.size
+      ? out.filter((r) => r.vacant || (r.designationId && onContract.has(r.designationId)) || savedPairs.has(`${r.candidateId}|${r.designationId ?? ""}`))
+      : out;
     // Group the sheet by designation so vacant slots sit with their peers.
-    return out
+    return kept
       .map((r, i) => ({ r, i }))
       .sort(
         (a, b) =>
