@@ -131,7 +131,8 @@ export async function sendWidgetOtp(phone: string): Promise<string | null> {
     );
     window.sendOtp?.(
       `91${phone}`,
-      (data) => finish(() => resolve(data.request_id ?? data.reqId ?? null)),
+      // MSG91 returns the request ID in `message` (this was the working path).
+      (data) => finish(() => resolve(data.request_id ?? data.reqId ?? data.message ?? null)),
       (error) => finish(() => reject(new Error(messageOf(error, "Could not send the code. Please try again.")))),
     );
   });
