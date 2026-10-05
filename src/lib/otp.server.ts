@@ -1,5 +1,11 @@
 import { SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
-import { WIDGET_ID, WIDGET_TOKEN } from "@/lib/otp-widget";
+import { DEFAULT_WIDGET_ID } from "@/lib/otp-config.functions";
+import { WIDGET_TOKEN } from "@/lib/otp-widget";
+
+/** Widget ID from secrets (MSG91_WIDGET_ID) with the built-in default as fallback. */
+function widgetId(): string {
+  return process.env["MSG91_WIDGET_ID"] || DEFAULT_WIDGET_ID;
+}
 
 const MSG91_API = "https://control.msg91.com/api/v5";
 const OTP_RELAY_URL = "https://radiant-guard-services.lovable.app/api/public/otp-relay";

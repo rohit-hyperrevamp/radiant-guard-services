@@ -56,13 +56,19 @@ export function loadMsg91Widget(): Promise<void> {
   if (widgetPromise) return widgetPromise;
 
   widgetPromise = new Promise<void>((resolve, reject) => {
-    const initialize = () => {
+    const initialize = async () => {
       if (!window.initSendOTP) {
         reject(new Error("SMS service did not load. Please try again."));
         return;
       }
+      let widgetId = WIDGET_ID;
+      try {
+        widgetId = (await getMsg91WidgetConfig()).widgetId || WIDGET_ID;
+      } catch {
+        // Fall back to the built-in widget ID.
+      }
       window.initSendOTP({
-        widgetId: WIDGET_ID,
+        widgetId,
         tokenAuth: WIDGET_TOKEN,
         exposeMethods: true,
         success: () => undefined,
