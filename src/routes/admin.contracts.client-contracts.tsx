@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   Copy,
+  Eye,
   Lock,
   Download,
   Edit2,
@@ -4329,6 +4330,7 @@ function ResourcesSection({
   onCopy: (idx: number) => void;
   onDelete: (idx: number) => void;
 }) {
+  const [viewIdx, setViewIdx] = useState<number | null>(null);
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
