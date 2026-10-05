@@ -27,6 +27,7 @@ export type AddOnLine = {
   allowanceId?: string | null;
   formulaMode?: string | null;
   formulaExpression?: string | null;
+  roundOff?: boolean | null;
   [k: string]: unknown;
 };
 
@@ -108,7 +109,7 @@ export function liveAddOnAmount(
 
   const r = evaluateFormula(cfg, ctx);
   if (r.error) return num(line.amount);
-  return Math.round(r.amount * 100) / 100;
+  return line.roundOff ? Math.round(r.amount) : Math.round(r.amount * 100) / 100;
 }
 
 /**
