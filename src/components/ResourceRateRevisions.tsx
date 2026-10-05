@@ -520,13 +520,16 @@ export function ResourceRateRevisions({
               )}
             </tbody>
           </table>
-          {canEdit && !comparedExpired && !comparedUpcoming && (
-            <DialogFooter>
-               <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button type="button" variant="outline" onClick={exportComparison} disabled={!comparisonTarget}>
+              <Download className="mr-1.5 h-4 w-4" /> Export comparison
+            </Button>
+            {canEdit && !comparedExpired && !comparedUpcoming && (
+              <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve revised rate
               </Button>
-            </DialogFooter>
-          )}
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
