@@ -485,6 +485,12 @@ function BulkRateRevisionPage() {
         </div>
       )}
 
+      {compatibleIds && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          Showing only clients that share a common designation with the same rate structure as your selection. Clear the selection to see all clients again.
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-secondary/50 text-left text-xs text-muted-foreground">
