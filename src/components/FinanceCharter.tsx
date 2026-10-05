@@ -32,6 +32,7 @@ import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billin
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
+import { EXCLUDE, isSplit, loadOrgInvoiceSplit, type InvoiceItemKey, type InvoiceSplit } from "@/lib/invoice-split";
 import { Checkbox } from "@/components/ui/checkbox";
 
 
@@ -526,6 +527,111 @@ export function FinanceCharter({
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
+  // Billed lines per unit, routed to the organization's invoice parts
+  // (Organizations → Invoice format). Unsplit organizations get one "main" part.
+  type PartLine = { qty: number; amount: number; monthly: number };
+  const loadPartLines = async (targets: { id: string; customer_id?: string | null }[]) => {
+    const chunkOf = <T,>(items: T[], size: number) => {
+      const chunks: T[][] = [];
+      for (let index = 0; index < items.length; index += size) chunks.push(items.slice(index, index + size));
+      return chunks;
+    };
+    const ids = targets.map((u) => u.id);
+    const customerIds = Array.from(new Set(targets.map((u) => u.customer_id ?? "").filter(Boolean)));
+    const splits = new Map<string, InvoiceSplit>();
+    await Promise.all(customerIds.map(async (cid) => splits.set(cid, await loadOrgInvoiceSplit(cid))));
+    const splitFor = (unitId: string) => splits.get(targets.find((u) => u.id === unitId)?.customer_id ?? "") ?? null;
+    const financeMap = new Map<string, UnitFinance>();
+    for (const chunkIds of chunkOf(ids, 100)) {
+      const part = await fetchUnitFinance(chunkIds);
+      for (const [key, value] of part) financeMap.set(key, value);
+    }
+    const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
+    for (const unit of targets) {
+      const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
+      const key = `${period.start}|${period.mtdEnd}`;
+      const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
+      group.unitIds.push(unit.id);
+      groups.set(key, group);
+    }
+    const entries = (await Promise.all(
+      Array.from(groups.values()).flatMap((group) =>
+        chunkOf(group.unitIds, 100).map((unitIds) =>
+          fetchAttendanceEntriesForPeriod({ unitIds, start: group.start, end: group.end, includeUnitId: true }),
+        ),
+      ),
+    )).flat();
+    const linesByUnit = new Map<string, Map<string, Map<string, PartLine>>>();
+    const add = (unitId: string, part: string, desig: string, qty: number, amount: number, monthly: number) => {
+      if (qty <= 0 || part === EXCLUDE) return;
+      const byPart = linesByUnit.get(unitId) ?? new Map<string, Map<string, PartLine>>();
+      const lines = byPart.get(part) ?? new Map<string, PartLine>();
+      const line = lines.get(desig) ?? { qty: 0, amount: 0, monthly };
+      line.qty += qty;
+      line.amount += amount;
+      lines.set(desig, line);
+      byPart.set(part, lines);
+      linesByUnit.set(unitId, byPart);
+    };
+    for (const entry of entries) {
+      const entryUnitId = entry.unit_id ?? "";
+      const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id, (entry as any).shift_hours);
+      if (!entryUnitId || !rate) continue;
+      const code = codeMap.get(entry.code);
+      const rawDayValue = code?.day_value;
+      const dayValue = rawDayValue == null || Number.isNaN(Number(rawDayValue)) ? 1 : Math.max(0, Number(rawDayValue));
+      const paid = code && (code.counts_as_present || code.is_paid) ? dayValue : 0;
+      const ot = Number(entry.ot_hours) || 0;
+      const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
+      const perDay = rate.billRate / periodDays;
+      const desig = entry.designation_id ?? "—";
+      const split = splitFor(entryUnitId);
+      const route = (item: InvoiceItemKey) => (split && isSplit(split) ? split.assign[item] : "main");
+      if ((entry as any).is_reliever) {
+        add(entryUnitId, route("reliever"), desig, paid + ot, perDay * (paid + ot), rate.billRate);
+        continue;
+      }
+      const isPh = !!code && code.code.toUpperCase().startsWith("PH");
+      add(entryUnitId, route(isPh ? "ph" : "regular"), desig, paid, perDay * paid, rate.billRate);
+      add(entryUnitId, route("ed"), desig, ot, perDay * ot, rate.billRate);
+    }
+    const partLabel = (unitId: string, part: string) =>
+      splitFor(unitId)?.parts.find((p) => p.key === part)?.label ?? "Main invoice";
+    return { linesByUnit, partLabel, splitFor };
+  };
+
+  // Final invoices: a site of a split organization becomes one target per
+  // invoice part, valued by that part's share of the billed attendance.
+  const [preparingFinal, setPreparingFinal] = useState(false);
+  const [finalTargets, setFinalTargets] = useState<FinalInvoiceTarget[]>([]);
+  const openFinal = async () => {
+    setPreparingFinal(true);
+    try {
+      const units = selectedTargets.map((t) => ({ id: t.unitId, customer_id: t.customerId }));
+      const { linesByUnit, partLabel, splitFor } = await loadPartLines(units);
+      const out: FinalInvoiceTarget[] = [];
+      for (const t of selectedTargets) {
+        const split = splitFor(t.unitId);
+        if (!split || !isSplit(split)) { out.push(t); continue; }
+        const byPart = linesByUnit.get(t.unitId) ?? new Map();
+        const sum = (k: string) => Array.from(byPart.get(k)?.values() ?? []).reduce((a, l) => a + l.amount, 0);
+        const total = split.parts.reduce((a, p) => a + sum(p.key), 0);
+        for (const p of split.parts) {
+          const share = total > 0 ? sum(p.key) / total : 0;
+          if (share <= 0) continue;
+          out.push({ ...t, partKey: p.key, partLabel: partLabel(t.unitId, p.key), taxableValue: Math.round(t.taxableValue * share * 100) / 100 });
+        }
+      }
+      if (!out.length) return toast.error("Nothing billable for the selected sites.");
+      setFinalTargets(out);
+      setFinalOpen(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not prepare the final invoice");
+    } finally {
+      setPreparingFinal(false);
+    }
+  };
+
   // One Tally workbook for every invoice in the current filters, not only the
   // visible page. The rows use the same strict layout as the invoice detail export.
   const [tallyBusy, setTallyBusy] = useState(false);
@@ -543,33 +649,12 @@ export function FinanceCharter({
         return chunks;
       };
       const ids = targets.map((unit) => unit.id);
-      const [{ data: org }, gstBranches] = await Promise.all([supabase
+      const [{ data: org }, gstBranches, partData] = await Promise.all([supabase
         .from("org_settings")
         .select("*")
         .limit(1)
-        .maybeSingle(), loadGstBillingBranches()]);
-
-      const financeMap = new Map<string, UnitFinance>();
-      for (const chunkIds of chunkOf(ids, 100)) {
-        const part = await fetchUnitFinance(chunkIds);
-        for (const [key, value] of part) financeMap.set(key, value);
-      }
-
-      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
-      for (const unit of targets) {
-        const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
-        const key = `${period.start}|${period.mtdEnd}`;
-        const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
-        group.unitIds.push(unit.id);
-        groups.set(key, group);
-      }
-      const entries = (await Promise.all(
-        Array.from(groups.values()).flatMap((group) =>
-          chunkOf(group.unitIds, 100).map((unitIds) =>
-            fetchAttendanceEntriesForPeriod({ unitIds, start: group.start, end: group.end, includeUnitId: true }),
-          ),
-        ),
-      )).flat();
+        .maybeSingle(), loadGstBillingBranches(), loadPartLines(targets)]);
+      const { linesByUnit, partLabel } = partData;
 
       const unitRows: Record<string, any>[] = [];
       for (const chunkIds of chunkOf(ids, 100)) {
@@ -632,35 +717,14 @@ export function FinanceCharter({
         ((serviceTypesResult.data ?? []) as { id: string; name: string }[]).map((type) => [String(type.id), String(type.name)]),
       );
 
-      const linesByUnit = new Map<string, Map<string, { qty: number; amount: number; monthly: number }>>();
-      for (const entry of entries) {
-        const entryUnitId = entry.unit_id ?? "";
-        const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id, (entry as any).shift_hours);
-        if (!entryUnitId || !rate) continue;
-        const code = codeMap.get(entry.code);
-        const rawDayValue = code?.day_value;
-        const dayValue = rawDayValue == null || Number.isNaN(Number(rawDayValue)) ? 1 : Math.max(0, Number(rawDayValue));
-        const paid = code && (code.counts_as_present || code.is_paid) ? dayValue : 0;
-        const quantity = paid + (Number(entry.ot_hours) || 0);
-        if (quantity <= 0) continue;
-        const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
-        const amount = (rate.billRate / periodDays) * quantity;
-        const unitLines = linesByUnit.get(entryUnitId) ?? new Map();
-        const key = entry.designation_id ?? "—";
-        const line = unitLines.get(key) ?? { qty: 0, amount: 0, monthly: rate.billRate };
-        line.qty += quantity;
-        line.amount += amount;
-        unitLines.set(key, line);
-        linesByUnit.set(entryUnitId, unitLines);
-      }
-
       const unitById = new Map(unitRows.map((unit) => [String(unit.id), unit]));
-      const workbookRows: Record<string, unknown>[] = [];
-      let invoiceCount = 0;
+      // One workbook per invoice part label (e.g. "Regular", "ED & Night").
+      const books = new Map<string, { rows: Record<string, unknown>[]; count: number }>();
       for (const unit of targets) {
-        const lines = linesByUnit.get(unit.id);
         const unitRow = unitById.get(unit.id);
-        if (!lines || !unitRow) continue;
+        if (!unitRow) continue;
+        for (const [partKey, lines] of linesByUnit.get(unit.id) ?? []) {
+        const label = partLabel(unit.id, partKey);
         const voucherLines = Array.from(lines.values())
           .filter((line) => line.amount > 0)
           .map((line) => ({
@@ -676,7 +740,9 @@ export function FinanceCharter({
         const billingState = String(unitRow.billing_state || customer?.billing_state || "");
         const supplierBranch = resolveGstBillingBranch(gstBranches, billingState, org as never);
         const serviceTypeId = serviceTypeIdByUnit.get(unit.id);
-        workbookRows.push(...buildTallyVoucherRows({
+        const book = books.get(label) ?? { rows: [], count: 0 };
+        books.set(label, book);
+        book.rows.push(...buildTallyVoucherRows({
           unit: {
             ...unitRow,
             customer_name: unit.customer_name,
@@ -689,17 +755,22 @@ export function FinanceCharter({
           serviceTypeName: (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard",
           lines: voucherLines,
         }));
-        invoiceCount += 1;
+        book.count += 1;
+        }
       }
-      if (workbookRows.length === 0) {
+      if (books.size === 0) {
         toast.error("No billable attendance for the filtered invoices in this period.");
         return;
       }
-      await writeTallyBillingXlsx(
-        `Tally Billing_${year}-${String(monthIdx + 1).padStart(2, "0")}_${invoiceCount} invoices`,
-        workbookRows,
-      );
-      toast.success(`Tally format ready — ${invoiceCount} invoice${invoiceCount === 1 ? "" : "s"} in one file.`);
+      const ym = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
+      const multi = books.size > 1;
+      for (const [label, book] of books) {
+        await writeTallyBillingXlsx(
+          `Tally Billing_${ym}${multi ? `_${label.replace(/[^A-Za-z0-9]+/g, "-")}` : ""}_${book.count} invoices`,
+          book.rows,
+        );
+      }
+      toast.success(multi ? `${books.size} files downloaded — one per invoice (no invoice numbers).` : "Tally format ready (no invoice numbers).");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Tally export failed");
     } finally {
@@ -1208,10 +1279,10 @@ export function FinanceCharter({
           )}
           <Button
             className="h-9 rounded-xl"
-            disabled={selectedTargets.length === 0}
-            onClick={() => setFinalOpen(true)}
+            disabled={selectedTargets.length === 0 || preparingFinal}
+            onClick={() => void openFinal()}
           >
-            <FileCheck2 className="h-4 w-4" /> Generate final invoice
+            <FileCheck2 className="h-4 w-4" /> {preparingFinal ? "Preparing…" : "Generate final invoice"}
           </Button>
         </div>
       )}
@@ -1219,7 +1290,7 @@ export function FinanceCharter({
       <FinalInvoiceDialog
         open={finalOpen}
         onOpenChange={setFinalOpen}
-        targets={selectedTargets}
+        targets={finalTargets}
         onDone={() => setSelected({})}
       />
 
