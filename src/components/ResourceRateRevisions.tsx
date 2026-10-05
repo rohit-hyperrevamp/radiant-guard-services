@@ -88,7 +88,6 @@ export function ResourceRateRevisions({
   const [busy, setBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
-  const [compareExpiredId, setCompareExpiredId] = useState<string | null>(null);
   const [approveOpen, setApproveOpen] = useState(false);
   const [applicableFrom, setApplicableFrom] = useState("");
   const [applicableTill, setApplicableTill] = useState(contractEndDate);
@@ -141,7 +140,6 @@ export function ResourceRateRevisions({
   const [editUpcomingId, setEditUpcomingId] = useState<string | null>(null);
   const [datesUpcomingId, setDatesUpcomingId] = useState<string | null>(null);
   const editUpcoming = upcoming.find((r) => r.id === editUpcomingId) ?? null;
-  void compareExpiredId;
 
   if (!resource.id) return null;
 
@@ -214,6 +212,33 @@ export function ResourceRateRevisions({
     if (error) return toast.error(error.message);
     void logActivity({ module: "Contract Rate Card", action: "delete", entityType: "contract_rate_revisions", entityId: draft.id, entityLabel: `${label} revised rate` });
     toast.success("Revised rate discarded");
+    void load();
+  }
+
+  async function updateUpcoming(id: string, from: string, to: string, r?: ContractResource) {
+    if (!from || !to || to < from) return toast.error("Choose a valid applicable from / till range");
+    setBusy(true);
+    const payload = r
+      ? {
+          gross: sum(r.components),
+          components: r.components,
+          benefits: r.benefits,
+          deductions: r.deductions,
+          employer_contributions: r.employerContributions,
+          payroll_day_base_id: r.payrollDayBaseId ?? "",
+          billing_day_base_id: r.billingDayBaseId ?? "",
+          shift_hours: r.shiftHours,
+        }
+      : null;
+    const { error } = await supabase.rpc("update_scheduled_contract_rate_revision" as never, {
+      _id: id, _effective_from: from, _effective_to: to, _payload: payload,
+    } as never);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    void logActivity({ module: "Contract Rate Card", action: "update", entityType: "contract_rate_revisions", entityId: id, entityLabel: `${label} upcoming rate`, details: { effectiveFrom: from, effectiveTo: to } });
+    toast.success("Upcoming rate updated");
+    setEditUpcomingId(null);
+    setDatesUpcomingId(null);
     void load();
   }
 
@@ -454,6 +479,33 @@ export function ResourceRateRevisions({
               </Button>
             </DialogFooter>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {editUpcoming && (
+        <Editor open onOpenChange={(o) => { if (!o) setEditUpcomingId(null); }} initial={revRes(resource, editUpcoming)} onSubmit={(r) => updateUpcoming(editUpcoming.id, editUpcoming.effective_from ?? "", editUpcoming.effective_to ?? "", r)} />
+      )}
+
+      <Dialog open={!!datesUpcomingId} onOpenChange={(o) => { if (!o) setDatesUpcomingId(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change upcoming rate dates</DialogTitle>
+            <DialogDescription>The present rate will end the day before the new applicable-from date.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Applicable from</Label>
+              <Input type="date" value={applicableFrom} min={addDays(today, 1)} max={applicableTill || contractEndDate} onChange={(e) => setApplicableFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Applicable till</Label>
+              <Input type="date" value={applicableTill} min={applicableFrom || today} max={contractEndDate} onChange={(e) => setApplicableTill(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDatesUpcomingId(null)}>Cancel</Button>
+            <Button type="button" disabled={busy} onClick={() => datesUpcomingId && updateUpcoming(datesUpcomingId, applicableFrom, applicableTill)}>Save dates</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
