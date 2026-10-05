@@ -301,7 +301,7 @@ function PayrollUnitPage() {
 
 
   const queryClient = useQueryClient();
-  const { can, canAction } = useCurrentPermissions();
+  const { canAction } = useCurrentPermissions();
   const canSubmitPayroll = canAction("payroll", "submit", "edit");
   const canReopenPayroll = canAction("payroll", "reopen", "approve");
   const { data: canApprove = false } = useQuery({

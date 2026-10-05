@@ -190,7 +190,7 @@ function PayrollUnitPage() {
   const queryClient = useQueryClient();
   const tallyInvoiceInputRef = useRef<HTMLInputElement>(null);
   const [uploadingTallyInvoice, setUploadingTallyInvoice] = useState(false);
-  const { can, canAction } = useCurrentPermissions();
+  const { canAction } = useCurrentPermissions();
   const canUploadTallyInvoice = canAction("invoice", "upload_tally", "edit");
   const canFinaliseInvoice = canAction("invoice", "finalise", "edit");
   // Invoice numbers only exist once the invoice has been finalised.
