@@ -4280,6 +4280,24 @@ function Field({ label, children, className }: { label: string; children: React.
 
 const DECIMAL_INPUT_REGEX = /^\d*\.?\d*$/;
 
+function RoundOffToggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={`Round off ${label}`}
+      title={on ? "Rounded to nearest rupee — click for exact amount" : "Exact amount — click to round off"}
+      className={cn(
+        "inline-flex h-6 shrink-0 items-center rounded-full border px-2 text-[10px] font-semibold transition-colors",
+        on ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-card text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {on ? "Rounded" : "Round off"}
+    </button>
+  );
+}
+
 function DecimalAmountInput({
   value,
   onValueChange,
@@ -5186,6 +5204,52 @@ export function ResourceFormDialog({
     );
   };
 
+  const toggleComponentRoundOff = (allowanceId: string) => {
+    preserveDialogScroll(() => {
+      setComponents((prev) =>
+        prev.map((c) => {
+          if (c.allowanceId !== allowanceId) return c;
+          const at = findAllowanceForResourceComponent(c, allowanceTypes);
+          const computed =
+            !(c.calcType === "fixed" && !hasConfiguredFormula(c)) &&
+            !!at && (hasConfiguredFormula(at) || at.calcType === "percentage");
+          return toggleLineRoundOff(c, computed);
+        }),
+      );
+    });
+  };
+
+  const toggleDeductionRoundOff = (id: string) => {
+    preserveDialogScroll(() => {
+      setDeductions((prev) =>
+        prev.map((b) => {
+          if (b.costComponentId !== id) return b;
+          const computed = b.calcType === "percentage" || hasConfiguredFormula(b);
+          const next = toggleLineRoundOff(b, computed);
+          return computed ? { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes) } : next;
+        }),
+      );
+    });
+  };
+
+  const toggleEmployerRoundOff = (id: string) => {
+    preserveDialogScroll(() => {
+      setEmployerContributions((prev) =>
+        prev.map((b) => {
+          if (b.costComponentId !== id) return b;
+          const computed = b.calcType === "percentage" || hasConfiguredFormula(b);
+          const next = toggleLineRoundOff(b, computed);
+          if (!computed) return next;
+          const refsCtc =
+            formulaReferencesCtc(b.formulaExpression) ||
+            b.baseComponents.some((x) => /^(total\s+)?ctc$/i.test(x.label.trim()));
+          const ctcBase = refsCtc ? prev.filter((x) => x.costComponentId !== id && !isBillingAddOn(x)) : [];
+          return { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes, ctcBase) };
+        }),
+      );
+    });
+  };
+
   const toggleOtComponent = (allowanceId: string) => {
     preserveDialogScroll(() => {
       setComponents((prev) =>
@@ -5832,6 +5896,8 @@ export function ResourceFormDialog({
                   <div key={c.allowanceId} className="grid gap-1">
                     <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                       <span className="truncate">{c.name}</span>
+                      <span className="flex items-center gap-1.5">
+                      <RoundOffToggle on={!!c.roundOff} label={c.name} onToggle={() => toggleComponentRoundOff(c.allowanceId)} />
                       <button
                         type="button"
                         onClick={() => removeComponent(c.allowanceId)}
@@ -5840,6 +5906,7 @@ export function ResourceFormDialog({
                       >
                         <X className="h-3 w-3" />
                       </button>
+                      </span>
                     </Label>
                     <DecimalAmountInput
                       value={c.amount}
@@ -6076,6 +6143,7 @@ export function ResourceFormDialog({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <RoundOffToggle on={!!b.roundOff} label={b.name} onToggle={() => toggleDeductionRoundOff(b.costComponentId)} />
                       {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
                          <DecimalAmountInput
                            value={b.amount}
@@ -6239,6 +6307,7 @@ export function ResourceFormDialog({
 
                     </div>
                     <div className="flex items-center gap-2">
+                      <RoundOffToggle on={!!b.roundOff} label={b.name} onToggle={() => toggleEmployerRoundOff(b.costComponentId)} />
                       {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
                          <DecimalAmountInput
                            value={b.amount}
