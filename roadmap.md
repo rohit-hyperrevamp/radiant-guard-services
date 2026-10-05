@@ -545,3 +545,7 @@
 - [x] Keep every superseded rate visible as Expired after approving its replacement.
 - [x] Show the expired rate's validity and monthly billing on the resource card.
 - [x] Allow direct previous-versus-current rate comparison after approval.
+
+## Contract invoice split
+- [x] Contract-level invoice output rules (parts, include/exclude)
+- [x] Separate final invoice number per part; plain exports carry no number
