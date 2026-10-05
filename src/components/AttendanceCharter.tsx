@@ -502,11 +502,11 @@ export function AttendanceCharter({
                         <span className="text-muted-foreground">/{r.committed}</span>
                       </div>
                       <div className="flex w-[150px] shrink-0 justify-center">
-                        <AttendanceStatusBadge status={r.status.attendance} />
+                        <AttendanceStatusBadge status={r.status.attendance} filled={loading ? undefined : r.people.length > 0} />
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center pr-1 sm:hidden">
-                      <AttendanceStatusBadge status={r.status.attendance} />
+                      <AttendanceStatusBadge status={r.status.attendance} filled={loading ? undefined : r.people.length > 0} />
                     </div>
                   </Link>
 
