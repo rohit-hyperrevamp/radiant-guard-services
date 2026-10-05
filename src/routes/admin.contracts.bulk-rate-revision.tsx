@@ -216,14 +216,14 @@ function BulkRateRevisionPage() {
   const single = visibleGroups.filter((g) => g.lines.length === 1);
 
   const active = groups.find((g) => g.key === groupKey) ?? null;
-  const chosen = active ? active.lines.filter((l) => selected.has(l.resource.id)) : [];
+  const chosen = active ? active.lines.filter((l) => selected.has(String(l.resource.id))) : [];
   const template = chosen[0] ?? active?.lines[0] ?? null;
   const designation = active?.designation ?? "";
 
   const pickGroup = (key: string) => {
     const g = groups.find((x) => x.key === key);
     setGroupKey(key);
-    setSelected(new Set(g?.lines.map((l) => l.resource.id) ?? []));
+    setSelected(new Set(g?.lines.map((l) => String(l.resource.id)) ?? []));
     setRevised(null);
   };
   const toggle = (id: string) =>
@@ -269,7 +269,7 @@ function BulkRateRevisionPage() {
   async function approveAll() {
     if (!from || !till || till < from) return toast.error("Choose a valid applicable from / till range");
     const fresh = ((await qc.fetchQuery({ queryKey: ["bulk-rr-lines", orgId] })) as Line[]).filter(
-      (l) => selected.has(l.resource.id) && l.draftId,
+      (l) => selected.has(String(l.resource.id)) && l.draftId,
     );
     if (!fresh.length) return toast.error("No revised rates to approve — create them first");
     const ok = await confirmAction({
@@ -315,7 +315,7 @@ function BulkRateRevisionPage() {
         <div className="mt-2 flex flex-wrap gap-1.5">
           {g.lines.map((l) => (
             <label key={l.resource.id} className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs">
-              {isActive && <input type="checkbox" checked={selected.has(l.resource.id)} onChange={() => toggle(l.resource.id)} />}
+              {isActive && <input type="checkbox" checked={selected.has(String(l.resource.id))} onChange={() => toggle(String(l.resource.id))} />}
               <span className="font-medium">{l.unitName}</span>
               <span className="font-mono text-[10px] text-muted-foreground">{l.contractCode}</span>
               {l.hasDraft && <span className="rounded-full bg-rate-revised px-1.5 text-[10px] text-rate-revised-foreground">Revised</span>}
