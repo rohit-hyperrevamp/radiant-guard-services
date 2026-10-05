@@ -8,10 +8,26 @@ const base =
 export function AttendanceStatusBadge({
   status,
   className,
+  filled,
 }: {
   status: AttendanceStatus;
   className?: string;
+  /** When known: whether any attendance is marked yet. Shows a red (not filled) or green (in progress) dot. */
+  filled?: boolean;
 }) {
+  if (filled !== undefined && status !== "approved") {
+    const cfg =
+      status === "submitted"
+        ? { label: "Submitted", tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600", dot: "bg-emerald-500" }
+        : filled
+          ? { label: "In progress", tone: "border-emerald-500/30 bg-emerald-500/5 text-emerald-600", dot: "bg-emerald-500 animate-pulse" }
+          : { label: "Not filled", tone: "border-destructive/30 bg-destructive/10 text-destructive", dot: "bg-destructive" };
+    return (
+      <span className={cn(base, cfg.tone, className)}>
+        <span className={cn("h-2 w-2 rounded-full", cfg.dot)} /> {cfg.label}
+      </span>
+    );
+  }
   const map: Record<AttendanceStatus, { label: string; tone: string; icon: typeof Clock }> = {
     none: { label: "Attendance open", tone: "border-border bg-muted text-muted-foreground", icon: LockOpen },
     draft: { label: "Attendance open", tone: "border-border bg-muted text-muted-foreground", icon: LockOpen },
