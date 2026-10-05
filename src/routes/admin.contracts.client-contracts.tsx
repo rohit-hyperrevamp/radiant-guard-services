@@ -4629,6 +4629,17 @@ function ResourcesSection({
           </Button>
         </div>
       )}
+      {viewIdx !== null && resources[viewIdx] && (
+        <ResourceFormDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setViewIdx(null);
+          }}
+          initial={resources[viewIdx]}
+          onSubmit={() => setViewIdx(null)}
+          readOnly
+        />
+      )}
     </Section>
   );
 }
