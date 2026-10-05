@@ -271,14 +271,7 @@ export function ResourceRateRevisions({
   return (
     <div className="mt-2 space-y-1.5 border-t border-border pt-2">
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span className="text-muted-foreground">
-          Present rate: {fmtDate(active?.effective_from ?? contractStartDate ?? null)} – {fmtDate(active?.effective_to ?? contractEndDate ?? null)}
-        </span>
-        {scheduled && (
-          <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
-            Revised rate approved · {fmtDate(scheduled.effective_from)} – {fmtDate(scheduled.effective_to)} ({fmt(sum(scheduled.components) + sum(scheduled.employer_contributions))})
-          </span>
-        )}
+        <span className="font-semibold uppercase tracking-wider text-muted-foreground">Rate timeline</span>
         {!draft && canEdit && (
           <Button type="button" size="sm" variant="outline" className="ml-auto h-7 text-[11px]" disabled={busy} onClick={createCopy}>
             <Copy className="mr-1 h-3 w-3" /> Copy as revised rate
@@ -286,6 +279,40 @@ export function ResourceRateRevisions({
         )}
       </div>
 
+      {/* 1. Present */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-rate-present/60 px-2.5 py-2 text-xs text-rate-present-foreground">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        <span className="rounded-full bg-rate-present px-2 py-0.5 text-[11px] font-bold">Present rate</span>
+        <span className="font-semibold tabular-nums">{fmt(billing(resource))}</span>
+        <span>{fmtDate(presentFrom)} – {fmtDate(presentTo)}</span>
+      </div>
+
+      {/* 2. Upcoming */}
+      {upcoming.map((u) => (
+        <div key={u.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-rate-revised/60 px-2.5 py-2 text-xs text-rate-revised-foreground">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <span className="rounded-full bg-rate-revised px-2 py-0.5 text-[11px] font-bold">Upcoming · approved</span>
+          <span className="font-semibold tabular-nums">{fmt(billing(revRes(resource, u)))}</span>
+          <span>{fmtDate(u.effective_from)} – {fmtDate(u.effective_to)}</span>
+          <div className="ml-auto flex flex-wrap gap-1.5">
+            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => { setCompareRevId(u.id); setCompareOpen(true); }}>
+              <GitCompare className="mr-1 h-3 w-3" /> Compare with present
+            </Button>
+            {canEdit && (
+              <>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setEditUpcomingId(u.id)}>
+                  <Edit2 className="mr-1 h-3 w-3" /> Edit wages
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => { setApplicableFrom(u.effective_from ?? ""); setApplicableTill(u.effective_to ?? contractEndDate); setDatesUpcomingId(u.id); }}>
+                  Change dates
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* 3. Expired, newest first */}
       {history.length > 0 && (
         <div className="space-y-1.5">
           {history.map((expiredRate) => {
@@ -304,7 +331,7 @@ export function ResourceRateRevisions({
                   variant="outline"
                   className="ml-auto h-7 text-[11px]"
                   onClick={() => {
-                    setCompareExpiredId(expiredRate.id);
+                    setCompareRevId(expiredRate.id);
                     setCompareOpen(true);
                   }}
                 >
