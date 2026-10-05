@@ -192,6 +192,8 @@ export type WageComponent = {
   formulaMode?: string | null;
   formulaExpression?: string | null;
   formulaVersion?: number | null;
+  /** Round this line to the nearest rupee. */
+  roundOff?: boolean | null;
 };
 export type BenefitLike = {
   name: string;
@@ -208,6 +210,8 @@ export type BenefitLike = {
   formulaMode?: string | null;
   formulaExpression?: string | null;
   formulaVersion?: number | null;
+  /** Round this line to the nearest rupee. */
+  roundOff?: boolean | null;
 };
 
 
@@ -881,7 +885,8 @@ export function computeWages(
   // Pass 2: formula lines override the pass-1 pro-rated amount.
   const components: WageComponent[] = resource.components.map((c, idx) => {
     const fromFormula = tryFormulaAmount(c);
-    const amount = fromFormula != null ? fromFormula : (componentEarnedAmounts[idx] ?? 0);
+    const exact = fromFormula != null ? fromFormula : (componentEarnedAmounts[idx] ?? 0);
+    const amount = c.roundOff ? Math.round(exact) : exact;
     return { ...c, name: c.name, amount };
   });
 
@@ -1223,10 +1228,16 @@ export function computeWages(
   // Extra-duty-only lines (no regular earnings in this window) carry NO
   // deductions and NO employer contributions at all.
   const edOnly = earnedGrossExcludingEd <= 0 && earnedGross > 0;
-  const finalDeductions = edOnly ? [] : clampEpf(deductions, resource.deductions);
+  // Per-line round-off chosen on the contract (nearest rupee).
+  const roundFlagged = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] =>
+    items.map((i) => {
+      const flagged = i.roundOff ?? contractItems.find((c) => c.name === i.name)?.roundOff;
+      return flagged ? { ...i, amount: Math.round(Number(i.amount) || 0) } : i;
+    });
+  const finalDeductions = edOnly ? [] : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
   const finalEmployerContributions = edOnly
     ? []
-    : clampEpf(employerContributions, resource.employerContributions);
+    : roundFlagged(clampEpf(employerContributions, resource.employerContributions), resource.employerContributions);
   const totalDeductions = finalDeductions.reduce((s, d) => s + d.amount, 0);
   const totalEmployerContributions = finalEmployerContributions.reduce(
     (s, d) => s + d.amount,
