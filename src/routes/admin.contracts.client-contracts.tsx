@@ -4,6 +4,7 @@ import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { SearchSelect } from "@/components/SearchSelect";
 import {
   Check,
   CheckCircle2,
@@ -2706,11 +2707,6 @@ function ClientContractsPage() {
         eyebrow="Contracts"
         description={isHrReadOnly ? "View contracts across organisations and clients." : "Manage contracts across organisations and clients."}
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
-        actions={
-          <Button asChild size="sm">
-            <RouterLink to="/admin/contracts/bulk-rate-revision">Bulk rate revision</RouterLink>
-          </Button>
-        }
         kpis={
           <>
             <PageStat label="All contracts" value={isLoading ? "—" : overview.total} />
@@ -2804,6 +2800,13 @@ function ClientContractsPage() {
             </span>
           )}
         </div>
+        <Button asChild size="sm" className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:px-4 sm:text-sm">
+          <RouterLink to="/admin/contracts/bulk-rate-revision">
+            <Copy className="mr-1.5 h-4 w-4" />
+            <span className="sm:hidden">Bulk rate</span>
+            <span className="hidden sm:inline">Bulk rate revision</span>
+          </RouterLink>
+        </Button>
         {!isHrReadOnly && <Button
           variant="outline"
           disabled={filtered.length === 0}
@@ -5745,18 +5748,14 @@ export function ResourceFormDialog({
             </Field>
 
             <Field label="Service Type *">
-              <Select value={serviceTypeId} onValueChange={setServiceTypeId}>
-                <SelectTrigger className="h-10 rounded-lg">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {serviceTypes.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                value={serviceTypeId}
+                onChange={setServiceTypeId}
+                options={serviceTypes.map((s) => ({ value: s.id, label: s.name }))}
+                placeholder="Select"
+                searchPlaceholder="Search service type…"
+                emptyText="No service type found."
+              />
             </Field>
 
             <Field label="Agreed Deployment *">
@@ -5785,74 +5784,64 @@ export function ResourceFormDialog({
 
           {!isWages && (
           <Field label="Role">
-            <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
-              <SelectTrigger className="h-10 rounded-lg">
-                <SelectValue placeholder="Map to a system role (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">— None —</SelectItem>
-                {rolesList.map((r) => (
-                  <SelectItem key={r.key} value={r.key}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              value={roleKey || "__none"}
+              onChange={(v) => setRoleKey(v === "__none" ? "" : v)}
+              options={[
+                { value: "__none", label: "— None —" },
+                ...rolesList.map((r) => ({ value: r.key, label: r.name })),
+              ]}
+              placeholder="Map to a system role (optional)"
+              searchPlaceholder="Search role…"
+              emptyText="No role found."
+            />
           </Field>
 
 
           )}
 
           <Field label="Payroll Days *">
-            <Select value={payrollDayBaseId} onValueChange={setPayrollDayBaseId}>
-              <SelectTrigger className="h-10 rounded-lg">
-                <SelectValue placeholder="Select payroll-days rule" />
-              </SelectTrigger>
-              <SelectContent>
-                {payrollDayBases.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <div className="flex flex-col">
-                      <span>{p.name}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {p.method === "fixed_days"
-                          ? `Fixed ${p.fixedDays ?? 26} days`
-                          : p.method === "fixed_annual_average"
-                            ? `Fixed 30.4166 days`
-                            : p.method === "actual_minus_weekly_off"
-                              ? `Actual − weekly off`
-                              : `Actual days in month`}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              value={payrollDayBaseId}
+              onChange={setPayrollDayBaseId}
+              options={payrollDayBases.map((p) => ({
+                value: p.id,
+                label: p.name,
+                hint:
+                  p.method === "fixed_days"
+                    ? `Fixed ${p.fixedDays ?? 26} days`
+                    : p.method === "fixed_annual_average"
+                      ? "Fixed 30.4166 days"
+                      : p.method === "actual_minus_weekly_off"
+                        ? "Actual − weekly off"
+                        : "Actual days in month",
+              }))}
+              placeholder="Select payroll-days rule"
+              searchPlaceholder="Search payroll-days rule…"
+              emptyText="No payroll-days rule found."
+            />
           </Field>
 
           <Field label="Billing Days">
-            <Select value={billingDayBaseId} onValueChange={setBillingDayBaseId}>
-              <SelectTrigger className="h-10 rounded-lg">
-                <SelectValue placeholder="Same as payroll days" />
-              </SelectTrigger>
-              <SelectContent>
-                {billingDayBases.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <div className="flex flex-col">
-                      <span>{p.name}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {p.method === "fixed_days"
-                          ? `Fixed ${p.fixedDays ?? 26} days`
-                          : p.method === "fixed_annual_average"
-                            ? `Fixed 30.4166 days`
-                            : p.method === "actual_minus_weekly_off"
-                              ? `Actual − weekly off`
-                              : `Actual days in month`}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              value={billingDayBaseId}
+              onChange={setBillingDayBaseId}
+              options={billingDayBases.map((p) => ({
+                value: p.id,
+                label: p.name,
+                hint:
+                  p.method === "fixed_days"
+                    ? `Fixed ${p.fixedDays ?? 26} days`
+                    : p.method === "fixed_annual_average"
+                      ? "Fixed 30.4166 days"
+                      : p.method === "actual_minus_weekly_off"
+                        ? "Actual − weekly off"
+                        : "Actual days in month",
+              }))}
+              placeholder="Same as payroll days"
+              searchPlaceholder="Search billing-days rule…"
+              emptyText="No billing-days rule found."
+            />
           </Field>
 
           <div className="rounded-xl border border-border bg-secondary/30 p-3">
@@ -6393,27 +6382,22 @@ export function ResourceFormDialog({
                     <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       {cfg.label}
                     </Label>
-                    <Select
+                    <SearchSelect
+                      className="mt-1 h-9"
                       value={cfg.selected || "__none__"}
-                      onValueChange={(v) => setBillingAddOn(cfg.kind, v)}
-                    >
-                      <SelectTrigger className="mt-1 h-9">
-                        <SelectValue placeholder={`Select ${cfg.label.toLowerCase()}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Not applicable</SelectItem>
-                        {cfg.masters.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem
-                          value={cfg.kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID}
-                        >
-                          Custom amount
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={(v) => setBillingAddOn(cfg.kind, v)}
+                      options={[
+                        { value: "__none__", label: "Not applicable" },
+                        ...cfg.masters.map((c) => ({ value: c.id, label: c.name, hint: c.code ?? undefined })),
+                        {
+                          value: cfg.kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID,
+                          label: "Custom amount",
+                        },
+                      ]}
+                      placeholder={`Select ${cfg.label.toLowerCase()}`}
+                      searchPlaceholder={`Search ${cfg.label.toLowerCase()}…`}
+                      emptyText="Nothing found."
+                    />
                     {(item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID ||
                       item?.costComponentId === CUSTOM_RELIEVER_ID) && (
                       <div className="mt-2">
