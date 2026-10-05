@@ -350,7 +350,7 @@ export function ResourceRateRevisions({
               <span className="rounded-full bg-rate-revised px-2 py-0.5 text-[11px] font-semibold text-rate-revised-foreground">Revised rate</span>
               <span className="text-muted-foreground">Not used until approved</span>
             </div>
-            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => { setCompareExpiredId(null); setCompareOpen(true); }}>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => { setCompareRevId(null); setCompareOpen(true); }}>
               <GitCompare className="mr-1 h-3 w-3" /> Review present vs revised
             </Button>
           </div>
@@ -360,7 +360,7 @@ export function ResourceRateRevisions({
                {" → "}Revised <span className="text-rate-revised-foreground">{fmt(billing(draftResource))}</span>
             </span>
             <span className="text-muted-foreground">
-              Present rate: {fmtDate(active?.effective_from ?? contractStartDate ?? null)} – {fmtDate(active?.effective_to ?? contractEndDate ?? null)}
+              Present rate: {fmtDate(presentFrom)} – {fmtDate(presentTo)}
                {" · "}Revised rate: {applicableFrom && applicableTill ? `${fmtDate(applicableFrom)} – ${fmtDate(applicableTill)}` : "dates set on approval"}
             </span>
           </div>
@@ -386,14 +386,14 @@ export function ResourceRateRevisions({
         <Editor open={editOpen} onOpenChange={setEditOpen} initial={draftResource} onSubmit={saveDraft} />
       )}
 
-      <Dialog open={compareOpen} onOpenChange={(open) => { setCompareOpen(open); if (!open) setCompareExpiredId(null); }}>
+      <Dialog open={compareOpen} onOpenChange={(open) => { setCompareOpen(open); if (!open) setCompareRevId(null); }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{label} — {comparedExpired ? "Expired rate vs Present rate" : "Present rate vs Revised rate"}</DialogTitle>
             <DialogDescription>
               {comparedExpired
                 ? `The previous rate expired on ${fmtDate(comparedExpired.effective_to)}. Monthly amounts are retained for historical comparison.`
-                : "Monthly amounts. The revised rate is not used until approved."}
+                : comparedUpcoming ? "Monthly amounts. This revised rate is approved and starts automatically on its applicable-from date." : "Monthly amounts. The revised rate is not used until approved."}
             </DialogDescription>
           </DialogHeader>
           <table className="w-full text-sm">
@@ -405,16 +405,16 @@ export function ResourceRateRevisions({
                   <div className="text-[10px] font-normal opacity-80">
                     {comparedExpired
                       ? `${fmtDate(comparedExpired.effective_from ?? contractStartDate)} – ${fmtDate(comparedExpired.effective_to)}`
-                      : `${fmtDate(active?.effective_from ?? contractStartDate)} – ${fmtDate(active?.effective_to ?? contractEndDate)}`}
+                      : `${fmtDate(presentFrom)} – ${fmtDate(presentTo)}`}
                   </div>
                 </th>
                 <th className={`px-2 py-2 text-right ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>
                   <div className="font-bold">{comparedExpired ? "Present Rate" : "Revised Rate"}</div>
                   <div className="text-[10px] font-normal opacity-80">
                     {comparedExpired
-                      ? `${fmtDate(active?.effective_from ?? contractStartDate)} – ${fmtDate(active?.effective_to ?? contractEndDate)}`
-                      : applicableFrom && applicableTill
-                        ? `${fmtDate(applicableFrom)} – ${fmtDate(applicableTill)}`
+                      ? `${fmtDate(presentFrom)} – ${fmtDate(presentTo)}`
+                      : revisedFrom && revisedTo
+                        ? `${fmtDate(revisedFrom)} – ${fmtDate(revisedTo)}`
                         : `${fmtDate(contractStartDate)} – ${fmtDate(contractEndDate)}`}
                   </div>
                 </th>
@@ -447,7 +447,7 @@ export function ResourceRateRevisions({
               )}
             </tbody>
           </table>
-          {canEdit && !comparedExpired && (
+          {canEdit && !comparedExpired && !comparedUpcoming && (
             <DialogFooter>
                <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve revised rate
