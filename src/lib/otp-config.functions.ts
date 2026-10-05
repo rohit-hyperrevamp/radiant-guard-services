@@ -10,7 +10,13 @@ export const DEFAULT_WIDGET_ID = "356b71685561353436363635";
  * a code change.
  */
 export const getMsg91WidgetConfig = createServerFn({ method: "GET" }).handler(
-  async () => ({
-    widgetId: process.env["MSG91_WIDGET_ID"] || DEFAULT_WIDGET_ID,
-  }),
+  async () => {
+    // The saved MSG91_WIDGET_ID value turned out to be a widget token, not a
+    // widget ID (MSG91 rejects it with "Widget Not Found"), so only accept
+    // values that look like real widget IDs; otherwise use the built-in
+    // default that pairs with the working widget token.
+    const override = process.env["MSG91_WIDGET_ID"];
+    const widgetId = override && /^[0-9a-f]{24,}$/i.test(override) ? override : DEFAULT_WIDGET_ID;
+    return { widgetId };
+  },
 );

@@ -21,22 +21,24 @@ type OtpMode = "sms" | "fixed";
 export const sendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    // Server-side MSG91 /otp send with the configured auth key — the account
-    // this key belongs to has an approved DLT template, so delivery works.
-    const { resolveOtpMode, assertRegisteredPhone, sendMsg91Otp } = await import("@/lib/otp.server");
+    // The SMS itself is sent by MSG91's OTP Widget in the browser: that is the
+    // only path that carries the account's default DLT template. Server-side
+    // /otp sends are held by operators (MSG91 pause code 211).
+    const { resolveOtpMode, assertRegisteredPhone } = await import("@/lib/otp.server");
     await assertRegisteredPhone(data.phone);
     const mode = await resolveOtpMode(data.phone);
-    if (mode === "sms") await sendMsg91Otp(data.phone, false);
     return { mode };
   });
 
 export const resendLoginOtp = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input))
   .handler(async ({ data }): Promise<{ mode: OtpMode }> => {
-    const { resolveOtpMode, assertRegisteredPhone, sendMsg91Otp } = await import("@/lib/otp.server");
+    // The SMS itself is sent by MSG91's OTP Widget in the browser: that is the
+    // only path that carries the account's default DLT template. Server-side
+    // /otp sends are held by operators (MSG91 pause code 211).
+    const { resolveOtpMode, assertRegisteredPhone } = await import("@/lib/otp.server");
     await assertRegisteredPhone(data.phone);
     const mode = await resolveOtpMode(data.phone);
-    if (mode === "sms") await sendMsg91Otp(data.phone, false);
     return { mode };
   });
 
