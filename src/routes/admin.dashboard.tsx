@@ -1514,8 +1514,8 @@ function DashboardPage() {
 function ReadinessCard({ sheet, run, invoice }: { sheet: StatusCounts | null; run: StatusCounts | null; invoice: StatusCounts | null }) {
   const rows: { label: string; doneLabel: string; done: number; open: number; to: string }[] = [];
   if (sheet) rows.push({ label: "Attendance", doneLabel: "Approved", done: sheet.approved, open: sheet.open, to: "/admin/attendance" });
-  if (run) rows.push({ label: "Payroll", doneLabel: "Ready", done: run.pending + run.approved + run.processed, open: run.open, to: "/admin/payroll" });
-  if (invoice) rows.push({ label: "Invoices", doneLabel: "Ready", done: invoice.pending + invoice.processed, open: invoice.open, to: "/admin/invoice" });
+  if (run) rows.push({ label: "Payroll", doneLabel: "Ready", done: run.pending, open: run.open, to: "/admin/payroll" });
+  if (invoice) rows.push({ label: "Invoices", doneLabel: "Ready", done: invoice.pending, open: invoice.open, to: "/admin/invoice" });
   return (
     <section aria-label="Readiness" className="mb-4 rounded-2xl border border-border bg-card p-4">
       <h2 className="mb-3 text-sm font-semibold text-foreground">Ready vs open — this period</h2>
