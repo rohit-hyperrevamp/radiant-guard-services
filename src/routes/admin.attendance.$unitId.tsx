@@ -362,6 +362,7 @@ type UnitLine = {
 };
 
 function MusterRollPage() {
+  const verifyReportRef = useRef<{ issues: unknown[] } | null>(null);
   const { unitId } = Route.useParams();
   const search = Route.useSearch();
   const now = new Date();
@@ -1050,6 +1051,10 @@ function MusterRollPage() {
   // to both approver groups.
   const sendToPayroll = useMutation({
     mutationFn: async () => {
+      if (verifyReportRef.current?.issues.length &&
+        !window.confirm("The last upload flagged possible errors. Have you re-checked the flagged cells against the sheet? Press OK to submit.")) {
+        throw new Error("Submission cancelled — please verify the flagged attendance first.");
+      }
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth?.user?.id ?? null;
       const ts = new Date().toISOString();
@@ -2230,6 +2235,16 @@ function MusterRollPage() {
   const [processingOcr, setProcessingOcr] = useState(false);
   const [uncertainCells, setUncertainCells] = useState<Set<string>>(new Set());
   const [ocrSummary, setOcrSummary] = useState<string | null>(null);
+  // Post-upload accuracy check: always asks the user to verify; lists every
+  // spot where the read may not match the uploaded sheet.
+  const [verifyReport, setVerifyReport] = useState<{ source: string; issues: { title: string; detail: string }[] } | null>(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  verifyReportRef.current = verifyReport;
+  const showVerify = (source: string, issues: { title: string; detail: string }[]) => {
+    setVerifyReport({ source, issues });
+    setVerifyOpen(true);
+  };
+  const nameList = (names: string[]) => (names.length > 8 ? `${names.slice(0, 8).join(", ")} and ${names.length - 8} more` : names.join(", "));
   const [uploadReadyToContinue, setUploadReadyToContinue] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   // Document-scan state: every photo is auto-cropped, straightened and cleaned
@@ -2663,6 +2678,10 @@ function MusterRollPage() {
         setOcrSummary(autoSummary);
         setUploadReadyToContinue(true);
         toast.success(autoSummary);
+        showVerify("photo", [
+          ...(auto.created ? [{ title: `${auto.created} new employee${auto.created === 1 ? "" : "s"} created`, detail: "People on the sheet who were not in the system were added. Confirm the names and IDs." }] : []),
+          { title: "Nobody on the sheet matched this site's roster", detail: "Check that this sheet belongs to this client and site before submitting." },
+        ]);
         await endScanProgress({ summary: autoSummary }, startedAt);
         logActivity({
           module: "Attendance",
@@ -2838,6 +2857,10 @@ function MusterRollPage() {
         setOcrSummary(autoSummary);
         setUploadReadyToContinue(true);
         toast.success(autoSummary);
+        showVerify("photo", [
+          ...(auto.created ? [{ title: `${auto.created} new employee${auto.created === 1 ? "" : "s"} created`, detail: "People on the sheet who were not in the system were added. Confirm the names and IDs." }] : []),
+          { title: "Nobody on the sheet matched this site's roster", detail: "Check that this sheet belongs to this client and site before submitting." },
+        ]);
         await endScanProgress({ summary: autoSummary }, startedAt);
         logActivity({
           module: "Attendance",
@@ -2929,6 +2952,19 @@ function MusterRollPage() {
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
+      {
+        const issues: { title: string; detail: string }[] = [];
+        if (uncertainCount) issues.push({ title: `${uncertainCount} unclear cell${uncertainCount === 1 ? "" : "s"}`, detail: "These cells could not be read with confidence. They are highlighted on the muster — check each one against the sheet." });
+        if (totalsMismatchPairs.size) {
+          const names = Array.from(totalsMismatchPairs).map((pk) => pairByKey.get(pk)?.emp.full_name ?? "Unknown");
+          issues.push({ title: `Totals don't match for ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"}`, detail: `The day totals written on the sheet differ from the marks read: ${nameList(names)}.` });
+        }
+        if (stillUnmatched) issues.push({ title: `${stillUnmatched} name${stillUnmatched === 1 ? "" : "s"} not matched`, detail: `Could not tie these sheet rows to an employee: ${nameList(result.unmatched_names)}.` });
+        if (auto.created) issues.push({ title: `${auto.created} new employee${auto.created === 1 ? "" : "s"} created`, detail: "People on the sheet who were not in the system were added. Confirm they really work at this site." });
+        if (blockedDesigNames.size) issues.push({ title: "Designations not on contract", detail: `Rows skipped for ${Array.from(blockedDesigNames).join(", ")}.` });
+        if (result.notes?.trim()) issues.push({ title: "Reader note", detail: result.notes.trim() });
+        showVerify("photo", issues);
+      }
       await endScanProgress({ summary }, startedAt);
       logActivity({
         module: "Attendance",
@@ -3397,6 +3433,26 @@ function MusterRollPage() {
       setOcrSummary(summary);
       setUploadReadyToContinue(true);
       toast.success(summary);
+      {
+        const issues: { title: string; detail: string }[] = [];
+        // Client / site check: codes printed in the sheet's header rows must
+        // belong to this site.
+        const norm = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const own = new Set([unit?.code, (unit as { customer_code?: string } | null)?.customer_code].filter(Boolean).map((v) => norm(String(v))));
+        const found = new Set<string>();
+        for (const row of aoa.slice(0, 10)) for (const v of row ?? []) {
+          if (typeof v !== "string") continue;
+          for (const m of v.matchAll(/\b(?:CLI|UN|CON)[-\s]?[A-Z]*[-\s]?\d+\b/gi)) found.add(m[0]);
+        }
+        const foreign = Array.from(found).filter((c) => !own.has(norm(c)));
+        if (found.size && foreign.length === found.size) issues.push({ title: "Client / site ID mismatch", detail: `The sheet mentions ${foreign.join(", ")}, but this page is ${unit?.code ?? "another site"}${unit?.customer_name ? ` (${unit.customer_name})` : ""}. Make sure you uploaded the right file.` });
+        if (unmatchedNames.length) issues.push({ title: `${unmatchedNames.length} name${unmatchedNames.length === 1 ? "" : "s"} not matched`, detail: `Could not tie these rows to an employee: ${nameList(unmatchedNames)}.` });
+        if (autoCreated) issues.push({ title: `${autoCreated} new employee${autoCreated === 1 ? "" : "s"} created`, detail: "People in the file who were not in the system were added. Confirm they really work at this site." });
+        if (designationsNotOnContract.size) issues.push({ title: "Designations not on contract", detail: `${Array.from(designationsNotOnContract).join(", ")} were saved under each person's primary designation.` });
+        if (clearedStale) issues.push({ title: `${clearedStale} earlier entr${clearedStale === 1 ? "y" : "ies"} cleared`, detail: "Marks that were already saved but are not in this file were removed." });
+        if (filled === 0) issues.push({ title: "No attendance imported", detail: "No marks were read from the file. Check the file format and month." });
+        showVerify("file", issues);
+      }
       await endScanProgress({ summary }, startedAt);
       logActivity({
         module: "Attendance",
@@ -3857,6 +3913,41 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
   if (!contractInfoLoading && contractInfo && !contractInfo.contractId && (unit as { is_billable?: boolean | null } | null)?.is_billable !== false) {
     return (
       <div className="space-y-3 px-0 py-2 sm:space-y-4 sm:px-6 sm:py-6">
+            {verifyReport && (
+              <button type="button" onClick={() => setVerifyOpen(true)} className={`w-full rounded-md border px-3 py-2 text-left text-xs font-medium ${verifyReport.issues.length ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/5 text-foreground"}`}>
+                {verifyReport.issues.length ? `⚠ ${verifyReport.issues.length} possible error${verifyReport.issues.length === 1 ? "" : "s"} — tap to review before submitting` : "Please verify the attendance against the sheet before submitting."}
+              </button>
+            )}
+            <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{verifyReport?.issues.length ? "⚠ Please verify — possible errors found" : "Please verify the attendance"}</DialogTitle>
+                  <DialogDescription>
+                    {verifyReport?.issues.length
+                      ? `Some parts of the uploaded ${verifyReport.source} may not match what was saved. Re-check these against the original, correct any cells, then submit.`
+                      : `The uploaded ${verifyReport?.source ?? "sheet"} was read without any problems. Still, please compare the muster with the original once to confirm accuracy before submitting.`}
+                  </DialogDescription>
+                </DialogHeader>
+                {!!verifyReport?.issues.length && (
+                  <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
+                    {verifyReport.issues.map((it, i) => (
+                      <li key={i} className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+                        <div className="text-sm font-semibold text-destructive">⚠ {it.title}</div>
+                        <div className="text-xs text-muted-foreground">{it.detail}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex justify-end gap-2 pt-2">
+                  {!!verifyReport?.issues.length && (
+                    <Button variant="outline" onClick={() => { setVerifyReport({ ...verifyReport, issues: [] }); setVerifyOpen(false); toast.success("Marked as verified"); }}>
+                      I've re-checked
+                    </Button>
+                  )}
+                  <Button onClick={() => setVerifyOpen(false)}>Review & edit</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
         <div className="mobile-glass-surface rounded-xl border border-border/60 bg-card/80 p-6 text-center shadow-sm sm:rounded-2xl sm:p-10">
           <p className="font-display text-base font-bold text-foreground sm:text-lg">No active contract</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
