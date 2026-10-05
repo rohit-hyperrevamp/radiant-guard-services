@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
+import { OrgInvoiceFormatDialog } from "@/components/InvoiceSplitSettings";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronRight, Download, Edit2, ExternalLink, List as ListIcon, MapPin, Network, Plus, Search, Users, Warehouse } from "lucide-react";
+import { ChevronRight, Download, FileStack, Edit2, ExternalLink, List as ListIcon, MapPin, Network, Plus, Search, Users, Warehouse } from "lucide-react";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { csvStatus, downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
@@ -105,6 +106,7 @@ function CustomerManagerPage() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState<Customer | null>(null);
   const [viewingUnits, setViewingUnits] = useState<Customer | null>(null);
+  const [invoiceFormat, setInvoiceFormat] = useState<Customer | null>(null);
 
   const rows = useMemo(() => {
     const list = [...customers]
@@ -279,6 +281,16 @@ function CustomerManagerPage() {
                       >
                         <Network className="h-4 w-4" />
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                        onClick={() => setInvoiceFormat(c)}
+                        aria-label="Invoice format"
+                        title="Invoice format"
+                      >
+                        <FileStack className="h-4 w-4" />
+                      </Button>
                       <RecordViewButton
                         record={c}
                         title="Customer details"
@@ -390,6 +402,7 @@ function CustomerManagerPage() {
         customer={viewingUnits}
         onOpenChange={(o) => !o && setViewingUnits(null)}
       />
+      <OrgInvoiceFormatDialog customer={invoiceFormat} onOpenChange={(o) => !o && setInvoiceFormat(null)} />
     </div>
   );
 }
