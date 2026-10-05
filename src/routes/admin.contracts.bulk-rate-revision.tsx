@@ -202,7 +202,31 @@ function BulkRateRevisionPage() {
     return Array.from(m.values()).sort((a, b) => a.unitName.localeCompare(b.unitName));
   }, [all]);
   const states = useMemo(() => Array.from(new Set(clients.map((c) => c.state).filter(Boolean))).sort(), [clients]);
+
+  // Smart filter: once clients are selected, only show clients that share a
+  // common designation whose rate structure matches the first selected client.
+  const compatibleIds = useMemo(() => {
+    if (!selClients.length) return null;
+    const set = new Set<string>();
+    for (const c of clients) {
+      if (selected.has(c.contractId)) {
+        set.add(c.contractId);
+        continue;
+      }
+      for (const d of common) {
+        const tl = all.find((l) => l.contractId === selClients[0].contractId && l.designation === d);
+        const cl = all.find((l) => l.contractId === c.contractId && l.designation === d);
+        if (tl && cl && signature(tl.resource) === signature(cl.resource)) {
+          set.add(c.contractId);
+          break;
+        }
+      }
+    }
+    return set;
+  }, [selClients, clients, common, all, selected]);
+
   const filtered = clients
+    .filter((c) => !compatibleIds || compatibleIds.has(c.contractId))
     .filter((c) => !stateName || c.state === stateName)
     .filter((c) => !q || `${c.unitName} ${c.unitCode} ${c.contractCode}`.toLowerCase().includes(q.toLowerCase()));
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
