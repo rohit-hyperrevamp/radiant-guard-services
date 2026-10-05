@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Copy, Edit2, GitCompare, History, Loader2, X } from "lucide-react";
+import { CheckCircle2, Copy, Download, Edit2, GitCompare, History, Loader2, X } from "lucide-react";
+import { openExport } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -272,6 +273,53 @@ export function ResourceRateRevisions({
     void load();
   }
 
+  // Export the visible comparison table (same columns/rows as the dialog).
+  function exportComparison() {
+    if (!comparisonTarget) return;
+    const leftLabel = comparedExpired ? "Expired Rate" : "Present Rate";
+    const rightLabel = comparedExpired ? "Present Rate" : "Revised Rate";
+    const leftDates = comparedExpired
+      ? `${fmtDate(comparedExpired.effective_from ?? contractStartDate)} – ${fmtDate(comparedExpired.effective_to)}`
+      : `${fmtDate(presentFrom)} – ${fmtDate(presentTo)}`;
+    const rightDates = comparedExpired
+      ? `${fmtDate(presentFrom)} – ${fmtDate(presentTo)}`
+      : revisedFrom && revisedTo
+        ? `${fmtDate(revisedFrom)} – ${fmtDate(revisedTo)}`
+        : `${fmtDate(contractStartDate)} – ${fmtDate(contractEndDate)}`;
+    const rows: Record<string, unknown>[] = [];
+    for (const g of compareRows) {
+      rows.push({ item: g.group.toUpperCase(), left: "", right: "", change: "" });
+      for (const l of g.lines) {
+        rows.push({
+          item: l.name,
+          left: l.cur,
+          right: l.nxt,
+          change: l.nxt - l.cur === 0 ? "—" : l.nxt - l.cur,
+        });
+      }
+    }
+    rows.push({
+      item: "Monthly billing",
+      left: billing(comparisonBase),
+      right: billing(comparisonTarget),
+      change: billing(comparisonTarget) - billing(comparisonBase),
+    });
+    openExport({
+      filename: `${label}-rate-comparison`,
+      rows,
+      columns: [
+        { key: "item", header: "Item" },
+        { key: "left", header: `${leftLabel} (${leftDates})` },
+        { key: "right", header: `${rightLabel} (${rightDates})` },
+        { key: "change", header: "Change" },
+      ],
+      labels: {
+        xlsx: { title: "Download Excel", desc: "Comparison as a spreadsheet" },
+        pdf: { title: "Download PDF", desc: "Comparison as a printable document" },
+      },
+    });
+  }
+
   // Comparison rows by item name across wages, deductions, employer cost.
   const compareRows = (() => {
     if (!comparisonTarget) return [];
@@ -472,13 +520,16 @@ export function ResourceRateRevisions({
               )}
             </tbody>
           </table>
-          {canEdit && !comparedExpired && !comparedUpcoming && (
-            <DialogFooter>
-               <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button type="button" variant="outline" onClick={exportComparison} disabled={!comparisonTarget}>
+              <Download className="mr-1.5 h-4 w-4" /> Export comparison
+            </Button>
+            {canEdit && !comparedExpired && !comparedUpcoming && (
+              <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve revised rate
               </Button>
-            </DialogFooter>
-          )}
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
