@@ -47,6 +47,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { PERIOD_STATUS_QK } from "@/lib/period-status";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
+import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadContractInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -195,7 +196,9 @@ function PayrollUnitPage() {
   const canFinaliseInvoice = canAction("invoice", "finalise", "edit");
   // Invoice numbers only exist once the invoice has been finalised.
   const finalInvoicesQ = useFinalInvoicesForUnits([unitId]);
-  const finalInvoice = finalInvoicesQ.data?.get(unitPeriodKey(unitId, start, end)) ?? null;
+  // Contract invoice-split rules: each part is its own invoice with its own number.
+  const [activePart, setActivePart] = useState<string>("main");
+  const finalInvoice = finalInvoicesQ.data?.get(unitPeriodKey(unitId, start, end, activePart)) ?? null;
   const [finalDialogOpen, setFinalDialogOpen] = useState(false);
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
@@ -893,9 +896,29 @@ function PayrollUnitPage() {
 
 
 
-  const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
   const contractId = data?.contractId ?? null;
+  const { data: invoiceSplit = DEFAULT_SPLIT } = useQuery({
+    queryKey: ["contract-invoice-split", contractId],
+    enabled: !!contractId,
+    queryFn: () => loadContractInvoiceSplit(contractId),
+  });
+  const splitActive = isSplit(invoiceSplit);
+  useEffect(() => {
+    if (!invoiceSplit.parts.some((p) => p.key === activePart)) setActivePart(invoiceSplit.parts[0]?.key ?? "main");
+  }, [invoiceSplit, activePart]);
+  const activePartLabel = invoiceSplit.parts.find((p) => p.key === activePart)?.label ?? null;
+  const rows = useMemo(() => {
+    const all = data?.rows ?? [];
+    if (!splitActive) return all;
+    const fixedValue = billingMode === "lumpsum" || billingMode === "man_months";
+    return all
+      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.isPrimary, invoiceSplit, activePart) }))
+      .filter((r) => {
+        if (fixedValue) return r.isPrimary ? invoiceSplit.assign.regular === activePart : invoiceSplit.assign.reliever === activePart;
+        return r.totals.tDays > 0;
+      });
+  }, [data, splitActive, invoiceSplit, activePart, billingMode]);
   const shiftHoursByDesignation = data?.shiftHoursByDesignation ?? new Map<string, number>();
   const billingDayBaseByDesignation =
     data?.billingDayBaseByDesignation ?? new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
@@ -1056,7 +1079,7 @@ function PayrollUnitPage() {
   const r2 = (v: number) => Math.round(v * 100) / 100;
   // Configured extra charges for this unit + period (e.g. Technical Allowance).
   const { data: extraCharges = [] } = useInvoiceExtraCharges(unitId, start, end);
-  const activeExtras = extraCharges.filter((c) => c.enabled);
+  const activeExtras = extraCharges.filter((c) => c.enabled && (!splitActive || invoiceSplit.assign.extras === activePart));
   const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
   const taxableValue = r2(totals.actualTotal + extrasTotal);
   const tax = taxSplit(taxableValue, isIntraState);
@@ -1109,7 +1132,7 @@ function PayrollUnitPage() {
     return {
       invoiceNumber:
         finalInvoice?.invoice_no ??
-        `PROVISIONAL ${monthAbbr}${start.slice(2, 4)} ${(unit?.code ?? "UNIT").toUpperCase()}`,
+        `PROVISIONAL ${monthAbbr}${start.slice(2, 4)} ${(unit?.code ?? "UNIT").toUpperCase()}${splitActive && activePartLabel ? ` · ${activePartLabel}` : ""}`,
       invoiceDate: fmtPretty(end),
       periodLabel: `${start.split("-").reverse().join("-")} To ${end.split("-").reverse().join("-")}`,
       company: {
@@ -1206,9 +1229,9 @@ function PayrollUnitPage() {
     const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
     const [ys, ms] = start.split("-").map(Number);
     const fyEnd = (ms >= 4 ? ys : ys - 1) + 1;
-    const invoiceNo =
-      invoiceSheetData?.invoiceNumber ??
-      `${monthAbbr[ms - 1]}${String(ys).slice(2)}-${String(fyEnd).slice(2)}${(unit?.code ?? "").toUpperCase()}`;
+    // Only a finalised invoice has a number; plain exports leave it blank.
+    void fyEnd;
+    const invoiceNo = finalInvoice?.invoice_no ?? "";
     const entity = orgSettings?.company_name || "Radiant";
     const siteLabel = unit?.name || unit?.code || "";
     const clientLabel = unit?.customer_name ?? "";
@@ -1323,7 +1346,7 @@ function PayrollUnitPage() {
     const sheet = buildMisSheet({ template, sourceRows, unitValues });
 
     await writeXlsx({
-      filename: `MIS_${(unit?.code || unitId).toUpperCase()}_${start}_to_${end}`,
+      filename: `MIS_${(unit?.code || unitId).toUpperCase()}_${start}_to_${end}${splitActive && activePartLabel ? `_${activePartLabel.replace(/[^A-Za-z0-9]+/g, "-")}` : ""}`,
       rows: sheet.rows,
       columns: sheet.columns,
     });
@@ -1372,7 +1395,7 @@ function PayrollUnitPage() {
     }
     const stateCode = gstinStateCode(unit.gstin ?? "") || "00";
     await writeTallyBillingXlsx(
-      `Billing File_${end}_${(unit.code || unitId).toUpperCase()}_${stateCode}`,
+      `Billing File_${end}_${(unit.code || unitId).toUpperCase()}_${stateCode}${splitActive && activePartLabel ? `_${activePartLabel.replace(/[^A-Za-z0-9]+/g, "-")}` : ""}`,
       buildTallyVoucherRows({
         unit,
         companyState: COMPANY_STATE,
@@ -1549,6 +1572,38 @@ function PayrollUnitPage() {
 
 
 
+      {splitActive && (
+        <div className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Split invoice · set on the contract
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {invoiceSplit.parts.map((p) => {
+              const fi = finalInvoicesQ.data?.get(unitPeriodKey(unitId, start, end, p.key));
+              const items = INVOICE_ITEMS.filter((it) => invoiceSplit.assign[it.key] === p.key).map((it) => it.label);
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setActivePart(p.key)}
+                  aria-pressed={activePart === p.key}
+                  className={`rounded-2xl border px-3 py-2 text-left text-sm transition ${activePart === p.key ? "border-primary bg-primary/10 text-foreground" : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"}`}
+                >
+                  <div className="font-semibold">{p.label}</div>
+                  <div className="text-[11px]">{items.join(", ") || "Nothing assigned"}</div>
+                  <div className="mt-0.5 text-[11px] font-medium tabular-nums">{fi ? `No. ${fi.invoice_no}` : "Not finalised"}</div>
+                </button>
+              );
+            })}
+          </div>
+          {INVOICE_ITEMS.some((it) => invoiceSplit.assign[it.key] === EXCLUDE) && (
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              Not billed: {INVOICE_ITEMS.filter((it) => invoiceSplit.assign[it.key] === EXCLUDE).map((it) => it.label).join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -1695,6 +1750,8 @@ function PayrollUnitPage() {
               periodStart: start,
               periodEnd: end,
               taxableValue,
+              partKey: activePart,
+              partLabel: splitActive ? activePartLabel : null,
             },
           ] satisfies FinalInvoiceTarget[]
         }
