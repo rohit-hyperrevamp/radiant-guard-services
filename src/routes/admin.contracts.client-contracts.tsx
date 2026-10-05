@@ -2707,7 +2707,7 @@ function ClientContractsPage() {
         description={isHrReadOnly ? "View contracts across organisations and clients." : "Manage contracts across organisations and clients."}
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         actions={
-          <Button asChild variant="outline" size="sm">
+          <Button asChild size="sm">
             <RouterLink to="/admin/contracts/bulk-rate-revision">Bulk rate revision</RouterLink>
           </Button>
         }
