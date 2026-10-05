@@ -4,6 +4,7 @@ import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
+import { SearchSelect } from "@/components/SearchSelect";
 import {
   Check,
   CheckCircle2,
@@ -2706,11 +2707,6 @@ function ClientContractsPage() {
         eyebrow="Contracts"
         description={isHrReadOnly ? "View contracts across organisations and clients." : "Manage contracts across organisations and clients."}
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
-        actions={
-          <Button asChild size="sm">
-            <RouterLink to="/admin/contracts/bulk-rate-revision">Bulk rate revision</RouterLink>
-          </Button>
-        }
         kpis={
           <>
             <PageStat label="All contracts" value={isLoading ? "—" : overview.total} />
@@ -2804,6 +2800,13 @@ function ClientContractsPage() {
             </span>
           )}
         </div>
+        <Button asChild size="sm" className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:px-4 sm:text-sm">
+          <RouterLink to="/admin/contracts/bulk-rate-revision">
+            <Copy className="mr-1.5 h-4 w-4" />
+            <span className="sm:hidden">Bulk rate</span>
+            <span className="hidden sm:inline">Bulk rate revision</span>
+          </RouterLink>
+        </Button>
         {!isHrReadOnly && <Button
           variant="outline"
           disabled={filtered.length === 0}
@@ -5745,18 +5748,14 @@ export function ResourceFormDialog({
             </Field>
 
             <Field label="Service Type *">
-              <Select value={serviceTypeId} onValueChange={setServiceTypeId}>
-                <SelectTrigger className="h-10 rounded-lg">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {serviceTypes.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                value={serviceTypeId}
+                onChange={setServiceTypeId}
+                options={serviceTypes.map((s) => ({ value: s.id, label: s.name }))}
+                placeholder="Select"
+                searchPlaceholder="Search service type…"
+                emptyText="No service type found."
+              />
             </Field>
 
             <Field label="Agreed Deployment *">
@@ -5785,20 +5784,17 @@ export function ResourceFormDialog({
 
           {!isWages && (
           <Field label="Role">
-            <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
-              <SelectTrigger className="h-10 rounded-lg">
-                <SelectValue placeholder="Map to a system role (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">— None —</SelectItem>
-                {rolesList.map((r) => (
-                  <SelectItem key={r.key} value={r.key}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+            <SearchSelect
+              value={roleKey || "__none"}
+              onChange={(v) => setRoleKey(v === "__none" ? "" : v)}
+              options={[
+                { value: "__none", label: "— None —" },
+                ...rolesList.map((r) => ({ value: r.key, label: r.name })),
+              ]}
+              placeholder="Map to a system role (optional)"
+              searchPlaceholder="Search role…"
+              emptyText="No role found."
+            />
 
 
           )}

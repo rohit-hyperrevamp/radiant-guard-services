@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchSelect } from "@/components/SearchSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { confirmAction } from "@/components/ConfirmProvider";
@@ -265,21 +266,44 @@ function BulkRateRevisionPage() {
       />
 
       <div className="grid gap-2 sm:grid-cols-4">
-        <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={orgId}
-          onChange={(e) => { setOrgId(e.target.value); setStateName(""); setDesignation(""); setSelected(new Set()); setPage(0); }}>
-          <option value="">Select organization</option>
-          {(orgs.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.name}{o.code ? ` (${o.code})` : ""}</option>)}
-        </select>
-        <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={stateName} disabled={!orgId}
-          onChange={(e) => { setStateName(e.target.value); setPage(0); }}>
-          <option value="">All states</option>
-          {states.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={designation} disabled={!orgId}
-          onChange={(e) => { setDesignation(e.target.value); setPage(0); }}>
-          <option value="">All designations</option>
-          {desigs.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <SearchSelect
+          value={orgId}
+          onChange={(v) => {
+            setOrgId(v);
+            setStateName("");
+            setDesignation("");
+            setSelected(new Set());
+            setPage(0);
+          }}
+          options={(orgs.data ?? []).map((o) => ({ value: o.id, label: o.name, hint: o.code ?? undefined }))}
+          placeholder="Select organization"
+          searchPlaceholder="Search organization…"
+          emptyText="No organization found."
+        />
+        <SearchSelect
+          value={stateName}
+          onChange={(v) => {
+            setStateName(v);
+            setPage(0);
+          }}
+          disabled={!orgId}
+          options={[{ value: "", label: "All states" }, ...states.map((s) => ({ value: s, label: s }))]}
+          placeholder="All states"
+          searchPlaceholder="Search state…"
+          emptyText="No state found."
+        />
+        <SearchSelect
+          value={designation}
+          onChange={(v) => {
+            setDesignation(v);
+            setPage(0);
+          }}
+          disabled={!orgId}
+          options={[{ value: "", label: "All designations" }, ...desigs.map((s) => ({ value: s, label: s }))]}
+          placeholder="All designations"
+          searchPlaceholder="Search designation…"
+          emptyText="No designation found."
+        />
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Search client" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
