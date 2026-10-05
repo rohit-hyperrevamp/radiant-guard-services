@@ -91,10 +91,6 @@ function LoginPage() {
     if (user && !revealing) navigate({ to: "/", replace: true });
   }, [user, navigate, revealing]);
 
-  useEffect(() => {
-    // Preload MSG91's widget so Send OTP responds instantly.
-    void loadMsg91Widget().catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     void getBiometricStatus().then((status) => {
@@ -163,11 +159,9 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      // Last-four fallback is checked by the server; real SMS codes are
-      // verified by the MSG91 widget and confirmed server-side by token.
-      const useWidget = otpMode === "sms" && !!otpRequestId && code !== phone.slice(-4);
-      const accessToken = useWidget ? await verifyWidgetOtp(code, otpRequestId) : undefined;
-      await checkOtp({ data: { phone, otp: code, accessToken } });
+      // Real SMS codes are verified server-side against MSG91 (/otp/verify);
+      // the last-four fallback is also checked by the server.
+      await checkOtp({ data: { phone, otp: code } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
