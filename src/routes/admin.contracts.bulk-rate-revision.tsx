@@ -347,17 +347,47 @@ function BulkRateRevisionPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{chosen.length} line{chosen.length === 1 ? "" : "s"} selected</span>
             <span className="text-muted-foreground">Present rate {fmt(billing(template!))}</span>
-            {differing > 0 && (
-              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
-                {differing} have a different present structure — they will all get the same revised rate
-              </span>
-            )}
             {canEdit.data && (
-              <Button size="sm" className="ml-auto" disabled={busy} onClick={() => setEditOpen(true)}>
+              <Button
+                size="sm"
+                className="ml-auto"
+                disabled={busy || differing > 0 || desigMismatch}
+                onClick={() => setEditOpen(true)}
+              >
                 <Copy className="mr-1 h-4 w-4" /> Copy present & revise
               </Button>
             )}
           </div>
+          {(differing > 0 || desigMismatch) && (
+            <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+              <div className="font-semibold">
+                Bulk revision blocked — all selected lines must have the same designation and the same rate structure.
+              </div>
+              {desigMismatch && (
+                <div>
+                  Different designations selected: {Array.from(new Set(chosen.map((l) => l.designation))).join(", ")}.
+                  Pick one designation in the filter.
+                </div>
+              )}
+              {differing > 0 && (
+                <>
+                  <div>
+                    Compared with <b>{chosen[0].unitName}</b> ({chosen[0].contractCode}, {chosen[0].designation}),
+                    {" "}{differing} line{differing === 1 ? "" : "s"} differ:
+                  </div>
+                  <ul className="max-h-60 space-y-1 overflow-auto">
+                    {mismatches.map(({ line, reasons }) => (
+                      <li key={line.resource.id}>
+                        <b>{line.unitName}</b> ({line.contractCode}, {line.designation}): {reasons.slice(0, 5).join("; ")}
+                        {reasons.length > 5 ? ` +${reasons.length - 5} more` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-muted-foreground">Unselect these to continue, or revise them separately.</div>
+                </>
+              )}
+            </div>
+          )}
           {revised && (
             <div className="text-xs text-muted-foreground">
               Revised rate {fmt(billing(revised))} (change {fmt(billing(revised) - billing(template!))}) saved, not used until approved.
