@@ -167,6 +167,11 @@ export function AttendanceCharter({
       return statusFilter === "approved" ? approved : !approved;
     });
   }, [allStatusQ.data, matchedUnits, statusFilter]);
+  const statusCounts = useMemo(() => {
+    let approved = 0;
+    for (const u of matchedUnits) if (allStatusQ.data?.get(u.id)?.attendance === "approved") approved++;
+    return { approved, open: matchedUnits.length - approved };
+  }, [allStatusQ.data, matchedUnits]);
 
   const [page, setPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(filteredUnits.length / PAGE_SIZE));
@@ -418,6 +423,16 @@ export function AttendanceCharter({
               <SelectItem value="approved">Attendance approved</SelectItem>
             </SelectContent>
           </Select>
+        )}
+        {onStatusFilterChange && (
+          <div className="col-span-2 flex items-center gap-2 text-xs">
+            <button type="button" onClick={() => onStatusFilterChange("approved")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
+              <span className="font-semibold text-emerald-600">{allStatusQ.isLoading ? "…" : statusCounts.approved}</span> approved
+            </button>
+            <button type="button" onClick={() => onStatusFilterChange("open")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
+              <span className="font-semibold text-destructive">{allStatusQ.isLoading ? "…" : statusCounts.open}</span> open
+            </button>
+          </div>
         )}
         <div className="hidden flex-1 sm:block" />
         <Button variant="outline" className="col-span-2 h-9 w-fit rounded-lg sm:rounded-xl" onClick={exportCsv}>
