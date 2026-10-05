@@ -2159,11 +2159,16 @@ function EmployeesPage() {
     });
   }, [candidates, qc]);
 
-  const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
+  const { roleKey, isSuperAdmin, can, canSub, canAction } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
   const isHrExecutive = roleKey === "hr_executive" && !isSuperAdmin;
-  const canAddEmployee =
-    isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? "");
+  const canAddEmployee = canAction(
+    "employees",
+    "create",
+    "edit",
+    isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? ""),
+  );
+  const canOffboard = canAction("employees", "offboard", "edit");
   // Onboarding approval is scoped to the Employees → Approvals sub-module only.
   // Using the module-level `can("employees","approve")` leaked the button to any
   // role holding approve on ANY sub-module (e.g. Field Officers with Rehire approve).
@@ -2212,7 +2217,14 @@ function EmployeesPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [approvePreview, setApprovePreview] = useState<CandidateListItem | null>(null);
   const [signTarget, setSignTarget] = useState<{ id: string; docType: DocType } | null>(null);
-  const [offboardTarget, setOffboardTarget] = useState<CandidateListItem | null>(null);
+  const [offboardTarget, setOffboardTargetRaw] = useState<CandidateListItem | null>(null);
+  const setOffboardTarget = (c: CandidateListItem | null) => {
+    if (c && !canOffboard) {
+      toast.error("You do not have permission to offboard employees");
+      return;
+    }
+    setOffboardTargetRaw(c);
+  };
   const [offboardReasonId, setOffboardReasonId] = useState<string>("");
   const [reactivateTarget, setReactivateTarget] = useState<CandidateListItem | null>(null);
 
@@ -7789,7 +7801,8 @@ function CandidateWizard({
   // ---------- Stepped, mobile-first wizard ----------
   const { isFieldOfficer: wizardIsFieldOfficer } = useCurrentUserRole();
   // Super Admin may jump freely between steps, even with earlier steps incomplete.
-  const { isSuperAdmin: wizardIsSuperAdmin, roleKey: wizardRoleKey } = useCurrentPermissions();
+  const { isSuperAdmin: wizardIsSuperAdmin, roleKey: wizardRoleKey, canAction: wizardCanAction } = useCurrentPermissions();
+  const wizardCanWages = wizardCanAction("employees", "wages", "view");
   const wizardIsHrHead = useIsHrHead();
   const canSkipSteps = wizardIsSuperAdmin || wizardRoleKey === "super_admin" || wizardIsHrHead;
   const steps = useMemo(
@@ -7805,7 +7818,7 @@ function CandidateWizard({
       // Wage sheets exist only for non-billable staff. Billable guards are
       // paid from the client contract's resources, so this step stays hidden
       // for them — exactly like the older form.
-      ...(mode === "employee" && !wizardIsFieldOfficer
+      ...(mode === "employee" && !wizardIsFieldOfficer && wizardCanWages
         ? [{ key: "wages", label: "Wages", caption: "Pay" }]
         : []),
       { key: "uploads", label: "Documents", caption: "Files" },
