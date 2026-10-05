@@ -70,5 +70,6 @@ BEGIN
   PERFORM public.promote_due_contract_rates();
 END $$;
 
-REVOKE EXECUTE ON FUNCTION public.approve_contract_rate_revision(uuid, date) FROM authenticated;
+DROP FUNCTION IF EXISTS public.approve_contract_rate_revision(uuid, date);
+REVOKE ALL ON FUNCTION public.approve_contract_rate_revision(uuid, date, date) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.approve_contract_rate_revision(uuid, date, date) TO authenticated;
