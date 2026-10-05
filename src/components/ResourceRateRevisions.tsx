@@ -48,6 +48,12 @@ const fmt = (n: number) =>
 const fmtDate = (d: string | null) =>
   d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const todayIso = () => new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
+const addDays = (iso: string, n: number) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+const revRes = (base: ContractResource, r: Rev) => revToResource(base, r);
 
 function revToResource(base: ContractResource, r: Rev): ContractResource {
   return {
