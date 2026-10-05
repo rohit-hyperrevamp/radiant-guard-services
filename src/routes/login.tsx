@@ -91,6 +91,11 @@ function LoginPage() {
     if (user && !revealing) navigate({ to: "/", replace: true });
   }, [user, navigate, revealing]);
 
+  useEffect(() => {
+    // Preload MSG91's widget so Send OTP responds instantly.
+    void loadMsg91Widget().catch(() => undefined);
+  }, []);
+
 
   useEffect(() => {
     void getBiometricStatus().then((status) => {
