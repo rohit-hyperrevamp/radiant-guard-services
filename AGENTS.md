@@ -13,3 +13,4 @@
 - Dashboard profitability is unit-level and live: invoice minus earned gross and employer contribution, with posted invoice/payroll values overriding computed attendance values — keeps P&L aligned with operational records.
 
 - Contract rate changes are versioned in `contract_rate_revisions` (new_rate → approved with explicit applicable-from/till range → previous expired); payroll/invoice resolve rates per period via `applyRateRevisionsForPeriod`, splitting by calendar days mid-period, and a daily job promotes due rates onto `contract_resources` — past periods keep old rates.
+- Rate timeline classifies revisions by dates (present = covers today, upcoming = future approved, expired = ended), not by status; upcoming rates are edited via update_scheduled_contract_rate_revision — an approval expires the prior row early in status only.
