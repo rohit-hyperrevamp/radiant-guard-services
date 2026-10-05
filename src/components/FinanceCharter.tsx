@@ -613,7 +613,7 @@ export function FinanceCharter({
       for (const t of selectedTargets) {
         const split = splitFor(t.unitId);
         if (!split || !isSplit(split)) { out.push(t); continue; }
-        const byPart = linesByUnit.get(t.unitId) ?? new Map();
+        const byPart = linesByUnit.get(t.unitId) ?? new Map<string, Map<string, PartLine>>();
         const sum = (k: string) => Array.from(byPart.get(k)?.values() ?? []).reduce((a, l) => a + l.amount, 0);
         const total = split.parts.reduce((a, p) => a + sum(p.key), 0);
         for (const p of split.parts) {
