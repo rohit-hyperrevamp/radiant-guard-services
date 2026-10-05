@@ -39,30 +39,14 @@ export function OrgInvoiceFormatDialog({
     if (data) setDraft(data);
   }, [data]);
 
-  const addInvoice = () => {
-    let n = draft.parts.length + 1;
-    while (draft.parts.some((p) => p.key === `part${n}`)) n++;
-    setDraft({ ...draft, parts: [...draft.parts, { key: `part${n}`, label: `Invoice ${draft.parts.length + 1}` }] });
-  };
-  const removeInvoice = (key: string) => {
-    const parts = draft.parts.filter((p) => p.key !== key);
-    const assign = { ...draft.assign };
-    for (const it of INVOICE_ITEMS) if (assign[it.key] === key) assign[it.key] = EXCLUDE;
-    setDraft({ parts, assign });
-  };
-  const toggleItem = (part: string, item: InvoiceItemKey, on: boolean) => {
-    setDraft({ ...draft, assign: { ...draft.assign, [item]: on ? part : EXCLUDE } });
-  };
-
   const save = async () => {
     if (!customer) return;
-    if (draft.parts.some((p) => !p.label.trim())) return toast.error("Give every invoice a name");
     setSaving(true);
+    const error = await saveOrgInvoiceSplit(customer.id, draft);
+    setSaving(false);
+    if (error) return toast.error(error);
     const simple = draft.parts.length === 1 && INVOICE_ITEMS.every((it) => draft.assign[it.key] !== EXCLUDE);
     const value = simple ? null : draft;
-    const { error } = await supabase.from("customers").update({ invoice_split: value } as never).eq("id", customer.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
     await qc.invalidateQueries({ queryKey: ["org-invoice-split"] });
     void logActivity({
       module: "Organizations",
@@ -76,7 +60,6 @@ export function OrgInvoiceFormatDialog({
     onOpenChange(false);
   };
 
-  const notBilled = INVOICE_ITEMS.filter((it) => draft.assign[it.key] === EXCLUDE);
 
   return (
     <Dialog open={!!customer} onOpenChange={onOpenChange}>
@@ -92,6 +75,40 @@ export function OrgInvoiceFormatDialog({
           <div className="text-sm text-muted-foreground"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</div>
         ) : (
           <div className="space-y-3">
+            <InvoiceFormatEditor value={draft} onChange={setDraft} />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={() => void save()} disabled={saving}>
+                {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Save
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Shared editor: each invoice row picks what it includes; "Add invoice" adds another. */
+export function InvoiceFormatEditor({ value: draft, onChange: setDraft }: { value: InvoiceSplit; onChange: (s: InvoiceSplit) => void }) {
+  const addInvoice = () => {
+    let n = draft.parts.length + 1;
+    while (draft.parts.some((p) => p.key === `part${n}`)) n++;
+    setDraft({ ...draft, parts: [...draft.parts, { key: `part${n}`, label: `Invoice ${draft.parts.length + 1}` }] });
+  };
+  const removeInvoice = (key: string) => {
+    const parts = draft.parts.filter((p) => p.key !== key);
+    const assign = { ...draft.assign };
+    for (const it of INVOICE_ITEMS) if (assign[it.key] === key) assign[it.key] = EXCLUDE;
+    setDraft({ parts, assign });
+  };
+  const toggleItem = (part: string, item: InvoiceItemKey, on: boolean) => {
+    setDraft({ ...draft, assign: { ...draft.assign, [item]: on ? part : EXCLUDE } });
+  };
+
+  const notBilled = INVOICE_ITEMS.filter((it) => draft.assign[it.key] === EXCLUDE);
+  return (
+    <div className="space-y-3">
             {draft.parts.map((p, i) => {
               const included = INVOICE_ITEMS.filter((it) => draft.assign[it.key] === p.key);
               return (
@@ -151,15 +168,14 @@ export function OrgInvoiceFormatDialog({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={() => void save()} disabled={saving}>
-                {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Save
-              </Button>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+    </div>
   );
+}
+
+/** Persist an organization's invoice format (null = one invoice, everything included). */
+export async function saveOrgInvoiceSplit(customerId: string, draft: InvoiceSplit): Promise<string | null> {
+  if (draft.parts.some((p) => !p.label.trim())) return "Give every invoice a name";
+  const simple = draft.parts.length === 1 && INVOICE_ITEMS.every((it) => draft.assign[it.key] !== EXCLUDE);
+  const { error } = await supabase.from("customers").update({ invoice_split: simple ? null : draft } as never).eq("id", customerId);
+  return error ? error.message : null;
 }

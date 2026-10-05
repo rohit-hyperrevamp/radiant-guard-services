@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
-import { OrgInvoiceFormatDialog } from "@/components/InvoiceSplitSettings";
+import { InvoiceFormatEditor, OrgInvoiceFormatDialog, saveOrgInvoiceSplit } from "@/components/InvoiceSplitSettings";
+import { DEFAULT_SPLIT, loadOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
+import { useQueryClient as useQC } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Download, FileStack, Edit2, ExternalLink, List as ListIcon, MapPin, Network, Plus, Search, Users, Warehouse } from "lucide-react";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
@@ -664,6 +666,8 @@ function CustomerFormDialog({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stepKey, setStepKey] = useState("profile");
+  const [split, setSplit] = useState<InvoiceSplit>(DEFAULT_SPLIT);
+  const qcSplit = useQC();
 
   useEffect(() => {
     if (!open) return;
@@ -677,6 +681,11 @@ function CustomerFormDialog({
     setError(null);
     setStepKey("profile");
   }, [open, editing, customers]);
+  useEffect(() => {
+    if (!open) return;
+    setSplit(DEFAULT_SPLIT);
+    if (editing) void loadOrgInvoiceSplit(editing.id).then(setSplit);
+  }, [open, editing]);
 
   const set = <K extends keyof Omit<Customer, "id">>(key: K, value: Omit<Customer, "id">[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -728,6 +737,7 @@ function CustomerFormDialog({
     { key: "contact", label: "Contact", caption: "Primary contact person" },
     { key: "billing", label: "Billing", caption: "Billing address and contact" },
     { key: "deployment", label: "Deployment", caption: "Shipping or deployment address" },
+    { key: "invoice", label: "Invoice format", caption: "One or more invoices and what each includes" },
     { key: "review", label: "Review", caption: "Check and create the organization" },
   ];
   const validateStep = (key: string) => {
@@ -744,6 +754,7 @@ function CustomerFormDialog({
     if (key === "contact") return Boolean(form.billingName.trim());
     if (key === "billing") return Boolean(form.billingAddress1.trim() && form.billingCity.trim() && !validateStep(key));
     if (key === "deployment") return form.shippingSameAsBilling || Boolean(form.shippingAddress1.trim() && form.shippingCity.trim() && !validateStep(key));
+    if (key === "invoice") return split.parts.every((p) => p.label.trim());
     return steps.slice(0, 4).every((step) => isStepComplete(step.key));
   };
   const requestStep = (key: string) => {
@@ -779,12 +790,22 @@ function CustomerFormDialog({
         return;
       }
     }
+    if (split.parts.some((p) => !p.label.trim())) {
+      toast.error("Give every invoice a name");
+      setStepKey("invoice");
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await onSubmit(form);
       if (result.error) {
         setError(result.error);
         return;
+      }
+      if (result.id) {
+        const splitErr = await saveOrgInvoiceSplit(result.id, split);
+        if (splitErr) toast.error(`Organization saved, but invoice format failed: ${splitErr}`);
+        void qcSplit.invalidateQueries({ queryKey: ["org-invoice-split"] });
       }
       draft.clear();
       onSuccess();
@@ -969,6 +990,12 @@ function CustomerFormDialog({
                 })}
               </div>
             )}
+          </section>}
+
+          {stepKey === "invoice" && <section className="modern-form-section">
+            <SectionHeading title="Invoice format" />
+            <p className="mb-3 text-sm text-muted-foreground">Applies to every client of this organization. Each invoice gets its own number when finalised.</p>
+            <InvoiceFormatEditor value={split} onChange={setSplit} />
           </section>}
 
           {stepKey === "review" && <section className="modern-form-section">
