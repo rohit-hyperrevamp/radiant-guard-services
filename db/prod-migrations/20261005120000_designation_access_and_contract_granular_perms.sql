@@ -52,6 +52,8 @@ BEGIN
     IF TG_OP = 'UPDATE' AND public.current_user_has_permission('contracts','client_contracts','edit') THEN RETURN NEW; END IF;
     IF TG_OP = 'DELETE' AND public.current_user_has_permission('contracts','client_contracts','delete') THEN RETURN OLD; END IF;
   ELSE
+    -- Saving a contract re-writes untouched resource lines; allow no-op updates.
+    IF TG_OP = 'UPDATE' AND (to_jsonb(NEW) - 'updated_at') = (to_jsonb(OLD) - 'updated_at') THEN RETURN NEW; END IF;
     IF public.current_user_has_permission('contracts','resources','edit') THEN RETURN COALESCE(NEW, OLD); END IF;
     IF TG_OP = 'UPDATE' AND public.current_user_has_permission('contracts','edit_existing_rates','edit') THEN RETURN NEW; END IF;
     -- Copying a contract also copies its resources.
