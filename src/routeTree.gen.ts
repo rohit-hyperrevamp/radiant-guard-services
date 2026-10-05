@@ -122,6 +122,7 @@ import { Route as AdminCustomersStateManagerRouteImport } from './routes/admin.c
 import { Route as AdminCustomersCustomerManagerRouteImport } from './routes/admin.customers.customer-manager'
 import { Route as AdminCustomersBranchManagerRouteImport } from './routes/admin.customers.branch-manager'
 import { Route as AdminContractsClientContractsRouteImport } from './routes/admin.contracts.client-contracts'
+import { Route as AdminContractsBulkRateRevisionRouteImport } from './routes/admin.contracts.bulk-rate-revision'
 import { Route as AdminCandidatesRehireRouteImport } from './routes/admin.candidates.rehire'
 import { Route as AdminAttendanceEmployeeRouteImport } from './routes/admin.attendance.employee'
 import { Route as AdminAttendanceUnitIdRouteImport } from './routes/admin.attendance.$unitId'
@@ -733,6 +734,12 @@ const AdminContractsClientContractsRoute =
     path: '/contracts/client-contracts',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminContractsBulkRateRevisionRoute =
+  AdminContractsBulkRateRevisionRouteImport.update({
+    id: '/contracts/bulk-rate-revision',
+    path: '/contracts/bulk-rate-revision',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminCandidatesRehireRoute = AdminCandidatesRehireRouteImport.update({
   id: '/candidates/rehire',
   path: '/candidates/rehire',
@@ -927,6 +934,7 @@ export interface FileRoutesByFullPath {
   '/admin/attendance/$unitId': typeof AdminAttendanceUnitIdRoute
   '/admin/attendance/employee': typeof AdminAttendanceEmployeeRoute
   '/admin/candidates/rehire': typeof AdminCandidatesRehireRoute
+  '/admin/contracts/bulk-rate-revision': typeof AdminContractsBulkRateRevisionRoute
   '/admin/contracts/client-contracts': typeof AdminContractsClientContractsRoute
   '/admin/customers/branch-manager': typeof AdminCustomersBranchManagerRoute
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
@@ -1059,6 +1067,7 @@ export interface FileRoutesByTo {
   '/admin/attendance/$unitId': typeof AdminAttendanceUnitIdRoute
   '/admin/attendance/employee': typeof AdminAttendanceEmployeeRoute
   '/admin/candidates/rehire': typeof AdminCandidatesRehireRoute
+  '/admin/contracts/bulk-rate-revision': typeof AdminContractsBulkRateRevisionRoute
   '/admin/contracts/client-contracts': typeof AdminContractsClientContractsRoute
   '/admin/customers/branch-manager': typeof AdminCustomersBranchManagerRoute
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
@@ -1195,6 +1204,7 @@ export interface FileRoutesById {
   '/admin/attendance/$unitId': typeof AdminAttendanceUnitIdRoute
   '/admin/attendance/employee': typeof AdminAttendanceEmployeeRoute
   '/admin/candidates/rehire': typeof AdminCandidatesRehireRoute
+  '/admin/contracts/bulk-rate-revision': typeof AdminContractsBulkRateRevisionRoute
   '/admin/contracts/client-contracts': typeof AdminContractsClientContractsRoute
   '/admin/customers/branch-manager': typeof AdminCustomersBranchManagerRoute
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
@@ -1333,6 +1343,7 @@ export interface FileRouteTypes {
     | '/admin/attendance/$unitId'
     | '/admin/attendance/employee'
     | '/admin/candidates/rehire'
+    | '/admin/contracts/bulk-rate-revision'
     | '/admin/contracts/client-contracts'
     | '/admin/customers/branch-manager'
     | '/admin/customers/customer-manager'
@@ -1465,6 +1476,7 @@ export interface FileRouteTypes {
     | '/admin/attendance/$unitId'
     | '/admin/attendance/employee'
     | '/admin/candidates/rehire'
+    | '/admin/contracts/bulk-rate-revision'
     | '/admin/contracts/client-contracts'
     | '/admin/customers/branch-manager'
     | '/admin/customers/customer-manager'
@@ -1600,6 +1612,7 @@ export interface FileRouteTypes {
     | '/admin/attendance/$unitId'
     | '/admin/attendance/employee'
     | '/admin/candidates/rehire'
+    | '/admin/contracts/bulk-rate-revision'
     | '/admin/contracts/client-contracts'
     | '/admin/customers/branch-manager'
     | '/admin/customers/customer-manager'
@@ -2474,6 +2487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminContractsClientContractsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/contracts/bulk-rate-revision': {
+      id: '/admin/contracts/bulk-rate-revision'
+      path: '/contracts/bulk-rate-revision'
+      fullPath: '/admin/contracts/bulk-rate-revision'
+      preLoaderRoute: typeof AdminContractsBulkRateRevisionRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/candidates/rehire': {
       id: '/admin/candidates/rehire'
       path: '/candidates/rehire'
@@ -2873,6 +2893,7 @@ interface AdminRouteChildren {
   AdminVehiclesRoute: typeof AdminVehiclesRouteWithChildren
   AdminWorkflowManagerRoute: typeof AdminWorkflowManagerRoute
   AdminCandidatesRehireRoute: typeof AdminCandidatesRehireRoute
+  AdminContractsBulkRateRevisionRoute: typeof AdminContractsBulkRateRevisionRoute
   AdminContractsClientContractsRoute: typeof AdminContractsClientContractsRoute
   AdminFieldSenseAttendanceRulesRoute: typeof AdminFieldSenseAttendanceRulesRoute
   AdminFieldSenseExpensesRoute: typeof AdminFieldSenseExpensesRoute
@@ -2946,6 +2967,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVehiclesRoute: AdminVehiclesRouteWithChildren,
   AdminWorkflowManagerRoute: AdminWorkflowManagerRoute,
   AdminCandidatesRehireRoute: AdminCandidatesRehireRoute,
+  AdminContractsBulkRateRevisionRoute: AdminContractsBulkRateRevisionRoute,
   AdminContractsClientContractsRoute: AdminContractsClientContractsRoute,
   AdminFieldSenseAttendanceRulesRoute: AdminFieldSenseAttendanceRulesRoute,
   AdminFieldSenseExpensesRoute: AdminFieldSenseExpensesRoute,
