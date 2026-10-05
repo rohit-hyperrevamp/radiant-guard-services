@@ -310,6 +310,10 @@ export function toggleLineRoundOff<T extends { amount: number; roundOff?: boolea
 }
 
 
+function withManualAmount<T extends { amount: number; roundOff?: boolean; unroundedAmount?: number | null }>(item: T, amount: number): T {
+  return item.roundOff ? { ...item, unroundedAmount: amount, amount: Math.round(amount) } : { ...item, amount };
+}
+
 export type ContractResource = {
   id?: string;
   designationId: string;
@@ -5200,7 +5204,7 @@ export function ResourceFormDialog({
 
   const updateAmount = (allowanceId: string, amount: number) => {
     setComponents((prev) =>
-      prev.map((c) => (c.allowanceId === allowanceId ? { ...c, amount } : c)),
+      prev.map((c) => (c.allowanceId === allowanceId ? withManualAmount(c, amount) : c)),
     );
   };
 
@@ -5405,7 +5409,7 @@ export function ResourceFormDialog({
   };
 
   const updateDeductionAmount = (id: string, amount: number) => {
-    setDeductions((prev) => prev.map((b) => (b.costComponentId === id ? { ...b, amount } : b)));
+    setDeductions((prev) => prev.map((b) => (b.costComponentId === id ? withManualAmount(b, amount) : b)));
   };
 
   const removeDeduction = (id: string) => {
@@ -5458,7 +5462,7 @@ export function ResourceFormDialog({
   };
 
   const updateEmployerAmount = (id: string, amount: number) => {
-    setEmployerContributions((prev) => prev.map((b) => (b.costComponentId === id ? { ...b, amount } : b)));
+    setEmployerContributions((prev) => prev.map((b) => (b.costComponentId === id ? withManualAmount(b, amount) : b)));
   };
 
   const removeEmployerContribution = (id: string) => {
