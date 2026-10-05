@@ -134,16 +134,9 @@ function LoginPage() {
       }
 
       setResendIn(30);
-      if (result.mode === "sms") {
-        // MSG91 OTP Widget = account default DLT template (the working path).
-        const requestId =
-          isResend && otpRequestId
-            ? ((await retryWidgetOtp(otpRequestId)) ?? otpRequestId)
-            : await sendWidgetOtp(phone);
-        setOtpRequestId(requestId);
-      } else {
-        setOtpRequestId(null);
-      }
+      // The SMS is sent server-side by requestOtp/resendLoginOtp; no browser
+      // widget round-trip is needed.
+      setOtpRequestId(null);
       toast.success(
         result.mode === "sms"
           ? `OTP sent to +91 ••• ••• ${phone.slice(-4)}`
