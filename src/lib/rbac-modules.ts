@@ -120,6 +120,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "wages",     label: "Salary / wages (View / Edit)",     path: "/admin/employees#wages",     icon: Wallet },
       { key: "offboard",  label: "Offboard employees (Edit)",        path: "/admin/employees#offboard",  icon: LogOut },
       { key: "approvals", label: "Approve onboarding (Approve)",     path: "/admin/employees#approvals", icon: BadgeCheck },
+      { key: "mapping",   label: "Manage unit / designation / manager mapping (Edit)", path: "/admin/employees#mapping", icon: Users },
     ],
   },
   {
@@ -193,6 +194,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "approve", label: "Approve / reject attendance (Approve)",  path: "/admin/attendance#approve", icon: BadgeCheck },
       { key: "reopen",  label: "Reopen approved attendance (Approve)",   path: "/admin/attendance#reopen",  icon: ClipboardList },
       { key: "amend",   label: "Amend after payroll paid (Approve)",     path: "/admin/attendance#amend",   icon: ClipboardList },
+      { key: "all_units", label: "Work on all units — otherwise only mapped units (View)", path: "/admin/attendance#all-units", icon: Building2 },
     ],
   },
   {
