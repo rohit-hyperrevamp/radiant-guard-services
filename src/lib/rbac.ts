@@ -276,7 +276,15 @@ export function useCurrentPermissions(): {
     if (isSuperAdmin) return true;
     const r = map.get(`${moduleKey}::${actionKey}`);
     if (r) return valueFor(r, action);
-    return fallback ?? can(moduleKey, action);
+    // Other actions listed for this module but not this one → no access, so an
+    // unrelated grant (e.g. edit contract) never unlocks a different action.
+    const listsActions = Array.from(map.keys()).some(
+      (k) => k.startsWith(`${moduleKey}::`) && k !== `${moduleKey}::`,
+    );
+    if (listsActions) return false;
+    const moduleRow = map.get(`${moduleKey}::`);
+    if (moduleRow) return valueFor(moduleRow, action);
+    return fallback ?? false;
   };
 
   return {
