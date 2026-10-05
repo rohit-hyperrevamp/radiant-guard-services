@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   Copy,
-  Eye,
   Lock,
   Download,
   Edit2,
