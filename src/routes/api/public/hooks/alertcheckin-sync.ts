@@ -48,17 +48,17 @@ class Jar {
   header() { return Array.from(this.c, ([k, v]) => `${k}=${v}`).join("; "); }
 }
 
-async function fetchExport(date: string): Promise<string> {
+async function fetchExport(date: string, creds: { email: string; password: string }): Promise<string> {
   const jar = new Jar();
   const r1 = await fetch(`${BASE}/login`, { redirect: "manual" });
   jar.take(r1);
   const html = await r1.text();
   const token = html.match(/name="_token" value="([^"]+)"/)?.[1];
   if (!token) throw new Error("AlertCheckin login page changed");
-  const body = new URLSearchParams({ _token: token, email: process.env["ALERTCHECKIN_EMAIL"]!, password: process.env["ALERTCHECKIN_PASSWORD"]! });
+  const body = new URLSearchParams({ _token: token, email: creds.email, password: creds.password });
   const r2 = await fetch(`${BASE}/login`, { method: "POST", body, redirect: "manual", headers: { cookie: jar.header(), "content-type": "application/x-www-form-urlencoded" } });
   jar.take(r2);
-  if (!(r2.headers.get("location") ?? "").includes("/dashboard")) throw new Error(`AlertCheckin sign-in failed (status ${r2.status}, cookies ${jar.c.size}, creds ${process.env["ALERTCHECKIN_EMAIL"] ? "set" : "missing"})`);
+  if (!(r2.headers.get("location") ?? "").includes("/dashboard")) throw new Error(`AlertCheckin sign-in failed (status ${r2.status}, cookies ${jar.c.size}, creds ${creds.email ? "set" : "missing"})`);
   const r3 = await fetch(`${BASE}/dashboard/export?date=${date}&group_id=all&client_id=all`, { headers: { cookie: jar.header() } });
   if (!r3.ok) throw new Error(`AlertCheckin export failed (${r3.status})`);
   return await r3.text();
@@ -87,7 +87,12 @@ export const Route = createFileRoute("/api/public/hooks/alertcheckin-sync")({
         const { data: run } = await db.from("alertcheckin_sync_runs").insert({ sync_date: date }).select("id").single();
         const stats = { rows_read: 0, inserted: 0, skipped: 0, unmatched: 0 };
         try {
-          const rows = parseCsv(await fetchExport(date)).slice(7).filter((r) => r.length >= 9 && r[0]);
+          let creds = { email: process.env["ALERTCHECKIN_EMAIL"] ?? "", password: process.env["ALERTCHECKIN_PASSWORD"] ?? "" };
+          if (!creds.email || !creds.password) {
+            const { data: c } = await db.from("alertcheckin_credentials").select("email,password").eq("id", 1).maybeSingle();
+            if (c) creds = { email: c.email, password: c.password };
+          }
+          const rows = parseCsv(await fetchExport(date, creds)).slice(7).filter((r) => r.length >= 9 && r[0]);
           const { data: maps } = await db.from("alertcheckin_site_map").select("ac_site_name,unit_id");
           const siteMap = new Map<string, string>((maps ?? []).map((m: any) => [m.ac_site_name, m.unit_id]));
           const mapped = rows.filter((r) => siteMap.has(r[2]));
@@ -95,11 +100,21 @@ export const Route = createFileRoute("/api/public/hooks/alertcheckin-sync")({
           const unitIds = Array.from(new Set(mapped.map((r) => siteMap.get(r[2])!)));
           const posts: any[] = [];
           for (let i = 0; i < unitIds.length; i += 100) {
-            const { data } = await db.from("candidate_units")
-              .select("unit_id,candidate_id,designation_id,is_reliever,shift_hours,candidates!inner(full_name,role_key,non_billable)")
+            // No FK from candidate_units to candidates, so join in code.
+            const { data, error } = await db.from("candidate_units")
+              .select("unit_id,candidate_id,designation_id,is_reliever,shift_hours")
               .in("unit_id", unitIds.slice(i, i + 100));
+            if (error) throw new Error(`Postings read failed: ${error.message}`);
             posts.push(...(data ?? []));
           }
+          const candIds = Array.from(new Set(posts.map((p) => p.candidate_id)));
+          const people = new Map<string, any>();
+          for (let i = 0; i < candIds.length; i += 200) {
+            const { data, error } = await db.from("candidates").select("id,full_name,role_key,non_billable").in("id", candIds.slice(i, i + 200));
+            if (error) throw new Error(`Guards read failed: ${error.message}`);
+            for (const c of data ?? []) people.set(c.id, c);
+          }
+          for (const p of posts) p.candidates = people.get(p.candidate_id) ?? { full_name: "", role_key: "", non_billable: true };
           const guards = posts.filter((p) => p.candidates.role_key !== "field_officer" && !p.candidates.non_billable);
           const agg = new Map<string, { unit_id: string; candidate_id: string; designation_id: string | null; rel: boolean; hrs: number; shift: number }>();
           const unmatched: any[] = [];
