@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Copy, Loader2, Search } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, Loader2, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,9 +98,8 @@ function BulkRateRevisionPage() {
   const qc = useQueryClient();
   const [orgId, setOrgId] = useState("");
   const [stateName, setStateName] = useState("");
-  const [designation, setDesignation] = useState("");
+  const [groupKey, setGroupKey] = useState("");
   const [q, setQ] = useState("");
-  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -192,82 +191,46 @@ function BulkRateRevisionPage() {
   });
 
   const all = lines.data ?? [];
-  const clients = useMemo(() => {
-    const m = new Map<string, Client>();
+  const states = useMemo(() => Array.from(new Set(all.map((l) => l.state).filter(Boolean))).sort(), [all]);
+
+  // Categories: same designation + identical rate structure, within the chosen state.
+  const groups = useMemo(() => {
+    const m = new Map<string, { key: string; designation: string; lines: Line[] }>();
     for (const l of all) {
-      const c = m.get(l.contractId) ?? { contractId: l.contractId, contractCode: l.contractCode, unitName: l.unitName, unitCode: l.unitCode, state: l.state, designations: [] };
-      if (!c.designations.includes(l.designation)) c.designations.push(l.designation);
-      m.set(l.contractId, c);
+      if (stateName && l.state !== stateName) continue;
+      const key = `${l.designation}::${signature(l.resource)}`;
+      const g = m.get(key) ?? { key, designation: l.designation, lines: [] };
+      if (!g.lines.some((x) => x.contractId === l.contractId)) g.lines.push(l);
+      m.set(key, g);
     }
-    return Array.from(m.values()).sort((a, b) => a.unitName.localeCompare(b.unitName));
-  }, [all]);
-  const states = useMemo(() => Array.from(new Set(clients.map((c) => c.state).filter(Boolean))).sort(), [clients]);
-  const selClients = clients.filter((c) => selected.has(c.contractId));
+    const list = Array.from(m.values());
+    list.forEach((g) => g.lines.sort((a, b) => a.unitName.localeCompare(b.unitName)));
+    return list.sort((a, b) => a.designation.localeCompare(b.designation) || b.lines.length - a.lines.length);
+  }, [all, stateName]);
 
-  // Designations present in EVERY selected client.
-  const common = useMemo(() => {
-    if (!selClients.length) return [] as string[];
-    let s = new Set(selClients[0].designations);
-    for (const c of selClients.slice(1)) s = new Set(c.designations.filter((d) => s.has(d)));
-    return Array.from(s).sort();
-  }, [selClients]);
+  const ql = q.toLowerCase();
+  const visibleGroups = groups.filter(
+    (g) => !ql || g.designation.toLowerCase().includes(ql) || g.lines.some((l) => `${l.unitName} ${l.unitCode} ${l.contractCode}`.toLowerCase().includes(ql)),
+  );
+  const multi = visibleGroups.filter((g) => g.lines.length > 1);
+  const single = visibleGroups.filter((g) => g.lines.length === 1);
 
-  // Smart filter: once clients are selected, only show clients that share a
-  // common designation whose rate structure matches the first selected client.
-  const compatibleIds = useMemo(() => {
-    if (!selClients.length) return null;
-    const set = new Set<string>();
-    for (const c of clients) {
-      if (selected.has(c.contractId)) {
-        set.add(c.contractId);
-        continue;
-      }
-      for (const d of common) {
-        const tl = all.find((l) => l.contractId === selClients[0].contractId && l.designation === d);
-        const cl = all.find((l) => l.contractId === c.contractId && l.designation === d);
-        if (tl && cl && signature(tl.resource) === signature(cl.resource)) {
-          set.add(c.contractId);
-          break;
-        }
-      }
-    }
-    return set;
-  }, [selClients, clients, common, all, selected]);
+  const active = groups.find((g) => g.key === groupKey) ?? null;
+  const chosen = active ? active.lines.filter((l) => selected.has(String(l.resource.id))) : [];
+  const template = chosen[0] ?? active?.lines[0] ?? null;
+  const designation = active?.designation ?? "";
 
-  const filtered = clients
-    .filter((c) => !compatibleIds || compatibleIds.has(c.contractId))
-    .filter((c) => !stateName || c.state === stateName)
-    .filter((c) => !q || `${c.unitName} ${c.unitCode} ${c.contractCode}`.toLowerCase().includes(q.toLowerCase()));
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
-  const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
-
-  useEffect(() => {
-    if (designation && !common.includes(designation)) setDesignation("");
-    if (!designation && common.length === 1) setDesignation(common[0]);
-  }, [common, designation]);
-
-  const chosen = designation ? all.filter((l) => selected.has(l.contractId) && l.designation === designation) : [];
-  const template = chosen[0] ?? null;
-  const mismatches = template
-    ? chosen
-        .filter((l) => signature(l.resource) !== signature(template.resource))
-        .map((l) => ({ line: l, reasons: diffReasons(template.resource, l.resource, template.unitName) }))
-    : [];
-  const differing = mismatches.length;
-  const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.contractId));
-
+  const pickGroup = (key: string) => {
+    const g = groups.find((x) => x.key === key);
+    setGroupKey(key);
+    setSelected(new Set(g?.lines.map((l) => String(l.resource.id)) ?? []));
+    setRevised(null);
+  };
   const toggle = (id: string) =>
     setSelected((s) => {
       const n = new Set(s);
       if (n.has(id)) n.delete(id);
       else n.add(id);
-      return n;
-    });
-  const toggleAll = () =>
-    setSelected((s) => {
-      const n = new Set(s);
-      if (allFilteredSelected) filtered.forEach((c) => n.delete(c.contractId));
-      else filtered.forEach((c) => n.add(c.contractId));
       return n;
     });
 
@@ -306,7 +269,7 @@ function BulkRateRevisionPage() {
   async function approveAll() {
     if (!from || !till || till < from) return toast.error("Choose a valid applicable from / till range");
     const fresh = ((await qc.fetchQuery({ queryKey: ["bulk-rr-lines", orgId] })) as Line[]).filter(
-      (l) => selected.has(l.contractId) && l.designation === designation && l.draftId,
+      (l) => selected.has(String(l.resource.id)) && l.draftId,
     );
     if (!fresh.length) return toast.error("No revised rates to approve — create them first");
     const ok = await confirmAction({
@@ -335,10 +298,32 @@ function BulkRateRevisionPage() {
   }
 
   const draftsSelected = chosen.filter((l) => l.hasDraft).length;
-  const rateFor = (c: Client) => {
-    if (!designation) return null;
-    const l = all.find((x) => x.contractId === c.contractId && x.designation === designation);
-    return l ?? null;
+
+  const GroupCard = ({ g }: { g: (typeof groups)[number] }) => {
+    const r = g.lines[0].resource;
+    const isActive = g.key === groupKey;
+    return (
+      <div className={`rounded-xl border p-3 ${isActive ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold">{g.designation}</span>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{g.lines.length} client{g.lines.length === 1 ? "" : "s"}</span>
+          <span className="text-sm text-muted-foreground">Present rate {fmt(billing(r))} · {r.shiftHours}h shift</span>
+          <Button size="sm" variant={isActive ? "default" : "outline"} className="ml-auto" onClick={() => (isActive ? setGroupKey("") : pickGroup(g.key))}>
+            {isActive ? "Selected" : "Select this category"}
+          </Button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {g.lines.map((l) => (
+            <label key={l.resource.id} className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs">
+              {isActive && <input type="checkbox" checked={selected.has(String(l.resource.id))} onChange={() => toggle(String(l.resource.id))} />}
+              <span className="font-medium">{l.unitName}</span>
+              <span className="font-mono text-[10px] text-muted-foreground">{l.contractCode}</span>
+              {l.hasDraft && <span className="rounded-full bg-rate-revised px-1.5 text-[10px] text-rate-revised-foreground">Revised</span>}
+            </label>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -346,7 +331,7 @@ function BulkRateRevisionPage() {
       <PageHeader
         title="Bulk Rate Revision"
         eyebrow="Contracts"
-        description="Pick an organization and state, select clients, choose a designation they all have, and revise its rate together."
+        description="Clients are grouped into categories with the same designation and identical rate structure. Select a category and revise its rate together."
         crumbs={[{ label: "Contracts" }, { label: "Bulk Rate Revision" }]}
         actions={
           <Button asChild variant="outline" size="sm">
@@ -358,13 +343,7 @@ function BulkRateRevisionPage() {
       <div className="grid gap-2 sm:grid-cols-3">
         <SearchSelect
           value={orgId}
-          onChange={(v) => {
-            setOrgId(v);
-            setStateName("");
-            setDesignation("");
-            setSelected(new Set());
-            setPage(0);
-          }}
+          onChange={(v) => { setOrgId(v); setStateName(""); setGroupKey(""); setSelected(new Set()); }}
           options={(orgs.data ?? []).map((o) => ({ value: o.id, label: o.name, hint: o.code ?? undefined }))}
           placeholder="Select organization"
           searchPlaceholder="Search organization…"
@@ -372,10 +351,7 @@ function BulkRateRevisionPage() {
         />
         <SearchSelect
           value={stateName}
-          onChange={(v) => {
-            setStateName(v);
-            setPage(0);
-          }}
+          onChange={(v) => { setStateName(v); setGroupKey(""); setSelected(new Set()); }}
           disabled={!orgId}
           options={[{ value: "", label: "All states" }, ...states.map((s) => ({ value: s, label: s }))]}
           placeholder="All states"
@@ -384,83 +360,21 @@ function BulkRateRevisionPage() {
         />
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-8" placeholder="Search client" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+          <Input className="pl-8" placeholder="Search client or designation" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       </div>
 
-      {selClients.length > 0 && (
-        <div className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm">
+      {active && (
+        <div className="sticky top-2 z-10 space-y-3 rounded-xl border border-accent/40 bg-background p-3 text-sm shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">{selClients.length} client{selClients.length === 1 ? "" : "s"} selected</span>
-            <div className="w-64">
-              <SearchSelect
-                value={designation}
-                onChange={setDesignation}
-                disabled={!common.length}
-                options={common.map((d) => ({ value: d, label: d }))}
-                placeholder={common.length ? "Choose common designation" : "No common designation"}
-                searchPlaceholder="Search designation…"
-                emptyText="No designation found."
-              />
-            </div>
-            {template && <span className="text-muted-foreground">Present rate {fmt(billing(template.resource))}</span>}
+            <span className="font-semibold">{designation}</span>
+            <span className="text-muted-foreground">{chosen.length} of {active.lines.length} clients selected · present rate {template ? fmt(billing(template.resource)) : "—"}</span>
             {canEdit.data && (
-              <Button
-                size="sm"
-                className="ml-auto"
-                disabled={busy || !template || differing > 0}
-                onClick={() => setEditOpen(true)}
-              >
-                <Copy className="mr-1 h-4 w-4" /> Copy present & revise
+              <Button size="sm" className="ml-auto" disabled={busy || !chosen.length} onClick={() => setEditOpen(true)}>
+                {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Copy className="mr-1 h-4 w-4" />} Copy present & revise
               </Button>
             )}
           </div>
-
-          {!common.length && (
-            <div className="flex gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-destructive">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <div>
-                <div className="font-semibold">These clients have no designation in common.</div>
-                <div className="text-xs">Bulk revision works for a designation (e.g. Security Guard) that every selected client has. Unselect the clients that don't have it.</div>
-              </div>
-            </div>
-          )}
-          {common.length > 0 && !designation && (
-            <div className="text-xs text-muted-foreground">Only designations that all selected clients have are shown. Pick one to continue.</div>
-          )}
-
-          {differing > 0 && template && (
-            <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-destructive">
-              <div className="flex gap-2">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-semibold">
-                    {differing} of {chosen.length} clients have a different {designation} rate, so they can't be revised together.
-                  </div>
-                  <div className="text-xs">
-                    Each one is compared with <b>{template.unitName}</b> (present rate {fmt(billing(template.resource))}). Unselect them to continue, or revise them separately.
-                  </div>
-                </div>
-              </div>
-              <div className="max-h-72 space-y-2 overflow-auto">
-                {mismatches.map(({ line, reasons }) => (
-                  <div key={line.resource.id} className="rounded-md border border-destructive/30 bg-background p-2 text-foreground">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <b>{line.unitName}</b>
-                      <span className="font-mono text-[11px] text-muted-foreground">{line.contractCode}</span>
-                      <span className="text-xs text-muted-foreground">Present rate {fmt(billing(line.resource))}</span>
-                      <Button size="sm" variant="outline" className="ml-auto h-7" onClick={() => toggle(line.contractId)}>Unselect</Button>
-                    </div>
-                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs">
-                      {(reasons.length ? reasons : ["Rate lines are set up differently"]).slice(0, 6).map((r, i) => <li key={i}>{r}</li>)}
-                      {reasons.length > 6 && <li>…and {reasons.length - 6} more differences</li>}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {revised && template && (
             <div className="text-xs text-muted-foreground">
               Revised rate {fmt(billing(revised))} (change {fmt(billing(revised) - billing(template.resource))}) saved, not used until approved.
@@ -477,60 +391,28 @@ function BulkRateRevisionPage() {
                 <Input type="date" value={till} min={from} onChange={(e) => setTill(e.target.value)} />
               </div>
               <Button disabled={busy || !from || !till} onClick={approveAll}>
-                {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
-                Approve {draftsSelected} revised rate{draftsSelected === 1 ? "" : "s"}
+                <CheckCircle2 className="mr-1 h-4 w-4" /> Approve {draftsSelected} revised rate{draftsSelected === 1 ? "" : "s"}
               </Button>
             </div>
           )}
         </div>
       )}
 
-      {compatibleIds && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
-          Showing only clients that share a common designation with the same rate structure as your selection. Clear the selection to see all clients again.
-        </div>
-      )}
+      {!orgId && <div className="rounded-xl border border-border p-6 text-center text-muted-foreground">Select an organization to see its rate categories.</div>}
+      {orgId && lines.isLoading && <div className="p-6 text-center text-muted-foreground">Loading…</div>}
+      {orgId && !lines.isLoading && !visibleGroups.length && <div className="rounded-xl border border-border p-6 text-center text-muted-foreground">No active contracts match.</div>}
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/50 text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="w-10 p-2.5"><input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} disabled={!filtered.length} aria-label="Select all" /></th>
-              <th className="p-2.5">Client</th>
-              <th className="p-2.5">State</th>
-              <th className="p-2.5">Contract</th>
-              <th className="p-2.5">Designations</th>
-              <th className="p-2.5 text-right">{designation ? `${designation} rate` : "Present rate"}</th>
-              <th className="p-2.5">Revision</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!orgId && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Select an organization to list its clients.</td></tr>}
-            {lines.isLoading && orgId && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-            {orgId && !lines.isLoading && !filtered.length && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No active contracts match.</td></tr>}
-            {shown.map((c) => {
-              const l = rateFor(c);
-              return (
-                <tr key={c.contractId} className="border-t border-border">
-                  <td className="p-2.5"><input type="checkbox" checked={selected.has(c.contractId)} onChange={() => toggle(c.contractId)} aria-label={`Select ${c.unitName}`} /></td>
-                  <td className="p-2.5"><div className="font-medium">{c.unitName}</div><div className="font-mono text-[11px] text-muted-foreground">{c.unitCode}</div></td>
-                  <td className="p-2.5">{c.state || "—"}</td>
-                  <td className="p-2.5 font-mono text-xs">{c.contractCode}</td>
-                  <td className="p-2.5 text-xs">{c.designations.join(", ")}</td>
-                  <td className="p-2.5 text-right tabular-nums">{l ? fmt(billing(l.resource)) : "—"}</td>
-                  <td className="p-2.5">{l?.hasDraft ? <span className="rounded-full bg-rate-revised px-2 py-0.5 text-[11px] text-rate-revised-foreground">Revised · awaiting approval</span> : "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {pages > 1 && (
-        <div className="flex items-center justify-end gap-2 text-sm">
-          <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button>
-          <span className="text-muted-foreground">Page {page + 1} of {pages}</span>
-          <Button size="sm" variant="outline" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</Button>
-        </div>
+      {multi.length > 0 && (
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold">Categories with matching rates ({multi.length})</h3>
+          {multi.map((g) => <GroupCard key={g.key} g={g} />)}
+        </section>
+      )}
+      {single.length > 0 && (
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">Unique rate — no other client matches ({single.length})</h3>
+          {single.map((g) => <GroupCard key={g.key} g={g} />)}
+        </section>
       )}
 
       {editOpen && template && (
