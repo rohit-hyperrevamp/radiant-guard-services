@@ -1,5 +1,7 @@
+import { DEFAULT_WIDGET_ID, getMsg91WidgetConfig } from "@/lib/otp-config.functions";
+
 /** MSG91's configured OTP Widget uses the account's default DLT template. */
-export const WIDGET_ID = "356b71685561353436363635";
+export const WIDGET_ID = DEFAULT_WIDGET_ID;
 export const WIDGET_TOKEN = "478181TOAfR90F2N691ae1eeP1";
 const WIDGET_SCRIPT_ID = "msg91-otp-provider";
 const WIDGET_SCRIPT_URL = "https://verify.msg91.com/otp-provider.js";
@@ -54,13 +56,19 @@ export function loadMsg91Widget(): Promise<void> {
   if (widgetPromise) return widgetPromise;
 
   widgetPromise = new Promise<void>((resolve, reject) => {
-    const initialize = () => {
+    const initialize = async () => {
       if (!window.initSendOTP) {
         reject(new Error("SMS service did not load. Please try again."));
         return;
       }
+      let widgetId = WIDGET_ID;
+      try {
+        widgetId = (await getMsg91WidgetConfig()).widgetId || WIDGET_ID;
+      } catch {
+        // Fall back to the built-in widget ID.
+      }
       window.initSendOTP({
-        widgetId: WIDGET_ID,
+        widgetId,
         tokenAuth: WIDGET_TOKEN,
         exposeMethods: true,
         success: () => undefined,

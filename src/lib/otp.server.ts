@@ -1,5 +1,12 @@
 import { SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
-import { WIDGET_ID, WIDGET_TOKEN } from "@/lib/otp-widget";
+import { DEFAULT_WIDGET_ID } from "@/lib/otp-config.functions";
+import { WIDGET_TOKEN } from "@/lib/otp-widget";
+
+/** Widget ID from secrets (MSG91_WIDGET_ID) with the built-in default as fallback. */
+function widgetId(): string {
+  const override = process.env["MSG91_WIDGET_ID"];
+  return override && /^[0-9a-f]{24,}$/i.test(override) ? override : DEFAULT_WIDGET_ID;
+}
 
 const MSG91_API = "https://control.msg91.com/api/v5";
 const OTP_RELAY_URL = "https://radiant-guard-services.lovable.app/api/public/otp-relay";
@@ -88,7 +95,7 @@ export async function sendMsg91WidgetOtp(phone: string): Promise<string> {
   const response = await fetch(`${MSG91_API}/widget/sendOtp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ widgetId: WIDGET_ID, tokenAuth: WIDGET_TOKEN, identifier: `91${phone}` }),
+    body: JSON.stringify({ widgetId: widgetId(), tokenAuth: WIDGET_TOKEN, identifier: `91${phone}` }),
   });
   const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
   if (!response.ok || payload.type?.toLowerCase() !== "success" || !payload.message) {
@@ -167,7 +174,7 @@ export async function verifyMsg91Otp(requestId: string, otp: string): Promise<vo
   const response = await fetch(`${MSG91_API}/widget/verifyOtp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ widgetId: WIDGET_ID, tokenAuth: WIDGET_TOKEN, reqId: requestId, otp }),
+    body: JSON.stringify({ widgetId: widgetId(), tokenAuth: WIDGET_TOKEN, reqId: requestId, otp }),
   });
   const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
   if (!response.ok || payload.type?.toLowerCase() !== "success") {

@@ -96,6 +96,7 @@ function LoginPage() {
     void loadMsg91Widget().catch(() => undefined);
   }, []);
 
+
   useEffect(() => {
     void getBiometricStatus().then((status) => {
       setBioAvailable(status.available);
