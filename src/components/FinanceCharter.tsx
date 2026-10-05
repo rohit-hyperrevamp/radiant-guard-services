@@ -1230,7 +1230,7 @@ export function FinanceCharter({
             disabled={tallyBusy}
             onClick={() => void exportTallyCombined()}
           >
-            <Download className="h-4 w-4" /> {tallyBusy ? "Preparing…" : <><span className="sm:hidden">Tally</span><span className="hidden sm:inline">Download Tally Format</span></>}
+            <Download className="h-4 w-4" /> {tallyBusy ? "Preparing…" : <><span className="sm:hidden">Tally</span><span className="hidden sm:inline">Download Tally · no invoice no.</span></>}
           </Button>
         )}
         {mode === "invoice" && misApplicable && (
