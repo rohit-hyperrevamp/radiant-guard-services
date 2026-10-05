@@ -21,6 +21,8 @@ export type FinalInvoice = {
   period_start: string;
   period_end: string;
   total_value: number | null;
+  part_key?: string | null;
+  part_label?: string | null;
 };
 
 export const FINAL_INVOICE_QK = "final-invoices";
@@ -29,11 +31,14 @@ type UnitRow = {
   unit_id: string;
   period_start: string;
   period_end: string;
+  part_key?: string | null;
   final_invoices: FinalInvoice | null;
 };
 
-export function unitPeriodKey(unitId: string, start: string, end: string) {
-  return `${unitId}|${start}|${end}`;
+/** Main part keeps the plain key; split parts add `|<part>`. */
+export function unitPeriodKey(unitId: string, start: string, end: string, part?: string | null) {
+  const base = `${unitId}|${start}|${end}`;
+  return part && part !== "main" ? `${base}|${part}` : base;
 }
 
 /** Every final invoice already issued for these units (all periods). */
@@ -51,13 +56,13 @@ export function useFinalInvoicesForUnits(unitIds: string[]) {
         const { data, error } = await supabase
           .from("final_invoice_units" as never)
           .select(
-            "unit_id, period_start, period_end, final_invoices(id, invoice_no, state_code, fiscal_year, month_code, sequence, client_token, party_name, billing_state, invoice_date, period_start, period_end, total_value)",
+            "unit_id, period_start, period_end, part_key, final_invoices(id, part_key, part_label, invoice_no, state_code, fiscal_year, month_code, sequence, client_token, party_name, billing_state, invoice_date, period_start, period_end, total_value)",
           )
           .in("unit_id", slice);
         if (error) throw error;
         for (const row of (data ?? []) as unknown as UnitRow[]) {
           if (!row.final_invoices) continue;
-          out.set(unitPeriodKey(row.unit_id, row.period_start, row.period_end), row.final_invoices);
+          out.set(unitPeriodKey(row.unit_id, row.period_start, row.period_end, row.part_key), row.final_invoices);
         }
       }
       return out;
@@ -77,6 +82,8 @@ export type GenerateFinalInvoiceArgs = {
   taxableValue?: number;
   taxTotal?: number;
   totalValue?: number;
+  partKey?: string | null;
+  partLabel?: string | null;
 };
 
 export type GeneratedFinalInvoice = {
@@ -101,6 +108,8 @@ export async function generateFinalInvoice(args: GenerateFinalInvoiceArgs): Prom
     _taxable_value: args.taxableValue ?? 0,
     _tax_total: args.taxTotal ?? 0,
     _total_value: args.totalValue ?? 0,
+    _part_key: args.partKey ?? "main",
+    _part_label: args.partLabel ?? null,
   } as never);
   if (error) throw error;
   const row = (Array.isArray(data) ? data[0] : data) as GeneratedFinalInvoice | undefined;

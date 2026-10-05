@@ -40,6 +40,9 @@ export type FinalInvoiceTarget = {
   periodStart: string;
   periodEnd: string;
   taxableValue: number;
+  /** Invoice part from the contract's split rules (default main). */
+  partKey?: string | null;
+  partLabel?: string | null;
 };
 
 type Group = {
@@ -49,6 +52,8 @@ type Group = {
   billingState: string | null;
   periodStart: string;
   periodEnd: string;
+  partKey: string | null;
+  partLabel: string | null;
   targets: FinalInvoiceTarget[];
   taxableValue: number;
 };
@@ -102,7 +107,7 @@ export function FinalInvoiceDialog({
   const groups = useMemo<Group[]>(() => {
     const map = new Map<string, Group>();
     for (const t of targets) {
-      const key = `${t.customerId ?? t.customerName}|${norm(t.billingState)}|${t.periodStart}|${t.periodEnd}`;
+      const key = `${t.customerId ?? t.customerName}|${norm(t.billingState)}|${t.periodStart}|${t.periodEnd}|${t.partKey ?? "main"}`;
       const g = map.get(key) ?? {
         key,
         customerId: t.customerId,
@@ -110,6 +115,8 @@ export function FinalInvoiceDialog({
         billingState: t.billingState,
         periodStart: t.periodStart,
         periodEnd: t.periodEnd,
+        partKey: t.partKey ?? null,
+        partLabel: t.partLabel ?? null,
         targets: [],
         taxableValue: 0,
       };
@@ -142,6 +149,8 @@ export function FinalInvoiceDialog({
           taxableValue: taxable,
           taxTotal: tax,
           totalValue: Math.round((taxable + tax) * 100) / 100,
+          partKey: g.partKey,
+          partLabel: g.partLabel,
         });
         issued.push(result.invoice_no);
         void logActivity({
