@@ -87,13 +87,21 @@ export const Route = createFileRoute("/api/public/hooks/sohcm-sync")({
 
           const { data: units } = await db.from("units").select("id").eq("customer_id", CUSTOMER_ID);
           const unitIds = (units ?? []).map((u: any) => u.id);
-          const { data: posts } = await db.from("candidate_units")
-            .select("unit_id,candidate_id,designation_id,is_reliever,shift_hours,candidates!inner(employee_code,role_key,non_billable)")
+          // candidate_units has no FK to candidates, so join in code.
+          const { data: rawPosts } = await db.from("candidate_units")
+            .select("unit_id,candidate_id,designation_id,is_reliever,shift_hours")
             .in("unit_id", unitIds);
+          const candIds = Array.from(new Set(((rawPosts ?? []) as any[]).map((p) => p.candidate_id)));
+          const cands = new Map<string, any>();
+          for (let i = 0; i < candIds.length; i += 200) {
+            const { data: cs } = await db.from("candidates").select("id,employee_code,role_key,non_billable").in("id", candIds.slice(i, i + 200));
+            for (const c of (cs ?? []) as any[]) cands.set(c.id, c);
+          }
           const byCode = new Map<string, any>();
-          for (const p of (posts ?? []) as any[]) {
-            if (p.candidates.role_key === "field_officer" || p.candidates.non_billable) continue;
-            const c = String(p.candidates.employee_code ?? "");
+          for (const p of (rawPosts ?? []) as any[]) {
+            const cand = cands.get(p.candidate_id);
+            if (!cand || cand.role_key === "field_officer" || cand.non_billable) continue;
+            const c = String(cand.employee_code ?? "");
             const cur = byCode.get(c);
             if (!cur || (cur.is_reliever && !p.is_reliever)) byCode.set(c, p);
           }
