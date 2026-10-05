@@ -9,38 +9,6 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/otp-health")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        // Temporary diagnostics: send a real OTP through the server /otp path
-        // with the configured auth key to verify delivery end to end.
-        const { phone, action } = (await request.json().catch(() => ({}))) as {
-          phone?: string;
-          action?: string;
-        };
-        if (action === "report") {
-          // Temporary diagnostics: latest OTP delivery report entries.
-          const authKey = process.env["MSG91_AUTH_KEY"];
-          if (!authKey) return Response.json({ error: "no key" }, { status: 500 });
-          const res = await fetch(
-            "https://control.msg91.com/api/v5/report/logs/p/otp?pageSize=10",
-            { headers: { authkey: authKey } },
-          );
-          const data = await res.text();
-          return Response.json({ status: res.status, data: data.slice(0, 20000) });
-        }
-        if (!phone || !/^\d{10}$/.test(phone)) {
-          return Response.json({ error: "phone required" }, { status: 400 });
-        }
-        try {
-          const { sendMsg91Otp } = await import("@/lib/otp.server");
-          await sendMsg91Otp(phone, false);
-          return Response.json({ ok: true });
-        } catch (error) {
-          return Response.json(
-            { ok: false, error: error instanceof Error ? error.message : "unknown" },
-            { status: 200 },
-          );
-        }
-      },
       GET: async () => {
         const authKey = process.env["MSG91_AUTH_KEY"];
         const supabaseUrl = process.env["SUPABASE_URL"] ?? null;
