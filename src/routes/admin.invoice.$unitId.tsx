@@ -47,7 +47,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { PERIOD_STATUS_QK } from "@/lib/period-status";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
-import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadContractInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
+import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -899,9 +899,9 @@ function PayrollUnitPage() {
   const billingMode = data?.billingMode ?? "man_days";
   const contractId = data?.contractId ?? null;
   const { data: invoiceSplit = DEFAULT_SPLIT } = useQuery({
-    queryKey: ["contract-invoice-split", contractId],
-    enabled: !!contractId,
-    queryFn: () => loadContractInvoiceSplit(contractId),
+    queryKey: ["org-invoice-split", unit?.customer_id ?? null],
+    enabled: !!unit?.customer_id,
+    queryFn: () => loadOrgInvoiceSplit(unit?.customer_id ?? null),
   });
   const splitActive = isSplit(invoiceSplit);
   useEffect(() => {
