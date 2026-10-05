@@ -4329,6 +4329,7 @@ function ResourcesSection({
   onCopy: (idx: number) => void;
   onDelete: (idx: number) => void;
 }) {
+  const [viewIdx, setViewIdx] = useState<number | null>(null);
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
@@ -4558,13 +4559,26 @@ function ResourcesSection({
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {r.id ? (
-                      <span
-                        className="flex h-8 w-8 items-center justify-center text-muted-foreground"
-                        title="Present rate is locked — use Copy as revised rate to change it"
-                        aria-label="Present rate locked"
-                      >
-                        <Lock className="h-3.5 w-3.5" />
-                      </span>
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setViewIdx(idx)}
+                          aria-label="View rate"
+                          title="View present rate (locked)"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <span
+                          className="flex h-8 w-8 items-center justify-center text-muted-foreground"
+                          title="Present rate is locked — use Copy as revised rate to change it"
+                          aria-label="Present rate locked"
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                        </span>
+                      </>
                     ) : (
                       <Button
                         type="button"
@@ -4587,16 +4601,18 @@ function ResourcesSection({
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => onDelete(idx)}
-                      aria-label="Remove"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                    {!r.id && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => onDelete(idx)}
+                        aria-label="Remove"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -4611,6 +4627,17 @@ function ResourcesSection({
             <Plus className="mr-1.5 h-4 w-4" /> Add another resource
           </Button>
         </div>
+      )}
+      {viewIdx !== null && resources[viewIdx] && (
+        <ResourceFormDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setViewIdx(null);
+          }}
+          initial={resources[viewIdx]}
+          onSubmit={() => setViewIdx(null)}
+          readOnly
+        />
       )}
     </Section>
   );
@@ -4642,6 +4669,8 @@ export function ResourceFormDialog({
    */
   inline = false,
   onChange,
+  /** readOnly = view-only mode: all fields disabled, no Save button. */
+  readOnly = false,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -4651,6 +4680,7 @@ export function ResourceFormDialog({
   subject?: WagesSubject | null;
   inline?: boolean;
   onChange?: (r: ContractResource) => void;
+  readOnly?: boolean;
 }) {
   const isWages = variant === "wages";
   const designations = useDesignations();
@@ -6298,14 +6328,18 @@ export function ResourceFormDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {isWages
-              ? initial?.id ? "Edit Wages" : "Add Wages"
-              : initial?.id ? "Edit Resource" : "Add Resource"}
+            {readOnly
+              ? "View Resource (present rate — locked)"
+              : isWages
+                ? initial?.id ? "Edit Wages" : "Add Wages"
+                : initial?.id ? "Edit Resource" : "Add Resource"}
           </DialogTitle>
           <DialogDescription>
-            {isWages
-              ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
-              : "Map a designation, service type and quantity, then configure wage components."}
+            {readOnly
+              ? "This is the locked present rate. To change it, use Copy as revised rate on the resource card."
+              : isWages
+                ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
+                : "Map a designation, service type and quantity, then configure wage components."}
           </DialogDescription>
         </DialogHeader>
 
@@ -6328,7 +6362,9 @@ export function ResourceFormDialog({
           </div>
         )}
 
-        {content}
+        <fieldset disabled={readOnly} className="contents">
+          {content}
+        </fieldset>
 
         <DialogFooter>
           <Button
@@ -6336,15 +6372,17 @@ export function ResourceFormDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </Button>
-          <Button
-            type="button"
-            data-force-enabled={resourceHasChanges ? "true" : undefined}
-            onClick={handleSubmit}
-          >
-            {initial?.id ? "Save Resource" : "Add Resource"}
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              data-force-enabled={resourceHasChanges ? "true" : undefined}
+              onClick={handleSubmit}
+            >
+              {initial?.id ? "Save Resource" : "Add Resource"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
