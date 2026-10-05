@@ -1,3 +1,4 @@
+import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -2707,7 +2708,7 @@ function ClientContractsPage() {
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link to="/admin/contracts/bulk-rate-revision">Bulk rate revision</Link>
+            <RouterLink to="/admin/contracts/bulk-rate-revision">Bulk rate revision</RouterLink>
           </Button>
         }
         kpis={
