@@ -6,6 +6,8 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTrackOnlinePresence } from "@/lib/online-presence";
+import { Activity } from "lucide-react";
 import {
   Banknote,
   Bell,
@@ -211,6 +213,14 @@ function AdminLayout() {
   // Live location beacon: streams an on-duty field officer's position from every
   // screen, so Radar viewers see them move in real time.
   useLiveLocationBeacon();
+  const [presenceUid, setPresenceUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setPresenceUid(null); return; }
+    void import("@/integrations/supabase/client").then(({ supabase }) =>
+      supabase.auth.getUser().then(({ data }) => setPresenceUid(data.user?.id ?? null)),
+    );
+  }, [user]);
+  useTrackOnlinePresence(presenceUid);
   const { can, canSub, isLoading: permsLoading, isSuperAdmin: isRbacSuperAdmin, roleKey } = useCurrentPermissions();
   // useAuth and RBAC hydrate in separate hook instances. Preserve the explicit
   // authenticated role during that hand-off so the route guard cannot issue a
@@ -440,6 +450,7 @@ function AdminLayout() {
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
+      { key: "live-staff", label: "Live Staff", module: "employees", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
       { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
       { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
