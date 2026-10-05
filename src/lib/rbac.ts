@@ -278,26 +278,31 @@ export function useCurrentPermissions(): {
 }
 
 // ---------------- Department / employee overrides ----------------
-export type OverrideScope = "department" | "employee";
+export type OverrideScope = "department" | "employee" | "designation";
 
-export async function fetchOverrides(scope: OverrideScope, scopeId: string): Promise<PermissionRow[]> {
-  const { data, error } = await supabase
+export async function fetchOverrides(scope: OverrideScope, scopeId: string, departmentId: string | null = null): Promise<PermissionRow[]> {
+  let q = supabase
     .from("access_overrides" as never)
     .select("id,module_key,sub_module_key,can_view,can_edit,can_delete,can_approve")
     .eq("scope_type", scope)
     .eq("scope_id", scopeId);
+  q = departmentId ? q.eq("department_id", departmentId) : q.is("department_id", null);
+  const { data, error } = await q;
   if (error) throw error;
   return ((data ?? []) as unknown as PermissionRow[]).map((r) => ({ ...r, role_key: "" }));
 }
 
-export async function saveOverrides(scope: OverrideScope, scopeId: string, rows: PermissionRow[]): Promise<void> {
-  const del = await supabase.from("access_overrides" as never).delete().eq("scope_type", scope).eq("scope_id", scopeId);
+export async function saveOverrides(scope: OverrideScope, scopeId: string, rows: PermissionRow[], departmentId: string | null = null): Promise<void> {
+  let dq = supabase.from("access_overrides" as never).delete().eq("scope_type", scope).eq("scope_id", scopeId);
+  dq = departmentId ? dq.eq("department_id", departmentId) : dq.is("department_id", null);
+  const del = await dq;
   if (del.error) throw del.error;
   if (!rows.length) return;
   const ins = await supabase.from("access_overrides" as never).insert(
     rows.map((r) => ({
       scope_type: scope,
       scope_id: scopeId,
+      department_id: departmentId,
       module_key: r.module_key,
       sub_module_key: r.sub_module_key ?? "",
       can_view: r.can_view,
