@@ -263,6 +263,15 @@ export function useCurrentPermissions(): {
     return valueFor(moduleGrant, action);
   };
 
+  // Action-level grant (e.g. attendance::reopen). An explicit row for the action
+  // is the authority; without one we fall back so existing access keeps working.
+  const canAction: ActionPermCheck = (moduleKey, actionKey, action, fallback) => {
+    if (isSuperAdmin) return true;
+    const r = map.get(`${moduleKey}::${actionKey}`);
+    if (r) return valueFor(r, action);
+    return fallback ?? can(moduleKey, action);
+  };
+
   return {
     // Cached values prevent blank screens, but routing must wait for the live
     // role and permission reads so an old device cache cannot select a stale dashboard.
@@ -274,6 +283,7 @@ export function useCurrentPermissions(): {
     roleKey,
     can,
     canSub,
+    canAction,
   };
 }
 
