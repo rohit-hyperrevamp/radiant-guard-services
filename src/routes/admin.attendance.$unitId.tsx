@@ -3913,6 +3913,41 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
   if (!contractInfoLoading && contractInfo && !contractInfo.contractId && (unit as { is_billable?: boolean | null } | null)?.is_billable !== false) {
     return (
       <div className="space-y-3 px-0 py-2 sm:space-y-4 sm:px-6 sm:py-6">
+            {verifyReport && (
+              <button type="button" onClick={() => setVerifyOpen(true)} className={`w-full rounded-md border px-3 py-2 text-left text-xs font-medium ${verifyReport.issues.length ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/5 text-foreground"}`}>
+                {verifyReport.issues.length ? `⚠ ${verifyReport.issues.length} possible error${verifyReport.issues.length === 1 ? "" : "s"} — tap to review before submitting` : "Please verify the attendance against the sheet before submitting."}
+              </button>
+            )}
+            <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{verifyReport?.issues.length ? "⚠ Please verify — possible errors found" : "Please verify the attendance"}</DialogTitle>
+                  <DialogDescription>
+                    {verifyReport?.issues.length
+                      ? `Some parts of the uploaded ${verifyReport.source} may not match what was saved. Re-check these against the original, correct any cells, then submit.`
+                      : `The uploaded ${verifyReport?.source ?? "sheet"} was read without any problems. Still, please compare the muster with the original once to confirm accuracy before submitting.`}
+                  </DialogDescription>
+                </DialogHeader>
+                {!!verifyReport?.issues.length && (
+                  <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
+                    {verifyReport.issues.map((it, i) => (
+                      <li key={i} className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+                        <div className="text-sm font-semibold text-destructive">⚠ {it.title}</div>
+                        <div className="text-xs text-muted-foreground">{it.detail}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex justify-end gap-2 pt-2">
+                  {!!verifyReport?.issues.length && (
+                    <Button variant="outline" onClick={() => { setVerifyReport({ ...verifyReport, issues: [] }); setVerifyOpen(false); toast.success("Marked as verified"); }}>
+                      I've re-checked
+                    </Button>
+                  )}
+                  <Button onClick={() => setVerifyOpen(false)}>Review & edit</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
         <div className="mobile-glass-surface rounded-xl border border-border/60 bg-card/80 p-6 text-center shadow-sm sm:rounded-2xl sm:p-10">
           <p className="font-display text-base font-bold text-foreground sm:text-lg">No active contract</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
@@ -4272,41 +4307,6 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                 </p>
               </div>
             )}
-            {verifyReport && (
-              <button type="button" onClick={() => setVerifyOpen(true)} className={`w-full rounded-md border px-3 py-2 text-left text-xs font-medium ${verifyReport.issues.length ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/5 text-foreground"}`}>
-                {verifyReport.issues.length ? `⚠ ${verifyReport.issues.length} possible error${verifyReport.issues.length === 1 ? "" : "s"} — tap to review before submitting` : "Please verify the attendance against the sheet before submitting."}
-              </button>
-            )}
-            <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{verifyReport?.issues.length ? "⚠ Please verify — possible errors found" : "Please verify the attendance"}</DialogTitle>
-                  <DialogDescription>
-                    {verifyReport?.issues.length
-                      ? `Some parts of the uploaded ${verifyReport.source} may not match what was saved. Re-check these against the original, correct any cells, then submit.`
-                      : `The uploaded ${verifyReport?.source ?? "sheet"} was read without any problems. Still, please compare the muster with the original once to confirm accuracy before submitting.`}
-                  </DialogDescription>
-                </DialogHeader>
-                {!!verifyReport?.issues.length && (
-                  <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
-                    {verifyReport.issues.map((it, i) => (
-                      <li key={i} className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
-                        <div className="text-sm font-semibold text-destructive">⚠ {it.title}</div>
-                        <div className="text-xs text-muted-foreground">{it.detail}</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex justify-end gap-2 pt-2">
-                  {!!verifyReport?.issues.length && (
-                    <Button variant="outline" onClick={() => { setVerifyReport({ ...verifyReport, issues: [] }); setVerifyOpen(false); toast.success("Marked as verified"); }}>
-                      I've re-checked
-                    </Button>
-                  )}
-                  <Button onClick={() => setVerifyOpen(false)}>Review & edit</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
             {ocrSummary && (
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                 {ocrSummary}
