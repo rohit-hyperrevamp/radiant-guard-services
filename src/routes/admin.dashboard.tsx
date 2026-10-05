@@ -70,6 +70,7 @@ import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { cn } from "@/lib/utils";
+import { useOnlineUserIds } from "@/lib/online-presence";
 
 type ContractExpiringRow = {
   id: string;
@@ -234,7 +235,7 @@ function DashboardPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const { can, isLoading: permsLoading, roleKey } = useCurrentPermissions();
+  const { can, canWidget, isLoading: permsLoading, roleKey } = useCurrentPermissions();
   // People-function dashboards close with their own reporting structure, the
   // same way operations closes with its org tree.
   const departmentTree =
@@ -1204,8 +1205,10 @@ function DashboardPage() {
           ),
         });
     }
-    return t;
-  }, [data, can, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding]);
+    const widgetOf = (k: string) =>
+      ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo" : k.replace(/-/g, "_");
+    return t.filter((x) => canWidget(widgetOf(x.key)));
+  }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding]);
 
   if (permsLoading) {
     return (
@@ -1370,7 +1373,7 @@ function DashboardPage() {
       <div className="mb-4 empty:hidden"><MyUpcomingInterviewsCard /></div>
       <DashboardShell
         rightExtras={
-          opsFocus ? (
+          !canWidget("people_insights") ? undefined : opsFocus ? (
             <PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} />
           ) : can("employees") ? (
             <PeopleInsightsSection compact hideLive={roleKey === "hr"} />
@@ -1379,18 +1382,33 @@ function DashboardPage() {
         fullWidthBelow={
           opsFocus ? (
             <>
-              <OperationsRadarSummary />
-              <AdminVisitProgressCard />
-              <OperationsClientLocations data={operationsOverview} />
-              <OperationsDeployments />
-              <OperationsOrgTree />
+              {canWidget("live_people") && <LivePeopleCard liveOfficers={liveOfficerCount} />}
+              {canWidget("radar") && (
+                <>
+                  <OperationsRadarSummary />
+                  <AdminVisitProgressCard />
+                  <OperationsClientLocations data={operationsOverview} />
+                  <OperationsDeployments />
+                </>
+              )}
+              {canWidget("org_tree") && <OperationsOrgTree />}
             </>
           ) : (
             <>
+              {canWidget("live_people") && (can("employees") || can("field_sense")) && (
+                <LivePeopleCard liveOfficers={liveOfficerCount} />
+              )}
+              {!isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
+                <ReadinessCard
+                  sheet={can("attendance") ? data.sheetCounts : null}
+                  run={can("payroll") ? data.runCounts : null}
+                  invoice={can("invoice") ? data.invoiceCounts : null}
+                />
+              )}
               {!isLoading && data && (
                 <>
-                  {can("employees") && <EmployeeInsightsSection showRecruitment={can("recruitment") || roleKey === ROLE_KEYS.LEADERSHIP} />}
-                  {can("contracts") && <ClientContractPortfolioCard />}
+                  {can("employees") && canWidget("employee_insights") && <EmployeeInsightsSection showRecruitment={can("recruitment") || roleKey === ROLE_KEYS.LEADERSHIP} />}
+                  {can("contracts") && canWidget("contract_portfolio") && <ClientContractPortfolioCard />}
                   {(can("payroll") || can("invoice")) && pnlQuery.isLoading && (
                     <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
                       Loading payroll and invoice totals…
@@ -1410,10 +1428,10 @@ function DashboardPage() {
                       </Button>
                     </div>
                   )}
-                  {pnlQuery.data && can("payroll") && <PayrollCoverageCard rows={financeRows} />}
-                  {pnlQuery.data && can("invoice") && <InvoiceCoverageCard rows={financeRows} />}
-                  {pnlQuery.data && can("invoice") && <ProfitabilityCard rows={financeRows} />}
-                  {departmentTree}
+                  {pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && <PayrollCoverageCard rows={financeRows} />}
+                  {pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && <InvoiceCoverageCard rows={financeRows} />}
+                  {pnlQuery.data && can("invoice") && canWidget("profitability") && <ProfitabilityCard rows={financeRows} />}
+                  {canWidget("org_tree") && departmentTree}
                 </>
               )}
             </>
@@ -1488,6 +1506,63 @@ function DashboardPage() {
         {/* P&L renders full-width below the shell via fullWidthBelow */}
       </DashboardShell>
     </div>
+  );
+}
+
+/* -------------------- Readiness & live people -------------------- */
+
+function ReadinessCard({ sheet, run, invoice }: { sheet: StatusCounts | null; run: StatusCounts | null; invoice: StatusCounts | null }) {
+  const rows: { label: string; doneLabel: string; done: number; open: number; to: string }[] = [];
+  if (sheet) rows.push({ label: "Attendance", doneLabel: "Approved", done: sheet.approved, open: sheet.open, to: "/admin/attendance" });
+  if (run) rows.push({ label: "Payroll", doneLabel: "Ready", done: run.pending + run.approved + run.processed, open: run.open, to: "/admin/payroll" });
+  if (invoice) rows.push({ label: "Invoices", doneLabel: "Ready", done: invoice.pending + invoice.processed, open: invoice.open, to: "/admin/invoice" });
+  return (
+    <section aria-label="Readiness" className="mb-4 rounded-2xl border border-border bg-card p-4">
+      <h2 className="mb-3 text-sm font-semibold text-foreground">Ready vs open — this period</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {rows.map((r) => (
+          <Link key={r.label} to={r.to} className="rounded-xl border border-border p-3 hover:bg-muted/50">
+            <div className="text-xs text-muted-foreground">{r.label}</div>
+            <div className="mt-1 flex items-baseline gap-4">
+              <div><span className="text-2xl font-semibold text-emerald-600">{r.done}</span> <span className="text-xs text-muted-foreground">{r.doneLabel}</span></div>
+              <div><span className="text-2xl font-semibold text-destructive">{r.open}</span> <span className="text-xs text-muted-foreground">Open</span></div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LivePeopleCard({ liveOfficers }: { liveOfficers: number }) {
+  const online = useOnlineUserIds();
+  const staffQ = useQuery({
+    queryKey: ["dashboard-live-staff-ids"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
+      if (error) throw error;
+      return ((data ?? []) as Array<{ user_id: string | null }>).map((r) => r.user_id).filter(Boolean) as string[];
+    },
+  });
+  const staffIds = staffQ.data ?? [];
+  const staffLive = staffIds.filter((id) => online.has(id)).length;
+  return (
+    <section aria-label="Live now" className="mb-4 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+      <Link to="/admin/field-sense" className="rounded-xl border border-border p-3 hover:bg-muted/50">
+        <div className="text-xs text-muted-foreground">Field officers live</div>
+        <div className="mt-1 text-2xl font-semibold text-foreground">{liveOfficers}</div>
+        <div className="text-xs text-muted-foreground">Checked in, not checked out</div>
+      </Link>
+      <Link to="/admin/live-staff" className="rounded-xl border border-border p-3 hover:bg-muted/50">
+        <div className="text-xs text-muted-foreground">Radiant staff live</div>
+        <div className="mt-1 text-2xl font-semibold text-foreground">
+          {staffQ.error ? "—" : staffQ.isLoading ? "…" : staffLive}
+          <span className="ml-1 text-sm font-normal text-muted-foreground">/ {staffIds.length || "—"}</span>
+        </div>
+        <div className="text-xs text-muted-foreground">Using the system right now</div>
+      </Link>
+    </section>
   );
 }
 
