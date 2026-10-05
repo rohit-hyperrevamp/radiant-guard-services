@@ -118,17 +118,17 @@ type GroupItem = {
 const controlCenterChildren: LeafItem[] = [];
 
 const salesChildren: LeafItem[] = [
-  { to: "/admin/sales/dashboard", label: "Sales Dashboard", icon: LayoutDashboard },
-  { to: "/admin/sales/prospects", label: "Prospects", icon: Users },
-  { to: "/admin/sales/quotes", label: "Quotes", icon: FileText },
+  { to: "/admin/sales/dashboard", label: "Sales Dashboard", icon: LayoutDashboard, sub: "dashboard" },
+  { to: "/admin/sales/prospects", label: "Prospects", icon: Users, sub: "prospects" },
+  { to: "/admin/sales/quotes", label: "Quotes", icon: FileText, sub: "quotes" },
 ];
 
 const recruitmentChildren: LeafItem[] = [
-  { to: "/admin/hr/recruitment/dashboard", label: "Recruitment Dashboard", icon: LayoutDashboard },
-  { to: "/admin/hr/recruitment/candidates", label: "Candidates", icon: Users },
-  { to: "/admin/hr/recruitment/openings", label: "Openings", icon: FileText },
-  { to: "/admin/hr/recruitment/interviews", label: "My Interviews", icon: Clock },
-  { to: "/admin/hr/recruitment/onboarding", label: "Onboarding Requests", icon: UserPlus },
+  { to: "/admin/hr/recruitment/dashboard", label: "Recruitment Dashboard", icon: LayoutDashboard, sub: "dashboard" },
+  { to: "/admin/hr/recruitment/candidates", label: "Candidates", icon: Users, sub: "candidates" },
+  { to: "/admin/hr/recruitment/openings", label: "Openings", icon: FileText, sub: "openings" },
+  { to: "/admin/hr/recruitment/interviews", label: "My Interviews", icon: Clock, sub: "interviews" },
+  { to: "/admin/hr/recruitment/onboarding", label: "Onboarding Requests", icon: UserPlus, sub: "onboarding" },
 ];
 
 
