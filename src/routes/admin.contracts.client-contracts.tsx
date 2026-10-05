@@ -2418,12 +2418,11 @@ function ClientContractsPage() {
     updateStageMut,
     resubmitMut,
   } = useContracts();
-  const { can, roleKey, isSuperAdmin } = useCurrentPermissions();
-  // Super Admin always retains full control over every existing contract.
+  const { can, canSub, roleKey, isSuperAdmin } = useCurrentPermissions();
   const canApprove = isSuperAdmin || can("contracts", "approve");
-  const canEdit = isSuperAdmin || can("contracts", "edit");
-  const canCopy = canEdit || roleKey === "finance";
-  const canDelete = isSuperAdmin || can("contracts", "delete");
+  const canEdit = isSuperAdmin || canSub("contracts", "client_contracts", "edit");
+  const canCopy = canEdit || canSub("contracts", "create", "edit");
+  const canDelete = isSuperAdmin || canSub("contracts", "client_contracts", "delete");
   const isHrReadOnly = !isSuperAdmin && (roleKey === "hr" || roleKey === "hr_executive");
   const units = useMemo(
     () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
