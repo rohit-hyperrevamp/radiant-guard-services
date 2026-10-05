@@ -202,6 +202,15 @@ function BulkRateRevisionPage() {
     return Array.from(m.values()).sort((a, b) => a.unitName.localeCompare(b.unitName));
   }, [all]);
   const states = useMemo(() => Array.from(new Set(clients.map((c) => c.state).filter(Boolean))).sort(), [clients]);
+  const selClients = clients.filter((c) => selected.has(c.contractId));
+
+  // Designations present in EVERY selected client.
+  const common = useMemo(() => {
+    if (!selClients.length) return [] as string[];
+    let s = new Set(selClients[0].designations);
+    for (const c of selClients.slice(1)) s = new Set(c.designations.filter((d) => s.has(d)));
+    return Array.from(s).sort();
+  }, [selClients]);
 
   // Smart filter: once clients are selected, only show clients that share a
   // common designation whose rate structure matches the first selected client.
@@ -231,15 +240,6 @@ function BulkRateRevisionPage() {
     .filter((c) => !q || `${c.unitName} ${c.unitCode} ${c.contractCode}`.toLowerCase().includes(q.toLowerCase()));
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
   const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
-  const selClients = clients.filter((c) => selected.has(c.contractId));
-
-  // Designations present in EVERY selected client.
-  const common = useMemo(() => {
-    if (!selClients.length) return [] as string[];
-    let s = new Set(selClients[0].designations);
-    for (const c of selClients.slice(1)) s = new Set(c.designations.filter((d) => s.has(d)));
-    return Array.from(s).sort();
-  }, [selClients]);
 
   useEffect(() => {
     if (designation && !common.includes(designation)) setDesignation("");
