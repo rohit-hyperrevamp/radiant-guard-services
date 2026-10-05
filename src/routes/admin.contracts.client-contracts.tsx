@@ -4329,6 +4329,8 @@ function ResourcesSection({
   onDelete: (idx: number) => void;
 }) {
   const [viewIdx, setViewIdx] = useState<number | null>(null);
+  const { canSub: canSubPerm, isSuperAdmin: isSuperPerm } = useCurrentPermissions();
+  const canManageResources = isSuperPerm || canSubPerm("contracts", "resources", "edit");
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
@@ -4612,6 +4614,7 @@ function ResourcesSection({
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    {canManageResources && (
                     <Button
                       type="button"
                       size="sm"
@@ -4622,7 +4625,8 @@ function ResourcesSection({
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
-                    {!r.id && (
+                    )}
+                    {!r.id && canManageResources && (
                       <Button
                         type="button"
                         size="sm"
@@ -4639,6 +4643,7 @@ function ResourcesSection({
               </div>
             );
           })}
+{canManageResources && (
           <Button
             type="button"
             variant="outline"
@@ -4647,6 +4652,7 @@ function ResourcesSection({
           >
             <Plus className="mr-1.5 h-4 w-4" /> Add another resource
           </Button>
+          )}
         </div>
       )}
       {viewIdx !== null && resources[viewIdx] && (
