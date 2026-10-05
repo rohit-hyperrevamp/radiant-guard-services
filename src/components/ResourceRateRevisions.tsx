@@ -84,7 +84,8 @@ export function ResourceRateRevisions({
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareExpiredId, setCompareExpiredId] = useState<string | null>(null);
   const [approveOpen, setApproveOpen] = useState(false);
-  const [date, setDate] = useState("");
+  const [applicableFrom, setApplicableFrom] = useState("");
+  const [applicableTill, setApplicableTill] = useState(contractEndDate);
 
   const load = useCallback(async () => {
     if (!resource.id) return;
@@ -194,10 +195,11 @@ export function ResourceRateRevisions({
   }
 
   async function approve() {
-    if (!draft || !date) return toast.error("Choose the applicable date");
+    if (!draft || !applicableFrom || !applicableTill) return toast.error("Choose both applicable dates");
+    if (applicableTill < applicableFrom) return toast.error("Applicable till cannot be before applicable from");
     const confirmed = await confirmAction({
-      title: "Approve new rate?",
-      description: `The revised rate will apply from ${fmtDate(date)}. The present rate will end on the previous day, and earlier payroll and invoices will remain unchanged.`,
+      title: "Approve revised rate?",
+      description: `The revised rate will apply from ${fmtDate(applicableFrom)} till ${fmtDate(applicableTill)}. The present rate will end on the previous day, and earlier payroll and invoices will remain unchanged.`,
       confirmText: "Approve revised rate",
       cancelText: "Cancel",
       tone: "success",
@@ -206,15 +208,16 @@ export function ResourceRateRevisions({
     setBusy(true);
     const { error } = await supabase.rpc("approve_contract_rate_revision" as never, {
       _id: draft.id,
-      _effective_from: date,
+      _effective_from: applicableFrom,
+      _effective_to: applicableTill,
     } as never);
     setBusy(false);
     if (error) return toast.error(error.message);
-    void logActivity({ module: "Contract Rate Card", action: "approve", entityType: "contract_rate_revisions", entityId: draft.id, entityLabel: label, details: { effectiveFrom: date } });
+    void logActivity({ module: "Contract Rate Card", action: "approve", entityType: "contract_rate_revisions", entityId: draft.id, entityLabel: label, details: { effectiveFrom: applicableFrom, effectiveTo: applicableTill } });
     toast.success(
-      date <= todayIso()
-        ? `Revised rate approved and applicable from ${fmtDate(date)}`
-        : `Revised rate approved — applies automatically from ${fmtDate(date)}`,
+      applicableFrom <= todayIso()
+        ? `Revised rate approved from ${fmtDate(applicableFrom)} till ${fmtDate(applicableTill)}`
+        : `Revised rate approved — applies automatically from ${fmtDate(applicableFrom)} till ${fmtDate(applicableTill)}`,
     );
     setApproveOpen(false);
     setCompareOpen(false);
@@ -250,7 +253,7 @@ export function ResourceRateRevisions({
         </span>
         {scheduled && (
           <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
-            Revised rate approved · applies from {fmtDate(scheduled.effective_from)} ({fmt(sum(scheduled.components) + sum(scheduled.employer_contributions))})
+            Revised rate approved · {fmtDate(scheduled.effective_from)} – {fmtDate(scheduled.effective_to)} ({fmt(sum(scheduled.components) + sum(scheduled.employer_contributions))})
           </span>
         )}
         {!draft && canEdit && (
@@ -294,7 +297,7 @@ export function ResourceRateRevisions({
         <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-full bg-yellow-400/30 px-2 py-0.5 text-[11px] font-semibold text-yellow-900 dark:text-yellow-300">Revised rate</span>
+              <span className="rounded-full bg-rate-revised px-2 py-0.5 text-[11px] font-semibold text-rate-revised-foreground">Revised rate</span>
               <span className="text-muted-foreground">Not used until approved</span>
             </div>
             <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => { setCompareExpiredId(null); setCompareOpen(true); }}>
@@ -303,12 +306,12 @@ export function ResourceRateRevisions({
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
             <span className="font-semibold">
-              Present <span className="text-green-700 dark:text-green-400">{fmt(billing(resource))}</span>
-              {" → "}Revised <span className="text-yellow-700 dark:text-yellow-500">{fmt(billing(draftResource))}</span>
+               Present <span className="text-rate-present-foreground">{fmt(billing(resource))}</span>
+               {" → "}Revised <span className="text-rate-revised-foreground">{fmt(billing(draftResource))}</span>
             </span>
             <span className="text-muted-foreground">
               Present rate: {fmtDate(active?.effective_from ?? contractStartDate ?? null)} – {fmtDate(active?.effective_to ?? contractEndDate ?? null)}
-              {" · "}Revised rate from: {date ? fmtDate(date) : "set on approval"}
+               {" · "}Revised rate: {applicableFrom && applicableTill ? `${fmtDate(applicableFrom)} – ${fmtDate(applicableTill)}` : "dates set on approval"}
             </span>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -317,7 +320,7 @@ export function ResourceRateRevisions({
                 <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setEditOpen(true)}>
                   <Edit2 className="mr-1 h-3 w-3" /> Edit new rate
                 </Button>
-                <Button type="button" size="sm" className="h-7 text-[11px]" onClick={() => { setDate(""); setApproveOpen(true); }}>
+                 <Button type="button" size="sm" className="h-7 text-[11px]" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
                   <CheckCircle2 className="mr-1 h-3 w-3" /> Approve
                 </Button>
                 <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" disabled={busy} onClick={discard}>
@@ -347,7 +350,7 @@ export function ResourceRateRevisions({
             <thead>
               <tr className="border-b text-left text-xs">
                 <th className="py-1.5 font-semibold text-muted-foreground">Item</th>
-                <th className={`px-2 py-1.5 text-right ${comparedExpired ? "bg-muted/50" : "bg-green-500/20 text-green-900 dark:text-green-300"}`}>
+                <th className={`px-2 py-2 text-right ${comparedExpired ? "bg-muted/50" : "bg-rate-present text-rate-present-foreground"}`}>
                   <div className="font-bold">{comparedExpired ? "Expired Rate" : "Present Rate"}</div>
                   <div className="text-[10px] font-normal opacity-80">
                     {comparedExpired
@@ -355,14 +358,14 @@ export function ResourceRateRevisions({
                       : `${fmtDate(active?.effective_from ?? contractStartDate)} – ${fmtDate(active?.effective_to ?? contractEndDate)}`}
                   </div>
                 </th>
-                <th className={`px-2 py-1.5 text-right ${comparedExpired ? "bg-green-500/20 text-green-900 dark:text-green-300" : "bg-yellow-400/30 text-yellow-900 dark:text-yellow-300"}`}>
+                <th className={`px-2 py-2 text-right ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>
                   <div className="font-bold">{comparedExpired ? "Present Rate" : "Revised Rate"}</div>
                   <div className="text-[10px] font-normal opacity-80">
                     {comparedExpired
                       ? `${fmtDate(active?.effective_from ?? contractStartDate)} – ${fmtDate(active?.effective_to ?? contractEndDate)}`
-                      : date
-                        ? `${fmtDate(date)} onwards`
-                        : "choose the date on approval"}
+                      : applicableFrom && applicableTill
+                        ? `${fmtDate(applicableFrom)} – ${fmtDate(applicableTill)}`
+                        : `${fmtDate(contractStartDate)} – ${fmtDate(contractEndDate)}`}
                   </div>
                 </th>
                 <th className="py-1.5 text-right font-semibold text-muted-foreground">Change</th>
@@ -375,8 +378,8 @@ export function ResourceRateRevisions({
                   {g.lines.map((l) => (
                     <tr key={g.group + l.name} className="border-b border-border/50">
                       <td className="py-1">{l.name}</td>
-                      <td className="py-1 text-right tabular-nums">{fmt(l.cur)}</td>
-                      <td className="py-1 text-right tabular-nums">{fmt(l.nxt)}</td>
+                       <td className={`px-2 py-1.5 text-right tabular-nums ${comparedExpired ? "bg-muted/30" : "bg-rate-present/70 text-rate-present-foreground"}`}>{fmt(l.cur)}</td>
+                       <td className={`px-2 py-1.5 text-right tabular-nums ${comparedExpired ? "bg-rate-present/70 text-rate-present-foreground" : "bg-rate-revised/70 text-rate-revised-foreground"}`}>{fmt(l.nxt)}</td>
                       <td className={`py-1 text-right tabular-nums ${l.nxt - l.cur > 0 ? "text-emerald-600" : l.nxt - l.cur < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {l.nxt - l.cur === 0 ? "—" : fmt(l.nxt - l.cur)}
                       </td>
@@ -387,8 +390,8 @@ export function ResourceRateRevisions({
               {comparisonTarget && (
                 <tr className="font-semibold">
                   <td className="pt-3">Monthly billing</td>
-                  <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonBase))}</td>
-                  <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonTarget))}</td>
+                   <td className={`px-2 py-3 text-right tabular-nums ${comparedExpired ? "bg-muted/30" : "bg-rate-present text-rate-present-foreground"}`}>{fmt(billing(comparisonBase))}</td>
+                   <td className={`px-2 py-3 text-right tabular-nums ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>{fmt(billing(comparisonTarget))}</td>
                   <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonTarget) - billing(comparisonBase))}</td>
                 </tr>
               )}
@@ -396,7 +399,7 @@ export function ResourceRateRevisions({
           </table>
           {canEdit && !comparedExpired && (
             <DialogFooter>
-              <Button type="button" onClick={() => { setDate(""); setApproveOpen(true); }}>
+               <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve revised rate
               </Button>
             </DialogFooter>
@@ -409,16 +412,22 @@ export function ResourceRateRevisions({
           <DialogHeader>
             <DialogTitle>Approve revised rate</DialogTitle>
             <DialogDescription>
-              From this date the revised rate applies to payroll and invoices. Earlier days stay on the present rate, which becomes expired the day before.
+              The revised rate applies to payroll and invoices only within this date range. Earlier days stay on the present rate, which becomes expired the day before.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Applicable from</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Applicable from</Label>
+              <Input type="date" value={applicableFrom} min={contractStartDate} max={applicableTill || contractEndDate} onChange={(e) => setApplicableFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Applicable till</Label>
+              <Input type="date" value={applicableTill} min={applicableFrom || contractStartDate} max={contractEndDate} onChange={(e) => setApplicableTill(e.target.value)} />
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setApproveOpen(false)}>Cancel</Button>
-            <Button type="button" disabled={busy || !date} onClick={approve}>
+             <Button type="button" disabled={busy || !applicableFrom || !applicableTill || applicableTill < applicableFrom} onClick={approve}>
               {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
               Approve
             </Button>

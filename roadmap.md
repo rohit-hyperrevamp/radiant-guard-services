@@ -29,6 +29,10 @@
 
 ## Current request
 
+- [x] Require Applicable from and Applicable till when approving a revised contract rate.
+- [x] Show the complete validity range in present, revised, scheduled, and expired rate views.
+- [x] Color the complete Present Rate table column green and Revised Rate column yellow.
+
 - [x] Restore Recruitment dashboard summary tiles to the established full-size dashboard layout.
 
 - [x] Consolidate abbreviated and grade-suffixed designations end to end, including CCT/CCTV A-B, Fireman A, pump-operator A, ARG, CAHOT/TSM, and EXC.
