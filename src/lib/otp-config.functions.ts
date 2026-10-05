@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { WIDGET_ID } from "@/lib/otp-widget";
+
+/** Built-in default MSG91 OTP Widget ID (the originally working widget). */
+export const DEFAULT_WIDGET_ID = "356b71685561353436363635";
 
 /**
  * Public widget configuration for the login page. The widget ID is not a
@@ -9,6 +11,6 @@ import { WIDGET_ID } from "@/lib/otp-widget";
  */
 export const getMsg91WidgetConfig = createServerFn({ method: "GET" }).handler(
   async () => ({
-    widgetId: process.env["MSG91_WIDGET_ID"] || WIDGET_ID,
+    widgetId: process.env["MSG91_WIDGET_ID"] || DEFAULT_WIDGET_ID,
   }),
 );
