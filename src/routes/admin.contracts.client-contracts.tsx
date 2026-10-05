@@ -5512,6 +5512,21 @@ export function ResourceFormDialog({
     ]);
   };
 
+  const toggleAddOnRoundOff = (kind: "reliever" | "mgmt") => {
+    const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
+    preserveDialogScroll(() => {
+      setEmployerContributions((prev) =>
+        prev.map((b) => {
+          if (!match(b)) return b;
+          const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
+          const computed = b.costComponentId !== customId && (b.calcType !== "fixed" || hasConfiguredFormula(b));
+          const next = toggleLineRoundOff(b, computed);
+          return computed ? { ...next, amount: liveAddOnAmount(kind, next) } : next;
+        }),
+      );
+    });
+  };
+
 
   const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
     const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
@@ -6403,7 +6418,7 @@ export function ResourceFormDialog({
                           type="number"
                           min="0"
                           step="0.01"
-                          value={Number(item.amount) || ""}
+                          value={Number(item.roundOff ? item.unroundedAmount ?? item.amount : item.amount) || ""}
                           placeholder="Enter custom amount"
                           onChange={(event) =>
                             updateEmployerAmount(
@@ -6419,8 +6434,11 @@ export function ResourceFormDialog({
                         {item ? describeFormulaItem(item) : "None selected"}
                       </span>
                       {item && (
-                        <span className="text-sm font-semibold text-foreground">
-                          {liveAddOnAmount(cfg.kind, item).toFixed(2)}
+                        <span className="flex items-center gap-2">
+                          <RoundOffToggle on={!!item.roundOff} label={cfg.label} onToggle={() => toggleAddOnRoundOff(cfg.kind)} />
+                          <span className="text-sm font-semibold text-foreground">
+                            {liveAddOnAmount(cfg.kind, item).toFixed(2)}
+                          </span>
                         </span>
                       )}
                     </div>
