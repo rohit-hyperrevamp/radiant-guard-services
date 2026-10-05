@@ -99,9 +99,9 @@ function LiveStaffPage() {
   const inCount = rows.filter(isIn).length;
   const tiles: Array<{ key: Filter; label: string; value: number; tone: string }> = [
     { key: "all", label: "Total staff", value: rows.length, tone: "text-foreground" },
-    { key: "online", label: "Live now", value: onlineCount, tone: "text-success" },
+    { key: "online", label: "Live now", value: onlineCount, tone: "text-emerald-600 dark:text-emerald-400" },
     { key: "offline", label: "Not logged in", value: rows.length - onlineCount, tone: "text-destructive" },
-    { key: "in", label: "Checked in today", value: inCount, tone: "text-success" },
+    { key: "in", label: "Checked in today", value: inCount, tone: "text-emerald-600 dark:text-emerald-400" },
     { key: "notin", label: "Not checked in", value: rows.length - inCount, tone: "text-destructive" },
   ];
 
@@ -174,13 +174,13 @@ function LiveStaffPage() {
                   <td className="p-2.5">{r.designation ?? "—"}</td>
                   <td className="p-2.5">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className={`h-2.5 w-2.5 rounded-full ${on ? "animate-pulse bg-success" : "bg-destructive"}`} />
+                      <span className={`h-2.5 w-2.5 rounded-full ${on ? "animate-pulse bg-emerald-500" : "bg-destructive"}`} />
                       {on ? "Live now" : <span className="text-muted-foreground">Last: {fmtWhen(r.last_sign_in_at)}</span>}
                     </span>
                   </td>
                   <td className="p-2.5">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className={`h-2.5 w-2.5 rounded-full ${r.check_in_at ? "bg-success" : "bg-destructive"}`} />
+                      <span className={`h-2.5 w-2.5 rounded-full ${r.check_in_at ? "bg-emerald-500" : "bg-destructive"}`} />
                       {r.check_in_at ? fmtTime(r.check_in_at) : "Not checked in"}
                     </span>
                   </td>
