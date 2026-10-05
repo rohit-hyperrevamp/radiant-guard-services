@@ -202,11 +202,6 @@ function BulkRateRevisionPage() {
     return Array.from(m.values()).sort((a, b) => a.unitName.localeCompare(b.unitName));
   }, [all]);
   const states = useMemo(() => Array.from(new Set(clients.map((c) => c.state).filter(Boolean))).sort(), [clients]);
-  const filtered = clients
-    .filter((c) => !stateName || c.state === stateName)
-    .filter((c) => !q || `${c.unitName} ${c.unitCode} ${c.contractCode}`.toLowerCase().includes(q.toLowerCase()));
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
-  const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
   const selClients = clients.filter((c) => selected.has(c.contractId));
 
   // Designations present in EVERY selected client.
@@ -216,6 +211,35 @@ function BulkRateRevisionPage() {
     for (const c of selClients.slice(1)) s = new Set(c.designations.filter((d) => s.has(d)));
     return Array.from(s).sort();
   }, [selClients]);
+
+  // Smart filter: once clients are selected, only show clients that share a
+  // common designation whose rate structure matches the first selected client.
+  const compatibleIds = useMemo(() => {
+    if (!selClients.length) return null;
+    const set = new Set<string>();
+    for (const c of clients) {
+      if (selected.has(c.contractId)) {
+        set.add(c.contractId);
+        continue;
+      }
+      for (const d of common) {
+        const tl = all.find((l) => l.contractId === selClients[0].contractId && l.designation === d);
+        const cl = all.find((l) => l.contractId === c.contractId && l.designation === d);
+        if (tl && cl && signature(tl.resource) === signature(cl.resource)) {
+          set.add(c.contractId);
+          break;
+        }
+      }
+    }
+    return set;
+  }, [selClients, clients, common, all, selected]);
+
+  const filtered = clients
+    .filter((c) => !compatibleIds || compatibleIds.has(c.contractId))
+    .filter((c) => !stateName || c.state === stateName)
+    .filter((c) => !q || `${c.unitName} ${c.unitCode} ${c.contractCode}`.toLowerCase().includes(q.toLowerCase()));
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+  const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
 
   useEffect(() => {
     if (designation && !common.includes(designation)) setDesignation("");
@@ -458,6 +482,12 @@ function BulkRateRevisionPage() {
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {compatibleIds && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          Showing only clients that share a common designation with the same rate structure as your selection. Clear the selection to see all clients again.
         </div>
       )}
 
