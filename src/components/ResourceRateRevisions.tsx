@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Copy, Edit2, GitCompare, History, Loader2, X } from "lucide-react";
+import { CheckCircle2, Copy, Download, Edit2, GitCompare, History, Loader2, X } from "lucide-react";
+import { openExport } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
