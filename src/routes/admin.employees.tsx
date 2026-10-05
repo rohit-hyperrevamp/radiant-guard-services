@@ -7824,7 +7824,7 @@ function CandidateWizard({
       { key: "uploads", label: "Documents", caption: "Files" },
       { key: "review", label: "Review", caption: "Submit" },
     ],
-    [mode, wizardIsFieldOfficer],
+    [mode, wizardIsFieldOfficer, wizardCanWages],
   );
   const [stepKey, setStepKey] = useState("aadhaar");
   const stepIndex = Math.max(
