@@ -813,8 +813,13 @@ function MusterRollPage() {
   }, [maxPDaysByDesignation]);
 
   const queryClient = useQueryClient();
-  const { can } = useCurrentPermissions();
-  const canApprove = can("attendance", "approve");
+  const { canAction } = useCurrentPermissions();
+  const canApprove = canAction("attendance", "approve", "approve");
+  const canMark = canAction("attendance", "mark", "edit");
+  const canUpload = canAction("attendance", "upload", "edit");
+  const canSubmit = canAction("attendance", "submit", "edit");
+  const canReopen = canAction("attendance", "reopen", "approve");
+  const canAmend = canAction("attendance", "amend", "approve");
 
   type SheetStatus = "draft" | "submitted" | "approved" | "rejected";
   type SheetRow = {
@@ -892,10 +897,9 @@ function MusterRollPage() {
   // the sheet is submitted (HR can fix in place instead of bouncing back).
   // An open amendment (v2+) is editable again even though the sheet is approved.
   const editable =
-    status === "draft" ||
-    status === "rejected" ||
+    (canMark && (status === "draft" || status === "rejected")) ||
     (status === "submitted" && canApprove) ||
-    amendmentOpen ||
+    (canMark && amendmentOpen) ||
     (amendmentSubmitted && canApprove);
 
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -3952,8 +3956,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             onClick={() => {
               setUploadOpen(true);
             }}
-            disabled={!editable}
-            title={editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
+            disabled={!editable || !canUpload}
+            title={!canUpload ? "You do not have permission to upload attendance" : editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
             className="h-10 min-w-0 rounded-xl px-3 text-sm shadow-sm"
           >
             <Upload className="mr-2 h-4 w-4 shrink-0" />
@@ -4328,7 +4332,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          {(status === "draft" || status === "rejected") && (
+          {(status === "draft" || status === "rejected") && canSubmit && (
             <Button
               size="sm"
               onClick={() => transitionSheet.mutate({ status: "submitted" })}
@@ -4361,7 +4365,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             <span className="text-xs text-muted-foreground">Awaiting approver action</span>
           )}
           {status === "approved" &&
-            canApprove &&
+            canReopen &&
             !payrollProcessed &&
             !amendmentActive &&
             !sentToPayroll && (
@@ -4380,7 +4384,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
               </>
             )}
           {status === "approved" &&
-            canApprove &&
+            canReopen &&
             !payrollProcessed &&
             !amendmentActive &&
             sentToPayroll && (
@@ -4400,12 +4404,12 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             )}
 
           {/* Payroll already paid this period — amend instead of reopen. */}
-          {status === "approved" && payrollProcessed && !amendmentActive && canApprove && (
+          {status === "approved" && payrollProcessed && !amendmentActive && canAmend && (
             <Button size="sm" variant="outline" onClick={() => setAmendOpen(true)}>
               <GitCompare className="mr-1.5 h-4 w-4" /> Amend attendance (v{currentVersion + 1})
             </Button>
           )}
-          {amendmentOpen && (
+          {amendmentOpen && canSubmit && (
             <Button
               size="sm"
               onClick={() => moveAmendment.mutate("submitted")}
