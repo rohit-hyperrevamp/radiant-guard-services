@@ -108,17 +108,34 @@ export function ResourceRateRevisions({
     void load();
   }, [load]);
 
+  const today = todayIso();
   const draft = revs.find((r) => r.status === "new_rate") ?? null;
-  const scheduled = revs.find((r) => r.status === "approved" && !r.promoted_at) ?? null;
-  const active = revs.find((r) => r.status === "approved" && r.promoted_at) ?? null;
-  const history = revs.filter((r) => r.status === "expired");
-  const draftResource = useMemo(() => (draft ? revToResource(resource, draft) : null), [draft, resource]);
-  const comparedExpired = history.find((r) => r.id === compareExpiredId) ?? null;
-  const comparisonBase = useMemo(
-    () => (comparedExpired ? revToResource(resource, comparedExpired) : resource),
-    [comparedExpired, resource],
-  );
-  const comparisonTarget = comparedExpired ? resource : draftResource;
+  const dated = revs.filter((r) => r.status === "approved" || r.status === "expired");
+  // Classify by dates, not by status: a rate that was "expired" by a future approval is still present until its end date.
+  const upcoming = dated
+    .filter((r) => r.status === "approved" && (r.effective_from ?? "") > today)
+    .sort((a, b) => String(a.effective_from).localeCompare(String(b.effective_from)));
+  const presentRow =
+    dated.find((r) => (r.effective_from ?? "0000") <= today && (r.effective_to ?? "9999") >= today) ?? null;
+  const history = dated
+    .filter((r) => r.id !== presentRow?.id && (r.effective_to ?? "9999") < today)
+    .sort((a, b) => String(b.effective_to).localeCompare(String(a.effective_to)));
+  const presentFrom = presentRow?.effective_from ?? (history[0]?.effective_to ? addDays(history[0].effective_to, 1) : contractStartDate);
+  const presentTo = presentRow?.effective_to ?? (upcoming[0]?.effective_from ? addDays(upcoming[0].effective_from, -1) : contractEndDate);
+  const draftResource = useMemo(() => (draft ? revRes(resource, draft) : null), [draft, resource]);
+  const [compareRevId, setCompareRevId] = useState<string | null>(null);
+  const comparedRow = dated.find((r) => r.id === compareRevId) ?? null;
+  const comparedIsExpired = !!comparedRow && history.some((h) => h.id === comparedRow.id);
+  const comparedExpired = comparedIsExpired ? comparedRow : null;
+  const comparedUpcoming = comparedRow && !comparedIsExpired ? comparedRow : null;
+  const comparisonBase = comparedExpired ? revRes(resource, comparedExpired) : resource;
+  const comparisonTarget = comparedExpired ? resource : comparedUpcoming ? revRes(resource, comparedUpcoming) : draftResource;
+  const revisedFrom = comparedUpcoming ? comparedUpcoming.effective_from : applicableFrom;
+  const revisedTo = comparedUpcoming ? comparedUpcoming.effective_to : applicableTill;
+  const [editUpcomingId, setEditUpcomingId] = useState<string | null>(null);
+  const [datesUpcomingId, setDatesUpcomingId] = useState<string | null>(null);
+  const editUpcoming = upcoming.find((r) => r.id === editUpcomingId) ?? null;
+  void compareExpiredId;
 
   if (!resource.id) return null;
 
