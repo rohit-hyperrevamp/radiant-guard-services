@@ -59,6 +59,32 @@ const signature = (r: ContractResource) =>
   ]);
 const PAGE = 50;
 
+/** Human-readable list of what differs between two rate structures. */
+function diffReasons(a: ContractResource, b: ContractResource): string[] {
+  const out: string[] = [];
+  const groups: [string, { name?: string; amount?: unknown }[], { name?: string; amount?: unknown }[]][] = [
+    ["Wage component", a.components, b.components],
+    ["Benefit", a.benefits, b.benefits],
+    ["Deduction", a.deductions, b.deductions],
+    ["Employer contribution", a.employerContributions, b.employerContributions],
+  ];
+  for (const [label, x, y] of groups) {
+    const mx = new Map(x.map((c) => [c.name ?? "", Number(c.amount) || 0]));
+    const my = new Map(y.map((c) => [c.name ?? "", Number(c.amount) || 0]));
+    for (const [n, v] of mx) {
+      if (!my.has(n)) out.push(`${label} "${n}" missing`);
+      else if (my.get(n) !== v) out.push(`${n}: ${fmt(my.get(n)!)} vs ${fmt(v)}`);
+    }
+    for (const n of my.keys()) if (!mx.has(n)) out.push(`Extra ${label.toLowerCase()} "${n}"`);
+  }
+  if (a.payrollDayBaseId !== b.payrollDayBaseId) out.push("Different payroll days basis");
+  if (a.billingDayBaseId !== b.billingDayBaseId) out.push("Different billing days basis");
+  if (a.shiftHours !== b.shiftHours) out.push(`Shift hours ${b.shiftHours ?? "-"} vs ${a.shiftHours ?? "-"}`);
+  if (billing(a) !== billing(b)) out.push(`Contract value ${fmt(billing(b))} vs ${fmt(billing(a))}`);
+  if (!out.length) out.push("Line order differs");
+  return out;
+}
+
 function BulkRateRevisionPage() {
   const qc = useQueryClient();
   const [orgId, setOrgId] = useState("");
@@ -167,7 +193,13 @@ function BulkRateRevisionPage() {
   const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
   const chosen = all.filter((l) => selected.has(l.resource.id!));
   const template = chosen[0]?.resource ?? null;
-  const differing = template ? chosen.filter((l) => signature(l.resource) !== signature(template)).length : 0;
+  const mismatches = template
+    ? chosen
+        .filter((l) => signature(l.resource) !== signature(template))
+        .map((l) => ({ line: l, reasons: diffReasons(template, l.resource) }))
+    : [];
+  const differing = mismatches.length;
+  const desigMismatch = new Set(chosen.map((l) => l.designation)).size > 1;
   const allFilteredSelected = filtered.length > 0 && filtered.every((l) => selected.has(l.resource.id!));
 
   const toggle = (id: string) =>
@@ -315,17 +347,47 @@ function BulkRateRevisionPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{chosen.length} line{chosen.length === 1 ? "" : "s"} selected</span>
             <span className="text-muted-foreground">Present rate {fmt(billing(template!))}</span>
-            {differing > 0 && (
-              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
-                {differing} have a different present structure — they will all get the same revised rate
-              </span>
-            )}
             {canEdit.data && (
-              <Button size="sm" className="ml-auto" disabled={busy} onClick={() => setEditOpen(true)}>
+              <Button
+                size="sm"
+                className="ml-auto"
+                disabled={busy || differing > 0 || desigMismatch}
+                onClick={() => setEditOpen(true)}
+              >
                 <Copy className="mr-1 h-4 w-4" /> Copy present & revise
               </Button>
             )}
           </div>
+          {(differing > 0 || desigMismatch) && (
+            <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+              <div className="font-semibold">
+                Bulk revision blocked — all selected lines must have the same designation and the same rate structure.
+              </div>
+              {desigMismatch && (
+                <div>
+                  Different designations selected: {Array.from(new Set(chosen.map((l) => l.designation))).join(", ")}.
+                  Pick one designation in the filter.
+                </div>
+              )}
+              {differing > 0 && (
+                <>
+                  <div>
+                    Compared with <b>{chosen[0].unitName}</b> ({chosen[0].contractCode}, {chosen[0].designation}),
+                    {" "}{differing} line{differing === 1 ? "" : "s"} differ:
+                  </div>
+                  <ul className="max-h-60 space-y-1 overflow-auto">
+                    {mismatches.map(({ line, reasons }) => (
+                      <li key={line.resource.id}>
+                        <b>{line.unitName}</b> ({line.contractCode}, {line.designation}): {reasons.slice(0, 5).join("; ")}
+                        {reasons.length > 5 ? ` +${reasons.length - 5} more` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-muted-foreground">Unselect these to continue, or revise them separately.</div>
+                </>
+              )}
+            </div>
+          )}
           {revised && (
             <div className="text-xs text-muted-foreground">
               Revised rate {fmt(billing(revised))} (change {fmt(billing(revised) - billing(template!))}) saved, not used until approved.
