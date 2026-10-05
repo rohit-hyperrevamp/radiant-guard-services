@@ -54,9 +54,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
+type Kind = "payroll" | "billing";
+
 export const Route = createFileRoute("/admin/payroll-days-manager")({
+  validateSearch: (s: Record<string, unknown>): { kind?: Kind } =>
+    s.kind === "billing" ? { kind: "billing" } : {},
+  head: () => ({
+    meta: [
+      { title: "Payroll & Billing Days | Radiant Guard Services" },
+      { name: "description", content: "Configure payroll and billing day options used in contract resources." },
+      { property: "og:title", content: "Payroll & Billing Days | Radiant Guard Services" },
+      { property: "og:description", content: "Configure payroll and billing day options used in contract resources." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: PayrollDaysManagerPage,
 });
+
+const TABLE: Record<Kind, string> = { payroll: "payroll_day_bases", billing: "billing_day_bases" };
 
 type Method =
   | "actual_days"
@@ -80,7 +96,6 @@ type PayrollDayBase = {
   sortOrder: number;
 };
 
-const QK = ["admin", "payroll-day-bases"] as const;
 
 const WEEKDAYS = [
   "Sunday",
@@ -152,7 +167,7 @@ function describeMethod(item: PayrollDayBase): string {
     case "fixed_days":
       return `Salary ÷ ${item.fixedDays ?? "?"} (fixed) regardless of month length.`;
     case "fixed_annual_average":
-      return "Salary ÷ 30.4166 (365 ÷ 12) for every month.";
+      return `Salary ÷ ${item.fixedDays ?? 30.4166} for every month.`;
     case "actual_minus_weekly_off": {
       const day = WEEKDAYS[item.weeklyOffDay ?? 0] ?? "Sunday";
       return `Salary ÷ (actual days of month − ${day}s in that month).`;
@@ -169,13 +184,16 @@ function describeMethod(item: PayrollDayBase): string {
   }
 }
 
-function usePayrollDayBases() {
+function usePayrollDayBases(kind: Kind) {
   const qc = useQueryClient();
+  const table = TABLE[kind];
+  const QK = ["admin", table] as const;
+  const moduleName = kind === "billing" ? "Billing Days Manager" : "Payroll Days Manager";
   const { data: items = [] } = useQuery({
     queryKey: QK,
     queryFn: async (): Promise<PayrollDayBase[]> => {
       const { data, error } = await supabase
-        .from("payroll_day_bases" as never)
+        .from(table as never)
         .select("id,name,code,method,fixed_days,weekly_off_day,included_weekdays,description,is_default,enabled,sort_order")
         .order("sort_order", { ascending: true })
         .order("name", { ascending: true });
@@ -184,7 +202,11 @@ function usePayrollDayBases() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: QK });
+    // Contract resource pickers read these lists too.
+    void qc.invalidateQueries();
+  };
   type Payload = Omit<PayrollDayBase, "id">;
 
   const validate = (p: Payload) => {
@@ -192,8 +214,8 @@ function usePayrollDayBases() {
     if (!p.code.trim()) throw new Error("Code is required");
     if (!/^[A-Z0-9_]+$/.test(p.code)) throw new Error("Code must be uppercase letters, digits, or underscore");
     if (p.method === "fixed_days") {
-      if (!p.fixedDays || p.fixedDays < 1 || p.fixedDays > 31) {
-        throw new Error("Fixed days must be between 1 and 31");
+      if (!p.fixedDays || p.fixedDays < 1 || p.fixedDays > 31 || Math.round(p.fixedDays * 100) !== p.fixedDays * 100) {
+        throw new Error("Fixed days must be between 1 and 31 (up to 2 decimals, e.g. 30.42)");
       }
     }
     if (p.method === "actual_minus_weekly_off") {
@@ -217,7 +239,10 @@ function usePayrollDayBases() {
     name: p.name.trim(),
     code: p.code.trim().toUpperCase(),
     method: p.method,
-    fixed_days: p.method === "fixed_days" || p.method === "actual_minus_days" ? p.fixedDays : null,
+    fixed_days:
+      p.method === "fixed_days" || p.method === "actual_minus_days" || p.method === "fixed_annual_average"
+        ? p.fixedDays
+        : null,
     weekly_off_day: p.method === "actual_minus_weekly_off" ? p.weeklyOffDay : null,
     included_weekdays:
       p.method === "custom_weekdays"
@@ -232,12 +257,12 @@ function usePayrollDayBases() {
   const addMut = useMutation({
     mutationFn: async (p: Payload) => {
       validate(p);
-      const { error } = await supabase.from("payroll_day_bases" as never).insert(toRow(p) as never);
+      const { error } = await supabase.from(table as never).insert(toRow(p) as never);
       if (error) throw error;
       void logActivity({
-        module: "Payroll Days Manager",
+        module: moduleName,
         action: "create",
-        entityType: "payroll_day_bases",
+        entityType: table,
         entityLabel: p.name,
         details: p as unknown as Record<string, unknown>,
       });
@@ -249,14 +274,14 @@ function usePayrollDayBases() {
     mutationFn: async ({ id, p }: { id: string; p: Payload }) => {
       validate(p);
       const { error } = await supabase
-        .from("payroll_day_bases" as never)
+        .from(table as never)
         .update(toRow(p) as never)
         .eq("id", id);
       if (error) throw error;
       void logActivity({
-        module: "Payroll Days Manager",
+        module: moduleName,
         action: "update",
-        entityType: "payroll_day_bases",
+        entityType: table,
         entityId: id,
         entityLabel: p.name,
         details: p as unknown as Record<string, unknown>,
@@ -268,14 +293,14 @@ function usePayrollDayBases() {
   const toggleMut = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const { error } = await supabase
-        .from("payroll_day_bases" as never)
+        .from(table as never)
         .update({ enabled } as never)
         .eq("id", id);
       if (error) throw error;
       void logActivity({
-        module: "Payroll Days Manager",
+        module: moduleName,
         action: enabled ? "enable" : "disable",
-        entityType: "payroll_day_bases",
+        entityType: table,
         entityId: id,
         details: { enabled },
       });
@@ -286,14 +311,14 @@ function usePayrollDayBases() {
   const setDefaultMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("payroll_day_bases" as never)
+        .from(table as never)
         .update({ is_default: true } as never)
         .eq("id", id);
       if (error) throw error;
       void logActivity({
-        module: "Payroll Days Manager",
+        module: moduleName,
         action: "set_default",
-        entityType: "payroll_day_bases",
+        entityType: table,
         entityId: id,
       });
     },
@@ -302,12 +327,12 @@ function usePayrollDayBases() {
 
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("payroll_day_bases" as never).delete().eq("id", id);
+      const { error } = await supabase.from(table as never).delete().eq("id", id);
       if (error) throw error;
       void logActivity({
-        module: "Payroll Days Manager",
+        module: moduleName,
         action: "delete",
-        entityType: "payroll_day_bases",
+        entityType: table,
         entityId: id,
       });
     },
@@ -318,7 +343,9 @@ function usePayrollDayBases() {
 }
 
 function PayrollDaysManagerPage() {
-  const { items, addMut, updateMut, toggleMut, setDefaultMut, deleteMut } = usePayrollDayBases();
+  const { kind = "payroll" } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const { items, addMut, updateMut, toggleMut, setDefaultMut, deleteMut } = usePayrollDayBases(kind);
   const [query, setQuery] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<PayrollDayBase | null>(null);
@@ -340,13 +367,26 @@ function PayrollDaysManagerPage() {
   return (
     <div>
       <PageHeader
-        title="Payroll Days"
-        description="Define how monthly salary days are calculated. Used in every payroll & cost formula."
+        title={kind === "billing" ? "Billing Days" : "Payroll Days"}
+        description="Options shown under Payroll Days and Billing Days in contract resources."
         crumbs={[
           { label: "Control Center", to: "/admin/control-center" },
-          { label: "Payroll Days" },
+          { label: kind === "billing" ? "Billing Days" : "Payroll Days" },
         ]}
       />
+
+      <div className="mb-4 inline-flex rounded-lg border border-border bg-card p-1">
+        {(["payroll", "billing"] as Kind[]).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => navigate({ search: k === "billing" ? { kind: "billing" } : {} })}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {k === "billing" ? "Billing Days" : "Payroll Days"}
+          </button>
+        ))}
+      </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(Object.keys(METHOD_META) as Method[]).map((m) => {
@@ -392,7 +432,7 @@ function PayrollDaysManagerPage() {
             disabled={filtered.length === 0}
             onClick={() =>
               downloadCsv(
-                "payroll-day-bases",
+                kind === "billing" ? "billing-day-bases" : "payroll-day-bases",
                 filtered.map((i) => ({
                   name: i.name,
                   code: i.code,
@@ -729,6 +769,7 @@ function PayrollDayBaseFormDialog({
                 type="number"
                 min={1}
                 max={31}
+                step={0.01}
                 value={fixedDays}
                 onChange={(e) => setFixedDays(e.target.value)}
               />
