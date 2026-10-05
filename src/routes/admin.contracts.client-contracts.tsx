@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { InvoiceSplitSettings } from "@/components/InvoiceSplitSettings";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
@@ -3436,7 +3435,6 @@ function ContractViewDialog({
 
         {isClient && contract.id ? (
           <div className="mt-3">
-            <InvoiceSplitSettings contractId={contract.id} contractCode={contract.contractCode ?? ""} canEdit={canEdit} />
           </div>
         ) : null}
 

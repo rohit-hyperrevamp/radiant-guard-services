@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // ---------------------------------------------------------------------------
-// Contract-level invoice output rules. A contract can bill everything on one
+// Organization-level invoice output rules. An organization can bill everything on one
 // invoice (default) or route each kind of billable item to a separate invoice
 // part — or leave it out. Each part takes its own number when finalised.
 // ---------------------------------------------------------------------------
@@ -50,12 +50,12 @@ export function parseInvoiceSplit(raw: unknown): InvoiceSplit {
 export const isSplit = (s: InvoiceSplit) =>
   s.parts.length > 1 || Object.values(s.assign).some((v) => v === EXCLUDE);
 
-export async function loadContractInvoiceSplit(contractId: string | null): Promise<InvoiceSplit> {
-  if (!contractId) return DEFAULT_SPLIT;
+export async function loadOrgInvoiceSplit(customerId: string | null): Promise<InvoiceSplit> {
+  if (!customerId) return DEFAULT_SPLIT;
   const { data } = await supabase
-    .from("client_contracts")
+    .from("customers")
     .select("invoice_split" as never)
-    .eq("id", contractId)
+    .eq("id", customerId)
     .maybeSingle();
   return parseInvoiceSplit((data as { invoice_split?: unknown } | null)?.invoice_split);
 }
