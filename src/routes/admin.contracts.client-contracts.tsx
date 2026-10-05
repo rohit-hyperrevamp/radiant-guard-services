@@ -2705,6 +2705,11 @@ function ClientContractsPage() {
         eyebrow="Contracts"
         description={isHrReadOnly ? "View contracts across organisations and clients." : "Manage contracts across organisations and clients."}
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/contracts/bulk-rate-revision">Bulk rate revision</Link>
+          </Button>
+        }
         kpis={
           <>
             <PageStat label="All contracts" value={isLoading ? "—" : overview.total} />
