@@ -145,6 +145,12 @@ function writeCache(key: string, value: unknown) {
 
 export type PermCheck = (moduleKey: string, action?: PermissionAction) => boolean;
 export type SubPermCheck = (moduleKey: string, subModuleKey: string, action?: PermissionAction) => boolean;
+export type ActionPermCheck = (
+  moduleKey: string,
+  actionKey: string,
+  action: PermissionAction,
+  fallback?: boolean,
+) => boolean;
 
 export function useCurrentPermissions(): {
   isLoading: boolean;
@@ -155,6 +161,7 @@ export function useCurrentPermissions(): {
   roleKey: string | null;
   can: PermCheck;
   canSub: SubPermCheck;
+  canAction: ActionPermCheck;
 } {
   const { user } = useAuth();
   // Separate useAuth consumers hydrate independently. Read the already-written
