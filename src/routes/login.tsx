@@ -173,7 +173,11 @@ function LoginPage() {
     try {
       // Last-four fallback is checked by the server; real SMS codes are
       // verified by the MSG91 widget and confirmed server-side by token.
-      const useWidget = otpMode === "sms" && !!otpRequestId && code !== phone.slice(-4);
+      const isLastFour = code === phone.slice(-4);
+      if (otpMode === "sms" && !otpRequestId && !isLastFour) {
+        throw new Error("Please tap Resend to get a fresh code.");
+      }
+      const useWidget = otpMode === "sms" && !!otpRequestId && !isLastFour;
       const accessToken = useWidget ? await verifyWidgetOtp(code, otpRequestId) : undefined;
       await checkOtp({ data: { phone, otp: code, accessToken } });
       await login(`+91${phone}`);
