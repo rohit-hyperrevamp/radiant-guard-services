@@ -7,7 +7,6 @@ import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
 import { OTP_LENGTH } from "@/lib/otp-config";
-import { loadMsg91Widget, retryWidgetOtp, sendWidgetOtp, verifyWidgetOtp } from "@/lib/otp-widget";
 import {
   enableBiometric,
   getBiometricStatus,
