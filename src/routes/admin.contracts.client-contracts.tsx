@@ -265,6 +265,10 @@ export type ResourceComponent = {
   fixedCalcMethod?: "flat" | "per_duty";
   fixedDutyComponents?: ("p_days" | "ot_days" | "ph_days" | "other_paid_days")[];
   fixedDutyDivisor?: "base_days" | "days_in_month" | "payable_days" | "fixed_26";
+  /** Round this line to the nearest rupee (contract, payroll and invoice). */
+  roundOff?: boolean;
+  /** Exact manual amount kept while roundOff is on, restored when it is turned off. */
+  unroundedAmount?: number | null;
 };
 
 type FixedCalcMethod = "flat" | "per_duty";
@@ -288,7 +292,22 @@ export type BenefitItem = {
   formulaMode?: string | null;
   formulaExpression?: string | null;
   formulaVersion?: number | null;
+  /** Round this line to the nearest rupee (contract, payroll and invoice). */
+  roundOff?: boolean;
+  /** Exact manual amount kept while roundOff is on, restored when it is turned off. */
+  unroundedAmount?: number | null;
 };
+
+/** Toggle round-off on a line; manual amounts keep their exact value for un-toggling. */
+export function toggleLineRoundOff<T extends { amount: number; roundOff?: boolean; unroundedAmount?: number | null }>(
+  item: T,
+  isComputed: boolean,
+): T {
+  const on = !item.roundOff;
+  if (isComputed) return { ...item, roundOff: on, unroundedAmount: null };
+  if (on) return { ...item, roundOff: true, unroundedAmount: Number(item.amount) || 0, amount: Math.round(Number(item.amount) || 0) };
+  return { ...item, roundOff: false, amount: item.unroundedAmount ?? item.amount, unroundedAmount: null };
+}
 
 
 export type ContractResource = {
@@ -1693,12 +1712,26 @@ export function describeComponentFormula(
 
 
 /** Compute benefit amount from a percentage component using the resource's wage components. */
+type BenefitAmountInput = Pick<BenefitItem, "calcType" | "percentage" | "baseComponents" | "capAmount" | "capFlatAmount" | "amount"> & {
+  formulaMode?: string | null;
+  formulaExpression?: string | null;
+  name?: string;
+  roundOff?: boolean;
+};
+
 export function computeBenefitAmount(
-  benefit: Pick<BenefitItem, "calcType" | "percentage" | "baseComponents" | "capAmount" | "capFlatAmount" | "amount"> & {
-    formulaMode?: string | null;
-    formulaExpression?: string | null;
-    name?: string;
-  },
+  benefit: BenefitAmountInput,
+  wageComponents: ResourceComponent[],
+  benefitItems: BenefitItem[] = [],
+  allowanceTypes: AllowanceType[] = [],
+  employerItems: BenefitItem[] = [],
+): number {
+  const amt = computeBenefitAmountExact(benefit, wageComponents, benefitItems, allowanceTypes, employerItems);
+  return benefit.roundOff ? Math.round(amt) : amt;
+}
+
+function computeBenefitAmountExact(
+  benefit: BenefitAmountInput,
   wageComponents: ResourceComponent[],
   benefitItems: BenefitItem[] = [],
   allowanceTypes: AllowanceType[] = [],
@@ -4882,6 +4915,7 @@ export function ResourceFormDialog({
             formulaMode: at.formulaMode ?? null,
             formulaExpression: at.formulaExpression ?? null,
             name: at.shortName || at.displayName || at.name,
+            roundOff: c.roundOff,
           },
           others,
           [],
