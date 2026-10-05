@@ -4354,6 +4354,14 @@ function ResourcesSection({
       return data === true;
     },
   });
+  const { data: canEditExisting = false } = useQuery({
+    queryKey: ["can-edit-existing-contract-rates"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("current_user_can_edit_existing_contract_rates" as never);
+      return data === true;
+    },
+  });
 
   /** Monthly client billing (wages + employer cost lines) and the four
    *  payroll-period billing rates: 31/30/29/28 days use 27/26/25/24 duties. */
@@ -4571,6 +4579,19 @@ function ResourcesSection({
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
+                        {canEditExisting ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => onEdit(idx)}
+                            aria-label="Edit existing rate"
+                            title="Edit existing contract rate"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : (
                         <span
                           className="flex h-8 w-8 items-center justify-center text-muted-foreground"
                           title="Present rate is locked — use Copy as revised rate to change it"
@@ -4578,6 +4599,7 @@ function ResourcesSection({
                         >
                           <Lock className="h-3.5 w-3.5" />
                         </span>
+                        )}
                       </>
                     ) : (
                       <Button

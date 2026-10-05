@@ -19,6 +19,15 @@ import { confirmAction } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { logActivity } from "@/lib/activity-log";
 import {
   PERMISSION_ACTIONS,
@@ -29,8 +38,10 @@ import {
 } from "@/lib/rbac-modules";
 import {
   EMPTY_PERM,
+  fetchOverrides,
   fetchRolePermissions,
   fetchRoles,
+  saveOverrides,
   normalizePerm,
   permKey,
   saveRolePermissions,
@@ -220,11 +231,55 @@ function RBACPage() {
   );
   const [draft, setDraft] = useState<PermMap>(new Map());
 
+  const [mode, setMode] = useState<"role" | "department">("role");
+  const [activeDept, setActiveDept] = useState<string>("");
+  const [applyTo, setApplyTo] = useState<"department" | "employee">("department");
+  const [activeEmp, setActiveEmp] = useState<{ id: string; label: string } | null>(null);
+  const [empSearch, setEmpSearch] = useState("");
+
   const rolesQuery = useQuery({ queryKey: ["rbac", "roles"], queryFn: fetchRoles });
+  const deptQuery = useQuery({
+    queryKey: ["rbac", "departments"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("departments").select("id,name").eq("enabled", true).order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+  const depts = deptQuery.data ?? [];
+  const deptId = activeDept || depts[0]?.id || "";
+  const deptName = depts.find((d) => d.id === deptId)?.name ?? "";
+
+  const empQuery = useQuery({
+    queryKey: ["rbac", "dept-employees", deptId, empSearch.trim()],
+    enabled: mode === "department" && applyTo === "employee" && !!deptId,
+    queryFn: async () => {
+      let q = supabase
+        .from("candidates")
+        .select("id,full_name,employee_code")
+        .eq("department_id", deptId)
+        .order("full_name")
+        .range(0, 49);
+      const term = empSearch.trim().replace(/[,%()]/g, "");
+      if (term) q = q.or(`full_name.ilike.%${term}%,employee_code.ilike.%${term}%`);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as { id: string; full_name: string | null; employee_code: string | null }[];
+    },
+  });
+
+  const target: { scope: "role" | "department" | "employee"; id: string } =
+    mode === "role"
+      ? { scope: "role", id: activeRole }
+      : applyTo === "employee"
+        ? { scope: "employee", id: activeEmp?.id ?? "" }
+        : { scope: "department", id: deptId };
+
   const permsQuery = useQuery({
-    queryKey: ["rbac", "perms", activeRole],
-    queryFn: () => fetchRolePermissions(activeRole),
-    enabled: !!activeRole,
+    queryKey: ["rbac", "perms", target.scope, target.id],
+    queryFn: () =>
+      target.scope === "role" ? fetchRolePermissions(target.id) : fetchOverrides(target.scope, target.id),
+    enabled: !!target.id,
   });
 
   const serverMap = useMemo(
@@ -236,24 +291,30 @@ function RBACPage() {
     setDraft(serverMap);
   }, [serverMap]);
 
-  const isSuper = activeRole === "super_admin";
+  const isSuper = mode === "role" && activeRole === "super_admin";
+  const noTarget = !target.id;
   const dirty = !isSuper && !mapsEqual(draft, serverMap);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await saveRolePermissions(activeRole, mapToRows(draft));
+      if (target.scope === "role") await saveRolePermissions(target.id, mapToRows(draft));
+      else await saveOverrides(target.scope, target.id, mapToRows(draft));
     },
     onSuccess: async () => {
       const role = rolesQuery.data?.find((r) => r.key === activeRole);
+      const label =
+        target.scope === "role" ? role?.name ?? activeRole
+        : target.scope === "department" ? `${deptName} department`
+        : `${activeEmp?.label ?? ""} (${deptName})`;
       void logActivity({
         module: "Role-Based Access Control",
         action: "update",
-        entityType: "role",
-        entityId: activeRole,
-        entityLabel: role?.name ?? activeRole,
+        entityType: target.scope,
+        entityId: target.id,
+        entityLabel: label,
       });
-      toast.success("Permissions saved", { description: role?.name ?? activeRole });
-      await queryClient.invalidateQueries({ queryKey: ["rbac", "perms", activeRole] });
+      toast.success("Permissions saved", { description: label });
+      await queryClient.invalidateQueries({ queryKey: ["rbac", "perms", target.scope, target.id] });
     },
     onError: (e) => {
       toast.error("Failed to save permissions", {
@@ -275,7 +336,100 @@ function RBACPage() {
         ]}
       />
 
+      <div className="mb-3 inline-flex rounded-lg border border-border bg-card p-1">
+        {(["role", "department"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={cn(
+              "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+              mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {m === "role" ? "Roles" : "Departments"}
+          </button>
+        ))}
+      </div>
+
+      {mode === "department" && (
+        <div className="mb-4 space-y-3">
+          <div className="scrollbar-hide -mx-2 flex flex-nowrap items-center gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+            {depts.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => {
+                  setActiveDept(d.id);
+                  setActiveEmp(null);
+                  setEmpSearch("");
+                }}
+                className={cn(
+                  "inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all",
+                  d.id === deptId
+                    ? "border-accent bg-accent/15 text-accent shadow-sm"
+                    : "border-border bg-card text-foreground/75 hover:border-accent/40 hover:text-foreground",
+                )}
+              >
+                {d.name}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-3 rounded-xl border border-border bg-card p-3 sm:grid-cols-[220px_minmax(0,1fr)]">
+            <Select
+              value={applyTo}
+              onValueChange={(v) => {
+                setApplyTo(v as "department" | "employee");
+                setActiveEmp(null);
+              }}
+            >
+              <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="department">Entire department</SelectItem>
+                <SelectItem value="employee">Specific employee</SelectItem>
+              </SelectContent>
+            </Select>
+            {applyTo === "employee" ? (
+              <div className="space-y-2">
+                <Input
+                  value={empSearch}
+                  onChange={(e) => setEmpSearch(e.target.value)}
+                  placeholder={`Search ${deptName} employees by name or ID…`}
+                  className="h-10"
+                />
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
+                  {(empQuery.data ?? []).map((e) => {
+                    const label = `${e.full_name ?? "Unnamed"}${e.employee_code ? ` · ${e.employee_code}` : ""}`;
+                    return (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onClick={() => setActiveEmp({ id: e.id, label })}
+                        className={cn(
+                          "block w-full border-b border-border/50 px-3 py-2 text-left text-sm last:border-0 hover:bg-secondary/40",
+                          activeEmp?.id === e.id && "bg-accent/10 font-semibold text-accent",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                  {empQuery.data && empQuery.data.length === 0 && (
+                    <div className="px-3 py-4 text-center text-xs text-muted-foreground">No employees in {deptName} match.</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="self-center text-xs text-muted-foreground">
+                Changes apply to everyone in {deptName || "this department"} (unless an employee has personal access set).
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Role chip selector */}
+      {mode === "role" && (
       <div className="scrollbar-hide -mx-2 mb-3 flex flex-nowrap items-center gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:mb-5 sm:flex-wrap sm:overflow-visible sm:px-0">
         {roles.map((r) => {
           const active = r.key === activeRole;
@@ -297,6 +451,7 @@ function RBACPage() {
           );
         })}
       </div>
+      )}
 
       {/* Active role banner */}
        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:rounded-2xl sm:p-4">
@@ -311,10 +466,22 @@ function RBACPage() {
           </div>
           <div>
             <div className="font-display text-base font-bold tracking-tight">
-              {roles.find((r) => r.key === activeRole)?.name ?? activeRole}
+              {mode === "role"
+                ? roles.find((r) => r.key === activeRole)?.name ?? activeRole
+                : applyTo === "employee"
+                  ? activeEmp?.label ?? "Pick an employee"
+                  : `${deptName} department`}
             </div>
             <p className="text-xs text-muted-foreground">
-              {isSuper
+              {mode === "department"
+                ? noTarget
+                  ? "Search and pick an employee above."
+                  : (permsQuery.data?.length ?? 0) === 0
+                    ? "Nothing saved yet — they currently use their role's access. Saving here replaces it."
+                    : applyTo === "employee"
+                      ? "Personal access — overrides department and role access."
+                      : "Department access — overrides role access for every member."
+                : isSuper
                 ? "Super Admin always has full access. This role is locked."
                 : roles.find((r) => r.key === activeRole)?.description || "Configure permissions below."}
             </p>
@@ -367,7 +534,7 @@ function RBACPage() {
             onClick={async () => {
               saveMutation.mutate();
             }}
-            disabled={!dirty || saveMutation.isPending || isSuper}
+            disabled={(!dirty && !(mode === "department" && (permsQuery.data?.length ?? 0) === 0 && draft.size > 0)) || saveMutation.isPending || isSuper || noTarget}
             className="h-9 bg-accent text-accent-foreground hover:bg-accent/90"
           >
             <Save className="mr-1.5 h-4 w-4" />

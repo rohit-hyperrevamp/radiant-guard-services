@@ -122,7 +122,7 @@ import {
 // paint accelerator: every read still revalidates against the server, and the
 // database keeps enforcing access.
 const roleCacheKey = (phone: string) => `rbac:role:${phone}`;
-const permsCacheKey = (roleKey: string) => `rbac:perms:${roleKey}`;
+const permsCacheKey = (roleKey: string) => `rbac:perms2:${roleKey}`;
 
 function readCache<T>(key: string): T | undefined {
   if (typeof window === "undefined") return undefined;
@@ -202,10 +202,13 @@ export function useCurrentPermissions(): {
     roleKey === ROLE_KEYS.ADMIN;
 
   const permsQ = useQuery({
-    queryKey: ["rbac", "current-perms", roleKey],
+    queryKey: ["rbac", "current-perms", roleKey, phone],
     enabled: !!roleKey && !isSuperAdmin,
     queryFn: async () => {
-      const rows = await fetchRolePermissions(roleKey as string);
+      // Effective access: employee rules > department rules > role rules.
+      const { data, error } = await supabase.rpc("current_user_effective_permissions" as never);
+      if (error) throw error;
+      const rows = ((data ?? []) as unknown as PermissionRow[]).map((r) => ({ ...r, role_key: roleKey as string }));
       writeCache(permsCacheKey(roleKey as string), rows);
       return rows;
     },
@@ -272,4 +275,36 @@ export function useCurrentPermissions(): {
     can,
     canSub,
   };
+}
+
+// ---------------- Department / employee overrides ----------------
+export type OverrideScope = "department" | "employee";
+
+export async function fetchOverrides(scope: OverrideScope, scopeId: string): Promise<PermissionRow[]> {
+  const { data, error } = await supabase
+    .from("access_overrides" as never)
+    .select("id,module_key,sub_module_key,can_view,can_edit,can_delete,can_approve")
+    .eq("scope_type", scope)
+    .eq("scope_id", scopeId);
+  if (error) throw error;
+  return ((data ?? []) as unknown as PermissionRow[]).map((r) => ({ ...r, role_key: "" }));
+}
+
+export async function saveOverrides(scope: OverrideScope, scopeId: string, rows: PermissionRow[]): Promise<void> {
+  const del = await supabase.from("access_overrides" as never).delete().eq("scope_type", scope).eq("scope_id", scopeId);
+  if (del.error) throw del.error;
+  if (!rows.length) return;
+  const ins = await supabase.from("access_overrides" as never).insert(
+    rows.map((r) => ({
+      scope_type: scope,
+      scope_id: scopeId,
+      module_key: r.module_key,
+      sub_module_key: r.sub_module_key ?? "",
+      can_view: r.can_view,
+      can_edit: r.can_edit,
+      can_delete: r.can_delete,
+      can_approve: r.can_approve,
+    })) as never,
+  );
+  if (ins.error) throw ins.error;
 }
