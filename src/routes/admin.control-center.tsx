@@ -88,6 +88,12 @@ const tiles: Tile[] = [
     icon: CalendarDays,
   },
   {
+    to: "/admin/payroll-days-manager?kind=billing",
+    label: "Billing Days",
+    description: "Billing day rules.",
+    icon: CalendarDays,
+  },
+  {
     to: "/admin/allowance-manager",
     label: "Allowances",
     description: "Payroll earnings.",
