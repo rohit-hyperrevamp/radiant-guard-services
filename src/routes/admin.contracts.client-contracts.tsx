@@ -4558,13 +4558,26 @@ function ResourcesSection({
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {r.id ? (
-                      <span
-                        className="flex h-8 w-8 items-center justify-center text-muted-foreground"
-                        title="Present rate is locked — use Copy as revised rate to change it"
-                        aria-label="Present rate locked"
-                      >
-                        <Lock className="h-3.5 w-3.5" />
-                      </span>
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setViewIdx(idx)}
+                          aria-label="View rate"
+                          title="View present rate (locked)"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <span
+                          className="flex h-8 w-8 items-center justify-center text-muted-foreground"
+                          title="Present rate is locked — use Copy as revised rate to change it"
+                          aria-label="Present rate locked"
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                        </span>
+                      </>
                     ) : (
                       <Button
                         type="button"
@@ -4587,16 +4600,18 @@ function ResourcesSection({
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => onDelete(idx)}
-                      aria-label="Remove"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                    {!r.id && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => onDelete(idx)}
+                        aria-label="Remove"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
