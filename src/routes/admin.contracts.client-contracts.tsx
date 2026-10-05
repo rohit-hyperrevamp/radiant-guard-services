@@ -4556,16 +4556,26 @@ function ResourcesSection({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0"
-                      onClick={() => onEdit(idx)}
-                      aria-label="Edit"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {r.id ? (
+                      <span
+                        className="flex h-8 w-8 items-center justify-center text-muted-foreground"
+                        title="Present rate is locked — use Copy as revised rate to change it"
+                        aria-label="Present rate locked"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => onEdit(idx)}
+                        aria-label="Edit"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"
