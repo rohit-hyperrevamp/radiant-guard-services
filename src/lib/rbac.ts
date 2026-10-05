@@ -162,6 +162,7 @@ export function useCurrentPermissions(): {
   can: PermCheck;
   canSub: SubPermCheck;
   canAction: ActionPermCheck;
+  canWidget: (widgetKey: string) => boolean;
 } {
   const { user } = useAuth();
   // Separate useAuth consumers hydrate independently. Read the already-written
@@ -287,6 +288,13 @@ export function useCurrentPermissions(): {
     return fallback ?? false;
   };
 
+  // Dashboard widget visibility: explicit dashboard::w_* row wins, else shown.
+  const canWidget = (widgetKey: string) => {
+    if (isSuperAdmin) return true;
+    const r = map.get(`dashboard::w_${widgetKey}`);
+    return r ? r.can_view : true;
+  };
+
   return {
     // Cached values prevent blank screens, but routing must wait for the live
     // role and permission reads so an old device cache cannot select a stale dashboard.
@@ -299,6 +307,7 @@ export function useCurrentPermissions(): {
     can,
     canSub,
     canAction,
+    canWidget,
   };
 }
 
