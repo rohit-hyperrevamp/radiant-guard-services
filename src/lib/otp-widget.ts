@@ -16,7 +16,8 @@ type WidgetPayload = {
 
 type WidgetError = { message?: string };
 
-const WIDGET_CALLBACK_TIMEOUT_MS = 20_000;
+// Long enough for MSG91's own captcha check to be completed.
+const WIDGET_CALLBACK_TIMEOUT_MS = 90_000;
 
 declare global {
   interface Window {

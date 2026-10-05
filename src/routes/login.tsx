@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
 import { OTP_LENGTH } from "@/lib/otp-config";
+import { loadMsg91Widget, retryWidgetOtp, sendWidgetOtp, verifyWidgetOtp } from "@/lib/otp-widget";
 import {
   enableBiometric,
   getBiometricStatus,
@@ -91,6 +92,11 @@ function LoginPage() {
   }, [user, navigate, revealing]);
 
   useEffect(() => {
+    // Preload MSG91's widget so Send OTP responds instantly.
+    void loadMsg91Widget().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     void getBiometricStatus().then((status) => {
       setBioAvailable(status.available);
       setBioEnabled(status.enabled);
@@ -127,8 +133,17 @@ function LoginPage() {
         movedToOtp = true;
       }
 
-      setOtpRequestId(result.requestId ?? null);
       setResendIn(30);
+      if (result.mode === "sms") {
+        // MSG91 OTP Widget = account default DLT template (the working path).
+        const requestId =
+          isResend && otpRequestId
+            ? ((await retryWidgetOtp(otpRequestId)) ?? otpRequestId)
+            : await sendWidgetOtp(phone);
+        setOtpRequestId(requestId);
+      } else {
+        setOtpRequestId(null);
+      }
       toast.success(
         result.mode === "sms"
           ? `OTP sent to +91 ••• ••• ${phone.slice(-4)}`
@@ -155,13 +170,11 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      await checkOtp({
-        data: {
-          phone,
-          otp: code,
-          requestId: otpMode === "sms" ? otpRequestId ?? undefined : undefined,
-        },
-      });
+      // Last-four fallback is checked by the server; real SMS codes are
+      // verified by the MSG91 widget and confirmed server-side by token.
+      const useWidget = otpMode === "sms" && !!otpRequestId && code !== phone.slice(-4);
+      const accessToken = useWidget ? await verifyWidgetOtp(code, otpRequestId) : undefined;
+      await checkOtp({ data: { phone, otp: code, accessToken } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
