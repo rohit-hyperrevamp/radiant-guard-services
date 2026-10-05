@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
 import { resendLoginOtp, sendLoginOtp, verifyLoginOtp } from "@/lib/otp.functions";
 import { OTP_LENGTH } from "@/lib/otp-config";
+import { loadMsg91Widget, retryWidgetOtp, sendWidgetOtp, verifyWidgetOtp } from "@/lib/otp-widget";
 import {
   enableBiometric,
   getBiometricStatus,
@@ -129,9 +130,16 @@ function LoginPage() {
       }
 
       setResendIn(30);
-      // The SMS is sent server-side by requestOtp/resendLoginOtp; no browser
-      // widget round-trip is needed.
-      setOtpRequestId(null);
+      if (result.mode === "sms") {
+        // MSG91 OTP Widget = account default DLT template (the working path).
+        const requestId =
+          isResend && otpRequestId
+            ? ((await retryWidgetOtp(otpRequestId)) ?? otpRequestId)
+            : await sendWidgetOtp(phone);
+        setOtpRequestId(requestId);
+      } else {
+        setOtpRequestId(null);
+      }
       toast.success(
         result.mode === "sms"
           ? `OTP sent to +91 ••• ••• ${phone.slice(-4)}`
@@ -158,9 +166,11 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      // Real SMS codes are verified server-side against MSG91 (/otp/verify);
-      // the last-four fallback is also checked by the server.
-      await checkOtp({ data: { phone, otp: code } });
+      // Last-four fallback is checked by the server; real SMS codes are
+      // verified by the MSG91 widget and confirmed server-side by token.
+      const useWidget = otpMode === "sms" && !!otpRequestId && code !== phone.slice(-4);
+      const accessToken = useWidget ? await verifyWidgetOtp(code, otpRequestId) : undefined;
+      await checkOtp({ data: { phone, otp: code, accessToken } });
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
