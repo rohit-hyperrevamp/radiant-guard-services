@@ -7397,6 +7397,10 @@ function CandidateWizard({
   };
 
   const persist = async (status: string, successMsg: string, opts?: { fast?: boolean }) => {
+    if (editing && ["approved", "active", "inactive"].includes(String(editing.status)) &&
+        !wizardCanAction("employees", "edit", "edit")) {
+      throw new Error("You do not have permission to edit employee details");
+    }
     const payload = buildPayload(status);
     const normalizedAadhaar = String(
       (payload as { aadhaar_number?: unknown }).aadhaar_number ?? "",

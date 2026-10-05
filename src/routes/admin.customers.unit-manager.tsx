@@ -182,7 +182,8 @@ function UnitManagerPage() {
   const { customers } = useCustomers();
   const { states } = useStates();
   const foScope = useOperationalUnitScope();
-  const { roleKey } = useCurrentPermissions();
+  const { roleKey, canSub } = useCurrentPermissions();
+  const canEditClients = canSub("organizations", "unit_manager", "edit");
   const isHrExecutive = roleKey === ROLE_KEYS.HR_EXECUTIVE;
 
   // Field officers only ever see the clients they are mapped to.
@@ -635,6 +636,7 @@ function UnitManagerPage() {
         editing={editing}
         units={units}
         onSubmit={async (data) => {
+          if (!canEditClients) return { error: "You do not have permission to change clients", id: null };
           const r = editing ? await updateUnit(editing.id, data) : await addUnit(data);
           if (!r.ok) return { error: r.error, id: null };
           void logActivity({ module: "Clients", action: editing ? "update" : "create", entityType: "units", entityId: editing?.id, entityLabel: String((data as Record<string, unknown>).code ?? (data as Record<string, unknown>).name ?? ""), details: data as Record<string, unknown> });
