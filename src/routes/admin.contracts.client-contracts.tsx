@@ -3433,6 +3433,12 @@ function ContractViewDialog({
           </div>
         ) : null}
 
+        {isClient && contract.id ? (
+          <div className="mt-3">
+            <InvoiceSplitSettings contractId={contract.id} contractCode={contract.contractCode ?? ""} canEdit={canEdit} />
+          </div>
+        ) : null}
+
         <div className="mt-3">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Resource lines ({resources.length})
