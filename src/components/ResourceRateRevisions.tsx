@@ -421,11 +421,11 @@ export function ResourceRateRevisions({
                 : comparedUpcoming ? "Monthly amounts. This revised rate is approved and starts automatically on its applicable-from date." : "Monthly amounts. The revised rate is not used until approved."}
             </DialogDescription>
           </DialogHeader>
-          <table className="w-full text-sm">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b text-left text-xs">
-                <th className="py-1.5 font-semibold text-muted-foreground">Item</th>
-                <th className={`px-2 py-2 text-right ${comparedExpired ? "bg-muted/50" : "bg-rate-present text-rate-present-foreground"}`}>
+              <tr className="text-left text-xs">
+                <th className="border border-border bg-muted px-2 py-2 font-semibold">Item</th>
+                <th className={`border border-border px-2 py-2 text-right ${comparedExpired ? "bg-muted" : "bg-rate-present text-rate-present-foreground"}`}>
                   <div className="font-bold">{comparedExpired ? "Expired Rate" : "Present Rate"}</div>
                   <div className="text-[10px] font-normal opacity-80">
                     {comparedExpired
@@ -433,7 +433,7 @@ export function ResourceRateRevisions({
                       : `${fmtDate(presentFrom)} – ${fmtDate(presentTo)}`}
                   </div>
                 </th>
-                <th className={`px-2 py-2 text-right ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>
+                <th className={`border border-border px-2 py-2 text-right ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>
                   <div className="font-bold">{comparedExpired ? "Present Rate" : "Revised Rate"}</div>
                   <div className="text-[10px] font-normal opacity-80">
                     {comparedExpired
@@ -443,7 +443,7 @@ export function ResourceRateRevisions({
                         : `${fmtDate(contractStartDate)} – ${fmtDate(contractEndDate)}`}
                   </div>
                 </th>
-                <th className="py-1.5 text-right font-semibold text-muted-foreground">Change</th>
+                <th className="border border-border bg-muted px-2 py-2 text-right font-semibold">Change</th>
               </tr>
             </thead>
             <tbody>
@@ -451,11 +451,11 @@ export function ResourceRateRevisions({
                 <Fragment key={g.group}>
                   <tr><td colSpan={4} className="pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{g.group}</td></tr>
                   {g.lines.map((l) => (
-                    <tr key={g.group + l.name} className="border-b border-border/50">
-                      <td className="py-1">{l.name}</td>
-                       <td className={`px-2 py-1.5 text-right tabular-nums ${comparedExpired ? "bg-muted/30" : "bg-rate-present/70 text-rate-present-foreground"}`}>{fmt(l.cur)}</td>
-                       <td className={`px-2 py-1.5 text-right tabular-nums ${comparedExpired ? "bg-rate-present/70 text-rate-present-foreground" : "bg-rate-revised/70 text-rate-revised-foreground"}`}>{fmt(l.nxt)}</td>
-                      <td className={`py-1 text-right tabular-nums ${l.nxt - l.cur > 0 ? "text-emerald-600" : l.nxt - l.cur < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    <tr key={g.group + l.name}>
+                      <td className="border border-border px-2 py-1">{l.name}</td>
+                       <td className={`border border-border px-2 py-1.5 text-right tabular-nums ${comparedExpired ? "bg-muted/50" : "bg-rate-present/45 text-rate-present-foreground"}`}>{fmt(l.cur)}</td>
+                       <td className={`border border-border px-2 py-1.5 text-right tabular-nums ${comparedExpired ? "bg-rate-present/45 text-rate-present-foreground" : "bg-rate-revised/45 text-rate-revised-foreground"}`}>{fmt(l.nxt)}</td>
+                      <td className={`border border-border px-2 py-1 text-right tabular-nums ${l.nxt - l.cur > 0 ? "text-emerald-600" : l.nxt - l.cur < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {l.nxt - l.cur === 0 ? "—" : fmt(l.nxt - l.cur)}
                       </td>
                     </tr>
@@ -463,11 +463,11 @@ export function ResourceRateRevisions({
                 </Fragment>
               ))}
               {comparisonTarget && (
-                <tr className="font-semibold">
-                  <td className="pt-3">Monthly billing</td>
-                   <td className={`px-2 py-3 text-right tabular-nums ${comparedExpired ? "bg-muted/30" : "bg-rate-present text-rate-present-foreground"}`}>{fmt(billing(comparisonBase))}</td>
-                   <td className={`px-2 py-3 text-right tabular-nums ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>{fmt(billing(comparisonTarget))}</td>
-                  <td className="pt-3 text-right tabular-nums">{fmt(billing(comparisonTarget) - billing(comparisonBase))}</td>
+                <tr className="font-bold">
+                  <td className="border border-border bg-muted px-2 py-2.5">Monthly billing</td>
+                   <td className={`border border-border px-2 py-2.5 text-right tabular-nums ${comparedExpired ? "bg-muted" : "bg-rate-present text-rate-present-foreground"}`}>{fmt(billing(comparisonBase))}</td>
+                   <td className={`border border-border px-2 py-2.5 text-right tabular-nums ${comparedExpired ? "bg-rate-present text-rate-present-foreground" : "bg-rate-revised text-rate-revised-foreground"}`}>{fmt(billing(comparisonTarget))}</td>
+                  <td className="border border-border bg-muted px-2 py-2.5 text-right tabular-nums">{fmt(billing(comparisonTarget) - billing(comparisonBase))}</td>
                 </tr>
               )}
             </tbody>
