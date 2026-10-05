@@ -12,4 +12,4 @@
 - Recruitment supporting files use `rec_candidate_documents` metadata and private `recruitment/documents/<candidate>/<category>/` objects; only Recruitment RBAC users can manage them — keeps optional candidate records private and auditable.
 - Dashboard profitability is unit-level and live: invoice minus earned gross and employer contribution, with posted invoice/payroll values overriding computed attendance values — keeps P&L aligned with operational records.
 
-- Contract rate changes are versioned in `contract_rate_revisions` (new_rate → approved with applicable date → previous expired); payroll/invoice resolve rates per period via `applyRateRevisionsForPeriod`, splitting by calendar days mid-period, and a daily job promotes due rates onto `contract_resources` — past periods keep old rates.
+- Contract rate changes are versioned in `contract_rate_revisions` (new_rate → approved with explicit applicable-from/till range → previous expired); payroll/invoice resolve rates per period via `applyRateRevisionsForPeriod`, splitting by calendar days mid-period, and a daily job promotes due rates onto `contract_resources` — past periods keep old rates.
