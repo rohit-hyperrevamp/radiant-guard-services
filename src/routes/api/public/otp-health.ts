@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/otp-health")({
             { headers: { authkey: authKey } },
           );
           const data = await res.text();
-          return Response.json({ status: res.status, data: data.slice(0, 4000) });
+          return Response.json({ status: res.status, data: data.slice(0, 20000) });
         }
         if (!phone || !/^\d{10}$/.test(phone)) {
           return Response.json({ error: "phone required" }, { status: 400 });
