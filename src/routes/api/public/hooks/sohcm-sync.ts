@@ -71,7 +71,13 @@ export const Route = createFileRoute("/api/public/hooks/sohcm-sync")({
         const { data: run } = await db.from("alertcheckin_sync_runs").insert({ sync_date: date, source: "sohcm" }).select("id").single();
         const stats = { rows_read: 0, inserted: 0, skipped: 0, unmatched: 0 };
         try {
-          const rows = parseCsv(await fetchExport(date));
+          let password = process.env["SOHCM_PASSWORD"] ?? "";
+          if (!password) {
+            const { data: cr } = await db.from("sohcm_credentials").select("password").eq("id", 1).maybeSingle();
+            password = cr?.password ?? "";
+          }
+          if (!password) throw new Error("SmartApp sign-in not configured");
+          const rows = parseCsv(await fetchExport(date, password));
           const h = rows.shift() ?? [];
           const col = (n: string) => h.indexOf(n);
           const cCode = col("Employee Code"), cName = col("Employee Name"), cLoc = col("Location"), cIn = col("In Time"), cOut = col("Out Time");
