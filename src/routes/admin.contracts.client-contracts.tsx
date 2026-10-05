@@ -4642,6 +4642,8 @@ export function ResourceFormDialog({
    */
   inline = false,
   onChange,
+  /** readOnly = view-only mode: all fields disabled, no Save button. */
+  readOnly = false,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -4651,6 +4653,7 @@ export function ResourceFormDialog({
   subject?: WagesSubject | null;
   inline?: boolean;
   onChange?: (r: ContractResource) => void;
+  readOnly?: boolean;
 }) {
   const isWages = variant === "wages";
   const designations = useDesignations();
@@ -6298,14 +6301,18 @@ export function ResourceFormDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {isWages
-              ? initial?.id ? "Edit Wages" : "Add Wages"
-              : initial?.id ? "Edit Resource" : "Add Resource"}
+            {readOnly
+              ? "View Resource (present rate — locked)"
+              : isWages
+                ? initial?.id ? "Edit Wages" : "Add Wages"
+                : initial?.id ? "Edit Resource" : "Add Resource"}
           </DialogTitle>
           <DialogDescription>
-            {isWages
-              ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
-              : "Map a designation, service type and quantity, then configure wage components."}
+            {readOnly
+              ? "This is the locked present rate. To change it, use Copy as revised rate on the resource card."
+              : isWages
+                ? "Configure this employee's own wage sheet — shift hours, payroll days and wage components."
+                : "Map a designation, service type and quantity, then configure wage components."}
           </DialogDescription>
         </DialogHeader>
 
@@ -6328,7 +6335,9 @@ export function ResourceFormDialog({
           </div>
         )}
 
-        {content}
+        <fieldset disabled={readOnly} className="contents">
+          {content}
+        </fieldset>
 
         <DialogFooter>
           <Button
@@ -6336,15 +6345,17 @@ export function ResourceFormDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </Button>
-          <Button
-            type="button"
-            data-force-enabled={resourceHasChanges ? "true" : undefined}
-            onClick={handleSubmit}
-          >
-            {initial?.id ? "Save Resource" : "Add Resource"}
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              data-force-enabled={resourceHasChanges ? "true" : undefined}
+              onClick={handleSubmit}
+            >
+              {initial?.id ? "Save Resource" : "Add Resource"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
