@@ -99,14 +99,7 @@ export async function sendMsg91WidgetOtp(phone: string): Promise<string> {
 }
 
 export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<string | undefined> {
-  const configuredTemplate = process.env["MSG91_OTP_TEMPLATE_ID"] || MSG91_OTP_TEMPLATE_ID;
-  if (!configuredTemplate) {
-    try {
-      return await sendMsg91WidgetOtp(phone);
-    } catch (e) {
-      console.warn("[otp] widget send unavailable, using account default OTP template", e);
-    }
-  }
+  // Restored original working path: MSG91 account default OTP template.
   const authKey = process.env["MSG91_AUTH_KEY"];
   if (!authKey) {
     if (allowRelay) {
@@ -115,9 +108,8 @@ export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<st
     }
     throw new Error("SMS service is not configured on this deployment.");
   }
-  const templateId = process.env["MSG91_OTP_TEMPLATE_ID"] || MSG91_OTP_TEMPLATE_ID;
-  // Without a template ID, MSG91 uses the account's default OTP template.
-  const query = new URLSearchParams({ mobile: `91${phone}`, otp_length: "4" });
+  const templateId = process.env["MSG91_OTP_TEMPLATE_ID"];
+  const query = new URLSearchParams({ mobile: `91${phone}` });
   if (templateId) query.set("template_id", templateId);
   const response = await fetch(`${MSG91_API}/otp?${query}`, {
     method: "POST",
@@ -125,6 +117,7 @@ export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<st
   });
   const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
   if (!response.ok || payload.type?.toLowerCase() !== "success") {
+    console.error("[otp] send failed", response.status, JSON.stringify(payload));
     throw new Error(msg91Error(payload.message, "Could not send the code. Please try again."));
   }
   return undefined;
