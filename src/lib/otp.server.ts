@@ -4,7 +4,8 @@ import { WIDGET_TOKEN } from "@/lib/otp-widget";
 
 /** Widget ID from secrets (MSG91_WIDGET_ID) with the built-in default as fallback. */
 function widgetId(): string {
-  return process.env["MSG91_WIDGET_ID"] || DEFAULT_WIDGET_ID;
+  const override = process.env["MSG91_WIDGET_ID"];
+  return override && /^[0-9a-f]{24,}$/i.test(override) ? override : DEFAULT_WIDGET_ID;
 }
 
 const MSG91_API = "https://control.msg91.com/api/v5";
