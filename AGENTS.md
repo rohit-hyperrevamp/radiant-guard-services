@@ -19,3 +19,4 @@
 - Master-data tables carry an `rbac_guard` trigger (`enforce_rbac_table_permission(module, sub)`) that refuses writes only when Access Control explicitly withholds Edit/Delete — new master tables should get the same trigger.
 - RLS helper functions for modules (inventory, organizations, recruitment, CRM) must read Access Control via `current_user_module_access()`, never a fixed role list or the raw role matrix — so department/designation grants and revokes take effect.
 - Unit reach for attendance is the `attendance::all_units` switch, else the person's unit/customer/site mapping; admin = admin/super_admin role only (no hard-coded phones) — scope and admin status stay data-driven.
+- Dashboard widgets are `dashboard::w_*` sub-modules checked via `canWidget`; no row = visible (still gated by the data module), an explicit role/department/designation/employee row decides — new dashboard sections should get a widget key.
