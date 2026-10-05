@@ -78,7 +78,9 @@ export const RBAC_MODULES: ModuleDef[] = [
     path: "/admin/contracts/client-contracts",
     icon: Files,
     subModules: [
-      { key: "client_contracts", label: "Client Contracts", path: "/admin/contracts/client-contracts", icon: FileText },
+      { key: "client_contracts", label: "Client Contracts (view / edit / delete contract)", path: "/admin/contracts/client-contracts", icon: FileText },
+      { key: "create", label: "Create / Copy Contracts", path: "/admin/contracts/client-contracts#create", icon: FileText },
+      { key: "resources", label: "Manage Resources (add / copy / remove)", path: "/admin/contracts/client-contracts#resources", icon: FileText },
       { key: "rate_revision", label: "Revise Rates (Copy as revised rate)", path: "/admin/contracts/client-contracts#rate-revision", icon: FileText },
       { key: "edit_existing_rates", label: "Edit Existing Contract Rates", path: "/admin/contracts/client-contracts#edit-existing-rates", icon: FileText },
     ],

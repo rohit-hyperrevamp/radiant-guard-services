@@ -2418,12 +2418,11 @@ function ClientContractsPage() {
     updateStageMut,
     resubmitMut,
   } = useContracts();
-  const { can, roleKey, isSuperAdmin } = useCurrentPermissions();
-  // Super Admin always retains full control over every existing contract.
+  const { can, canSub, roleKey, isSuperAdmin } = useCurrentPermissions();
   const canApprove = isSuperAdmin || can("contracts", "approve");
-  const canEdit = isSuperAdmin || can("contracts", "edit");
-  const canCopy = canEdit || roleKey === "finance";
-  const canDelete = isSuperAdmin || can("contracts", "delete");
+  const canEdit = isSuperAdmin || canSub("contracts", "client_contracts", "edit");
+  const canCopy = canEdit || canSub("contracts", "create", "edit");
+  const canDelete = isSuperAdmin || canSub("contracts", "client_contracts", "delete");
   const isHrReadOnly = !isSuperAdmin && (roleKey === "hr" || roleKey === "hr_executive");
   const units = useMemo(
     () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
@@ -4330,6 +4329,8 @@ function ResourcesSection({
   onDelete: (idx: number) => void;
 }) {
   const [viewIdx, setViewIdx] = useState<number | null>(null);
+  const { canSub: canSubPerm, isSuperAdmin: isSuperPerm } = useCurrentPermissions();
+  const canManageResources = isSuperPerm || canSubPerm("contracts", "resources", "edit");
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
@@ -4425,6 +4426,7 @@ function ResourcesSection({
         <button
           type="button"
           onClick={onAdd}
+          disabled={!canManageResources}
           className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-card px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-accent hover:bg-accent/5 hover:text-foreground"
         >
           <Users className="h-6 w-6 opacity-60" />
@@ -4613,6 +4615,7 @@ function ResourcesSection({
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    {canManageResources && (
                     <Button
                       type="button"
                       size="sm"
@@ -4623,7 +4626,8 @@ function ResourcesSection({
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
-                    {!r.id && (
+                    )}
+                    {!r.id && canManageResources && (
                       <Button
                         type="button"
                         size="sm"
@@ -4640,6 +4644,7 @@ function ResourcesSection({
               </div>
             );
           })}
+{canManageResources && (
           <Button
             type="button"
             variant="outline"
@@ -4648,6 +4653,7 @@ function ResourcesSection({
           >
             <Plus className="mr-1.5 h-4 w-4" /> Add another resource
           </Button>
+          )}
         </div>
       )}
       {viewIdx !== null && resources[viewIdx] && (
