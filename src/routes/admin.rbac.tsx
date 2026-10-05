@@ -364,6 +364,37 @@ function RBACPage() {
         ))}
       </div>
 
+      {mode === "designation" && (
+        <div className="mb-4 space-y-2 rounded-xl border border-border bg-card p-3">
+          <Input
+            value={empSearch}
+            onChange={(e) => setEmpSearch(e.target.value)}
+            placeholder="Search designations…"
+            className="h-10"
+          />
+          <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
+            {(empQuery.data ?? []).map((e) => {
+              const label = `${e.full_name ?? "Unnamed"}${e.employee_code ? ` · ${e.employee_code}` : ""}`;
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => setActiveEmp({ id: e.id, label })}
+                  className={cn(
+                    "block w-full border-b border-border/50 px-3 py-2 text-left text-sm last:border-0 hover:bg-secondary/40",
+                    activeEmp?.id === e.id && "bg-accent/10 font-semibold text-accent",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Applies to this designation in every department. To limit it to one department, use Departments → Designation in this department.
+          </p>
+        </div>
+      )}
       {mode === "department" && (
         <div className="mb-4 space-y-3">
           <div className="scrollbar-hide -mx-2 flex flex-nowrap items-center gap-2 overflow-x-auto px-2 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
