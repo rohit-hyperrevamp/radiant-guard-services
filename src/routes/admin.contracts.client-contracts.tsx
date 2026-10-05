@@ -1,3 +1,4 @@
+import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -2705,6 +2706,11 @@ function ClientContractsPage() {
         eyebrow="Contracts"
         description={isHrReadOnly ? "View contracts across organisations and clients." : "Manage contracts across organisations and clients."}
         crumbs={[{ label: "Contracts" }, { label: "Client Contracts" }]}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <RouterLink to="/admin/contracts/bulk-rate-revision">Bulk rate revision</RouterLink>
+          </Button>
+        }
         kpis={
           <>
             <PageStat label="All contracts" value={isLoading ? "—" : overview.total} />
