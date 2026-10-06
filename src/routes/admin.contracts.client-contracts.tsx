@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SearchSelect } from "@/components/SearchSelect";
+import { ContractExportDialog } from "@/components/ContractExportDialog";
 import {
   Check,
   CheckCircle2,
@@ -2457,12 +2458,14 @@ function ClientContractsPage() {
     updateStageMut,
     resubmitMut,
   } = useContracts();
-  const { can, canSub, roleKey, isSuperAdmin } = useCurrentPermissions();
+  const { can, canSub, canExport, roleKey, isSuperAdmin } = useCurrentPermissions();
   const canApprove = isSuperAdmin || can("contracts", "approve");
   const canEdit = isSuperAdmin || canSub("contracts", "client_contracts", "edit");
   const canCopy = canEdit || canSub("contracts", "create", "edit");
   const canDelete = isSuperAdmin || canSub("contracts", "client_contracts", "delete");
   const isHrReadOnly = !isSuperAdmin && (roleKey === "hr" || roleKey === "hr_executive");
+  const canExportContracts = canExport("contracts");
+  const [exportOpen, setExportOpen] = useState(false);
   const units = useMemo(
     () => Array.from(new Map(items.filter((item) => item.unitId).map((item) => [item.unitId, {
       id: item.unitId,
@@ -2807,39 +2810,54 @@ function ClientContractsPage() {
             <span className="hidden sm:inline">Bulk rate revision</span>
           </RouterLink>
         </Button>
-        {!isHrReadOnly && <Button
+        {canExportContracts && <Button
           variant="outline"
-          disabled={filtered.length === 0}
-          onClick={() =>
-            downloadCsv(
-              "client-contracts",
-              filtered.map((c) => ({
-                code: c.contractCode,
-                organization: c.orgName,
-                unit: `${c.unitCode} – ${c.unitName}`,
-                start: csvDate(c.startDate),
-                end: csvDate(c.endDate),
-                description: c.description,
-                gst: c.gstOption.toUpperCase(),
-                status: STATUS_LABEL[deriveStatus(c)],
-              })),
-              [
-                { key: "code", header: "Contract ID" },
-                { key: "organization", header: "Organization" },
-                { key: "unit", header: "Client" },
-                { key: "start", header: "Start date" },
-                { key: "end", header: "End date" },
-                { key: "description", header: "Description" },
-                { key: "gst", header: "GST option" },
-                { key: "status", header: "Status" },
-              ],
-            )
-          }
+          disabled={items.length === 0}
+          onClick={() => setExportOpen(true)}
           className="h-9 rounded-lg px-2.5 text-xs sm:h-10 sm:px-4 sm:text-sm"
         >
           <Download className="mr-1.5 h-4 w-4" />
           <span className="sm:hidden">Export</span><span className="hidden sm:inline">Export Contracts</span>
         </Button>}
+        <ContractExportDialog
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+          all={items}
+          shown={filtered}
+          onExportList={(rows, label) =>
+            downloadCsv(
+                label,
+                rows.map((c) => ({
+                  code: c.contractCode,
+                  organization: c.orgName,
+                  unit: `${c.unitCode} – ${c.unitName}`,
+                  start: csvDate(c.startDate),
+                  end: csvDate(c.endDate),
+                  description: c.description,
+                  gst: c.gstOption.toUpperCase(),
+                  status: STATUS_LABEL[deriveStatus(c)],
+                })),
+                [
+                  { key: "code", header: "Contract ID" },
+                  { key: "organization", header: "Organization" },
+                  { key: "unit", header: "Client" },
+                  { key: "start", header: "Start date" },
+                  { key: "end", header: "End date" },
+                  { key: "description", header: "Description" },
+                  { key: "gst", header: "GST option" },
+                  { key: "status", header: "Status" },
+                ],
+              )
+          }
+          onExportOne={async (c) => {
+            try {
+              await exportContractToXlsx(c);
+              toast.success(`Exported ${c.contractCode || c.prospectCode}.xlsx`);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Export failed");
+            }
+          }}
+        />
         {canEdit && (
           <input
             ref={importInputRef}
@@ -3065,7 +3083,7 @@ function ClientContractsPage() {
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       )}
-                      {!isHrReadOnly && <Button
+                      {canExportContracts && <Button
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
