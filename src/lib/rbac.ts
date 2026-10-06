@@ -163,6 +163,7 @@ export function useCurrentPermissions(): {
   canSub: SubPermCheck;
   canAction: ActionPermCheck;
   canWidget: (widgetKey: string) => boolean;
+  canExport: (moduleKey: string) => boolean;
 } {
   const { user } = useAuth();
   // Separate useAuth consumers hydrate independently. Read the already-written
@@ -295,6 +296,13 @@ export function useCurrentPermissions(): {
     return r ? r.can_view : true;
   };
 
+  // Export: explicit <module>::export row wins, else follows module View.
+  const canExport = (moduleKey: string) => {
+    if (isSuperAdmin) return true;
+    const r = map.get(`${moduleKey}::export`);
+    return r ? r.can_view : can(moduleKey, "view");
+  };
+
   return {
     // Cached values prevent blank screens, but routing must wait for the live
     // role and permission reads so an old device cache cannot select a stale dashboard.
@@ -308,6 +316,7 @@ export function useCurrentPermissions(): {
     canSub,
     canAction,
     canWidget,
+    canExport,
   };
 }
 

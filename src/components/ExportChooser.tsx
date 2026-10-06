@@ -8,8 +8,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useRouterState } from "@tanstack/react-router";
+import { useCurrentPermissions } from "@/lib/rbac";
+import { moduleForPath } from "@/lib/rbac-modules";
 import {
   EXPORT_REQUEST_EVENT,
+  setExportGuard,
   writePdf,
   writeXlsx,
   type ExportRequestPayload,
@@ -20,6 +24,15 @@ type OptionKind = "xlsx" | "pdf" | "mis";
 export function ExportChooser() {
   const [payload, setPayload] = useState<ExportRequestPayload | null>(null);
   const [busy, setBusy] = useState<OptionKind | null>(null);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { canExport, isLoading } = useCurrentPermissions();
+  const moduleKey = moduleForPath(pathname);
+  const allowed = isLoading || !moduleKey || canExport(moduleKey);
+
+  useEffect(() => {
+    setExportGuard(() => allowed);
+    return () => setExportGuard(null);
+  }, [allowed]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
