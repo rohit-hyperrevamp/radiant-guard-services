@@ -20,7 +20,7 @@ export const startImpersonation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const superPhone = process.env["VITE_SUPER_ADMIN_PHONE"] || DEFAULT_SUPER_ADMIN_PHONE;
     const callerPhone = phoneFromEmail(context.claims.email);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
 
     let isSuper = callerPhone === superPhone;
     if (!isSuper && callerPhone) {

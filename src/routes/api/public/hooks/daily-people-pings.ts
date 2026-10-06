@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/public/hooks/daily-people-pings")({
   server: {
     handlers: {
       POST: async () => {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
 
         const today = todayMMDD();
         const now = new Date();

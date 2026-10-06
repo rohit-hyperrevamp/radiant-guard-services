@@ -74,7 +74,7 @@ export const Route = createFileRoute("/api/public/hooks/alertcheckin-sync")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
         const db = supabaseAdmin as unknown as { from: (t: string) => any };
         const key = request.headers.get("x-sync-key") ?? "";
         const hash = createHash("sha256").update(key).digest("hex");

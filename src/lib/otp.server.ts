@@ -25,7 +25,7 @@ export function fixedCodeFor(phone: string): string | null {
 /** Refuse to send a code to a phone that belongs to no employee. */
 export async function assertRegisteredPhone(phone: string): Promise<void> {
   if (phone === SUPER_ADMIN_OTP_PHONE) return;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
   const { data, error } = await supabaseAdmin
     .from("candidates")
     .select("id")
@@ -40,7 +40,7 @@ export async function assertRegisteredPhone(phone: string): Promise<void> {
 export async function resolveOtpMode(phone: string): Promise<OtpMode> {
   if (phone === SUPER_ADMIN_OTP_PHONE || FIXED_CODE_PHONES[phone]) return "fixed";
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
     const { data, error } = await supabaseAdmin
       .from("inv_settings" as never)
       .select("value")

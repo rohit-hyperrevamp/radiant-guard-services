@@ -15,8 +15,10 @@ export const Route = createFileRoute("/api/public/otp-health")({
 
         let smsEnabled: boolean | null = null;
         let settingsError: string | null = null;
+        let employeeLookupOk: boolean | null = null;
+        let generatedClientSeesEmployees: boolean | null = null;
         try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
           const { data, error } = await supabaseAdmin
             .from("inv_settings" as never)
             .select("value")
@@ -27,8 +29,17 @@ export const Route = createFileRoute("/api/public/otp-health")({
             const value = (data as unknown as { value?: { enabled?: boolean } } | null)?.value;
             smsEnabled = data ? Boolean(value?.enabled ?? true) : true;
           }
+          const people = await supabaseAdmin.from("candidates").select("id").limit(1);
+          employeeLookupOk = !people.error && (people.data?.length ?? 0) > 0;
         } catch (error) {
           settingsError = error instanceof Error ? error.message : "unknown";
+        }
+        try {
+          const generated = await import("@/integrations/supabase/client.server");
+          const people = await generated.supabaseAdmin.from("candidates").select("id").limit(1);
+          generatedClientSeesEmployees = !people.error && (people.data?.length ?? 0) > 0;
+        } catch {
+          generatedClientSeesEmployees = false;
         }
 
         return Response.json(
@@ -37,6 +48,8 @@ export const Route = createFileRoute("/api/public/otp-health")({
             smsCredentialLength: authKey ? authKey.length : 0,
             smsEnabled,
             settingsError,
+            employeeLookupOk,
+            generatedClientSeesEmployees,
             backend: supabaseUrl,
             checkedAt: new Date().toISOString(),
           },

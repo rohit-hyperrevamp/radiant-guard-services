@@ -18,7 +18,7 @@ export const backfillSignedUrls = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("is_admin_user");
     if (!isAdmin) throw new Error("Forbidden");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
     const admin = supabaseAdmin as unknown as {
       from: (t: string) => {
         select: (s: string) => Promise<{ data: Array<Record<string, unknown>> | null; error: { message: string } | null }>;

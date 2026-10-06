@@ -51,7 +51,7 @@ const readSurepassToken = createServerOnlyFn(async (): Promise<string> => {
   const environmentToken = process.env["SUREPASS_API_KEY"] ?? process.env["SUREPASS_TOKEN"];
   if (environmentToken) return environmentToken;
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
   const { data, error } = await supabaseAdmin.rpc("get_surepass_api_key" as never);
   if (error) {
     console.error("[surepass] secure key lookup failed", error.message);
