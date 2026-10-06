@@ -360,8 +360,9 @@ export function moduleForPath(pathname: string): string | null {
     const paths = [m.path, ...m.subModules.map((s) => s.path.split("#")[0])];
     for (const p of paths) {
       if (!p) continue;
-      const base = p.replace(/\/[^/]*$/, "") || p; // module section, e.g. /admin/inventory
-      for (const cand of [p, base]) {
+      const base = p.replace(/\/[^/]*$/, ""); // module section, e.g. /admin/inventory
+      const cands = base.split("/").length >= 3 ? [p, base] : [p];
+      for (const cand of cands) {
         if ((pathname === cand || pathname.startsWith(cand + "/")) && (!best || cand.length > best.len)) {
           best = { key: m.key, len: cand.length };
         }
