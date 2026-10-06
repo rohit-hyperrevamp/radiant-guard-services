@@ -6,7 +6,7 @@ export const restorePhoneSession = createServerFn({ method: "POST" })
     z.object({ phone: z.string().regex(/^\d{10}$/) }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
     const eligibility = await supabaseAdmin.rpc("can_phone_login", {
       _mobile: data.phone,
     });

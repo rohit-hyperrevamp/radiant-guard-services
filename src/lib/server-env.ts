@@ -6,7 +6,7 @@
 //
 // Called from `src/server.ts` on every request entry, so it runs ahead of every
 // server function and SSR render. Never imported by browser code.
-const PRODUCTION_SUPABASE: Record<string, string> = {
+export const PRODUCTION_SUPABASE: Record<string, string> = {
   SUPABASE_PROJECT_ID: "yimpxawqoarprhtxapie",
   SUPABASE_URL: "https://yimpxawqoarprhtxapie.supabase.co",
   SUPABASE_PUBLISHABLE_KEY:
