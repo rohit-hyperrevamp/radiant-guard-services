@@ -19,3 +19,5 @@
 - Unit reach for attendance is the `attendance::all_units` switch, else the person's unit/customer/site mapping; admin = admin/super_admin role only (no hard-coded phones) — scope and admin status stay data-driven.
 - Dashboard widgets are `dashboard::w_*` sub-modules checked via `canWidget`; no row = visible (still gated by the data module), an explicit role/department/designation/employee row decides — new dashboard sections should get a widget key.
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — the deploy build can bake `process.env.SUPABASE_*` to the empty preview backend.
+- Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view) — alerts follow Access Control, not fixed roles.
+- Exports are gated centrally: `<module>::export` (View) checked by `canExport`; ExportChooser installs a guard so `downloadCsv`/`openExport` refuse on pages of modules without export access — one switch per module, no per-button wiring.

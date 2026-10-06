@@ -2830,6 +2830,7 @@ function ClientContractsPage() {
                 rows.map((c) => ({
                   code: c.contractCode,
                   organization: c.orgName,
+                  state: c.stateLabel ?? "",
                   unit: `${c.unitCode} – ${c.unitName}`,
                   start: csvDate(c.startDate),
                   end: csvDate(c.endDate),
@@ -2840,6 +2841,7 @@ function ClientContractsPage() {
                 [
                   { key: "code", header: "Contract ID" },
                   { key: "organization", header: "Organization" },
+                  { key: "state", header: "State" },
                   { key: "unit", header: "Client" },
                   { key: "start", header: "Start date" },
                   { key: "end", header: "End date" },
