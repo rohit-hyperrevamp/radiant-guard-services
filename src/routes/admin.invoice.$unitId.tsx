@@ -733,31 +733,51 @@ function PayrollUnitPage() {
       const rosterById = new Map(roster.map((c) => [c.id, c]));
       const pairKey = (cid: string, did: string | null, sh = 0) => `${cid}|${did ?? "__none__"}|${sh}`;
       const entryShift = (e: unknown) => Number((e as { shift_hours?: number | null }).shift_hours) || 0;
-      const pairs = new Map<string, { candidateId: string; designationId: string | null; shift: number }>();
+      // Regular vs reliever is decided by the attendance line itself
+      // (attendance_entries.is_reliever), never by the profile designation.
+      const entryReliever = (e: unknown) => Boolean((e as { is_reliever?: boolean | null }).is_reliever);
+      const lineKey = (cid: string, did: string | null, sh: number, rel: boolean) => `${pairKey(cid, did, sh)}|${rel ? "R" : "N"}`;
+      const pairs = new Map<string, { candidateId: string; designationId: string | null; shift: number; reliever: boolean }>();
 
       for (const c of roster) {
         const sh = postingShift.get(c.id) ?? 0;
-        const k = pairKey(c.id, c.designation_id ?? null, sh);
-        pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null, shift: sh });
+        const k = lineKey(c.id, c.designation_id ?? null, sh, false);
+        pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null, shift: sh, reliever: false });
       }
+      const entryCountByLine = new Map<string, number>();
       for (const e of entries) {
         if (!rosterById.has(e.candidate_id)) continue;
-        const k = pairKey(e.candidate_id, e.designation_id, entryShift(e));
-        if (!pairs.has(k)) pairs.set(k, { candidateId: e.candidate_id, designationId: e.designation_id, shift: entryShift(e) });
+        const rel = entryReliever(e);
+        const k = lineKey(e.candidate_id, e.designation_id, entryShift(e), rel);
+        entryCountByLine.set(k, (entryCountByLine.get(k) ?? 0) + 1);
+        if (!pairs.has(k)) pairs.set(k, { candidateId: e.candidate_id, designationId: e.designation_id, shift: entryShift(e), reliever: rel });
+      }
+      // One regular line per person carries PH credit and day adjustments:
+      // their own-designation line when it has attendance, else their busiest regular line.
+      const mainLineByCandidate = new Map<string, string>();
+      for (const [k, p] of pairs) {
+        if (p.reliever) continue;
+        const c = rosterById.get(p.candidateId)!;
+        const cur = mainLineByCandidate.get(p.candidateId);
+        const score = (key: string, pp: typeof p) =>
+          (entryCountByLine.get(key) ?? 0) * 2 + ((c.designation_id ?? null) === pp.designationId ? 1 : 0);
+        if (!cur || score(k, p) > score(cur, pairs.get(cur)!)) mainLineByCandidate.set(p.candidateId, k);
       }
 
-      const rows = Array.from(pairs.values()).map((p) => {
+      const rows = Array.from(pairs.entries()).map(([pk, p]) => {
         const c = rosterById.get(p.candidateId)!;
         const did = p.designationId ? String(p.designationId) : "";
         const designationName = (p.designationId && desigMap.get(p.designationId)) || "—";
-        // Filter entries to just this (candidate, designation) pair so totals reflect only that line.
+        // Filter entries to just this line so totals reflect only that line.
         const lineEntries = entries.filter(
           (e) =>
             e.candidate_id === p.candidateId &&
             (e.designation_id ?? null) === p.designationId &&
-            entryShift(e) === p.shift,
+            entryShift(e) === p.shift &&
+            entryReliever(e) === p.reliever,
         );
-        const isPrimary = (c.designation_id ?? null) === p.designationId;
+        const isPrimary = !p.reliever && mainLineByCandidate.get(p.candidateId) === pk;
+        const isRegular = !p.reliever;
         // PH credit belongs to the employee's primary line only — reliever
         // lines must not earn a second credit for the same holiday.
         const totals = computeAttendanceTotals(
@@ -856,7 +876,7 @@ function PayrollUnitPage() {
         }
         return {
           id: c.id,
-          rowKey: pairKey(c.id, p.designationId),
+          rowKey: pk,
           employeeCode: c.employee_code || "",
           joiningDate:
             ((c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null) as string | null,
@@ -864,6 +884,7 @@ function PayrollUnitPage() {
           designation: designationName,
           designationId: p.designationId,
           isPrimary,
+          isRegular,
           shiftHours: line.shift,
           billingDayBase: line.billingBase,
           totals,
@@ -877,7 +898,7 @@ function PayrollUnitPage() {
         const an = (a.employeeCode || a.name).localeCompare(b.employeeCode || b.name);
         if (an !== 0) return an;
         // primary first, then by designation name
-        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        if (a.isRegular !== b.isRegular) return a.isRegular ? -1 : 1;
         return a.designation.localeCompare(b.designation);
       });
 
@@ -913,9 +934,9 @@ function PayrollUnitPage() {
     if (!splitActive) return all;
     const fixedValue = billingMode === "lumpsum" || billingMode === "man_months";
     return all
-      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.isPrimary, invoiceSplit, activePart) }))
+      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.isRegular, invoiceSplit, activePart) }))
       .filter((r) => {
-        if (fixedValue) return r.isPrimary ? invoiceSplit.assign.regular === activePart : invoiceSplit.assign.reliever === activePart;
+        if (fixedValue) return r.isRegular ? invoiceSplit.assign.regular === activePart : invoiceSplit.assign.reliever === activePart;
         return r.totals.tDays > 0;
       });
   }, [data, splitActive, invoiceSplit, activePart, billingMode]);
@@ -1289,7 +1310,7 @@ function PayrollUnitPage() {
           invoice_date: dmy(end),
           emp_code: r.employeeCode,
           employee_name: r.name,
-          regular_reliever: r.isPrimary ? "Regular" : "Reliever",
+          regular_reliever: r.isRegular ? "Regular" : "Reliever",
           doj: dmy(r.joiningDate),
           entity,
           designation: `${r.designation} @ (${m.shiftHours})`,
