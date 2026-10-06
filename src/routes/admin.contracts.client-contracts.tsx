@@ -4532,7 +4532,7 @@ function ResourcesSection({
     add("Employer cost", (r) => r.employerContributions ?? []);
     rows.push({ section: "", item: "Monthly billing", ...Object.fromEntries(dayRates.map((d, i) => [`r${i}`, Number(d.monthly.toFixed(2))])) });
     openExport({
-      filename: `contract-rate-structure-${csvDate()}`,
+      filename: `contract-rate-structure-${csvDate(new Date())}`,
       rows,
       columns: [{ key: "section", header: "Section" }, { key: "item", header: "Item" }, ...cols],
       labels: {
