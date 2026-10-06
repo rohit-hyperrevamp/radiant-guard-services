@@ -53,7 +53,7 @@ BEGIN
       FROM public.client_contracts cc
       JOIN public.units u ON u.id = cc.unit_id
       LEFT JOIN public.customers cu ON cu.id = u.customer_id
-     WHERE cc.record_type = 'contract' AND cc.status = 'active'
+     WHERE cc.record_type = 'client' AND cc.status = 'active'
        AND COALESCE(cc.end_date, cc.expiry_date) IS NOT NULL
        AND (COALESCE(cc.end_date, cc.expiry_date) - (now() AT TIME ZONE 'Asia/Kolkata')::date) IN (15,10,5,3,2,1)
   ),
