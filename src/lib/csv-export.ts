@@ -432,11 +432,25 @@ function triggerDownload(blob: Blob, filename: string) {
 // Public API — opens the chooser
 // ---------------------------------------------------------------------------
 
+// Export access guard, installed by ExportChooser from Access Control.
+let exportGuard: (() => boolean) | null = null;
+export function setExportGuard(fn: (() => boolean) | null) {
+  exportGuard = fn;
+}
+function exportBlocked(): boolean {
+  if (!exportGuard || exportGuard()) return false;
+  if (typeof window !== "undefined") {
+    void import("sonner").then(({ toast }) => toast.error("You don't have export access for this section."));
+  }
+  return true;
+}
+
 export function downloadCsv<T extends Record<string, unknown>>(
   filename: string,
   rows: T[],
   columns?: { key: keyof T | string; header: string }[],
 ) {
+  if (exportBlocked()) return;
   const payload: ExportRequestPayload = {
     filename,
     rows: rows as Array<Record<string, unknown>>,
@@ -459,6 +473,7 @@ export const EXPORT_REQUEST_EVENT = EXPORT_EVENT;
 // Open the chooser with a fully-formed payload (supports custom labels,
 // per-format columns, and an optional MIS XLS option).
 export function openExport(payload: ExportRequestPayload) {
+  if (exportBlocked()) return;
   if (typeof window === "undefined") {
     writeCsv(payload);
     return;

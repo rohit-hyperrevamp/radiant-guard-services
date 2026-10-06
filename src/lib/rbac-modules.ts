@@ -334,6 +334,44 @@ export const RBAC_MODULES: ModuleDef[] = [
   },
 ];
 
+// Export permission: every data module gets an "export" switch (View = may
+// download XLS/PDF/CSV). No explicit row = follows the module's View access.
+export const EXPORT_CAPABLE_MODULES = [
+  "organizations", "contracts", "sales_marketing", "recruitment", "employees", "vehicles",
+  "assets", "inventory", "attendance", "payroll", "invoice", "control_center", "field_sense",
+];
+for (const m of RBAC_MODULES) {
+  if (!EXPORT_CAPABLE_MODULES.includes(m.key)) continue;
+  if (m.key === "contracts") {
+    m.subModules.push({
+      key: "expiry_alerts",
+      label: "Contract expiry alerts (View = receive 15/10/5/3/2/1-day notices)",
+      path: `${m.path}#expiry-alerts`,
+      icon: m.icon,
+    });
+  }
+  m.subModules.push({ key: "export", label: "Export data (View = can download)", path: `${m.path}#export`, icon: m.icon });
+}
+
+/** Module whose page is at this pathname (longest prefix wins). */
+export function moduleForPath(pathname: string): string | null {
+  let best: { key: string; len: number } | null = null;
+  for (const m of RBAC_MODULES) {
+    const paths = [m.path, ...m.subModules.map((s) => s.path.split("#")[0])];
+    for (const p of paths) {
+      if (!p) continue;
+      const base = p.replace(/\/[^/]*$/, ""); // module section, e.g. /admin/inventory
+      const cands = base.split("/").length >= 3 ? [p, base] : [p];
+      for (const cand of cands) {
+        if ((pathname === cand || pathname.startsWith(cand + "/")) && (!best || cand.length > best.len)) {
+          best = { key: m.key, len: cand.length };
+        }
+      }
+    }
+  }
+  return best?.key ?? null;
+}
+
 export type PermissionAction = "view" | "edit" | "delete" | "approve";
 export const PERMISSION_ACTIONS: PermissionAction[] = ["view", "edit", "delete", "approve"];
 
