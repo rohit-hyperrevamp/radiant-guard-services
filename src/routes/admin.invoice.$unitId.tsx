@@ -876,7 +876,7 @@ function PayrollUnitPage() {
         }
         return {
           id: c.id,
-          rowKey: pairKey(c.id, p.designationId),
+          rowKey: pk,
           employeeCode: c.employee_code || "",
           joiningDate:
             ((c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null) as string | null,
@@ -884,6 +884,7 @@ function PayrollUnitPage() {
           designation: designationName,
           designationId: p.designationId,
           isPrimary,
+          isRegular,
           shiftHours: line.shift,
           billingDayBase: line.billingBase,
           totals,
@@ -897,7 +898,7 @@ function PayrollUnitPage() {
         const an = (a.employeeCode || a.name).localeCompare(b.employeeCode || b.name);
         if (an !== 0) return an;
         // primary first, then by designation name
-        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        if (a.isRegular !== b.isRegular) return a.isRegular ? -1 : 1;
         return a.designation.localeCompare(b.designation);
       });
 
@@ -933,9 +934,9 @@ function PayrollUnitPage() {
     if (!splitActive) return all;
     const fixedValue = billingMode === "lumpsum" || billingMode === "man_months";
     return all
-      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.isPrimary, invoiceSplit, activePart) }))
+      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.isRegular, invoiceSplit, activePart) }))
       .filter((r) => {
-        if (fixedValue) return r.isPrimary ? invoiceSplit.assign.regular === activePart : invoiceSplit.assign.reliever === activePart;
+        if (fixedValue) return r.isRegular ? invoiceSplit.assign.regular === activePart : invoiceSplit.assign.reliever === activePart;
         return r.totals.tDays > 0;
       });
   }, [data, splitActive, invoiceSplit, activePart, billingMode]);
@@ -1309,7 +1310,7 @@ function PayrollUnitPage() {
           invoice_date: dmy(end),
           emp_code: r.employeeCode,
           employee_name: r.name,
-          regular_reliever: r.isPrimary ? "Regular" : "Reliever",
+          regular_reliever: r.isRegular ? "Regular" : "Reliever",
           doj: dmy(r.joiningDate),
           entity,
           designation: `${r.designation} @ (${m.shiftHours})`,
