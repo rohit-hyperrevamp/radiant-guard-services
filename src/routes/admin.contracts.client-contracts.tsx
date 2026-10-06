@@ -37,7 +37,7 @@ import { logActivity } from "@/lib/activity-log";
 
 import { useCurrentPermissions, fetchRoles, type RoleRow } from "@/lib/rbac";
 import { notifyApprovers } from "@/lib/notifications";
-import { csvDate, downloadCsv } from "@/lib/csv-export";
+import { csvDate, downloadCsv, openExport } from "@/lib/csv-export";
 import {
   evaluateFormula,
   parseFormulaConfig,
@@ -4414,7 +4414,8 @@ function ResourcesSection({
   onDelete: (idx: number) => void;
 }) {
   const [viewIdx, setViewIdx] = useState<number | null>(null);
-  const { canSub: canSubPerm, isSuperAdmin: isSuperPerm } = useCurrentPermissions();
+  const { canSub: canSubPerm, isSuperAdmin: isSuperPerm, canExplicit } = useCurrentPermissions();
+  const canExportRates = canExplicit("contracts", "rate_export");
   const canManageResources = isSuperPerm || canSubPerm("contracts", "resources", "edit");
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
@@ -4505,8 +4506,51 @@ function ResourcesSection({
   const fmtRate = (n: number) =>
     `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  /** Present rate structure of every resource, side by side (one column per resource). */
+  function exportRateStructure() {
+    const cols = resources.map((r, i) => ({ key: `r${i}`, header: `${dById.get(r.designationId)?.name ?? "Resource"}${r.shiftHours ? ` (${r.shiftHours}h)` : ""}` }));
+    const rows: Record<string, string | number>[] = [];
+    const add = (section: string, pick: (r: ContractResource) => { name: string; amount?: unknown }[]) => {
+      const names: string[] = [];
+      resources.forEach((r) => pick(r).forEach((c) => { if (!names.includes(c.name)) names.push(c.name); }));
+      const totals: Record<string, number> = {};
+      for (const n of names) {
+        const row: Record<string, string | number> = { section, item: n };
+        resources.forEach((r, i) => {
+          const hit = pick(r).find((c) => c.name === n);
+          const v = hit ? Number(hit.amount) || 0 : 0;
+          row[`r${i}`] = hit ? v : "—";
+          totals[`r${i}`] = (totals[`r${i}`] ?? 0) + v;
+        });
+        rows.push(row);
+      }
+      rows.push({ section, item: `Total ${section.toLowerCase()}`, ...totals });
+    };
+    rows.push({ section: "", item: "Quantity", ...Object.fromEntries(resources.map((r, i) => [`r${i}`, r.quantity])) });
+    add("Wages", (r) => r.components);
+    add("Deductions", (r) => r.deductions ?? []);
+    add("Employer cost", (r) => r.employerContributions ?? []);
+    rows.push({ section: "", item: "Monthly billing", ...Object.fromEntries(dayRates.map((d, i) => [`r${i}`, Number(d.monthly.toFixed(2))])) });
+    openExport({
+      filename: `contract-rate-structure-${csvDate(new Date())}`,
+      rows,
+      columns: [{ key: "section", header: "Section" }, { key: "item", header: "Item" }, ...cols],
+      labels: {
+        xlsx: { title: "Download Excel", desc: "Present rate structure as a spreadsheet" },
+        pdf: { title: "Download PDF", desc: "Present rate structure as a printable document" },
+      },
+    });
+  }
+
   return (
     <Section title="Resources">
+      {canExportRates && resources.some((r) => r.id) ? (
+        <div className="mb-2 flex justify-end">
+          <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={exportRateStructure}>
+            <Download className="mr-1 h-3.5 w-3.5" /> Export rate structure
+          </Button>
+        </div>
+      ) : null}
       {resources.length === 0 ? (
         <button
           type="button"
@@ -4646,6 +4690,7 @@ function ResourcesSection({
                         resource={r}
                         label={dn?.name ?? "Resource"}
                         canEdit={canEditRates}
+                        canExportRates={canExportRates}
                         Editor={ResourceFormDialog}
                         contractStartDate={contractStartDate}
                         contractEndDate={contractEndDate}
