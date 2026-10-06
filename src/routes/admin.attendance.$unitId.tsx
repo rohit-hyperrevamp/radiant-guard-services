@@ -2384,7 +2384,31 @@ function MusterRollPage() {
     return out;
   };
 
-  const onPickUploadFiles = (files: File[]) => {
+  const onPickUploadFiles = async (picked: File[]) => {
+    let files = picked;
+    if (picked.some((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name))) {
+      setPreparingScan(true);
+      try {
+        const { pdfToImageFiles } = await import("@/lib/pdf-pages");
+        const expanded: File[] = [];
+        for (const f of picked) {
+          if (f.type === "application/pdf" || /\.pdf$/i.test(f.name))
+            expanded.push(...(await pdfToImageFiles(f)));
+          else expanded.push(f);
+        }
+        files = expanded;
+        if (!files.length) {
+          toast.error("The PDF has no pages to read.");
+          setPreparingScan(false);
+          return;
+        }
+      } catch {
+        toast.error("Could not open the PDF. Try another file.");
+        setPreparingScan(false);
+        return;
+      }
+      setPreparingScan(false);
+    }
     setUploadFile(files[0] ?? null);
     setUploadPreview(null);
     setUploadImages([]);
