@@ -73,6 +73,7 @@ export function ResourceRateRevisions({
   resource,
   label,
   canEdit,
+  canExportRates = false,
   Editor,
   contractStartDate,
   contractEndDate,
@@ -80,6 +81,7 @@ export function ResourceRateRevisions({
   resource: ContractResource;
   label: string;
   canEdit: boolean;
+  canExportRates?: boolean;
   Editor: ComponentType<EditorProps>;
   contractStartDate: string;
   contractEndDate: string;
@@ -521,9 +523,11 @@ export function ResourceRateRevisions({
             </tbody>
           </table>
           <DialogFooter className="gap-2 sm:justify-between">
-            <Button type="button" variant="outline" onClick={exportComparison} disabled={!comparisonTarget}>
-              <Download className="mr-1.5 h-4 w-4" /> Export comparison
-            </Button>
+            {canExportRates ? (
+              <Button type="button" variant="outline" onClick={exportComparison} disabled={!comparisonTarget}>
+                <Download className="mr-1.5 h-4 w-4" /> Export comparison
+              </Button>
+            ) : <span />}
             {canEdit && !comparedExpired && !comparedUpcoming && (
               <Button type="button" onClick={() => { setApplicableFrom(""); setApplicableTill(contractEndDate); setApproveOpen(true); }}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve revised rate

@@ -83,6 +83,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "resources", label: "Manage Resources (add / copy / remove)", path: "/admin/contracts/client-contracts#resources", icon: FileText },
       { key: "rate_revision", label: "Revise Rates (Copy as revised rate)", path: "/admin/contracts/client-contracts#rate-revision", icon: FileText },
       { key: "edit_existing_rates", label: "Edit Existing Contract Rates", path: "/admin/contracts/client-contracts#edit-existing-rates", icon: FileText },
+      { key: "rate_export", label: "Export Rate Structure & Comparison (View = can download; off unless granted)", path: "/admin/contracts/client-contracts#rate-export", icon: FileText },
     ],
   },
   {
