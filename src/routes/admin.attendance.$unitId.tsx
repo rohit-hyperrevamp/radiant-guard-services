@@ -4159,7 +4159,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
           <DialogHeader>
             <DialogTitle>Upload attendance sheet</DialogTitle>
             <DialogDescription>
-              Photos (several at once), Excel or CSV. Unclear cells are left blank and marked in
+              Photos (several at once), PDF, Excel or CSV. Unclear cells are left blank and marked in
               red.
             </DialogDescription>
           </DialogHeader>
@@ -4168,9 +4168,23 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
               ref={uploadInputRef}
               type="file"
               multiple
-              accept="image/*,.xlsx,.xls,.xlsm,.csv,.ods"
+              accept="image/*,application/pdf,.pdf,.xlsx,.xls,.xlsm,.csv,.ods"
               className="hidden"
-              onChange={(e) => onPickUploadFiles(Array.from(e.target.files ?? []))}
+              onChange={(e) => {
+                onPickUploadFiles(Array.from(e.target.files ?? []));
+                e.target.value = "";
+              }}
+            />
+            <input
+              id="attendance-pdf-input"
+              type="file"
+              multiple
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                onPickUploadFiles(Array.from(e.target.files ?? []));
+                e.target.value = "";
+              }}
             />
             {!uploadFile ? (
               <div className="space-y-2">
@@ -4180,14 +4194,23 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                   className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm text-muted-foreground hover:border-primary hover:text-primary"
                 >
                   <Upload className="h-6 w-6" />
-                  <span>Upload images or Excel</span>
+                  <span>Upload images, PDF or Excel</span>
                   <span className="text-xs">
-                    Select several photos at once · PNG, JPG, HEIC · XLSX, XLS, CSV
+                    Select several files at once · PNG, JPG, HEIC · PDF · XLSX, XLS, CSV
                   </span>
                 </button>
-                <Button variant="outline" className="w-full" onClick={openCameraScan}>
-                  <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => document.getElementById("attendance-pdf-input")?.click()}
+                  >
+                    <Upload className="mr-1.5 h-4 w-4" /> Upload PDF
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={openCameraScan}>
+                    <Camera className="mr-1.5 h-4 w-4" /> Scan with camera
+                  </Button>
+                </div>
                 <p className="text-[11px] text-muted-foreground">
                   Every photo is automatically straightened, cropped to the sheet and sharpened
                   before it is read.
