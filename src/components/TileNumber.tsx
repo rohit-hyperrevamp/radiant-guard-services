@@ -15,17 +15,39 @@ export function TileNumber({ children, className }: { children: ReactNode; class
       const base = parseFloat(getComputedStyle(box).fontSize);
       content.style.setProperty("font-size", `${base}px`, "important");
       const natural = content.getBoundingClientRect().width;
-      if (natural > box.clientWidth) content.style.setProperty("font-size", `${base * (box.clientWidth - 1) / natural}px`, "important");
+      if (natural > box.clientWidth)
+        content.style.setProperty(
+          "font-size",
+          `${(base * (box.clientWidth - 1)) / natural}px`,
+          "important",
+        );
     };
     fit();
     let lastWidth = box.clientWidth;
     const observer = new ResizeObserver(() => {
-      if (lastWidth !== box.clientWidth) { lastWidth = box.clientWidth; fit(); }
+      if (lastWidth !== box.clientWidth) {
+        lastWidth = box.clientWidth;
+        fit();
+      }
     });
     observer.observe(box);
     window.addEventListener("resize", fit);
     document.fonts.ready.then(fit);
-    return () => { active = false; observer.disconnect(); window.removeEventListener("resize", fit); };
+    return () => {
+      active = false;
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+    };
   }, [children]);
-  return <span ref={container} data-tile-number className={cn("block min-w-0 flex-1 tabular-nums leading-none", className)}><span ref={text} className="inline-block w-max whitespace-nowrap tracking-normal">{children}</span></span>;
+  return (
+    <span
+      ref={container}
+      data-tile-number
+      className={cn("block min-w-0 flex-1 tabular-nums leading-none", className)}
+    >
+      <span ref={text} className="inline-block w-max whitespace-nowrap tracking-normal">
+        {children}
+      </span>
+    </span>
+  );
 }

@@ -160,7 +160,9 @@ export function PageStat({
         )}
       </div>
       <div className="relative mt-auto flex items-end justify-between gap-2">
-        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">{value}</TileNumber>
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+          {value}
+        </TileNumber>
         <span
           className={cn(
             "grid h-7 w-7 shrink-0 place-items-center rounded-full ring-1 ring-inset sm:h-9 sm:w-9",

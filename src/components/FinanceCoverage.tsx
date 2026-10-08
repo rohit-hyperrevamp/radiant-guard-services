@@ -127,21 +127,20 @@ function Tile({
         />
         {label}
       </div>
-      <div
+      <TileNumber
         className={cn(
-          "mt-1 min-w-0 truncate text-base font-semibold tabular-nums xl:text-lg",
+          "mt-1 min-w-0 text-base font-semibold tabular-nums xl:text-lg",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
         )}
       >
         {value}
-      </div>
+      </TileNumber>
       {sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
-
 
 function VarianceChip({ diff, money }: { diff: number; money?: boolean }) {
   const tone =
@@ -262,8 +261,8 @@ function CoverageCard({
 
       <p className="mt-2 text-xs text-muted-foreground">
         Actual MTD is calculated from attendance duties and each contract resource&apos;s
-        payroll-day base. Completion is actual divided by the full-month commitment;
-        no calendar-day projection or static target is applied.
+        payroll-day base. Completion is actual divided by the full-month commitment; no calendar-day
+        projection or static target is applied.
       </p>
 
       <CharterDialog
@@ -306,10 +305,7 @@ function CharterDialog({
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.unit_name, r.customer_name, r.unit_code].some((v) =>
-        (v ?? "").toLowerCase().includes(q),
-      ),
-
+      [r.unit_name, r.customer_name, r.unit_code].some((v) => (v ?? "").toLowerCase().includes(q)),
     );
   }, [query, rows]);
 
@@ -547,7 +543,13 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   );
   const stateOptions = useMemo(
     () =>
-      Array.from(new Set(orgScopedRows.map((r) => r.client_state || r.billing_state).filter((s): s is string => !!s)))
+      Array.from(
+        new Set(
+          orgScopedRows
+            .map((r) => r.client_state || r.billing_state)
+            .filter((s): s is string => !!s),
+        ),
+      )
         .sort()
         .map((s) => ({ value: s, label: s })),
     [orgScopedRows],
@@ -556,7 +558,13 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   const scopedRows = useMemo(
     () =>
       orgScopedRows.filter((r) => {
-        if (stateFilter.length > 0 && !((r.client_state || r.billing_state) && stateFilter.includes((r.client_state || r.billing_state) as string)))
+        if (
+          stateFilter.length > 0 &&
+          !(
+            (r.client_state || r.billing_state) &&
+            stateFilter.includes((r.client_state || r.billing_state) as string)
+          )
+        )
           return false;
         return true;
       }),
@@ -567,10 +575,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const ready = scopedRows.filter((r) => !r.attendance_open);
     const invoice = ready.reduce((s, r) => s + r.actual_invoice, 0);
     const earnedGross = ready.reduce((s, r) => s + r.actual_payroll, 0);
-    const employerContribution = ready.reduce(
-      (s, r) => s + r.actual_employer_contribution,
-      0,
-    );
+    const employerContribution = ready.reduce((s, r) => s + r.actual_employer_contribution, 0);
     const profit = invoice - earnedGross - employerContribution;
     return {
       invoice,
@@ -635,7 +640,8 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           </div>
           <h2 className="text-base font-semibold">Client Profitability</h2>
           <p className="text-xs text-muted-foreground">
-            Live unit-level invoice, earned gross and employer contribution for the selected payroll window. Sites with attendance still open show ##.
+            Live unit-level invoice, earned gross and employer contribution for the selected payroll
+            window. Sites with attendance still open show ##.
           </p>
         </div>
         <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
@@ -681,7 +687,6 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           tone={totals.margin < 0 ? "destructive" : "success"}
         />
       </div>
-
 
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <LabeledMultiSelectFilter
@@ -743,8 +748,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
               </tr>
             )}
             {paged.pageRows.map((r) => {
-              const profit =
-                r.actual_invoice - r.actual_payroll - r.actual_employer_contribution;
+              const profit = r.actual_invoice - r.actual_payroll - r.actual_employer_contribution;
               const margin = r.actual_invoice > 0 ? (profit / r.actual_invoice) * 100 : 0;
               if (r.attendance_open) {
                 return (
