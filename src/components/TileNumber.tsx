@@ -43,7 +43,7 @@ export function TileNumber({ children, className }: { children: ReactNode; class
     <span
       ref={container}
       data-tile-number
-      className={cn("block min-w-0 flex-1 tabular-nums leading-none", className)}
+      className={cn("block w-full min-w-0 tabular-nums leading-none", className)}
     >
       <span ref={text} className="inline-block w-max whitespace-nowrap tracking-normal">
         {children}

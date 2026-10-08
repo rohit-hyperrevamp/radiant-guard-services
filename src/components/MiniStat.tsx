@@ -39,13 +39,13 @@ export function MiniStat({
   return (
     <div
       className={cn(
-        "group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5",
+        "dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[resolvedAccent],
       )}
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate whitespace-nowrap font-display text-[12.5px] font-medium leading-tight text-foreground sm:text-[14px]">
+          <div className="dashboard-tile-title font-display text-[12.5px] font-medium leading-tight text-foreground sm:text-[14px]">
             {label}
           </div>
           {(trend?.label || subtle) && (
