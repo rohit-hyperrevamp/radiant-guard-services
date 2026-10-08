@@ -72,7 +72,7 @@ export function EmployeeChangeRequest({ candidateId, current }: { candidateId: s
           </DialogHeader>
           {pending.length > 0 && (
             <div className="rounded-xl bg-accent p-3 text-xs text-accent-foreground">
-              {pending.length} request(s) already waiting. <Link to="/admin/approvals" className="underline">Open Approvals</Link>
+              {pending.length} request(s) already waiting.
             </div>
           )}
           <div className="grid gap-3">
