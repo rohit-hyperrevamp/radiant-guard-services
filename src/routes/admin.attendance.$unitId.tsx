@@ -469,7 +469,8 @@ function MusterRollPage() {
         supabase
           .from("employee_scope_assignments")
           .select("candidate_id, scope_type, scope_id")
-          .limit(5000),
+          .eq("scope_type", "unit")
+          .eq("scope_id", unitId),
       ]);
       if (linksError) throw linksError;
       if (rawUnitError) throw rawUnitError;
