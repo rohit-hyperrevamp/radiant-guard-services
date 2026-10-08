@@ -28,7 +28,7 @@ export const Route = createFileRoute("/admin/cases")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { view?: "upcoming"; case?: string } => ({
     view: s.view === "upcoming" ? ("upcoming" as const) : undefined,
     case: typeof s.case === "string" ? s.case : undefined,
   }),
