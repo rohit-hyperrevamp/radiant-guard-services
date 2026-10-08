@@ -1405,11 +1405,16 @@ function DashboardPage() {
       <div className="mb-4 empty:hidden"><MyUpcomingInterviewsCard /></div>
       <DashboardShell
         rightExtras={
-          !canWidget("people_insights") ? undefined : opsFocus ? (
-            <PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} />
-          ) : can("employees") ? (
-            <PeopleInsightsSection compact hideLive={roleKey === "hr"} />
-          ) : undefined
+          <>
+            {canWidget("live_people") && (can("employees") || can("field_sense")) && (
+              <LivePeopleCard liveOfficers={liveOfficerCount} compact />
+            )}
+            {!canWidget("people_insights") ? null : opsFocus ? (
+              <div className="max-h-[420px] overflow-y-auto rounded-2xl"><PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} /></div>
+            ) : can("employees") ? (
+              <div className="max-h-[420px] overflow-y-auto rounded-2xl"><PeopleInsightsSection compact hideLive={roleKey === "hr"} /></div>
+            ) : null}
+          </>
         }
         fullWidthBelow={
           <>
@@ -1432,9 +1437,6 @@ function DashboardPage() {
                 <OperationsRadarSummary />
               )}
               {canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
-              {canWidget("live_people") && (can("employees") || can("field_sense")) && (
-                <LivePeopleCard liveOfficers={liveOfficerCount} />
-              )}
               {!isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
                 <ReadinessCard
                   sheet={can("attendance") ? data.sheetCounts : null}
@@ -1603,7 +1605,7 @@ function useTeamLiveCounts() {
   };
 }
 
-function LivePeopleCard({ liveOfficers }: { liveOfficers: number }) {
+function LivePeopleCard({ liveOfficers, compact = false }: { liveOfficers: number; compact?: boolean }) {
   const online = useOnlineUserIds();
   const team = useTeamPeopleOnly();
   const staffQ = useQuery({
@@ -1621,7 +1623,7 @@ function LivePeopleCard({ liveOfficers }: { liveOfficers: number }) {
     .filter(Boolean) as string[];
   const staffLive = staffIds.filter((id) => online.has(id)).length;
   return (
-    <section aria-label="Live now" className="mb-4 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+    <section aria-label="Live now" className={compact ? "grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-2.5" : "mb-4 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2"}>
       <Link to="/admin/field-sense" className="rounded-xl border border-border p-3 hover:bg-muted/50">
         <div className="text-xs text-muted-foreground">Field officers live</div>
         <div className="mt-1 text-2xl font-semibold text-foreground">{liveOfficers}</div>
