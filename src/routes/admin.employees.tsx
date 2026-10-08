@@ -6312,7 +6312,28 @@ function ScopeAddDialog({
     setSelectedIds(new Set());
     setSearch("");
   }, [scopeType]);
+  const managersQ = useQuery({
+    queryKey: ["scope-team-managers"],
+    enabled: !!target && scopeType === "team",
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("candidates")
+        .select("id,full_name,employee_code,role_key")
+        .in("status", ["active", "approved"])
+        .not("role_key", "in", "(guard,security_guard)")
+        .order("full_name")
+        .limit(5000);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; full_name: string | null; employee_code: string | null }>;
+    },
+  });
   const allOptions: Array<{ id: string; label: string }> = useMemo(() => {
+    if (scopeType === "team")
+      return (managersQ.data ?? []).map((m) => ({
+        id: m.id,
+        label: `${m.full_name ?? "—"}${m.employee_code ? " · " + m.employee_code : ""} team`,
+      }));
     if (scopeType === "unit")
       return units.map((u) => ({
         id: u.id,
@@ -6321,7 +6342,7 @@ function ScopeAddDialog({
     if (scopeType === "customer") return customers.map((c) => ({ id: c.id, label: c.name }));
     if (scopeType === "branch") return branches.map((b) => ({ id: b.id, label: b.code }));
     return states.map((s) => ({ id: s.name, label: s.name }));
-  }, [scopeType, units, customers, branches, states]);
+  }, [scopeType, units, customers, branches, states, managersQ.data]);
   const existingIds = useMemo(
     () => new Set(existing.filter((e) => e.scope_type === scopeType).map((e) => e.scope_id)),
     [existing, scopeType],
@@ -6361,8 +6382,8 @@ function ScopeAddDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1 sm:grid-cols-4">
-            {(["state", "customer", "branch", "unit"] as ScopeType[]).map((t) => (
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1 sm:grid-cols-5">
+            {(["state", "customer", "branch", "unit", "team"] as ScopeType[]).map((t) => (
               <button
                 key={t}
                 type="button"

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type ScopeType = "state" | "customer" | "branch" | "unit";
+export type ScopeType = "state" | "customer" | "branch" | "unit" | "team";
 
 export type ScopeAssignment = {
   id: string;
@@ -140,4 +140,5 @@ export const SCOPE_TYPE_LABEL: Record<ScopeType, string> = {
   customer: "Organization",
   branch: "Branch",
   unit: "Client",
+  team: "Manager's team",
 };
