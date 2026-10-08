@@ -602,7 +602,7 @@ function GRNFormDialog({ open, onOpenChange, pos, vendors, branches, warehouses,
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
-      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+      if (problem) { toast.warning(`${steps[index].label} is incomplete: ${problem}`); break; }
     }
     setStepKey(key);
   };
@@ -1013,7 +1013,7 @@ function BranchGRNFormDialog({ open, onOpenChange, branchId, transfers, incoming
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
-      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+      if (problem) { toast.warning(`${steps[index].label} is incomplete: ${problem}`); break; }
     }
     setStepKey(key);
   };
@@ -1302,7 +1302,7 @@ function FieldOfficerGRNFormDialog({ open, onOpenChange, candidateId, userId, pe
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
-      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+      if (problem) { toast.warning(`${steps[index].label} is incomplete: ${problem}`); break; }
     }
     setStepKey(key);
   };

@@ -7984,14 +7984,15 @@ function CandidateWizard({
     }
     return null;
   };
+  // Everyone moves freely between steps; an incomplete step only shows a notice.
+  // Required fields are still checked when the form is finally saved.
+  const warnIfIncomplete = (key: string) => {
+    const s = steps.find((x) => x.key === key);
+    const problem = validateStep(key);
+    if (s && problem) toast.warning(`${s.label} is incomplete: ${problem}`);
+  };
   const goNext = () => {
-    if (!canSkipSteps) {
-      const problem = validateStep(stepKey);
-      if (problem) {
-        toast.error(problem);
-        return;
-      }
-    }
+    warnIfIncomplete(stepKey);
     const next = steps[stepIndex + 1];
     if (next) goToStep(next.key);
   };
@@ -7999,19 +8000,11 @@ function CandidateWizard({
     const prev = steps[stepIndex - 1];
     if (prev) goToStep(prev.key);
   };
-  // Jumping backwards is always allowed; jumping ahead needs the earlier steps done
-  // for everyone except Super Admin, who can move to any step at any time.
   const requestStep = (key: string) => {
     const targetIndex = steps.findIndex((s) => s.key === key);
-    if (targetIndex < 0 || targetIndex <= stepIndex || canSkipSteps) {
-      goToStep(key);
-      return;
-    }
-    const blocking = firstBlockingStep(targetIndex);
-    if (blocking) {
-      toast.error(`${blocking.label}: ${blocking.problem}`);
-      goToStep(blocking.key);
-      return;
+    if (targetIndex > stepIndex) {
+      const blocking = firstBlockingStep(targetIndex);
+      if (blocking) toast.warning(`${blocking.label} is incomplete: ${blocking.problem}`);
     }
     goToStep(key);
   };

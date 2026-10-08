@@ -1115,13 +1115,11 @@ function UnitFormDialog({
     return steps.filter((step) => step.key !== "review").every((step) => isStepComplete(step.key));
   };
   const requestStep = (key: string) => {
-    // Editing an existing client: allow free navigation between steps;
-    // validation still runs on final save.
-    if (editing) { setStepKey(key); return; }
+    // Everyone moves freely; incomplete earlier steps only show a notice.
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
-      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+      if (problem) { toast.warning(`${steps[index].label} is incomplete: ${problem}`); break; }
     }
     setStepKey(key);
   };

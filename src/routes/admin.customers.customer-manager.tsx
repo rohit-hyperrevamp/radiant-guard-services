@@ -764,9 +764,8 @@ function CustomerFormDialog({
       for (let index = 0; index < targetIndex; index += 1) {
         const problem = validateStep(steps[index].key);
         if (problem) {
-          toast.error(problem);
-          setStepKey(steps[index].key);
-          return;
+          toast.warning(`${steps[index].label} is incomplete: ${problem}`);
+          break;
         }
       }
     }

@@ -465,7 +465,7 @@ function TransferDialog({ open, onOpenChange, initial, warehouses, branches, ite
     const target = steps.findIndex((step) => step.key === key);
     for (let index = 0; index < target; index += 1) {
       const problem = validateStep(steps[index].key);
-      if (problem) { toast.error(problem); setStepKey(steps[index].key); return; }
+      if (problem) { toast.warning(`${steps[index].label} is incomplete: ${problem}`); break; }
     }
     setStepKey(key);
   };

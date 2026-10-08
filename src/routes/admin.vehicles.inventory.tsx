@@ -517,7 +517,7 @@ function VehicleFormDialog({ open, onOpenChange, title, initial, onSubmit }: {
   };
   const requestStep = (key: string) => {
     const target = steps.findIndex((step) => step.key === key);
-    if (target > 0 && !vehicleNumber.trim()) { toast.error("Vehicle number is required"); setStepKey("identity"); return; }
+    if (target > 0 && !vehicleNumber.trim()) toast.warning("Vehicle details are incomplete: vehicle number is required");
     setStepKey(key);
   };
   const saveVehicle = async () => {
