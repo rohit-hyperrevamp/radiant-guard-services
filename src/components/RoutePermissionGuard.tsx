@@ -4,6 +4,7 @@ import { ShieldAlert } from "lucide-react";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { RBAC_MODULES } from "@/lib/rbac-modules";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { GOVERNANCE_PATHS, GOVERNANCE_ROLES } from "@/lib/role-keys";
 
 /**
  * Any authenticated employee may reach these — they are role-agnostic
@@ -71,7 +72,7 @@ function isAlwaysAllowed(pathname: string): boolean {
 export function RoutePermissionGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const pathname = location.pathname;
-  const { can, canSub, isSuperAdmin, isLoading } = useCurrentPermissions();
+  const { can, canSub, isSuperAdmin, isLoading, roleKey } = useCurrentPermissions();
   const role = useCurrentUserRole();
 
   const decision = useMemo(() => {
@@ -85,13 +86,17 @@ export function RoutePermissionGuard({ children }: { children: React.ReactNode }
       pathname.startsWith("/admin/inventory/collections")
     )) return { allow: true as const };
     if (isSuperAdmin) return { allow: true as const };
+    // Access Control and Workflow Manager: Super Admin and Leadership only.
+    if (GOVERNANCE_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+      return { allow: !!roleKey && GOVERNANCE_ROLES.has(roleKey), module: "Leadership-only" };
+    }
     const required = resolveRequiredModule(pathname);
     if (!required) return { allow: true as const, unmapped: true };
     return {
       allow: required.sub ? canSub(required.module, required.sub) : can(required.module),
       module: required.module,
     };
-  }, [pathname, isSuperAdmin, can, canSub, role.isFieldOfficer]);
+  }, [pathname, isSuperAdmin, can, canSub, role.isFieldOfficer, roleKey]);
 
   if (isLoading || role.isLoading) {
     return (

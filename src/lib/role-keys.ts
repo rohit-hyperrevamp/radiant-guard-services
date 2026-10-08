@@ -22,6 +22,7 @@ export const ROLE_KEYS = {
   VP_OPERATIONS: "vp_operations",
   CONTROL_CENTER_HEAD: "control_center_head",
   CONTROL_CENTER: "control_center",
+  LEGAL: "legal",
   FIELD_OFFICER: "field_officer",
   GUARD: "guard",
   SECURITY_GUARD: "security_guard",
@@ -51,7 +52,12 @@ export const ADMIN_CONSOLE_ROLES: ReadonlySet<string> = new Set([
   ROLE_KEYS.VP_OPERATIONS,
   ROLE_KEYS.CONTROL_CENTER_HEAD,
   ROLE_KEYS.CONTROL_CENTER,
+  ROLE_KEYS.LEGAL,
 ]);
+
+/** Roles allowed to open Access Control and Workflow Manager (plus super admin). */
+export const GOVERNANCE_ROLES: ReadonlySet<string> = new Set([ROLE_KEYS.LEADERSHIP]);
+export const GOVERNANCE_PATHS = ["/admin/rbac", "/admin/workflow-manager"] as const;
 
 /** Operations leadership team — the shared ops dashboard/RBAC subset. */
 export const OPERATIONS_ROLES: ReadonlySet<string> = new Set([

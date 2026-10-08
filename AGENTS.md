@@ -4,13 +4,12 @@
 - Mixed-window charter statuses load via `batch_period_statuses(jsonb)` in one request — no per-window fan-out.
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Approvals (payroll, onboarding, `approval_requests`) follow `workflow_steps` via `workflow_step_matches` (named people/department override role); sensitive employee fields change only through `approval_decide` — approvers stay configurable.
-- Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser (server checks registration and confirms the widget access token) — server-side /otp sends lack the default DLT template and are held by operators (code 211).
+- Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server-side sends get held (code 211).
 - Sales & Marketing CRM lives in `crm_*` tables gated by `current_user_can_crm()` (Super Admin + `sales_marketing` RBAC module); prospects convert via the org → unit → contract chain (`OrgUnitChain`) into a pending-approval contract draft — Client Contracts holds contracts only.
 - "View as user" mints the target session server-side (`startImpersonation`, super-admin verified), admin session kept in localStorage `radiant.impersonator`, sign-out `scope: "local"` — real RLS views without touching the employee's sessions.
 - Recruitment: `rec_*` gated by `current_user_can_recruit()`; `rec_onboard_candidate` inserts into `candidates` so one employee ID series is used.
 - Dashboard profitability is unit-level: invoice minus earned gross and employer contribution, posted values overriding computed ones.
-- Contract rate changes are versioned in `contract_rate_revisions` (new_rate → approved with explicit applicable-from/till range → previous expired); payroll/invoice resolve rates per period via `applyRateRevisionsForPeriod`, splitting by calendar days mid-period, and a daily job promotes due rates onto `contract_resources` — past periods keep old rates.
-- Rate timeline classifies revisions by dates, not status; upcoming rates edit via update_scheduled_contract_rate_revision.
+- Contract rate changes are versioned in `contract_rate_revisions` (new_rate → approved with explicit applicable-from/till range → previous expired); payroll/invoice resolve rates per period via `applyRateRevisionsForPeriod`, splitting by calendar days mid-period, and a daily job promotes due rates onto `contract_resources` — past periods keep old rates; timeline classifies by dates, upcoming rates edit via `update_scheduled_contract_rate_revision`.
 - Effective permissions resolve employee > designation-in-department > designation (all depts) > department overrides (`access_overrides`) > role_permissions via `current_user_effective_permissions()`; contract mutations are enforced by `prevent_hr_contract_mutation` using contracts sub-modules (client_contracts, create, resources, rate_revision, edit_existing_rates) — access survives staff turnover and nothing is role-hardcoded.
 - Attendance/payroll/invoice actions (mark, upload, submit, approve, reopen, amend, process, finalise, upload_tally) are RBAC sub-modules checked via `canAction` / `current_user_explicit_permission`; an explicit action row wins, else the module grant (payroll approve/process also accept Workflow Manager approvers) — granular control without breaking existing access.
 - Master-data tables carry an `rbac_guard` trigger (`enforce_rbac_table_permission(module, sub)`) that refuses writes only when Access Control explicitly withholds Edit/Delete — new master tables should get the same trigger.
@@ -26,3 +25,5 @@
 <!-- LOVABLE:BEGIN -->
 - Shared dashboard values use TileNumber to fit complete numbers to measured width; all dashboards reuse one TasksSummaryTile to keep summaries consistent.
 <!-- LOVABLE:END -->
+- Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
+- Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
