@@ -209,7 +209,27 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
       
       const combinedUnitIds = new Set([...foUnitIds, ...hrScope.unitIds, ...team.unitIds]);
       const combinedCustomerIds = new Set([...foCustomerIds, ...hrScope.customerIds, ...team.customerIds]);
-      
+
+      // Team managers also oversee every field officer mapped to their team's client sites.
+      if (team.hasTeam && team.unitIds.length) {
+        const mappedIds = new Set<string>();
+        for (const part of chunked(team.unitIds)) {
+          const { data, error } = await supabase.from("candidate_units").select("candidate_id").in("unit_id", part).limit(20000);
+          if (error) throw error;
+          for (const r of (data ?? []) as Array<{ candidate_id: string }>) mappedIds.add(r.candidate_id);
+        }
+        for (const part of chunked([...mappedIds])) {
+          const { data, error } = await supabase
+            .from("candidates")
+            .select("id")
+            .in("id", part)
+            .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
+            .in("status", ["active", "approved"]);
+          if (error) throw error;
+          for (const r of (data ?? []) as Array<{ id: string }>) fieldOfficerIds.add(r.id);
+        }
+      }
+
       return { 
         fieldOfficerIds: [...fieldOfficerIds], 
         unitIds: [...combinedUnitIds], 
