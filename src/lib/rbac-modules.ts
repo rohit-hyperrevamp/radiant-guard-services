@@ -316,6 +316,30 @@ export const RBAC_MODULES: ModuleDef[] = [
     ],
   },
   {
+    key: "tasks",
+    label: "Tasks",
+    path: "/admin/tasks",
+    icon: ClipboardList,
+    // No row = default (leaders, Legal and managers with reports may assign;
+    // Leadership sees all). An explicit row decides.
+    subModules: [
+      { key: "create", label: "Create & assign tasks (Edit)", path: "/admin/tasks#create", icon: ClipboardList },
+      { key: "view_all", label: "See everyone's tasks (View)", path: "/admin/tasks#view-all", icon: ClipboardList },
+      { key: "manage", label: "Change dates / cancel / reopen others' tasks (Edit)", path: "/admin/tasks#manage", icon: ClipboardList },
+      { key: "delete", label: "Delete tasks (Delete)", path: "/admin/tasks#delete", icon: ClipboardList },
+    ],
+  },
+  {
+    key: "approvals",
+    label: "Approvals",
+    path: "/admin/approvals",
+    icon: BadgeCheck,
+    // Approvers come from Workflow Manager steps; this switch only widens visibility.
+    subModules: [
+      { key: "view_all", label: "See all approval requests (View) — Leadership & Super Admin always can", path: "/admin/approvals#view-all", icon: BadgeCheck },
+    ],
+  },
+  {
     key: "my_attendance",
     label: "My Attendance",
     path: "/admin/my-attendance",

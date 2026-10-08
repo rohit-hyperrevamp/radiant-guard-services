@@ -57,6 +57,7 @@ export function shouldRedirect(type: string | null | undefined): boolean {
   if (REDIRECT_TYPES.has(t)) return true;
   if (t.startsWith("contract_expiry")) return true;
   if (t.startsWith("task:")) return true;
+  if (t.startsWith("approval:")) return true;
   const action = t.includes(":") ? t.split(":").pop()! : t;
   return REDIRECT_ACTIONS.has(action);
 }
