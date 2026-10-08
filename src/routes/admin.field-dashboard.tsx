@@ -1347,28 +1347,22 @@ function HeroStat({
     <Link
       to={to}
       className={cn(
-        "group relative flex min-h-[108px] min-w-0 flex-col justify-between rounded-2xl border border-border/50 p-3.5 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:min-h-[116px] sm:rounded-3xl sm:p-5",
+        "dashboard-summary-tile group relative flex min-h-[108px] min-w-0 flex-col justify-between rounded-2xl border border-border/50 p-3.5 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:min-h-[116px] sm:rounded-3xl sm:p-5",
         surface,
         className,
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
+        <span className="dashboard-tile-title min-w-0 text-foreground">{label}</span>
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
           <Icon className="h-4 w-4" />
         </div>
-        {badge ? (
-          <span className="rounded-full bg-card/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary shadow-sm">
-            {badge}
-          </span>
-        ) : null}
       </div>
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-          {label}
-        </span>
+      <div className="mt-auto flex items-end justify-between gap-3">
         <TileNumber className="text-lg font-bold tabular-nums leading-none text-foreground sm:text-3xl">
           {value}
         </TileNumber>
+        {badge && <span className="shrink-0 text-[10px] text-muted-foreground">{badge}</span>}
       </div>
       {!badge ? (
         <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-primary opacity-0 transition group-hover:opacity-100" />
@@ -1427,13 +1421,13 @@ function PastelTile({
   const inner = (
     <div
       className={cn(
-        "relative flex h-full min-h-[104px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-border/50 p-3.5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md",
+        "dashboard-summary-tile relative flex h-full min-h-[104px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-border/50 p-3.5 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/30 hover:shadow-md",
         surface,
       )}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
-          <div className="text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">
+          <div className="dashboard-tile-title text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">
             {label}
           </div>
           <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground sm:text-[11px]">
@@ -1444,7 +1438,7 @@ function PastelTile({
           <Icon className="h-4 w-4" />
         </span>
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
+      <div className="mt-auto flex items-end justify-between gap-2">
         <TileNumber className="text-[25px] font-bold leading-none tabular-nums text-foreground">
           {value}
         </TileNumber>
