@@ -8,13 +8,6 @@ import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
 /** Reporting chains are shallow; this cap only guards against cyclic data. */
 
-type PersonRow = {
-  id: string;
-  role_key: string | null;
-  status: string | null;
-  is_enabled: boolean | null;
-};
-
 export type ManagerFieldOfficerScope = {
   isLoading: boolean;
   /** True when the signed-in user has field officers reporting to them or is an HR executive for specific units. */
