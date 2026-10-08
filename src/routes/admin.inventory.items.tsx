@@ -365,9 +365,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
   const requestStep = (key: string) => {
     const target = steps.findIndex((step) => step.key === key);
     if (target > 0 && !isStepComplete("details")) {
-      toast.error("Enter the product name, category and unit");
-      setStepKey("details");
-      return;
+      toast.warning("Details are incomplete: enter the product name, category and unit");
     }
     if (target > 1 && !isStepComplete("pricing")) {
       toast.error("Complete each added size");
