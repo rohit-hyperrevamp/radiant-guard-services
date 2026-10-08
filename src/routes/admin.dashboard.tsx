@@ -64,6 +64,7 @@ import {
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
 import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
 import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
@@ -979,6 +980,7 @@ function DashboardPage() {
 
   const pendingOnboarding = usePendingOnboardingCount();
   const teamLive = useTeamLiveCounts();
+  const taskSummary = useTaskSummary();
   const tiles = useMemo(() => {
     const t: { key: string; module: string; node: React.ReactNode }[] = [];
     if (data && opsFocus) {
@@ -1075,6 +1077,8 @@ function DashboardPage() {
             <MetricTile icon={Users} label="Team checked in" value={teamLive.checkedIn} accent="sky" to="/admin/live-staff" sub={`of ${teamLive.total} teammates today`} />
           ),
         });
+      t.push({ key: "tasks", module: "tasks" as never, node: <TasksAssignedTile summary={taskSummary.data?.mine ?? null} /> });
+      t.push({ key: "tasks-given", module: "tasks" as never, node: <TasksCreatedTile summary={taskSummary.data?.created ?? null} /> });
       return t;
     }
     if (data) {
@@ -1236,11 +1240,15 @@ function DashboardPage() {
             <MetricTile icon={UserPlus} label="Pending onboarding" sub="Set up salary & onboard" value={pendingOnboarding} accent="rose" to="/admin/hr/recruitment/onboarding" />
           ),
         });
+      t.push({ key: "tasks", module: "tasks" as never, node: <TasksAssignedTile summary={taskSummary.data?.mine ?? null} /> });
+      t.push({ key: "tasks-given", module: "tasks" as never, node: <TasksCreatedTile summary={taskSummary.data?.created ?? null} /> });
     }
     const widgetOf = (k: string) =>
-      ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo" : k.replace(/-/g, "_");
+      k === "tasks-given" ? "tasks"
+      : ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo"
+      : k.replace(/-/g, "_");
     return t.filter((x) => canWidget(widgetOf(x.key)));
-  }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding, teamLive]);
+  }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding, teamLive, taskSummary.data]);
 
   if (permsLoading) {
     return (
