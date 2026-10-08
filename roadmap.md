@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Pandurang dashboard recovery
+- [ ] Restore requested view-only menu permissions for Pandurang through employee Access Control.
+- [ ] Keep console users on their team dashboard, including old personal-dashboard links.
+- [ ] Show team/client sections independently of the Operations presentation and report loading failures.
+- [ ] Verify production permissions and signed-in live dashboard; app changes require deployment.
+
 ## State-based GST branches and invoicing
 
 - [x] Extract and verify Maharashtra, Telangana, Karnataka, Goa, and Gujarat GST certificates.
