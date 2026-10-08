@@ -230,9 +230,15 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
               <SearchSelect value={assignee} onChange={setAssignee} options={options} placeholder="Choose a person" searchPlaceholder="Search by name or ID…" />
             </div>
           </div>
-          <div>
-            <div className="mb-1 text-xs text-muted-foreground">Complete by</div>
-            <Input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Complete by date</div>
+              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Complete by time</div>
+              <Input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
+            </div>
           </div>
         </div>
         <DialogFooter>
