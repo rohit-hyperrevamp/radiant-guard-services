@@ -19,6 +19,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
+  BadgeCheck,
   Clock,
 
   Wallet,
@@ -457,6 +458,7 @@ function AdminLayout() {
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
       { key: "tasks", label: "Tasks", icon: ClipboardList, to: "/admin/tasks", activePrefixes: ["/admin/tasks"] },
+      { key: "approvals", label: "Approvals", icon: BadgeCheck, to: "/admin/approvals", activePrefixes: ["/admin/approvals"] },
       { key: "live-staff", label: "Live Staff", module: "employees", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
       { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
       { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },

@@ -66,8 +66,9 @@ function TasksPage() {
   const permsQ = useQuery({
     queryKey: ["task-perms"],
     queryFn: async () => {
-      const [a, o] = await Promise.all([db.rpc("current_user_can_assign_tasks"), db.rpc("current_user_is_task_overseer")]);
-      return { canAssign: !!a.data, overseer: !!o.data };
+      const [a, o, m, d] = await Promise.all([db.rpc("current_user_can_assign_tasks"), db.rpc("current_user_is_task_overseer"),
+        db.rpc("current_user_can_manage_tasks"), db.rpc("current_user_can_delete_tasks")]);
+      return { canAssign: !!a.data, overseer: !!o.data, manage: !!m.data, canDelete: !!d.data };
     },
   });
   const tasksQ = useQuery({
@@ -170,7 +171,7 @@ function TasksPage() {
         />
       )}
       {current && (
-        <TaskDialog task={current} me={candidateId} overseer={!!permsQ.data?.overseer} name={name}
+        <TaskDialog task={current} me={candidateId} overseer={!!permsQ.data?.manage} canDelete={!!permsQ.data?.canDelete && (current?.created_by === candidateId || !!permsQ.data?.overseer)} name={name}
           deptName={current.department_id ? depts.get(current.department_id) : undefined}
           onClose={() => setOpenId(undefined)} onChanged={refresh} />
       )}
@@ -256,8 +257,8 @@ const EV_LABEL: Record<string, string> = {
   reopen: "Reopened", cancel: "Cancelled", comment: "Commented",
 };
 
-function TaskDialog({ task: t, me, overseer, name, deptName, onClose, onChanged }: {
-  task: Task; me: string | null; overseer: boolean; name: (id?: string | null) => string; deptName?: string;
+function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose, onChanged }: {
+  task: Task; me: string | null; overseer: boolean; canDelete: boolean; name: (id?: string | null) => string; deptName?: string;
   onClose: () => void; onChanged: () => void;
 }) {
   const isAssignee = t.assignee_id === me;
@@ -401,6 +402,15 @@ function TaskDialog({ task: t, me, overseer, name, deptName, onClose, onChanged 
           {isManager && t.status === "extension_requested" && <Button onClick={() => setMode("decide")}>Review time request</Button>}
           {isManager && !open && t.status === "completed" && <Button variant="outline" onClick={() => setMode("reopen")}>Reopen</Button>}
           {isManager && open && <Button variant="ghost" disabled={busy} onClick={() => act("cancel")}>Cancel task</Button>}
+          {canDelete && <Button variant="destructive" disabled={busy} onClick={async () => {
+            if (!window.confirm("Delete this task permanently?")) return;
+            setBusy(true);
+            const { error } = await db.from("tasks").delete().eq("id", t.id);
+            setBusy(false);
+            if (error) { toast.error(error.message); return; }
+            void logActivity({ module: "Tasks", action: "delete", entityType: "task", entityId: t.id, entityLabel: t.title });
+            toast.success("Task deleted"); onChanged(); onClose();
+          }}>Delete</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

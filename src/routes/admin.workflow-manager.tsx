@@ -52,6 +52,8 @@ type StepDraft = {
   key: string;
   description: string;
   approver_role_key: string;
+  approver_candidate_ids?: string[];
+  approver_department_id?: string | null;
   action_label: string;
   is_active: boolean;
 };
@@ -88,6 +90,32 @@ function WorkflowManagerPage() {
       );
     },
   });
+
+  const { data: people = [] } = useQuery({
+    queryKey: ["admin", "workflow-people"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("candidates" as never)
+        .select("id,full_name,employee_code,department_id")
+        .in("status", ["active", "approved"]).not("role_key", "in", "(guard,security_guard)")
+        .order("full_name").limit(5000);
+      return ((data ?? []) as unknown) as Array<{ id: string; full_name: string; employee_code: string | null; department_id: string | null }>;
+    },
+  });
+  const { data: departments = [] } = useQuery({
+    queryKey: ["admin", "workflow-departments"],
+    queryFn: async () => {
+      const { data } = await supabase.from("departments" as never).select("id,name").order("name");
+      return ((data ?? []) as unknown) as Array<{ id: string; name: string }>;
+    },
+  });
+  const [personSearch, setPersonSearch] = useState("");
+  const approverLabel = (s: WorkflowStep) => {
+    const names = (s.approver_candidate_ids ?? []).map((id) => people.find((p) => p.id === id)?.full_name ?? "Person");
+    const dept = s.approver_department_id ? departments.find((d) => d.id === s.approver_department_id)?.name : null;
+    if (names.length || dept) return [dept ? `${dept} department` : null, ...names].filter(Boolean).join(", ");
+    return roleLabel(s.approver_role_key);
+  };
 
   const active: WorkflowDefinition | null = useMemo(() => {
     if (workflows.length === 0) return null;
@@ -127,7 +155,7 @@ function WorkflowManagerPage() {
     mutationFn: async (d: StepDraft) => {
       if (!active) throw new Error("No workflow selected");
       if (!d.name.trim()) throw new Error("Step name is required");
-      if (!d.approver_role_key) throw new Error("Approver role is required");
+      if (!d.approver_role_key && !(d.approver_candidate_ids?.length) && !d.approver_department_id) throw new Error("Choose an approver role, department or person");
       const nextOrder = steps.length === 0 ? 1 : Math.max(...steps.map((s) => s.step_order)) + 1;
       await upsertWorkflowStep({
         id: d.id,
@@ -138,6 +166,8 @@ function WorkflowManagerPage() {
         approver_role_key: d.approver_role_key,
         action_label: d.action_label.trim() || "Approve",
         is_active: d.is_active,
+        ...(d.approver_candidate_ids !== undefined ? { approver_candidate_ids: d.approver_candidate_ids } : {}),
+        ...(d.approver_department_id !== undefined ? { approver_department_id: d.approver_department_id } : {}),
         ...(d.id ? {} : { step_order: nextOrder }),
       } as Partial<WorkflowStep> & { workflow_id: string });
       void logActivity({
@@ -261,7 +291,7 @@ function WorkflowManagerPage() {
                     <tr>
                       <th className="px-5 py-3">#</th>
                       <th className="px-5 py-3">Step</th>
-                      <th className="px-5 py-3">Approver role</th>
+                      <th className="px-5 py-3">Who approves</th>
                       <th className="px-5 py-3">Action label</th>
                       <th className="px-5 py-3">Active</th>
                       <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
@@ -277,7 +307,7 @@ function WorkflowManagerPage() {
                             <p className="text-xs text-muted-foreground">{s.description}</p>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-foreground/90">{roleLabel(s.approver_role_key)}</td>
+                        <td className="px-5 py-3 text-foreground/90">{approverLabel(s)}</td>
                         <td className="px-5 py-3 text-foreground/90">{s.action_label || "Approve"}</td>
                         <td className="px-5 py-3">
                           <Switch
@@ -329,6 +359,8 @@ function WorkflowManagerPage() {
                                   key: s.key,
                                   description: s.description,
                                   approver_role_key: s.approver_role_key,
+                                  approver_candidate_ids: s.approver_candidate_ids ?? [],
+                                  approver_department_id: s.approver_department_id ?? null,
                                   action_label: s.action_label,
                                   is_active: s.is_active,
                                 })
@@ -378,7 +410,7 @@ function WorkflowManagerPage() {
           <DialogHeader>
             <DialogTitle>{draft?.id ? "Edit step" : "Add step"}</DialogTitle>
             <DialogDescription>
-              Steps run in order. Only the approver role can action the step.
+              Steps run in order. If you pick people or a department, only they approve this step; otherwise everyone with the role does.
             </DialogDescription>
           </DialogHeader>
           {draft && (
@@ -408,6 +440,42 @@ function WorkflowManagerPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Or only this department (optional)</Label>
+                <Select
+                  value={draft.approver_department_id ?? "none"}
+                  onValueChange={(v) => setDraft({ ...draft, approver_department_id: v === "none" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— No department —</SelectItem>
+                    {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Or only these people (optional)</Label>
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {(draft.approver_candidate_ids ?? []).map((id) => (
+                    <Badge key={id} variant="secondary" className="cursor-pointer" onClick={() =>
+                      setDraft({ ...draft, approver_candidate_ids: (draft.approver_candidate_ids ?? []).filter((x) => x !== id) })}>
+                      {people.find((p) => p.id === id)?.full_name ?? "Person"} ✕
+                    </Badge>
+                  ))}
+                </div>
+                <Input placeholder="Search a person to add…" value={personSearch} onChange={(e) => setPersonSearch(e.target.value)} />
+                {personSearch.trim().length >= 2 && (
+                  <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-border">
+                    {people.filter((p) => `${p.full_name} ${p.employee_code ?? ""}`.toLowerCase().includes(personSearch.toLowerCase()))
+                      .filter((p) => !(draft.approver_candidate_ids ?? []).includes(p.id)).slice(0, 20).map((p) => (
+                      <button key={p.id} type="button" className="block w-full px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                        onClick={() => { setDraft({ ...draft, approver_candidate_ids: [...(draft.approver_candidate_ids ?? []), p.id] }); setPersonSearch(""); }}>
+                        {p.full_name} {p.employee_code ? <span className="text-xs text-muted-foreground">({p.employee_code})</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <Label className="text-xs">Action label</Label>

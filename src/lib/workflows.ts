@@ -25,6 +25,8 @@ export type WorkflowStep = {
   name: string;
   description: string;
   approver_role_key: string;
+  approver_candidate_ids?: string[];
+  approver_department_id?: string | null;
   action_label: string;
   is_active: boolean;
 };
@@ -101,11 +103,11 @@ export async function fetchWorkflowByKey(key: string): Promise<WorkflowDefinitio
 export async function fetchWorkflowSteps(workflowId: string): Promise<WorkflowStep[]> {
   const { data, error } = await supabase
     .from("workflow_steps")
-    .select("id,workflow_id,step_order,key,name,description,approver_role_key,action_label,is_active")
+    .select("id,workflow_id,step_order,key,name,description,approver_role_key,approver_candidate_ids,approver_department_id,action_label,is_active")
     .eq("workflow_id", workflowId)
     .order("step_order");
   if (error) throw error;
-  return (data ?? []) as WorkflowStep[];
+  return (data ?? []) as unknown as WorkflowStep[];
 }
 
 export async function fetchRehireRequests(): Promise<RehireRequest[]> {
@@ -174,7 +176,7 @@ export async function updateWorkflow(id: string, patch: Partial<WorkflowDefiniti
 export async function upsertWorkflowStep(step: Partial<WorkflowStep> & { workflow_id: string }) {
   if (step.id) {
     const { id, ...patch } = step;
-    const { error } = await supabase.from("workflow_steps").update(patch).eq("id", id);
+    const { error } = await supabase.from("workflow_steps").update(patch as never).eq("id", id);
     if (error) throw error;
     return;
   }

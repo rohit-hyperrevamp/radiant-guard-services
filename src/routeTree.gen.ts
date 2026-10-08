@@ -19,6 +19,7 @@ import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AdminAdditionTypeManagerRouteImport } from './routes/admin.addition-type-manager'
 import { Route as AdminAdditionsRouteImport } from './routes/admin.additions'
 import { Route as AdminAllowanceManagerRouteImport } from './routes/admin.allowance-manager'
+import { Route as AdminApprovalsRouteImport } from './routes/admin.approvals'
 import { Route as AdminAssetManagerRouteImport } from './routes/admin.asset-manager'
 import { Route as AdminAssetsRouteImport } from './routes/admin.assets'
 import { Route as AdminAttendanceRouteImport } from './routes/admin.attendance'
@@ -196,6 +197,11 @@ const AdminAdditionsRoute = AdminAdditionsRouteImport.update({
 const AdminAllowanceManagerRoute = AdminAllowanceManagerRouteImport.update({
   id: '/allowance-manager',
   path: '/allowance-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAssetManagerRoute = AdminAssetManagerRouteImport.update({
@@ -883,6 +889,7 @@ export interface FileRoutesByFullPath {
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/asset-manager': typeof AdminAssetManagerRoute
   '/admin/assets': typeof AdminAssetsRouteWithChildren
   '/admin/attendance': typeof AdminAttendanceRouteWithChildren
@@ -1022,6 +1029,7 @@ export interface FileRoutesByTo {
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/asset-manager': typeof AdminAssetManagerRoute
   '/admin/assets': typeof AdminAssetsRouteWithChildren
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
@@ -1157,6 +1165,7 @@ export interface FileRoutesById {
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/asset-manager': typeof AdminAssetManagerRoute
   '/admin/assets': typeof AdminAssetsRouteWithChildren
   '/admin/attendance': typeof AdminAttendanceRouteWithChildren
@@ -1298,6 +1307,7 @@ export interface FileRouteTypes {
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
+    | '/admin/approvals'
     | '/admin/asset-manager'
     | '/admin/assets'
     | '/admin/attendance'
@@ -1437,6 +1447,7 @@ export interface FileRouteTypes {
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
+    | '/admin/approvals'
     | '/admin/asset-manager'
     | '/admin/assets'
     | '/admin/attendance-code-manager'
@@ -1571,6 +1582,7 @@ export interface FileRouteTypes {
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
+    | '/admin/approvals'
     | '/admin/asset-manager'
     | '/admin/assets'
     | '/admin/attendance'
@@ -1789,6 +1801,13 @@ declare module '@tanstack/react-router' {
       path: '/allowance-manager'
       fullPath: '/admin/allowance-manager'
       preLoaderRoute: typeof AdminAllowanceManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/approvals': {
+      id: '/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AdminApprovalsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/asset-manager': {
@@ -2874,6 +2893,7 @@ interface AdminRouteChildren {
   AdminAdditionTypeManagerRoute: typeof AdminAdditionTypeManagerRoute
   AdminAdditionsRoute: typeof AdminAdditionsRoute
   AdminAllowanceManagerRoute: typeof AdminAllowanceManagerRoute
+  AdminApprovalsRoute: typeof AdminApprovalsRoute
   AdminAssetManagerRoute: typeof AdminAssetManagerRoute
   AdminAssetsRoute: typeof AdminAssetsRouteWithChildren
   AdminAttendanceRoute: typeof AdminAttendanceRouteWithChildren
@@ -2950,6 +2970,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdditionTypeManagerRoute: AdminAdditionTypeManagerRoute,
   AdminAdditionsRoute: AdminAdditionsRoute,
   AdminAllowanceManagerRoute: AdminAllowanceManagerRoute,
+  AdminApprovalsRoute: AdminApprovalsRoute,
   AdminAssetManagerRoute: AdminAssetManagerRoute,
   AdminAssetsRoute: AdminAssetsRouteWithChildren,
   AdminAttendanceRoute: AdminAttendanceRouteWithChildren,
