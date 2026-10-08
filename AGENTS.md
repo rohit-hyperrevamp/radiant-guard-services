@@ -26,3 +26,5 @@
 <!-- LOVABLE:BEGIN -->
 - Shared dashboard values use TileNumber to fit complete numbers to measured width; all dashboards reuse one TasksSummaryTile to keep summaries consistent.
 <!-- LOVABLE:END -->
+- Access Control and Workflow Manager pages are limited to Super Admin plus `GOVERNANCE_ROLES` (role-keys.ts) — governance stays with leadership even when Control Center access is granted.
+- Legal Case Desk uses `legal_cases*` tables + private `legal-docs` bucket gated by `current_user_module_access('legal_cases', …)`; case types are a Control Center master — categories stay editable without code.
