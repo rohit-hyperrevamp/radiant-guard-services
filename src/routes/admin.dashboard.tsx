@@ -924,16 +924,23 @@ function DashboardPage() {
             supabase.from("units").select("id,customer_id").in("id", ids),
             supabase.from("candidate_units").select("candidate_id").in("unit_id", ids).limit(20000),
             supabase.from("client_contracts").select("id,contract_code,end_date,unit_id,status").in("unit_id", ids),
+            supabase.from("candidates").select("id").in("unit_id", ids).in("status", ["active", "approved"]).limit(20000),
           ]),
         ),
       );
-      for (const [a, b, c] of results) {
+      for (const [a, b, c, d] of results) {
+        if (d.error) throw d.error;
         if (a.error) throw a.error;
         if (b.error) throw b.error;
         if (c.error) throw c.error;
       }
       const unitRows = { data: results.flatMap(([a]) => a.data ?? []) };
-      const links = { data: results.flatMap(([, b]) => b.data ?? []) };
+      const links = {
+        data: [
+          ...results.flatMap(([, b]) => b.data ?? []),
+          ...results.flatMap(([, , , d]) => ((d.data ?? []) as Array<{ id: string }>).map((r) => ({ candidate_id: r.id }))),
+        ],
+      };
       const contracts = { data: results.flatMap(([, , c]) => c.data ?? []) };
 
       const orgs = new Set(
