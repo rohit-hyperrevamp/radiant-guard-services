@@ -977,6 +977,7 @@ function DashboardPage() {
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
   const pendingOnboarding = usePendingOnboardingCount();
+  const teamLive = useTeamLiveCounts();
   const tiles = useMemo(() => {
     const t: { key: string; module: string; node: React.ReactNode }[] = [];
     if (data && opsFocus) {
@@ -1026,7 +1027,7 @@ function DashboardPage() {
             value={operationsOverview?.fieldOfficers ?? 0}
             accent="lime"
             to="/admin/field-sense/team"
-            sub="Operations workforce"
+            sub="Tap to see all field officers"
           />
         ),
       });
@@ -1058,16 +1059,21 @@ function DashboardPage() {
           />
         ),
       });
-      t.push({
-        key: "most-visited",
-        module: "field_sense",
-        node: <VisitInsightTile kind="most" items={operationsOverview?.topVisited ?? []} />,
-      });
-      t.push({
-        key: "least-visited",
-        module: "field_sense",
-        node: <VisitInsightTile kind="least" items={operationsOverview?.bottomVisited ?? []} />,
-      });
+      if (teamLive.teamOnly)
+        t.push({
+          key: "team-live",
+          module: "employees",
+          node: (
+            <MetricTile icon={Radio} label="Team live now" value={teamLive.live} accent="emerald" to="/admin/live-staff" sub={`of ${teamLive.total} teammates using the system`} />
+          ),
+        },
+        {
+          key: "team-in",
+          module: "employees",
+          node: (
+            <MetricTile icon={Users} label="Team checked in" value={teamLive.checkedIn} accent="sky" to="/admin/live-staff" sub={`of ${teamLive.total} teammates today`} />
+          ),
+        });
       return t;
     }
     if (data) {
@@ -1409,14 +1415,6 @@ function DashboardPage() {
           {canWidget("team_clients") && <TeamClientsCard />}
           {opsFocus ? (
             <>
-              {canWidget("live_people") && <LivePeopleCard liveOfficers={liveOfficerCount} />}
-              {!isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
-                <ReadinessCard
-                  sheet={can("attendance") ? data.sheetCounts : null}
-                  run={can("payroll") ? data.runCounts : null}
-                  invoice={can("invoice") ? data.invoiceCounts : null}
-                />
-              )}
               {canWidget("radar") && (
                 <>
                   <OperationsRadarSummary />
@@ -1514,6 +1512,13 @@ function DashboardPage() {
           </div>
         </div>
 
+        {opsFocus && !isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
+          <ReadinessCard
+            sheet={can("attendance") ? data.sheetCounts : null}
+            run={can("payroll") ? data.runCounts : null}
+            invoice={can("invoice") ? data.invoiceCounts : null}
+          />
+        )}
         {/* Tiles */}
         <div
           className={`grid auto-rows-[124px] grid-cols-2 items-stretch gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}
@@ -1567,6 +1572,30 @@ function ReadinessCard({ sheet, run, invoice }: { sheet: StatusCounts | null; ru
       </div>
     </section>
   );
+}
+
+/** Live / checked-in counts for the signed-in manager's own team (team-only dashboards). */
+function useTeamLiveCounts() {
+  const online = useOnlineUserIds();
+  const team = useTeamPeopleOnly();
+  const q = useQuery({
+    queryKey: ["dashboard-team-live", [...team.ids].sort()],
+    enabled: team.teamOnly && team.ids.size > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
+      if (error) throw error;
+      return (data ?? []) as Array<{ user_id: string | null; candidate_id: string; check_in_at: string | null }>;
+    },
+  });
+  const rows = (q.data ?? []).filter((r) => team.ids.has(r.candidate_id));
+  return {
+    teamOnly: team.teamOnly,
+    total: team.ids.size,
+    live: rows.filter((r) => r.user_id && online.has(r.user_id)).length,
+    checkedIn: rows.filter((r) => r.check_in_at).length,
+  };
 }
 
 function LivePeopleCard({ liveOfficers }: { liveOfficers: number }) {
