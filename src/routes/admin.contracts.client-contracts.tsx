@@ -3496,6 +3496,7 @@ function ContractViewDialog({
                       employerContributions={r.employerContributions ?? []}
                       componentDescriptions={componentDescriptions}
                       hidePayableAndBelow={hidePayableAndBelow}
+                      roundOffFinal={r.roundOffFinal === true}
                     />
                   </div>
                 );
@@ -4464,7 +4465,8 @@ function ResourcesSection({
           (s, c) => s + (Number((c as { amount?: unknown }).amount) || 0),
           0,
         );
-        const monthly = gross + employer;
+        const monthlyRaw = gross + employer;
+        const monthly = r.roundOffFinal ? Math.round(monthlyRaw) : monthlyRaw;
         const bb = r.billingDayBaseId
           ? billingDayBases.find((b) => b.id === r.billingDayBaseId)
           : undefined;
