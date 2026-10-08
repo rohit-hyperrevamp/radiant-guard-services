@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
 import { FieldSenseLeaderboards } from "@/components/FieldSenseLeaderboards";
@@ -64,7 +65,7 @@ import {
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
-import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
 import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
@@ -1077,8 +1078,7 @@ function DashboardPage() {
             <MetricTile icon={Users} label="Team checked in" value={teamLive.checkedIn} accent="sky" to="/admin/live-staff" sub={`of ${teamLive.total} teammates today`} />
           ),
         });
-      t.push({ key: "tasks", module: "tasks" as never, node: <TasksAssignedTile summary={taskSummary.data?.mine ?? null} /> });
-      t.push({ key: "tasks-given", module: "tasks" as never, node: <TasksCreatedTile summary={taskSummary.data?.created ?? null} /> });
+      t.push({ key: "tasks", module: "tasks" as never, node: <TasksSummaryTile summary={taskSummary.data ?? null} /> });
       return t;
     }
     if (data) {
@@ -1240,12 +1240,10 @@ function DashboardPage() {
             <MetricTile icon={UserPlus} label="Pending onboarding" sub="Set up salary & onboard" value={pendingOnboarding} accent="rose" to="/admin/hr/recruitment/onboarding" />
           ),
         });
-      t.push({ key: "tasks", module: "tasks" as never, node: <TasksAssignedTile summary={taskSummary.data?.mine ?? null} /> });
-      t.push({ key: "tasks-given", module: "tasks" as never, node: <TasksCreatedTile summary={taskSummary.data?.created ?? null} /> });
+      t.push({ key: "tasks", module: "tasks" as never, node: <TasksSummaryTile summary={taskSummary.data ?? null} /> });
     }
     const widgetOf = (k: string) =>
-      k === "tasks-given" ? "tasks"
-      : ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo"
+      ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo"
       : k.replace(/-/g, "_");
     return t.filter((x) => canWidget(widgetOf(x.key)));
   }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding, teamLive, taskSummary.data]);
@@ -1787,9 +1785,7 @@ function MetricTile({
     <Shell to={to} search={search} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
-          {display}
-        </div>
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">{display}</TileNumber>
         <span
           className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}
         >
@@ -1824,9 +1820,7 @@ function DualTile({
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
-          {display}
-        </div>
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">{display}</TileNumber>
         <div className="min-w-0 max-w-[58%] flex flex-col items-end overflow-hidden text-right">
           <span className="w-full truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
             {secondaryLabel}
@@ -1879,26 +1873,20 @@ function StatusTile({
         className={`relative mt-auto grid min-w-0 gap-1.5 pb-2 sm:gap-3 sm:pb-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div className="min-w-0">
-          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
-            {approved}
-          </div>
+          <TileNumber className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>{approved}</TileNumber>
           <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
             {approvedLabel}
           </div>
         </div>
         <div className="min-w-0">
-          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
-            {pending}
-          </div>
+          <TileNumber className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>{pending}</TileNumber>
           <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
             {pendingLabel}
           </div>
         </div>
         {middle && (
           <div className="min-w-0">
-            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
-              {middle.value}
-            </div>
+            <TileNumber className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>{middle.value}</TileNumber>
             <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
               {middle.label}
             </div>
@@ -1906,9 +1894,7 @@ function StatusTile({
         )}
         {open != null && (
           <div className="min-w-0">
-            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
-              {open}
-            </div>
+            <TileNumber className={cn("whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>{open}</TileNumber>
             <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
               {openLabel}
             </div>
@@ -1965,9 +1951,7 @@ function ContractsTile({
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
-          {display}
-        </div>
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">{display}</TileNumber>
         <div
           className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}
         >

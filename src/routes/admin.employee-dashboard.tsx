@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +29,7 @@ import { nextOccurrence, yearsBetween } from "@/lib/people-insights";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { DashboardShell } from "@/components/LiveFeed";
-import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
@@ -513,8 +514,7 @@ function EmployeeDashboard() {
               <PastelTile palette="teal" label="My attendance" value={attStats.total} hint={new Date().toLocaleString("en-IN", { month: "long" })} delta={0} deltaSuffix="" icon={ClipboardCheck} to="/admin/my-attendance" />
               <PastelTile palette="rose" label="Absent" value={attStats.absent} hint="This month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
               <PastelTile palette="amber" label="Leaves" value={attStats.leave} hint="This month" delta={0} deltaSuffix="" icon={CalendarDays} className="col-span-2 sm:col-span-1" />
-              <TasksAssignedTile summary={taskSummary.data?.mine ?? null} />
-              <TasksCreatedTile summary={taskSummary.data?.created ?? null} />
+              <TasksSummaryTile summary={taskSummary.data ?? null} />
             </div>
           </section>
         </div>
@@ -643,7 +643,7 @@ function MetricTile({
         )}
       </div>
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[46px] font-bold leading-none tabular-nums tracking-tight text-foreground">{display}</div>
+        <TileNumber className="font-display text-[46px] font-bold leading-none tabular-nums text-foreground">{display}</TileNumber>
         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset ${ACCENT_CHIP[accent]}`}>
           <Icon className="h-4 w-4" />
         </span>
@@ -664,7 +664,7 @@ function HeroStat({ label, value, icon: Icon, tone, to }: { label: string; value
   const content = (
     <div className={cn("flex min-w-0 flex-col justify-between rounded-2xl border border-border/60 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[96px] sm:p-4", surface)}>
       <div className="flex items-start justify-between gap-2"><span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span><Icon className="h-4 w-4 shrink-0 text-primary" /></div>
-      <div className="mt-2 font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</div>
+      <TileNumber className="mt-2 font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</TileNumber>
     </div>
   );
   return to ? <Link to={to} className="block">{content}</Link> : content;
@@ -706,9 +706,7 @@ function PastelTile({
         </span>
       </div>
       <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
-        <div className="font-display text-[22px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[36px]">
-          {value}
-        </div>
+        <TileNumber className="font-display text-[22px] font-bold leading-none tabular-nums text-foreground sm:text-[36px]">{value}</TileNumber>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
           {delta !== 0 && (
             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>

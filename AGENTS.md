@@ -22,3 +22,7 @@
 - Exports are gated centrally: `<module>::export` (View) checked by `canExport`; ExportChooser installs a guard so `downloadCsv`/`openExport` refuse on pages of modules without export access — one switch per module, no per-button wiring.
 - Console users land on their dashboard without module grants; team cards are presentation-independent and gated by dashboard::w_team_clients — avoids personal-dashboard fallbacks hiding shared scope.
 - Audit trigger `zz_audit` (`audit_row_change(module)`) logs to `system_logs` (actor filled by `system_logs_fill_actor`) — add it to new important tables.
+
+<!-- LOVABLE:BEGIN -->
+- Shared dashboard values use TileNumber to fit complete numbers to measured width; all dashboards reuse one TasksSummaryTile to keep summaries consistent.
+<!-- LOVABLE:END -->

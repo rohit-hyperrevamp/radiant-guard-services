@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
 import { VisitProofs } from "@/components/VisitProofs";
-import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 
 
 
@@ -683,8 +684,7 @@ function FieldOfficerDashboard() {
               <UanFollowUp fieldOfficerUserId={userId} fieldOfficerCandidateId={data?.meId} compact className="rounded-none border-0 border-r border-border/50 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none" />
               <ContractDesignationFollowUp fieldOfficer compact className="rounded-none border-0 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none" />
             </div>
-            <TasksAssignedTile summary={taskSummary.data?.mine ?? null} />
-            <TasksCreatedTile summary={taskSummary.data?.created ?? null} />
+            <TasksSummaryTile summary={taskSummary.data ?? null} />
           </div>
         </section>
 
@@ -1010,7 +1010,7 @@ function StatBar({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="min-w-0 rounded-lg bg-secondary/60 px-2 py-2 text-center sm:rounded-xl sm:px-3 sm:py-3">
       <div className="truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">{label}</div>
-      <div className="mt-0.5 font-display text-base font-bold tabular-nums leading-tight tracking-tight text-foreground sm:text-2xl">{value}</div>
+      <TileNumber className="mt-0.5 font-display text-base font-bold tabular-nums leading-tight text-foreground sm:text-2xl">{value}</TileNumber>
     </div>
   );
 }
@@ -1031,7 +1031,7 @@ function HeroStat({ label, value, icon: Icon, tone, to, badge, className }: { la
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
         <span className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
-        <span className="text-lg font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</span>
+        <TileNumber className="text-lg font-bold tabular-nums leading-none text-foreground sm:text-3xl">{value}</TileNumber>
       </div>
       {!badge ? <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-primary opacity-0 transition group-hover:opacity-100" /> : null}
     </Link>
@@ -1079,9 +1079,7 @@ function PastelTile({
         </span>
       </div>
       <div className="mt-2 flex items-end justify-between gap-2">
-        <div className="text-[25px] font-bold leading-none tabular-nums text-foreground">
-          {value}
-        </div>
+        <TileNumber className="text-[25px] font-bold leading-none tabular-nums text-foreground">{value}</TileNumber>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
           {delta !== 0 && (
             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
@@ -1531,7 +1529,7 @@ function Pill({ tone, value, label }: { tone: "slate" | "amber" | "violet" | "cy
   }[tone];
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${toneCls}`}>
-      <span className="tabular-nums font-semibold">{value}</span>
+      <TileNumber className="tabular-nums font-semibold">{value}</TileNumber>
       <span className="opacity-70">{label}</span>
     </span>
   );
