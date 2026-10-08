@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
@@ -33,22 +34,35 @@ export function TeamClientsCard() {
     queryKey: ["team-card-mates", candidateId],
     enabled: !!candidateId,
     queryFn: async () => {
+      if (!candidateId) return [] as Array<Mate & { inAt: string | null }>;
       const [direct, extra] = await Promise.all([
-        supabase.from("candidates").select("id").eq("reports_to", candidateId!).in("status", ["active", "approved"]),
-        supabase.from("candidate_reporting_managers").select("candidate_id").eq("manager_id", candidateId!),
+        supabase.from("candidates").select("id").eq("reports_to", candidateId).in("status", ["active", "approved"]),
+        supabase.from("candidate_reporting_managers").select("candidate_id").eq("manager_id", candidateId),
       ]);
+      if (direct.error) throw direct.error;
+      if (extra.error) throw extra.error;
       const ids = new Set<string>();
       for (const r of (direct.data ?? []) as Array<{ id: string }>) ids.add(r.id);
       for (const r of (extra.data ?? []) as Array<{ candidate_id: string }>) ids.add(r.candidate_id);
       if (!ids.size) return [] as Array<Mate & { inAt: string | null }>;
       const [people, punches] = await Promise.all([
-        supabase.from("candidates").select("id,full_name,employee_code,designation,role_key").in("id", [...ids]),
+        supabase.from("candidates").select("id,full_name,employee_code,designation_id,role_key").in("id", [...ids]),
         supabase.from("self_attendance_punches").select("candidate_id,check_in_at").in("candidate_id", [...ids]).eq("punch_date", todayIso()),
       ]);
+      if (people.error) throw people.error;
+      if (punches.error) throw punches.error;
+      const records = (people.data ?? []) as unknown as Array<Omit<Mate, "designation"> & { designation_id: string | null; role_key: string | null }>;
+      const designationIds = [...new Set(records.flatMap((p) => p.designation_id ? [p.designation_id] : []))];
+      const designationNames = new Map<string, string>();
+      if (designationIds.length) {
+        const { data, error } = await supabase.from("designations").select("id,name").in("id", designationIds);
+        if (error) throw error;
+        for (const row of data ?? []) designationNames.set(row.id, row.name);
+      }
       const inAt = new Map(((punches.data ?? []) as Array<{ candidate_id: string; check_in_at: string | null }>).map((p) => [p.candidate_id, p.check_in_at]));
-      return ((people.data ?? []) as unknown as Array<Mate & { role_key: string | null }>)
+      return records
         .filter((p) => p.role_key !== "guard" && p.role_key !== "security_guard")
-        .map((p) => ({ ...p, inAt: inAt.get(p.id) ?? null }));
+        .map((p) => ({ ...p, designation: p.designation_id ? designationNames.get(p.designation_id) ?? null : null, inAt: inAt.get(p.id) ?? null }));
     },
   });
 
@@ -68,6 +82,7 @@ export function TeamClientsCard() {
           supabase.from("candidates").select("unit_id").in("unit_id", part).in("status", ["active", "approved"]).limit(20000),
           supabase.from("attendance_sheets").select("unit_id,status,period_end").in("unit_id", part).order("period_end", { ascending: false }).limit(5000),
         ]);
+        for (const result of [u, c, p, s]) if (result.error) throw result.error;
         units.push(...((u.data ?? []) as typeof units));
         for (const r of (c.data ?? []) as Array<{ unit_id: string }>) contracts.set(r.unit_id, (contracts.get(r.unit_id) ?? 0) + 1);
         for (const r of (p.data ?? []) as Array<{ unit_id: string }>) people.set(r.unit_id, (people.get(r.unit_id) ?? 0) + 1);
@@ -79,7 +94,8 @@ export function TeamClientsCard() {
       const custIds = [...new Set(units.map((u) => u.customer_id).filter(Boolean) as string[])];
       const orgs = new Map<string, string>();
       for (const part of chunks(custIds)) {
-        const { data } = await supabase.from("customers").select("id,name").in("id", part);
+        const { data, error } = await supabase.from("customers").select("id,name").in("id", part);
+        if (error) throw error;
         for (const r of (data ?? []) as Array<{ id: string; name: string }>) orgs.set(r.id, r.name);
       }
       return units
@@ -97,6 +113,12 @@ export function TeamClientsCard() {
   });
 
   if (!scope.isScoped) return null;
+  if (teamQ.error || sitesQ.error) return (
+    <section className="space-y-2 border border-destructive/30 p-4">
+      <p className="text-sm text-destructive">Team information could not load.</p>
+      <Button variant="outline" size="sm" onClick={() => { void teamQ.refetch(); void sitesQ.refetch(); }}>Try again</Button>
+    </section>
+  );
   const sites = sitesQ.data ?? [];
   const needle = q.trim().toLowerCase();
   const shown = needle
@@ -116,7 +138,7 @@ export function TeamClientsCard() {
     <div className="space-y-4">
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 text-sm font-semibold">My team ({mates.length})</div>
-        {mates.length === 0 && <div className="text-xs text-muted-foreground">Nobody reports to you yet.</div>}
+        {teamQ.isLoading ? <div className="text-xs text-muted-foreground">Loading team…</div> : mates.length === 0 && <div className="text-xs text-muted-foreground">Nobody reports to you yet.</div>}
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {mates.map((m) => (
             <div key={m.id} className="rounded-xl border border-border p-3">

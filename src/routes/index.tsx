@@ -4,6 +4,14 @@ import { readStoredAuthUser, useAuth } from "@/lib/auth";
 import { useCurrentPermissions } from "@/lib/rbac";
 
 export const Route = createFileRoute("/")({
+  head: () => ({ meta: [
+    { title: "Your Workspace | Radiant Guard Services" },
+    { name: "description", content: "Open your assigned Radiant workspace and team dashboard." },
+    { property: "og:title", content: "Your Workspace | Radiant Guard Services" },
+    { property: "og:description", content: "Open your assigned Radiant workspace and team dashboard." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: Index,
 });
 
@@ -63,7 +71,7 @@ function Index() {
       navigate({ to: "/admin/employee-dashboard", replace: true });
       return;
     }
-    if (can("dashboard") || can("organizations") || can("employees")) {
+    if (isAdminConsole) {
       navigate({ to: "/admin/dashboard", replace: true });
       return;
     }

@@ -288,6 +288,7 @@ export const RBAC_MODULES: ModuleDef[] = [
     // an explicit row from role/department/designation/employee decides.
     subModules: [
       { key: "w_readiness", label: "Readiness: attendance / payroll / invoices approved vs open", path: "", icon: LayoutDashboard },
+      { key: "w_team_clients", label: "Team members & client attendance", path: "", icon: LayoutDashboard },
       { key: "w_live_people", label: "Live now: field officers & staff", path: "", icon: LayoutDashboard },
       { key: "w_orgs", label: "Organizations tile", path: "", icon: LayoutDashboard },
       { key: "w_units", label: "Clients tile", path: "", icon: LayoutDashboard },

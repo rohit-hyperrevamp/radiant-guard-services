@@ -325,6 +325,11 @@ function AdminLayout() {
     // to the employee dashboard after the correct dashboard navigation.
     if (readStoredAuthUser()?.role === "super_admin") return;
     if (pathname === "/admin/hr/recruitment/interviews" || /^\/admin\/hr\/recruitment\/candidates\/[^/]+$/.test(pathname)) return;
+    // Recover managers stranded by old personal-dashboard bookmarks/fallbacks.
+    if (!isGuardRole && !isFieldOfficerRole(roleKey) && pathname === "/admin/employee-dashboard") {
+      navigate({ to: "/admin/dashboard", replace: true });
+      return;
+    }
     // Guards have no module-based permissions; restrict them to their personal pages.
     if (isGuardRole) {
       const allowed =
@@ -540,6 +545,7 @@ function AdminLayout() {
     }
     const base = groups
       .filter((g) => {
+        if (g.key === "team-views") return isSuperAdmin;
         if (g.key === "field-sense") {
           // Field officers use the site visit workflow without the Radar map.
           // Other roles need RBAC access to the field_sense module and map.
