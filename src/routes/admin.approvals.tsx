@@ -1,3 +1,4 @@
+import { useCurrentPermissions } from "@/lib/rbac";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,6 +44,13 @@ const STATUS_CLS: Record<string, string> = {
 const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
 
 function ApprovalsPage() {
+  const { isSuperAdmin, isLoading: permsLoading } = useCurrentPermissions();
+  if (permsLoading) return null;
+  if (!isSuperAdmin) return <div className="p-6 text-sm text-muted-foreground">Approvals is available to Super Admins only.</div>;
+  return <ApprovalsInner />;
+}
+
+function ApprovalsInner() {
   const search = Route.useSearch();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todo" | "mine" | "all">("todo");

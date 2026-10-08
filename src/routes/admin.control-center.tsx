@@ -29,6 +29,12 @@ type Tile = {
 
 const tiles: Tile[] = [
   {
+    to: "/admin/approvals",
+    label: "Approvals",
+    description: "Pending approval requests (Super Admin only).",
+    icon: BadgeCheck,
+  },
+  {
     to: "/admin/customers/state-manager",
     label: "States",
     description: "State and statutory details.",
@@ -257,6 +263,7 @@ function ControlCenterDashboard() {
   const { can, canSub, isSuperAdmin, roleKey } = useCurrentPermissions();
   const visibleTiles = tiles.filter((tile) => {
     if (isSuperAdmin) return true;
+    if (tile.to === "/admin/approvals") return false;
     if ((GOVERNANCE_PATHS as readonly string[]).includes(tile.to)) return !!roleKey && GOVERNANCE_ROLES.has(roleKey);
     const permission = RBAC_MODULES.flatMap((module) =>
       module.subModules.map((sub) => ({ module: module.key, sub })),
