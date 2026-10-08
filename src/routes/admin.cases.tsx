@@ -15,6 +15,7 @@ import { useFileViewer } from "@/components/FileViewer";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
+import { PriorityBadge } from "@/components/PriorityBadge";
 
 export const Route = createFileRoute("/admin/cases")({
   head: () => ({
@@ -44,15 +45,6 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   closed: { label: "Closed", cls: "bg-primary/20 text-primary" },
 };
 const PRIORITY = ["low", "medium", "high", "critical"];
-const PRIORITY_CLS: Record<string, string> = {
-  critical: "bg-priority-critical text-priority-critical-foreground",
-  high: "bg-priority-high/15 text-priority-high",
-  medium: "bg-priority-medium/15 text-priority-medium",
-  low: "bg-priority-low/15 text-priority-low",
-};
-function PriorityBadge({ p }: { p: string }) {
-  return <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 capitalize", PRIORITY_CLS[p] ?? PRIORITY_CLS.low)}>{p}</span>;
-}
 const d = (v?: string | null) => (v ? format(new Date(v), "dd MMM yyyy") : "—");
 
 function useLookups() {
@@ -100,7 +92,7 @@ function CaseDesk() {
     const s = q.trim().toLowerCase();
     return (casesQ.data ?? []).filter((c) =>
       (status === "all" || c.status === status) && (prio === "all" || c.priority === prio) && (type === "all" || c.case_type_id === type) &&
-      (!s || `${c.case_number} ${c.title} ${c.opposing_party ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`.toLowerCase().includes(s)));
+      (!s || `${c.case_number} ${c.title} ${typeName(c.case_type_id)} ${c.priority} ${c.opposing_party ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`.toLowerCase().includes(s)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casesQ.data, status, prio, type, q, lk.data]);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["legal-cases"] }); qc.invalidateQueries({ queryKey: ["case-summary"] }); };
@@ -141,7 +133,7 @@ function CaseDesk() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-8" placeholder="Search case no., title, party, employee, client…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input className="pl-8" placeholder="Search case name, category, party, employee, client…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <SearchSelect className="sm:w-48" value={status} onChange={setStatus} options={[{ value: "all", label: "All statuses" }, ...Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label }))]} />
         <SearchSelect className="sm:w-40" value={prio} onChange={setPrio} options={[{ value: "all", label: "All priorities" }, ...PRIORITY.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))]} />
