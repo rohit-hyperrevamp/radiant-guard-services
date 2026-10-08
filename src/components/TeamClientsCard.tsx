@@ -76,7 +76,7 @@ export function TeamClientsCard() {
           if (!siteMap.has(cid)) siteMap.set(cid, new Set());
           siteMap.get(cid)!.add(unit.id);
         };
-        for (const u of (managed.data ?? []) as Array<{ id: string; name: string | null; account_manager_id: string | null; operations_manager_id: string | null; hr_executive_id: string | null }>) {
+        for (const u of (managed.data ?? []) as unknown as Array<{ id: string; name: string | null; account_manager_id: string | null; operations_manager_id: string | null; hr_executive_id: string | null }>) {
           add(u.account_manager_id, u); add(u.operations_manager_id, u); add(u.hr_executive_id, u);
         }
         const extraIds = [...new Set(((mapped.data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id).filter((id) => !unitName.has(id)))];
