@@ -1686,10 +1686,12 @@ function Shell({
   search?: Record<string, unknown>;
   accent?: Accent;
 }) {
+  const scope = useManagerFieldOfficerScope();
+  const scopedSearch = scope.isScoped ? { ...(search ?? {}), mine: 1 } : search;
   return (
     <Link
       to={to}
-      search={search as never}
+      search={scopedSearch as never}
       className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
