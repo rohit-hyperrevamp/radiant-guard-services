@@ -115,6 +115,7 @@ import {
 import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
 
 import { cn } from "@/lib/utils";
+import { AttendanceUploadsButton, saveAttendanceUploads } from "@/components/AttendanceUploadsButton";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
@@ -2386,6 +2387,7 @@ function MusterRollPage() {
   };
 
   const onPickUploadFiles = async (picked: File[]) => {
+    if (picked.length) void saveAttendanceUploads(unitId, periodStart, periodEnd, picked).then(() => queryClient.invalidateQueries({ queryKey: ["attendance-uploads", unitId] }));
     let files = picked;
     if (picked.some((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name))) {
       setPreparingScan(true);
@@ -4075,7 +4077,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             <span className="text-muted-foreground"> · {unit.customer_name}</span>
           ) : null}
         </div>
-        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:mt-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:mt-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
           <Button
             onClick={() => {
               setUploadOpen(true);
@@ -4087,6 +4089,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             <Upload className="mr-2 h-4 w-4 shrink-0" />
             <span className="truncate">Upload Attendance</span>
           </Button>
+          <AttendanceUploadsButton unitId={unitId} periodStart={periodStart} />
           <Button
             variant="outline"
             disabled={!editable}
