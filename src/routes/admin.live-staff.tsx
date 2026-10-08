@@ -1,4 +1,5 @@
 import { useTeamPeopleOnly } from "@/lib/use-team-people";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
