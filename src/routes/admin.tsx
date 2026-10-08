@@ -458,6 +458,7 @@ function AdminLayout() {
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
       { key: "tasks", label: "Tasks", icon: ClipboardList, to: "/admin/tasks", activePrefixes: ["/admin/tasks"] },
+      { key: "case-desk", label: "Case Desk", module: "legal_cases", icon: ShieldCheck, to: "/admin/cases", activePrefixes: ["/admin/cases"] },
       { key: "approvals", label: "Approvals", icon: BadgeCheck, to: "/admin/approvals", activePrefixes: ["/admin/approvals"] },
       { key: "live-staff", label: "Live Staff", module: "employees", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
       { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
@@ -663,6 +664,7 @@ function AdminLayout() {
               { label: "Sales & Marketing", keys: ["sales"] },
               { label: "Finance", keys: ["invoice"] },
               { label: "Surveillance", keys: ["field-sense"] },
+              { label: "Legal", keys: ["case-desk"] },
               { label: "Compliance", keys: ["compliance"] },
               { label: "Admin", keys: ["control"] },
             ];

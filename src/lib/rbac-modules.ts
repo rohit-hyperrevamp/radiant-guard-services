@@ -256,6 +256,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "system_logs",              label: "System Logs",              path: "/admin/system-logs",              icon: ClipboardList },
       { key: "migration_utility",         label: "Data Migration",           path: "/admin/migration-utility",         icon: DatabaseZap },
       { key: "org_settings",              label: "Company Settings",         path: "/admin/org-settings",              icon: Building2 },
+      { key: "case_types",                label: "Case Types (Case Desk)",   path: "/admin/case-type-manager",         icon: ShieldCheck },
 
     ],
   },
@@ -315,6 +316,14 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "w_fo_mapping", label: "Field officer mapping (only where explicitly allowed)", path: "", icon: LayoutDashboard },
       { key: "w_org_tree", label: "Organization tree", path: "", icon: LayoutDashboard },
     ],
+  },
+  {
+    key: "legal_cases",
+    label: "Case Desk (Legal cases)",
+    path: "/admin/cases",
+    icon: ShieldCheck,
+    // View = see cases, Edit = add/update cases & upload documents, Delete = remove.
+    subModules: [],
   },
   {
     key: "tasks",
