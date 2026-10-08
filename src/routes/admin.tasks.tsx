@@ -186,8 +186,10 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
   const [desc, setDesc] = useState("");
   const [dept, setDept] = useState("");
   const [assignee, setAssignee] = useState("");
-  const today6 = new Date(); today6.setHours(18, 0, 0, 0);
-  const [due, setDue] = useState(toLocalInput(today6));
+  const today = new Date();
+  const [dueDate, setDueDate] = useState(toLocalInput(today).slice(0, 10));
+  const [dueTime, setDueTime] = useState("18:00");
+  const due = dueDate ? `${dueDate}T${dueTime || "18:00"}` : "";
   const [saving, setSaving] = useState(false);
   const deptName = new Map(departments.map((d) => [d.id, d.name]));
   const options = people
@@ -228,9 +230,15 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
               <SearchSelect value={assignee} onChange={setAssignee} options={options} placeholder="Choose a person" searchPlaceholder="Search by name or ID…" />
             </div>
           </div>
-          <div>
-            <div className="mb-1 text-xs text-muted-foreground">Complete by</div>
-            <Input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Complete by date</div>
+              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Complete by time</div>
+              <Input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
+            </div>
           </div>
         </div>
         <DialogFooter>
