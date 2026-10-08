@@ -568,3 +568,9 @@
 - [x] Standardize tile heights, labels, number fonts and bottom alignment across all dashboard variants and shared summary tiles.
 - [x] Check layout and number-fitting regressions: 100 fitting cases, three dashboard consolidation checks, and ten shared tile-style checks passed.
 - [ ] Verify live appearance after publishing (unpublished UI cannot be checked on production).
+
+## Single-line dashboard labels and follow-up alignment
+- [x] Align UAN and contract-designation counts at the bottom using the shared tile layout.
+- [x] Fit complete headings and status/task labels on a single line.
+- [x] Run fitting and layout regression checks: 54 full-word/value cases, 100 number cases, and both follow-up layout checks passed.
+- [ ] Verify live appearance after publishing (requires published UI).

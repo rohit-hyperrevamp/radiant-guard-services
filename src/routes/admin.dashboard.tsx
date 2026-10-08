@@ -1982,9 +1982,12 @@ function TileHeader({
   return (
     <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="dashboard-tile-title font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">
+        <TileNumber
+          variant="label"
+          className="dashboard-tile-title font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]"
+        >
           {label}
-        </div>
+        </TileNumber>
         {sub && (
           <div className="mt-0.5 truncate whitespace-nowrap text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
             {sub}
@@ -2117,12 +2120,12 @@ function StatusTile({
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
       <div
-        className={`dashboard-tile-breakdown relative mt-auto grid min-w-0 items-end gap-1.5 sm:gap-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+        className={`dashboard-tile-breakdown relative mt-auto grid min-w-0 items-end gap-1 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div className="min-w-0">
-          <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+          <TileNumber variant="label" className="mb-1 text-[9px] text-muted-foreground">
             {approvedLabel}
-          </div>
+          </TileNumber>
           <TileNumber
             className={cn(
               "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2133,9 +2136,9 @@ function StatusTile({
           </TileNumber>
         </div>
         <div className="min-w-0">
-          <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+          <TileNumber variant="label" className="mb-1 text-[9px] text-muted-foreground">
             {pendingLabel}
-          </div>
+          </TileNumber>
           <TileNumber
             className={cn(
               "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2147,9 +2150,9 @@ function StatusTile({
         </div>
         {middle && (
           <div className="min-w-0">
-            <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+            <TileNumber variant="label" className="mb-1 text-[9px] text-muted-foreground">
               {middle.label}
-            </div>
+            </TileNumber>
             <TileNumber
               className={cn(
                 "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2162,9 +2165,9 @@ function StatusTile({
         )}
         {open != null && (
           <div className="min-w-0">
-            <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+            <TileNumber variant="label" className="mb-1 text-[9px] text-muted-foreground">
               {openLabel}
-            </div>
+            </TileNumber>
             <TileNumber
               className={cn(
                 "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",

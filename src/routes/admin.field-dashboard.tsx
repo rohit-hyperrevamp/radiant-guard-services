@@ -1353,7 +1353,9 @@ function HeroStat({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="dashboard-tile-title min-w-0 text-foreground">{label}</span>
+        <TileNumber variant="label" className="dashboard-tile-title min-w-0 text-foreground">
+          {label}
+        </TileNumber>
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card/80 text-primary shadow-sm">
           <Icon className="h-4 w-4" />
         </div>
@@ -1427,9 +1429,12 @@ function PastelTile({
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
-          <div className="dashboard-tile-title text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">
+          <TileNumber
+            variant="label"
+            className="dashboard-tile-title text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]"
+          >
             {label}
-          </div>
+          </TileNumber>
           <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground sm:text-[11px]">
             {hint}
           </div>

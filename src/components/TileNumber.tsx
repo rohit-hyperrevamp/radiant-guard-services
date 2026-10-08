@@ -2,7 +2,15 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** Fit the complete value to the space remaining beside icons and labels. */
-export function TileNumber({ children, className }: { children: ReactNode; className?: string }) {
+export function TileNumber({
+  children,
+  className,
+  variant = "number",
+}: {
+  children: ReactNode;
+  className?: string;
+  variant?: "number" | "label";
+}) {
   const container = useRef<HTMLSpanElement>(null);
   const text = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -42,8 +50,13 @@ export function TileNumber({ children, className }: { children: ReactNode; class
   return (
     <span
       ref={container}
-      data-tile-number
-      className={cn("block w-full min-w-0 tabular-nums leading-none", className)}
+      data-tile-number={variant === "number" ? "" : undefined}
+      data-tile-label={variant === "label" ? "" : undefined}
+      className={cn(
+        "block w-full min-w-0 leading-none",
+        variant === "number" && "tabular-nums",
+        className,
+      )}
     >
       <span ref={text} className="inline-block w-max whitespace-nowrap tracking-normal">
         {children}
