@@ -100,9 +100,11 @@ export function useOperationalUnitScope(): {
       customerIds: foScope.customerIds,
     };
   }
+  // Office users with module access see every record on list pages; team
+  // scope only shapes the dashboard's team sections.
   return {
     isLoading: managerScope.isLoading,
-    isScoped: managerScope.isScoped,
+    isScoped: false,
     unitIds: managerScope.unitIds,
     customerIds: managerScope.customerIds,
   };

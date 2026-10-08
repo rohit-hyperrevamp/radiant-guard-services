@@ -1,4 +1,5 @@
 import { useTeamPeopleOnly } from "@/lib/use-team-people";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -76,7 +77,26 @@ function LiveStaffPage() {
   }, [qc]);
 
   const team = useTeamPeopleOnly();
-  const rows = (data.data ?? []).filter((r) => !team.teamOnly || team.ids.has(r.candidate_id));
+  void team;
+  const [view, setView] = useState<"all" | "mine">("all");
+  const { candidateId: myId } = useCurrentUserRole();
+  const myTeam = useQuery({
+    queryKey: ["live-staff-my-team", myId],
+    enabled: !!myId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [a, b] = await Promise.all([
+        supabase.from("candidates").select("id").eq("reports_to", myId as string),
+        supabase.from("candidate_reporting_managers").select("candidate_id").eq("manager_id", myId as string),
+      ]);
+      return new Set<string>([
+        ...((a.data ?? []) as { id: string }[]).map((r) => r.id),
+        ...((b.data ?? []) as { candidate_id: string }[]).map((r) => r.candidate_id),
+      ]);
+    },
+  });
+  const myTeamIds = myTeam.data ?? new Set<string>();
+  const rows = (data.data ?? []).filter((r) => view === "all" || myTeamIds.has(r.candidate_id));
   const isOnline = (r: Row) => !!r.user_id && online.has(r.user_id);
   const isIn = (r: Row) => !!r.check_in_at;
   const depts = useMemo(
@@ -129,6 +149,17 @@ function LiveStaffPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <div className="inline-flex rounded-md border border-input p-0.5">
+          {([["all", "All staff"], ["mine", `My team (${myTeamIds.size})`]] as const).map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => { setView(k); setPage(0); }}
+              className={`rounded px-3 py-1.5 text-sm ${view === k ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
         <div className="relative min-w-[200px] flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Search name or ID" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
