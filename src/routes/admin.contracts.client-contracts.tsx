@@ -1204,7 +1204,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1224,6 +1224,7 @@ function useContractResources(contractId: string | null) {
         benefits: Array.isArray(r.benefits) ? (r.benefits as BenefitItem[]) : [],
         deductions: Array.isArray(r.deductions) ? (r.deductions as BenefitItem[]) : [],
         employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
+        roundOffFinal: r.round_off_final === true,
       }));
     },
   });
