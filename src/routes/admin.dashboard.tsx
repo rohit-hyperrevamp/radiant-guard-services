@@ -915,14 +915,33 @@ function DashboardPage() {
       const todayStr = new Date().toISOString().slice(0, 10);
       const horizonStr = horizon.toISOString().slice(0, 10);
 
-      const [unitRows, links, contracts] = await Promise.all([
-        supabase.from("units").select("id,customer_id").in("id", unitIds),
-        supabase.from("candidate_units").select("candidate_id").in("unit_id", unitIds).limit(20000),
-        supabase.from("client_contracts").select("id,contract_code,end_date,unit_id,status").in("unit_id", unitIds),
-      ]);
-      if (unitRows.error) throw unitRows.error;
-      if (links.error) throw links.error;
-      if (contracts.error) throw contracts.error;
+      // 800+ team sites overflow one request URL, so look them up in chunks.
+      const parts: string[][] = [];
+      for (let i = 0; i < unitIds.length; i += 150) parts.push(unitIds.slice(i, i + 150));
+      const results = await Promise.all(
+        parts.map((ids) =>
+          Promise.all([
+            supabase.from("units").select("id,customer_id").in("id", ids),
+            supabase.from("candidate_units").select("candidate_id").in("unit_id", ids).limit(20000),
+            supabase.from("client_contracts").select("id,contract_code,end_date,unit_id,status").in("unit_id", ids),
+            supabase.from("candidates").select("id").in("unit_id", ids).in("status", ["active", "approved"]).limit(20000),
+          ]),
+        ),
+      );
+      for (const [a, b, c, d] of results) {
+        if (d.error) throw d.error;
+        if (a.error) throw a.error;
+        if (b.error) throw b.error;
+        if (c.error) throw c.error;
+      }
+      const unitRows = { data: results.flatMap(([a]) => a.data ?? []) };
+      const links = {
+        data: [
+          ...results.flatMap(([, b]) => b.data ?? []),
+          ...results.flatMap(([, , , d]) => ((d.data ?? []) as Array<{ id: string }>).map((r) => ({ candidate_id: r.id }))),
+        ],
+      };
+      const contracts = { data: results.flatMap(([, , c]) => c.data ?? []) };
 
       const orgs = new Set(
         ((unitRows.data ?? []) as Array<{ customer_id: string | null }>)

@@ -61,22 +61,26 @@ async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsO
     };
   }
   const scopedUnitIds = scope.unitIds;
-  const [units, visits, foCount] = await Promise.all([
-    fetchAllPages<ActiveUnit>((from, to) => {
+  // Large teams (800+ sites) overflow one request URL, so scoped lookups go in chunks.
+  const parts: (string[] | null)[] = [];
+  if (scopedUnitIds) for (let i = 0; i < scopedUnitIds.length; i += 150) parts.push(scopedUnitIds.slice(i, i + 150));
+  else parts.push(null);
+  const [unitParts, visitParts, foCount] = await Promise.all([
+    Promise.all(parts.map((ids) => fetchAllPages<ActiveUnit>((from, to) => {
       const q = supabase
         .from("units")
         .select("id,code,name,billing_city,billing_state,customer:customers(name)")
         .eq("status", "active");
-      return (scopedUnitIds ? q.in("id", scopedUnitIds) : q).order("name").range(from, to);
-    }),
-    fetchAllPages<VisitRow>((from, to) => {
+      return (ids ? q.in("id", ids) : q).order("name").range(from, to);
+    }))),
+    Promise.all(parts.map((ids) => fetchAllPages<VisitRow>((from, to) => {
       const q = supabase
         .from("field_visits")
         .select("unit_id,visit_date,check_out_at")
         .gte("visit_date", monthStart())
         .lte("visit_date", localDate());
-      return (scopedUnitIds ? q.in("unit_id", scopedUnitIds) : q).range(from, to);
-    }),
+      return (ids ? q.in("unit_id", ids) : q).range(from, to);
+    }))),
     scope.fieldOfficerCount != null
       ? Promise.resolve({ count: scope.fieldOfficerCount, error: null })
       : supabase
@@ -85,6 +89,8 @@ async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsO
           .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
           .in("status", ["approved", "active"]),
   ]);
+  const units = unitParts.flat();
+  const visits = visitParts.flat();
 
   if (foCount.error) throw foCount.error;
   const activeIds = new Set(units.map((u) => u.id));
