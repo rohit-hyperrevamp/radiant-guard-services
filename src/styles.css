@@ -37,6 +37,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-secondary: var(--accent-secondary);
   --color-destructive: var(--destructive);
+  --color-priority-critical: var(--priority-critical); --color-priority-critical-foreground: var(--priority-critical-foreground); --color-priority-high: var(--priority-high); --color-priority-medium: var(--priority-medium); --color-priority-low: var(--priority-low);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -93,6 +94,7 @@
   --accent-foreground: oklch(0.99 0 0);
   --accent-secondary: oklch(0.22 0.022 168);
   --destructive: oklch(0.62 0.16 20);
+  --priority-critical: oklch(0.5 0.2 25); --priority-critical-foreground: oklch(0.99 0 0); --priority-high: oklch(0.58 0.2 25); --priority-medium: oklch(0.62 0.14 65); --priority-low: oklch(0.55 0.14 150);
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.905 0.005 170);
   --input: oklch(0.905 0.005 170);
@@ -201,6 +203,7 @@
   --accent-foreground: oklch(0.16 0.02 168);
   --accent-secondary: oklch(0.66 0.08 190);
   --destructive: oklch(0.7 0.18 22);
+  --priority-critical: oklch(0.6 0.2 25); --priority-critical-foreground: oklch(0.99 0 0); --priority-high: oklch(0.72 0.18 25); --priority-medium: oklch(0.8 0.15 75); --priority-low: oklch(0.75 0.15 150);
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(1 0 0 / 16%);
   --input: oklch(1 0 0 / 20%);
@@ -2330,3 +2333,16 @@ nav[data-bottom-nav] li > * > div > span:last-child {
     font-size: 20px !important;
   }
 }
+
+
+/* No dark focus rectangle around pop-ups, panels or clicked elements.
+   Keyboard users still get a soft accent ring. */
+[role="dialog"], [data-slot="dialog-content"], [data-slot="sheet-content"], [data-radix-popper-content-wrapper] > *, [tabindex="-1"] {
+  outline: none !important;
+}
+:focus:not(:focus-visible) { outline: none !important; }
+:where(button, a, [role="button"], [role="tab"], [role="option"], [role="menuitem"]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+[data-slot="dialog-content"] { border-color: transparent !important; }
