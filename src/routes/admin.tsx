@@ -8,12 +8,11 @@ import {
 import { useMineFilter } from "@/lib/use-manager-scope";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTrackOnlinePresence } from "@/lib/online-presence";
-import { Activity } from "lucide-react";
+import { Activity , Building2, CalendarCheck, Package, ListTodo, Scale, GraduationCap, CalendarClock } from "lucide-react";
 import {
   Banknote,
   Bell,
   BookOpen,
-  Building2,
   Boxes,
   ChevronDown,
   ChevronsLeft,
@@ -442,27 +441,27 @@ function AdminLayout() {
   const groups: GroupItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
-      { key: "org-manager", label: "Organizations", module: "organizations", sub: "organization_manager", icon: Users, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
+      { key: "org-manager", label: "Organizations", module: "organizations", sub: "organization_manager", icon: Building2, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
       { key: "unit-manager", label: "Clients", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "sales", label: "Sales & Marketing", module: "sales_marketing", icon: TrendingUp, children: salesChildren, activePrefixes: ["/admin/sales"] },
       { key: "recruitment", label: "Recruitment", module: "recruitment", icon: UserPlus, children: recruitmentChildren, activePrefixes: ["/admin/hr/recruitment"] },
-      { key: "employees", label: isFieldOfficer ? "Candidates" : "Employees", module: "employees", icon: UserPlus, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
+      { key: "employees", label: isFieldOfficer ? "Candidates" : "Employees", module: "employees", icon: Users, to: "/admin/employees", activePrefixes: ["/admin/employees"] },
 
-      { key: "attendance", label: "Attendance", module: "attendance", icon: ClipboardList, to: "/admin/attendance", activePrefixes: ["/admin/attendance"] },
+      { key: "attendance", label: "Attendance", module: "attendance", icon: CalendarCheck, to: "/admin/attendance", activePrefixes: ["/admin/attendance"] },
       { key: "payroll", label: "Payroll", module: "payroll", icon: Wallet, to: "/admin/payroll", activePrefixes: ["/admin/payroll", "/admin/additions", "/admin/deductions"] },
       { key: "invoice", label: "Invoice", module: "invoice", icon: CreditCard, to: "/admin/invoice", activePrefixes: ["/admin/invoice"] },
       { key: "inventory", label: "Uniform Manager", module: "inventory", icon: Boxes, children: inventoryChildren, activePrefixes: ["/admin/inventory"] },
       { key: "field-sense", label: "Radar", icon: Radio, children: fieldSenseChildren, activePrefixes: ["/admin/field-sense"], module: "field_sense" },
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
-      { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
+      { key: "assets", label: "Assets", module: "assets", icon: Package, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
-      { key: "tasks", label: "Tasks", icon: ClipboardList, to: "/admin/tasks", activePrefixes: ["/admin/tasks"] },
-      { key: "case-desk", label: "Case Desk", module: "legal_cases", icon: ShieldCheck, to: "/admin/cases", activePrefixes: ["/admin/cases"] },
+      { key: "tasks", label: "Tasks", icon: ListTodo, to: "/admin/tasks", activePrefixes: ["/admin/tasks"] },
+      { key: "case-desk", label: "Case Desk", module: "legal_cases", icon: Scale, to: "/admin/cases", activePrefixes: ["/admin/cases"] },
       { key: "approvals", label: "Approvals", icon: BadgeCheck, to: "/admin/approvals", activePrefixes: ["/admin/approvals"] },
       { key: "live-staff", label: "Live Staff", module: "employees", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
-      { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
-      { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
+      { key: "my-attendance", label: "My Attendance", icon: CalendarClock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
+      { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
       { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
@@ -515,8 +514,8 @@ function AdminLayout() {
   const guardGroups: GroupItem[] = useMemo(() => [
     { key: "dashboard", label: "My Dashboard", icon: LayoutGrid, to: "/admin/employee-dashboard", activePrefixes: ["/admin/employee-dashboard"] },
     { key: "my-inventory", label: "My Uniform", icon: Boxes, to: "/admin/my-inventory", activePrefixes: ["/admin/my-inventory"] },
-    { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
-    { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
+    { key: "my-attendance", label: "My Attendance", icon: CalendarClock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
+    { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
   ], []);
 
   const visibleGroups: GroupItem[] = (() => {
@@ -534,7 +533,7 @@ function AdminLayout() {
           activePrefixes: ["/admin/dashboard", "/admin/field-sense"],
           module: "field_sense",
         } satisfies GroupItem,
-        { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
+        { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       ];
     }
     if (isInventoryOnly) {
@@ -658,8 +657,8 @@ function AdminLayout() {
         <nav className={cn("scrollbar-hide flex-1 overflow-y-auto pb-3", collapsed ? "px-2" : "px-2.5")}>
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
-              { label: "Menu", keys: ["dashboard", "my-inventory", "my-attendance"] },
-              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "inventory", "vehicles", "assets"] },
+              { label: "Menu", keys: ["dashboard", "tasks", "approvals", "my-attendance", "my-inventory", "training"] },
+              { label: "Operations", keys: ["org-manager", "unit-manager", "contracts", "inventory", "vehicles", "assets", "live-staff"] },
               { label: "HR", keys: ["employees", "recruitment", "attendance", "payroll"] },
               { label: "Sales & Marketing", keys: ["sales"] },
               { label: "Finance", keys: ["invoice"] },
@@ -933,8 +932,8 @@ function AdminLayout() {
               { key: "fo-attendance", to: "/admin/attendance", label: "Attendance", icon: ClipboardList, active: isActive("/admin/attendance") },
                { key: "fo-radar", to: "/admin/field-sense", label: "Site Visits", icon: MapPin, active: isActive("/admin/field-sense") },
               { key: "fo-uniform", to: "/admin/inventory", label: "Uniform", icon: Boxes, active: isActive("/admin/inventory") },
-              { key: "fo-my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") },
-              { key: "fo-training", to: "/admin/my-training", label: "Training", icon: BookOpen, active: isActive("/admin/my-training") },
+              { key: "fo-my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: CalendarClock, active: isActive("/admin/my-attendance") },
+              { key: "fo-training", to: "/admin/my-training", label: "Training", icon: GraduationCap, active: isActive("/admin/my-training") },
             ]
           : visibleGroups.flatMap((g) => {
               const to = g.to ?? g.children?.[0]?.to;
@@ -944,7 +943,7 @@ function AdminLayout() {
           if (!moreItems.some((entry) => entry.to === item.to)) moreItems.push(item);
         };
         if (!isGuard) addMoreItem({ key: "profile", to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
-        addMoreItem({ key: "my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
+        addMoreItem({ key: "my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: CalendarClock, active: isActive("/admin/my-attendance") });
         if (!isGuard) addMoreItem({ key: "notifications", to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
         return (
           <MobileBottomNav
