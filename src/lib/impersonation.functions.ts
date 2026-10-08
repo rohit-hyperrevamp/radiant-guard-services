@@ -123,7 +123,7 @@ export const searchImpersonationTargets = createServerFn({ method: "POST" })
       } else if (words.length > 1 && mode === "all") {
         for (const w of words) query = query.ilike("full_name", `%${w}%`);
       } else if (words.length > 1) {
-        query = query.or(words.map((w) => `full_name.ilike.%${w}%`).join(","));
+        query = query.or(words.map((w) => `full_name.ilike.%${w.length > 4 ? w.slice(0, 4) : w}%`).join(","));
       }
       const { data: rows, error } = await query;
       if (error) throw new Error(error.message);
