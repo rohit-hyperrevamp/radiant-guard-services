@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { FileUp, Paperclip, Plus, Search } from "lucide-react";
+import { Eye, FileUp, Paperclip, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SearchSelect } from "@/components/SearchSelect";
 import { supabase } from "@/integrations/supabase/client";
+import { useFileViewer } from "@/components/FileViewer";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
@@ -44,13 +45,13 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 const PRIORITY = ["low", "medium", "high", "critical"];
 const PRIORITY_CLS: Record<string, string> = {
-  critical: "bg-destructive text-destructive-foreground",
-  high: "bg-destructive/15 text-destructive",
-  medium: "bg-accent/15 text-accent",
-  low: "bg-muted text-muted-foreground",
+  critical: "bg-priority-critical text-priority-critical-foreground",
+  high: "bg-priority-high/15 text-priority-high",
+  medium: "bg-priority-medium/15 text-priority-medium",
+  low: "bg-priority-low/15 text-priority-low",
 };
 function PriorityBadge({ p }: { p: string }) {
-  return <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium capitalize", PRIORITY_CLS[p] ?? PRIORITY_CLS.low)}>{p}</span>;
+  return <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 capitalize", PRIORITY_CLS[p] ?? PRIORITY_CLS.low)}>{p}</span>;
 }
 const d = (v?: string | null) => (v ? format(new Date(v), "dd MMM yyyy") : "—");
 
@@ -158,8 +159,8 @@ function CaseDesk() {
                 {typeName(c.case_type_id)} · {c.employee_id ? personName(c.employee_id) : unitName(c.unit_id)} · Next hearing {d(c.next_hearing_on)}
               </div>
             </div>
-            <PriorityBadge p={c.priority} />
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS[c.status]?.cls)}>{STATUS[c.status]?.label}</span>
+            <div className="flex shrink-0 items-center gap-1.5"><PriorityBadge p={c.priority} />
+            <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4", STATUS[c.status]?.cls)}>{STATUS[c.status]?.label}</span></div>
           </button>
         ))}
         {!casesQ.isLoading && rows.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No cases found.</div>}
@@ -260,10 +261,11 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
     }
     setBusy(false); toast.success("Uploaded"); reload();
   };
-  const openDoc = async (path: string) => {
-    const { data, error } = await supabase.storage.from("legal-docs").createSignedUrl(path, 600);
+  const viewFile = useFileViewer();
+  const openDoc = async (path: string, name: string) => {
+    const { data, error } = await supabase.storage.from("legal-docs").createSignedUrl(path, 3600);
     if (error || !data) return toast.error("Could not open file");
-    window.open(data.signedUrl, "_blank", "noopener");
+    viewFile({ url: data.signedUrl, name });
   };
   const addNote = async () => {
     if (!note.trim()) return;
@@ -321,8 +323,8 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
             </div>
             <div className="space-y-1">
               {(extra.data?.docs ?? []).map((doc) => (
-                <button key={doc.id} onClick={() => openDoc(doc.path)} className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-left text-xs hover:bg-muted">
-                  <Paperclip className="h-3.5 w-3.5" /><span className="flex-1 truncate">{doc.file_name}</span><span className="text-muted-foreground">{d(doc.created_at)}</span>
+                <button key={doc.id} onClick={() => openDoc(doc.path, doc.file_name)} className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-left text-xs hover:bg-muted">
+                  <Paperclip className="h-3.5 w-3.5" /><span className="flex-1 truncate">{doc.file_name}</span><span className="text-muted-foreground">{d(doc.created_at)}</span><Eye className="h-3.5 w-3.5 text-primary" />
                 </button>
               ))}
               {extra.data?.docs.length === 0 && <div className="text-xs text-muted-foreground">No documents yet.</div>}

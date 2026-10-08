@@ -75,6 +75,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useFileViewer } from "@/components/FileViewer";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { findCandidateByAadhaar } from "@/lib/workflows";
@@ -10181,6 +10182,7 @@ function UploadTile({
   const fileRef = useRef<HTMLInputElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const isPdf = !!url && /\.pdf(\?|$)/i.test(url);
+  const viewFile = useFileViewer();
   const done = !!url;
   return (
     <div
@@ -10202,17 +10204,18 @@ function UploadTile({
       <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border border-border/50 bg-secondary/30">
         {url ? (
           isPdf ? (
-            <a
-              href={url}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => viewFile({ url, name: label, mime: "application/pdf" })}
               className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <FileText className="h-8 w-8" />
               <span>View PDF</span>
-            </a>
+            </button>
           ) : (
-            <img src={url} alt={label} className="h-full w-full object-contain" />
+            <button type="button" onClick={() => viewFile({ url, name: label, mime: "image/jpeg" })} className="h-full w-full cursor-zoom-in" title="Click to view">
+              <img src={url} alt={label} className="h-full w-full object-contain" />
+            </button>
           )
         ) : (
           <Upload className="h-6 w-6 text-muted-foreground" />
