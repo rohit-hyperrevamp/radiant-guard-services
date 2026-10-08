@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SearchSelect } from "@/components/SearchSelect";
-import { CasesSummaryTile, useCaseSummary } from "@/components/CasesSummaryTile";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
@@ -44,6 +43,15 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   closed: { label: "Closed", cls: "bg-primary/20 text-primary" },
 };
 const PRIORITY = ["low", "medium", "high", "critical"];
+const PRIORITY_CLS: Record<string, string> = {
+  critical: "bg-destructive text-destructive-foreground",
+  high: "bg-destructive/15 text-destructive",
+  medium: "bg-accent/15 text-accent",
+  low: "bg-muted text-muted-foreground",
+};
+function PriorityBadge({ p }: { p: string }) {
+  return <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium capitalize", PRIORITY_CLS[p] ?? PRIORITY_CLS.low)}>{p}</span>;
+}
 const d = (v?: string | null) => (v ? format(new Date(v), "dd MMM yyyy") : "—");
 
 function useLookups() {
@@ -71,11 +79,11 @@ function CaseDesk() {
   const qc = useQueryClient();
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
+  const [prio, setPrio] = useState("all");
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Partial<Case> | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const lk = useLookups();
-  const summary = useCaseSummary(true);
   const casesQ = useQuery({
     queryKey: ["legal-cases"],
     queryFn: async () => {
@@ -90,25 +98,52 @@ function CaseDesk() {
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
     return (casesQ.data ?? []).filter((c) =>
-      (status === "all" || c.status === status) && (type === "all" || c.case_type_id === type) &&
+      (status === "all" || c.status === status) && (prio === "all" || c.priority === prio) && (type === "all" || c.case_type_id === type) &&
       (!s || `${c.case_number} ${c.title} ${c.opposing_party ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`.toLowerCase().includes(s)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [casesQ.data, status, type, q, lk.data]);
+  }, [casesQ.data, status, prio, type, q, lk.data]);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["legal-cases"] }); qc.invalidateQueries({ queryKey: ["case-summary"] }); };
 
   return (
     <div className="space-y-4">
       <PageHeader title="Case Desk" description="Every legal case, hearing, penalty and its documents in one place." crumbs={[{ label: "Case Desk" }]}
         actions={canEdit ? <Button onClick={() => setEditing({ status: "open", priority: "medium" })}><Plus className="mr-1 h-4 w-4" />New case</Button> : undefined} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <CasesSummaryTile summary={summary.data ?? null} />
-      </div>
+      {(() => {
+        const all = casesQ.data ?? [];
+        const by = (k: "status" | "priority", v: string) => all.filter((c) => c[k] === v).length;
+        const statusCards = [
+          { label: "Total cases", v: all.length, on: status === "all" && prio === "all", click: () => { setStatus("all"); setPrio("all"); } },
+          ...Object.entries(STATUS).map(([k, s]) => ({ label: s.label, v: by("status", k), on: status === k, click: () => setStatus(status === k ? "all" : k) })),
+        ];
+        const prioCards = [...PRIORITY].reverse().map((p) => ({ label: p[0].toUpperCase() + p.slice(1), key: p, v: by("priority", p), openV: all.filter((c) => c.priority === p && c.status !== "closed").length }));
+        return (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {statusCards.map((c) => (
+                <button key={c.label} onClick={c.click} className={cn("rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50", c.on && "ring-2 ring-primary")}>
+                  <div className="truncate text-xs text-muted-foreground">{c.label}</div>
+                  <div className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground">{c.v}</div>
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {prioCards.map((c) => (
+                <button key={c.key} onClick={() => setPrio(prio === c.key ? "all" : c.key)} className={cn("rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50", prio === c.key && "ring-2 ring-primary")}>
+                  <div className="flex items-center justify-between gap-2"><PriorityBadge p={c.key} /><span className="text-[11px] text-muted-foreground">{c.openV} not closed</span></div>
+                  <div className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground">{c.v}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Search case no., title, party, employee, client…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <SearchSelect className="sm:w-48" value={status} onChange={setStatus} options={[{ value: "all", label: "All statuses" }, ...Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label }))]} />
+        <SearchSelect className="sm:w-40" value={prio} onChange={setPrio} options={[{ value: "all", label: "All priorities" }, ...PRIORITY.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))]} />
         <SearchSelect className="sm:w-64" value={type} onChange={setType} options={[{ value: "all", label: "All case types" }, ...(lk.data?.types ?? []).map((t) => ({ value: t.id, label: t.name }))]} />
       </div>
       <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -123,7 +158,7 @@ function CaseDesk() {
                 {typeName(c.case_type_id)} · {c.employee_id ? personName(c.employee_id) : unitName(c.unit_id)} · Next hearing {d(c.next_hearing_on)}
               </div>
             </div>
-            <span className="hidden text-xs capitalize text-muted-foreground sm:inline">{c.priority}</span>
+            <PriorityBadge p={c.priority} />
             <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS[c.status]?.cls)}>{STATUS[c.status]?.label}</span>
           </button>
         ))}
@@ -251,7 +286,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
     onChanged(); onClose();
   };
   const info: Array<[string, string]> = [
-    ["Type", typeName(c.case_type_id)], ["Priority", c.priority], ["Handled by", personName(c.owner_id)],
+    ["Type", typeName(c.case_type_id)], ["Handled by", personName(c.owner_id)],
     ["Employee", personName(c.employee_id)], ["Client / site", unitName(c.unit_id)], ["Opposite party", c.opposing_party ?? "—"],
     ["Court / authority", c.court_or_authority ?? "—"], ["Reference no.", c.reference_no ?? "—"],
     ["Amount", c.amount_involved != null ? `₹${Number(c.amount_involved).toLocaleString("en-IN")}` : "—"],
@@ -262,7 +297,8 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader><DialogTitle className="pr-6">{c.case_number} · {c.title}</DialogTitle></DialogHeader>
         <div className="space-y-4 text-sm">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <PriorityBadge p={c.priority} />
             {Object.entries(STATUS).map(([k, s]) => (
               <button key={k} disabled={!canEdit || c.status === k} onClick={() => setStatus(k)}
                 className={cn("rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-border", c.status === k ? s.cls : "text-muted-foreground hover:bg-muted")}>{s.label}</button>

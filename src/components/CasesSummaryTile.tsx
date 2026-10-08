@@ -11,22 +11,23 @@ export function useCaseSummary(enabled: boolean) {
     enabled,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("legal_cases").select("status"); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).from("legal_cases").select("status,priority"); // eslint-disable-line @typescript-eslint/no-explicit-any
       if (error) throw error;
-      const rows = (data ?? []) as { status: string }[];
+      const rows = (data ?? []) as { status: string; priority: string }[];
       const n = (s: string) => rows.filter((r) => r.status === s).length;
-      return { total: rows.length, open: n("open"), progress: n("in_progress") + n("on_hold"), closed: n("closed") };
+      return { total: rows.length, open: n("open"), progress: n("in_progress") + n("on_hold"), closed: n("closed"), high: rows.filter((r) => r.status !== "closed" && (r.priority === "high" || r.priority === "critical")).length };
     },
   });
 }
 
 /** Case Desk counts: total, open, in progress, closed. */
-export function CasesSummaryTile({ summary }: { summary: { total: number; open: number; progress: number; closed: number } | null }) {
+export function CasesSummaryTile({ summary }: { summary: { total: number; open: number; progress: number; closed: number; high?: number } | null }) {
   const cells = [
     { label: "Total", v: summary?.total },
     { label: "Open", v: summary?.open },
     { label: "Ongoing", v: summary?.progress },
     { label: "Closed", v: summary?.closed },
+    { label: "High", v: summary?.high },
   ];
   return (
     <Link
@@ -42,7 +43,7 @@ export function CasesSummaryTile({ summary }: { summary: { total: number; open: 
           <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
-      <div className="mt-auto grid min-w-0 grid-cols-4 gap-x-1 gap-y-1 text-center">
+      <div className="mt-auto grid min-w-0 grid-cols-5 gap-x-1 gap-y-1 text-center">
         {cells.map((c) => (
           <TileNumber variant="label" key={c.label} className="text-[9px] leading-tight text-muted-foreground sm:text-[10px]">{c.label}</TileNumber>
         ))}
