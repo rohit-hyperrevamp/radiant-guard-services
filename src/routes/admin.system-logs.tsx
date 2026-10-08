@@ -52,6 +52,11 @@ type LogRow = {
   status: string;
   error_message: string;
   details: Record<string, unknown>;
+  actor_name?: string;
+  actor_designation?: string;
+  actor_department?: string;
+  actor_employee_code?: string;
+  source?: string;
 };
 
 type RangePreset = "today" | "yesterday" | "this_month" | "custom";
@@ -159,6 +164,7 @@ function SystemLogsPage() {
         l.module.toLowerCase().includes(t) ||
         l.action.toLowerCase().includes(t) ||
         l.entity_label.toLowerCase().includes(t) ||
+        (l.actor_name ?? "").toLowerCase().includes(t) ||
         l.entity_type.toLowerCase().includes(t) ||
         l.user_phone.toLowerCase().includes(t) ||
         l.ip_address.toLowerCase().includes(t) ||
@@ -351,7 +357,10 @@ function SystemLogsPage() {
                   <td className="px-4 py-3 text-foreground/80">
                     <ChangesSummary details={l.details} />
                   </td>
-                  <td className="px-4 py-3 text-foreground/80">{l.user_phone || "—"}</td>
+                  <td className="px-4 py-3 text-foreground/80">
+                    <div className="font-medium text-foreground">{l.actor_name || l.user_phone || "—"}</div>
+                    <div className="text-xs text-muted-foreground">{[l.actor_designation, l.actor_department].filter(Boolean).join(" · ") || l.user_role || ""}</div>
+                  </td>
                   <td className="px-4 py-3 text-foreground/70">{l.ip_address || "—"}</td>
                   <td className="px-4 py-3">
                     {l.status === "failure" ? (
@@ -397,7 +406,10 @@ function SystemLogsPage() {
                 label="Entity"
                 value={`${selected.entity_type}${selected.entity_label ? ` · ${selected.entity_label}` : ""}${selected.entity_id ? ` (#${selected.entity_id})` : ""}`}
               />
-              <Field label="User" value={`${selected.user_phone || "—"} (${selected.user_role || "—"})`} />
+              <Field label="Done by" value={selected.actor_name || "—"} />
+              <Field label="Designation / department" value={[selected.actor_designation, selected.actor_department].filter(Boolean).join(" · ") || "—"} />
+              <Field label="Employee ID / phone / role" value={`${selected.actor_employee_code || "—"} · ${selected.user_phone || "—"} · ${selected.user_role || "—"}`} />
+              <Field label="Recorded by" value={selected.source === "database" ? "System record (automatic)" : "App screen"} />
               <Field label="IP address" value={selected.ip_address || "—"} />
               <Field label="User agent" value={selected.user_agent || "—"} />
               <Field label="Status" value={selected.status} />
