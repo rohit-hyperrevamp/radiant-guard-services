@@ -13,7 +13,6 @@ import {
   Banknote,
   Bell,
   BookOpen,
-  Building2,
   Boxes,
   ChevronDown,
   ChevronsLeft,
