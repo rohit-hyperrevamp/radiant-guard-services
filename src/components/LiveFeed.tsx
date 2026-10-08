@@ -257,7 +257,7 @@ export function DashboardShell({
     <div className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">
-          <div className="lg:hidden space-y-3"><LiveFeed className="max-h-[320px]" /><TasksSummaryTile /></div>
+          <div className="lg:hidden space-y-3"><LiveFeed className="max-h-[320px]" /></div>
           {children}
         </div>
         <div className="hidden lg:block">
@@ -268,7 +268,6 @@ export function DashboardShell({
               : "sticky top-6 h-fit max-h-[calc(100vh-3rem)]",
           )}>
             <LiveFeed />
-            <TasksSummaryTile />
             {rightExtras}
           </div>
         </div>
