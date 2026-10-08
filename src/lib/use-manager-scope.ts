@@ -7,15 +7,6 @@ import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
 /** Reporting chains are shallow; this cap only guards against cyclic data. */
-const MAX_DEPTH = 8;
-const CHUNK = 200;
-
-type PersonRow = {
-  id: string;
-  role_key: string | null;
-  status: string | null;
-  is_enabled: boolean | null;
-};
 
 export type ManagerFieldOfficerScope = {
   isLoading: boolean;
@@ -29,155 +20,6 @@ export type ManagerFieldOfficerScope = {
   /** Organizations owning those units. */
   customerIds: Set<string>;
 };
-
-function chunked<T>(items: T[]): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += CHUNK) out.push(items.slice(i, i + CHUNK));
-  return out;
-}
-
-async function loadSubtree(managerId: string) {
-  const fieldOfficerIds = new Set<string>();
-  const visited = new Set<string>([managerId]);
-  let frontier = [managerId];
-
-  for (let depth = 0; depth < MAX_DEPTH && frontier.length; depth++) {
-    const [direct, extra] = await Promise.all([
-      supabase.from("candidates").select("id").in("reports_to", frontier).limit(5000),
-      supabase
-        .from("candidate_reporting_managers")
-        .select("candidate_id")
-        .in("manager_id", frontier)
-        .limit(5000),
-    ]);
-    if (direct.error) throw direct.error;
-    if (extra.error) throw extra.error;
-
-    const ids: string[] = [];
-    for (const row of ((direct.data ?? []) as Array<{ id: string }>)) {
-      if (!visited.has(row.id)) {
-        visited.add(row.id);
-        ids.push(row.id);
-      }
-    }
-    for (const row of ((extra.data ?? []) as Array<{ candidate_id: string }>)) {
-      if (row.candidate_id && !visited.has(row.candidate_id)) {
-        visited.add(row.candidate_id);
-        ids.push(row.candidate_id);
-      }
-    }
-    if (ids.length === 0) break;
-
-    const people: PersonRow[] = [];
-    for (const part of chunked(ids)) {
-      const { data, error } = await supabase
-        .from("candidates")
-        .select("id,role_key,status,is_enabled")
-        .in("id", part);
-      if (error) throw error;
-      people.push(...(((data ?? []) as unknown) as PersonRow[]));
-    }
-
-    const usable = (p: PersonRow) =>
-      p.is_enabled !== false && (p.status === "active" || p.status === "approved");
-    for (const p of people) {
-      if (p.role_key === ROLE_KEYS.FIELD_OFFICER && usable(p)) fieldOfficerIds.add(p.id);
-    }
-    // Guards never manage anyone, so stopping there keeps the walk small.
-    frontier = people
-      .filter((p) => p.role_key !== ROLE_KEYS.GUARD && p.role_key !== ROLE_KEYS.SECURITY_GUARD)
-      .map((p) => p.id);
-  }
-
-  return fieldOfficerIds;
-}
-
-async function loadUnitsForOfficers(officerIds: string[]) {
-  if (officerIds.length === 0) return { unitIds: [] as string[], customerIds: [] as string[] };
-  const candidateUnitIds = new Set<string>();
-
-  for (const part of chunked(officerIds)) {
-    const [mapped, home] = await Promise.all([
-      supabase.from("candidate_units").select("unit_id").in("candidate_id", part).limit(5000),
-      supabase.from("candidates").select("unit_id").in("id", part),
-    ]);
-    if (mapped.error) throw mapped.error;
-    if (home.error) throw home.error;
-    for (const row of ((mapped.data ?? []) as Array<{ unit_id: string | null }>)) {
-      if (row.unit_id) candidateUnitIds.add(row.unit_id);
-    }
-    for (const row of ((home.data ?? []) as Array<{ unit_id: string | null }>)) {
-      if (row.unit_id) candidateUnitIds.add(row.unit_id);
-    }
-  }
-
-  // Radiant's own non-billable offices are payroll homes, not work sites.
-  const unitIds = new Set<string>();
-  const customerIds = new Set<string>();
-  for (const part of chunked([...candidateUnitIds])) {
-    const { data, error } = await supabase
-      .from("units")
-      .select("id,is_billable,customer_id")
-      .in("id", part);
-    if (error) throw error;
-    for (const row of ((data ?? []) as unknown as Array<{
-      id: string;
-      is_billable: boolean | null;
-      customer_id: string | null;
-    }>)) {
-      if (row.is_billable === false) continue;
-      unitIds.add(row.id);
-      if (row.customer_id) customerIds.add(row.customer_id);
-    }
-  }
-  return { unitIds: [...unitIds], customerIds: [...customerIds] };
-}
-
-async function loadHrExecutiveUnits(candidateId: string, column: "hr_executive_id" | "account_manager_id" = "hr_executive_id") {
-  const { data, error } = await supabase
-    .from("units")
-    .select("id,is_billable,customer_id")
-    .eq(column as never, candidateId as never)
-    .limit(5000);
-  if (error) throw error;
-  
-  const unitIds = new Set<string>();
-  const customerIds = new Set<string>();
-  for (const row of (data ?? [])) {
-    if (row.is_billable === false) continue;
-    unitIds.add(row.id);
-    if (row.customer_id) customerIds.add(row.customer_id);
-  }
-  return { unitIds: [...unitIds], customerIds: [...customerIds] };
-}
-
-/** Units shared through a 'team' scope row (scope_id = manager candidate id). */
-async function loadTeamUnits(candidateId: string) {
-  const { data: rows, error } = await supabase
-    .from("employee_scope_assignments")
-    .select("scope_id")
-    .eq("candidate_id", candidateId)
-    .eq("scope_type", "team");
-  if (error) throw error;
-  const ids = new Set<string>();
-  for (const r of (rows ?? []) as Array<{ scope_id: string }>) {
-    const { data, error: e } = await (supabase.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ data: unknown; error: unknown }>)("team_unit_ids", { _manager_id: r.scope_id });
-    if (e) throw e;
-    for (const v of (data ?? []) as unknown[]) {
-      const id = typeof v === "string" ? v : (v as Record<string, string>)?.team_unit_ids;
-      if (id) ids.add(id);
-    }
-  }
-  const customerIds = new Set<string>();
-  for (const part of chunked([...ids])) {
-    const { data } = await supabase.from("units").select("customer_id").in("id", part);
-    for (const u of (data ?? []) as Array<{ customer_id: string | null }>) if (u.customer_id) customerIds.add(u.customer_id);
-  }
-  return { hasTeam: (rows ?? []).length > 0, unitIds: [...ids], customerIds: [...customerIds] };
-}
 
 /**
  * Cumulative scope for a manager: every field officer below them in the
@@ -198,43 +40,25 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     queryKey: ["manager-fo-scope", candidateId, roleKey],
     enabled,
     staleTime: 5 * 60_000,
+    retry: 2,
+    // One database call returns the whole scope (sites, organizations, field
+    // officers). The old browser-side walk needed dozens of chained requests.
     queryFn: async () => {
-      const [fieldOfficerIds, hrScope, team] = await Promise.all([
-        isAccounts ? Promise.resolve(new Set<string>()) : loadSubtree(candidateId!),
-        mustScope ? loadHrExecutiveUnits(candidateId!, isAccounts ? "account_manager_id" : "hr_executive_id") : Promise.resolve({ unitIds: [], customerIds: [] }),
-        loadTeamUnits(candidateId!),
-      ]);
-      
-      const { unitIds: foUnitIds, customerIds: foCustomerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
-      
-      const combinedUnitIds = new Set([...foUnitIds, ...hrScope.unitIds, ...team.unitIds]);
-      const combinedCustomerIds = new Set([...foCustomerIds, ...hrScope.customerIds, ...team.customerIds]);
-
-      // Team managers also oversee every field officer mapped to their team's client sites.
-      if (team.hasTeam && team.unitIds.length) {
-        const mappedIds = new Set<string>();
-        for (const part of chunked(team.unitIds)) {
-          const { data, error } = await supabase.from("candidate_units").select("candidate_id").in("unit_id", part).limit(20000);
-          if (error) throw error;
-          for (const r of (data ?? []) as Array<{ candidate_id: string }>) mappedIds.add(r.candidate_id);
-        }
-        for (const part of chunked([...mappedIds])) {
-          const { data, error } = await supabase
-            .from("candidates")
-            .select("id")
-            .in("id", part)
-            .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
-            .in("status", ["active", "approved"]);
-          if (error) throw error;
-          for (const r of (data ?? []) as Array<{ id: string }>) fieldOfficerIds.add(r.id);
-        }
-      }
-
-      return { 
-        fieldOfficerIds: [...fieldOfficerIds], 
-        unitIds: [...combinedUnitIds], 
-        customerIds: [...combinedCustomerIds],
-        hasTeam: team.hasTeam,
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: string,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>)("current_user_ops_scope");
+      if (error) throw new Error(error.message);
+      const s = (data ?? {}) as {
+        unit_ids?: string[];
+        customer_ids?: string[];
+        field_officer_ids?: string[];
+        has_team?: boolean;
+      };
+      return {
+        fieldOfficerIds: s.field_officer_ids ?? [],
+        unitIds: s.unit_ids ?? [],
+        customerIds: s.customer_ids ?? [],
+        hasTeam: !!s.has_team,
       };
     },
   });
@@ -247,7 +71,7 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     isLoading: roleLoading || (enabled && q.isLoading),
     // An HR Executive with no assignments must see zero units, never the
     // company-wide fallback used by ordinary managers with no reportees.
-    isScoped: enabled && (mustScope || !!q.data?.hasTeam || fieldOfficerIds.size > 0 || unitIds.size > 0),
+    isScoped: enabled && (mustScope || !!q.data?.hasTeam || fieldOfficerIds.size > 0),
     candidateId,
     fieldOfficerIds,
     unitIds,
