@@ -176,7 +176,7 @@ export async function updateWorkflow(id: string, patch: Partial<WorkflowDefiniti
 export async function upsertWorkflowStep(step: Partial<WorkflowStep> & { workflow_id: string }) {
   if (step.id) {
     const { id, ...patch } = step;
-    const { error } = await supabase.from("workflow_steps").update(patch).eq("id", id);
+    const { error } = await supabase.from("workflow_steps").update(patch as never).eq("id", id);
     if (error) throw error;
     return;
   }
