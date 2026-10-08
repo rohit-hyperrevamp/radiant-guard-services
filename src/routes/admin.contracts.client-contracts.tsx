@@ -332,6 +332,7 @@ export type ContractResource = {
   employerContributions: BenefitItem[];
   /** Round the final billing rate (Total CTC + reliever + management fee) to the nearest rupee. */
   roundOffFinal?: boolean;
+  roundOffTotals?: Record<string, boolean>;
 };
 
 function cloneBenefitItem(item: BenefitItem): BenefitItem {
@@ -363,6 +364,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     deductions: (resource.deductions ?? []).map(cloneBenefitItem),
     employerContributions: (resource.employerContributions ?? []).map(cloneBenefitItem),
     roundOffFinal: resource.roundOffFinal === true,
+    roundOffTotals: { ...(resource.roundOffTotals ?? {}) },
   };
 }
 
@@ -1204,7 +1206,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1225,6 +1227,7 @@ function useContractResources(contractId: string | null) {
         deductions: Array.isArray(r.deductions) ? (r.deductions as BenefitItem[]) : [],
         employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
         roundOffFinal: r.round_off_final === true,
+        roundOffTotals: (r.round_off_totals ?? {}) as Record<string, boolean>,
       }));
     },
   });
@@ -1898,6 +1901,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     deductions: r.deductions,
     employer_contributions: r.employerContributions,
     round_off_final: r.roundOffFinal === true,
+    round_off_totals: r.roundOffTotals ?? {},
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
@@ -4869,6 +4873,7 @@ export function ResourceFormDialog({
   const [deductions, setDeductions] = useState<BenefitItem[]>([]);
   const [employerContributions, setEmployerContributions] = useState<BenefitItem[]>([]);
   const [roundOffFinal, setRoundOffFinal] = useState(false);
+  const [roundTotals, setRoundTotals] = useState<Record<string, boolean>>({});
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -4919,7 +4924,8 @@ export function ResourceFormDialog({
       setDeductions(nextDeductions);
       setEmployerContributions(nextEmployerContributions);
       setRoundOffFinal(initial.roundOffFinal === true);
-      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true }]));
+      setRoundTotals({ ...(initial.roundOffTotals ?? {}) });
+      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
     } else {
       const nextComponents = allowanceTypes
         .filter((a) => a.isDefault)
@@ -4948,7 +4954,7 @@ export function ResourceFormDialog({
       setDeductions([]);
       setEmployerContributions([]);
       setRoundOffFinal(false);
-      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [], roundOffFinal: false }]));
+      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [], roundOffFinal: false, roundOffTotals: {} }]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, allowanceTypes.length]);
@@ -4970,9 +4976,10 @@ export function ResourceFormDialog({
           deductions,
           employerContributions,
           roundOffFinal,
+          roundOffTotals: roundTotals,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -5686,6 +5693,7 @@ export function ResourceFormDialog({
       deductions,
       employerContributions,
       roundOffFinal,
+      roundOffTotals: roundTotals,
     });
   };
 
@@ -5709,6 +5717,7 @@ export function ResourceFormDialog({
       deductions,
       employerContributions,
       roundOffFinal,
+      roundOffTotals: roundTotals,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inline, currentResourceSnapshot]);
