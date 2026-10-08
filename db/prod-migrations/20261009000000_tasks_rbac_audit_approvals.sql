@@ -30,7 +30,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.current_user_can_delete_tasks()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
   SELECT public.is_admin_user() OR COALESCE(public.current_user_role_key(),'') IN ('super_admin','admin')
-    OR COALESCE(public.current_user_explicit_permission('tasks','delete','delete'), public.current_user_is_task_overseer());
+    OR COALESCE(public.current_user_explicit_permission('tasks','delete','delete'), true);
 $$;
 GRANT EXECUTE ON FUNCTION public.current_user_can_manage_tasks(), public.current_user_can_delete_tasks() TO authenticated;
 
