@@ -1,3 +1,4 @@
+import { EmployeeChangeRequest } from "@/components/EmployeeChangeRequest";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -343,6 +344,9 @@ function CandidateDetailsPage() {
           </div>
         </div>
         <div className="mobile-glass-bar sticky-action-bar scrollbar-hide sticky z-20 -mx-2 flex max-w-[calc(100%+1rem)] flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-xl border border-border/60 bg-card/85 p-2 shadow-lg sm:static sm:mx-0 sm:max-w-full sm:flex-wrap sm:justify-end sm:overflow-visible sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+          {(form.status === "active" || form.status === "approved") && (
+            <EmployeeChangeRequest candidateId={id} current={form as unknown as Record<string, unknown>} />
+          )}
           {form.status === "pending" && (
             <Button
               size="sm"
