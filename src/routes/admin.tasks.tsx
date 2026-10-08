@@ -186,8 +186,10 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
   const [desc, setDesc] = useState("");
   const [dept, setDept] = useState("");
   const [assignee, setAssignee] = useState("");
-  const today6 = new Date(); today6.setHours(18, 0, 0, 0);
-  const [due, setDue] = useState(toLocalInput(today6));
+  const today = new Date();
+  const [dueDate, setDueDate] = useState(toLocalInput(today).slice(0, 10));
+  const [dueTime, setDueTime] = useState("18:00");
+  const due = dueDate ? `${dueDate}T${dueTime || "18:00"}` : "";
   const [saving, setSaving] = useState(false);
   const deptName = new Map(departments.map((d) => [d.id, d.name]));
   const options = people
