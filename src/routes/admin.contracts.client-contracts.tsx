@@ -6673,6 +6673,7 @@ export function SalaryBreakdownTable({
   employerContributions,
   componentDescriptions,
   hidePayableAndBelow = false,
+  roundOffFinal = false,
 }: {
   designationName: string;
   payrollDayBase: PayrollDayBase | undefined;
@@ -6682,6 +6683,8 @@ export function SalaryBreakdownTable({
   employerContributions: BenefitItem[];
   componentDescriptions?: Record<string, string>;
   hidePayableAndBelow?: boolean;
+  /** Round the Final Billing Rate row to the nearest rupee. */
+  roundOffFinal?: boolean;
 }) {
   const describeRow = (b: BenefitItem) =>
     describeComponentFormula(b, componentDescriptions?.[b.costComponentId] ?? null);
