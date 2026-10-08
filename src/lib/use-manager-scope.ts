@@ -151,6 +151,34 @@ async function loadHrExecutiveUnits(candidateId: string, column: "hr_executive_i
   return { unitIds: [...unitIds], customerIds: [...customerIds] };
 }
 
+/** Units shared through a 'team' scope row (scope_id = manager candidate id). */
+async function loadTeamUnits(candidateId: string) {
+  const { data: rows, error } = await supabase
+    .from("employee_scope_assignments")
+    .select("scope_id")
+    .eq("candidate_id", candidateId)
+    .eq("scope_type", "team");
+  if (error) throw error;
+  const ids = new Set<string>();
+  for (const r of (rows ?? []) as Array<{ scope_id: string }>) {
+    const { data, error: e } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: unknown }>)("team_unit_ids", { _manager_id: r.scope_id });
+    if (e) throw e;
+    for (const v of (data ?? []) as unknown[]) {
+      const id = typeof v === "string" ? v : (v as Record<string, string>)?.team_unit_ids;
+      if (id) ids.add(id);
+    }
+  }
+  const customerIds = new Set<string>();
+  for (const part of chunked([...ids])) {
+    const { data } = await supabase.from("units").select("customer_id").in("id", part);
+    for (const u of (data ?? []) as Array<{ customer_id: string | null }>) if (u.customer_id) customerIds.add(u.customer_id);
+  }
+  return { hasTeam: (rows ?? []).length > 0, unitIds: [...ids], customerIds: [...customerIds] };
+}
+
 /**
  * Cumulative scope for a manager: every field officer below them in the
  * reporting chain plus the client units those officers cover. Also includes
@@ -171,20 +199,22 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     enabled,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const [fieldOfficerIds, hrScope] = await Promise.all([
+      const [fieldOfficerIds, hrScope, team] = await Promise.all([
         isAccounts ? Promise.resolve(new Set<string>()) : loadSubtree(candidateId!),
-        mustScope ? loadHrExecutiveUnits(candidateId!, isAccounts ? "account_manager_id" : "hr_executive_id") : Promise.resolve({ unitIds: [], customerIds: [] })
+        mustScope ? loadHrExecutiveUnits(candidateId!, isAccounts ? "account_manager_id" : "hr_executive_id") : Promise.resolve({ unitIds: [], customerIds: [] }),
+        loadTeamUnits(candidateId!),
       ]);
       
       const { unitIds: foUnitIds, customerIds: foCustomerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
       
-      const combinedUnitIds = new Set([...foUnitIds, ...hrScope.unitIds]);
-      const combinedCustomerIds = new Set([...foCustomerIds, ...hrScope.customerIds]);
+      const combinedUnitIds = new Set([...foUnitIds, ...hrScope.unitIds, ...team.unitIds]);
+      const combinedCustomerIds = new Set([...foCustomerIds, ...hrScope.customerIds, ...team.customerIds]);
       
       return { 
         fieldOfficerIds: [...fieldOfficerIds], 
         unitIds: [...combinedUnitIds], 
-        customerIds: [...combinedCustomerIds] 
+        customerIds: [...combinedCustomerIds],
+        hasTeam: team.hasTeam,
       };
     },
   });
@@ -197,7 +227,7 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     isLoading: roleLoading || (enabled && q.isLoading),
     // An HR Executive with no assignments must see zero units, never the
     // company-wide fallback used by ordinary managers with no reportees.
-    isScoped: enabled && (mustScope || fieldOfficerIds.size > 0 || unitIds.size > 0),
+    isScoped: enabled && (mustScope || !!q.data?.hasTeam || fieldOfficerIds.size > 0 || unitIds.size > 0),
     candidateId,
     fieldOfficerIds,
     unitIds,
