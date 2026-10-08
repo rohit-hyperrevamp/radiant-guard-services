@@ -64,6 +64,7 @@ import {
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
@@ -1383,6 +1384,7 @@ function DashboardPage() {
           opsFocus ? (
             <>
               {canWidget("live_people") && <LivePeopleCard liveOfficers={liveOfficerCount} />}
+              <TeamClientsCard />
               {canWidget("radar") && (
                 <>
                   <OperationsRadarSummary />
