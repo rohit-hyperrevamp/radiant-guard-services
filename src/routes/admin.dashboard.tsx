@@ -2065,17 +2065,17 @@ function DualTile({
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
-      <div className="relative mt-auto flex items-end justify-between gap-3">
+      <div className="relative mt-auto grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-end gap-2">
         <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
         </TileNumber>
-        <div className="min-w-0 max-w-[58%] flex flex-col items-end overflow-hidden text-right">
+        <div className="min-w-0 flex flex-col items-end text-right">
           <span className="w-full truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
             {secondaryLabel}
           </span>
-          <span className="mt-0.5 flex max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-display text-xs font-medium tabular-nums text-foreground sm:text-sm">
-            <Fuel className="h-3.5 w-3.5 text-muted-foreground" />
-            {secondary}
+          <span className="mt-0.5 flex w-full min-w-0 items-center gap-1 font-display text-xs font-medium text-foreground sm:text-sm">
+            <Fuel className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <TileNumber>{secondary}</TileNumber>
           </span>
         </div>
       </div>
