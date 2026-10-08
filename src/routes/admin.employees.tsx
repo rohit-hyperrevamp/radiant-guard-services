@@ -1,5 +1,6 @@
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -154,7 +155,7 @@ import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-e
 import { CopyableId } from "@/components/CopyableId";
 import { fetchAllPages } from "@/lib/supabase-batch";
 
-type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string; edit?: string };
+type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string; edit?: string; mine?: 1 };
 
 const EMPTY_WAGE: ContractResource = {
   designationId: "",
@@ -914,6 +915,7 @@ export const Route = createFileRoute("/admin/employees")({
     tab: search.tab === "candidate" || search.tab === "employee" ? search.tab : undefined,
     rehire: typeof search.rehire === "string" ? search.rehire : undefined,
     edit: typeof search.edit === "string" ? search.edit : undefined,
+    mine: search.mine === 1 || search.mine === "1" || search.mine === true ? 1 : undefined,
   }),
   head: () => ({
     meta: [
@@ -2685,6 +2687,7 @@ function EmployeesPage() {
     return ids;
   }, [candidates]);
 
+  const mineScope = useOperationalUnitScope();
   const employees = useMemo(
     () =>
       rowCandidates.filter((c) => {
@@ -2693,6 +2696,7 @@ function EmployeesPage() {
         if (supersededEmployeeIds.has(c.id)) return false;
         if (!matchesSearch(c)) return false;
         if (!matchesFilters(c)) return false;
+        if (mineScope.isScoped && (!c.unit_id || !mineScope.unitIds.has(c.unit_id))) return false;
         if (isFieldOfficer) {
           // FO sees active employees only within his assigned units.
           if (!c.unit_id || !scopedUnitIdSet.has(c.unit_id)) return false;
@@ -2722,6 +2726,8 @@ function EmployeesPage() {
       isFieldOfficer,
       scopedUnitIdSet,
       empStatusTab,
+      mineScope.isScoped,
+      mineScope.unitIds,
     ],
   );
   const candidateRows = useMemo(

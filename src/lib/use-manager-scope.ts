@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
 import { ROLE_KEYS } from "@/lib/role-keys";
@@ -92,6 +93,7 @@ export function useOperationalUnitScope(): {
 } {
   const foScope = useFieldOfficerUnitScope();
   const managerScope = useManagerFieldOfficerScope();
+  const mine = useMineFilter();
   if (foScope.isFieldOfficer) {
     return {
       isLoading: foScope.isLoading,
@@ -104,8 +106,15 @@ export function useOperationalUnitScope(): {
   // scope only shapes the dashboard's team sections.
   return {
     isLoading: managerScope.isLoading,
-    isScoped: false,
+    // `?mine=1` (dashboard tile links) narrows the page to the user's own clients.
+    isScoped: mine && managerScope.isScoped,
     unitIds: managerScope.unitIds,
     customerIds: managerScope.customerIds,
   };
+}
+
+/** True when the URL carries `mine=1`, set by dashboard tiles to open a page filtered to the user's own clients. */
+export function useMineFilter(): boolean {
+  const searchStr = useRouterState({ select: (s) => s.location.searchStr ?? "" });
+  return /[?&]mine=(1|true|%221%22)(&|$)/.test(searchStr);
 }

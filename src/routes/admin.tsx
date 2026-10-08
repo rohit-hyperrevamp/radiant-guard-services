@@ -5,6 +5,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
+import { useMineFilter } from "@/lib/use-manager-scope";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTrackOnlinePresence } from "@/lib/online-presence";
 import { Activity } from "lucide-react";
@@ -866,6 +867,7 @@ function AdminLayout() {
             {isReady && user && !permsLoading ? (
               <RoutePermissionGuard>
                 <SaveConfirmGuard />
+                <MyClientsBanner />
                 <Outlet />
               </RoutePermissionGuard>
             ) : (
@@ -1306,5 +1308,23 @@ function CollapsedGroupPopover({
       )}
     </Popover>
 
+  );
+}
+
+function MyClientsBanner() {
+  const mine = useMineFilter();
+  const navigate = useNavigate();
+  if (!mine) return null;
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+      <span>Showing only your clients and their people.</span>
+      <button
+        type="button"
+        className="font-medium text-primary hover:underline"
+        onClick={() => navigate({ to: ".", search: ((prev: Record<string, unknown>) => { const { mine: _m, ...rest } = prev ?? {}; return rest; }) as never })}
+      >
+        Show all
+      </button>
+    </div>
   );
 }
