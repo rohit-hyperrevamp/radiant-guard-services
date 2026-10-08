@@ -12,7 +12,7 @@ const CHUNK = 200;
 const chunks = <T,>(a: T[]) => Array.from({ length: Math.ceil(a.length / CHUNK) }, (_, i) => a.slice(i * CHUNK, i * CHUNK + CHUNK));
 const todayIso = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
 
-type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null };
+type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null; sites: string[] };
 type Site = {
   id: string;
   code: string | null;
@@ -56,9 +56,44 @@ export function TeamClientsCard() {
         for (const row of data ?? []) designationNames.set(row.id, row.name);
       }
       const inAt = new Map(((punches.data ?? []) as Array<{ candidate_id: string; check_in_at: string | null }>).map((p) => [p.candidate_id, p.check_in_at]));
-      return records
+      const mates = records
         .filter((p) => p.role_key !== "guard" && p.role_key !== "security_guard")
         .map((p) => ({ ...p, designation: p.designation_id ? designationNames.get(p.designation_id) ?? null : null, inAt: inAt.get(p.id) ?? null }));
+      // Client mapping per teammate: units where they are account/operations/HR manager, plus candidate_units rows.
+      const mateIds = mates.map((m) => m.id);
+      const siteMap = new Map<string, Set<string>>();
+      const unitName = new Map<string, string>();
+      if (mateIds.length) {
+        const [managed, mapped] = await Promise.all([
+          supabase.from("units").select("id,name,account_manager_id,operations_manager_id,hr_executive_id").or(`account_manager_id.in.(${mateIds.join(",")}),operations_manager_id.in.(${mateIds.join(",")}),hr_executive_id.in.(${mateIds.join(",")})`).limit(5000),
+          supabase.from("candidate_units").select("candidate_id,unit_id").in("candidate_id", mateIds).limit(5000),
+        ]);
+        if (managed.error) throw managed.error;
+        if (mapped.error) throw mapped.error;
+        const add = (cid: string | null, unit: { id: string; name: string | null }) => {
+          if (!cid) return;
+          unitName.set(unit.id, unit.name ?? unit.id);
+          if (!siteMap.has(cid)) siteMap.set(cid, new Set());
+          siteMap.get(cid)!.add(unit.id);
+        };
+        for (const u of (managed.data ?? []) as unknown as Array<{ id: string; name: string | null; account_manager_id: string | null; operations_manager_id: string | null; hr_executive_id: string | null }>) {
+          add(u.account_manager_id, u); add(u.operations_manager_id, u); add(u.hr_executive_id, u);
+        }
+        const extraIds = [...new Set(((mapped.data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id).filter((id) => !unitName.has(id)))];
+        if (extraIds.length) {
+          const { data: extra, error: extraErr } = await supabase.from("units").select("id,name").in("id", extraIds);
+          if (extraErr) throw extraErr;
+          for (const u of (extra ?? []) as Array<{ id: string; name: string | null }>) unitName.set(u.id, u.name ?? u.id);
+        }
+        for (const r of (mapped.data ?? []) as Array<{ candidate_id: string; unit_id: string }>) {
+          if (!siteMap.has(r.candidate_id)) siteMap.set(r.candidate_id, new Set());
+          siteMap.get(r.candidate_id)!.add(r.unit_id);
+        }
+      }
+      return mates.map((m) => ({
+        ...m,
+        sites: [...(siteMap.get(m.id) ?? [])].map((id) => unitName.get(id) ?? id).sort((a, b) => a.localeCompare(b)),
+      }));
     },
   });
 
@@ -142,6 +177,14 @@ export function TeamClientsCard() {
               <div className="truncate text-xs text-muted-foreground">{m.designation ?? ""} · {m.employee_code}</div>
               <div className={`mt-1 text-xs ${m.inAt ? "text-primary" : "text-muted-foreground"}`}>
                 {m.inAt ? `Checked in ${new Date(m.inAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Not checked in today"}
+              </div>
+              <div className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+                {m.sites.length === 0 ? "No clients mapped" : (
+                  <>
+                    <span className="font-medium text-foreground">{m.sites.length} client{m.sites.length === 1 ? "" : "s"}:</span>{" "}
+                    {m.sites.slice(0, 4).join(", ")}{m.sites.length > 4 ? ` +${m.sites.length - 4} more` : ""}
+                  </>
+                )}
               </div>
             </div>
           ))}
