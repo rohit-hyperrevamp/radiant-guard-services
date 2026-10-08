@@ -456,8 +456,8 @@ function AdminLayout() {
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       
+      { key: "tasks", label: "Tasks", icon: ClipboardList, to: "/admin/tasks", activePrefixes: ["/admin/tasks"] },
       { key: "live-staff", label: "Live Staff", module: "employees", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
-      { key: "team-views", label: "Team Views", module: "employees", icon: Users, to: "/admin/team-views", activePrefixes: ["/admin/team-views"] },
       { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
       { key: "training", label: "Training", icon: BookOpen, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
@@ -546,7 +546,6 @@ function AdminLayout() {
     }
     const base = groups
       .filter((g) => {
-        if (g.key === "team-views") return isSuperAdmin;
         if (g.key === "field-sense") {
           // Field officers use the site visit workflow without the Radar map.
           // Other roles need RBAC access to the field_sense module and map.
