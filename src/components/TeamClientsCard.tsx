@@ -12,7 +12,7 @@ const CHUNK = 200;
 const chunks = <T,>(a: T[]) => Array.from({ length: Math.ceil(a.length / CHUNK) }, (_, i) => a.slice(i * CHUNK, i * CHUNK + CHUNK));
 const todayIso = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
 
-type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null };
+type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null; sites: string[] };
 type Site = {
   id: string;
   code: string | null;
