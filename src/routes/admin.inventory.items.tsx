@@ -368,9 +368,7 @@ function ItemFormDialog({ open, onOpenChange, title, initial, categories, onSubm
       toast.warning("Details are incomplete: enter the product name, category and unit");
     }
     if (target > 1 && !isStepComplete("pricing")) {
-      toast.error("Complete each added size");
-      setStepKey("pricing");
-      return;
+      toast.warning("Pricing is incomplete: complete each added size");
     }
     setStepKey(key);
   };
