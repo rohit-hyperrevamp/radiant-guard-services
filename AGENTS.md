@@ -1,6 +1,6 @@
 
-- Training files live in the private `training` storage bucket (path `<role_key>/<file>`); `training_modules` holds metadata only and files open via short-lived signed links — keeps the database small and fast.
-- Attendance selfies remain private object-storage files and are compressed client-side to 420px JPEG thumbnails before upload — keeps punch capture fast and storage small.
+- Training: private `training/<role_key>/<file>` storage; metadata in `training_modules`, short-lived signed links.
+- Attendance selfies: private storage, client-compressed 420px JPEG thumbnails.
 - Mixed-window charter statuses load via `batch_period_statuses(jsonb)` in one request — no per-window fan-out.
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Payroll approval is role-based: workflow_steps.approver_role_key='payroll' (approver_candidate_id only when a step must be a named person) — approvals follow the team, not an individual.
@@ -20,3 +20,4 @@
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — the deploy build can bake `process.env.SUPABASE_*` to the empty preview backend.
 - Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view) — alerts follow Access Control, not fixed roles.
 - Exports are gated centrally: `<module>::export` (View) checked by `canExport`; ExportChooser installs a guard so `downloadCsv`/`openExport` refuse on pages of modules without export access — one switch per module, no per-button wiring.
+- Console users land on their dashboard without module grants; team cards are presentation-independent and gated by dashboard::w_team_clients — avoids personal-dashboard fallbacks hiding shared scope.

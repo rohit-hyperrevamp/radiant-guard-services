@@ -1381,10 +1381,11 @@ function DashboardPage() {
           ) : undefined
         }
         fullWidthBelow={
-          opsFocus ? (
+          <>
+          {canWidget("team_clients") && <TeamClientsCard />}
+          {opsFocus ? (
             <>
               {canWidget("live_people") && <LivePeopleCard liveOfficers={liveOfficerCount} />}
-              <TeamClientsCard />
               {canWidget("radar") && (
                 <>
                   <OperationsRadarSummary />
@@ -1437,7 +1438,8 @@ function DashboardPage() {
                 </>
               )}
             </>
-          )
+          )}
+          </>
         }
       >
         {/* Month hero — restrained slate panel */}
