@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { listMyNotifications, markAllRead, markNotificationRead, type Notification } from "@/lib/notifications";
 import { shouldRedirect } from "@/lib/notification-routing";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
-import { TasksSummaryTile } from "@/components/TasksSummaryTile";
 
 const NQK = ["notifications", "mine"] as const;
 
