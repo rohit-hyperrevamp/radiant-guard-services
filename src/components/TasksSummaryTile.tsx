@@ -46,6 +46,7 @@ export function TasksSummaryTile() {
   return (
     <Link
       to="/admin/tasks"
+      search={{} as never}
       className="block rounded-[24px] border border-border/60 bg-card/70 p-4 backdrop-blur-2xl transition hover:border-accent/40"
     >
       <div className="mb-3 flex items-center gap-2">
