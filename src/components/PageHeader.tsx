@@ -131,7 +131,7 @@ export function PageStat({
     <Wrapper
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
-        "group relative flex h-[124px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-colors sm:h-[172px] sm:rounded-[26px] sm:p-5",
+        "dashboard-summary-tile group relative flex h-[124px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-colors sm:h-[172px] sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[resolvedAccent],
         onClick && "cursor-pointer",
         active && "ring-2 ring-accent/40",
@@ -139,7 +139,7 @@ export function PageStat({
     >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate whitespace-nowrap font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
+          <div className="dashboard-tile-title font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
             {label}
           </div>
           {sub && (

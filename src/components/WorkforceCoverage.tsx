@@ -254,7 +254,7 @@ function Tile({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-3",
+        "dashboard-summary-tile flex min-w-0 flex-col rounded-2xl border p-3",
         tone === "success"
           ? "border-emerald-500/40 bg-emerald-500/10"
           : tone === "warning"
@@ -274,11 +274,11 @@ function Tile({
             tone === "destructive" && "text-destructive",
           )}
         />
-        {label}
+        <span className="dashboard-tile-title">{label}</span>
       </div>
       <TileNumber
         className={cn(
-          "mt-1 text-xl font-semibold tabular-nums",
+          "mt-auto text-xl font-semibold tabular-nums",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",

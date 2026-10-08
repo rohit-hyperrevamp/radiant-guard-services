@@ -227,7 +227,7 @@ function Tile({
   return (
     <div
       className={cn(
-        "flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border p-3 sm:h-[172px] sm:p-5",
+        "dashboard-summary-tile flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border p-3 sm:h-[172px] sm:p-5",
         tone === "success"
           ? "border-emerald-500/40 bg-emerald-500/10"
           : tone === "warning"
@@ -247,8 +247,9 @@ function Tile({
             tone === "destructive" && "text-destructive",
           )}
         />
-        <span className="truncate whitespace-nowrap">{label}</span>
+        <span className="dashboard-tile-title">{label}</span>
       </div>
+      {hint && <div className="text-[11px] text-muted-foreground">{hint}</div>}
       <TileNumber
         className={cn(
           "mt-auto min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums sm:text-[40px]",
@@ -259,13 +260,6 @@ function Tile({
       >
         {value}
       </TileNumber>
-      {hint ? (
-        <div className="mt-1 truncate whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]">
-          {hint}
-        </div>
-      ) : (
-        <div className="h-[15px]" aria-hidden="true" />
-      )}
     </div>
   );
 }

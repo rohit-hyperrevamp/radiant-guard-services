@@ -2275,8 +2275,8 @@ nav[data-bottom-nav] li > * > div > span:last-child {
 }
 .dashboard-summary-tile .dashboard-tile-title {
   font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 13px !important;
+  font-weight: 500 !important;
   line-height: 1.3;
   letter-spacing: 0;
   white-space: normal;
@@ -2285,18 +2285,18 @@ nav[data-bottom-nav] li > * > div > span:last-child {
 }
 .dashboard-summary-tile [data-tile-number] {
   font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 500;
-  line-height: 1;
+  font-size: 26px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
 }
 .dashboard-summary-tile .dashboard-tile-breakdown [data-tile-number] {
-  font-size: 20px;
+  font-size: 20px !important;
 }
 .dashboard-summary-tile .dashboard-tile-secondary [data-tile-number] {
-  font-size: 12px;
+  font-size: 12px !important;
 }
 .dashboard-summary-tile.task-summary-tile [data-tile-number] {
-  font-size: 16px;
+  font-size: 16px !important;
 }
 @media (min-width: 640px) {
   .dashboard-summary-tile {
@@ -2305,18 +2305,18 @@ nav[data-bottom-nav] li > * > div > span:last-child {
     padding: 20px;
   }
   .dashboard-summary-tile .dashboard-tile-title {
-    font-size: 15px;
+    font-size: 15px !important;
   }
   .dashboard-summary-tile [data-tile-number] {
-    font-size: 34px;
+    font-size: 34px !important;
   }
   .dashboard-summary-tile .dashboard-tile-breakdown [data-tile-number] {
-    font-size: 24px;
+    font-size: 24px !important;
   }
   .dashboard-summary-tile .dashboard-tile-secondary [data-tile-number] {
-    font-size: 14px;
+    font-size: 14px !important;
   }
   .dashboard-summary-tile.task-summary-tile [data-tile-number] {
-    font-size: 20px;
+    font-size: 20px !important;
   }
 }
