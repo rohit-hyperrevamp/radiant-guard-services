@@ -1,3 +1,4 @@
+import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ChevronLeft, ChevronRight, MapPin, Repeat, Search, Users } from "lucide-react";
@@ -83,8 +84,9 @@ function matchesKeywords(haystack: string, query: string): boolean {
     .every((token) => hay.includes(token));
 }
 
-export function OperationsDeployments() {
+export function OperationsDeployments({ teamOnly = false }: { teamOnly?: boolean } = {}) {
   const qc = useQueryClient();
+  const teamScope = useManagerFieldOfficerScope();
   const { isSuperAdmin, can, canSub } = useCurrentPermissions();
   // Mapping field officers to units needs edit rights on units — view-only
   // roles (e.g. Control Center staff) see the roster without switch controls.
@@ -99,7 +101,12 @@ export function OperationsDeployments() {
 
 
   const dirQ = useQuery({ queryKey: ["ops-deployments"], staleTime: 2 * 60_000, queryFn: loadDirectory });
-  const dir = dirQ.data;
+  // On a manager's dashboard, only the sites in their team's scope are listed.
+  const dir = useMemo(() => {
+    const d = dirQ.data;
+    if (!d || !teamOnly || !teamScope.isScoped) return d;
+    return { ...d, units: d.units.filter((u) => teamScope.unitIds.has(u.id)) };
+  }, [dirQ.data, teamOnly, teamScope.isScoped, teamScope.unitIds]);
 
   const foName = (id: string) => {
     const f = dir?.fos.find((x) => x.id === id);
