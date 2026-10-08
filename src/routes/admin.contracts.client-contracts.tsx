@@ -6771,7 +6771,8 @@ export function SalaryBreakdownTable({
 
         ]);
   const mgmtFeeTotal = mgmtFeeItems.reduce((sum, item) => sum + managementAmountFor(item), 0);
-  const grandTotal = totalRate + mgmtFeeTotal;
+  const grandTotalRaw = totalRate + mgmtFeeTotal;
+  const grandTotal = roundOffFinal ? Math.round(grandTotalRaw) : grandTotalRaw;
 
   const basisLabel = payrollDayBase
     ? payrollDayBase.method === "fixed_days"
