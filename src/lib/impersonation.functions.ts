@@ -63,8 +63,19 @@ export const startImpersonation = createServerFn({ method: "POST" })
     }
     const tokenHash = link.data?.properties?.hashed_token;
     if (link.error || !tokenHash) throw new Error("Could not open this employee's view.");
-    const signedIn = await supabaseAdmin.auth.verifyOtp({ type: "magiclink", token_hash: tokenHash });
+    // For an employee who has never signed in, the auth service creates an
+    // unconfirmed account and issues a *signup* confirmation token rather than
+    // a magic-link token — verify with the type it actually issued.
+    const issued = String(link.data?.properties?.verification_type ?? "magiclink");
+    const otpType = (issued === "signup" ? "signup" : "magiclink") as "signup" | "magiclink";
+    let signedIn = await supabaseAdmin.auth.verifyOtp({ type: otpType, token_hash: tokenHash });
+    if ((signedIn.error || !signedIn.data.session) && otpType === "magiclink") {
+      const retry = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
+      const h = retry.data?.properties?.hashed_token;
+      if (h) signedIn = await supabaseAdmin.auth.verifyOtp({ type: "signup", token_hash: h });
+    }
     if (signedIn.error || !signedIn.data.session) {
+      console.error("[impersonation] verify failed", issued, signedIn.error?.message);
       throw new Error("Could not open this employee's view.");
     }
     return {
