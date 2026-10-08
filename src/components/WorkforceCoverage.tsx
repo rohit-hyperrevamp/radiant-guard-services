@@ -274,7 +274,9 @@ function Tile({
             tone === "destructive" && "text-destructive",
           )}
         />
-        <span className="dashboard-tile-title">{label}</span>
+        <TileNumber variant="label" className="dashboard-tile-title">
+          {label}
+        </TileNumber>
       </div>
       <TileNumber
         className={cn(

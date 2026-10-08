@@ -41,7 +41,7 @@ function dayAge(row: MissingUan) {
 export function UanFollowUp({
   fieldOfficerUserId,
   fieldOfficerCandidateId,
-  compact = false,
+  compact: _compact = false,
   className,
 }: {
   fieldOfficerUserId?: string | null;
@@ -101,37 +101,26 @@ export function UanFollowUp({
         variant="ghost"
         onClick={() => setOpen(true)}
         className={cn(
-          "group flex h-auto w-full min-w-0 items-stretch whitespace-nowrap border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md",
-          compact
-            ? "min-h-[104px] rounded-2xl p-3.5"
-            : "h-[124px] rounded-2xl p-3 sm:h-[172px] sm:rounded-[26px] sm:p-5",
+          "dashboard-summary-tile group flex w-full min-w-0 flex-col items-stretch border border-border/50 bg-secondary text-left shadow-sm transition hover:border-primary/35 hover:bg-secondary hover:shadow-md",
           className,
         )}
       >
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="truncate font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">
+        <div className="min-w-0">
+          <TileNumber variant="label" className="dashboard-tile-title text-foreground">
             UAN follow-up
-          </div>
-          <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">
-            {overdue ? `${overdue} overdue` : "Seven-day compliance"}
-          </div>
-          <TileNumber
-            className={cn(
-              "mt-auto whitespace-nowrap font-display font-medium leading-none tabular-nums text-foreground",
-              compact ? "text-[25px]" : "text-[26px] sm:text-[40px]",
-            )}
-          >
-            {q.isLoading ? "—" : rows.length}
+          </TileNumber>
+          <TileNumber variant="label" className="mt-1 text-[11px] text-muted-foreground">
+            {overdue ? `${overdue} overdue` : "Seven-day follow-up"}
           </TileNumber>
         </div>
-        <span
-          className={cn(
-            "mt-auto grid shrink-0 place-items-center rounded-full bg-card/80 text-amber-700 ring-1 ring-inset ring-amber-200/70 dark:text-amber-300 dark:ring-amber-400/20",
-            compact ? "h-8 w-8" : "h-7 w-7 sm:h-9 sm:w-9",
-          )}
-        >
-          <CalendarClock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-        </span>
+        <div className="mt-auto flex min-w-0 items-end justify-between gap-3">
+          <TileNumber className="font-display font-medium text-foreground">
+            {q.isLoading ? "—" : rows.length}
+          </TileNumber>
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-primary ring-1 ring-border sm:h-9 sm:w-9">
+            <CalendarClock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          </span>
+        </div>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">

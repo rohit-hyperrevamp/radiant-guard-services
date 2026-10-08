@@ -1006,9 +1006,12 @@ function MetricTile({
     <>
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="dashboard-tile-title font-display text-[15px] font-semibold text-foreground leading-tight">
+          <TileNumber
+            variant="label"
+            className="dashboard-tile-title font-display text-[15px] font-semibold text-foreground leading-tight"
+          >
             {label}
-          </div>
+          </TileNumber>
           {sub && <div className="mt-1 text-[11px] text-muted-foreground truncate">{sub}</div>}
         </div>
         {to && (
@@ -1065,9 +1068,12 @@ function HeroStat({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="dashboard-tile-title text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <TileNumber
+          variant="label"
+          className="dashboard-tile-title text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+        >
           {label}
-        </span>
+        </TileNumber>
         <Icon className="h-4 w-4 shrink-0 text-primary" />
       </div>
       <TileNumber className="mt-auto font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">
@@ -1135,9 +1141,12 @@ function PastelTile({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="dashboard-tile-title text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">
+          <TileNumber
+            variant="label"
+            className="dashboard-tile-title text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]"
+          >
             {label}
-          </div>
+          </TileNumber>
           <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">
             {hint}
           </div>

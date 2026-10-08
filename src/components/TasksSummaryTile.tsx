@@ -79,7 +79,8 @@ export function TasksSummaryTile({ summary }: { summary: { mine: Sum; created: S
       <div className="mt-auto grid min-w-0 grid-cols-[minmax(42px,1.25fr)_repeat(4,minmax(0,1fr))] items-center gap-x-1 gap-y-1.5 text-center sm:gap-y-2">
         <span />
         {["Open", "Done", "No reply", "Overdue"].map((label) => (
-          <TileNumber variant="label"
+          <TileNumber
+            variant="label"
             key={label}
             className="text-[8px] leading-tight text-muted-foreground sm:text-[9px]"
           >
@@ -96,7 +97,10 @@ export function TasksSummaryTile({ summary }: { summary: { mine: Sum; created: S
 function TaskRow({ label, counts }: { label: string; counts: Sum | undefined }) {
   return (
     <>
-      <TileNumber variant="label" className="text-left text-[9px] leading-tight text-muted-foreground sm:text-[10px]">
+      <TileNumber
+        variant="label"
+        className="text-left text-[9px] leading-tight text-muted-foreground sm:text-[10px]"
+      >
         {label}
       </TileNumber>
       {[counts?.open, counts?.completed, counts?.notResponded, counts?.overdue].map(

@@ -125,7 +125,9 @@ function Tile({
             tone === "destructive" && "text-destructive",
           )}
         />
-        <span className="dashboard-tile-title">{label}</span>
+        <TileNumber variant="label" className="dashboard-tile-title">
+          {label}
+        </TileNumber>
       </div>
       {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
       <TileNumber
