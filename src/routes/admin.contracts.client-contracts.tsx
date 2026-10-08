@@ -3757,7 +3757,7 @@ function ContractFormDialog({
   const requestStep = (key: string) => {
     // Everyone moves freely; incomplete earlier steps only show a notice.
     const target = steps.findIndex((step) => step.key === key);
-    if (!canSkipSteps || true) {
+    {
       for (let index = 0; index < target; index += 1) {
         const problem = validateStep(steps[index].key);
         if (problem) { toast.warning(`${steps[index].label} is incomplete: ${problem}`); break; }
