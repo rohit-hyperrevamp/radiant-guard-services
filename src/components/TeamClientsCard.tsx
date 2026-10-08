@@ -12,7 +12,7 @@ const CHUNK = 200;
 const chunks = <T,>(a: T[]) => Array.from({ length: Math.ceil(a.length / CHUNK) }, (_, i) => a.slice(i * CHUNK, i * CHUNK + CHUNK));
 const todayIso = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
 
-type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null; sites: string[] };
+type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null; sites: string[]; siteIds: string[] };
 type Site = {
   id: string;
   code: string | null;
@@ -28,6 +28,8 @@ export function TeamClientsCard() {
   const scope = useManagerFieldOfficerScope();
   const { candidateId } = useCurrentUserRole();
   const [q, setQ] = useState("");
+  const [mateId, setMateId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const unitIds = useMemo(() => [...scope.unitIds].sort(), [scope.unitIds]);
 
   const teamQ = useQuery({
@@ -92,6 +94,7 @@ export function TeamClientsCard() {
       }
       return mates.map((m) => ({
         ...m,
+        siteIds: [...(siteMap.get(m.id) ?? [])],
         sites: [...(siteMap.get(m.id) ?? [])].map((id) => unitName.get(id) ?? id).sort((a, b) => a.localeCompare(b)),
       }));
     },
@@ -151,10 +154,17 @@ export function TeamClientsCard() {
     </section>
   );
   const sites = sitesQ.data ?? [];
+  const mates = teamQ.data ?? [];
+  const selected = mates.find((m) => m.id === mateId) ?? null;
+  const selectedIds = selected ? new Set(selected.siteIds) : null;
   const needle = q.trim().toLowerCase();
-  const shown = needle
-    ? sites.filter((s) => `${s.code} ${s.name} ${s.org}`.toLowerCase().includes(needle))
-    : sites;
+  const shown = sites
+    .filter((s) => !selectedIds || selectedIds.has(s.id))
+    .filter((s) => !needle || `${s.code} ${s.name} ${s.org}`.toLowerCase().includes(needle));
+  const PAGE = 10;
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+  const cur = Math.min(page, pages - 1);
+  const pageRows = shown.slice(cur * PAGE, cur * PAGE + PAGE);
   const orgCount = new Set(sites.map((s) => s.org)).size;
   const totals = {
     contracts: sites.reduce((n, s) => n + s.contracts, 0),
@@ -163,49 +173,57 @@ export function TeamClientsCard() {
     open: sites.filter((s) => s.sheet && s.sheet !== "approved").length,
     none: sites.filter((s) => !s.sheet).length,
   };
-  const mates = teamQ.data ?? [];
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="mb-3 text-sm font-semibold">My team ({mates.length})</div>
+        <div className="mb-3 text-sm font-semibold">My team ({mates.length}) <span className="font-normal text-xs text-muted-foreground">— tap a person to see their clients</span></div>
         {teamQ.isLoading ? <div className="text-xs text-muted-foreground">Loading team…</div> : mates.length === 0 && <div className="text-xs text-muted-foreground">Nobody reports to you yet.</div>}
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {mates.map((m) => (
-            <div key={m.id} className="rounded-xl border border-border p-3">
-              <div className="truncate text-sm font-medium">{m.full_name}</div>
-              <div className="truncate text-xs text-muted-foreground">{m.designation ?? ""} · {m.employee_code}</div>
-              <div className={`mt-1 text-xs ${m.inAt ? "text-primary" : "text-muted-foreground"}`}>
-                {m.inAt ? `Checked in ${new Date(m.inAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Not checked in today"}
-              </div>
-              <div className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
-                {m.sites.length === 0 ? "No clients mapped" : (
-                  <>
-                    <span className="font-medium text-foreground">{m.sites.length} client{m.sites.length === 1 ? "" : "s"}:</span>{" "}
-                    {m.sites.slice(0, 4).join(", ")}{m.sites.length > 4 ? ` +${m.sites.length - 4} more` : ""}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+          {mates.map((m) => {
+            const active = m.id === mateId;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => { setMateId(active ? null : m.id); setPage(0); }}
+                aria-pressed={active}
+                className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{m.full_name}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {m.designation ?? ""} · <span className={m.inAt ? "text-primary" : ""}>{m.inAt ? `In ${new Date(m.inAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Not checked in"}</span>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-base font-semibold tabular-nums">{m.siteIds.length}</div>
+                  <div className="text-[10px] text-muted-foreground">clients</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-sm font-semibold">Team clients</div>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {selected ? `${selected.full_name}'s clients (${selected.siteIds.length})` : "Team clients"}
+            {selected && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => { setMateId(null); setPage(0); }}>Show whole team</Button>}
+          </div>
           <div className="text-xs text-muted-foreground">
             {orgCount} organizations · {sites.length} sites · {totals.contracts} active contracts · {totals.people} people · attendance {totals.approved} approved / {totals.open} open / {totals.none} not filled
           </div>
         </div>
         <div className="relative mb-2">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search organization or site…" className="h-9 pl-8" />
+          <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Search organization or site…" className="h-9 pl-8" />
         </div>
         {sitesQ.isLoading ? (
           <div className="p-4 text-xs text-muted-foreground">Loading sites…</div>
         ) : (
-          <div className="max-h-[480px] overflow-auto rounded-lg border border-border">
+          <div className="overflow-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-muted text-xs text-muted-foreground">
                 <tr>
@@ -217,7 +235,8 @@ export function TeamClientsCard() {
                 </tr>
               </thead>
               <tbody>
-                {shown.slice(0, 300).map((s) => (
+                {pageRows.length === 0 && (<tr><td colSpan={5} className="p-4 text-center text-xs text-muted-foreground">No clients mapped.</td></tr>)}
+                {pageRows.map((s) => (
                   <tr key={s.id} className="border-t border-border">
                     <td className="p-2">{s.org}</td>
                     <td className="p-2">
@@ -232,7 +251,14 @@ export function TeamClientsCard() {
                 ))}
               </tbody>
             </table>
-            {shown.length > 300 && <div className="p-2 text-xs text-muted-foreground">Showing 300 of {shown.length} — search to narrow.</div>}
+            <div className="flex items-center justify-between border-t border-border p-2 text-xs text-muted-foreground">
+              <span>{shown.length ? `${cur * PAGE + 1}–${Math.min(shown.length, cur * PAGE + PAGE)} of ${shown.length}` : "0 of 0"}</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="h-7" disabled={cur === 0} onClick={() => setPage(cur - 1)}>Previous</Button>
+                <span>Page {cur + 1} of {pages}</span>
+                <Button variant="outline" size="sm" className="h-7" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>Next</Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
