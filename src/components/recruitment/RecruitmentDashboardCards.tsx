@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarClock, UsersRound } from "lucide-react";
@@ -96,7 +97,7 @@ export function RecruitmentLeadershipPanel() {
         {stats.map(([label, value]) => (
           <div key={label} className="rounded-xl border border-border/60 bg-card p-3">
             <div className="text-[10px] font-bold uppercase text-muted-foreground">{label}</div>
-            <div className="mt-1 font-display text-xl font-bold">{query.isLoading ? "—" : value.toLocaleString("en-IN")}</div>
+            <TileNumber className="mt-1 font-display text-xl font-bold">{query.isLoading ? "—" : value.toLocaleString("en-IN")}</TileNumber>
           </div>
         ))}
       </div>

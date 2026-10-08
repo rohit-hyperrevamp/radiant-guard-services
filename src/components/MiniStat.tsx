@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { cn } from "@/lib/utils";
 import {
   ACCENT_CHIP,
@@ -65,9 +66,7 @@ export function MiniStat({
         )}
       </div>
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
-          {value}
-        </div>
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">{value}</TileNumber>
         {Icon && (
           <span
             className={cn(

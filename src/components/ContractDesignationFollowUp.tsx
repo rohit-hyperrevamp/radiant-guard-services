@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -97,7 +98,7 @@ export function ContractDesignationFollowUp({
   return (
     <>
       <Button type="button" variant="ghost" onClick={() => setOpen(true)} className={cn("group flex h-auto w-full min-w-0 items-stretch whitespace-nowrap border border-border/50 bg-[rgb(var(--tint-amber))] text-left shadow-sm transition hover:border-primary/35 hover:bg-[rgb(var(--tint-amber))] hover:shadow-md", compact ? "min-h-[104px] rounded-2xl p-3.5" : "h-[124px] rounded-2xl p-3 sm:h-[172px] sm:rounded-[26px] sm:p-5", className)}>
-        <div className="flex min-w-0 flex-1 flex-col"><div className="truncate font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">Contract designation</div><div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">{overdue ? `${overdue} overdue` : "Seven-day follow-up"}</div><div className={cn("mt-auto overflow-hidden text-ellipsis whitespace-nowrap font-display font-medium leading-none tabular-nums text-foreground", compact ? "text-[25px]" : "text-[26px] sm:text-[40px]")}>{query.isLoading ? "—" : rows.length}</div></div>
+        <div className="flex min-w-0 flex-1 flex-col"><div className="truncate font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">Contract designation</div><div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">{overdue ? `${overdue} overdue` : "Seven-day follow-up"}</div><TileNumber className={cn("mt-auto whitespace-nowrap font-display font-medium leading-none tabular-nums text-foreground", compact ? "text-[25px]" : "text-[26px] sm:text-[40px]")}>{query.isLoading ? "—" : rows.length}</TileNumber></div>
         <span className={cn("mt-auto grid shrink-0 place-items-center rounded-full bg-card/80 text-amber-700 ring-1 ring-inset ring-amber-200/70 dark:text-amber-300 dark:ring-amber-400/20", compact ? "h-8 w-8" : "h-7 w-7 sm:h-9 sm:w-9")}><CalendarClock className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>

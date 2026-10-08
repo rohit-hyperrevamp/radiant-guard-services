@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import type { ComponentType, ReactNode } from "react";
 
 import { useCountUp } from "@/hooks/useCountUp";
@@ -79,9 +80,7 @@ export function CharterTile({
         )}
       </div>
 
-      <div className="relative mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap pt-2 font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
-        {display}
-      </div>
+      <TileNumber className="relative mt-auto min-w-0 whitespace-nowrap pt-2 font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">{display}</TileNumber>
 
       {segments && segments.length > 0 && (
         <div className="scrollbar-hide relative mt-1.5 flex flex-nowrap items-center gap-2 overflow-x-auto sm:mt-3 sm:flex-wrap sm:gap-x-3 sm:gap-y-1">

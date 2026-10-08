@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { useEffect, useMemo, useState } from "react";
 import {
   Banknote,
