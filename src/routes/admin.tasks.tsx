@@ -48,8 +48,8 @@ const db = supabase as unknown as {
 const STATUS: Record<string, { label: string; cls: string }> = {
   open: { label: "New", cls: "bg-accent/15 text-accent" },
   acknowledged: { label: "Acknowledged", cls: "bg-primary/10 text-primary" },
-  extension_requested: { label: "More time asked", cls: "bg-warning/15 text-warning" },
-  completed: { label: "Completed", cls: "bg-success/15 text-success" },
+  extension_requested: { label: "More time asked", cls: "bg-accent/20 text-accent-foreground" },
+  completed: { label: "Completed", cls: "bg-primary/15 text-primary" },
   cancelled: { label: "Cancelled", cls: "bg-muted text-muted-foreground" },
 };
 const fmt = (d?: string | null) => (d ? format(new Date(d), "dd MMM yyyy, h:mm a") : "—");
@@ -321,11 +321,11 @@ function TaskDialog({ task: t, me, overseer, name, deptName, onClose, onChanged 
           </div>
           {t.description && <p className="whitespace-pre-wrap">{t.description}</p>}
           {t.status === "extension_requested" && (
-            <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs">
+            <div className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs">
               <b>More time asked until {fmt(t.extension_until)}</b><div className="mt-1">{t.extension_reason}</div>
             </div>
           )}
-          {t.completion_note && <div className="rounded-lg bg-success/10 p-3 text-xs"><b>Completion note:</b> {t.completion_note}</div>}
+          {t.completion_note && <div className="rounded-lg bg-primary/10 p-3 text-xs"><b>Completion note:</b> {t.completion_note}</div>}
           {(proofsQ.data ?? []).length > 0 && (
             <div className="space-y-1">
               {(proofsQ.data ?? []).map((p) => (
