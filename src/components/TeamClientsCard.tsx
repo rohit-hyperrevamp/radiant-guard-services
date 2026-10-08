@@ -35,15 +35,11 @@ export function TeamClientsCard() {
     enabled: !!candidateId,
     queryFn: async () => {
       if (!candidateId) return [] as Array<Mate & { inAt: string | null }>;
-      const [direct, extra] = await Promise.all([
-        supabase.from("candidates").select("id").eq("reports_to", candidateId).in("status", ["active", "approved"]),
-        supabase.from("candidate_reporting_managers").select("candidate_id").eq("manager_id", candidateId),
-      ]);
+      // My team = direct reports only (candidates.reports_to = me).
+      const direct = await supabase.from("candidates").select("id").eq("reports_to", candidateId).in("status", ["active", "approved"]);
       if (direct.error) throw direct.error;
-      if (extra.error) throw extra.error;
       const ids = new Set<string>();
       for (const r of (direct.data ?? []) as Array<{ id: string }>) ids.add(r.id);
-      for (const r of (extra.data ?? []) as Array<{ candidate_id: string }>) ids.add(r.candidate_id);
       if (!ids.size) return [] as Array<Mate & { inAt: string | null }>;
       const [people, punches] = await Promise.all([
         supabase.from("candidates").select("id,full_name,employee_code,designation_id,role_key").in("id", [...ids]),
