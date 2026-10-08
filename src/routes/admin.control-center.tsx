@@ -3,6 +3,7 @@ import { ArrowRight, Hash, CalendarHeart, DatabaseZap, FileBadge, BadgeCheck, Br
 import { PageHeader } from "@/components/PageHeader";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { RBAC_MODULES } from "@/lib/rbac-modules";
+import { GOVERNANCE_PATHS, GOVERNANCE_ROLES } from "@/lib/role-keys";
 
 export const Route = createFileRoute("/admin/control-center")({
   head: () => ({
@@ -236,6 +237,12 @@ const tiles: Tile[] = [
     icon: CalendarRange,
   },
   {
+    to: "/admin/case-type-manager",
+    label: "Case Types",
+    description: "Categories for the legal Case Desk.",
+    icon: ShieldCheck,
+  },
+  {
     to: "/admin/training",
     label: "Training",
     description: "Role-wise training documents.",
@@ -247,10 +254,10 @@ const tiles: Tile[] = [
 ];
 
 function ControlCenterDashboard() {
-  const { can, canSub, isSuperAdmin } = useCurrentPermissions();
+  const { can, canSub, isSuperAdmin, roleKey } = useCurrentPermissions();
   const visibleTiles = tiles.filter((tile) => {
     if (isSuperAdmin) return true;
-    if (tile.to === "/admin/rbac") return can("rbac");
+    if ((GOVERNANCE_PATHS as readonly string[]).includes(tile.to)) return !!roleKey && GOVERNANCE_ROLES.has(roleKey);
     const permission = RBAC_MODULES.flatMap((module) =>
       module.subModules.map((sub) => ({ module: module.key, sub })),
     ).find(({ sub }) => sub.path === tile.to);
