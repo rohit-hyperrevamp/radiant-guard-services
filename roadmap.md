@@ -572,5 +572,5 @@
 ## Single-line dashboard labels and follow-up alignment
 - [x] Align UAN and contract-designation counts at the bottom using the shared tile layout.
 - [x] Fit complete headings and status/task labels on a single line.
-- [ ] Run fitting and layout regression checks.
+- [x] Run fitting and layout regression checks: 54 full-word/value cases, 100 number cases, and both follow-up layout checks passed.
 - [ ] Verify live appearance after publishing (requires published UI).
