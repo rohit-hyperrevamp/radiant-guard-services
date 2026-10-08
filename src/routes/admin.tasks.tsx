@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
-import { CheckCircle2, Clock, FileUp, Plus, Paperclip } from "lucide-react";
+import { CheckCircle2, Clock, FileUp, Plus, Paperclip, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { SearchSelect } from "@/components/SearchSelect";
+import { PriorityBadge, PRIORITIES, priorityLabel } from "@/components/PriorityBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { logActivity } from "@/lib/activity-log";
@@ -35,7 +36,7 @@ type Task = {
   id: string; title: string; description: string; created_by: string; assignee_id: string;
   department_id: string | null; due_at: string | null; status: string; acknowledged_at: string | null;
   extension_until: string | null; extension_reason: string | null; completion_note: string | null;
-  proof_paths: string[]; completed_at: string | null; created_at: string;
+  proof_paths: string[]; priority: string; completed_at: string | null; created_at: string;
 };
 type Ev = { id: string; task_id: string; actor_id: string | null; kind: string; note: string | null; data: Record<string, unknown>; created_at: string };
 type Person = { id: string; full_name: string | null; employee_code: string | null; department_id: string | null };
@@ -119,7 +120,16 @@ function TasksPage() {
     ...(permsQ.data?.overseer ? [{ k: "all" as const, l: "All open" }] : []),
     { k: "recent" as const, l: "Recent tasks" },
   ];
-  const rows = lists[tab];
+  const [q, setQ] = useState("");
+  const [prio, setPrio] = useState("all");
+  const [st, setSt] = useState("all");
+  const tabRows = lists[tab];
+  const rows = tabRows.filter((t) => {
+    const s = q.trim().toLowerCase();
+    return (prio === "all" || (t.priority ?? "medium") === prio) && (st === "all" || t.status === st) &&
+      (!s || `${t.title} ${t.description} ${name(t.created_by)} ${name(t.assignee_id)} ${t.department_id ? depts.get(t.department_id) ?? "" : ""}`.toLowerCase().includes(s));
+  });
+  const prioCounts = PRIORITIES.slice().reverse().map((p) => ({ p, n: tabRows.filter((t) => (t.priority ?? "medium") === p).length }));
   const current = all.find((t) => t.id === openId);
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks"] });
 
@@ -140,6 +150,22 @@ function TasksPage() {
           </button>
         ))}
       </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {prioCounts.map((c) => (
+          <button key={c.p} onClick={() => setPrio(prio === c.p ? "all" : c.p)} className={cn("rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50", prio === c.p && "ring-2 ring-primary")}>
+            <PriorityBadge p={c.p} />
+            <div className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground">{c.n}</div>
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Search task name, person, department…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <SearchSelect className="sm:w-44" value={st} onChange={setSt} options={[{ value: "all", label: "All statuses" }, ...Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label }))]} />
+        <SearchSelect className="sm:w-40" value={prio} onChange={setPrio} options={[{ value: "all", label: "All priorities" }, ...PRIORITIES.map((p) => ({ value: p, label: priorityLabel(p) }))]} />
+      </div>
       <div className="divide-y divide-border rounded-xl border border-border bg-card">
         {tasksQ.isLoading && <div className="p-4 text-sm text-muted-foreground">Loading…</div>}
         {!tasksQ.isLoading && rows.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No tasks here.</div>}
@@ -154,7 +180,7 @@ function TasksPage() {
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS[t.status]?.cls)}>{STATUS[t.status]?.label ?? t.status}</span>
+                <div className="flex items-center gap-1.5"><PriorityBadge p={t.priority} /><span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4", STATUS[t.status]?.cls)}>{STATUS[t.status]?.label ?? t.status}</span></div>
                 <span className={cn("flex items-center gap-1 text-[11px]", overdue ? "text-destructive" : "text-muted-foreground")}>
                   <Clock className="h-3 w-3" /> {t.due_at ? fmt(t.due_at) : "No due date"}{overdue ? " · overdue" : ""}
                 </span>
@@ -187,6 +213,7 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
   const [desc, setDesc] = useState("");
   const [dept, setDept] = useState("");
   const [assignee, setAssignee] = useState("");
+  const [priority, setPriority] = useState("medium");
   const today = new Date();
   const [dueDate, setDueDate] = useState(toLocalInput(today).slice(0, 10));
   const [dueTime, setDueTime] = useState("18:00");
@@ -203,7 +230,7 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
     const person = people.find((p) => p.id === assignee);
     const { data, error } = await db.from("tasks").insert({
       title: title.trim(), description: desc.trim(), created_by: me, assignee_id: assignee,
-      department_id: dept || person?.department_id || null, due_at: due ? new Date(due).toISOString() : null,
+      department_id: dept || person?.department_id || null, due_at: due ? new Date(due).toISOString() : null, priority,
     }).select("id").single();
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -229,6 +256,14 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
             <div>
               <div className="mb-1 text-xs text-muted-foreground">Assign to</div>
               <SearchSelect value={assignee} onChange={setAssignee} options={options} placeholder="Choose a person" searchPlaceholder="Search by name or ID…" />
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 text-xs text-muted-foreground">Priority</div>
+            <div className="flex flex-wrap gap-1.5">
+              {PRIORITIES.map((p) => (
+                <button key={p} type="button" onClick={() => setPriority(p)} className={cn("rounded-full", priority === p ? "ring-2 ring-primary ring-offset-1" : "opacity-60 hover:opacity-100")}><PriorityBadge p={p} /></button>
+              ))}
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -319,7 +354,8 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
         <DialogHeader><DialogTitle className="pr-6">{t.title}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-sm">
           <div className="flex flex-wrap gap-2">
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS[t.status]?.cls)}>{STATUS[t.status]?.label}</span>
+            <PriorityBadge p={t.priority} />
+            <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4", STATUS[t.status]?.cls)}>{STATUS[t.status]?.label}</span>
             {deptName && <Badge variant="outline">{deptName}</Badge>}
           </div>
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs">
