@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList } from "lucide-react";
+import { ArrowUpRight, ClipboardList, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type Row = { status: string; due_at: string | null; acknowledged_at: string | null; assignee_id: string; created_by: string };
+type Sum = { total: number; open: number; notResponded: number; overdue: number; completed: number };
 
-/** Dashboard tile: tasks assigned to me and tasks I created, with status counts. */
-export function TasksSummaryTile() {
-  const q = useQuery({
+/** Shared task counts for the dashboard tiles (assigned to me / created by me). */
+export function useTaskSummary() {
+  return useQuery({
     queryKey: ["tasks-summary-tile"],
     staleTime: 30_000,
     refetchInterval: 60_000,
@@ -23,7 +24,7 @@ export function TasksSummaryTile() {
       const rows = (data ?? []) as unknown as Row[];
       const now = Date.now();
       const isOpen = (r: Row) => !["completed", "cancelled"].includes(r.status);
-      const sum = (list: Row[]) => ({
+      const sum = (list: Row[]): Sum => ({
         total: list.length,
         open: list.filter(isOpen).length,
         notResponded: list.filter((r) => r.status === "open" && !r.acknowledged_at).length,
@@ -33,49 +34,99 @@ export function TasksSummaryTile() {
       return { mine: sum(rows.filter((r) => r.assignee_id === cid)), created: sum(rows.filter((r) => r.created_by === cid)) };
     },
   });
-  const d = q.data;
-  if (!q.isLoading && !d) return null;
+}
 
-  const Cell = ({ label, value, strong }: { label: string; value: number; strong?: boolean }) => (
-    <div className={`rounded-xl px-2 py-1.5 text-center ${strong ? "bg-accent/15 text-accent" : "bg-secondary/60 text-foreground"}`}>
-      <div className="font-display text-base font-bold leading-tight num">{q.isLoading ? "—" : value}</div>
-      <div className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+function Mini({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-card/70 px-1.5 py-1 text-center ring-1 ring-inset ring-black/5 dark:ring-white/10">
+      <div className="font-display text-[15px] font-medium leading-none tabular-nums text-foreground sm:text-[17px]">{value}</div>
+      <div className="mt-0.5 truncate text-[8px] uppercase tracking-[0.06em] text-muted-foreground sm:text-[9px]">{label}</div>
     </div>
   );
+}
 
+/** Square dashboard tile styled like the other metric tiles. */
+function Tile({
+  to,
+  label,
+  sub,
+  value,
+  chip,
+  bg,
+  children,
+}: {
+  to: string;
+  label: string;
+  sub: string;
+  value: number;
+  chip: React.ReactNode;
+  bg: string;
+  children: React.ReactNode;
+}) {
   return (
     <Link
-      to="/admin/tasks"
+      to={to}
       search={{} as never}
-      className="block rounded-[24px] border border-border/60 bg-card/70 p-4 backdrop-blur-2xl transition hover:border-accent/40"
+      className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 ${bg} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
-      <div className="mb-3 flex items-center gap-2">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primary-foreground">
-          <ClipboardList className="h-3.5 w-3.5" />
-        </span>
-        <div>
-          <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Tasks</div>
-          <div className="font-display text-[13px] font-bold text-foreground">My tasks</div>
-        </div>
-      </div>
-      <div className="text-[10px] font-semibold text-muted-foreground mb-1">Assigned to me</div>
-      <div className="grid grid-cols-4 gap-1.5">
-        <Cell label="Open" value={d?.mine.open ?? 0} strong />
-        <Cell label="No reply" value={d?.mine.notResponded ?? 0} />
-        <Cell label="Overdue" value={d?.mine.overdue ?? 0} />
-        <Cell label="Done" value={d?.mine.completed ?? 0} />
-      </div>
-      {(d?.created.total ?? 0) > 0 && (
-        <>
-          <div className="mt-3 text-[10px] font-semibold text-muted-foreground mb-1">Created by me ({d?.created.total})</div>
-          <div className="grid grid-cols-4 gap-1.5">
-            <Cell label="Open" value={d?.created.open ?? 0} strong />
-            <Cell label="No reply" value={d?.created.notResponded ?? 0} />
-            <Cell label="Overdue" value={d?.created.overdue ?? 0} />
-            <Cell label="Closed" value={d?.created.completed ?? 0} />
+      <div className="relative flex items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <div className="truncate whitespace-nowrap font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">
+            {label}
           </div>
-        </>
-      )}
+          <div className="mt-0.5 truncate whitespace-nowrap text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
+            {sub}
+          </div>
+        </div>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-9 sm:w-9">
+          <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        </span>
+      </div>
+      <div className="relative mt-auto flex items-end justify-between gap-2">
+        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px]">
+          {value}
+        </div>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 text-foreground/70 ring-1 ring-inset ring-black/5 dark:ring-white/10 sm:h-9 sm:w-9">
+          {chip}
+        </span>
+      </div>
+      <div className="relative mt-2 grid grid-cols-3 gap-1.5 sm:gap-2">{children}</div>
     </Link>
+  );
+}
+
+/** Tile: tasks assigned to me — open, not answered, overdue, done. */
+export function TasksAssignedTile({ summary }: { summary: Sum | null }) {
+  return (
+    <Tile
+      to="/admin/tasks"
+      label="My tasks"
+      sub="Assigned to me"
+      value={summary?.open ?? 0}
+      chip={<ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+      bg="bg-violet-100/80 dark:bg-violet-500/15"
+    >
+      <Mini value={summary?.notResponded ?? 0} label="No reply" />
+      <Mini value={summary?.overdue ?? 0} label="Overdue" />
+      <Mini value={summary?.completed ?? 0} label="Done" />
+    </Tile>
+  );
+}
+
+/** Tile: tasks I assigned to others — open, waiting on reply, overdue, closed. */
+export function TasksCreatedTile({ summary }: { summary: Sum | null }) {
+  return (
+    <Tile
+      to="/admin/tasks"
+      label="Tasks I gave"
+      sub="Assigned by me"
+      value={summary?.open ?? 0}
+      chip={<Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+      bg="bg-amber-100/80 dark:bg-amber-500/15"
+    >
+      <Mini value={summary?.notResponded ?? 0} label="No reply" />
+      <Mini value={summary?.overdue ?? 0} label="Overdue" />
+      <Mini value={summary?.completed ?? 0} label="Closed" />
+    </Tile>
   );
 }

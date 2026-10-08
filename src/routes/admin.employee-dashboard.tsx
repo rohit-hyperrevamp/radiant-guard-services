@@ -28,6 +28,7 @@ import { nextOccurrence, yearsBetween } from "@/lib/people-insights";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { DashboardShell } from "@/components/LiveFeed";
+import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
 
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
@@ -459,6 +460,8 @@ function EmployeeDashboard() {
     </div>
   );
 
+  const taskSummary = useTaskSummary();
+
   return (
     <DashboardShell rightExtras={insights} fixedRightRail>
       <div className="space-y-4">
@@ -510,6 +513,8 @@ function EmployeeDashboard() {
               <PastelTile palette="teal" label="My attendance" value={attStats.total} hint={new Date().toLocaleString("en-IN", { month: "long" })} delta={0} deltaSuffix="" icon={ClipboardCheck} to="/admin/my-attendance" />
               <PastelTile palette="rose" label="Absent" value={attStats.absent} hint="This month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
               <PastelTile palette="amber" label="Leaves" value={attStats.leave} hint="This month" delta={0} deltaSuffix="" icon={CalendarDays} className="col-span-2 sm:col-span-1" />
+              <TasksAssignedTile summary={taskSummary.data?.mine ?? null} />
+              <TasksCreatedTile summary={taskSummary.data?.created ?? null} />
             </div>
           </section>
         </div>

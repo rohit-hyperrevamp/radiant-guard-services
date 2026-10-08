@@ -42,6 +42,7 @@ import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
 import { VisitProofs } from "@/components/VisitProofs";
+import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
 
 
 
@@ -617,6 +618,8 @@ function FieldOfficerDashboard() {
   const attnPresent = Math.round(((data?.attendanceRateToday ?? 0) / 100) * totalListings);
   const totalItems = data?.myStockQty ?? 0;
 
+  const taskSummary = useTaskSummary();
+
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
@@ -680,6 +683,8 @@ function FieldOfficerDashboard() {
               <UanFollowUp fieldOfficerUserId={userId} fieldOfficerCandidateId={data?.meId} compact className="rounded-none border-0 border-r border-border/50 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none" />
               <ContractDesignationFollowUp fieldOfficer compact className="rounded-none border-0 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none" />
             </div>
+            <TasksAssignedTile summary={taskSummary.data?.mine ?? null} />
+            <TasksCreatedTile summary={taskSummary.data?.created ?? null} />
           </div>
         </section>
 
