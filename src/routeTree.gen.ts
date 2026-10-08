@@ -26,6 +26,7 @@ import { Route as AdminAttendanceRouteImport } from './routes/admin.attendance'
 import { Route as AdminAttendanceCodeManagerRouteImport } from './routes/admin.attendance-code-manager'
 import { Route as AdminBillingTypeManagerRouteImport } from './routes/admin.billing-type-manager'
 import { Route as AdminCaseTypeManagerRouteImport } from './routes/admin.case-type-manager'
+import { Route as AdminCasesRouteImport } from './routes/admin.cases'
 import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.company-documents'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
 import { Route as AdminComplianceGpaipRegisterRouteImport } from './routes/admin.compliance-gpaip-register'
@@ -234,6 +235,11 @@ const AdminBillingTypeManagerRoute = AdminBillingTypeManagerRouteImport.update({
 const AdminCaseTypeManagerRoute = AdminCaseTypeManagerRouteImport.update({
   id: '/case-type-manager',
   path: '/case-type-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCasesRoute = AdminCasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCompanyDocumentsRoute = AdminCompanyDocumentsRouteImport.update({
@@ -902,6 +908,7 @@ export interface FileRoutesByFullPath {
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/case-type-manager': typeof AdminCaseTypeManagerRoute
+  '/admin/cases': typeof AdminCasesRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
@@ -1042,6 +1049,7 @@ export interface FileRoutesByTo {
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/case-type-manager': typeof AdminCaseTypeManagerRoute
+  '/admin/cases': typeof AdminCasesRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
@@ -1180,6 +1188,7 @@ export interface FileRoutesById {
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/case-type-manager': typeof AdminCaseTypeManagerRoute
+  '/admin/cases': typeof AdminCasesRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
@@ -1323,6 +1332,7 @@ export interface FileRouteTypes {
     | '/admin/attendance-code-manager'
     | '/admin/billing-type-manager'
     | '/admin/case-type-manager'
+    | '/admin/cases'
     | '/admin/company-documents'
     | '/admin/compliance'
     | '/admin/compliance-gpaip-register'
@@ -1463,6 +1473,7 @@ export interface FileRouteTypes {
     | '/admin/attendance-code-manager'
     | '/admin/billing-type-manager'
     | '/admin/case-type-manager'
+    | '/admin/cases'
     | '/admin/company-documents'
     | '/admin/compliance'
     | '/admin/compliance-gpaip-register'
@@ -1600,6 +1611,7 @@ export interface FileRouteTypes {
     | '/admin/attendance-code-manager'
     | '/admin/billing-type-manager'
     | '/admin/case-type-manager'
+    | '/admin/cases'
     | '/admin/company-documents'
     | '/admin/compliance'
     | '/admin/compliance-gpaip-register'
@@ -1862,6 +1874,13 @@ declare module '@tanstack/react-router' {
       path: '/case-type-manager'
       fullPath: '/admin/case-type-manager'
       preLoaderRoute: typeof AdminCaseTypeManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cases': {
+      id: '/admin/cases'
+      path: '/cases'
+      fullPath: '/admin/cases'
+      preLoaderRoute: typeof AdminCasesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/company-documents': {
@@ -2919,6 +2938,7 @@ interface AdminRouteChildren {
   AdminAttendanceCodeManagerRoute: typeof AdminAttendanceCodeManagerRoute
   AdminBillingTypeManagerRoute: typeof AdminBillingTypeManagerRoute
   AdminCaseTypeManagerRoute: typeof AdminCaseTypeManagerRoute
+  AdminCasesRoute: typeof AdminCasesRoute
   AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
   AdminComplianceRoute: typeof AdminComplianceRoute
   AdminComplianceGpaipRegisterRoute: typeof AdminComplianceGpaipRegisterRoute
@@ -2997,6 +3017,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAttendanceCodeManagerRoute: AdminAttendanceCodeManagerRoute,
   AdminBillingTypeManagerRoute: AdminBillingTypeManagerRoute,
   AdminCaseTypeManagerRoute: AdminCaseTypeManagerRoute,
+  AdminCasesRoute: AdminCasesRoute,
   AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
   AdminComplianceRoute: AdminComplianceRoute,
   AdminComplianceGpaipRegisterRoute: AdminComplianceGpaipRegisterRoute,
