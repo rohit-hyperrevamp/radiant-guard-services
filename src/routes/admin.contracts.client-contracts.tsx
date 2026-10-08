@@ -4864,6 +4864,7 @@ export function ResourceFormDialog({
   const [benefits, setBenefits] = useState<BenefitItem[]>([]);
   const [deductions, setDeductions] = useState<BenefitItem[]>([]);
   const [employerContributions, setEmployerContributions] = useState<BenefitItem[]>([]);
+  const [roundOffFinal, setRoundOffFinal] = useState(false);
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -4913,7 +4914,8 @@ export function ResourceFormDialog({
       setBenefits(nextBenefits);
       setDeductions(nextDeductions);
       setEmployerContributions(nextEmployerContributions);
-      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions }]));
+      setRoundOffFinal(initial.roundOffFinal === true);
+      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true }]));
     } else {
       const nextComponents = allowanceTypes
         .filter((a) => a.isDefault)
@@ -4941,7 +4943,8 @@ export function ResourceFormDialog({
       setBenefits([]);
       setDeductions([]);
       setEmployerContributions([]);
-      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [] }]));
+      setRoundOffFinal(false);
+      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [], roundOffFinal: false }]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, allowanceTypes.length]);
@@ -4962,9 +4965,10 @@ export function ResourceFormDialog({
           benefits,
           deductions,
           employerContributions,
+          roundOffFinal,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
