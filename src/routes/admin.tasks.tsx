@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
-import { CheckCircle2, Clock, FileUp, Plus, Paperclip } from "lucide-react";
+import { CheckCircle2, Clock, FileUp, Plus, Paperclip, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
