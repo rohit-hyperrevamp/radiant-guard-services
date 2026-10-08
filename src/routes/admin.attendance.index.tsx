@@ -88,7 +88,7 @@ function AttendanceUnitsPage() {
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "approved">("approved");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "approved">("all");
 
 
 
@@ -167,7 +167,7 @@ function AttendanceUnitsPage() {
     });
   }, [q, orgFilter, unitFilter, stateFilter, windowUnits]);
 
-  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || stateFilter.length > 0 || statusFilter !== "approved" || q.trim().length > 0;
+  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || stateFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
 
 
 
