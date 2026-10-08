@@ -6577,6 +6577,7 @@ export function ResourceFormDialog({
             deductions={deductions}
             employerContributions={employerContributions}
             componentDescriptions={componentDescriptions}
+            roundOffFinal={roundOffFinal}
           />
 
         </div>
