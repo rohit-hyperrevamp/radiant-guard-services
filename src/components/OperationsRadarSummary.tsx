@@ -46,6 +46,19 @@ export function useOperationsRadarLive() {
     refetchInterval: 20_000,
     queryFn: async (): Promise<LivePunch[]> => {
       if (officerIds && officerIds.length === 0) return [];
+      if (officerIds) {
+        // Managers: one secure lookup of their own field officers live today
+        // (row-by-row permission checks on check-ins are too slow for this).
+        const { data, error } = await (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { message: string } | null }>)("team_live_field_officers", { _date: today() });
+        if (error) throw new Error(error.message);
+        return ((data ?? []) as Array<LivePunch & { full_name: string | null; employee_code: string | null }>).map((r) => ({
+          ...r,
+          candidate: { full_name: r.full_name, employee_code: r.employee_code },
+        }));
+      }
       let q = supabase
         .from("self_attendance_punches" as never)
         .select(
