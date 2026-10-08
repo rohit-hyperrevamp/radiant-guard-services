@@ -5749,8 +5749,60 @@ export function ResourceFormDialog({
 
   const selectedDesignation = designations.find((d) => d.id === designationId);
 
+  // Live totals for the summary card shown on top of the rate structure.
+  const summaryGross = gross + totalBenefits;
+  const summaryNetPayable = summaryGross - totalDeductions;
+  const summaryTotalCtc = summaryGross + totalEmployer;
+  const summaryReliever = employerContributions
+    .filter(isRelieverLine)
+    .slice(0, 1)
+    .reduce((s, b) => s + liveAddOnAmount("reliever", b), 0);
+  const summaryBillingRate = summaryTotalCtc + summaryReliever;
+  const summaryMgmtFee = employerContributions
+    .filter(isMgmtFeeLine)
+    .slice(0, 1)
+    .reduce((s, b) => s + liveAddOnAmount("mgmt", b), 0);
+  const summaryFinalRaw = summaryBillingRate + summaryMgmtFee;
+  const summaryFinal = roundOffFinal ? Math.round(summaryFinalRaw) : summaryFinalRaw;
+
   const content = (
         <div className="space-y-4 py-2">
+          {/* Total summary — shown on top, before the breakdown */}
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Total Summary
+            </h4>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {([
+                { label: "Gross Pay", value: summaryGross },
+                { label: "Deductions", value: totalDeductions },
+                { label: "Net Payable", value: summaryNetPayable },
+                { label: "Total CTC", value: summaryTotalCtc },
+                { label: "Billing Rate", value: summaryBillingRate },
+              ]).map((t) => (
+                <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t.label}</div>
+                  <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                    ₹{t.value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg border border-primary/40 bg-primary/5 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Final Billing Rate</div>
+                  <RoundOffToggle on={roundOffFinal} label="Final billing rate" onToggle={() => preserveDialogScroll(() => setRoundOffFinal((v) => !v))} />
+                </div>
+                <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                  ₹{summaryFinal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                {roundOffFinal && summaryFinal !== summaryFinalRaw ? (
+                  <div className="text-[10px] text-muted-foreground">
+                    exact ₹{summaryFinalRaw.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {!isWages && (<>
             <Field label="Designation *">
