@@ -198,43 +198,25 @@ export function useManagerFieldOfficerScope(): ManagerFieldOfficerScope {
     queryKey: ["manager-fo-scope", candidateId, roleKey],
     enabled,
     staleTime: 5 * 60_000,
+    retry: 2,
+    // One database call returns the whole scope (sites, organizations, field
+    // officers). The old browser-side walk needed dozens of chained requests.
     queryFn: async () => {
-      const [fieldOfficerIds, hrScope, team] = await Promise.all([
-        isAccounts ? Promise.resolve(new Set<string>()) : loadSubtree(candidateId!),
-        mustScope ? loadHrExecutiveUnits(candidateId!, isAccounts ? "account_manager_id" : "hr_executive_id") : Promise.resolve({ unitIds: [], customerIds: [] }),
-        loadTeamUnits(candidateId!),
-      ]);
-      
-      const { unitIds: foUnitIds, customerIds: foCustomerIds } = await loadUnitsForOfficers([...fieldOfficerIds]);
-      
-      const combinedUnitIds = new Set([...foUnitIds, ...hrScope.unitIds, ...team.unitIds]);
-      const combinedCustomerIds = new Set([...foCustomerIds, ...hrScope.customerIds, ...team.customerIds]);
-
-      // Team managers also oversee every field officer mapped to their team's client sites.
-      if (team.hasTeam && team.unitIds.length) {
-        const mappedIds = new Set<string>();
-        for (const part of chunked(team.unitIds)) {
-          const { data, error } = await supabase.from("candidate_units").select("candidate_id").in("unit_id", part).limit(20000);
-          if (error) throw error;
-          for (const r of (data ?? []) as Array<{ candidate_id: string }>) mappedIds.add(r.candidate_id);
-        }
-        for (const part of chunked([...mappedIds])) {
-          const { data, error } = await supabase
-            .from("candidates")
-            .select("id")
-            .in("id", part)
-            .eq("role_key", ROLE_KEYS.FIELD_OFFICER)
-            .in("status", ["active", "approved"]);
-          if (error) throw error;
-          for (const r of (data ?? []) as Array<{ id: string }>) fieldOfficerIds.add(r.id);
-        }
-      }
-
-      return { 
-        fieldOfficerIds: [...fieldOfficerIds], 
-        unitIds: [...combinedUnitIds], 
-        customerIds: [...combinedCustomerIds],
-        hasTeam: team.hasTeam,
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: string,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>)("current_user_ops_scope");
+      if (error) throw new Error(error.message);
+      const s = (data ?? {}) as {
+        unit_ids?: string[];
+        customer_ids?: string[];
+        field_officer_ids?: string[];
+        has_team?: boolean;
+      };
+      return {
+        fieldOfficerIds: s.field_officer_ids ?? [],
+        unitIds: s.unit_ids ?? [],
+        customerIds: s.customer_ids ?? [],
+        hasTeam: !!s.has_team,
       };
     },
   });
