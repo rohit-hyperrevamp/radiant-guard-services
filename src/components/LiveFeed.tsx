@@ -255,7 +255,10 @@ export function DashboardShell({
   return (
     <div className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-6">{children}</div>
+        <div className="min-w-0 space-y-6">
+          <div className="lg:hidden"><LiveFeed className="max-h-[320px]" /></div>
+          {children}
+        </div>
         <div className="hidden lg:block">
           <div className={cn(
             "flex flex-col gap-3 overflow-y-auto pr-1",

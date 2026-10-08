@@ -230,6 +230,12 @@ const tiles: Tile[] = [
     icon: FileSpreadsheet,
   },
   {
+    to: "/admin/contract-expiry-alerts",
+    label: "Contract Expiry Alerts",
+    description: "When contract expiry reminders go out.",
+    icon: CalendarRange,
+  },
+  {
     to: "/admin/training",
     label: "Training",
     description: "Role-wise training documents.",
