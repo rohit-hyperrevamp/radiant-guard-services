@@ -1045,12 +1045,19 @@ function PayrollUnitPage() {
         };
       });
 
-      // Drop non-primary designation lines that ended up with zero attendance.
-      // Primary always stays — it carries per-candidate additions/deductions.
+      // Client payroll shows only people with attendance in this period, and
+      // never Field Officers (non-billable; paid from the Radiant home unit).
+      const FO_HOME_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+      const isFoDesignation = (id: string | null | undefined) =>
+        /field[\s-]*officer/i.test((id && desigMap.get(id)) || "");
       const visibleRows = rows.filter((r) => {
-        if (r.isPrimary) return true;
         const t = r.totals;
-        return (t.pDays + t.phDays + t.otDays + t.otherPaidDays) > 0;
+        if ((t.pDays + t.phDays + t.otDays + t.otherPaidDays) <= 0) return false;
+        if (unitId !== FO_HOME_UNIT_ID) {
+          const c = rosterById.get(r.id);
+          if (isFoDesignation(c?.designation_id) || isFoDesignation(r.designationId)) return false;
+        }
+        return true;
       });
 
       visibleRows.sort((a, b) => {
