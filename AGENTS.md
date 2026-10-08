@@ -4,7 +4,7 @@
 - Mixed-window charter statuses load via `batch_period_statuses(jsonb)` in one request — no per-window fan-out.
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Approvals (payroll, onboarding, `approval_requests`) follow `workflow_steps` via `workflow_step_matches` (named people/department override role); sensitive employee fields change only through `approval_decide` — approvers stay configurable.
-- Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server-side /otp sends lack the default DLT template and are held by operators (code 211).
+- Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server-side sends get held (code 211).
 - Sales & Marketing CRM lives in `crm_*` tables gated by `current_user_can_crm()` (Super Admin + `sales_marketing` RBAC module); prospects convert via the org → unit → contract chain (`OrgUnitChain`) into a pending-approval contract draft — Client Contracts holds contracts only.
 - "View as user" mints the target session server-side (`startImpersonation`, super-admin verified), admin session kept in localStorage `radiant.impersonator`, sign-out `scope: "local"` — real RLS views without touching the employee's sessions.
 - Recruitment: `rec_*` gated by `current_user_can_recruit()`; `rec_onboard_candidate` inserts into `candidates` so one employee ID series is used.
