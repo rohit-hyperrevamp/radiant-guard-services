@@ -30,6 +30,7 @@ import { Route as AdminComplianceGpaipRegisterRouteImport } from './routes/admin
 import { Route as AdminComplianceInsuranceRouteImport } from './routes/admin.compliance-insurance'
 import { Route as AdminComplianceLwfRouteImport } from './routes/admin.compliance-lwf'
 import { Route as AdminCompliancePtRouteImport } from './routes/admin.compliance-pt'
+import { Route as AdminContractExpiryAlertsRouteImport } from './routes/admin.contract-expiry-alerts'
 import { Route as AdminControlCenterRouteImport } from './routes/admin.control-center'
 import { Route as AdminCostComponentManagerRouteImport } from './routes/admin.cost-component-manager'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -255,6 +256,12 @@ const AdminCompliancePtRoute = AdminCompliancePtRouteImport.update({
   path: '/compliance-pt',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminContractExpiryAlertsRoute =
+  AdminContractExpiryAlertsRouteImport.update({
+    id: '/contract-expiry-alerts',
+    path: '/contract-expiry-alerts',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminControlCenterRoute = AdminControlCenterRouteImport.update({
   id: '/control-center',
   path: '/control-center',
@@ -887,6 +894,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
   '/admin/compliance-lwf': typeof AdminComplianceLwfRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
+  '/admin/contract-expiry-alerts': typeof AdminContractExpiryAlertsRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
@@ -1024,6 +1032,7 @@ export interface FileRoutesByTo {
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
   '/admin/compliance-lwf': typeof AdminComplianceLwfRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
+  '/admin/contract-expiry-alerts': typeof AdminContractExpiryAlertsRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -1159,6 +1168,7 @@ export interface FileRoutesById {
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
   '/admin/compliance-lwf': typeof AdminComplianceLwfRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
+  '/admin/contract-expiry-alerts': typeof AdminContractExpiryAlertsRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
@@ -1299,6 +1309,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-insurance'
     | '/admin/compliance-lwf'
     | '/admin/compliance-pt'
+    | '/admin/contract-expiry-alerts'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
     | '/admin/customers'
@@ -1436,6 +1447,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-insurance'
     | '/admin/compliance-lwf'
     | '/admin/compliance-pt'
+    | '/admin/contract-expiry-alerts'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
     | '/admin/dashboard'
@@ -1570,6 +1582,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-insurance'
     | '/admin/compliance-lwf'
     | '/admin/compliance-pt'
+    | '/admin/contract-expiry-alerts'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
     | '/admin/customers'
@@ -1853,6 +1866,13 @@ declare module '@tanstack/react-router' {
       path: '/compliance-pt'
       fullPath: '/admin/compliance-pt'
       preLoaderRoute: typeof AdminCompliancePtRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/contract-expiry-alerts': {
+      id: '/admin/contract-expiry-alerts'
+      path: '/contract-expiry-alerts'
+      fullPath: '/admin/contract-expiry-alerts'
+      preLoaderRoute: typeof AdminContractExpiryAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/control-center': {
@@ -2865,6 +2885,7 @@ interface AdminRouteChildren {
   AdminComplianceInsuranceRoute: typeof AdminComplianceInsuranceRoute
   AdminComplianceLwfRoute: typeof AdminComplianceLwfRoute
   AdminCompliancePtRoute: typeof AdminCompliancePtRoute
+  AdminContractExpiryAlertsRoute: typeof AdminContractExpiryAlertsRoute
   AdminControlCenterRoute: typeof AdminControlCenterRoute
   AdminCostComponentManagerRoute: typeof AdminCostComponentManagerRoute
   AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
@@ -2940,6 +2961,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminComplianceInsuranceRoute: AdminComplianceInsuranceRoute,
   AdminComplianceLwfRoute: AdminComplianceLwfRoute,
   AdminCompliancePtRoute: AdminCompliancePtRoute,
+  AdminContractExpiryAlertsRoute: AdminContractExpiryAlertsRoute,
   AdminControlCenterRoute: AdminControlCenterRoute,
   AdminCostComponentManagerRoute: AdminCostComponentManagerRoute,
   AdminCustomersRoute: AdminCustomersRouteWithChildren,

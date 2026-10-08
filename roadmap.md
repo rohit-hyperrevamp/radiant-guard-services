@@ -556,3 +556,4 @@
 ## Contract invoice split
 - [x] Contract-level invoice output rules (parts, include/exclude)
 - [x] Separate final invoice number per part; plain exports carry no number
+- [ ] Create leadership users Prateeka Singh and Amrita Bevli (same as Anshuman Singh / Navinder Bevli) — need phone numbers
