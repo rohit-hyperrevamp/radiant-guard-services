@@ -19,6 +19,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
+  BadgeCheck,
   Clock,
 
   Wallet,
