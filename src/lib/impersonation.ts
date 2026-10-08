@@ -22,6 +22,23 @@ export function readImpersonation(): ImpersonationState | null {
   }
 }
 
+// Large best-effort caches (employee/unit snapshots, translations, dashboard
+// counts) can fill browser storage; free them so sign-in data always fits.
+function safeSet(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+    return;
+  } catch {
+    const keep = new Set([IMP_KEY, AUTH_KEY]);
+    for (let i = window.localStorage.length - 1; i >= 0; i--) {
+      const k = window.localStorage.key(i);
+      if (!k || keep.has(k) || k.startsWith("sb-")) continue;
+      window.localStorage.removeItem(k);
+    }
+    window.localStorage.setItem(key, value);
+  }
+}
+
 function hardReload(to: string) {
   window.location.assign(to);
 }
@@ -48,7 +65,7 @@ export async function beginImpersonation(
     target,
     startedAt: new Date().toISOString(),
   };
-  window.localStorage.setItem(IMP_KEY, JSON.stringify(state));
+  safeSet(IMP_KEY, JSON.stringify(state));
   const res = await supabase.auth.setSession({
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
@@ -58,7 +75,7 @@ export async function beginImpersonation(
     await supabase.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
     throw res.error;
   }
-  window.localStorage.setItem(AUTH_KEY, JSON.stringify({ phone: `+91${target.phone}`, role: "user" }));
+  safeSet(AUTH_KEY, JSON.stringify({ phone: `+91${target.phone}`, role: "user" }));
   hardReload("/");
 }
 
@@ -77,7 +94,7 @@ export async function endImpersonation() {
     hardReload("/login");
     return;
   }
-  window.localStorage.setItem(AUTH_KEY, JSON.stringify({ phone: st.adminPhone, role: "super_admin" }));
+  safeSet(AUTH_KEY, JSON.stringify({ phone: st.adminPhone, role: "super_admin" }));
   await logActivity({
     module: "View as User",
     action: "logout",
