@@ -155,7 +155,7 @@ import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-e
 import { CopyableId } from "@/components/CopyableId";
 import { fetchAllPages } from "@/lib/supabase-batch";
 
-type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string; edit?: string };
+type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string; edit?: string; mine?: 1 };
 
 const EMPTY_WAGE: ContractResource = {
   designationId: "",
