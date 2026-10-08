@@ -5,6 +5,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
+import { useMineFilter } from "@/lib/use-manager-scope";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTrackOnlinePresence } from "@/lib/online-presence";
 import { Activity } from "lucide-react";
