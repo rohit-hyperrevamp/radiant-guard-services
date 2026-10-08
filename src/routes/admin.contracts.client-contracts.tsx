@@ -4954,6 +4954,7 @@ export function ResourceFormDialog({
       setDeductions([]);
       setEmployerContributions([]);
       setRoundOffFinal(false);
+      setRoundTotals({});
       setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [], roundOffFinal: false, roundOffTotals: {} }]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -5763,14 +5764,18 @@ export function ResourceFormDialog({
   const selectedDesignation = designations.find((d) => d.id === designationId);
 
   // Live totals for the summary card shown on top of the rate structure.
-  const summaryGross = gross + totalBenefits;
-  const summaryNetPayable = summaryGross - totalDeductions;
-  const summaryTotalCtc = summaryGross + totalEmployer;
+  // Each total can be rounded to the nearest rupee; rounded values flow into later totals.
+  const rt = (k: string, v: number) => (roundTotals[k] ? Math.round(v) : v);
+  const summaryGross = rt("gross", gross + totalBenefits);
+  const summaryDeductions = rt("deductions", totalDeductions);
+  const summaryNetPayable = rt("net", summaryGross - summaryDeductions);
+  const summaryEmployer = rt("employer", totalEmployer);
+  const summaryTotalCtc = rt("ctc", summaryGross + summaryEmployer);
   const summaryReliever = employerContributions
     .filter(isRelieverLine)
     .slice(0, 1)
     .reduce((s, b) => s + liveAddOnAmount("reliever", b), 0);
-  const summaryBillingRate = summaryTotalCtc + summaryReliever;
+  const summaryBillingRate = rt("billing", summaryTotalCtc + summaryReliever);
   const summaryMgmtFee = employerContributions
     .filter(isMgmtFeeLine)
     .slice(0, 1)
@@ -5785,16 +5790,20 @@ export function ResourceFormDialog({
             <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Total Summary
             </h4>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {([
-                { label: "Gross Pay", value: summaryGross },
-                { label: "Deductions", value: totalDeductions },
-                { label: "Net Payable", value: summaryNetPayable },
-                { label: "Total CTC", value: summaryTotalCtc },
-                { label: "Billing Rate", value: summaryBillingRate },
+                { key: "gross", label: "Gross Pay", value: summaryGross },
+                { key: "deductions", label: "Employee Deductions", value: summaryDeductions },
+                { key: "net", label: "Net Payable", value: summaryNetPayable },
+                { key: "employer", label: "Employer Contribution", value: summaryEmployer },
+                { key: "ctc", label: "Total CTC", value: summaryTotalCtc },
+                { key: "billing", label: "Billing Rate", value: summaryBillingRate },
               ]).map((t) => (
                 <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2">
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t.label}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t.label}</div>
+                    <RoundOffToggle on={!!roundTotals[t.key]} label={t.label} onToggle={() => preserveDialogScroll(() => setRoundTotals((p) => ({ ...p, [t.key]: !p[t.key] })))} />
+                  </div>
                   <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
                     ₹{t.value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
