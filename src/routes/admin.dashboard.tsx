@@ -1239,7 +1239,7 @@ function DashboardPage() {
     const widgetOf = (k: string) =>
       ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo" : k.replace(/-/g, "_");
     return t.filter((x) => canWidget(widgetOf(x.key)));
-  }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding]);
+  }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding, teamLive]);
 
   if (permsLoading) {
     return (
