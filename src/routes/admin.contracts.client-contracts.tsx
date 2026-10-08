@@ -5681,6 +5681,7 @@ export function ResourceFormDialog({
       benefits,
       deductions,
       employerContributions,
+      roundOffFinal,
     });
   };
 
@@ -5703,6 +5704,7 @@ export function ResourceFormDialog({
       benefits,
       deductions,
       employerContributions,
+      roundOffFinal,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inline, currentResourceSnapshot]);
