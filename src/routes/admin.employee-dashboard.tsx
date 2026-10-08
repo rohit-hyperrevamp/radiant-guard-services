@@ -1006,13 +1006,13 @@ function MetricTile({
     <>
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-display text-[15px] font-semibold text-foreground leading-tight">
+          <div className="dashboard-tile-title font-display text-[15px] font-semibold text-foreground leading-tight">
             {label}
           </div>
           {sub && <div className="mt-1 text-[11px] text-muted-foreground truncate">{sub}</div>}
         </div>
         {to && (
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-foreground shadow-sm ring-1 ring-black/5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
             <ArrowUpRight className="h-4 w-4" />
           </span>
         )}
@@ -1022,14 +1022,14 @@ function MetricTile({
           {display}
         </TileNumber>
         <span
-          className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset ${ACCENT_CHIP[accent]}`}
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset ${ACCENT_CHIP[accent]}`}
         >
           <Icon className="h-4 w-4" />
         </span>
       </div>
     </>
   );
-  const cls = `group relative flex h-[188px] flex-col overflow-hidden rounded-[26px] border border-border/40 ${ACCENT_TILE_BG[accent]} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`;
+  const cls = `dashboard-summary-tile group relative flex h-[188px] flex-col overflow-hidden rounded-[26px] border border-border/40 ${ACCENT_TILE_BG[accent]} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`;
   return to ? (
     <Link to={to} className={cls}>
       {inner}
@@ -1060,17 +1060,17 @@ function HeroStat({
   const content = (
     <div
       className={cn(
-        "flex min-w-0 flex-col justify-between rounded-2xl border border-border/60 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[96px] sm:p-4",
+        "dashboard-summary-tile flex min-w-0 flex-col justify-between rounded-2xl border border-border/60 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[96px] sm:p-4",
         surface,
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="dashboard-tile-title text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           {label}
         </span>
         <Icon className="h-4 w-4 shrink-0 text-primary" />
       </div>
-      <TileNumber className="mt-2 font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">
+      <TileNumber className="mt-auto font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-3xl">
         {value}
       </TileNumber>
     </div>
@@ -1129,13 +1129,13 @@ function PastelTile({
   const inner = (
     <div
       className={cn(
-        "relative flex h-full min-h-[108px] flex-col justify-between overflow-hidden rounded-2xl border border-border/50 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-3xl sm:p-5",
+        "dashboard-summary-tile relative flex h-full min-h-[108px] flex-col justify-between overflow-hidden rounded-2xl border border-border/50 p-3 shadow-sm transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-3xl sm:p-5",
         bg,
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">
+          <div className="dashboard-tile-title text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">
             {label}
           </div>
           <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">
@@ -1146,7 +1146,7 @@ function PastelTile({
           <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
+      <div className="mt-auto flex items-end justify-between gap-2 sm:gap-3">
         <TileNumber className="font-display text-[22px] font-bold leading-none tabular-nums text-foreground sm:text-[36px]">
           {value}
         </TileNumber>

@@ -103,7 +103,7 @@ function Tile({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-3 bg-gradient-to-br",
+        "dashboard-summary-tile flex min-w-0 flex-col rounded-2xl border p-3 bg-gradient-to-br",
         tone === "success"
           ? "border-emerald-500/40 from-emerald-500/15 to-emerald-500/5"
           : tone === "warning"
@@ -125,11 +125,12 @@ function Tile({
             tone === "destructive" && "text-destructive",
           )}
         />
-        {label}
+        <span className="dashboard-tile-title">{label}</span>
       </div>
+      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
       <TileNumber
         className={cn(
-          "mt-1 min-w-0 text-base font-semibold tabular-nums xl:text-lg",
+          "mt-auto min-w-0 text-base font-semibold tabular-nums xl:text-lg",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
@@ -137,7 +138,6 @@ function Tile({
       >
         {value}
       </TileNumber>
-      {sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }

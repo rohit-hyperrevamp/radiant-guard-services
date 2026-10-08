@@ -563,3 +563,8 @@
 - [x] Contract-level invoice output rules (parts, include/exclude)
 - [x] Separate final invoice number per part; plain exports carry no number
 - [x] Created leadership users Prateeka Singh (X3) and Amrita Bevli (X4)
+
+## Consistent dashboard tile layout
+- [x] Standardize tile heights, labels, number fonts and bottom alignment across all dashboard variants and shared summary tiles.
+- [x] Check layout and number-fitting regressions: 100 fitting cases, three dashboard consolidation checks, and ten shared tile-style checks passed.
+- [ ] Verify live appearance after publishing (unpublished UI cannot be checked on production).

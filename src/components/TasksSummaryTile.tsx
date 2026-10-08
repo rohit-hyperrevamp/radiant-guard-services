@@ -65,10 +65,10 @@ export function TasksSummaryTile({ summary }: { summary: { mine: Sum; created: S
     <Link
       to="/admin/tasks"
       search={{} as never}
-      className={`group relative flex h-[124px] min-w-0 flex-col rounded-2xl border border-border/40 ${ACCENT_TILE_BG.violet} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`dashboard-summary-tile task-summary-tile group relative flex h-[124px] min-w-0 flex-col rounded-2xl border border-border/40 ${ACCENT_TILE_BG.violet} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 font-display text-[13px] font-medium text-foreground sm:text-[15px]">
+        <span className="dashboard-tile-title flex items-center gap-1.5 font-display text-[13px] font-medium text-foreground sm:text-[15px]">
           <ClipboardList className="h-3.5 w-3.5 shrink-0" />
           Tasks
         </span>

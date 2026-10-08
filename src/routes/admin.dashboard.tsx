@@ -1955,7 +1955,7 @@ function Shell({
     <Link
       to={to}
       search={scopedSearch as never}
-      className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
     </Link>
@@ -1982,7 +1982,7 @@ function TileHeader({
   return (
     <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="truncate whitespace-nowrap font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">
+        <div className="dashboard-tile-title font-display text-[13px] font-medium leading-tight text-foreground sm:text-[15px]">
           {label}
         </div>
         {sub && (
@@ -2069,7 +2069,7 @@ function DualTile({
         <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
         </TileNumber>
-        <div className="min-w-0 flex flex-col items-end text-right">
+        <div className="dashboard-tile-secondary min-w-0 flex flex-col items-end text-right">
           <span className="w-full truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
             {secondaryLabel}
           </span>
@@ -2112,18 +2112,17 @@ function StatusTile({
   openLabel?: string;
   to: string;
 }) {
-  const total = Math.max(
-    approved + pending + draft + rejected + (open ?? 0) + (middle?.value ?? 0),
-    1,
-  );
   const cols = (open != null ? 3 : 2) + (middle ? 1 : 0);
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
       <div
-        className={`relative mt-auto grid min-w-0 gap-1.5 pb-2 sm:gap-3 sm:pb-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+        className={`dashboard-tile-breakdown relative mt-auto grid min-w-0 items-end gap-1.5 sm:gap-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div className="min-w-0">
+          <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+            {approvedLabel}
+          </div>
           <TileNumber
             className={cn(
               "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2132,11 +2131,11 @@ function StatusTile({
           >
             {approved}
           </TileNumber>
-          <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
-            {approvedLabel}
-          </div>
         </div>
         <div className="min-w-0">
+          <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+            {pendingLabel}
+          </div>
           <TileNumber
             className={cn(
               "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2145,12 +2144,12 @@ function StatusTile({
           >
             {pending}
           </TileNumber>
-          <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
-            {pendingLabel}
-          </div>
         </div>
         {middle && (
           <div className="min-w-0">
+            <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+              {middle.label}
+            </div>
             <TileNumber
               className={cn(
                 "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2159,13 +2158,13 @@ function StatusTile({
             >
               {middle.value}
             </TileNumber>
-            <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
-              {middle.label}
-            </div>
           </div>
         )}
         {open != null && (
           <div className="min-w-0">
+            <div className="mb-1 whitespace-normal text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:text-[9px]">
+              {openLabel}
+            </div>
             <TileNumber
               className={cn(
                 "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
@@ -2174,39 +2173,7 @@ function StatusTile({
             >
               {open}
             </TileNumber>
-            <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
-              {openLabel}
-            </div>
           </div>
-        )}
-      </div>
-      <div className="relative mt-auto flex h-1.5 overflow-hidden rounded-full bg-card/60">
-        {approved > 0 && (
-          <div className={ACCENT_BAR[accent]} style={{ width: `${(approved / total) * 100}%` }} />
-        )}
-        {(middle?.value ?? 0) > 0 && (
-          <div
-            className="bg-muted-foreground/70"
-            style={{ width: `${((middle?.value ?? 0) / total) * 100}%` }}
-          />
-        )}
-        {pending > 0 && (
-          <div
-            className="bg-muted-foreground/50"
-            style={{ width: `${(pending / total) * 100}%` }}
-          />
-        )}
-        {draft > 0 && (
-          <div className="bg-muted-foreground/30" style={{ width: `${(draft / total) * 100}%` }} />
-        )}
-        {rejected > 0 && (
-          <div className="bg-rose-400/70" style={{ width: `${(rejected / total) * 100}%` }} />
-        )}
-        {(open ?? 0) > 0 && (
-          <div
-            className="bg-muted-foreground/20"
-            style={{ width: `${((open ?? 0) / total) * 100}%` }}
-          />
         )}
       </div>
     </Shell>
