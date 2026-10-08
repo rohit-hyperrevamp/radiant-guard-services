@@ -46,15 +46,23 @@ export function TeamClientsCard() {
       for (const r of (extra.data ?? []) as Array<{ candidate_id: string }>) ids.add(r.candidate_id);
       if (!ids.size) return [] as Array<Mate & { inAt: string | null }>;
       const [people, punches] = await Promise.all([
-        supabase.from("candidates").select("id,full_name,employee_code,designation,role_key").in("id", [...ids]),
+        supabase.from("candidates").select("id,full_name,employee_code,designation_id,role_key").in("id", [...ids]),
         supabase.from("self_attendance_punches").select("candidate_id,check_in_at").in("candidate_id", [...ids]).eq("punch_date", todayIso()),
       ]);
       if (people.error) throw people.error;
       if (punches.error) throw punches.error;
+      const records = (people.data ?? []) as unknown as Array<Omit<Mate, "designation"> & { designation_id: string | null; role_key: string | null }>;
+      const designationIds = [...new Set(records.flatMap((p) => p.designation_id ? [p.designation_id] : []))];
+      const designationNames = new Map<string, string>();
+      if (designationIds.length) {
+        const { data, error } = await supabase.from("designations").select("id,name").in("id", designationIds);
+        if (error) throw error;
+        for (const row of data ?? []) designationNames.set(row.id, row.name);
+      }
       const inAt = new Map(((punches.data ?? []) as Array<{ candidate_id: string; check_in_at: string | null }>).map((p) => [p.candidate_id, p.check_in_at]));
-      return ((people.data ?? []) as unknown as Array<Mate & { role_key: string | null }>)
+      return records
         .filter((p) => p.role_key !== "guard" && p.role_key !== "security_guard")
-        .map((p) => ({ ...p, inAt: inAt.get(p.id) ?? null }));
+        .map((p) => ({ ...p, designation: p.designation_id ? designationNames.get(p.designation_id) ?? null : null, inAt: inAt.get(p.id) ?? null }));
     },
   });
 
