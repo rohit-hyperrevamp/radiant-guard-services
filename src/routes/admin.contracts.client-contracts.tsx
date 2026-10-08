@@ -330,6 +330,8 @@ export type ContractResource = {
   benefits: BenefitItem[];
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
+  /** Round the final billing rate (Total CTC + reliever + management fee) to the nearest rupee. */
+  roundOffFinal?: boolean;
 };
 
 function cloneBenefitItem(item: BenefitItem): BenefitItem {
@@ -360,6 +362,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     benefits: (resource.benefits ?? []).map(cloneBenefitItem),
     deductions: (resource.deductions ?? []).map(cloneBenefitItem),
     employerContributions: (resource.employerContributions ?? []).map(cloneBenefitItem),
+    roundOffFinal: resource.roundOffFinal === true,
   };
 }
 
