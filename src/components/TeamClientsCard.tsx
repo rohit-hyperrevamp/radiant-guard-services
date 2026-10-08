@@ -178,6 +178,14 @@ export function TeamClientsCard() {
               <div className={`mt-1 text-xs ${m.inAt ? "text-primary" : "text-muted-foreground"}`}>
                 {m.inAt ? `Checked in ${new Date(m.inAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Not checked in today"}
               </div>
+              <div className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+                {m.sites.length === 0 ? "No clients mapped" : (
+                  <>
+                    <span className="font-medium text-foreground">{m.sites.length} client{m.sites.length === 1 ? "" : "s"}:</span>{" "}
+                    {m.sites.slice(0, 4).join(", ")}{m.sites.length > 4 ? ` +${m.sites.length - 4} more` : ""}
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
