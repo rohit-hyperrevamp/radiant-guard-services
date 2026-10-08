@@ -1,3 +1,4 @@
+import { useTeamPeopleOnly } from "@/lib/use-team-people";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -74,7 +75,8 @@ function LiveStaffPage() {
     };
   }, [qc]);
 
-  const rows = data.data ?? [];
+  const team = useTeamPeopleOnly();
+  const rows = (data.data ?? []).filter((r) => !team.teamOnly || team.ids.has(r.candidate_id));
   const isOnline = (r: Row) => !!r.user_id && online.has(r.user_id);
   const isIn = (r: Row) => !!r.check_in_at;
   const depts = useMemo(

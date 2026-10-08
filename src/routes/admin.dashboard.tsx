@@ -64,6 +64,7 @@ import {
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
 import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
@@ -143,9 +144,13 @@ function PeopleInsightsSection({
   hideLive?: boolean;
   roleKeys?: readonly string[];
 }) {
-  const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights({
-    roleKeys,
-  });
+  const all = usePeopleInsights({ roleKeys });
+  const team = useTeamPeopleOnly();
+  const isLoading = team.teamOnly ? team.isLoading : all.isLoading;
+  const showSixtyPlus = !team.teamOnly && all.showSixtyPlus;
+  const birthdays = team.teamOnly ? teamBirthdays(team.people) : all.birthdays;
+  const anniversaries = team.teamOnly ? teamAnniversaries(team.people) : all.anniversaries;
+  const sixtyPlus = all.sixtyPlus;
   return (
     <div className="flex flex-col gap-4">
       {!hideLive && <LiveFieldOfficersCard />}
@@ -1386,6 +1391,13 @@ function DashboardPage() {
           {opsFocus ? (
             <>
               {canWidget("live_people") && <LivePeopleCard liveOfficers={liveOfficerCount} />}
+              {!isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
+                <ReadinessCard
+                  sheet={can("attendance") ? data.sheetCounts : null}
+                  run={can("payroll") ? data.runCounts : null}
+                  invoice={can("invoice") ? data.invoiceCounts : null}
+                />
+              )}
               {canWidget("radar") && (
                 <>
                   <OperationsRadarSummary />
@@ -1540,16 +1552,20 @@ function ReadinessCard({ sheet, run, invoice }: { sheet: StatusCounts | null; ru
 
 function LivePeopleCard({ liveOfficers }: { liveOfficers: number }) {
   const online = useOnlineUserIds();
+  const team = useTeamPeopleOnly();
   const staffQ = useQuery({
     queryKey: ["dashboard-live-staff-ids"],
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
       if (error) throw error;
-      return ((data ?? []) as Array<{ user_id: string | null }>).map((r) => r.user_id).filter(Boolean) as string[];
+      return (data ?? []) as Array<{ user_id: string | null; candidate_id: string }>;
     },
   });
-  const staffIds = staffQ.data ?? [];
+  const staffIds = (staffQ.data ?? [])
+    .filter((r) => !team.teamOnly || team.ids.has(r.candidate_id))
+    .map((r) => r.user_id)
+    .filter(Boolean) as string[];
   const staffLive = staffIds.filter((id) => online.has(id)).length;
   return (
     <section aria-label="Live now" className="mb-4 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
@@ -1559,7 +1575,7 @@ function LivePeopleCard({ liveOfficers }: { liveOfficers: number }) {
         <div className="text-xs text-muted-foreground">Checked in, not checked out</div>
       </Link>
       <Link to="/admin/live-staff" className="rounded-xl border border-border p-3 hover:bg-muted/50">
-        <div className="text-xs text-muted-foreground">Radiant staff live</div>
+        <div className="text-xs text-muted-foreground">{team.teamOnly ? "My team live" : "Radiant staff live"}</div>
         <div className="mt-1 text-2xl font-semibold text-foreground">
           {staffQ.error ? "—" : staffQ.isLoading ? "…" : staffLive}
           <span className="ml-1 text-sm font-normal text-muted-foreground">/ {staffIds.length || "—"}</span>
