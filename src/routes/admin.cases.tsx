@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Eye, FileUp, Paperclip, Plus, Search } from "lucide-react";
+import { CalendarClock, Eye, FileUp, X, Paperclip, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,10 @@ export const Route = createFileRoute("/admin/cases")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { view?: "upcoming"; case?: string } => ({
+    view: s.view === "upcoming" ? ("upcoming" as const) : undefined,
+    case: typeof s.case === "string" ? s.case : undefined,
+  }),
   component: CaseDesk,
 });
 
@@ -35,7 +39,7 @@ const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explici
 type Case = {
   id: string; case_number: string; title: string; case_type_id: string | null; status: string; priority: string;
   description: string; employee_id: string | null; unit_id: string | null; opposing_party: string | null;
-  court_or_authority: string | null; reference_no: string | null; filed_on: string | null; next_hearing_on: string | null;
+  court_or_authority: string | null; reference_no: string | null; filed_on: string | null; next_hearing_on: string | null; next_hearing_time?: string | null;
   amount_involved: number | null; owner_id: string | null; outcome: string | null; created_at: string; updated_at: string;
 };
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -46,6 +50,15 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 const PRIORITY = ["low", "medium", "high", "critical"];
 const d = (v?: string | null) => (v ? format(new Date(v), "dd MMM yyyy") : "—");
+const daysTo = (v: string) => { const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((new Date(v + "T00:00:00").getTime() - t.getTime()) / 86400000); };
+const tm = (t?: string | null) => (t ? format(new Date(`2000-01-01T${t}`), "h:mm a") : "");
+function Countdown({ date, time, closed }: { date: string | null; time?: string | null; closed?: boolean }) {
+  if (!date || closed) return null;
+  const n = daysTo(date);
+  const label = n < 0 ? `${-n}d overdue` : n === 0 ? "Today" : n === 1 ? "Tomorrow" : `in ${n} days`;
+  const cls = n < 0 ? "bg-destructive/15 text-destructive" : n <= 3 ? "bg-destructive/10 text-destructive" : n <= 7 ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground";
+  return <span className={cn("inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4", cls)}><CalendarClock className="h-3 w-3" />{label}{time ? ` · ${tm(time)}` : ""}</span>;
+}
 
 function useLookups() {
   return useQuery({
@@ -74,8 +87,11 @@ function CaseDesk() {
   const [type, setType] = useState("all");
   const [prio, setPrio] = useState("all");
   const [q, setQ] = useState("");
+  const search = Route.useSearch();
+  const [upcoming, setUpcoming] = useState(search.view === "upcoming");
+  const [sort, setSort] = useState(search.view === "upcoming" ? "hearing" : "updated");
   const [editing, setEditing] = useState<Partial<Case> | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(search.case ?? null);
   const lk = useLookups();
   const casesQ = useQuery({
     queryKey: ["legal-cases"],
@@ -90,11 +106,17 @@ function CaseDesk() {
   const unitName = (id: string | null) => lk.data?.units.find((u) => u.id === id)?.name ?? "—";
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return (casesQ.data ?? []).filter((c) =>
+    const PR: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    const out = (casesQ.data ?? []).filter((c) =>
+      (!upcoming || (c.status !== "closed" && !!c.next_hearing_on && daysTo(c.next_hearing_on) >= 0)) &&
       (status === "all" || c.status === status) && (prio === "all" || c.priority === prio) && (type === "all" || c.case_type_id === type) &&
       (!s || `${c.case_number} ${c.title} ${typeName(c.case_type_id)} ${c.priority} ${c.opposing_party ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`.toLowerCase().includes(s)));
+    if (sort === "hearing") out.sort((a, b) => (a.next_hearing_on ?? "9999") .localeCompare(b.next_hearing_on ?? "9999") || (a.next_hearing_time ?? "").localeCompare(b.next_hearing_time ?? ""));
+    else if (sort === "priority") out.sort((a, b) => (PR[a.priority] ?? 9) - (PR[b.priority] ?? 9));
+    else if (sort === "created") out.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [casesQ.data, status, prio, type, q, lk.data]);
+  }, [casesQ.data, status, prio, type, q, lk.data, upcoming, sort]);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["legal-cases"] }); qc.invalidateQueries({ queryKey: ["case-summary"] }); };
 
   return (
@@ -105,13 +127,14 @@ function CaseDesk() {
         const all = casesQ.data ?? [];
         const by = (k: "status" | "priority", v: string) => all.filter((c) => c[k] === v).length;
         const statusCards = [
-          { label: "Total cases", v: all.length, on: status === "all" && prio === "all", click: () => { setStatus("all"); setPrio("all"); } },
+          { label: "Total cases", v: all.length, on: status === "all" && prio === "all" && !upcoming, click: () => { setStatus("all"); setPrio("all"); setUpcoming(false); } },
+          { label: "Upcoming dates", v: all.filter((c) => c.status !== "closed" && c.next_hearing_on && daysTo(c.next_hearing_on) >= 0).length, on: upcoming, click: () => { const on = !upcoming; setUpcoming(on); if (on) setSort("hearing"); } },
           ...Object.entries(STATUS).map(([k, s]) => ({ label: s.label, v: by("status", k), on: status === k, click: () => setStatus(status === k ? "all" : k) })),
         ];
         const prioCards = [...PRIORITY].reverse().map((p) => ({ label: p[0].toUpperCase() + p.slice(1), key: p, v: by("priority", p), openV: all.filter((c) => c.priority === p && c.status !== "closed").length }));
         return (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {statusCards.map((c) => (
                 <button key={c.label} onClick={c.click} className={cn("rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50", c.on && "ring-2 ring-primary")}>
                   <div className="truncate text-xs text-muted-foreground">{c.label}</div>
@@ -137,7 +160,8 @@ function CaseDesk() {
         </div>
         <SearchSelect className="sm:w-48" value={status} onChange={setStatus} options={[{ value: "all", label: "All statuses" }, ...Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label }))]} />
         <SearchSelect className="sm:w-40" value={prio} onChange={setPrio} options={[{ value: "all", label: "All priorities" }, ...PRIORITY.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))]} />
-        <SearchSelect className="sm:w-64" value={type} onChange={setType} options={[{ value: "all", label: "All case types" }, ...(lk.data?.types ?? []).map((t) => ({ value: t.id, label: t.name }))]} />
+        <SearchSelect className="sm:w-52" value={sort} onChange={setSort} options={[{ value: "updated", label: "Sort: Recently updated" }, { value: "hearing", label: "Sort: Next case date" }, { value: "priority", label: "Sort: Priority" }, { value: "created", label: "Sort: Newest first" }]} />
+        <SearchSelect className="sm:w-56" value={type} onChange={setType} options={[{ value: "all", label: "All case types" }, ...(lk.data?.types ?? []).map((t) => ({ value: t.id, label: t.name }))]} />
       </div>
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         {rows.map((c) => (
@@ -148,10 +172,10 @@ function CaseDesk() {
                 <span className="truncate font-medium text-foreground">{c.title}</span>
               </div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                {typeName(c.case_type_id)} · {c.employee_id ? personName(c.employee_id) : unitName(c.unit_id)} · Next hearing {d(c.next_hearing_on)}
+                {typeName(c.case_type_id)} · {c.employee_id ? personName(c.employee_id) : unitName(c.unit_id)} · Next date {d(c.next_hearing_on)}{c.next_hearing_time ? ` ${tm(c.next_hearing_time)}` : ""}
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5"><PriorityBadge p={c.priority} />
+            <div className="flex shrink-0 items-center gap-1.5"><Countdown date={c.next_hearing_on} time={c.next_hearing_time} closed={c.status === "closed"} /><PriorityBadge p={c.priority} />
             <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4", STATUS[c.status]?.cls)}>{STATUS[c.status]?.label}</span></div>
           </button>
         ))}
@@ -182,7 +206,7 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
       title: f.title.trim(), case_type_id: f.case_type_id ?? null, status: f.status ?? "open", priority: f.priority ?? "medium",
       description: f.description ?? "", employee_id: f.employee_id ?? null, unit_id: f.unit_id ?? null, opposing_party: f.opposing_party ?? null,
       court_or_authority: f.court_or_authority ?? null, reference_no: f.reference_no ?? null, filed_on: f.filed_on ?? null,
-      next_hearing_on: f.next_hearing_on ?? null, amount_involved: f.amount_involved ?? null, owner_id: f.owner_id ?? null, outcome: f.outcome ?? null,
+      next_hearing_on: f.next_hearing_on || null, next_hearing_time: f.next_hearing_on ? (f.next_hearing_time || null) : null, amount_involved: f.amount_involved ?? null, owner_id: f.owner_id ?? null, outcome: f.outcome ?? null,
       closed_at: f.status === "closed" ? new Date().toISOString() : null,
     };
     const res = f.id ? await db.from("legal_cases").update(payload).eq("id", f.id).select("id,case_number").single()
@@ -212,7 +236,8 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
           <Field label="Reference / notice no."><Input value={f.reference_no ?? ""} onChange={(e) => set("reference_no", e.target.value)} /></Field>
           <Field label="Amount involved (₹)"><Input type="number" value={f.amount_involved ?? ""} onChange={(e) => set("amount_involved", e.target.value === "" ? null : Number(e.target.value))} /></Field>
           <Field label="Filed / received on"><Input type="date" value={f.filed_on ?? ""} onChange={(e) => set("filed_on", e.target.value)} /></Field>
-          <Field label="Next hearing / due date"><Input type="date" value={f.next_hearing_on ?? ""} onChange={(e) => set("next_hearing_on", e.target.value)} /></Field>
+          <Field label="Next case date"><Input type="date" value={f.next_hearing_on ?? ""} onChange={(e) => set("next_hearing_on", e.target.value)} /></Field>
+          <Field label="Time (optional)"><Input type="time" value={f.next_hearing_time?.slice(0, 5) ?? ""} onChange={(e) => set("next_hearing_time", e.target.value)} /></Field>
           <div className="sm:col-span-2"><Field label="Details"><Textarea rows={4} value={f.description ?? ""} onChange={(e) => set("description", e.target.value)} /></Field></div>
           <div className="sm:col-span-2"><Field label="Outcome / resolution"><Textarea rows={2} value={f.outcome ?? ""} onChange={(e) => set("outcome", e.target.value)} /></Field></div>
         </div>
@@ -236,22 +261,38 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
         db.from("legal_case_documents").select("*").eq("case_id", c.id).order("created_at", { ascending: false }),
         db.from("legal_case_notes").select("*").eq("case_id", c.id).order("created_at", { ascending: false }),
       ]);
-      return { docs: (docs.data ?? []) as { id: string; path: string; file_name: string; uploaded_by: string | null; created_at: string }[],
+      return { docs: (docs.data ?? []) as { id: string; path: string; file_name: string; title: string | null; uploaded_by: string | null; created_at: string }[],
         notes: (notes.data ?? []) as { id: string; kind: string; note: string; author_id: string | null; created_at: string }[] };
     },
   });
   const reload = () => qc.invalidateQueries({ queryKey: ["legal-case", c.id] });
-  const upload = async (files: FileList | null) => {
+  const [pending, setPending] = useState<{ file: File; title: string }[] | null>(null);
+  const [nextDate, setNextDate] = useState(c.next_hearing_on ?? "");
+  const [nextTime, setNextTime] = useState(c.next_hearing_time?.slice(0, 5) ?? "");
+  const saveNext = async () => {
+    const { error } = await db.from("legal_cases").update({ next_hearing_on: nextDate || null, next_hearing_time: nextDate ? (nextTime || null) : null }).eq("id", c.id);
+    if (error) return toast.error(error.message);
+    await db.from("legal_case_notes").insert({ case_id: c.id, kind: "hearing", note: nextDate ? `Next case date set to ${d(nextDate)}${nextTime ? ` at ${tm(nextTime)}` : ""}` : "Next case date cleared" });
+    void logActivity({ module: "Case Desk", action: "update", entityType: "legal_case", entityId: c.id, entityLabel: c.case_number, details: { next_hearing_on: nextDate, next_hearing_time: nextTime } });
+    toast.success("Next case date saved; Legal and Leadership are notified"); onChanged(); reload();
+  };
+  const pick = (files: FileList | null) => {
     if (!files?.length) return;
+    const add = Array.from(files).map((file) => ({ file, title: file.name.replace(/\.[^.]+$/, "") }));
+    setPending((p) => [...(p ?? []), ...add]);
+  };
+  const upload = async () => {
+    if (!pending?.length) return;
+    if (pending.some((x) => !x.title.trim())) return toast.error("Enter a name for every document");
     setBusy(true);
-    for (const file of Array.from(files)) {
+    for (const { file, title } of pending) {
       const path = `${c.id}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
       const up = await supabase.storage.from("legal-docs").upload(path, file, { contentType: file.type || undefined });
       if (up.error) { setBusy(false); return toast.error(`Upload failed: ${up.error.message}`); }
-      await db.from("legal_case_documents").insert({ case_id: c.id, path, file_name: file.name });
-      void logActivity({ module: "Case Desk", action: "create", entityType: "legal_case_document", entityId: c.id, entityLabel: `${c.case_number} · ${file.name}` });
+      await db.from("legal_case_documents").insert({ case_id: c.id, path, file_name: file.name, title: title.trim() });
+      void logActivity({ module: "Case Desk", action: "create", entityType: "legal_case_document", entityId: c.id, entityLabel: `${c.case_number} · ${title.trim()}` });
     }
-    setBusy(false); toast.success("Uploaded"); reload();
+    setBusy(false); setPending(null); toast.success("Documents saved"); reload();
   };
   const viewFile = useFileViewer();
   const openDoc = async (path: string, name: string) => {
@@ -284,7 +325,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
     ["Employee", personName(c.employee_id)], ["Client / site", unitName(c.unit_id)], ["Opposite party", c.opposing_party ?? "—"],
     ["Court / authority", c.court_or_authority ?? "—"], ["Reference no.", c.reference_no ?? "—"],
     ["Amount", c.amount_involved != null ? `₹${Number(c.amount_involved).toLocaleString("en-IN")}` : "—"],
-    ["Filed on", d(c.filed_on)], ["Next hearing", d(c.next_hearing_on)], ["Last updated", d(c.updated_at)],
+    ["Filed on", d(c.filed_on)], ["Next case date", c.next_hearing_on ? `${d(c.next_hearing_on)}${c.next_hearing_time ? ` ${tm(c.next_hearing_time)}` : ""}` : "—"], ["Last updated", d(c.updated_at)],
   ];
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -301,6 +342,15 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-3">
             {info.map(([k, v]) => <div key={k}><div className="text-muted-foreground">{k}</div><div className="capitalize-first">{v}</div></div>)}
           </div>
+          {canEdit && c.status !== "closed" && (
+            <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-1.5 text-xs font-medium"><CalendarClock className="h-4 w-4 text-primary" />Next case date</div>
+              <Input type="date" className="h-8 w-40" value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
+              <Input type="time" className="h-8 w-28" value={nextTime} onChange={(e) => setNextTime(e.target.value)} />
+              <Button size="sm" onClick={saveNext}>Save date</Button>
+              <Countdown date={c.next_hearing_on} time={c.next_hearing_time} />
+            </div>
+          )}
           {c.description && <p className="whitespace-pre-wrap">{c.description}</p>}
           {c.outcome && <p className="whitespace-pre-wrap rounded-lg bg-primary/5 p-2 text-xs"><b>Outcome:</b> {c.outcome}</p>}
           <div>
@@ -308,15 +358,31 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
               <span className="font-medium">Documents</span>
               {canEdit && (
                 <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted">
-                  <FileUp className="h-3.5 w-3.5" />{busy ? "Uploading…" : "Upload"}
-                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={(e) => upload(e.target.files)} />
+                  <FileUp className="h-3.5 w-3.5" />Add documents
+                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
                 </label>
               )}
             </div>
+            {pending && pending.length > 0 && (
+              <div className="mb-2 space-y-1.5 rounded-lg border border-border bg-muted/30 p-2">
+                <div className="text-xs text-muted-foreground">Name each document, then save.</div>
+                {pending.map((x, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input className="h-8 flex-1" placeholder="Document name (e.g. Court notice)" value={x.title} onChange={(e) => setPending((p) => p!.map((y, j) => (j === i ? { ...y, title: e.target.value } : y)))} />
+                    <span className="max-w-[35%] truncate text-[11px] text-muted-foreground">{x.file.name}</span>
+                    <button onClick={() => setPending((p) => p!.filter((_, j) => j !== i))} aria-label="Remove"><X className="h-4 w-4 text-muted-foreground" /></button>
+                  </div>
+                ))}
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setPending(null)}>Cancel</Button>
+                  <Button size="sm" disabled={busy} onClick={upload}>{busy ? "Uploading…" : `Save ${pending.length} document${pending.length > 1 ? "s" : ""}`}</Button>
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               {(extra.data?.docs ?? []).map((doc) => (
-                <button key={doc.id} onClick={() => openDoc(doc.path, doc.file_name)} className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-left text-xs hover:bg-muted">
-                  <Paperclip className="h-3.5 w-3.5" /><span className="flex-1 truncate">{doc.file_name}</span><span className="text-muted-foreground">{d(doc.created_at)}</span><Eye className="h-3.5 w-3.5 text-primary" />
+                <button key={doc.id} onClick={() => openDoc(doc.path, doc.title || doc.file_name)} className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-left text-xs hover:bg-muted">
+                  <Paperclip className="h-3.5 w-3.5" /><span className="flex-1 truncate"><span className="font-medium">{doc.title || doc.file_name}</span>{doc.title && <span className="ml-1.5 text-muted-foreground">{doc.file_name}</span>}</span><span className="text-muted-foreground">{d(doc.created_at)}</span><Eye className="h-3.5 w-3.5 text-primary" />
                 </button>
               ))}
               {extra.data?.docs.length === 0 && <div className="text-xs text-muted-foreground">No documents yet.</div>}
