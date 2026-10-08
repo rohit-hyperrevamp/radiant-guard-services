@@ -1896,6 +1896,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     benefits: r.benefits,
     deductions: r.deductions,
     employer_contributions: r.employerContributions,
+    round_off_final: r.roundOffFinal === true,
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
