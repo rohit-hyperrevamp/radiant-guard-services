@@ -107,7 +107,7 @@ export async function fetchWorkflowSteps(workflowId: string): Promise<WorkflowSt
     .eq("workflow_id", workflowId)
     .order("step_order");
   if (error) throw error;
-  return (data ?? []) as WorkflowStep[];
+  return (data ?? []) as unknown as WorkflowStep[];
 }
 
 export async function fetchRehireRequests(): Promise<RehireRequest[]> {
