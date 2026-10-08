@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -109,7 +110,9 @@ export function FieldOfficerInventoryDashboard() {
         .filter((row) => /uniform|shoe/i.test(`${row.name} ${row.code}`))
         .sort((a, b) => a.name.localeCompare(b.name) || a.size_value.localeCompare(b.size_value));
 
-      const guardIds = ((guardsRes.data ?? []) as unknown as Array<{ id: string }>).map((row) => row.id);
+      const guardIds = ((guardsRes.data ?? []) as unknown as Array<{ id: string }>).map(
+        (row) => row.id,
+      );
       let guardBalances: Array<{ location_id: string; qty: number }> = [];
       if (guardIds.length) {
         const { data, error } = await supabase
@@ -123,12 +126,20 @@ export function FieldOfficerInventoryDashboard() {
       }
 
       const demands = (demandsRes.data ?? []) as unknown as Array<{ id: string; status: string }>;
-      const sourceIssuances = (sourceIssRes.data ?? []) as unknown as Array<{ id: string; status: string }>;
-      const destinationIssuances = (destinationIssRes.data ?? []) as unknown as Array<{ id: string; status: string }>;
+      const sourceIssuances = (sourceIssRes.data ?? []) as unknown as Array<{
+        id: string;
+        status: string;
+      }>;
+      const destinationIssuances = (destinationIssRes.data ?? []) as unknown as Array<{
+        id: string;
+        status: string;
+      }>;
       return {
         stock,
         demandCount: demands.length,
-        openDemandCount: demands.filter((row) => !["fulfilled", "cancelled", "rejected"].includes(row.status)).length,
+        openDemandCount: demands.filter(
+          (row) => !["fulfilled", "cancelled", "rejected"].includes(row.status),
+        ).length,
         issuanceCount: sourceIssuances.length,
         pendingReceiptCount: destinationIssuances.filter((row) => row.status === "issued").length,
         guardsWithStock: new Set(guardBalances.map((row) => row.location_id)).size,
@@ -139,40 +150,105 @@ export function FieldOfficerInventoryDashboard() {
 
   const summary = summaryQ.data ?? EMPTY_SUMMARY;
   const totalQty = summary.stock.reduce((total, row) => total + row.qty, 0);
-  const uniformQty = summary.stock.filter((row) => /uniform/i.test(`${row.name} ${row.code}`)).reduce((total, row) => total + row.qty, 0);
-  const shoeQty = summary.stock.filter((row) => /shoe/i.test(`${row.name} ${row.code}`)).reduce((total, row) => total + row.qty, 0);
+  const uniformQty = summary.stock
+    .filter((row) => /uniform/i.test(`${row.name} ${row.code}`))
+    .reduce((total, row) => total + row.qty, 0);
+  const shoeQty = summary.stock
+    .filter((row) => /shoe/i.test(`${row.name} ${row.code}`))
+    .reduce((total, row) => total + row.qty, 0);
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Uniform Manager" description="Your stock, requests, issuances and collections." crumbs={[{ label: "Uniform Manager" }]} />
+      <PageHeader
+        title="Uniform Manager"
+        description="Your stock, requests, issuances and collections."
+        crumbs={[{ label: "Uniform Manager" }]}
+      />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <SummaryTile label="Total inventory" value={summaryQ.isLoading ? "—" : totalQty} hint={`${summary.stock.length} size lines`} icon={Boxes} tone="blue" />
-        <SummaryTile label="Uniforms" value={summaryQ.isLoading ? "—" : uniformQty} hint="Available with you" icon={Shirt} tone="mint" />
-        <SummaryTile label="Shoes" value={summaryQ.isLoading ? "—" : shoeQty} hint="Available with you" icon={PackageCheck} tone="violet" />
+        <SummaryTile
+          label="Total inventory"
+          value={summaryQ.isLoading ? "—" : totalQty}
+          hint={`${summary.stock.length} size lines`}
+          icon={Boxes}
+          tone="blue"
+        />
+        <SummaryTile
+          label="Uniforms"
+          value={summaryQ.isLoading ? "—" : uniformQty}
+          hint="Available with you"
+          icon={Shirt}
+          tone="mint"
+        />
+        <SummaryTile
+          label="Shoes"
+          value={summaryQ.isLoading ? "—" : shoeQty}
+          hint="Available with you"
+          icon={PackageCheck}
+          tone="violet"
+        />
       </section>
 
       {summary.pendingReceiptCount > 0 && (
         <section className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><CheckCircle2 className="h-5 w-5" /></span>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <CheckCircle2 className="h-5 w-5" />
+          </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-bold text-foreground">{summary.pendingReceiptCount} delivery {summary.pendingReceiptCount === 1 ? "confirmation" : "confirmations"} pending</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Confirm the delivery challan to add received stock to your inventory.</p>
+            <h2 className="text-sm font-bold text-foreground">
+              {summary.pendingReceiptCount} delivery{" "}
+              {summary.pendingReceiptCount === 1 ? "confirmation" : "confirmations"} pending
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Confirm the delivery challan to add received stock to your inventory.
+            </p>
           </div>
-          <Button asChild size="sm"><Link to="/admin/inventory/goods-receipts">Confirm receipt</Link></Button>
+          <Button asChild size="sm">
+            <Link to="/admin/inventory/goods-receipts">Confirm receipt</Link>
+          </Button>
         </section>
       )}
 
       <section>
         <div className="mb-3">
-          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Workflows</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+            Workflows
+          </div>
           <h2 className="mt-1 text-xl font-bold text-foreground">Manage inventory</h2>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <WorkflowTile title="My stock" value={totalQty} hint="Uniforms and shoes held by you" icon={Boxes} to="/admin/my-inventory" tone="blue" />
-          <WorkflowTile title="Demands" value={summary.openDemandCount} hint={`${summary.demandCount} total requests`} icon={ClipboardList} to="/admin/inventory/demands" tone="lime" />
-          <WorkflowTile title="Issuances" value={summary.issuanceCount} hint="Issue stock to your guards" icon={UserCheck} to="/admin/inventory/issuances" tone="violet" />
-          <WorkflowTile title="Collections" value={summary.guardsWithStock} hint={`${summary.collectionQty} items held by guards`} icon={Inbox} to="/admin/inventory/collections" tone="rose" />
+          <WorkflowTile
+            title="My stock"
+            value={totalQty}
+            hint="Uniforms and shoes held by you"
+            icon={Boxes}
+            to="/admin/my-inventory"
+            tone="blue"
+          />
+          <WorkflowTile
+            title="Demands"
+            value={summary.openDemandCount}
+            hint={`${summary.demandCount} total requests`}
+            icon={ClipboardList}
+            to="/admin/inventory/demands"
+            tone="lime"
+          />
+          <WorkflowTile
+            title="Issuances"
+            value={summary.issuanceCount}
+            hint="Issue stock to your guards"
+            icon={UserCheck}
+            to="/admin/inventory/issuances"
+            tone="violet"
+          />
+          <WorkflowTile
+            title="Collections"
+            value={summary.guardsWithStock}
+            hint={`${summary.collectionQty} items held by guards`}
+            icon={Inbox}
+            to="/admin/inventory/collections"
+            tone="rose"
+          />
         </div>
       </section>
 
@@ -180,22 +256,45 @@ export function FieldOfficerInventoryDashboard() {
         <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3.5">
           <div>
             <h2 className="text-sm font-medium text-foreground">Stock with me</h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Live quantity by product and size</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Live quantity by product and size
+            </p>
           </div>
-          <Button asChild variant="ghost" size="sm"><Link to="/admin/my-inventory">View all <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/admin/my-inventory">
+              View all <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
         {summaryQ.isError ? (
-          <div className="px-4 py-10 text-center text-sm text-destructive">Couldn’t load your inventory. Please retry.</div>
+          <div className="px-4 py-10 text-center text-sm text-destructive">
+            Couldn’t load your inventory. Please retry.
+          </div>
         ) : summaryQ.isLoading ? (
-          <div className="space-y-2 p-4"><div className="h-11 animate-pulse rounded-lg bg-muted" /><div className="h-11 animate-pulse rounded-lg bg-muted" /></div>
+          <div className="space-y-2 p-4">
+            <div className="h-11 animate-pulse rounded-lg bg-muted" />
+            <div className="h-11 animate-pulse rounded-lg bg-muted" />
+          </div>
         ) : summary.stock.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">No Uniform or Shoe stock is currently held by you.</div>
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            No Uniform or Shoe stock is currently held by you.
+          </div>
         ) : (
           <div className="divide-y divide-border/60">
             {summary.stock.map((row) => (
-               <div key={`${row.item_id}-${row.size_value}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-                 <div className="min-w-0"><div className="line-clamp-2 text-sm font-medium text-foreground">{row.name}</div><div className="mt-0.5 text-xs text-muted-foreground">Size {row.size_value || "Standard"}</div></div>
-                 <span className="rounded-lg bg-secondary px-2.5 py-1 text-sm font-medium tabular-nums text-foreground sm:px-3 sm:py-1.5">{row.qty}</span>
+              <div
+                key={`${row.item_id}-${row.size_value}`}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
+              >
+                <div className="min-w-0">
+                  <div className="line-clamp-2 text-sm font-medium text-foreground">{row.name}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    Size {row.size_value || "Standard"}
+                  </div>
+                </div>
+                <span className="rounded-lg bg-secondary px-2.5 py-1 text-sm font-medium tabular-nums text-foreground sm:px-3 sm:py-1.5">
+                  {row.qty}
+                </span>
               </div>
             ))}
           </div>
@@ -205,12 +304,95 @@ export function FieldOfficerInventoryDashboard() {
   );
 }
 
-function SummaryTile({ label, value, hint, icon: Icon, tone }: { label: string; value: number | string; hint: string; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "mint" | "violet" }) {
-  const surface = { blue: "bg-[rgb(var(--tint-blue))]", mint: "bg-[rgb(var(--tint-emerald))]", violet: "bg-[rgb(var(--tint-violet))]" }[tone];
-  return <div className={cn("flex min-h-[96px] items-center justify-between gap-2 rounded-xl border border-border/50 p-3 shadow-sm sm:min-h-[112px] sm:gap-3 sm:rounded-2xl sm:p-4", surface)}><div><div className="text-[11px] font-medium text-muted-foreground">{label}</div><div className="mt-1.5 text-2xl font-medium whitespace-nowrap tabular-nums leading-none text-foreground sm:mt-2 sm:text-3xl">{value}</div><div className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-card/80 text-primary sm:h-10 sm:w-10 sm:rounded-xl"><Icon className="h-4 w-4 sm:h-5 sm:w-5" /></span></div>;
+function SummaryTile({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "blue" | "mint" | "violet";
+}) {
+  const surface = {
+    blue: "bg-[rgb(var(--tint-blue))]",
+    mint: "bg-[rgb(var(--tint-emerald))]",
+    violet: "bg-[rgb(var(--tint-violet))]",
+  }[tone];
+  return (
+    <div
+      className={cn(
+        "flex min-h-[96px] items-center justify-between gap-2 rounded-xl border border-border/50 p-3 shadow-sm sm:min-h-[112px] sm:gap-3 sm:rounded-2xl sm:p-4",
+        surface,
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+        <TileNumber className="mt-1.5 text-2xl font-medium whitespace-nowrap tabular-nums leading-none text-foreground sm:mt-2 sm:text-3xl">
+          {value}
+        </TileNumber>
+        <div className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div>
+      </div>
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-card/80 text-primary sm:h-10 sm:w-10 sm:rounded-xl">
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+      </span>
+    </div>
+  );
 }
 
-function WorkflowTile({ title, value, hint, icon: Icon, to, tone }: { title: string; value: number; hint: string; icon: React.ComponentType<{ className?: string }>; to: "/admin/my-inventory" | "/admin/inventory/demands" | "/admin/inventory/issuances" | "/admin/inventory/collections"; tone: "blue" | "lime" | "violet" | "rose" }) {
-  const surface = { blue: "bg-[rgb(var(--tint-blue))]", lime: "bg-[rgb(var(--tint-amber))]", violet: "bg-[rgb(var(--tint-violet))]", rose: "bg-[rgb(var(--tint-rose))]" }[tone];
-  return <Link to={to} className={cn("group relative flex min-h-[104px] flex-col justify-between rounded-xl border border-border/50 p-3 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:min-h-[126px] sm:rounded-2xl sm:p-4", surface)}><div className="flex items-start justify-between gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-card/80 text-primary sm:h-9 sm:w-9 sm:rounded-xl"><Icon className="h-4 w-4" /></span><ArrowRight className="h-4 w-4 text-primary transition group-hover:translate-x-0.5" /></div><div><div className="flex items-end justify-between gap-2"><span className="text-sm font-medium text-foreground">{title}</span><span className="text-xl font-medium tabular-nums leading-none text-foreground sm:text-2xl">{value}</span></div><div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div></div></Link>;
+function WorkflowTile({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  to,
+  tone,
+}: {
+  title: string;
+  value: number;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+  to:
+    | "/admin/my-inventory"
+    | "/admin/inventory/demands"
+    | "/admin/inventory/issuances"
+    | "/admin/inventory/collections";
+  tone: "blue" | "lime" | "violet" | "rose";
+}) {
+  const surface = {
+    blue: "bg-[rgb(var(--tint-blue))]",
+    lime: "bg-[rgb(var(--tint-amber))]",
+    violet: "bg-[rgb(var(--tint-violet))]",
+    rose: "bg-[rgb(var(--tint-rose))]",
+  }[tone];
+  return (
+    <Link
+      to={to}
+      className={cn(
+        "group relative flex min-h-[104px] flex-col justify-between rounded-xl border border-border/50 p-3 shadow-sm transition hover:border-primary/35 hover:shadow-md sm:min-h-[126px] sm:rounded-2xl sm:p-4",
+        surface,
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-card/80 text-primary sm:h-9 sm:w-9 sm:rounded-xl">
+          <Icon className="h-4 w-4" />
+        </span>
+        <ArrowRight className="h-4 w-4 text-primary transition group-hover:translate-x-0.5" />
+      </div>
+      <div>
+        <div className="flex items-end justify-between gap-2">
+          <span className="text-sm font-medium text-foreground">{title}</span>
+          <TileNumber className="text-xl font-medium tabular-nums leading-none text-foreground sm:text-2xl">
+            {value}
+          </TileNumber>
+        </div>
+        <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground sm:text-[11px]">
+          {hint}
+        </div>
+      </div>
+    </Link>
+  );
 }

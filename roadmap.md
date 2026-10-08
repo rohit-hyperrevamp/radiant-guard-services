@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Single Tasks tile and global number readability
+- [x] Combine assigned and created task summaries into one central dashboard tile.
+- [x] Replace clipped summary values with shared width-fitting numbers across dashboard and module tiles.
+- [x] Check the changes: 100 width-fitting cases and all three dashboard consolidation checks pass; latest build is clean.
+- [ ] Verify updated tiles visually on production — blocked until the user publishes these UI changes.
+
 ## Pandurang dashboard recovery
 - [x] Restore requested view-only menu permissions for Pandurang through employee Access Control.
 - [x] Keep console users on their team dashboard, including old personal-dashboard links.

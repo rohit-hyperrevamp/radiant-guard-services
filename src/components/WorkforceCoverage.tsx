@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -69,9 +70,7 @@ async function fetchCoverage(): Promise<UnitCoverage[]> {
   const contracts = base.contracts;
   if (contracts.length === 0) return [];
 
-  const desigName = new Map(
-    base.designations.map((d) => [String(d.id), String(d.name ?? "—")]),
-  );
+  const desigName = new Map(base.designations.map((d) => [String(d.id), String(d.name ?? "—")]));
   const unitById = new Map(base.units.map((u) => [String(u.id), u]));
   const custName = new Map(base.customers.map((c) => [String(c.id), String(c.name ?? "—")]));
 
@@ -126,9 +125,9 @@ async function fetchCoverage(): Promise<UnitCoverage[]> {
         actualByRole.set(label, (actualByRole.get(label) ?? 0) + 1);
       }
 
-      const roles = Array.from(
-        new Set([...committedByRole.keys(), ...actualByRole.keys()]),
-      ).sort((a, b) => a.localeCompare(b));
+      const roles = Array.from(new Set([...committedByRole.keys(), ...actualByRole.keys()])).sort(
+        (a, b) => a.localeCompare(b),
+      );
 
       const lines: RoleLine[] = roles.map((role) => ({
         role,
@@ -170,7 +169,9 @@ async function fetchUnmappedGuards(): Promise<UnmappedGuard[]> {
   const [candRes, mapRes] = await Promise.all([
     supabase
       .from("candidates" as never)
-      .select("id,full_name,employee_code,candidate_code,role_key,status,non_billable,unit_id,is_enabled")
+      .select(
+        "id,full_name,employee_code,candidate_code,role_key,status,non_billable,unit_id,is_enabled",
+      )
       .eq("status", "active"),
     supabase.from("candidate_units" as never).select("candidate_id"),
   ]);
@@ -209,10 +210,7 @@ export function useUnmappedGuards() {
  *  - shortfall up to 5%       → orange (amber)
  *  - shortfall greater than 5% → red (destructive)
  */
-export function shortfallTone(
-  committed: number,
-  actual: number,
-): "ok" | "warning" | "destructive" {
+export function shortfallTone(committed: number, actual: number): "ok" | "warning" | "destructive" {
   if (committed <= 0) return "ok";
   if (actual >= committed) return "ok";
   const deltaPct = ((committed - actual) / committed) * 100;
@@ -260,10 +258,10 @@ function Tile({
         tone === "success"
           ? "border-emerald-500/40 bg-emerald-500/10"
           : tone === "warning"
-          ? "border-amber-500/40 bg-amber-500/10"
-          : tone === "destructive"
-            ? "border-destructive/40 bg-destructive/10"
-            : "border-border bg-background/60",
+            ? "border-amber-500/40 bg-amber-500/10"
+            : tone === "destructive"
+              ? "border-destructive/40 bg-destructive/10"
+              : "border-border bg-background/60",
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -278,7 +276,7 @@ function Tile({
         />
         {label}
       </div>
-      <div
+      <TileNumber
         className={cn(
           "mt-1 text-xl font-semibold tabular-nums",
           tone === "success" && "text-emerald-600",
@@ -287,11 +285,10 @@ function Tile({
         )}
       >
         {value}
-      </div>
+      </TileNumber>
     </div>
   );
 }
-
 
 export function WorkforceCoverageCard() {
   const { data: rows = [], isLoading } = useWorkforceCoverage();
@@ -313,7 +310,6 @@ export function WorkforceCoverageCard() {
     };
   }, [rows]);
 
-
   return (
     <div className="mb-4 rounded-2xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -323,8 +319,8 @@ export function WorkforceCoverageCard() {
           </div>
           <h2 className="text-base font-semibold">Committed vs Actual Workforce</h2>
           <p className="text-xs text-muted-foreground">
-            Contracted headcount across active client contracts against employees
-            actually mapped to those units.
+            Contracted headcount across active client contracts against employees actually mapped to
+            those units.
           </p>
         </div>
         <Button
@@ -374,8 +370,8 @@ export function WorkforceCoverageCard() {
 
       {totals.shortUnits > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
-          <span className="font-semibold text-destructive">{totals.shortUnits}</span>{" "}
-          unit(s) currently under-deployed against contract.
+          <span className="font-semibold text-destructive">{totals.shortUnits}</span> unit(s)
+          currently under-deployed against contract.
         </p>
       )}
 
@@ -387,17 +383,13 @@ export function WorkforceCoverageCard() {
         >
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>
-            <span className="font-bold tabular-nums">{unmapped.length}</span> active
-            employee(s) are not mapped to any unit — they are paid but deployed nowhere.
+            <span className="font-bold tabular-nums">{unmapped.length}</span> active employee(s) are
+            not mapped to any unit — they are paid but deployed nowhere.
           </span>
         </button>
       )}
 
-      <UnmappedGuardsDialog
-        open={unmappedOpen}
-        onOpenChange={setUnmappedOpen}
-        rows={unmapped}
-      />
+      <UnmappedGuardsDialog open={unmappedOpen} onOpenChange={setUnmappedOpen} rows={unmapped} />
 
       <DeploymentCharterDialog open={open} onOpenChange={setOpen} rows={rows} />
     </div>
@@ -469,13 +461,9 @@ function DeploymentCharterDialog({
             />
           </div>
           <div className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground tabular-nums">
-              {totals.committed}
-            </span>{" "}
+            <span className="font-semibold text-foreground tabular-nums">{totals.committed}</span>{" "}
             committed ·{" "}
-            <span className="font-semibold text-foreground tabular-nums">
-              {totals.actual}
-            </span>{" "}
+            <span className="font-semibold text-foreground tabular-nums">{totals.actual}</span>{" "}
             deployed
           </div>
           <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
@@ -513,9 +501,7 @@ function DeploymentCharterDialog({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="truncate text-sm font-semibold">
-                            {r.unitName}
-                          </span>
+                          <span className="truncate text-sm font-semibold">{r.unitName}</span>
                           <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
                             Active
                           </span>
@@ -538,13 +524,14 @@ function DeploymentCharterDialog({
                           <div
                             className={cn(
                               "font-semibold",
-                              shortfallTone(r.committed, r.actual) === "destructive" && "text-destructive",
-                              shortfallTone(r.committed, r.actual) === "warning" && "text-amber-600",
+                              shortfallTone(r.committed, r.actual) === "destructive" &&
+                                "text-destructive",
+                              shortfallTone(r.committed, r.actual) === "warning" &&
+                                "text-amber-600",
                             )}
                           >
                             {r.actual}
                           </div>
-
                         </div>
                         <VarianceChip committed={r.committed} actual={r.actual} />
                       </div>
@@ -570,24 +557,21 @@ function DeploymentCharterDialog({
                               {r.lines.map((l) => (
                                 <tr key={l.role} className="border-t border-border/60">
                                   <td className="py-1.5 pr-2">{l.role}</td>
-                                  <td className="py-1.5 text-right tabular-nums">
-                                    {l.committed}
-                                  </td>
+                                  <td className="py-1.5 text-right tabular-nums">{l.committed}</td>
                                   <td
                                     className={cn(
                                       "py-1.5 text-right tabular-nums",
-                                      shortfallTone(l.committed, l.actual) === "destructive" && "font-semibold text-destructive",
-                                      shortfallTone(l.committed, l.actual) === "warning" && "font-semibold text-amber-600",
+                                      shortfallTone(l.committed, l.actual) === "destructive" &&
+                                        "font-semibold text-destructive",
+                                      shortfallTone(l.committed, l.actual) === "warning" &&
+                                        "font-semibold text-amber-600",
                                     )}
                                   >
                                     {l.actual}
                                   </td>
 
                                   <td className="py-1.5 text-right">
-                                    <VarianceChip
-                                      committed={l.committed}
-                                      actual={l.actual}
-                                    />
+                                    <VarianceChip committed={l.committed} actual={l.actual} />
                                   </td>
                                 </tr>
                               ))}
@@ -632,8 +616,8 @@ function UnmappedGuardsDialog({
             <AlertTriangle className="h-4 w-4" /> Employees not mapped to any unit
           </DialogTitle>
           <DialogDescription>
-            These active, billable employees have no primary unit and no reliever
-            mapping. Map them to a unit so attendance, payroll and billing line up.
+            These active, billable employees have no primary unit and no reliever mapping. Map them
+            to a unit so attendance, payroll and billing line up.
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[55vh] overflow-y-auto px-5 py-3">

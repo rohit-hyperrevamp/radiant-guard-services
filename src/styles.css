@@ -2254,3 +2254,13 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   min-width: 0;
   max-width: 100%;
 }
+
+/* Complete metric values: TileNumber measures and fits its inner text. */
+[data-tile-number] {
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap;
+  letter-spacing: 0;
+}

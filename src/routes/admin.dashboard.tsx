@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
 import { FieldSenseLeaderboards } from "@/components/FieldSenseLeaderboards";
@@ -32,7 +33,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
 import { UnitAttendanceCoverage } from "@/components/UnitAttendanceCoverage";
 import { DashboardShell } from "@/components/LiveFeed";
-import { MyUpcomingInterviewsCard as InterviewsOnlyCard, usePendingOnboardingCount } from "@/components/recruitment/RecruitmentDashboardCards";
+import {
+  MyUpcomingInterviewsCard as InterviewsOnlyCard,
+  usePendingOnboardingCount,
+} from "@/components/recruitment/RecruitmentDashboardCards";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +68,7 @@ import {
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
-import { TasksAssignedTile, TasksCreatedTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
 import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
@@ -187,9 +191,15 @@ export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard | Radiant Guard Services" },
-      { name: "description", content: "Dashboard overview across operations, attendance, payroll, and invoicing." },
+      {
+        name: "description",
+        content: "Dashboard overview across operations, attendance, payroll, and invoicing.",
+      },
       { property: "og:title", content: "Dashboard | Radiant Guard Services" },
-      { property: "og:description", content: "Dashboard overview across operations, attendance, payroll, and invoicing." },
+      {
+        property: "og:description",
+        content: "Dashboard overview across operations, attendance, payroll, and invoicing.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -236,7 +246,6 @@ type PnLRow = {
   /** Attendance for the window is approved — invoice/payroll can be shown. */
   attendance_approved: boolean;
 };
-
 
 function DashboardPage() {
   const now = new Date();
@@ -288,18 +297,23 @@ function DashboardPage() {
   });
   const dashboardUnits = useMemo(() => {
     const units = charterUnitsQ.data?.units ?? [];
-    return managerScope.isScoped ? units.filter((unit) => managerScope.unitIds.has(unit.id)) : units;
+    return managerScope.isScoped
+      ? units.filter((unit) => managerScope.unitIds.has(unit.id))
+      : units;
   }, [charterUnitsQ.data?.units, managerScope.isScoped, managerScope.unitIds]);
-  const periodSelection = usePayrollWindowSelection(dashboardUnits.map((unit) => unit.id), { month, year });
+  const periodSelection = usePayrollWindowSelection(
+    dashboardUnits.map((unit) => unit.id),
+    { month, year },
+  );
   const selectedWindow = periodSelection.selectedWindow;
-  const selectedPeriod = selectedWindow
-    ? payrollPeriodForMonth(year, month, selectedWindow)
-    : null;
+  const selectedPeriod = selectedWindow ? payrollPeriodForMonth(year, month, selectedWindow) : null;
   const monthStart = selectedPeriod?.start ?? `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  const monthEnd = selectedPeriod?.end ?? (() => {
-    const d = new Date(year, month + 1, 0);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
+  const monthEnd =
+    selectedPeriod?.end ??
+    (() => {
+      const d = new Date(year, month + 1, 0);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    })();
 
   // Phones cannot hold the whole-month profitability computation in memory
   // (it loads every contract, roster and attendance row). Keep the mobile
@@ -310,7 +324,11 @@ function DashboardPage() {
   // independent query so the dashboard is usable immediately.
   const countsQuery = useQuery({
     queryKey: ["dashboard-counts", year, month, periodSelection.selectedKey],
-    enabled: !permsLoading && !showInventoryDashboard && !showTransportDashboard && !showHrExecutiveDashboard,
+    enabled:
+      !permsLoading &&
+      !showInventoryDashboard &&
+      !showTransportDashboard &&
+      !showHrExecutiveDashboard,
     staleTime: 2 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
@@ -642,22 +660,26 @@ function DashboardPage() {
               .eq("period_start", monthStart)
               .eq("period_end", monthEnd),
           ]);
-          for (const s of (sheets.data ?? []) as { unit_id: string }[]) approvedUnits.add(s.unit_id);
+          for (const s of (sheets.data ?? []) as { unit_id: string }[])
+            approvedUnits.add(s.unit_id);
           const runIds = ((runs.data ?? []) as { id: string }[]).map((r) => r.id);
           if (runIds.length) {
             const { data: snaps } = await supabase
               .from("payroll_run_snapshots" as never)
               .select("unit_id,gross,total_employer")
               .in("payroll_run_id", runIds);
-            for (const s of (snaps ?? []) as { unit_id: string; gross: number; total_employer: number }[]) {
+            for (const s of (snaps ?? []) as {
+              unit_id: string;
+              gross: number;
+              total_employer: number;
+            }[]) {
               postedPayroll.set(
                 s.unit_id,
                 (postedPayroll.get(s.unit_id) ?? 0) + (Number(s.gross) || 0),
               );
               postedEmployerContribution.set(
                 s.unit_id,
-                (postedEmployerContribution.get(s.unit_id) ?? 0) +
-                  (Number(s.total_employer) || 0),
+                (postedEmployerContribution.get(s.unit_id) ?? 0) + (Number(s.total_employer) || 0),
               );
             }
           }
@@ -665,7 +687,10 @@ function DashboardPage() {
           const invIds = Array.from(new Set(links.map((l) => l.final_invoice_id)));
           if (invIds.length) {
             const [{ data: invs }, { data: allLinks }] = await Promise.all([
-              supabase.from("final_invoices" as never).select("id,taxable_value").in("id", invIds),
+              supabase
+                .from("final_invoices" as never)
+                .select("id,taxable_value")
+                .in("id", invIds),
               supabase
                 .from("final_invoice_units" as never)
                 .select("final_invoice_id,unit_id")
@@ -698,7 +723,8 @@ function DashboardPage() {
       const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
       {
         const cChunks: string[][] = [];
-        for (let i = 0; i < contractIds.length; i += 200) cChunks.push(contractIds.slice(i, i + 200));
+        for (let i = 0; i < contractIds.length; i += 200)
+          cChunks.push(contractIds.slice(i, i + 200));
         const [{ data: bdbs }, { data: bts }] = await Promise.all([
           supabase
             .from("billing_day_bases" as never)
@@ -716,7 +742,10 @@ function DashboardPage() {
           });
         }
         const btCode = new Map(
-          ((bts ?? []) as { id: string; code: string | null }[]).map((b) => [b.id, b.code ?? "man_days"]),
+          ((bts ?? []) as { id: string; code: string | null }[]).map((b) => [
+            b.id,
+            b.code ?? "man_days",
+          ]),
         );
         await Promise.all([
           ...cChunks.map(async (ids) => {
@@ -747,9 +776,16 @@ function DashboardPage() {
               .select("unit_id, quantity, rate, enabled, period_start, period_end")
               .in("unit_id", ids)
               .eq("enabled", true);
-            type Ex = { unit_id: string; quantity: number; rate: number; period_start: string | null; period_end: string | null };
+            type Ex = {
+              unit_id: string;
+              quantity: number;
+              rate: number;
+              period_start: string | null;
+              period_end: string | null;
+            };
             for (const e of ((ex ?? []) as Ex[]).filter(
-              (x) => !x.period_start || (x.period_start === monthStart && x.period_end === monthEnd),
+              (x) =>
+                !x.period_start || (x.period_start === monthStart && x.period_end === monthEnd),
             )) {
               const amt = Math.round((Number(e.quantity) || 0) * (Number(e.rate) || 0) * 100) / 100;
               extrasByUnit.set(e.unit_id, (extrasByUnit.get(e.unit_id) ?? 0) + amt);
@@ -842,11 +878,14 @@ function DashboardPage() {
           if (mode === "lumpsum" || mode === "man_months") earnedInvoice = contractedInvoice;
           else if (mode === "man_hours") {
             const perHour =
-              billingDays > 0 ? Math.round((contractedInvoice / billingDays / shiftHours) * 100) / 100 : 0;
+              billingDays > 0
+                ? Math.round((contractedInvoice / billingDays / shiftHours) * 100) / 100
+                : 0;
             earnedInvoice =
-              Math.round(perHour * Math.round(billedDays * shiftHours * 100) / 100 * 100) / 100;
+              Math.round(((perHour * Math.round(billedDays * shiftHours * 100)) / 100) * 100) / 100;
           } else {
-            const perDay = billingDays > 0 ? Math.round((contractedInvoice / billingDays) * 100) / 100 : 0;
+            const perDay =
+              billingDays > 0 ? Math.round((contractedInvoice / billingDays) * 100) / 100 : 0;
             earnedInvoice = Math.round(perDay * billedDays * 100) / 100;
           }
           if (!isInternal) invoiceAmount += earnedInvoice;
@@ -911,7 +950,13 @@ function DashboardPage() {
     queryFn: async () => {
       const unitIds = scopedUnitIds ?? [];
       if (unitIds.length === 0)
-        return { orgs: 0, units: 0, employees: 0, contractsActive: 0, contractsExpiring: [] as ContractExpiringRow[] };
+        return {
+          orgs: 0,
+          units: 0,
+          employees: 0,
+          contractsActive: 0,
+          contractsExpiring: [] as ContractExpiringRow[],
+        };
       const horizon = new Date();
       horizon.setDate(horizon.getDate() + 60);
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -925,8 +970,16 @@ function DashboardPage() {
           Promise.all([
             supabase.from("units").select("id,customer_id").in("id", ids),
             supabase.from("candidate_units").select("candidate_id").in("unit_id", ids).limit(20000),
-            supabase.from("client_contracts").select("id,contract_code,end_date,unit_id,status").in("unit_id", ids),
-            supabase.from("candidates").select("id").in("unit_id", ids).in("status", ["active", "approved"]).limit(20000),
+            supabase
+              .from("client_contracts")
+              .select("id,contract_code,end_date,unit_id,status")
+              .in("unit_id", ids),
+            supabase
+              .from("candidates")
+              .select("id")
+              .in("unit_id", ids)
+              .in("status", ["active", "approved"])
+              .limit(20000),
           ]),
         ),
       );
@@ -940,7 +993,9 @@ function DashboardPage() {
       const links = {
         data: [
           ...results.flatMap(([, b]) => b.data ?? []),
-          ...results.flatMap(([, , , d]) => ((d.data ?? []) as Array<{ id: string }>).map((r) => ({ candidate_id: r.id }))),
+          ...results.flatMap(([, , , d]) =>
+            ((d.data ?? []) as Array<{ id: string }>).map((r) => ({ candidate_id: r.id })),
+          ),
         ],
       };
       const contracts = { data: results.flatMap(([, , c]) => c.data ?? []) };
@@ -950,8 +1005,10 @@ function DashboardPage() {
           .map((u) => u.customer_id)
           .filter(Boolean) as string[],
       );
-      const employees = new Set(((links.data ?? []) as Array<{ candidate_id: string }>).map((l) => l.candidate_id));
-      const contractRows = ((contracts.data ?? []) as unknown) as ContractExpiringRow[];
+      const employees = new Set(
+        ((links.data ?? []) as Array<{ candidate_id: string }>).map((l) => l.candidate_id),
+      );
+      const contractRows = (contracts.data ?? []) as unknown as ContractExpiringRow[];
       const active = contractRows.filter((c) => c.status === "active");
       return {
         orgs: orgs.size,
@@ -1063,22 +1120,41 @@ function DashboardPage() {
         ),
       });
       if (teamLive.teamOnly)
-        t.push({
-          key: "team-live",
-          module: "employees",
-          node: (
-            <MetricTile icon={Radio} label="Team live now" value={teamLive.live} accent="emerald" to="/admin/live-staff" sub={`of ${teamLive.total} teammates using the system`} />
-          ),
-        },
-        {
-          key: "team-in",
-          module: "employees",
-          node: (
-            <MetricTile icon={Users} label="Team checked in" value={teamLive.checkedIn} accent="sky" to="/admin/live-staff" sub={`of ${teamLive.total} teammates today`} />
-          ),
-        });
-      t.push({ key: "tasks", module: "tasks" as never, node: <TasksAssignedTile summary={taskSummary.data?.mine ?? null} /> });
-      t.push({ key: "tasks-given", module: "tasks" as never, node: <TasksCreatedTile summary={taskSummary.data?.created ?? null} /> });
+        t.push(
+          {
+            key: "team-live",
+            module: "employees",
+            node: (
+              <MetricTile
+                icon={Radio}
+                label="Team live now"
+                value={teamLive.live}
+                accent="emerald"
+                to="/admin/live-staff"
+                sub={`of ${teamLive.total} teammates using the system`}
+              />
+            ),
+          },
+          {
+            key: "team-in",
+            module: "employees",
+            node: (
+              <MetricTile
+                icon={Users}
+                label="Team checked in"
+                value={teamLive.checkedIn}
+                accent="sky"
+                to="/admin/live-staff"
+                sub={`of ${teamLive.total} teammates today`}
+              />
+            ),
+          },
+        );
+      t.push({
+        key: "tasks",
+        module: "tasks" as never,
+        node: <TasksSummaryTile summary={taskSummary.data ?? null} />,
+      });
       return t;
     }
     if (data) {
@@ -1237,18 +1313,38 @@ function DashboardPage() {
           key: "onb",
           module: "recruitment" as never,
           node: (
-            <MetricTile icon={UserPlus} label="Pending onboarding" sub="Set up salary & onboard" value={pendingOnboarding} accent="rose" to="/admin/hr/recruitment/onboarding" />
+            <MetricTile
+              icon={UserPlus}
+              label="Pending onboarding"
+              sub="Set up salary & onboard"
+              value={pendingOnboarding}
+              accent="rose"
+              to="/admin/hr/recruitment/onboarding"
+            />
           ),
         });
-      t.push({ key: "tasks", module: "tasks" as never, node: <TasksAssignedTile summary={taskSummary.data?.mine ?? null} /> });
-      t.push({ key: "tasks-given", module: "tasks" as never, node: <TasksCreatedTile summary={taskSummary.data?.created ?? null} /> });
+      t.push({
+        key: "tasks",
+        module: "tasks" as never,
+        node: <TasksSummaryTile summary={taskSummary.data ?? null} />,
+      });
     }
     const widgetOf = (k: string) =>
-      k === "tasks-given" ? "tasks"
-      : ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k) ? "fo"
-      : k.replace(/-/g, "_");
+      ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k)
+        ? "fo"
+        : k.replace(/-/g, "_");
     return t.filter((x) => canWidget(widgetOf(x.key)));
-  }, [data, can, canWidget, opsFocus, operationsOverview, liveOfficerCount, pendingOnboarding, teamLive, taskSummary.data]);
+  }, [
+    data,
+    can,
+    canWidget,
+    opsFocus,
+    operationsOverview,
+    liveOfficerCount,
+    pendingOnboarding,
+    teamLive,
+    taskSummary.data,
+  ]);
 
   if (permsLoading) {
     return (
@@ -1286,10 +1382,42 @@ function DashboardPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricTile icon={ClipboardList} label="Payroll open" sub="Attendance not approved" value={rc?.open ?? 0} accent="rose" to="/admin/payroll" search={{ window: periodSelection.selectedKey, month, year, status: "open" }} />
-            <MetricTile icon={Wallet} label="Payroll ready" sub="Awaiting your approval" value={rc?.pending ?? 0} accent="amber" to="/admin/payroll" search={{ window: periodSelection.selectedKey, month, year, status: "ready" }} />
-            <MetricTile icon={Sparkles} label="Payroll approved" sub="Awaiting processing" value={rc?.approved ?? 0} accent="sky" to="/admin/payroll" search={{ window: periodSelection.selectedKey, month, year, status: "approved" }} />
-            <MetricTile icon={Receipt} label="Payroll processed" sub="Done" value={rc?.processed ?? 0} accent="emerald" to="/admin/payroll" search={{ window: periodSelection.selectedKey, month, year, status: "processed" }} />
+            <MetricTile
+              icon={ClipboardList}
+              label="Payroll open"
+              sub="Attendance not approved"
+              value={rc?.open ?? 0}
+              accent="rose"
+              to="/admin/payroll"
+              search={{ window: periodSelection.selectedKey, month, year, status: "open" }}
+            />
+            <MetricTile
+              icon={Wallet}
+              label="Payroll ready"
+              sub="Awaiting your approval"
+              value={rc?.pending ?? 0}
+              accent="amber"
+              to="/admin/payroll"
+              search={{ window: periodSelection.selectedKey, month, year, status: "ready" }}
+            />
+            <MetricTile
+              icon={Sparkles}
+              label="Payroll approved"
+              sub="Awaiting processing"
+              value={rc?.approved ?? 0}
+              accent="sky"
+              to="/admin/payroll"
+              search={{ window: periodSelection.selectedKey, month, year, status: "approved" }}
+            />
+            <MetricTile
+              icon={Receipt}
+              label="Payroll processed"
+              sub="Done"
+              value={rc?.processed ?? 0}
+              accent="emerald"
+              to="/admin/payroll"
+              search={{ window: periodSelection.selectedKey, month, year, status: "processed" }}
+            />
           </div>
         </div>
       </div>
@@ -1299,15 +1427,15 @@ function DashboardPage() {
   if (showHrExecutiveDashboard) {
     return (
       <DashboardShell>
-      <div className="px-0 py-1 sm:p-6">
-        <PageHeader
-          title="My clients"
-          description="Your assigned clients, payroll schedules, dividing factors and salary-slip requirements."
-          crumbs={[{ label: "Dashboard" }]}
-        />
-        <MyUpcomingInterviewsCard />
-        <HrExecutiveDashboard />
-      </div>
+        <div className="px-0 py-1 sm:p-6">
+          <PageHeader
+            title="My clients"
+            description="Your assigned clients, payroll schedules, dividing factors and salary-slip requirements."
+            crumbs={[{ label: "Dashboard" }]}
+          />
+          <MyUpcomingInterviewsCard />
+          <HrExecutiveDashboard />
+        </div>
       </DashboardShell>
     );
   }
@@ -1347,17 +1475,17 @@ function DashboardPage() {
   if (roleKey === ROLE_KEYS.ACCOUNTS) {
     return (
       <DashboardShell>
-      <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
-        <div className="space-y-4">
-          <PageHeader
-            title="Attendance tracker"
-            description="Your sites with an active contract — which have attendance and which have none."
-            crumbs={[{ label: "Dashboard" }]}
-          />
-          <MyUpcomingInterviewsCard />
-          <UnitAttendanceCoverage />
+        <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
+          <div className="space-y-4">
+            <PageHeader
+              title="Attendance tracker"
+              description="Your sites with an active contract — which have attendance and which have none."
+              crumbs={[{ label: "Dashboard" }]}
+            />
+            <MyUpcomingInterviewsCard />
+            <UnitAttendanceCoverage />
+          </div>
         </div>
-      </div>
       </DashboardShell>
     );
   }
@@ -1365,27 +1493,27 @@ function DashboardPage() {
   if (isControlCenter) {
     return (
       <DashboardShell>
-      <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
-        <div className="space-y-4">
-          <PageHeader
-            title="Radar"
-            description="Live field officers, site-visit progress, and field officer deployment."
-            crumbs={[{ label: "Dashboard" }]}
-          />
-          <MyUpcomingInterviewsCard />
-          <OperationsRadarSummary expanded />
-          <LiveFieldOfficersCard />
-          <div className="grid gap-4 xl:grid-cols-2">
-            <AdminVisitProgressCard />
-            <AdminFieldOfficerUnitsCard />
+        <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
+          <div className="space-y-4">
+            <PageHeader
+              title="Radar"
+              description="Live field officers, site-visit progress, and field officer deployment."
+              crumbs={[{ label: "Dashboard" }]}
+            />
+            <MyUpcomingInterviewsCard />
+            <OperationsRadarSummary expanded />
+            <LiveFieldOfficersCard />
+            <div className="grid gap-4 xl:grid-cols-2">
+              <AdminVisitProgressCard />
+              <AdminFieldOfficerUnitsCard />
+            </div>
+            <AdminEscalationRequestsCard />
+            <FieldSenseLeaderboards />
+            <OperationsClientLocations data={operationsOverview} />
+            <OperationsDeployments />
+            <OperationsOrgTree />
           </div>
-          <AdminEscalationRequestsCard />
-          <FieldSenseLeaderboards />
-          <OperationsClientLocations data={operationsOverview} />
-          <OperationsDeployments />
-          <OperationsOrgTree />
         </div>
-      </div>
       </DashboardShell>
     );
   }
@@ -1416,7 +1544,9 @@ function DashboardPage() {
 
   return (
     <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
-      <div className="mb-4 empty:hidden"><MyUpcomingInterviewsCard /></div>
+      <div className="mb-4 empty:hidden">
+        <MyUpcomingInterviewsCard />
+      </div>
       <DashboardShell
         rightExtras={
           <>
@@ -1424,71 +1554,91 @@ function DashboardPage() {
               <LivePeopleCard liveOfficers={liveOfficerCount} compact />
             )}
             {!canWidget("people_insights") ? null : opsFocus ? (
-              <div className="max-h-[420px] overflow-y-auto rounded-2xl"><PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} /></div>
+              <div className="max-h-[420px] overflow-y-auto rounded-2xl">
+                <PeopleInsightsSection hideLive roleKeys={OPS_PEOPLE_ROLE_KEYS} />
+              </div>
             ) : can("employees") ? (
-              <div className="max-h-[420px] overflow-y-auto rounded-2xl"><PeopleInsightsSection compact hideLive={roleKey === "hr"} /></div>
+              <div className="max-h-[420px] overflow-y-auto rounded-2xl">
+                <PeopleInsightsSection compact hideLive={roleKey === "hr"} />
+              </div>
             ) : null}
           </>
         }
         fullWidthBelow={
           <>
-          {canWidget("team_clients") && <TeamClientsCard />}
-          {opsFocus ? (
-            <>
-              {canWidget("radar") && (
-                <>
-                  <OperationsRadarSummary />
-                  <AdminVisitProgressCard />
-                  <OperationsClientLocations data={operationsOverview} />
-                  <OperationsDeployments />
-                </>
-              )}
-              {canWidget("org_tree") && <OperationsOrgTree />}
-            </>
-          ) : (
-            <>
-              {canWidget("radar") && canWidget("team_clients") && teamRadarScope.isScoped && teamRadarScope.fieldOfficerIds.size > 0 && (
-                <OperationsRadarSummary />
-              )}
-              {canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
-              {!isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
-                <ReadinessCard
-                  sheet={can("attendance") ? data.sheetCounts : null}
-                  run={can("payroll") ? data.runCounts : null}
-                  invoice={can("invoice") ? data.invoiceCounts : null}
-                />
-              )}
-              {!isLoading && data && (
-                <>
-                  {can("employees") && canWidget("employee_insights") && <EmployeeInsightsSection showRecruitment={can("recruitment") || roleKey === ROLE_KEYS.LEADERSHIP} />}
-                  {can("contracts") && canWidget("contract_portfolio") && <ClientContractPortfolioCard />}
-                  {(can("payroll") || can("invoice")) && pnlQuery.isLoading && (
-                    <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                      Loading payroll and invoice totals…
-                    </div>
+            {canWidget("team_clients") && <TeamClientsCard />}
+            {opsFocus ? (
+              <>
+                {canWidget("radar") && (
+                  <>
+                    <OperationsRadarSummary />
+                    <AdminVisitProgressCard />
+                    <OperationsClientLocations data={operationsOverview} />
+                    <OperationsDeployments />
+                  </>
+                )}
+                {canWidget("org_tree") && <OperationsOrgTree />}
+              </>
+            ) : (
+              <>
+                {canWidget("radar") &&
+                  canWidget("team_clients") &&
+                  teamRadarScope.isScoped &&
+                  teamRadarScope.fieldOfficerIds.size > 0 && <OperationsRadarSummary />}
+                {canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
+                {!isLoading &&
+                  data &&
+                  canWidget("readiness") &&
+                  (can("attendance") || can("payroll") || can("invoice")) && (
+                    <ReadinessCard
+                      sheet={can("attendance") ? data.sheetCounts : null}
+                      run={can("payroll") ? data.runCounts : null}
+                      invoice={can("invoice") ? data.invoiceCounts : null}
+                    />
                   )}
-                  {pnlQuery.error && (
-                    <div className="mb-4 rounded-2xl border border-destructive/30 bg-card p-6">
-                      <p className="text-sm font-medium text-destructive">
-                        Payroll and invoice totals could not load.
-                      </p>
-                      <Button
-                        className="mt-3"
-                        variant="outline"
-                        onClick={() => void pnlQuery.refetch()}
-                      >
-                        Try again
-                      </Button>
-                    </div>
-                  )}
-                  {pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && <PayrollCoverageCard rows={financeRows} />}
-                  {pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && <InvoiceCoverageCard rows={financeRows} />}
-                  {pnlQuery.data && can("invoice") && canWidget("profitability") && <ProfitabilityCard rows={financeRows} />}
-                  {canWidget("org_tree") && departmentTree}
-                </>
-              )}
-            </>
-          )}
+                {!isLoading && data && (
+                  <>
+                    {can("employees") && canWidget("employee_insights") && (
+                      <EmployeeInsightsSection
+                        showRecruitment={can("recruitment") || roleKey === ROLE_KEYS.LEADERSHIP}
+                      />
+                    )}
+                    {can("contracts") && canWidget("contract_portfolio") && (
+                      <ClientContractPortfolioCard />
+                    )}
+                    {(can("payroll") || can("invoice")) && pnlQuery.isLoading && (
+                      <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                        Loading payroll and invoice totals…
+                      </div>
+                    )}
+                    {pnlQuery.error && (
+                      <div className="mb-4 rounded-2xl border border-destructive/30 bg-card p-6">
+                        <p className="text-sm font-medium text-destructive">
+                          Payroll and invoice totals could not load.
+                        </p>
+                        <Button
+                          className="mt-3"
+                          variant="outline"
+                          onClick={() => void pnlQuery.refetch()}
+                        >
+                          Try again
+                        </Button>
+                      </div>
+                    )}
+                    {pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
+                      <PayrollCoverageCard rows={financeRows} />
+                    )}
+                    {pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
+                      <InvoiceCoverageCard rows={financeRows} />
+                    )}
+                    {pnlQuery.data && can("invoice") && canWidget("profitability") && (
+                      <ProfitabilityCard rows={financeRows} />
+                    )}
+                    {canWidget("org_tree") && departmentTree}
+                  </>
+                )}
+              </>
+            )}
           </>
         }
       >
@@ -1533,13 +1683,17 @@ function DashboardPage() {
           </div>
         </div>
 
-        {opsFocus && !isLoading && data && canWidget("readiness") && (can("attendance") || can("payroll") || can("invoice")) && (
-          <ReadinessCard
-            sheet={can("attendance") ? data.sheetCounts : null}
-            run={can("payroll") ? data.runCounts : null}
-            invoice={can("invoice") ? data.invoiceCounts : null}
-          />
-        )}
+        {opsFocus &&
+          !isLoading &&
+          data &&
+          canWidget("readiness") &&
+          (can("attendance") || can("payroll") || can("invoice")) && (
+            <ReadinessCard
+              sheet={can("attendance") ? data.sheetCounts : null}
+              run={can("payroll") ? data.runCounts : null}
+              invoice={can("invoice") ? data.invoiceCounts : null}
+            />
+          )}
         {/* Tiles */}
         <div
           className={`grid auto-rows-[124px] grid-cols-2 items-stretch gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 lg:grid-cols-3 ${opsFocus ? "xl:grid-cols-4" : "xl:grid-cols-4"}`}
@@ -1572,21 +1726,60 @@ function DashboardPage() {
 
 /* -------------------- Readiness & live people -------------------- */
 
-function ReadinessCard({ sheet, run, invoice }: { sheet: StatusCounts | null; run: StatusCounts | null; invoice: StatusCounts | null }) {
+function ReadinessCard({
+  sheet,
+  run,
+  invoice,
+}: {
+  sheet: StatusCounts | null;
+  run: StatusCounts | null;
+  invoice: StatusCounts | null;
+}) {
   const rows: { label: string; doneLabel: string; done: number; open: number; to: string }[] = [];
-  if (sheet) rows.push({ label: "Attendance", doneLabel: "Approved", done: sheet.approved, open: sheet.open, to: "/admin/attendance" });
-  if (run) rows.push({ label: "Payroll", doneLabel: "Ready", done: run.pending, open: run.open, to: "/admin/payroll" });
-  if (invoice) rows.push({ label: "Invoices", doneLabel: "Ready", done: invoice.pending, open: invoice.open, to: "/admin/invoice" });
+  if (sheet)
+    rows.push({
+      label: "Attendance",
+      doneLabel: "Approved",
+      done: sheet.approved,
+      open: sheet.open,
+      to: "/admin/attendance",
+    });
+  if (run)
+    rows.push({
+      label: "Payroll",
+      doneLabel: "Ready",
+      done: run.pending,
+      open: run.open,
+      to: "/admin/payroll",
+    });
+  if (invoice)
+    rows.push({
+      label: "Invoices",
+      doneLabel: "Ready",
+      done: invoice.pending,
+      open: invoice.open,
+      to: "/admin/invoice",
+    });
   return (
     <section aria-label="Readiness" className="mb-4 rounded-2xl border border-border bg-card p-4">
       <h2 className="mb-3 text-sm font-semibold text-foreground">Ready vs open — this period</h2>
       <div className="grid gap-3 sm:grid-cols-3">
         {rows.map((r) => (
-          <Link key={r.label} to={r.to} className="rounded-xl border border-border p-3 hover:bg-muted/50">
+          <Link
+            key={r.label}
+            to={r.to}
+            className="rounded-xl border border-border p-3 hover:bg-muted/50"
+          >
             <div className="text-xs text-muted-foreground">{r.label}</div>
             <div className="mt-1 flex items-baseline gap-4">
-              <div><span className="text-2xl font-semibold text-emerald-600">{r.done}</span> <span className="text-xs text-muted-foreground">{r.doneLabel}</span></div>
-              <div><span className="text-2xl font-semibold text-destructive">{r.open}</span> <span className="text-xs text-muted-foreground">Open</span></div>
+              <div>
+                <span className="text-2xl font-semibold text-emerald-600">{r.done}</span>{" "}
+                <span className="text-xs text-muted-foreground">{r.doneLabel}</span>
+              </div>
+              <div>
+                <span className="text-2xl font-semibold text-destructive">{r.open}</span>{" "}
+                <span className="text-xs text-muted-foreground">Open</span>
+              </div>
             </div>
           </Link>
         ))}
@@ -1607,7 +1800,11 @@ function useTeamLiveCounts() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
       if (error) throw error;
-      return (data ?? []) as Array<{ user_id: string | null; candidate_id: string; check_in_at: string | null }>;
+      return (data ?? []) as Array<{
+        user_id: string | null;
+        candidate_id: string;
+        check_in_at: string | null;
+      }>;
     },
   });
   const rows = (q.data ?? []).filter((r) => team.ids.has(r.candidate_id));
@@ -1619,7 +1816,13 @@ function useTeamLiveCounts() {
   };
 }
 
-function LivePeopleCard({ liveOfficers, compact = false }: { liveOfficers: number; compact?: boolean }) {
+function LivePeopleCard({
+  liveOfficers,
+  compact = false,
+}: {
+  liveOfficers: number;
+  compact?: boolean;
+}) {
   const online = useOnlineUserIds();
   const team = useTeamPeopleOnly();
   const staffQ = useQuery({
@@ -1637,17 +1840,56 @@ function LivePeopleCard({ liveOfficers, compact = false }: { liveOfficers: numbe
     .filter(Boolean) as string[];
   const staffLive = staffIds.filter((id) => online.has(id)).length;
   return (
-    <section aria-label="Live now" className={compact ? "grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-2.5" : "mb-4 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2"}>
-      <Link to="/admin/field-sense" className={compact ? "rounded-xl border border-border p-2 text-[11px] hover:bg-muted/50" : "rounded-xl border border-border p-3 hover:bg-muted/50"}>
+    <section
+      aria-label="Live now"
+      className={
+        compact
+          ? "grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-2.5"
+          : "mb-4 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2"
+      }
+    >
+      <Link
+        to="/admin/field-sense"
+        className={
+          compact
+            ? "rounded-xl border border-border p-2 text-[11px] hover:bg-muted/50"
+            : "rounded-xl border border-border p-3 hover:bg-muted/50"
+        }
+      >
         <div className="text-xs text-muted-foreground">Field officers live</div>
-        <div className={compact ? "mt-0.5 text-lg font-semibold text-foreground" : "mt-1 text-2xl font-semibold text-foreground"}>{liveOfficers}</div>
+        <div
+          className={
+            compact
+              ? "mt-0.5 text-lg font-semibold text-foreground"
+              : "mt-1 text-2xl font-semibold text-foreground"
+          }
+        >
+          {liveOfficers}
+        </div>
         <div className="text-xs text-muted-foreground">Checked in, not checked out</div>
       </Link>
-      <Link to="/admin/live-staff" className={compact ? "rounded-xl border border-border p-2 text-[11px] hover:bg-muted/50" : "rounded-xl border border-border p-3 hover:bg-muted/50"}>
-        <div className="text-xs text-muted-foreground">{team.teamOnly ? "My team live" : "Radiant staff live"}</div>
-        <div className={compact ? "mt-0.5 text-lg font-semibold text-foreground" : "mt-1 text-2xl font-semibold text-foreground"}>
+      <Link
+        to="/admin/live-staff"
+        className={
+          compact
+            ? "rounded-xl border border-border p-2 text-[11px] hover:bg-muted/50"
+            : "rounded-xl border border-border p-3 hover:bg-muted/50"
+        }
+      >
+        <div className="text-xs text-muted-foreground">
+          {team.teamOnly ? "My team live" : "Radiant staff live"}
+        </div>
+        <div
+          className={
+            compact
+              ? "mt-0.5 text-lg font-semibold text-foreground"
+              : "mt-1 text-2xl font-semibold text-foreground"
+          }
+        >
           {staffQ.error ? "—" : staffQ.isLoading ? "…" : staffLive}
-          <span className="ml-1 text-sm font-normal text-muted-foreground">/ {staffIds.length || "—"}</span>
+          <span className="ml-1 text-sm font-normal text-muted-foreground">
+            / {staffIds.length || "—"}
+          </span>
         </div>
         <div className="text-xs text-muted-foreground">Using the system right now</div>
       </Link>
@@ -1787,9 +2029,9 @@ function MetricTile({
     <Shell to={to} search={search} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
-        </div>
+        </TileNumber>
         <span
           className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}
         >
@@ -1823,17 +2065,17 @@ function DualTile({
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
-      <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
+      <div className="relative mt-auto grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-end gap-2">
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
-        </div>
-        <div className="min-w-0 max-w-[58%] flex flex-col items-end overflow-hidden text-right">
+        </TileNumber>
+        <div className="min-w-0 flex flex-col items-end text-right">
           <span className="w-full truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
             {secondaryLabel}
           </span>
-          <span className="mt-0.5 flex max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-display text-xs font-medium tabular-nums text-foreground sm:text-sm">
-            <Fuel className="h-3.5 w-3.5 text-muted-foreground" />
-            {secondary}
+          <span className="mt-0.5 flex w-full min-w-0 items-center gap-1 font-display text-xs font-medium text-foreground sm:text-sm">
+            <Fuel className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <TileNumber>{secondary}</TileNumber>
           </span>
         </div>
       </div>
@@ -1870,7 +2112,10 @@ function StatusTile({
   openLabel?: string;
   to: string;
 }) {
-  const total = Math.max(approved + pending + draft + rejected + (open ?? 0) + (middle?.value ?? 0), 1);
+  const total = Math.max(
+    approved + pending + draft + rejected + (open ?? 0) + (middle?.value ?? 0),
+    1,
+  );
   const cols = (open != null ? 3 : 2) + (middle ? 1 : 0);
   return (
     <Shell to={to} accent={accent}>
@@ -1879,26 +2124,41 @@ function StatusTile({
         className={`relative mt-auto grid min-w-0 gap-1.5 pb-2 sm:gap-3 sm:pb-3 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
       >
         <div className="min-w-0">
-          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+          <TileNumber
+            className={cn(
+              "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
+              cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
+            )}
+          >
             {approved}
-          </div>
+          </TileNumber>
           <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
             {approvedLabel}
           </div>
         </div>
         <div className="min-w-0">
-          <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+          <TileNumber
+            className={cn(
+              "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
+              cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
+            )}
+          >
             {pending}
-          </div>
+          </TileNumber>
           <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
             {pendingLabel}
           </div>
         </div>
         {middle && (
           <div className="min-w-0">
-            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+            <TileNumber
+              className={cn(
+                "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
+                cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
+              )}
+            >
               {middle.value}
-            </div>
+            </TileNumber>
             <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
               {middle.label}
             </div>
@@ -1906,9 +2166,14 @@ function StatusTile({
         )}
         {open != null && (
           <div className="min-w-0">
-            <div className={cn("truncate whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground", cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]")}>
+            <TileNumber
+              className={cn(
+                "whitespace-nowrap font-display font-medium tabular-nums leading-none text-foreground",
+                cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
+              )}
+            >
               {open}
-            </div>
+            </TileNumber>
             <div className="mt-0.5 truncate whitespace-nowrap text-[8px] uppercase tracking-[0.04em] text-muted-foreground sm:mt-1 sm:text-[9px]">
               {openLabel}
             </div>
@@ -1920,7 +2185,10 @@ function StatusTile({
           <div className={ACCENT_BAR[accent]} style={{ width: `${(approved / total) * 100}%` }} />
         )}
         {(middle?.value ?? 0) > 0 && (
-          <div className="bg-muted-foreground/70" style={{ width: `${((middle?.value ?? 0) / total) * 100}%` }} />
+          <div
+            className="bg-muted-foreground/70"
+            style={{ width: `${((middle?.value ?? 0) / total) * 100}%` }}
+          />
         )}
         {pending > 0 && (
           <div
@@ -1965,9 +2233,9 @@ function ContractsTile({
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
-        </div>
+        </TileNumber>
         <div
           className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}
         >
@@ -2072,7 +2340,9 @@ function TransportFleetAssetsTiles() {
   if (q.error) {
     return (
       <div className="rounded-2xl border border-destructive/30 bg-card p-6">
-        <p className="text-sm font-medium text-destructive">Fleet and asset totals could not load.</p>
+        <p className="text-sm font-medium text-destructive">
+          Fleet and asset totals could not load.
+        </p>
         <Button className="mt-3" variant="outline" onClick={() => void q.refetch()}>
           Try again
         </Button>

@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -248,17 +249,23 @@ function Tile({
         />
         <span className="truncate whitespace-nowrap">{label}</span>
       </div>
-      <div
+      <TileNumber
         className={cn(
-          "mt-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums sm:text-[40px]",
+          "mt-auto min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums sm:text-[40px]",
           tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
         )}
       >
         {value}
-      </div>
-      {hint ? <div className="mt-1 truncate whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]">{hint}</div> : <div className="h-[15px]" aria-hidden="true" />}
+      </TileNumber>
+      {hint ? (
+        <div className="mt-1 truncate whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]">
+          {hint}
+        </div>
+      ) : (
+        <div className="h-[15px]" aria-hidden="true" />
+      )}
     </div>
   );
 }
@@ -456,9 +463,7 @@ function AttendanceCharterDialog({
       <DialogContent className="max-h-[88vh] max-w-4xl overflow-hidden p-0">
         <DialogHeader className="border-b border-border px-3 py-3 sm:px-5 sm:py-4">
           <DialogTitle>Attendance charter · {dayLabel}</DialogTitle>
-          <DialogDescription>
-            Present, absent and unmarked people by client.
-          </DialogDescription>
+          <DialogDescription>Present, absent and unmarked people by client.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 items-center gap-2 px-3 pt-2.5 sm:flex sm:px-5 sm:pt-4">

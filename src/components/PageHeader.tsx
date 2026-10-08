@@ -1,3 +1,4 @@
+import { TileNumber } from "@/components/TileNumber";
 import {
   Activity,
   AlertTriangle,
@@ -159,9 +160,9 @@ export function PageStat({
         )}
       </div>
       <div className="relative mt-auto flex items-end justify-between gap-2">
-        <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
           {value}
-        </div>
+        </TileNumber>
         <span
           className={cn(
             "grid h-7 w-7 shrink-0 place-items-center rounded-full ring-1 ring-inset sm:h-9 sm:w-9",
