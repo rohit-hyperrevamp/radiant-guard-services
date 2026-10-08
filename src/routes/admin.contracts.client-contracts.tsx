@@ -2518,7 +2518,7 @@ function ClientContractsPage() {
   const appliedDeepLink = useRef(false);
   useEffect(() => {
     if (appliedDeepLink.current) return;
-    if (!search.status && !search.tab && !search.renewals) return;
+    if (!search.status && !search.tab && !search.renewals && !search.unit) return;
     appliedDeepLink.current = true;
     if (search.tab && !isHrReadOnly) setTab(search.tab);
     if (search.status) setStatusFilter([search.status]);
