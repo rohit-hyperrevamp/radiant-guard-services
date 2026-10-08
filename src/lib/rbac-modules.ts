@@ -324,7 +324,9 @@ export const RBAC_MODULES: ModuleDef[] = [
     path: "/admin/cases",
     icon: ShieldCheck,
     // View = see cases, Edit = add/update cases & upload documents, Delete = remove.
-    subModules: [],
+    subModules: [
+      { key: "hearing_alerts", label: "Upcoming case date alerts (feed)", path: "/admin/cases#alerts", icon: ShieldCheck },
+    ],
   },
   {
     key: "tasks",
