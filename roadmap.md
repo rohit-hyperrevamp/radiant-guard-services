@@ -566,5 +566,5 @@
 
 ## Consistent dashboard tile layout
 - [x] Standardize tile heights, labels, number fonts and bottom alignment across all dashboard variants and shared summary tiles.
-- [ ] Check layout and number-fitting regressions.
+- [x] Check layout and number-fitting regressions: 100 fitting cases, three dashboard consolidation checks, and ten shared tile-style checks passed.
 - [ ] Verify live appearance after publishing (unpublished UI cannot be checked on production).
