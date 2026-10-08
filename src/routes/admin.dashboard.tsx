@@ -241,7 +241,8 @@ function DashboardPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const { can, canWidget, isLoading: permsLoading, roleKey } = useCurrentPermissions();
+  const { can, canWidget, canExplicit, isLoading: permsLoading, roleKey } = useCurrentPermissions();
+  const teamRadarScope = useManagerFieldOfficerScope();
   // People-function dashboards close with their own reporting structure, the
   // same way operations closes with its org tree.
   const departmentTree =
@@ -1427,6 +1428,10 @@ function DashboardPage() {
             </>
           ) : (
             <>
+              {canWidget("radar") && canWidget("team_clients") && teamRadarScope.isScoped && teamRadarScope.fieldOfficerIds.size > 0 && (
+                <OperationsRadarSummary />
+              )}
+              {canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
               {canWidget("live_people") && (can("employees") || can("field_sense")) && (
                 <LivePeopleCard liveOfficers={liveOfficerCount} />
               )}

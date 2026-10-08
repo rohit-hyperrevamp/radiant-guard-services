@@ -311,6 +311,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "w_invoice_coverage", label: "Invoice coverage", path: "", icon: LayoutDashboard },
       { key: "w_profitability", label: "Profitability", path: "", icon: LayoutDashboard },
       { key: "w_radar", label: "Radar & visits", path: "", icon: LayoutDashboard },
+      { key: "w_fo_mapping", label: "Field officer mapping (only where explicitly allowed)", path: "", icon: LayoutDashboard },
       { key: "w_org_tree", label: "Organization tree", path: "", icon: LayoutDashboard },
     ],
   },

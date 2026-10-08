@@ -8,6 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
+const MATE_TONES = [
+  "bg-rose-100/80 dark:bg-rose-500/15",
+  "bg-cyan-100/80 dark:bg-cyan-500/15",
+  "bg-amber-100/80 dark:bg-amber-500/15",
+  "bg-emerald-100/80 dark:bg-emerald-500/15",
+  "bg-violet-100/80 dark:bg-violet-500/15",
+  "bg-sky-100/80 dark:bg-sky-500/15",
+];
 const CHUNK = 200;
 const chunks = <T,>(a: T[]) => Array.from({ length: Math.ceil(a.length / CHUNK) }, (_, i) => a.slice(i * CHUNK, i * CHUNK + CHUNK));
 const todayIso = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
@@ -176,11 +184,11 @@ export function TeamClientsCard() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border bg-card p-4">
+      {(teamQ.isLoading || mates.length > 0) && <div className="rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 text-sm font-semibold">My team ({mates.length}) <span className="font-normal text-xs text-muted-foreground">— tap a person to see their clients</span></div>
         {teamQ.isLoading ? <div className="text-xs text-muted-foreground">Loading team…</div> : mates.length === 0 && <div className="text-xs text-muted-foreground">Nobody reports to you yet.</div>}
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {mates.map((m) => {
+          {mates.map((m, i) => {
             const active = m.id === mateId;
             return (
               <button
@@ -188,7 +196,7 @@ export function TeamClientsCard() {
                 type="button"
                 onClick={() => { setMateId(active ? null : m.id); setPage(0); }}
                 aria-pressed={active}
-                className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
+                className={`flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${MATE_TONES[i % MATE_TONES.length]} ${active ? "border-primary ring-2 ring-primary/40" : "border-border/40"}`}
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{m.full_name}</div>
@@ -204,7 +212,7 @@ export function TeamClientsCard() {
             );
           })}
         </div>
-      </div>
+      </div>}
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
