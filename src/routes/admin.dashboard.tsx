@@ -69,6 +69,7 @@ import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { CasesSummaryTile, useCaseSummary } from "@/components/CasesSummaryTile";
 import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
 import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
@@ -1038,6 +1039,7 @@ function DashboardPage() {
   const pendingOnboarding = usePendingOnboardingCount();
   const teamLive = useTeamLiveCounts();
   const taskSummary = useTaskSummary();
+  const caseSummary = useCaseSummary(can("legal_cases"));
   const tiles = useMemo(() => {
     const t: { key: string; module: string; node: React.ReactNode }[] = [];
     if (data && opsFocus) {
@@ -1155,6 +1157,12 @@ function DashboardPage() {
         module: "tasks" as never,
         node: <TasksSummaryTile summary={taskSummary.data ?? null} />,
       });
+      if (can("legal_cases"))
+        t.push({
+          key: "cases",
+          module: "legal_cases" as never,
+          node: <CasesSummaryTile summary={caseSummary.data ?? null} />,
+        });
       return t;
     }
     if (data) {
@@ -1328,6 +1336,12 @@ function DashboardPage() {
         module: "tasks" as never,
         node: <TasksSummaryTile summary={taskSummary.data ?? null} />,
       });
+      if (can("legal_cases"))
+        t.push({
+          key: "cases",
+          module: "legal_cases" as never,
+          node: <CasesSummaryTile summary={caseSummary.data ?? null} />,
+        });
     }
     const widgetOf = (k: string) =>
       ["fo", "fo-live", "sites-today", "most-visited", "least-visited"].includes(k)
@@ -1344,6 +1358,7 @@ function DashboardPage() {
     pendingOnboarding,
     teamLive,
     taskSummary.data,
+    caseSummary.data,
   ]);
 
   if (permsLoading) {

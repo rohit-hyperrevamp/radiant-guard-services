@@ -305,6 +305,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "w_inv2", label: "Invoicing tile", path: "", icon: LayoutDashboard },
       { key: "w_onb", label: "Pending onboarding tile", path: "", icon: LayoutDashboard },
       { key: "w_tasks", label: "Tasks summary tile", path: "", icon: LayoutDashboard },
+      { key: "w_cases", label: "Case Desk tile (needs Case Desk access)", path: "", icon: LayoutDashboard },
       { key: "w_fo", label: "Field officers tiles", path: "", icon: LayoutDashboard },
       { key: "w_people_insights", label: "Birthdays & anniversaries", path: "", icon: LayoutDashboard },
       { key: "w_employee_insights", label: "Employee insights", path: "", icon: LayoutDashboard },
