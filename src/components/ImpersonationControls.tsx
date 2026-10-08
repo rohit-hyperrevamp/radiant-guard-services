@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Eye, Search, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { startImpersonation } from "@/lib/impersonation.functions";
+import { startImpersonation, searchImpersonationTargets } from "@/lib/impersonation.functions";
 import { beginImpersonation, endImpersonation, readImpersonation, type ImpersonationState } from "@/lib/impersonation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,7 @@ export function ViewAsUserButton({ className }: { className?: string }) {
 
 function ViewAsDialog({ onClose }: { onClose: () => void }) {
   const start = useServerFn(startImpersonation);
+  const search = useServerFn(searchImpersonationTargets);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
@@ -74,19 +75,18 @@ function ViewAsDialog({ onClose }: { onClose: () => void }) {
     let alive = true;
     const h = setTimeout(async () => {
       setLoading(true);
-      let query = supabase
-        .from("candidates")
-        .select("id,full_name,employee_code,mobile,role_key")
-        .not("mobile", "is", null)
-        .order("full_name")
-        .range(page * PAGE, page * PAGE + PAGE);
-      const term = q.trim().replace(/[,()%]/g, " ");
-      if (term) query = query.or(`full_name.ilike.%${term}%,employee_code.ilike.%${term}%,mobile.ilike.%${term}%`);
-      const { data } = await query;
+      let list: Row[] = [];
+      let more = false;
+      try {
+        const res = await search({ data: { q: q.trim(), page } });
+        list = res.rows as Row[];
+        more = res.hasMore;
+      } catch {
+        list = [];
+      }
       if (!alive) return;
-      const list = (data ?? []) as Row[];
-      setHasMore(list.length > PAGE);
-      setRows(list.slice(0, PAGE));
+      setHasMore(more);
+      setRows(list);
       setLoading(false);
     }, 250);
     return () => {

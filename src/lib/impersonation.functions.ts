@@ -87,3 +87,49 @@ export const startImpersonation = createServerFn({ method: "POST" })
       roleKey: String(target.role_key ?? ""),
     };
   });
+
+
+/**
+ * Super Admin-only employee search for "View as user". Runs with the admin
+ * client so every employee (leadership included) is listed regardless of the
+ * caller's own row-level access. Words are matched together first, then any
+ * word, so near-miss spellings still surface the person.
+ */
+export const searchImpersonationTargets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ q: z.string().max(80), page: z.number().int().min(0).max(500) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const superPhone = process.env["VITE_SUPER_ADMIN_PHONE"] || DEFAULT_SUPER_ADMIN_PHONE;
+    const callerPhone = phoneFromEmail(context.claims.email);
+    const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
+    let isSuper = callerPhone === superPhone;
+    if (!isSuper && callerPhone) {
+      const { data: me } = await supabaseAdmin.from("candidates").select("role_key").eq("mobile", callerPhone).maybeSingle();
+      isSuper = me?.role_key === "super_admin";
+    }
+    if (!isSuper) throw new Error("Only the Super Admin can view as another user.");
+    const PAGE = 25;
+    const words = data.q.replace(/[,()%*]/g, " ").trim().split(/\s+/).filter(Boolean);
+    const run = async (mode: "all" | "any") => {
+      let query = supabaseAdmin
+        .from("candidates")
+        .select("id,full_name,employee_code,mobile,role_key")
+        .not("mobile", "is", null)
+        .order("full_name")
+        .range(data.page * PAGE, data.page * PAGE + PAGE);
+      if (words.length === 1) {
+        const w = words[0];
+        query = query.or(`full_name.ilike.%${w}%,employee_code.ilike.%${w}%,mobile.ilike.%${w}%`);
+      } else if (words.length > 1 && mode === "all") {
+        for (const w of words) query = query.ilike("full_name", `%${w}%`);
+      } else if (words.length > 1) {
+        query = query.or(words.map((w) => `full_name.ilike.%${w}%`).join(","));
+      }
+      const { data: rows, error } = await query;
+      if (error) throw new Error(error.message);
+      return rows ?? [];
+    };
+    let rows = await run("all");
+    if (rows.length === 0 && words.length > 1) rows = await run("any");
+    return { rows: rows.slice(0, PAGE), hasMore: rows.length > PAGE };
+  });
