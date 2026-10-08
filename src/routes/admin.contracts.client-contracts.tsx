@@ -330,6 +330,8 @@ export type ContractResource = {
   benefits: BenefitItem[];
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
+  /** Round the final billing rate (Total CTC + reliever + management fee) to the nearest rupee. */
+  roundOffFinal?: boolean;
 };
 
 function cloneBenefitItem(item: BenefitItem): BenefitItem {
@@ -360,6 +362,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     benefits: (resource.benefits ?? []).map(cloneBenefitItem),
     deductions: (resource.deductions ?? []).map(cloneBenefitItem),
     employerContributions: (resource.employerContributions ?? []).map(cloneBenefitItem),
+    roundOffFinal: resource.roundOffFinal === true,
   };
 }
 
@@ -1201,7 +1204,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1221,6 +1224,7 @@ function useContractResources(contractId: string | null) {
         benefits: Array.isArray(r.benefits) ? (r.benefits as BenefitItem[]) : [],
         deductions: Array.isArray(r.deductions) ? (r.deductions as BenefitItem[]) : [],
         employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
+        roundOffFinal: r.round_off_final === true,
       }));
     },
   });
@@ -1893,6 +1897,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     benefits: r.benefits,
     deductions: r.deductions,
     employer_contributions: r.employerContributions,
+    round_off_final: r.roundOffFinal === true,
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
@@ -3493,6 +3498,7 @@ function ContractViewDialog({
                       employerContributions={r.employerContributions ?? []}
                       componentDescriptions={componentDescriptions}
                       hidePayableAndBelow={hidePayableAndBelow}
+                      roundOffFinal={r.roundOffFinal === true}
                     />
                   </div>
                 );
@@ -4461,7 +4467,8 @@ function ResourcesSection({
           (s, c) => s + (Number((c as { amount?: unknown }).amount) || 0),
           0,
         );
-        const monthly = gross + employer;
+        const monthlyRaw = gross + employer;
+        const monthly = r.roundOffFinal ? Math.round(monthlyRaw) : monthlyRaw;
         const bb = r.billingDayBaseId
           ? billingDayBases.find((b) => b.id === r.billingDayBaseId)
           : undefined;
@@ -4861,6 +4868,7 @@ export function ResourceFormDialog({
   const [benefits, setBenefits] = useState<BenefitItem[]>([]);
   const [deductions, setDeductions] = useState<BenefitItem[]>([]);
   const [employerContributions, setEmployerContributions] = useState<BenefitItem[]>([]);
+  const [roundOffFinal, setRoundOffFinal] = useState(false);
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -4910,7 +4918,8 @@ export function ResourceFormDialog({
       setBenefits(nextBenefits);
       setDeductions(nextDeductions);
       setEmployerContributions(nextEmployerContributions);
-      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions }]));
+      setRoundOffFinal(initial.roundOffFinal === true);
+      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true }]));
     } else {
       const nextComponents = allowanceTypes
         .filter((a) => a.isDefault)
@@ -4938,7 +4947,8 @@ export function ResourceFormDialog({
       setBenefits([]);
       setDeductions([]);
       setEmployerContributions([]);
-      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [] }]));
+      setRoundOffFinal(false);
+      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, billingDayBaseId: null, benefits: [], deductions: [], employerContributions: [], roundOffFinal: false }]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, allowanceTypes.length]);
@@ -4959,9 +4969,10 @@ export function ResourceFormDialog({
           benefits,
           deductions,
           employerContributions,
+          roundOffFinal,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -5674,6 +5685,7 @@ export function ResourceFormDialog({
       benefits,
       deductions,
       employerContributions,
+      roundOffFinal,
     });
   };
 
@@ -5696,6 +5708,7 @@ export function ResourceFormDialog({
       benefits,
       deductions,
       employerContributions,
+      roundOffFinal,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inline, currentResourceSnapshot]);
@@ -5740,8 +5753,60 @@ export function ResourceFormDialog({
 
   const selectedDesignation = designations.find((d) => d.id === designationId);
 
+  // Live totals for the summary card shown on top of the rate structure.
+  const summaryGross = gross + totalBenefits;
+  const summaryNetPayable = summaryGross - totalDeductions;
+  const summaryTotalCtc = summaryGross + totalEmployer;
+  const summaryReliever = employerContributions
+    .filter(isRelieverLine)
+    .slice(0, 1)
+    .reduce((s, b) => s + liveAddOnAmount("reliever", b), 0);
+  const summaryBillingRate = summaryTotalCtc + summaryReliever;
+  const summaryMgmtFee = employerContributions
+    .filter(isMgmtFeeLine)
+    .slice(0, 1)
+    .reduce((s, b) => s + liveAddOnAmount("mgmt", b), 0);
+  const summaryFinalRaw = summaryBillingRate + summaryMgmtFee;
+  const summaryFinal = roundOffFinal ? Math.round(summaryFinalRaw) : summaryFinalRaw;
+
   const content = (
         <div className="space-y-4 py-2">
+          {/* Total summary — shown on top, before the breakdown */}
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Total Summary
+            </h4>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {([
+                { label: "Gross Pay", value: summaryGross },
+                { label: "Deductions", value: totalDeductions },
+                { label: "Net Payable", value: summaryNetPayable },
+                { label: "Total CTC", value: summaryTotalCtc },
+                { label: "Billing Rate", value: summaryBillingRate },
+              ]).map((t) => (
+                <div key={t.label} className="rounded-lg border border-border bg-card px-3 py-2">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t.label}</div>
+                  <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                    ₹{t.value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg border border-primary/40 bg-primary/5 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Final Billing Rate</div>
+                  <RoundOffToggle on={roundOffFinal} label="Final billing rate" onToggle={() => preserveDialogScroll(() => setRoundOffFinal((v) => !v))} />
+                </div>
+                <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                  ₹{summaryFinal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                {roundOffFinal && summaryFinal !== summaryFinalRaw ? (
+                  <div className="text-[10px] text-muted-foreground">
+                    exact ₹{summaryFinalRaw.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {!isWages && (<>
             <Field label="Designation *">
@@ -6516,6 +6581,7 @@ export function ResourceFormDialog({
             deductions={deductions}
             employerContributions={employerContributions}
             componentDescriptions={componentDescriptions}
+            roundOffFinal={roundOffFinal}
           />
 
         </div>
@@ -6612,6 +6678,7 @@ export function SalaryBreakdownTable({
   employerContributions,
   componentDescriptions,
   hidePayableAndBelow = false,
+  roundOffFinal = false,
 }: {
   designationName: string;
   payrollDayBase: PayrollDayBase | undefined;
@@ -6621,6 +6688,8 @@ export function SalaryBreakdownTable({
   employerContributions: BenefitItem[];
   componentDescriptions?: Record<string, string>;
   hidePayableAndBelow?: boolean;
+  /** Round the Final Billing Rate row to the nearest rupee. */
+  roundOffFinal?: boolean;
 }) {
   const describeRow = (b: BenefitItem) =>
     describeComponentFormula(b, componentDescriptions?.[b.costComponentId] ?? null);
@@ -6707,7 +6776,8 @@ export function SalaryBreakdownTable({
 
         ]);
   const mgmtFeeTotal = mgmtFeeItems.reduce((sum, item) => sum + managementAmountFor(item), 0);
-  const grandTotal = totalRate + mgmtFeeTotal;
+  const grandTotalRaw = totalRate + mgmtFeeTotal;
+  const grandTotal = roundOffFinal ? Math.round(grandTotalRaw) : grandTotalRaw;
 
   const basisLabel = payrollDayBase
     ? payrollDayBase.method === "fixed_days"
@@ -6958,7 +7028,14 @@ export function SalaryBreakdownTable({
             })}
             {mgmtFeeItems.length > 0 && (
               <tr className="bg-indigo-100 font-bold dark:bg-indigo-500/20">
-                <td className="uppercase">Final Billing Rate Rs.</td>
+                <td className="uppercase">
+                  Final Billing Rate Rs.
+                  {roundOffFinal && grandTotal !== grandTotalRaw ? (
+                    <span className="ml-2 text-[11px] font-normal normal-case text-muted-foreground">
+                      rounded from ₹{grandTotalRaw.toFixed(2)}
+                    </span>
+                  ) : null}
+                </td>
                 <td className="text-center tabular-nums">{grandTotal.toFixed(2)}</td>
                 <td />
                 <td className="text-right text-base tabular-nums">{earnedGrand.toFixed(2)}</td>
