@@ -544,7 +544,8 @@ function PayrollUnitPage() {
             .select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date")
             .in("candidate_id", candidateIds)
             .lte("deduction_date", end)
-            .eq("status", "active"),
+            .eq("status", "active")
+            .or(`unit_id.is.null,unit_id.eq.${unitId}`),
           // A joining fee dated before the employee's first attended payroll
           // window must be carried into that first window rather than lost.
           // Knowing who already attended before this period prevents the

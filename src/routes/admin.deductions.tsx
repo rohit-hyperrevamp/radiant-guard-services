@@ -246,13 +246,21 @@ function useEmployees() {
   return useQuery({
     queryKey: ["admin", "employees-lite"],
     queryFn: async (): Promise<Emp[]> => {
-      const { data, error } = await supabase
-        .from("candidates")
-        .select("id,full_name,employee_code,mobile")
-        .in("status", ["approved", "active"])
-        .order("full_name");
-      if (error) throw error;
-      return (data ?? []).map((c) => ({
+      // Page through everyone — a single request stops at 1,000 rows.
+      const data: { id: string; full_name: string | null; employee_code: string | null; mobile: string | null }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data: page, error } = await supabase
+          .from("candidates")
+          .select("id,full_name,employee_code,mobile")
+          .in("status", ["approved", "active"])
+          .order("full_name")
+          .order("id")
+          .range(from, from + 999);
+        if (error) throw error;
+        data.push(...((page ?? []) as typeof data));
+        if (!page || page.length < 1000) break;
+      }
+      return data.map((c) => ({
         id: c.id as string,
         full_name: (c.full_name as string) ?? "",
         employee_code: (c.employee_code as string) ?? "",
@@ -697,7 +705,7 @@ function DeductionForm() {
     queryFn: async (): Promise<Deduction | null> => {
       const { data, error } = await supabase
         .from("deductions" as never)
-        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for,emi_group_id,emi_index,emi_total")
+        .select("id,candidate_id,unit_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for,emi_group_id,emi_index,emi_total")
         .eq("id", search.id!)
         .maybeSingle();
       if (error) throw error;
@@ -707,6 +715,8 @@ function DeductionForm() {
 
   const [candidateIds, setCandidateIds] = useState<string[]>([]);
   const [typeId, setTypeId] = useState("");
+  const [dedUnitId, setDedUnitId] = useState<string>("");
+  const formUnitsQ = useQuery({ queryKey: CHARTER_UNITS_QK, queryFn: fetchCharterUnits });
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [calc, setCalc] = useState<CalcType>("lumpsum");
   const [entryMode, setEntryMode] = useState<EntryMode>("lumpsum");
@@ -728,6 +738,7 @@ function DeductionForm() {
     const d = existing.data;
     setCandidateIds([d.candidate_id]);
     setTypeId(d.deduction_type_id);
+    setDedUnitId(((d as unknown as { unit_id?: string | null }).unit_id) ?? "");
     setDate(d.deduction_date);
     setCalc(d.calculation_type === "emi" ? "emi" : "lumpsum");
     const emiTotal = d.calculation_type === "emi" ? Math.max(1, d.emi_total ?? 1) : 1;
@@ -791,6 +802,7 @@ function DeductionForm() {
         status,
         min_duty: Math.max(0, Number(minDuty) || 0),
         max_duty: Math.max(0, Number(maxDuty) || 0),
+        unit_id: dedUnitId || null,
         ...extras,
       };
 
@@ -955,6 +967,21 @@ function DeductionForm() {
               value={candidateIds}
               onChange={setCandidateIds}
               placeholder="Select employees"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Unit (optional)</Label>
+            <SearchSelect
+              value={dedUnitId || "__all__"}
+              onChange={(v) => setDedUnitId(v === "__all__" ? "" : v)}
+              options={[
+                { value: "__all__", label: "Any unit (all payrolls)" },
+                ...(formUnitsQ.data?.units ?? []).map((u) => ({ value: u.id, label: u.name || u.code, hint: u.customer_name || undefined })),
+              ]}
+              placeholder="Any unit"
+              searchPlaceholder="Search unit…"
+              emptyText="No unit found."
+              ariaLabel="Select unit for deduction"
             />
           </div>
           <div className="grid gap-1.5">

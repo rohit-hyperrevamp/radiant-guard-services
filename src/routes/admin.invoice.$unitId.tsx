@@ -481,7 +481,8 @@ function PayrollUnitPage() {
             .in("candidate_id", candidateIds)
             .gte("deduction_date", start)
             .lte("deduction_date", end)
-            .eq("status", "active"),
+            .eq("status", "active")
+            .or(`unit_id.is.null,unit_id.eq.${unitId}`),
           supabase.from("addition_types").select("id, code"),
         ]);
         const phTypeIds = new Set<string>(
