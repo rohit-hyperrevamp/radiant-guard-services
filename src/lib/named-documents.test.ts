@@ -11,6 +11,7 @@ for (const [title, filename] of [
   assert.deepEqual(documentNames(path), { title, filename });
 }
 assert.deepEqual(documentNames("task-id/1720000000000-original.pdf"), {
-  title: "original.pdf", filename: "original.pdf",
+  title: "original.pdf",
+  filename: "original.pdf",
 });
 console.log("Custom names and original filenames round-trip; legacy attachments remain readable.");

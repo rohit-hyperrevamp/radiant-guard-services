@@ -9,7 +9,14 @@ export function documentNames(path: string) {
   const leaf = path.split("/").pop() ?? "Document";
   const parts = leaf.split("--");
   if (parts.length >= 3) {
-    try { return { title: decodeURIComponent(parts[1]), filename: decodeURIComponent(parts.slice(2).join("--")) }; } catch { /* Legacy names remain readable. */ }
+    try {
+      return {
+        title: decodeURIComponent(parts[1]),
+        filename: decodeURIComponent(parts.slice(2).join("--")),
+      };
+    } catch {
+      /* Legacy names remain readable. */
+    }
   }
   const filename = leaf.replace(/^\d+-/, "");
   return { title: filename, filename };
