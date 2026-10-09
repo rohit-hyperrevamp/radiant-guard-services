@@ -591,7 +591,7 @@ function PayrollUnitPage() {
       const { data: pdbs } = await supabase
         .from("payroll_day_bases")
         .select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled");
-      type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
+      type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
       const pdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
         (pdbs ?? []).map((p) => [
           p.id,
