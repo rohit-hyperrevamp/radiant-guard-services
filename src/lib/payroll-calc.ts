@@ -290,6 +290,14 @@ function formulaNameAliases(name: string): string[] {
     houserentallowance: ["house_rent_allowance", "hra"],
   };
   for (const alias of pairs[compact] ?? []) keys.add(alias);
+  // Short name: the label before any percent/number/bracket, so a line named
+  // "HRA 5% (Basic+DA)" is also reachable as `hra` in deduction formulas.
+  const lead = raw.split(/[\d(%]/)[0].trim();
+  if (lead && lead !== raw) {
+    const leadSlug = slugifyVar(lead);
+    if (leadSlug && leadSlug !== "x") keys.add(leadSlug);
+    for (const alias of pairs[normFormulaName(lead)] ?? []) keys.add(alias);
+  }
   return Array.from(keys);
 }
 
