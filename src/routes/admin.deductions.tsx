@@ -11,6 +11,7 @@ import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { PayrollTabs } from "@/components/PayrollTabs";
+import { SearchSelect } from "@/components/SearchSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -473,16 +474,15 @@ function DeductionList() {
         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:max-w-4xl">
           <div className="grid gap-1.5">
             <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Client</Label>
-            <Select value={effectiveUnitId} onValueChange={setUnitId}>
-              <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select unit" /></SelectTrigger>
-              <SelectContent className="max-h-[320px]">
-                {units.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.code}{u.customer_name ? ` · ${u.customer_name}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              value={effectiveUnitId}
+              onChange={setUnitId}
+              options={units.map((u) => ({ value: u.id, label: u.name || u.code, hint: u.customer_name || undefined }))}
+              placeholder="Select client…"
+              searchPlaceholder="Search client…"
+              emptyText="No client found."
+              ariaLabel="Select client"
+            />
           </div>
           <div className="grid gap-1.5">
             <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Month</Label>
