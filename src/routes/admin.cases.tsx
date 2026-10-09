@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SearchSelect } from "@/components/SearchSelect";
+import { EmployeePicker } from "@/components/EmployeePicker";
+import { confirmAction } from "@/components/ConfirmProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useFileViewer } from "@/components/FileViewer";
 import { useCurrentPermissions } from "@/lib/rbac";
@@ -40,7 +42,7 @@ type Case = {
   id: string; case_number: string; title: string; case_type_id: string | null; status: string; priority: string;
   description: string; employee_id: string | null; unit_id: string | null; opposing_party: string | null;
   court_or_authority: string | null; reference_no: string | null; filed_on: string | null; next_hearing_on: string | null; next_hearing_time?: string | null;
-  amount_involved: number | null; owner_id: string | null; outcome: string | null; created_at: string; updated_at: string;
+  amount_involved: number | null; owner_id: string | null; filed_by_id?: string | null; outcome: string | null; created_at: string; updated_at: string;
 };
 const STATUS: Record<string, { label: string; cls: string }> = {
   open: { label: "Open", cls: "bg-accent/15 text-accent" },
@@ -67,12 +69,21 @@ function useLookups() {
     queryFn: async () => {
       const [t, p, u] = await Promise.all([
         db.from("legal_case_types").select("id,name,is_active").order("sort_order"),
-        db.from("candidates").select("id,full_name,employee_code").neq("status", "inactive").order("full_name").limit(5000),
-        db.from("units").select("id,name,unit_code").order("name").limit(5000),
+        db.from("departments").select("id").eq("name", "Legal").maybeSingle(),
+        (async () => {
+          const out: { id: string; name: string; unit_code: string | null }[] = [];
+          for (let from = 0; from < 10000; from += 1000) {
+            const { data } = await db.from("units").select("id,name,code").order("name").range(from, from + 999);
+            out.push(...((data ?? []) as { id: string; name: string; code: string | null }[]).map((u) => ({ id: u.id, name: u.name, unit_code: u.code })));
+            if ((data ?? []).length < 1000) break;
+          }
+          return { data: out };
+        })(),
       ]);
+      const legal = p.data?.id ? await db.from("candidates").select("id,full_name,employee_code").eq("department_id", p.data.id).in("status", ["active", "approved"]).order("full_name") : { data: [] };
       return {
         types: (t.data ?? []) as { id: string; name: string; is_active: boolean }[],
-        people: (p.data ?? []) as { id: string; full_name: string; employee_code: string | null }[],
+        legalTeam: (legal.data ?? []) as { id: string; full_name: string; employee_code: string | null }[],
         units: (u.data ?? []) as { id: string; name: string; unit_code: string | null }[],
       };
     },
@@ -101,8 +112,22 @@ function CaseDesk() {
       return (data ?? []) as Case[];
     },
   });
+  const caseIds = useMemo(() => Array.from(new Set((casesQ.data ?? []).flatMap((c) => [c.employee_id, c.owner_id, c.filed_by_id]).filter(Boolean) as string[])).sort(), [casesQ.data]);
+  const namesQ = useQuery({
+    queryKey: ["case-people", caseIds.join(",")],
+    enabled: caseIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const m = new Map<string, string>();
+      for (let i = 0; i < caseIds.length; i += 150) {
+        const { data } = await db.from("candidates").select("id,full_name").in("id", caseIds.slice(i, i + 150));
+        for (const r of (data ?? []) as { id: string; full_name: string }[]) m.set(r.id, r.full_name);
+      }
+      return m;
+    },
+  });
   const typeName = (id: string | null) => lk.data?.types.find((t) => t.id === id)?.name ?? "—";
-  const personName = (id: string | null) => lk.data?.people.find((p) => p.id === id)?.full_name ?? "—";
+  const personName = (id: string | null) => (id ? namesQ.data?.get(id) ?? lk.data?.legalTeam.find((p) => p.id === id)?.full_name ?? "—" : "—");
   const unitName = (id: string | null) => lk.data?.units.find((u) => u.id === id)?.name ?? "—";
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -201,12 +226,13 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
   const set = (k: keyof Case, v: unknown) => setF((p) => ({ ...p, [k]: v === "" ? null : v }));
   const save = async () => {
     if (!f.title?.trim()) return toast.error("Enter a case title");
+    if (!(await confirmAction({ title: f.id ? "Save changes to this case?" : "Create this case?", confirmText: "Yes, save", cancelText: "Keep editing" }))) return;
     setBusy(true);
     const payload = {
       title: f.title.trim(), case_type_id: f.case_type_id ?? null, status: f.status ?? "open", priority: f.priority ?? "medium",
       description: f.description ?? "", employee_id: f.employee_id ?? null, unit_id: f.unit_id ?? null, opposing_party: f.opposing_party ?? null,
       court_or_authority: f.court_or_authority ?? null, reference_no: f.reference_no ?? null, filed_on: f.filed_on ?? null,
-      next_hearing_on: f.next_hearing_on || null, next_hearing_time: f.next_hearing_on ? (f.next_hearing_time || null) : null, amount_involved: f.amount_involved ?? null, owner_id: f.owner_id ?? null, outcome: f.outcome ?? null,
+      next_hearing_on: f.next_hearing_on || null, next_hearing_time: f.next_hearing_on ? (f.next_hearing_time || null) : null, amount_involved: f.amount_involved ?? null, owner_id: f.owner_id ?? null, filed_by_id: f.filed_by_id ?? null, outcome: f.outcome ?? null,
       closed_at: f.status === "closed" ? new Date().toISOString() : null,
     };
     const res = f.id ? await db.from("legal_cases").update(payload).eq("id", f.id).select("id,case_number").single()
@@ -218,7 +244,6 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
     toast.success(f.id ? "Case updated" : `Case ${res.data.case_number} created`);
     onSaved(); onClose();
   };
-  const people = (lk?.people ?? []).map((p) => ({ value: p.id, label: p.full_name, hint: p.employee_code ?? undefined }));
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -228,8 +253,9 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
           <Field label="Case type"><SearchSelect value={f.case_type_id ?? ""} onChange={(v) => set("case_type_id", v)} placeholder="Select type" options={(lk?.types ?? []).filter((t) => t.is_active || t.id === f.case_type_id).map((t) => ({ value: t.id, label: t.name }))} /></Field>
           <Field label="Status"><SearchSelect value={f.status ?? "open"} onChange={(v) => set("status", v)} options={Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label }))} /></Field>
           <Field label="Priority"><SearchSelect value={f.priority ?? "medium"} onChange={(v) => set("priority", v)} options={PRIORITY.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))} /></Field>
-          <Field label="Handled by"><SearchSelect value={f.owner_id ?? ""} onChange={(v) => set("owner_id", v)} placeholder="Select person" options={people} /></Field>
-          <Field label="Employee involved"><SearchSelect value={f.employee_id ?? ""} onChange={(v) => set("employee_id", v)} placeholder="Optional" options={people} /></Field>
+          <Field label="Filed by (Legal team)"><SearchSelect value={f.filed_by_id ?? ""} onChange={(v) => set("filed_by_id", v)} placeholder="Select team member" options={(lk?.legalTeam ?? []).map((p) => ({ value: p.id, label: p.full_name, hint: p.employee_code ?? undefined }))} /></Field>
+          <Field label="Handled by"><EmployeePicker value={f.owner_id ?? ""} onChange={(v) => set("owner_id", v)} placeholder="Select person" /></Field>
+          <Field label="Employee involved"><EmployeePicker value={f.employee_id ?? ""} onChange={(v) => set("employee_id", v)} placeholder="Search any employee or guard" /></Field>
           <Field label="Client / site"><SearchSelect value={f.unit_id ?? ""} onChange={(v) => set("unit_id", v)} placeholder="Optional" options={(lk?.units ?? []).map((u) => ({ value: u.id, label: u.name, hint: u.unit_code ?? undefined }))} /></Field>
           <Field label="Opposite party"><Input value={f.opposing_party ?? ""} onChange={(e) => set("opposing_party", e.target.value)} /></Field>
           <Field label="Court / authority"><Input value={f.court_or_authority ?? ""} onChange={(e) => set("court_or_authority", e.target.value)} /></Field>
@@ -241,7 +267,7 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
           <div className="sm:col-span-2"><Field label="Details"><Textarea rows={4} value={f.description ?? ""} onChange={(e) => set("description", e.target.value)} /></Field></div>
           <div className="sm:col-span-2"><Field label="Outcome / resolution"><Textarea rows={2} value={f.outcome ?? ""} onChange={(e) => set("outcome", e.target.value)} /></Field></div>
         </div>
-        <DialogFooter><Button variant="ghost" onClick={onClose}>Cancel</Button><Button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save case"}</Button></DialogFooter>
+        <DialogFooter><Button variant="ghost" onClick={onClose}>Cancel</Button><Button data-no-confirm="true" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save case"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -270,6 +296,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
   const [nextDate, setNextDate] = useState(c.next_hearing_on ?? "");
   const [nextTime, setNextTime] = useState(c.next_hearing_time?.slice(0, 5) ?? "");
   const saveNext = async () => {
+    if (!(await confirmAction({ title: "Save the next case date?", description: nextDate ? `${d(nextDate)}${nextTime ? ` at ${tm(nextTime)}` : ""} — Legal and Leadership will be notified.` : "The next case date will be cleared.", confirmText: "Yes, save", cancelText: "Keep editing" }))) return;
     const { error } = await db.from("legal_cases").update({ next_hearing_on: nextDate || null, next_hearing_time: nextDate ? (nextTime || null) : null }).eq("id", c.id);
     if (error) return toast.error(error.message);
     await db.from("legal_case_notes").insert({ case_id: c.id, kind: "hearing", note: nextDate ? `Next case date set to ${d(nextDate)}${nextTime ? ` at ${tm(nextTime)}` : ""}` : "Next case date cleared" });
@@ -302,11 +329,13 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
   };
   const addNote = async () => {
     if (!note.trim()) return;
+    if (!(await confirmAction({ title: "Add this update to the case?", confirmText: "Yes, add", cancelText: "Keep editing" }))) return;
     const { error } = await db.from("legal_case_notes").insert({ case_id: c.id, note: note.trim() });
     if (error) return toast.error(error.message);
     setNote(""); reload();
   };
   const setStatus = async (s: string) => {
+    if (!(await confirmAction({ title: `Change status to "${STATUS[s].label}"?`, confirmText: "Yes, change", cancelText: "Keep as is" }))) return;
     const { error } = await db.from("legal_cases").update({ status: s, closed_at: s === "closed" ? new Date().toISOString() : null }).eq("id", c.id);
     if (error) return toast.error(error.message);
     await db.from("legal_case_notes").insert({ case_id: c.id, kind: "status", note: `Status changed to ${STATUS[s].label}` });
@@ -321,7 +350,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
     onChanged(); onClose();
   };
   const info: Array<[string, string]> = [
-    ["Type", typeName(c.case_type_id)], ["Handled by", personName(c.owner_id)],
+    ["Type", typeName(c.case_type_id)], ["Filed by", personName(c.filed_by_id ?? null)], ["Handled by", personName(c.owner_id)],
     ["Employee", personName(c.employee_id)], ["Client / site", unitName(c.unit_id)], ["Opposite party", c.opposing_party ?? "—"],
     ["Court / authority", c.court_or_authority ?? "—"], ["Reference no.", c.reference_no ?? "—"],
     ["Amount", c.amount_involved != null ? `₹${Number(c.amount_involved).toLocaleString("en-IN")}` : "—"],
@@ -347,7 +376,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
               <div className="flex items-center gap-1.5 text-xs font-medium"><CalendarClock className="h-4 w-4 text-primary" />Next case date</div>
               <Input type="date" className="h-8 w-40" value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
               <Input type="time" className="h-8 w-28" value={nextTime} onChange={(e) => setNextTime(e.target.value)} />
-              <Button size="sm" onClick={saveNext}>Save date</Button>
+              <Button size="sm" data-no-confirm="true" onClick={saveNext}>Save date</Button>
               <Countdown date={c.next_hearing_on} time={c.next_hearing_time} />
             </div>
           )}
