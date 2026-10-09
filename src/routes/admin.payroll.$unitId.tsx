@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UnappliedDeductionsBanner } from "@/components/UnappliedDeductionsBanner";
 import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle, FileText, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -1875,6 +1876,14 @@ function PayrollUnitPage() {
         </div>
 
       </div>
+
+      <UnappliedDeductionsBanner
+        unitId={unitId}
+        start={start}
+        end={end}
+        ready={!isLoading && data !== undefined}
+        payrollPeople={Array.from(new Map(rows.map((r) => [r.id, { id: r.id, employeeCode: r.employeeCode, name: r.name }])).values())}
+      />
 
       {/* Payroll approval workflow */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-3">

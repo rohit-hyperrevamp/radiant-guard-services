@@ -123,8 +123,10 @@ export function UnappliedDeductionsBanner({
       void logActivity({
         module: "Deductions",
         action: "update",
-        description: `Moved deduction "${d.name}" from ${d.employeeCode} to ${target.employeeCode}`,
-      } as never);
+        entityType: "deductions",
+        entityId: d.id,
+        entityLabel: `${newName} (moved from ${d.employeeCode} to ${target.employeeCode})`,
+      });
       toast.success(`Moved to ${target.employeeCode} · ${target.name}`);
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["payroll-register-compute", unitId] }),
