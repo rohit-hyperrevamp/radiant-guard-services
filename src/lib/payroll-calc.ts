@@ -1205,12 +1205,18 @@ export function computeWages(
       Number(employerEsiItem?.capAmount) ||
       ESI_EARNED_GROSS_CEILING,
   });
+  const esiCeiling =
+    Number(employeeEsiItem?.capAmount) ||
+    Number(employerEsiItem?.capAmount) ||
+    ESI_EARNED_GROSS_CEILING;
+  const esiAboveCeiling = earnedGross > esiCeiling;
 
   const deductions = applyBonusRule(
     applyEsiRule(
       applyEpfRule(deductionsScaled, employeeEpfAmount),
       esi.employee,
       "ESI Employee Contribution",
+      esiAboveCeiling,
     ),
     employeeBonusAmount,
   );
@@ -1220,6 +1226,7 @@ export function computeWages(
         applyEpfRule(employerContributionsScaled, employerEpfAmount),
         esi.employer,
         "ESI Employer Contribution",
+        esiAboveCeiling,
       ),
       employerBonusAmount,
     ),
