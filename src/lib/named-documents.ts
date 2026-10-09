@@ -1,7 +1,8 @@
 export type PendingDocument = { id: string; file: File; title: string };
 
 export function documentPath(parentId: string, title: string, filename: string) {
-  return `${parentId}/${crypto.randomUUID()}--${encodeURIComponent(title.trim())}--${encodeURIComponent(filename)}`;
+  const encode = (value: string) => encodeURIComponent(value).replace(/-/g, "%2D");
+  return `${parentId}/${crypto.randomUUID()}--${encode(title.trim())}--${encode(filename)}`;
 }
 
 export function documentNames(path: string) {
