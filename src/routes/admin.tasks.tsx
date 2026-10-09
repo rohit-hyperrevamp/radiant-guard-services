@@ -433,8 +433,8 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
               <Textarea rows={2} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
               {mode === "decide" ? (
                 <div className="flex gap-2">
-                  <Button disabled={busy} onClick={async () => (await act("approve_extension", { until })) && toast.success("New date set")}>Approve new date</Button>
-                  <Button variant="outline" disabled={busy} onClick={() => act("reject_extension")}>Don't approve</Button>
+                  <Button disabled={busy} onClick={async () => (await act("approve_extension", { until })) && toast.success("New date set")}>{t.status === "extension_requested" ? "Approve new date" : "Save new date"}</Button>
+                  {t.status === "extension_requested" && <Button variant="outline" disabled={busy} onClick={() => act("reject_extension")}>Don't approve</Button>}
                 </div>
               ) : (
                 <Button disabled={busy} onClick={() => act("reopen", { until })}>Reopen task</Button>
