@@ -170,7 +170,7 @@ export type FixedDutyDivisor = string;
 export type PayrollDayBaseDef = {
   id: string;
   code?: string | null;
-  method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
+  method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
   fixedDays?: number | null;
   weeklyOffDay?: number | null;
   includedWeekdays?: number[] | null;
@@ -222,7 +222,7 @@ export type ContractResourceLike = {
   deductions: BenefitLike[];
   employerContributions: BenefitLike[];
   payrollDayBase: {
-    method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
+    method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
     fixedDays: number | null;
     weeklyOffDay: number | null;
     includedWeekdays?: number[] | null;
@@ -727,7 +727,11 @@ export function computeWages(
     if (pdb.method === "fixed_days" && pdb.fixedDays && pdb.fixedDays > 0) {
       baseDays = pdb.fixedDays;
     } else if (pdb.method === "fixed_annual_average") {
-      baseDays = 30.4166;
+      baseDays = Number(pdb.fixedDays) > 0 ? Number(pdb.fixedDays) : 30.4166;
+    } else if (pdb.method === "actual_minus_days") {
+      // e.g. "Days Minus Four": 31-day window → 27, 30 → 26.
+      const subtract = Number(pdb.fixedDays) > 0 ? Number(pdb.fixedDays) : 0;
+      baseDays = Math.max(periodDayCount - subtract, 1);
     } else if (pdb.method === "actual_minus_weekly_off") {
       // Rough approximation: assume ~4 weekly offs in the period.
       baseDays = Math.max(periodDayCount - 4, 1);
@@ -793,9 +797,13 @@ export function computeWages(
       case "fixed_days":
         return Number(base.fixedDays) > 0 ? Number(base.fixedDays) : baseDays;
       case "fixed_annual_average":
-        return 30.4166;
+        return Number(base.fixedDays) > 0 ? Number(base.fixedDays) : 30.4166;
       case "actual_days":
         return periodDayCount;
+      case "actual_minus_days": {
+        const subtract = Number(base.fixedDays) > 0 ? Number(base.fixedDays) : 0;
+        return Math.max(periodDayCount - subtract, 1);
+      }
       case "actual_minus_weekly_off": {
         const wd = base.weeklyOffDay;
         if (wd == null) return Math.max(periodDayCount - 4, 1);

@@ -3250,6 +3250,9 @@ function ClientContractsPage() {
             await persistResources(contractId, resources);
             await qc.invalidateQueries({ queryKey: ["admin", "contract-resources", contractId] });
             await qc.invalidateQueries({ queryKey: ["contract-designation-follow-up"] });
+            // Payroll / invoice pages recompute from the edited contract.
+            void qc.invalidateQueries({ queryKey: ["payroll-register-compute"] });
+            void qc.invalidateQueries({ queryKey: ["invoice-compute"] });
             void notifySaved({ title: "Saved", description: editing ? "Contract updated" : "Contract created" });
             return null;
           } catch (e) {

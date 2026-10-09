@@ -361,6 +361,9 @@ function PayrollUnitPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["invoice-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    // Always recompute from the live contract when the page opens.
+    staleTime: 0,
+    refetchOnMount: "always",
     // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
     // first render is wrong/zero until a manual refresh.
     enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
@@ -588,7 +591,7 @@ function PayrollUnitPage() {
       const { data: pdbs } = await supabase
         .from("payroll_day_bases")
         .select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled");
-      type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average";
+      type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
       const pdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
         (pdbs ?? []).map((p) => [
           p.id,
