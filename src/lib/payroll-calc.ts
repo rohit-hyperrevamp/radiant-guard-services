@@ -961,6 +961,14 @@ export function computeWages(
   // Deductions/contributions evaluate after earnings, so give their formulas
   // the final earned figures: earned_gross = every earned line incl. Extra
   // Duty and Paid Holiday; fixed_gross = full-month contract gross.
+  // REPLACE (not add to) the pass-1 component values — adding on top doubled
+  // Basic/DA/HRA inside every deduction formula.
+  for (const c of [...resource.components, ...components]) {
+    for (const key of formulaNameAliases(c.name)) {
+      const slug = slugifyVar(key);
+      if (slug) baseFormulaCtx[slug] = 0;
+    }
+  }
   components.forEach((c) => addFormulaContextAliases(baseFormulaCtx, Number(c.amount) || 0, c.name));
   baseFormulaCtx.earned_gross = earnedGross;
   baseFormulaCtx.fixed_gross = round2(contractGross);
@@ -1209,7 +1217,9 @@ export function computeWages(
     Number(employeeEsiItem?.capAmount) ||
     Number(employerEsiItem?.capAmount) ||
     ESI_EARNED_GROSS_CEILING;
-  const esiAboveCeiling = earnedGross > esiCeiling;
+  // ESIC eligibility ignores Extra Duty (overtime) wages — a guard is not
+  // pushed out of ESI just because he worked extra duties.
+  const esiAboveCeiling = earnedGrossExcludingEd > esiCeiling;
 
   const deductions = applyBonusRule(
     applyEsiRule(
