@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { CalendarClock, Eye, FileUp, X, Paperclip, Plus, Search } from "lucide-react";
+import { CalendarClock, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { useFileViewer } from "@/components/FileViewer";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
+import { NamedDocumentsPicker, SavedDocumentRow } from "@/components/NamedDocuments";
+import { documentPath, downloadDocument, type PendingDocument } from "@/lib/named-documents";
+import { prepareUpload, withUploadRetry } from "@/lib/robust-upload";
 import { PriorityBadge } from "@/components/PriorityBadge";
 
 export const Route = createFileRoute("/admin/cases")({
@@ -220,12 +223,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="block space-y-1 text-xs"><span className="text-muted-foreground">{label}</span>{children}</label>;
 }
 
+async function saveCaseDocument(caseId: string, doc: PendingDocument) {
+  const { blob, contentType } = await prepareUpload(doc.file);
+  const path = documentPath(caseId, doc.title, doc.file.name);
+  await withUploadRetry(async () => {
+    const { error } = await supabase.storage.from("legal-docs").upload(path, blob, { contentType, upsert: true });
+    if (error) throw error;
+  });
+  const { error } = await db.from("legal_case_documents").insert({ case_id: caseId, path, file_name: doc.file.name, title: doc.title.trim() });
+  if (error) {
+    await supabase.storage.from("legal-docs").remove([path]);
+    throw error;
+  }
+  void logActivity({ module: "Case Desk", action: "create", entityType: "legal_case_document", entityId: caseId, entityLabel: doc.title.trim() });
+}
+
 function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; lk?: ReturnType<typeof useLookups>["data"]; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState<Partial<Case>>(initial);
+  const [documents, setDocuments] = useState<PendingDocument[]>([]);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof Case, v: unknown) => setF((p) => ({ ...p, [k]: v === "" ? null : v }));
   const save = async () => {
     if (!f.title?.trim()) return toast.error("Enter a case title");
+    if (documents.some((doc) => !doc.title.trim())) return toast.error("Enter a name for every document");
     if (!(await confirmAction({ title: f.id ? "Save changes to this case?" : "Create this case?", confirmText: "Yes, save", cancelText: "Keep editing" }))) return;
     setBusy(true);
     const payload = {
@@ -237,8 +257,18 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
     };
     const res = f.id ? await db.from("legal_cases").update(payload).eq("id", f.id).select("id,case_number").single()
       : await db.from("legal_cases").insert(payload).select("id,case_number").single();
+    if (res.error) { setBusy(false); return toast.error(res.error.message); }
+    setF((previous) => ({ ...previous, id: res.data.id, case_number: res.data.case_number }));
+    try {
+      for (const doc of documents) {
+        await saveCaseDocument(res.data.id, doc);
+        setDocuments((remaining) => remaining.filter((item) => item.id !== doc.id));
+      }
+    } catch (error) {
+      setBusy(false); onSaved();
+      return toast.error(`Case saved, but a document could not be saved: ${error instanceof Error ? error.message : String(error)}`);
+    }
     setBusy(false);
-    if (res.error) return toast.error(res.error.message);
     if (f.id && initial.status !== payload.status) await db.from("legal_case_notes").insert({ case_id: f.id, kind: "status", note: `Status changed to ${STATUS[payload.status].label}` });
     void logActivity({ module: "Case Desk", action: f.id ? "update" : "create", entityType: "legal_case", entityId: res.data.id, entityLabel: `${res.data.case_number} ${payload.title}`, details: payload });
     toast.success(f.id ? "Case updated" : `Case ${res.data.case_number} created`);
@@ -246,9 +276,9 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
   };
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] sm:max-w-4xl overflow-y-auto">
         <DialogHeader><DialogTitle>{f.id ? `Edit ${f.case_number}` : "New case"}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="Case title *"><Input value={f.title ?? ""} onChange={(e) => set("title", e.target.value)} /></Field></div>
           <Field label="Case type"><SearchSelect value={f.case_type_id ?? ""} onChange={(v) => set("case_type_id", v)} placeholder="Select type" options={(lk?.types ?? []).filter((t) => t.is_active || t.id === f.case_type_id).map((t) => ({ value: t.id, label: t.name }))} /></Field>
           <Field label="Status"><SearchSelect value={f.status ?? "open"} onChange={(v) => set("status", v)} options={Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label }))} /></Field>
@@ -267,7 +297,8 @@ function CaseForm({ initial, lk, onClose, onSaved }: { initial: Partial<Case>; l
           <div className="sm:col-span-2"><Field label="Details"><Textarea rows={4} value={f.description ?? ""} onChange={(e) => set("description", e.target.value)} /></Field></div>
           <div className="sm:col-span-2"><Field label="Outcome / resolution"><Textarea rows={2} value={f.outcome ?? ""} onChange={(e) => set("outcome", e.target.value)} /></Field></div>
         </div>
-        <DialogFooter><Button variant="ghost" onClick={onClose}>Cancel</Button><Button data-no-confirm="true" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save case"}</Button></DialogFooter>
+        <NamedDocumentsPicker value={documents} onChange={setDocuments} disabled={busy} />
+        <DialogFooter><Button variant="ghost" disabled={busy} onClick={onClose}>Cancel</Button><Button data-no-confirm="true" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save case"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -292,7 +323,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
     },
   });
   const reload = () => qc.invalidateQueries({ queryKey: ["legal-case", c.id] });
-  const [pending, setPending] = useState<{ file: File; title: string }[] | null>(null);
+  const [pending, setPending] = useState<PendingDocument[]>([]);
   const [nextDate, setNextDate] = useState(c.next_hearing_on ?? "");
   const [nextTime, setNextTime] = useState(c.next_hearing_time?.slice(0, 5) ?? "");
   const saveNext = async () => {
@@ -303,29 +334,27 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
     void logActivity({ module: "Case Desk", action: "update", entityType: "legal_case", entityId: c.id, entityLabel: c.case_number, details: { next_hearing_on: nextDate, next_hearing_time: nextTime } });
     toast.success("Next case date saved; Legal and Leadership are notified"); onChanged(); reload();
   };
-  const pick = (files: FileList | null) => {
-    if (!files?.length) return;
-    const add = Array.from(files).map((file) => ({ file, title: file.name.replace(/\.[^.]+$/, "") }));
-    setPending((p) => [...(p ?? []), ...add]);
-  };
   const upload = async () => {
-    if (!pending?.length) return;
+    if (!pending.length) return;
     if (pending.some((x) => !x.title.trim())) return toast.error("Enter a name for every document");
+    if (!(await confirmAction({ title: "Save these documents to the case?", confirmText: "Save documents" }))) return;
     setBusy(true);
-    for (const { file, title } of pending) {
-      const path = `${c.id}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
-      const up = await supabase.storage.from("legal-docs").upload(path, file, { contentType: file.type || undefined });
-      if (up.error) { setBusy(false); return toast.error(`Upload failed: ${up.error.message}`); }
-      await db.from("legal_case_documents").insert({ case_id: c.id, path, file_name: file.name, title: title.trim() });
-      void logActivity({ module: "Case Desk", action: "create", entityType: "legal_case_document", entityId: c.id, entityLabel: `${c.case_number} · ${title.trim()}` });
-    }
-    setBusy(false); setPending(null); toast.success("Documents saved"); reload();
+    try {
+      for (const doc of pending) {
+        await saveCaseDocument(c.id, doc);
+        setPending((remaining) => remaining.filter((item) => item.id !== doc.id));
+      }
+      toast.success("Documents saved");
+    } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+    finally { setBusy(false); reload(); }
   };
   const viewFile = useFileViewer();
-  const openDoc = async (path: string, name: string) => {
+  const openDoc = async (path: string, name: string, filename: string, download = false) => {
     const { data, error } = await supabase.storage.from("legal-docs").createSignedUrl(path, 3600);
     if (error || !data) return toast.error("Could not open file");
-    viewFile({ url: data.signedUrl, name });
+    if (download) {
+      try { await downloadDocument(data.signedUrl, filename); } catch (error) { toast.error(error instanceof Error ? error.message : "Download failed"); }
+    } else viewFile({ url: data.signedUrl, name: `${name} · ${filename}` });
   };
   const addNote = async () => {
     if (!note.trim()) return;
@@ -358,7 +387,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
   ];
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] sm:max-w-4xl overflow-y-auto">
         <DialogHeader><DialogTitle className="pr-6">{c.case_number} · {c.title}</DialogTitle></DialogHeader>
         <div className="space-y-4 text-sm">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -383,36 +412,13 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
           {c.description && <p className="whitespace-pre-wrap">{c.description}</p>}
           {c.outcome && <p className="whitespace-pre-wrap rounded-lg bg-primary/5 p-2 text-xs"><b>Outcome:</b> {c.outcome}</p>}
           <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="font-medium">Documents</span>
-              {canEdit && (
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted">
-                  <FileUp className="h-3.5 w-3.5" />Add documents
-                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
-                </label>
-              )}
-            </div>
-            {pending && pending.length > 0 && (
-              <div className="mb-2 space-y-1.5 rounded-lg border border-border bg-muted/30 p-2">
-                <div className="text-xs text-muted-foreground">Name each document, then save.</div>
-                {pending.map((x, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Input className="h-8 flex-1" placeholder="Document name (e.g. Court notice)" value={x.title} onChange={(e) => setPending((p) => p!.map((y, j) => (j === i ? { ...y, title: e.target.value } : y)))} />
-                    <span className="max-w-[35%] truncate text-[11px] text-muted-foreground">{x.file.name}</span>
-                    <button onClick={() => setPending((p) => p!.filter((_, j) => j !== i))} aria-label="Remove"><X className="h-4 w-4 text-muted-foreground" /></button>
-                  </div>
-                ))}
-                <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setPending(null)}>Cancel</Button>
-                  <Button size="sm" disabled={busy} onClick={upload}>{busy ? "Uploading…" : `Save ${pending.length} document${pending.length > 1 ? "s" : ""}`}</Button>
-                </div>
-              </div>
-            )}
+            {canEdit ? <NamedDocumentsPicker value={pending} onChange={setPending} disabled={busy} /> : <h3 className="font-medium">Documents</h3>}
+            {pending.length > 0 && <div className="mt-3 flex justify-end"><Button size="sm" disabled={busy} data-no-confirm="true" onClick={upload}>{busy ? "Saving…" : "Save documents"}</Button></div>}
             <div className="space-y-1">
               {(extra.data?.docs ?? []).map((doc) => (
-                <button key={doc.id} onClick={() => openDoc(doc.path, doc.title || doc.file_name)} className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-left text-xs hover:bg-muted">
-                  <Paperclip className="h-3.5 w-3.5" /><span className="flex-1 truncate"><span className="font-medium">{doc.title || doc.file_name}</span>{doc.title && <span className="ml-1.5 text-muted-foreground">{doc.file_name}</span>}</span><span className="text-muted-foreground">{d(doc.created_at)}</span><Eye className="h-3.5 w-3.5 text-primary" />
-                </button>
+                <SavedDocumentRow key={doc.id} title={doc.title || doc.file_name} filename={doc.file_name} date={d(doc.created_at)}
+                  onView={() => void openDoc(doc.path, doc.title || doc.file_name, doc.file_name)}
+                  onDownload={() => void openDoc(doc.path, doc.title || doc.file_name, doc.file_name, true)} />
               ))}
               {extra.data?.docs.length === 0 && <div className="text-xs text-muted-foreground">No documents yet.</div>}
             </div>

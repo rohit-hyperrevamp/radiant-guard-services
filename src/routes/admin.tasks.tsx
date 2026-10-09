@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
-import { CheckCircle2, Clock, FileUp, Plus, Paperclip, Search } from "lucide-react";
+import { CheckCircle2, Clock, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,10 @@ import { PriorityBadge, PRIORITIES, priorityLabel } from "@/components/PriorityB
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { logActivity } from "@/lib/activity-log";
+import { NamedDocumentsPicker, SavedDocumentRow } from "@/components/NamedDocuments";
+import { useFileViewer } from "@/components/FileViewer";
+import { documentNames, documentPath, downloadDocument, type PendingDocument } from "@/lib/named-documents";
+import { prepareUpload, withUploadRetry } from "@/lib/robust-upload";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/tasks")({
@@ -252,11 +256,11 @@ function CreateTaskDialog({ departments, me, onClose, onCreated }: {
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90vh] sm:max-w-3xl overflow-y-auto">
         <DialogHeader><DialogTitle>New task</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Textarea placeholder="Describe what needs to be done" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} />
+        <div className="space-y-5">
+          <label className="block space-y-1"><span className="text-xs text-muted-foreground">Task title</span><Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+          <label className="block space-y-1"><span className="text-xs text-muted-foreground">Description</span><Textarea placeholder="Describe what needs to be done" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <div className="mb-1 text-xs text-muted-foreground">Department (optional)</div>
@@ -313,7 +317,8 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
   const [mode, setMode] = useState<null | "extend" | "complete" | "decide" | "reopen">(null);
   const [note, setNote] = useState("");
   const [until, setUntil] = useState(toLocalInput(t.extension_until ? new Date(t.extension_until) : new Date(Date.now() + 86400000)));
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<PendingDocument[]>([]);
+  const viewFile = useFileViewer();
   const [busy, setBusy] = useState(false);
 
   const evQ = useQuery({
@@ -347,21 +352,30 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
 
   const complete = async () => {
     if (!note.trim()) return toast.error("Please write a note about the work");
+    if (files.some((doc) => !doc.title.trim())) return toast.error("Enter a name for every document");
     setBusy(true);
     const paths: string[] = [];
-    for (const f of files) {
-      const path = `${t.id}/${Date.now()}-${f.name.replace(/[^\w.-]+/g, "_")}`;
-      const { error } = await supabase.storage.from("task-proofs").upload(path, f, { contentType: f.type || undefined });
-      if (error) { setBusy(false); return toast.error(`Upload failed: ${error.message}`); }
-      paths.push(path);
-    }
-    setBusy(false);
-    if (await act("complete", { paths })) toast.success("Task completed");
+    try {
+      for (const doc of files) {
+        const { blob, contentType } = await prepareUpload(doc.file);
+        const path = documentPath(t.id, doc.title, doc.file.name);
+        await withUploadRetry(async () => {
+          const { error } = await supabase.storage.from("task-proofs").upload(path, blob, { contentType, upsert: true });
+          if (error) throw error;
+        });
+        paths.push(path);
+      }
+      if (await act("complete", { paths })) toast.success("Task completed");
+      else if (paths.length) await supabase.storage.from("task-proofs").remove(paths);
+    } catch (error) {
+      if (paths.length) await supabase.storage.from("task-proofs").remove(paths);
+      toast.error(error instanceof Error ? error.message : String(error));
+    } finally { setBusy(false); }
   };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] sm:max-w-3xl overflow-y-auto">
         <DialogHeader><DialogTitle className="pr-6">{t.title}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-sm">
           <div className="flex flex-wrap gap-2">
@@ -383,13 +397,14 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
           )}
           {t.completion_note && <div className="rounded-lg bg-primary/10 p-3 text-xs"><b>Completion note:</b> {t.completion_note}</div>}
           {(proofsQ.data ?? []).length > 0 && (
-            <div className="space-y-1">
-              {(proofsQ.data ?? []).map((p) => (
-                <a key={p.path} href={p.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-primary underline">
-                  <Paperclip className="h-3 w-3" /> {p.path.split("/").pop()?.replace(/^\d+-/, "")}
-                </a>
-              ))}
-            </div>
+            <section><h3 className="text-sm font-medium">Documents</h3>
+              {(proofsQ.data ?? []).map((p) => {
+                const doc = documentNames(p.path);
+                return <SavedDocumentRow key={p.path} title={doc.title} filename={doc.filename}
+                  onView={() => p.url ? viewFile({ url: p.url, name: `${doc.title} · ${doc.filename}` }) : toast.error("Could not open document")}
+                  onDownload={() => { if (!p.url) return toast.error("Could not download document"); void downloadDocument(p.url, doc.filename).catch((error) => toast.error(error.message)); }} />;
+              })}
+            </section>
           )}
 
           <div>
@@ -418,11 +433,7 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
           {mode === "complete" && (
             <div className="space-y-2 rounded-lg border border-border p-3">
               <Textarea rows={3} placeholder="What was done? If it couldn't be completed, write the reason." value={note} onChange={(e) => setNote(e.target.value)} />
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-primary">
-                <FileUp className="h-4 w-4" /> Attach proof (PDF or image)
-                <input type="file" multiple accept="application/pdf,image/*" className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
-              </label>
-              {files.length > 0 && <div className="text-xs text-muted-foreground">{files.map((f) => f.name).join(", ")}</div>}
+              <NamedDocumentsPicker value={files} onChange={setFiles} disabled={busy} />
               <Button disabled={busy || !note.trim()} onClick={complete} className="gap-1"><CheckCircle2 className="h-4 w-4" /> {busy ? "Saving…" : "Mark complete"}</Button>
             </div>
           )}
