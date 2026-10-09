@@ -970,6 +970,21 @@ function DeductionForm() {
             />
           </div>
           <div className="grid gap-1.5">
+            <Label>Unit (optional)</Label>
+            <SearchSelect
+              value={dedUnitId || "__all__"}
+              onChange={(v) => setDedUnitId(v === "__all__" ? "" : v)}
+              options={[
+                { value: "__all__", label: "Any unit (all payrolls)" },
+                ...(formUnitsQ.data?.units ?? []).map((u) => ({ value: u.id, label: u.name || u.code, hint: u.customer_name || undefined })),
+              ]}
+              placeholder="Any unit"
+              searchPlaceholder="Search unit…"
+              emptyText="No unit found."
+              ariaLabel="Select unit for deduction"
+            />
+          </div>
+          <div className="grid gap-1.5">
             <Label>* Deduction Type</Label>
             <Select value={typeId} onValueChange={setTypeId}>
               <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
