@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { SearchSelect } from "@/components/SearchSelect";
+import { EmployeePicker } from "@/components/EmployeePicker";
+import { confirmAction } from "@/components/ConfirmProvider";
 import { PriorityBadge, PRIORITIES, priorityLabel } from "@/components/PriorityBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
@@ -39,7 +41,7 @@ type Task = {
   proof_paths: string[]; priority: string; completed_at: string | null; created_at: string;
 };
 type Ev = { id: string; task_id: string; actor_id: string | null; kind: string; note: string | null; data: Record<string, unknown>; created_at: string };
-type Person = { id: string; full_name: string | null; employee_code: string | null; department_id: string | null };
+type Person = { id: string; full_name: string | null; employee_code: string | null; department_id: string | null; designation_id?: string | null };
 
 const db = supabase as unknown as {
   from: (t: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -57,7 +59,9 @@ const fmt = (d?: string | null) => (d ? format(new Date(d), "dd MMM yyyy, h:mm a
 const toLocalInput = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
 
 function TasksPage() {
-  const { candidateId } = useCurrentUserRole();
+  const { candidateId: roleCandidateId } = useCurrentUserRole();
+  const meQ = useQuery({ queryKey: ["task-me"], staleTime: 10 * 60_000, queryFn: async () => (await db.rpc("current_user_candidate_id")).data as string | null });
+  const candidateId = meQ.data ?? roleCandidateId;
   const search = Route.useSearch();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"mine" | "assigned" | "all" | "recent">("mine");
@@ -81,17 +85,26 @@ function TasksPage() {
       return (data ?? []) as Task[];
     },
   });
+  const personIds = useMemo(() => Array.from(new Set((tasksQ.data ?? []).flatMap((t) => [t.created_by, t.assignee_id]))).sort(), [tasksQ.data]);
   const peopleQ = useQuery({
-    queryKey: ["task-people"],
+    queryKey: ["task-people", personIds.join(",")],
+    enabled: personIds.length > 0,
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("candidates")
-        .select("id,full_name,employee_code,department_id")
-        .in("status", ["active", "approved"]).not("role_key", "in", "(guard,security_guard)")
-        .order("full_name").limit(5000);
-      if (error) throw error;
-      return (data ?? []) as unknown as Person[];
+      const out: Person[] = [];
+      for (let i = 0; i < personIds.length; i += 150) {
+        const { data, error } = await supabase.from("candidates")
+          .select("id,full_name,employee_code,department_id,designation_id").in("id", personIds.slice(i, i + 150));
+        if (error) throw error;
+        out.push(...((data ?? []) as unknown as Person[]));
+      }
+      return out;
     },
+  });
+  const desigQ = useQuery({
+    queryKey: ["task-designations"],
+    staleTime: 30 * 60_000,
+    queryFn: async () => new Map((((await supabase.from("designations").select("id,name").limit(1000)).data ?? []) as { id: string; name: string }[]).map((d) => [d.id, d.name])),
   });
   const deptQ = useQuery({
     queryKey: ["task-departments"],
@@ -105,6 +118,8 @@ function TasksPage() {
   const people = useMemo(() => new Map((peopleQ.data ?? []).map((p) => [p.id, p])), [peopleQ.data]);
   const depts = useMemo(() => new Map((deptQ.data ?? []).map((d) => [d.id, d.name])), [deptQ.data]);
   const name = (id?: string | null) => (id ? people.get(id)?.full_name ?? "Someone" : "—");
+  const role = (id?: string | null) => { const p = id ? people.get(id) : undefined; return p?.designation_id ? desigQ.data?.get(p.designation_id) ?? "" : ""; };
+  const nameRole = (id?: string | null) => { const r = role(id); return r ? `${name(id)} (${r})` : name(id); };
 
   const all = tasksQ.data ?? [];
   const done = (t: Task) => t.status === "completed" || t.status === "cancelled";
@@ -116,7 +131,7 @@ function TasksPage() {
   };
   const tabs = [
     { k: "mine" as const, l: "My tasks" },
-    ...(permsQ.data?.canAssign || lists.assigned.length ? [{ k: "assigned" as const, l: "Assigned by me" }] : []),
+    { k: "assigned" as const, l: "Assigned by me" },
     ...(permsQ.data?.overseer ? [{ k: "all" as const, l: "All open" }] : []),
     { k: "recent" as const, l: "Recent tasks" },
   ];
@@ -138,9 +153,7 @@ function TasksPage() {
       <PageHeader
         title="Tasks"
         description="Assign work with a due time, follow it until it is done, and keep the proof in one place."
-        actions={permsQ.data?.canAssign ? (
-          <Button onClick={() => setCreating(true)} className="gap-1"><Plus className="h-4 w-4" /> New task</Button>
-        ) : undefined}
+        actions={<Button onClick={() => setCreating(true)} className="gap-1"><Plus className="h-4 w-4" /> New task</Button>}
       />
       <div className="flex flex-wrap gap-2">
         {tabs.map((t) => (
@@ -176,7 +189,7 @@ function TasksPage() {
               <div className="min-w-0">
                 <div className="truncate font-medium">{t.title}</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  {name(t.created_by)} → {name(t.assignee_id)}{t.department_id ? ` · ${depts.get(t.department_id) ?? ""}` : ""}
+                  {nameRole(t.created_by)} → {nameRole(t.assignee_id)}{t.department_id ? ` · ${depts.get(t.department_id) ?? ""}` : ""}
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
@@ -192,12 +205,12 @@ function TasksPage() {
 
       {creating && (
         <CreateTaskDialog
-          people={peopleQ.data ?? []} departments={deptQ.data ?? []} me={candidateId}
+          departments={deptQ.data ?? []} me={candidateId}
           onClose={() => setCreating(false)} onCreated={() => { setCreating(false); setTab("assigned"); refresh(); }}
         />
       )}
       {current && (
-        <TaskDialog task={current} me={candidateId} overseer={!!permsQ.data?.manage} canDelete={!!permsQ.data?.canDelete && (current?.created_by === candidateId || !!permsQ.data?.overseer)} name={name}
+        <TaskDialog task={current} me={candidateId} overseer={!!permsQ.data?.manage} canDelete={!!permsQ.data?.canDelete && (current?.created_by === candidateId || !!permsQ.data?.overseer)} name={nameRole}
           deptName={current.department_id ? depts.get(current.department_id) : undefined}
           onClose={() => setOpenId(undefined)} onChanged={refresh} />
       )}
@@ -205,8 +218,8 @@ function TasksPage() {
   );
 }
 
-function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
-  people: Person[]; departments: { id: string; name: string }[]; me: string | null;
+function CreateTaskDialog({ departments, me, onClose, onCreated }: {
+  departments: { id: string; name: string }[]; me: string | null;
   onClose: () => void; onCreated: () => void;
 }) {
   const [title, setTitle] = useState("");
@@ -219,15 +232,13 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
   const [dueTime, setDueTime] = useState("18:00");
   const due = dueDate ? `${dueDate}T${dueTime || "18:00"}` : "";
   const [saving, setSaving] = useState(false);
-  const deptName = new Map(departments.map((d) => [d.id, d.name]));
-  const options = people
-    .filter((p) => !dept || p.department_id === dept)
-    .map((p) => ({ value: p.id, label: `${p.full_name ?? "—"}${p.employee_code ? ` · ${p.employee_code}` : ""}`, hint: p.department_id ? deptName.get(p.department_id) : undefined }));
 
   const save = async () => {
-    if (!title.trim() || !assignee || !me) return toast.error("Add a title and choose a person");
+    if (!title.trim()) return toast.error("Add a task title");
+    if (!assignee) return toast.error("Choose who should do this task");
+    if (!me) return toast.error("Your employee profile isn't linked to this login, so tasks can't be assigned from it");
     setSaving(true);
-    const person = people.find((p) => p.id === assignee);
+    const { data: person } = await supabase.from("candidates").select("full_name,department_id").eq("id", assignee).maybeSingle();
     const { data, error } = await db.from("tasks").insert({
       title: title.trim(), description: desc.trim(), created_by: me, assignee_id: assignee,
       department_id: dept || person?.department_id || null, due_at: due ? new Date(due).toISOString() : null, priority,
@@ -255,7 +266,7 @@ function CreateTaskDialog({ people, departments, me, onClose, onCreated }: {
             </div>
             <div>
               <div className="mb-1 text-xs text-muted-foreground">Assign to</div>
-              <SearchSelect value={assignee} onChange={setAssignee} options={options} placeholder="Choose a person" searchPlaceholder="Search by name or ID…" />
+              <EmployeePicker value={assignee} onChange={setAssignee} departmentId={dept || undefined} activeOnly placeholder="Choose a person" />
             </div>
           </div>
           <div>
@@ -367,7 +378,7 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
           {t.description && <p className="whitespace-pre-wrap">{t.description}</p>}
           {t.status === "extension_requested" && (
             <div className="rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs">
-              <b>More time asked until {fmt(t.extension_until)}</b><div className="mt-1">{t.extension_reason}</div>
+              <b>More time asked</b><div>Current date: {fmt(t.due_at)} → Requested: <b>{fmt(t.extension_until)}</b></div><div className="mt-1">{t.extension_reason}</div>
             </div>
           )}
           {t.completion_note && <div className="rounded-lg bg-primary/10 p-3 text-xs"><b>Completion note:</b> {t.completion_note}</div>}
@@ -387,7 +398,7 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
               {(evQ.data ?? []).map((e) => (
                 <li key={e.id} className="text-xs">
                   <div><b>{name(e.actor_id)}</b> · {EV_LABEL[e.kind] ?? e.kind}
-                    {typeof e.data?.until === "string" && <> · {fmt(e.data.until as string)}</>}
+                    {typeof e.data?.from === "string" && typeof e.data?.until === "string" ? <> · <span className="line-through opacity-70">{fmt(e.data.from as string)}</span> → <b>{fmt(e.data.until as string)}</b></> : typeof e.data?.until === "string" && <> · {fmt(e.data.until as string)}</>}
                   </div>
                   {e.note && e.kind !== "created" && <div className="text-muted-foreground">{e.note}</div>}
                   <div className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}</div>
@@ -432,12 +443,13 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
           )}
         </div>
         <DialogFooter className="flex-wrap gap-2">
-          {isAssignee && t.status === "open" && <Button variant="outline" disabled={busy} onClick={() => act("acknowledge").then((ok) => ok && toast.success("Acknowledged"))}>Acknowledge</Button>}
+          {isAssignee && t.status === "open" && <Button disabled={busy} onClick={() => act("acknowledge").then((ok) => ok && toast.success("Acknowledged"))}>Acknowledge</Button>}
           {isAssignee && open && <Button variant="outline" onClick={() => setMode("extend")}>Ask for more time</Button>}
           {isAssignee && open && <Button onClick={() => setMode("complete")}>Complete task</Button>}
           {isManager && t.status === "extension_requested" && <Button onClick={() => setMode("decide")}>Review time request</Button>}
           {isManager && !open && t.status === "completed" && <Button variant="outline" onClick={() => setMode("reopen")}>Reopen</Button>}
-          {isManager && open && <Button variant="ghost" disabled={busy} onClick={() => act("cancel")}>Cancel task</Button>}
+          {isManager && open && t.status !== "extension_requested" && <Button variant="outline" onClick={() => setMode("decide")}>Change due date</Button>}
+          {isManager && open && <Button variant="ghost" disabled={busy} onClick={async () => { if (await confirmAction({ title: "Cancel this task?", confirmText: "Yes, cancel task", cancelText: "Keep it" })) void act("cancel"); }}>Cancel task</Button>}
           {canDelete && <Button variant="destructive" disabled={busy} onClick={async () => {
             if (!window.confirm("Delete this task permanently?")) return;
             setBusy(true);

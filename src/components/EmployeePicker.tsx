@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-type Emp = { id: string; full_name: string | null; employee_code: string | null; mobile?: string | null; designations?: { name: string | null } | null };
+type Emp = { id: string; full_name: string | null; employee_code: string | null; mobile?: string | null; designation_id?: string | null };
 
 /** Searchable single-employee picker over the whole company (name, employee ID or phone). Empty value = none. */
 export function EmployeePicker({
@@ -36,7 +36,16 @@ export function EmployeePicker({
     return () => clearTimeout(t);
   }, [query]);
 
-  const sel = "id,full_name,employee_code,mobile,designations:designation_id(name)";
+  const sel = "id,full_name,employee_code,mobile,designation_id";
+  const desigQ = useQuery({
+    queryKey: ["employee-picker-designations"],
+    staleTime: 30 * 60_000,
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase.from("designations").select("id,name").limit(1000);
+      return new Map(((data ?? []) as { id: string; name: string }[]).map((d) => [d.id, d.name]));
+    },
+  });
   const selectedQ = useQuery({
     queryKey: ["employee-picker-one", value],
     enabled: Boolean(value),
@@ -104,7 +113,7 @@ export function EmployeePicker({
                 <Check className={cn("h-4 w-4 shrink-0", e.id === value ? "opacity-100" : "opacity-0")} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate">{label(e)}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{[e.designations?.name, e.mobile].filter(Boolean).join(" · ")}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{[e.designation_id ? desigQ.data?.get(e.designation_id) : null, e.mobile].filter(Boolean).join(" · ")}</span>
                 </span>
               </button>
             ))
