@@ -227,7 +227,7 @@ async function saveCaseDocument(caseId: string, doc: PendingDocument) {
   const { blob, contentType } = await prepareUpload(doc.file);
   const path = documentPath(caseId, doc.title, doc.file.name);
   await withUploadRetry(async () => {
-    const { error } = await supabase.storage.from("legal-docs").upload(path, blob, { contentType, upsert: true });
+    const { error } = await supabase.storage.from("legal-docs").upload(path, blob, { contentType });
     if (error) throw error;
   });
   const { error } = await db.from("legal_case_documents").insert({ case_id: caseId, path, file_name: doc.file.name, title: doc.title.trim() });

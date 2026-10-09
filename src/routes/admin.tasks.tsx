@@ -360,7 +360,7 @@ function TaskDialog({ task: t, me, overseer, canDelete, name, deptName, onClose,
         const { blob, contentType } = await prepareUpload(doc.file);
         const path = documentPath(t.id, doc.title, doc.file.name);
         await withUploadRetry(async () => {
-          const { error } = await supabase.storage.from("task-proofs").upload(path, blob, { contentType, upsert: true });
+          const { error } = await supabase.storage.from("task-proofs").upload(path, blob, { contentType });
           if (error) throw error;
         });
         paths.push(path);
