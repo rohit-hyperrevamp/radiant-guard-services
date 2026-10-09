@@ -947,6 +947,15 @@ export function computeWages(
   const earnedGross = round2(
     components.reduce((s, c) => s + (Number(c.amount) || 0), 0),
   );
+
+  // Deductions/contributions evaluate after earnings, so give their formulas
+  // the final earned figures: earned_gross = every earned line incl. Extra
+  // Duty and Paid Holiday; fixed_gross = full-month contract gross.
+  components.forEach((c) => addFormulaContextAliases(baseFormulaCtx, Number(c.amount) || 0, c.name));
+  baseFormulaCtx.earned_gross = earnedGross;
+  baseFormulaCtx.fixed_gross = round2(contractGross);
+  baseFormulaCtx.ed_amount = otAmount;
+  baseFormulaCtx.ph_amount = phAmount;
   const ratio = contractGross > 0 ? earnedGross / contractGross : 0;
   const earnedSalaryRatio = baseRatio;
   // Fixed (non-prorated) deduction/contribution names. These stay at the
