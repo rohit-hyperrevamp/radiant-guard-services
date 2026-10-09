@@ -1855,6 +1855,7 @@ function PayrollUnitPage() {
               size="sm"
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ["payroll-register-compute", unitId, start, end] });
+                queryClient.invalidateQueries({ queryKey: ["payroll-unapplied-deductions", unitId] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "allowance-types"] });
