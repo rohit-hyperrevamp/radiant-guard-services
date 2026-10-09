@@ -313,17 +313,19 @@ function applyEsiRule(
   items: WageComponent[],
   share: number,
   _defaultName: string,
+  aboveCeiling = false,
 ): WageComponent[] {
   // Only the FIRST matching row carries the statutory amount; any other
   // ESI-named rows are zeroed so the contract can't double-count ESI.
   // If the contract has no ESI row, do NOT auto-inject — the contract is
   // the source of truth for whether ESI applies to this resource.
   // CUSTOM-FORMULA WINS: if the row carries its own formula_expression,
-  // keep the already-evaluated amount instead of overwriting with statutory.
+  // keep the already-evaluated amount instead of overwriting with statutory —
+  // but the statutory wage ceiling still zeroes it.
   let placed = false;
   return items.map((i) => {
     if (!ESI_NAME_RE.test(i.name)) return i;
-    if (hasConfiguredFormula(i)) return i;
+    if (hasConfiguredFormula(i)) return aboveCeiling ? { ...i, amount: 0 } : i;
     if (placed) return { ...i, amount: 0 };
     placed = true;
     return { ...i, amount: share };
@@ -1203,12 +1205,18 @@ export function computeWages(
       Number(employerEsiItem?.capAmount) ||
       ESI_EARNED_GROSS_CEILING,
   });
+  const esiCeiling =
+    Number(employeeEsiItem?.capAmount) ||
+    Number(employerEsiItem?.capAmount) ||
+    ESI_EARNED_GROSS_CEILING;
+  const esiAboveCeiling = earnedGross > esiCeiling;
 
   const deductions = applyBonusRule(
     applyEsiRule(
       applyEpfRule(deductionsScaled, employeeEpfAmount),
       esi.employee,
       "ESI Employee Contribution",
+      esiAboveCeiling,
     ),
     employeeBonusAmount,
   );
@@ -1218,6 +1226,7 @@ export function computeWages(
         applyEpfRule(employerContributionsScaled, employerEpfAmount),
         esi.employer,
         "ESI Employer Contribution",
+        esiAboveCeiling,
       ),
       employerBonusAmount,
     ),
