@@ -361,6 +361,9 @@ function PayrollUnitPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["invoice-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    // Always recompute from the live contract when the page opens.
+    staleTime: 0,
+    refetchOnMount: "always",
     // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
     // first render is wrong/zero until a manual refresh.
     enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,

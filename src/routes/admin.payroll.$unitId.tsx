@@ -442,6 +442,10 @@ function PayrollUnitPage() {
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
     enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    // Always recompute from the live contract / attendance when the page opens,
+    // so a contract edit shows up immediately (no 5-minute cache).
+    staleTime: 0,
+    refetchOnMount: "always",
     placeholderData: keepPreviousData,
     queryFn: async () => {
       await supabaseSessionReady();
