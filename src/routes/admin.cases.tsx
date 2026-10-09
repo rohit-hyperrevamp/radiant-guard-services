@@ -420,7 +420,7 @@ function CaseDetail({ c, canEdit, canDelete, typeName, personName, unitName, onE
           <div>
             <div className="mb-1.5 font-medium">Timeline</div>
             {canEdit && (
-              <div className="mb-2 flex gap-2"><Input placeholder="Add an update, hearing note…" value={note} onChange={(e) => setNote(e.target.value)} /><Button size="sm" onClick={addNote}>Add</Button></div>
+              <div className="mb-2 flex gap-2"><Input placeholder="Add an update, hearing note…" value={note} onChange={(e) => setNote(e.target.value)} /><Button size="sm" data-no-confirm="true" onClick={addNote}>Add</Button></div>
             )}
             <div className="space-y-1.5">
               {(extra.data?.notes ?? []).map((n) => (
