@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Case and task form documents
+- [x] Widen and space case/task forms; add custom-named multiple case documents on save and task documents on completion.
+- [x] Provide later in-app viewing and direct document downloads.
+- [x] Validate name persistence, legacy filenames and downloads with passing tests; latest build is clean.
+- [ ] Verify the updated save/view/download flow on production — blocked until publication; task creator attachments remain outside the existing assignee-only proof permissions.
+
 ## Single Tasks tile and global number readability
 - [x] Combine assigned and created task summaries into one central dashboard tile.
 - [x] Replace clipped summary values with shared width-fitting numbers across dashboard and module tiles.
