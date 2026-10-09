@@ -325,7 +325,11 @@ function applyEsiRule(
   let placed = false;
   return items.map((i) => {
     if (!ESI_NAME_RE.test(i.name)) return i;
-    if (hasConfiguredFormula(i)) return aboveCeiling ? { ...i, amount: 0 } : i;
+    // Per-line opt-out: `noEsiCeiling` charges the formula regardless of gross.
+    if (hasConfiguredFormula(i))
+      return aboveCeiling && !(i as { noEsiCeiling?: boolean }).noEsiCeiling
+        ? { ...i, amount: 0 }
+        : i;
     if (placed) return { ...i, amount: 0 };
     placed = true;
     return { ...i, amount: share };
