@@ -29,7 +29,11 @@ export type FormulaContext = {
 export const FORMULA_VARIABLES: { key: keyof FormulaContext; label: string; desc: string }[] = [
   { key: "basic",        label: "basic",        desc: "Basic component" },
   { key: "da",           label: "da",           desc: "Dearness allowance" },
-  { key: "gross",        label: "gross",        desc: "Contract gross" },
+  { key: "gross",        label: "gross",        desc: "Earned gross of regular wage lines (pro-rated, no ED/PH)" },
+  { key: "earned_gross", label: "earned_gross", desc: "Earned gross incl. Extra Duty and Paid Holiday (for deductions)" },
+  { key: "fixed_gross",  label: "fixed_gross",  desc: "Fixed full-month contract gross" },
+  { key: "ed_amount",    label: "ed_amount",    desc: "Extra Duty amount earned" },
+  { key: "ph_amount",    label: "ph_amount",    desc: "Paid Holiday amount earned" },
   { key: "fixed_amount", label: "fixed_amount", desc: "Manual fixed amount input on the contract" },
   { key: "fixed_days",   label: "fixed_days",   desc: "Fixed days (client base)" },
   { key: "working_days", label: "working_days", desc: "Working days in the period" },
