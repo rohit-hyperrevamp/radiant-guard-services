@@ -1274,6 +1274,9 @@ export function fmtINR(n: number): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0,
+    // Show the exact contract figure: whole rupees only when the contract
+    // line is rounded off (or the value is whole), else up to 2 decimals.
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(n);
 }
