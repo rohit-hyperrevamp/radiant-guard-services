@@ -26,3 +26,9 @@ describe("payroll day rule from the contract", () => {
     expect(basicFor({ method: "fixed_days", fixedDays: 26 }, 10)).toBe(5102.31);
   });
 });
+
+describe("Days Minus Four full month", () => {
+  it("27 present days in a 31-day window pay the full ₹13,266 Basic", () => {
+    expect(basicFor({ method: "actual_minus_days", fixedDays: 4 }, 27)).toBe(13266);
+  });
+});
