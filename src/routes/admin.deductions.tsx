@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { PayrollTabs } from "@/components/PayrollTabs";
 import { SearchSelect } from "@/components/SearchSelect";
+import { DeductionAttendanceWarning } from "@/components/DeductionAttendanceWarning";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -982,6 +983,18 @@ function DeductionForm() {
               searchPlaceholder="Search unit…"
               emptyText="No unit found."
               ariaLabel="Select unit for deduction"
+            />
+          </div>
+          <div className="md:col-span-2 lg:col-span-4 empty:hidden">
+            <DeductionAttendanceWarning
+              candidateIds={candidateIds}
+              date={date}
+              unitId={dedUnitId}
+              unitName={(formUnitsQ.data?.units ?? []).find((u) => u.id === dedUnitId)?.name}
+              employees={emps.data ?? []}
+              onReplace={(fromId, toId) =>
+                setCandidateIds((prev) => Array.from(new Set(prev.map((id) => (id === fromId ? toId : id)))))
+              }
             />
           </div>
           <div className="grid gap-1.5">
