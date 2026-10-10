@@ -268,7 +268,26 @@ function normFormulaName(name: string): string {
   return String(name ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function formulaNameAliases(name: string): string[] {
+/** Exact (full-name) formula keys claimed by a list of pay lines. */
+function exactFormulaKeys(names: string[]): Set<string> {
+  const out = new Set<string>();
+  for (const n of names) {
+    const raw = String(n ?? "").trim();
+    if (!raw) continue;
+    for (const label of [raw, canonicalComponentName(raw)]) {
+      out.add(slugifyVar(label));
+      out.add(normFormulaName(label));
+    }
+  }
+  return out;
+}
+
+/**
+ * `taken`: exact keys of the sibling pay lines. A short-name alias (e.g. `bonus`
+ * from "Bonus (Addition)") is skipped when another line is literally named that,
+ * so "Bonus" and "Bonus (Addition)" are not both summed into `bonus`.
+ */
+function formulaNameAliases(name: string, taken?: Set<string>): string[] {
   const raw = String(name ?? "").trim();
   if (!raw) return [];
   const canonical = canonicalComponentName(raw);
@@ -295,14 +314,17 @@ function formulaNameAliases(name: string): string[] {
   const lead = raw.split(/[\d(%]/)[0].trim();
   if (lead && lead !== raw) {
     const leadSlug = slugifyVar(lead);
-    if (leadSlug && leadSlug !== "x") keys.add(leadSlug);
-    for (const alias of pairs[normFormulaName(lead)] ?? []) keys.add(alias);
+    const claimed = !!taken && (taken.has(leadSlug) || taken.has(normFormulaName(lead)));
+    if (!claimed) {
+      if (leadSlug && leadSlug !== "x") keys.add(leadSlug);
+      for (const alias of pairs[normFormulaName(lead)] ?? []) keys.add(alias);
+    }
   }
   return Array.from(keys);
 }
 
-function addFormulaContextAliases(ctx: FormulaContext, amount: number, name: string) {
-  for (const key of formulaNameAliases(name)) {
+function addFormulaContextAliases(ctx: FormulaContext, amount: number, name: string, taken?: Set<string>) {
+  for (const key of formulaNameAliases(name, taken)) {
     const slug = slugifyVar(key);
     if (!slug) continue;
     ctx[slug] = round2((ctx[slug] ?? 0) + amount);
@@ -664,9 +686,10 @@ function benefitAmountFromConfig(
 
   const amountMap = (items: WageComponent[]) => {
     const map = new Map<string, number>();
+    const taken = exactFormulaKeys(items.map((c) => c.name));
     for (const c of items) {
       const amount = Number(c.amount) || 0;
-      const keys = new Set(formulaNameAliases(c.name));
+      const keys = new Set(formulaNameAliases(c.name, taken));
       keys.forEach((key) => map.set(key, round2((map.get(key) ?? 0) + amount)));
     }
     return map;
@@ -891,8 +914,9 @@ export function computeWages(
   };
   // Expose every contract component as a slugified variable, using the
   // PRO-RATED earned amount (not the full-month contract amount).
+  const resourceTaken = exactFormulaKeys(resource.components.map((c) => c.name));
   resource.components.forEach((c, idx) => {
-    addFormulaContextAliases(baseFormulaCtx, componentEarnedAmounts[idx] ?? 0, c.name);
+    addFormulaContextAliases(baseFormulaCtx, componentEarnedAmounts[idx] ?? 0, c.name, resourceTaken);
   });
 
   const tryFormulaAmount = (
@@ -986,7 +1010,8 @@ export function computeWages(
       if (slug) baseFormulaCtx[slug] = 0;
     }
   }
-  components.forEach((c) => addFormulaContextAliases(baseFormulaCtx, Number(c.amount) || 0, c.name));
+  const earnedTaken = exactFormulaKeys(components.map((c) => c.name));
+  components.forEach((c) => addFormulaContextAliases(baseFormulaCtx, Number(c.amount) || 0, c.name, earnedTaken));
   baseFormulaCtx.earned_gross = earnedGross;
   baseFormulaCtx.fixed_gross = round2(contractGross);
   baseFormulaCtx.ed_amount = otAmount;
@@ -1243,10 +1268,12 @@ export function computeWages(
     | (BenefitLike & { esiLimitOn?: string[]; esiLimitBasis?: string })
     | undefined;
   const esiLimitKeys = Array.isArray(esiLimitSrc?.esiLimitOn) ? esiLimitSrc!.esiLimitOn!.map((k) => slugifyVar(k)) : [];
-  const sumByKeys = (list: { name: string; amount: number | string | null | undefined }[]) =>
-    list
-      .filter((c) => formulaNameAliases(c.name).some((a) => esiLimitKeys.includes(slugifyVar(a))))
+  const sumByKeys = (list: { name: string; amount: number | string | null | undefined }[]) => {
+    const taken = exactFormulaKeys(list.map((c) => c.name));
+    return list
+      .filter((c) => formulaNameAliases(c.name, taken).some((a) => esiLimitKeys.includes(slugifyVar(a))))
       .reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
+  };
   const esiAboveCeiling = esiLimitKeys.length > 0
     ? (esiLimitSrc?.esiLimitBasis === "earnings" ? sumByKeys(benefitBaseComponents) : sumByKeys(resource.components)) > esiCeiling
     : earnedGrossExcludingEd > esiCeiling;
