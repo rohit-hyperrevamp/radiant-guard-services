@@ -1,1 +1,2 @@
 - Contract PF/ESI lines are per-line formulas; optional keys `esiLimitOn` + `esiLimitBasis` ("payrate"|"earnings") decide ESI eligibility, `roundMode` ("up"|"nearest") rounds, and an uncapped EPF formula is never clipped — matches Pages Payroll settings without per-client code.
+- Per-guard allowances live in `additions` (site-scoped `unit_id`, `repeat_monthly`/`end_date`, `prorate_by_days`, `counts_for_pf`/`counts_for_esi`); payroll applies them via `allowancePayable`/`applyAllowancePf` — person-specific pay never edits the shared contract rate.

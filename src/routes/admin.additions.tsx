@@ -404,7 +404,7 @@ function AdditionForm() {
     queryFn: async (): Promise<Addition | null> => {
       const { data, error } = await supabase
         .from("additions" as never)
-        .select("id,candidate_id,addition_type_id,addition_date,addition_name,calculation_type,amount,installments,description,status,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for")
+        .select("id,candidate_id,addition_type_id,addition_date,addition_name,calculation_type,amount,installments,description,status,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for,unit_id,repeat_monthly,end_date,prorate_by_days,counts_for_pf,counts_for_esi")
         .eq("id", search.id!)
         .maybeSingle();
       if (error) throw error;
@@ -425,6 +425,26 @@ function AdditionForm() {
   const [affectsDaysFor, setAffectsDaysFor] = useState<DayBucket[]>(["present"]);
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<Status>("active");
+  const [unitId, setUnitId] = useState("");
+  const [repeatMonthly, setRepeatMonthly] = useState(false);
+  const [endDate, setEndDate] = useState("");
+  const [prorate, setProrate] = useState(false);
+  const [countsPf, setCountsPf] = useState(false);
+  const [countsEsi, setCountsEsi] = useState(true);
+  const units = useQuery({
+    queryKey: ["admin", "additions", "units"],
+    queryFn: async () => {
+      const out: { id: string; code: string | null; name: string | null }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase.from("units").select("id, code, name").order("code").range(from, from + 999);
+        if (error) throw error;
+        out.push(...((data ?? []) as typeof out));
+        if ((data ?? []).length < 1000) break;
+      }
+      return out;
+    },
+    staleTime: 300_000,
+  });
   const [saving, setSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -443,6 +463,13 @@ function AdditionForm() {
     setPerDayAmount(d.per_day_amount != null ? String(d.per_day_amount) : "");
     setIncludeInTotalDays(Boolean(d.include_in_total_days));
     setAffectsDaysFor(Array.isArray(d.affects_days_for) && d.affects_days_for.length > 0 ? d.affects_days_for : ["present"]);
+    const x = d as unknown as { unit_id?: string | null; repeat_monthly?: boolean; end_date?: string | null; prorate_by_days?: boolean; counts_for_pf?: boolean; counts_for_esi?: boolean };
+    setUnitId(x.unit_id ?? "");
+    setRepeatMonthly(!!x.repeat_monthly);
+    setEndDate(x.end_date ?? "");
+    setProrate(!!x.prorate_by_days);
+    setCountsPf(!!x.counts_for_pf);
+    setCountsEsi(x.counts_for_esi !== false);
     setHydrated(true);
   }
 
@@ -480,6 +507,8 @@ function AdditionForm() {
       const amt = computedAmount;
       if (!Number.isFinite(amt) || amt < 0) throw new Error("Enter a valid amount");
       const inst = Math.max(1, parseInt(installments, 10) || 1);
+      if (repeatMonthly && !unitId) throw new Error("Pick the site for a monthly allowance, so it is not paid at the guard's other sites");
+      if (repeatMonthly && endDate && endDate < date) throw new Error("End date must be after the start date");
       const typePart = type?.name || "Addition";
       const basePayload = {
         addition_type_id: typeId,
@@ -494,6 +523,12 @@ function AdditionForm() {
         per_day_amount: entryMode === "days_x_per_day" ? (Number(perDayAmount) || 0) : null,
         include_in_total_days: entryMode === "days_x_per_day" ? includeInTotalDays : false,
         affects_days_for: entryMode === "days_x_per_day" && includeInTotalDays ? affectsDaysFor : [],
+        unit_id: unitId || null,
+        repeat_monthly: repeatMonthly,
+        end_date: repeatMonthly && endDate ? endDate : null,
+        prorate_by_days: prorate,
+        counts_for_pf: countsPf,
+        counts_for_esi: countsEsi,
       };
       if (isEdit && search.id) {
         const payload = { ...basePayload, candidate_id: candidateIds[0], addition_name: autoName };
@@ -648,6 +683,45 @@ function AdditionForm() {
               )}
             </div>
           )}
+
+          <div className="grid gap-3 md:col-span-2 lg:col-span-4 rounded-xl border border-border bg-muted/20 p-4">
+            <div>
+              <Label className="text-foreground">Payroll rules</Label>
+              <p className="text-xs text-muted-foreground">For an allowance paid to one guard only, e.g. ₹2,000 for CCTV duty.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-1.5">
+                <Label>Site (CLI)</Label>
+                <Select value={unitId || "__all"} onValueChange={(v) => setUnitId(v === "__all" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="All sites" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="__all">All sites</SelectItem>
+                    {(units.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.code} — {u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {repeatMonthly && (
+                <div className="grid gap-1.5">
+                  <Label>End date (optional)</Label>
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+              )}
+            </div>
+            {([
+              ["Repeat every month", "Paid each payroll from the date above until the end date (or until stopped).", repeatMonthly, setRepeatMonthly],
+              ["Pay by days worked", "Reduced for days not worked: amount × present days ÷ contract days.", prorate, setProrate],
+              ["Counts for PF", "Adds this allowance to the PF wage, within the contract's PF ceiling.", countsPf, setCountsPf],
+              ["Counts for ESI", "Includes this allowance in the ESI wage and the ₹21,000 limit.", countsEsi, setCountsEsi],
+            ] as const).map(([label, hint, val, set]) => (
+              <div key={label} className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{label}</p>
+                  <p className="text-xs text-muted-foreground">{hint}</p>
+                </div>
+                <Switch checked={val} onCheckedChange={set} />
+              </div>
+            ))}
+          </div>
 
           <div className="grid gap-1.5 md:col-span-2 lg:col-span-4">
             <Label>Description</Label>
