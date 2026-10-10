@@ -264,6 +264,23 @@ const GRATUITY_NAME_RE = /\bgratuity\b/i;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/** Applies a contract line's rounding: "up" = next rupee, "nearest"/roundOff = nearest rupee. */
+function roundLineAmount(raw: number, mode: string | null | undefined, roundOff: boolean | null | undefined): number {
+  if (mode === "up") return Math.ceil(round2(raw));
+  if (mode === "nearest" || roundOff) return Math.round(raw);
+  return raw;
+}
+
+/** Adds `extra` to a line on top of its unrounded value, then re-applies the line's rounding. */
+function addToRoundedLine(item: WageComponent, extra: number): WageComponent {
+  const raw = Number(item.preRoundAmount ?? item.amount) || 0;
+  const next = raw + extra;
+  return { ...item, amount: roundLineAmount(next, item.roundMode, item.roundOff), preRoundAmount: next };
+}
+
+// Washing allowance shows up as "Washing Allowance" or just "WA".
+const WASHING_NAME_RE = /\bwashing\b|^\s*w\.?\s*a\.?\s*$/i;
+
 function hasConfiguredFormula(item: { formulaExpression?: string | null }): boolean {
   return !!item.formulaExpression?.trim();
 }
