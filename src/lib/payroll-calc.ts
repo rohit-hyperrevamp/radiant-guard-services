@@ -1269,6 +1269,9 @@ export function computeWages(
     return items.map((i) => {
       if (!EPF_NAME_RE.test(i.name)) return i;
       const src = contractItems.find((c) => EPF_NAME_RE.test(c.name));
+      // A contract formula without a configured ceiling is uncapped on
+      // purpose (e.g. Pages "PF limit off"); its own min(...) handles caps.
+      if (src && hasConfiguredFormula(src) && !(Number(src.capAmount) > 0)) return i;
       const ceiling = Number(src?.capAmount) > 0 ? Number(src?.capAmount) : EPF_WAGE_CEILING;
       const pct = Number(src?.percentage) > 0 ? Number(src?.percentage) : 12;
       const maxAmount = Number(src?.capFlatAmount) > 0
