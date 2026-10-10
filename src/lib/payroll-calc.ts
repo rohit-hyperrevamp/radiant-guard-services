@@ -1353,3 +1353,56 @@ export function fmtINR(n: number): string {
     maximumFractionDigits: 2,
   }).format(n);
 }
+
+// ---- Per-employee allowances (additions) ----
+// A person-specific allowance (e.g. CCTV duty ₹2,000) is paid on top of the
+// contract rate. `prorate` pays it by present days over the contract day base;
+// `countsForPf` adds it to the EPF wage within any configured ceiling;
+// `countsForEsi=false` keeps it out of the ESI base.
+export type EmployeeAllowance = {
+  name: string;
+  amount: number;
+  prorate?: boolean;
+  countsForPf?: boolean;
+  countsForEsi?: boolean;
+};
+
+export function allowancePayable(a: EmployeeAllowance, presentDays: number, baseDays: number): number {
+  const amt = Number(a.amount) || 0;
+  if (!a.prorate) return round2(amt);
+  if (!(baseDays > 0)) return 0;
+  return round2(amt * Math.min(1, Math.max(0, presentDays) / baseDays));
+}
+
+function addToPfLine(items: WageComponent[], extra: number): WageComponent[] {
+  if (!(extra > 0)) return items;
+  let done = false;
+  return items.map((it) => {
+    if (done || !EPF_NAME_RE.test(it.name) || /\beps\b|pension|admin|edli/i.test(it.name)) return it;
+    const pct = Number(it.percentage) || 0;
+    if (!(pct > 0)) return it;
+    done = true;
+    const cap = Number(it.capAmount) || 0;
+    const currentBase = (Number(it.amount) || 0) / (pct / 100);
+    const room = cap > 0 ? Math.max(0, cap - currentBase) : extra;
+    return { ...it, amount: round2((Number(it.amount) || 0) + Math.min(extra, room) * (pct / 100)) };
+  });
+}
+
+/** Adds PF on PF-eligible allowances and recomputes totals. ESI is handled by applyEsiToWageComputation. */
+export function applyAllowancePf(wages: WageComputation, pfAllowance: number): WageComputation {
+  if (!(pfAllowance > 0)) return wages;
+  const deductions = addToPfLine(wages.deductions, pfAllowance);
+  const employerContributions = addToPfLine(wages.employerContributions, pfAllowance);
+  const totalDeductions = round2(deductions.reduce((s, d) => s + d.amount, 0));
+  const totalEmployerContributions = round2(employerContributions.reduce((s, d) => s + d.amount, 0));
+  return {
+    ...wages,
+    deductions,
+    employerContributions,
+    totalDeductions,
+    totalEmployerContributions,
+    netPay: Math.max(0, round2(wages.earnedGross - totalDeductions)),
+    employerCost: round2(wages.earnedGross + totalEmployerContributions),
+  };
+}
