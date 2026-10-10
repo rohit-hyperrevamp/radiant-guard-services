@@ -40,6 +40,8 @@ export type CharterUnit = {
   security_guards: { id: string; name: string }[];
 };
 
+export type AttendanceStatusFilter = "all" | "open" | "in_progress" | "submitted" | "approved";
+
 type CodeRow = { code: string; counts_as_present: boolean; is_paid: boolean; day_value: number | string | null };
 
 type PersonStat = {
@@ -163,14 +165,26 @@ export function AttendanceCharter({
   const filteredUnits = useMemo(() => {
     if (statusFilter === "all") return matchedUnits;
     return matchedUnits.filter((unit) => {
-      const approved = allStatusQ.data?.get(unit.id)?.attendance === "approved";
-      return statusFilter === "approved" ? approved : !approved;
+      const st = allStatusQ.data?.get(unit.id)?.attendance ?? "none";
+      if (statusFilter === "approved") return st === "approved";
+      if (statusFilter === "submitted") return st === "submitted";
+      if (statusFilter === "in_progress") return st === "draft" || st === "rejected";
+      return st === "none";
     });
   }, [allStatusQ.data, matchedUnits, statusFilter]);
   const statusCounts = useMemo(() => {
     let approved = 0;
-    for (const u of matchedUnits) if (allStatusQ.data?.get(u.id)?.attendance === "approved") approved++;
-    return { approved, open: matchedUnits.length - approved };
+    let submitted = 0;
+    let inProgress = 0;
+    let open = 0;
+    for (const u of matchedUnits) {
+      const st = allStatusQ.data?.get(u.id)?.attendance ?? "none";
+      if (st === "approved") approved += 1;
+      else if (st === "submitted") submitted += 1;
+      else if (st === "draft" || st === "rejected") inProgress += 1;
+      else open += 1;
+    }
+    return { approved, submitted, inProgress, open: open + inProgress };
   }, [allStatusQ.data, matchedUnits]);
 
   const [page, setPage] = useState(0);
@@ -413,14 +427,16 @@ export function AttendanceCharter({
           />
         </div>
         {onStatusFilterChange && (
-          <Select value={statusFilter} onValueChange={(value) => onStatusFilterChange(value as "all" | "open" | "approved")}>
+          <Select value={statusFilter} onValueChange={(value) => onStatusFilterChange(value as AttendanceStatusFilter)}>
             <SelectTrigger className="h-9 w-[142px] rounded-lg sm:w-52 sm:rounded-xl" aria-label="Attendance status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All attendance</SelectItem>
-              <SelectItem value="open">Attendance open</SelectItem>
-              <SelectItem value="approved">Attendance approved</SelectItem>
+              <SelectItem value="in_progress">In progress</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="open">Open (not filled)</SelectItem>
             </SelectContent>
           </Select>
         )}
@@ -428,6 +444,9 @@ export function AttendanceCharter({
           <div className="col-span-2 flex items-center gap-2 text-xs">
             <button type="button" onClick={() => onStatusFilterChange("approved")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
               <span className="font-semibold text-emerald-600">{allStatusQ.isLoading ? "…" : statusCounts.approved}</span> approved
+            </button>
+            <button type="button" onClick={() => onStatusFilterChange("submitted")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
+              <span className="font-semibold text-sky-600">{allStatusQ.isLoading ? "…" : statusCounts.submitted}</span> submitted
             </button>
             <button type="button" onClick={() => onStatusFilterChange("open")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
               <span className="font-semibold text-destructive">{allStatusQ.isLoading ? "…" : statusCounts.open}</span> open

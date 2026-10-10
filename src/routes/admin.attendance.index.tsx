@@ -88,7 +88,7 @@ function AttendanceUnitsPage() {
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "approved">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "in_progress" | "submitted" | "approved">("all");
 
 
 
