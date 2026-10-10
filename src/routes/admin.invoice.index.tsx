@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { z } from "zod";
@@ -25,10 +26,10 @@ export const Route = createFileRoute("/admin/invoice/")({
 
 function InvoiceUnitsPage() {
   const search = Route.useSearch();
-  const [q, setQ] = useState("");
-  const [orgFilter, setOrgFilter] = useState<string[]>([]);
-  const [unitFilter, setUnitFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | MoneyStatus>("all");
+  const [q, setQ] = useSessionState("invoice:q", "");
+  const [orgFilter, setOrgFilter] = useSessionState<string[]>("invoice:orgFilter", []);
+  const [unitFilter, setUnitFilter] = useSessionState<string[]>("invoice:unitFilter", []);
+  const [statusFilter, setStatusFilter] = useSessionState<"all" | MoneyStatus>("invoice:statusFilter", "all");
   const [filterResetKey, setFilterResetKey] = useState(0);
 
   const { data, isLoading, error } = useQuery({
@@ -42,7 +43,7 @@ function InvoiceUnitsPage() {
     () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
     [rawUnits, foScope.isScoped, foScope.unitIds],
   );
-  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
+  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search, "invoice");
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
   const unitOptions = useMemo(
