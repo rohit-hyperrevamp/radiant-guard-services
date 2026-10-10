@@ -1481,3 +1481,35 @@ export function applyAllowancePf(wages: WageComputation, pfAllowance: number): W
     employerCost: round2(wages.earnedGross + totalEmployerContributions),
   };
 }
+
+/**
+ * Folds per-employee additions into one payslip line, the same way on every
+ * screen (payroll register, invoice, live deductions):
+ * - each addition is paid via `allowancePayable` (optional day proration);
+ * - all of them add to earned gross;
+ * - ESI-eligible ones (`countsForEsi !== false`) add to the ESI wage, including
+ *   contract ESI lines that use their own formula;
+ * - PF-eligible ones (`countsForPf`) add to the EPF wage within its ceiling.
+ */
+export function applyEmployeeAdditions(
+  wages: WageComputation,
+  adds: EmployeeAllowance[],
+  presentDays: number,
+  opts: { isDisabled?: boolean } = {},
+): { wages: WageComputation; additions: { name: string; amount: number }[] } {
+  const payable = adds
+    .map((a) => ({ ...a, amount: allowancePayable(a, presentDays, wages.baseDays) }))
+    .filter((a) => a.amount > 0);
+  const sum = (list: typeof payable) => round2(list.reduce((s, a) => s + a.amount, 0));
+  const addTotal = sum(payable);
+  const nonEsiTotal = sum(payable.filter((a) => a.countsForEsi === false));
+  const esiTotal = round2(addTotal - nonEsiTotal);
+  const pfTotal = sum(payable.filter((a) => a.countsForPf));
+  const fullGross = round2(wages.earnedGross + addTotal);
+  let w = applyEsiToWageComputation(
+    { ...wages, earnedGross: round2(fullGross - nonEsiTotal) },
+    { isDisabled: opts.isDisabled, extraEsiWage: esiTotal },
+  );
+  w = applyAllowancePf({ ...w, earnedGross: fullGross }, pfTotal);
+  return { wages: w, additions: payable.map((a) => ({ name: a.name, amount: a.amount })) };
+}
