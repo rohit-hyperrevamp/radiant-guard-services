@@ -1,3 +1,4 @@
+import { payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -100,13 +101,12 @@ const contractTotalAmount = (item: { name?: unknown; amount?: unknown }) =>
 // ---- Register column helpers (shared by the on-screen table and the CSV) ----
 type NamedAmount = { name: string; amount: number };
 
-const normColName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const normColName = (s: string) => payItemKey(s);
 
 function lookupAmount(items: NamedAmount[] | undefined, label: string): number {
   if (!items) return 0;
   const target = normColName(label);
-  const hit = items.find((i) => normColName(i.name) === target);
-  return hit ? Number(hit.amount) || 0 : 0;
+  return items.reduce((s, i) => (normColName(i.name) === target ? s + (Number(i.amount) || 0) : s), 0);
 }
 
 const sumAmounts = (items: NamedAmount[] | undefined, names: string[]) =>
@@ -1484,7 +1484,7 @@ function PayrollUnitPage() {
           if (!it?.name) return;
           const key = normColName(it.name);
           if (!key || seen.has(key)) return;
-          seen.set(key, it.name);
+          seen.set(key, standardPayItemName(it.name));
         });
       });
       return Array.from(seen.values());
@@ -1531,13 +1531,12 @@ function PayrollUnitPage() {
     }
 
     // ---- helpers ----
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const norm = (s: string) => payItemKey(s);
     const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
     const lookup = (items: { name: string; amount: number }[] | undefined, label: string) => {
       if (!items) return 0;
       const target = norm(label);
-      const hit = items.find((i) => norm(i.name) === target);
-      return hit ? Number(hit.amount) || 0 : 0;
+      return items.reduce((s, i) => (norm(i.name) === target ? s + (Number(i.amount) || 0) : s), 0);
     };
     const sumByNames = (
       items: { name: string; amount: number }[] | undefined,
@@ -1553,7 +1552,7 @@ function PayrollUnitPage() {
           if (!it?.name) return;
           const key = norm(it.name);
           if (!key || seen.has(key)) return;
-          seen.set(key, it.name);
+          seen.set(key, standardPayItemName(it.name));
         });
       });
       return Array.from(seen.values());
