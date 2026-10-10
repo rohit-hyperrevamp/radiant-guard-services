@@ -194,6 +194,10 @@ export type WageComponent = {
   formulaVersion?: number | null;
   /** Round this line to the nearest rupee. */
   roundOff?: boolean | null;
+  /** Contract rounding for this line: "up" = next rupee, "nearest" = nearest. */
+  roundMode?: string | null;
+  /** Amount before the line's rounding, so later additions can re-round exactly. */
+  preRoundAmount?: number | null;
 };
 export type BenefitLike = {
   name: string;
@@ -1329,10 +1333,13 @@ export function computeWages(
   const roundFlagged = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] =>
     items.map((i) => {
       const src = contractItems.find((c) => c.name === i.name) as (BenefitLike & { roundMode?: string }) | undefined;
-      const mode = (i as { roundMode?: string }).roundMode ?? src?.roundMode;
-      if (mode === "up") return { ...i, amount: Math.ceil(round2(Number(i.amount) || 0)) };
-      const flagged = mode === "nearest" || (i.roundOff ?? src?.roundOff);
-      return flagged ? { ...i, amount: Math.round(Number(i.amount) || 0) } : i;
+      const mode = (i as { roundMode?: string | null }).roundMode ?? src?.roundMode;
+      const raw = Number(i.amount) || 0;
+      const roundOff = i.roundOff ?? src?.roundOff ?? null;
+      const rounded = roundLineAmount(raw, mode, roundOff);
+      return rounded === raw && !mode && !roundOff
+        ? i
+        : { ...i, amount: rounded, roundMode: mode ?? null, roundOff, preRoundAmount: raw };
     });
   const finalDeductions = edOnly ? [] : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
   const finalEmployerContributions = edOnly
