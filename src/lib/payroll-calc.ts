@@ -388,7 +388,7 @@ export function calculateEsiAmounts(
     earnedComponents
       .filter((c) => pattern.test(c.name))
       .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-  const earnedWashing = earnedComponentAmount(/\bwashing\b/i);
+  const earnedWashing = earnedComponentAmount(WASHING_NAME_RE);
   const earnedConveyance = earnedComponentAmount(/\bconveyance\b|\bconv\.?\b/i);
   const base = Math.max(0, earnedGross - earnedWashing - earnedConveyance);
   const ceiling = options.ceiling && options.ceiling > 0 ? options.ceiling : ESI_EARNED_GROSS_CEILING;
@@ -406,9 +406,15 @@ export function calculateEsiAmounts(
   };
 }
 
+/**
+ * `extraEsiWage`: ESI-eligible per-employee allowances (additions) already
+ * included in `wages.earnedGross`. Contract ESI lines with their own formula
+ * only see contract pay items, so this amount is added to their base here
+ * (line percentage, then the line's own rounding on the unrounded total).
+ */
 export function applyEsiToWageComputation(
   wages: WageComputation,
-  opts: { isDisabled?: boolean } = {},
+  opts: { isDisabled?: boolean; extraEsiWage?: number } = {},
 ): WageComputation {
   const firstEsi = (items: WageComponent[]) => items.find((i) => ESI_NAME_RE.test(i.name));
   const employeeEsi = firstEsi(wages.deductions);
@@ -427,13 +433,30 @@ export function applyEsiToWageComputation(
     wages.components.filter((c) => !EXTRA_DUTY_COMPONENT_RE.test(c.name)),
     {
     employeePct: Number(employeeEsi?.percentage) || 0.75,
-    employerPct: Number(employerEsi?.percentage) || 3.25,
+      employerPct: Number(employerEsi?.percentage) || 3.25,
       ceiling,
     },
   );
-  const deductions = applyEsiRule(wages.deductions, esi.employee, "ESI Employee Contribution");
+  const extra = Math.max(0, Number(opts.extraEsiWage) || 0);
+  const addExtraToFormulaLines = (items: WageComponent[], defaultPct: number): WageComponent[] => {
+    if (!(extra > 0)) return items;
+    let placed = false;
+    return items.map((i) => {
+      if (placed || !ESI_NAME_RE.test(i.name) || !hasConfiguredFormula(i)) return i;
+      placed = true;
+      // Zero = not covered this month (above the ESI limit); allowances don't change that.
+      if (!((Number(i.amount) || 0) > 0)) return i;
+      const pct = Number(i.percentage) > 0 ? Number(i.percentage) : defaultPct;
+      return addToRoundedLine(i, (extra * pct) / 100);
+    });
+  };
+  const deductions = applyEsiRule(
+    addExtraToFormulaLines(wages.deductions, 0.75),
+    esi.employee,
+    "ESI Employee Contribution",
+  );
   const employerContributions = applyEsiRule(
-    wages.employerContributions,
+    addExtraToFormulaLines(wages.employerContributions, 3.25),
     esi.employer,
     "ESI Employer Contribution",
   );
