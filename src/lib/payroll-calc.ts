@@ -1457,9 +1457,10 @@ function addToPfLine(items: WageComponent[], extra: number): WageComponent[] {
     if (!(pct > 0)) return it;
     done = true;
     const cap = Number(it.capAmount) || 0;
-    const currentBase = (Number(it.amount) || 0) / (pct / 100);
+    const currentBase = (Number(it.preRoundAmount ?? it.amount) || 0) / (pct / 100);
     const room = cap > 0 ? Math.max(0, cap - currentBase) : extra;
-    return { ...it, amount: round2((Number(it.amount) || 0) + Math.min(extra, room) * (pct / 100)) };
+    const added = addToRoundedLine(it, Math.min(extra, room) * (pct / 100));
+    return it.roundMode || it.roundOff ? added : { ...added, amount: round2(added.amount) };
   });
 }
 
