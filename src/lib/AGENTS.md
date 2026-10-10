@@ -1,0 +1,1 @@
+- Contract PF/ESI lines are per-line formulas; optional keys `esiLimitOn` + `esiLimitBasis` ("payrate"|"earnings") decide ESI eligibility, `roundMode` ("up"|"nearest") rounds, and an uncapped EPF formula is never clipped — matches Pages Payroll settings without per-client code.
