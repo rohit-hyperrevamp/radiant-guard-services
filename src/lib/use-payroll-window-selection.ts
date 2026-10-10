@@ -26,12 +26,17 @@ export function usePayrollWindowSelection(
     [stableIds, windowsQ.data],
   );
   const [storedKey, setSelectedKey] = useSessionState<string>(`${storageKey}:window`, "all");
-  const selectedKey = initial?.window ?? storedKey;
+  const selectedKey = storedKey;
   const [storedAnchor, setAnchor] = useSessionState(`${storageKey}:anchor`, () => ({
     monthIdx: new Date().getMonth(),
     year: new Date().getFullYear(),
   }));
-  const anchor = initial?.month != null && initial?.year != null ? { monthIdx: initial.month, year: initial.year } : storedAnchor;
+  const anchor = storedAnchor;
+  // Links that carry window/month/year in the URL win once, on arrival.
+  useEffect(() => {
+    if (initial?.window) setSelectedKey(initial.window);
+    if (initial?.month != null && initial?.year != null) setAnchor({ monthIdx: initial.month, year: initial.year });
+  }, [initial?.window, initial?.month, initial?.year]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!options.length || selectedKey === "all" || options.some((option) => option.key === selectedKey)) return;
