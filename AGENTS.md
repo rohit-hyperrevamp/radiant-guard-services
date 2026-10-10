@@ -27,3 +27,4 @@
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
+- Contract PF/ESI lines are per-line formulas; optional line keys `esiLimitOn` + `esiLimitBasis` ("payrate"|"earnings") decide ESI eligibility, `roundMode` ("up"|"nearest") rounds, and an uncapped EPF formula is never clipped to the statutory ceiling — matches Pages Payroll contract settings without code per client.
