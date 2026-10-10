@@ -123,8 +123,8 @@ export function AttendanceCharter({
   organizationCount?: number;
   filters?: ReactNode;
   windowsByUnit: Map<string, PayrollWindow>;
-  statusFilter?: "all" | "open" | "approved";
-  onStatusFilterChange?: (value: "all" | "open" | "approved") => void;
+  statusFilter?: AttendanceStatusFilter;
+  onStatusFilterChange?: (value: AttendanceStatusFilter) => void;
 }) {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
