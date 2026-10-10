@@ -72,6 +72,16 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/admin/payroll/$unitId")({
   validateSearch: (s) => searchSchema.parse(s),
+  head: () => ({
+    meta: [
+      { title: "Unit Payroll Register | Radiant Guard Services" },
+      { name: "description", content: "Review employee duties, earned wages and statutory deductions for the selected Radiant payroll period." },
+      { property: "og:title", content: "Unit Payroll Register | Radiant Guard Services" },
+      { property: "og:description", content: "Review employee duties, earned wages and statutory deductions for the selected Radiant payroll period." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: PayrollUnitPage,
 });
 
@@ -1511,13 +1521,23 @@ function PayrollUnitPage() {
   const earningCols = showEarnings ? registerCols.earningNames : [];
   const deductionCols = showDeductionCols ? registerCols.deductionGroups : [];
   const employerCols = showEmployerCols ? registerCols.employerGroups : [];
-  // expander + emp id + name + designation + total paid days
+  // Evaluate the entire payroll, not just the current pagination page.
+  const showExtraDutyDays = rows.some((r) => r.totals.otDays > 0 || r.totals.otHours > 0);
+  const showPhDays = rows.some((r) => r.totals.phDays > 0);
+  const dutyTotals = rows.reduce((acc, r) => ({
+    pDays: acc.pDays + r.totals.pDays,
+    otDays: acc.otDays + r.totals.otDays,
+    phDays: acc.phDays + r.totals.phDays,
+    tDays: acc.tDays + r.totals.tDays,
+  }), { pDays: 0, otDays: 0, phDays: 0, tDays: 0 });
+  const formatDutyDays = (days: number) => Number(days.toFixed(2));
+  // expander + emp id + name + designation + P days + total paid days
   // + earnings + earned gross + deductions + total deductions + net pay
   // + employer groups (+ employer cost when shown)
   // Pay-status / hold column only matters once payroll is approved.
   const showHoldColumn = runStatus === "approved";
   const registerColCount =
-    5 + (showHoldColumn ? 1 : 0) + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
+    6 + (showExtraDutyDays ? 1 : 0) + (showPhDays ? 1 : 0) + (showHoldColumn ? 1 : 0) + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
 
 
   const exportCsv = () => {
@@ -2202,6 +2222,9 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
+                <th className="px-4 py-3 font-medium" title="Present duty days">P Days</th>
+                {showExtraDutyDays && <th className="px-4 py-3 font-medium" title="Extra Duty expressed in duty days">ED Days</th>}
+                {showPhDays && <th className="px-4 py-3 font-medium" title="Paid holiday days">PH Days</th>}
                 <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
                 {earningCols.map((n) => (
                   <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
@@ -2312,6 +2335,9 @@ function PayrollUnitPage() {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(r.totals.pDays)}</td>
+                  {showExtraDutyDays && <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(r.totals.otDays)}</td>}
+                  {showPhDays && <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(r.totals.phDays)}</td>}
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
                   {earningCols.map((n) => (
                     <td key={`${r.rowKey}-e-${n}`} className="px-4 py-3 text-left tabular-nums">
@@ -2354,8 +2380,13 @@ function PayrollUnitPage() {
             {rows.length > 0 && (
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
+                  {showHoldColumn && <td className="px-3 py-3" />}
                   <td className="px-4 py-3" />
-                  <td className="px-4 py-3" colSpan={4}>Totals</td>
+                  <td className="px-4 py-3" colSpan={3}>Totals</td>
+                  <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(dutyTotals.pDays)}</td>
+                  {showExtraDutyDays && <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(dutyTotals.otDays)}</td>}
+                  {showPhDays && <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(dutyTotals.phDays)}</td>}
+                  <td className="px-4 py-3 text-left tabular-nums">{formatDutyDays(dutyTotals.tDays)}</td>
                   {earningCols.map((n) => (
                     <td key={`f-e-${n}`} className="px-4 py-3 text-left tabular-nums">
                       {fmtINR(rows.reduce((s, r) => s + lookupAmount(r.wages?.components as NamedAmount[] | undefined, n), 0))}
