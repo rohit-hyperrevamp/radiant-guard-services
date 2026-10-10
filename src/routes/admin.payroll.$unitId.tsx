@@ -30,9 +30,7 @@ import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import {
   applyEpfBreakdownToWageComputation,
-  applyEsiToWageComputation,
-  allowancePayable,
-  applyAllowancePf,
+  applyEmployeeAdditions,
   applyLwfToWageComputation,
   applyPtToWageComputation,
   computeAttendanceTotals,
