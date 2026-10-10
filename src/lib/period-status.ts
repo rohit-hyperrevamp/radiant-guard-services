@@ -122,10 +122,18 @@ export async function fetchPeriodStatusesForUnitPeriods(
     period_start: period.start,
     period_end: period.end,
   }));
-  const { data, error } = await supabase.rpc("batch_period_statuses" as never, { p_periods: requested } as never);
-  if (error) throw error;
+  // The API caps any single response at 1,000 rows, so a single call for every
+  // site silently dropped statuses past the first 1,000 (they showed "In progress").
+  const CHUNK = 500;
+  const chunks: typeof requested[] = [];
+  for (let i = 0; i < requested.length; i += CHUNK) chunks.push(requested.slice(i, i + CHUNK));
+  const results = await Promise.all(
+    chunks.map((chunk) => supabase.rpc("batch_period_statuses" as never, { p_periods: chunk } as never)),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 
-  const rows = ((data ?? []) as unknown) as Array<{
+  const rows = (results.flatMap((r) => (r.data ?? []) as unknown[]) as unknown) as Array<{
     unit_id: string;
     attendance_status: AttendanceStatus | null;
     tally_invoice_path: string | null;
