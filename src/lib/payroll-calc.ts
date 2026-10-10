@@ -737,8 +737,13 @@ export function computeWages(
       const subtract = Number(pdb.fixedDays) > 0 ? Number(pdb.fixedDays) : 0;
       baseDays = Math.max(periodDayCount - subtract, 1);
     } else if (pdb.method === "actual_minus_weekly_off") {
-      // Rough approximation: assume ~4 weekly offs in the period.
-      baseDays = Math.max(periodDayCount - 4, 1);
+      // Count the real weekly-off days (default Sunday) in the period when
+      // dates are known; otherwise approximate with 4.
+      const off = pdb.weeklyOffDay ?? 0;
+      const dates = options?.periodDates ?? [];
+      baseDays = dates.length > 0
+        ? Math.max(dates.reduce((n, d) => n + (d.getDay() === off ? 0 : 1), 0), 1)
+        : Math.max(periodDayCount - 4, 1);
     } else if (pdb.method === "actual_days") {
       baseDays = periodDayCount;
     } else if (pdb.method === "custom_weekdays") {
@@ -1231,7 +1236,20 @@ export function computeWages(
     ESI_EARNED_GROSS_CEILING;
   // ESIC eligibility ignores Extra Duty (overtime) wages — a guard is not
   // pushed out of ESI just because he worked extra duties.
-  const esiAboveCeiling = earnedGrossExcludingEd > esiCeiling;
+  // Configurable per contract line: `esiLimitOn` lists the pay items whose
+  // total decides eligibility, and `esiLimitBasis` says whether that total is
+  // the contract monthly rate ("payrate") or what was earned ("earnings").
+  const esiLimitSrc = (employeeEsiItem ?? employerEsiItem) as
+    | (BenefitLike & { esiLimitOn?: string[]; esiLimitBasis?: string })
+    | undefined;
+  const esiLimitKeys = Array.isArray(esiLimitSrc?.esiLimitOn) ? esiLimitSrc!.esiLimitOn!.map((k) => slugifyVar(k)) : [];
+  const sumByKeys = (list: { name: string; amount: number | string | null | undefined }[]) =>
+    list
+      .filter((c) => formulaNameAliases(c.name).some((a) => esiLimitKeys.includes(slugifyVar(a))))
+      .reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
+  const esiAboveCeiling = esiLimitKeys.length > 0
+    ? (esiLimitSrc?.esiLimitBasis === "earnings" ? sumByKeys(benefitBaseComponents) : sumByKeys(resource.components)) > esiCeiling
+    : earnedGrossExcludingEd > esiCeiling;
 
   const deductions = applyBonusRule(
     applyEsiRule(
@@ -1264,6 +1282,9 @@ export function computeWages(
     return items.map((i) => {
       if (!EPF_NAME_RE.test(i.name)) return i;
       const src = contractItems.find((c) => EPF_NAME_RE.test(c.name));
+      // A contract formula without a configured ceiling is uncapped on
+      // purpose (e.g. Pages "PF limit off"); its own min(...) handles caps.
+      if (src && hasConfiguredFormula(src) && !(Number(src.capAmount) > 0)) return i;
       const ceiling = Number(src?.capAmount) > 0 ? Number(src?.capAmount) : EPF_WAGE_CEILING;
       const pct = Number(src?.percentage) > 0 ? Number(src?.percentage) : 12;
       const maxAmount = Number(src?.capFlatAmount) > 0
@@ -1276,10 +1297,14 @@ export function computeWages(
   // Extra-duty-only lines (no regular earnings in this window) carry NO
   // deductions and NO employer contributions at all.
   const edOnly = earnedGrossExcludingEd <= 0 && earnedGross > 0;
-  // Per-line round-off chosen on the contract (nearest rupee).
+  // Per-line rounding chosen on the contract: roundOff = nearest rupee,
+  // roundMode "up" = next rupee (statutory ESI style), "nearest" = nearest.
   const roundFlagged = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] =>
     items.map((i) => {
-      const flagged = i.roundOff ?? contractItems.find((c) => c.name === i.name)?.roundOff;
+      const src = contractItems.find((c) => c.name === i.name) as (BenefitLike & { roundMode?: string }) | undefined;
+      const mode = (i as { roundMode?: string }).roundMode ?? src?.roundMode;
+      if (mode === "up") return { ...i, amount: Math.ceil(round2(Number(i.amount) || 0)) };
+      const flagged = mode === "nearest" || (i.roundOff ?? src?.roundOff);
       return flagged ? { ...i, amount: Math.round(Number(i.amount) || 0) } : i;
     });
   const finalDeductions = edOnly ? [] : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
