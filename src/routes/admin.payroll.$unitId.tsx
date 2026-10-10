@@ -30,6 +30,8 @@ import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import {
   applyEpfBreakdownToWageComputation,
   applyEsiToWageComputation,
+  allowancePayable,
+  applyAllowancePf,
   applyLwfToWageComputation,
   applyPtToWageComputation,
   computeAttendanceTotals,

@@ -1391,7 +1391,7 @@ function addToPfLine(items: WageComponent[], extra: number): WageComponent[] {
 
 /** Adds PF on PF-eligible allowances and recomputes totals. ESI is handled by applyEsiToWageComputation. */
 export function applyAllowancePf(wages: WageComputation, pfAllowance: number): WageComputation {
-  if (!(pfAllowance > 0)) return wages;
+
   const deductions = addToPfLine(wages.deductions, pfAllowance);
   const employerContributions = addToPfLine(wages.employerContributions, pfAllowance);
   const totalDeductions = round2(deductions.reduce((s, d) => s + d.amount, 0));
