@@ -928,16 +928,24 @@ function PayrollUnitPage() {
         // Fold per-employee additions/deductions onto the primary line only so
         // we don't double-count across multiple designation lines for one person.
         if (wages && isPrimary) {
-          const extraAdds = additionsByCandidate.get(c.id) ?? [];
+          const rawAdds = additionsByCandidate.get(c.id) ?? [];
           const extraDeds = deductionsByCandidate.get(c.id) ?? [];
-          const addAdditions: { name: string; amount: number }[] = extraAdds;
+          const extraAdds = rawAdds
+            .map((a) => ({ ...a, amount: allowancePayable(a, totals.pDays, wages.baseDays) }))
+            .filter((a) => a.amount > 0);
+          const addAdditions: { name: string; amount: number }[] = extraAdds.map((a) => ({ name: a.name, amount: a.amount }));
           (wages as unknown as { additions: { name: string; amount: number }[] }).additions = addAdditions;
           if (extraDeds.length > 0) {
             wages.deductions = [...wages.deductions, ...extraDeds];
           }
           const addTotal = extraAdds.reduce((s, a) => s + a.amount, 0);
-          wages.earnedGross = Math.round((wages.earnedGross + addTotal) * 100) / 100;
+          const nonEsiTotal = extraAdds.filter((a) => a.countsForEsi === false).reduce((s, a) => s + a.amount, 0);
+          const pfAllowance = extraAdds.filter((a) => a.countsForPf).reduce((s, a) => s + a.amount, 0);
+          const fullGross = Math.round((wages.earnedGross + addTotal) * 100) / 100;
+          wages.earnedGross = Math.round((fullGross - nonEsiTotal) * 100) / 100;
           Object.assign(wages, applyEsiToWageComputation(wages, { isDisabled: candidateIsDisabled }));
+          wages.earnedGross = fullGross;
+          Object.assign(wages, applyAllowancePf(wages, pfAllowance));
         }
 
         // Resolve Professional Tax for this employee from state/gender/earnedGross slabs.
