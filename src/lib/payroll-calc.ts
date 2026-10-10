@@ -194,6 +194,10 @@ export type WageComponent = {
   formulaVersion?: number | null;
   /** Round this line to the nearest rupee. */
   roundOff?: boolean | null;
+  /** Contract rounding for this line: "up" = next rupee, "nearest" = nearest. */
+  roundMode?: string | null;
+  /** Amount before the line's rounding, so later additions can re-round exactly. */
+  preRoundAmount?: number | null;
 };
 export type BenefitLike = {
   name: string;
@@ -259,6 +263,23 @@ const BONUS_NAME_RE = /\bbonus\b/i;
 const GRATUITY_NAME_RE = /\bgratuity\b/i;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Applies a contract line's rounding: "up" = next rupee, "nearest"/roundOff = nearest rupee. */
+function roundLineAmount(raw: number, mode: string | null | undefined, roundOff: boolean | null | undefined): number {
+  if (mode === "up") return Math.ceil(round2(raw));
+  if (mode === "nearest" || roundOff) return Math.round(raw);
+  return raw;
+}
+
+/** Adds `extra` to a line on top of its unrounded value, then re-applies the line's rounding. */
+function addToRoundedLine(item: WageComponent, extra: number): WageComponent {
+  const raw = Number(item.preRoundAmount ?? item.amount) || 0;
+  const next = raw + extra;
+  return { ...item, amount: roundLineAmount(next, item.roundMode, item.roundOff), preRoundAmount: next };
+}
+
+// Washing allowance shows up as "Washing Allowance" or just "WA".
+const WASHING_NAME_RE = /\bwashing\b|^\s*w\.?\s*a\.?\s*$/i;
 
 function hasConfiguredFormula(item: { formulaExpression?: string | null }): boolean {
   return !!item.formulaExpression?.trim();
@@ -367,7 +388,7 @@ export function calculateEsiAmounts(
     earnedComponents
       .filter((c) => pattern.test(c.name))
       .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-  const earnedWashing = earnedComponentAmount(/\bwashing\b/i);
+  const earnedWashing = earnedComponentAmount(WASHING_NAME_RE);
   const earnedConveyance = earnedComponentAmount(/\bconveyance\b|\bconv\.?\b/i);
   const base = Math.max(0, earnedGross - earnedWashing - earnedConveyance);
   const ceiling = options.ceiling && options.ceiling > 0 ? options.ceiling : ESI_EARNED_GROSS_CEILING;
@@ -385,9 +406,15 @@ export function calculateEsiAmounts(
   };
 }
 
+/**
+ * `extraEsiWage`: ESI-eligible per-employee allowances (additions) already
+ * included in `wages.earnedGross`. Contract ESI lines with their own formula
+ * only see contract pay items, so this amount is added to their base here
+ * (line percentage, then the line's own rounding on the unrounded total).
+ */
 export function applyEsiToWageComputation(
   wages: WageComputation,
-  opts: { isDisabled?: boolean } = {},
+  opts: { isDisabled?: boolean; extraEsiWage?: number } = {},
 ): WageComputation {
   const firstEsi = (items: WageComponent[]) => items.find((i) => ESI_NAME_RE.test(i.name));
   const employeeEsi = firstEsi(wages.deductions);
@@ -406,13 +433,30 @@ export function applyEsiToWageComputation(
     wages.components.filter((c) => !EXTRA_DUTY_COMPONENT_RE.test(c.name)),
     {
     employeePct: Number(employeeEsi?.percentage) || 0.75,
-    employerPct: Number(employerEsi?.percentage) || 3.25,
+      employerPct: Number(employerEsi?.percentage) || 3.25,
       ceiling,
     },
   );
-  const deductions = applyEsiRule(wages.deductions, esi.employee, "ESI Employee Contribution");
+  const extra = Math.max(0, Number(opts.extraEsiWage) || 0);
+  const addExtraToFormulaLines = (items: WageComponent[], defaultPct: number): WageComponent[] => {
+    if (!(extra > 0)) return items;
+    let placed = false;
+    return items.map((i) => {
+      if (placed || !ESI_NAME_RE.test(i.name) || !hasConfiguredFormula(i)) return i;
+      placed = true;
+      // Zero = not covered this month (above the ESI limit); allowances don't change that.
+      if (!((Number(i.amount) || 0) > 0)) return i;
+      const pct = Number(i.percentage) > 0 ? Number(i.percentage) : defaultPct;
+      return addToRoundedLine(i, (extra * pct) / 100);
+    });
+  };
+  const deductions = applyEsiRule(
+    addExtraToFormulaLines(wages.deductions, 0.75),
+    esi.employee,
+    "ESI Employee Contribution",
+  );
   const employerContributions = applyEsiRule(
-    wages.employerContributions,
+    addExtraToFormulaLines(wages.employerContributions, 3.25),
     esi.employer,
     "ESI Employer Contribution",
   );
@@ -1329,10 +1373,13 @@ export function computeWages(
   const roundFlagged = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] =>
     items.map((i) => {
       const src = contractItems.find((c) => c.name === i.name) as (BenefitLike & { roundMode?: string }) | undefined;
-      const mode = (i as { roundMode?: string }).roundMode ?? src?.roundMode;
-      if (mode === "up") return { ...i, amount: Math.ceil(round2(Number(i.amount) || 0)) };
-      const flagged = mode === "nearest" || (i.roundOff ?? src?.roundOff);
-      return flagged ? { ...i, amount: Math.round(Number(i.amount) || 0) } : i;
+      const mode = (i as { roundMode?: string | null }).roundMode ?? src?.roundMode;
+      const raw = Number(i.amount) || 0;
+      const roundOff = i.roundOff ?? src?.roundOff ?? null;
+      const rounded = roundLineAmount(raw, mode, roundOff);
+      return rounded === raw && !mode && !roundOff
+        ? i
+        : { ...i, amount: rounded, roundMode: mode ?? null, roundOff, preRoundAmount: raw };
     });
   const finalDeductions = edOnly ? [] : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
   const finalEmployerContributions = edOnly
@@ -1410,9 +1457,10 @@ function addToPfLine(items: WageComponent[], extra: number): WageComponent[] {
     if (!(pct > 0)) return it;
     done = true;
     const cap = Number(it.capAmount) || 0;
-    const currentBase = (Number(it.amount) || 0) / (pct / 100);
+    const currentBase = (Number(it.preRoundAmount ?? it.amount) || 0) / (pct / 100);
     const room = cap > 0 ? Math.max(0, cap - currentBase) : extra;
-    return { ...it, amount: round2((Number(it.amount) || 0) + Math.min(extra, room) * (pct / 100)) };
+    const added = addToRoundedLine(it, Math.min(extra, room) * (pct / 100));
+    return it.roundMode || it.roundOff ? added : { ...added, amount: round2(added.amount) };
   });
 }
 

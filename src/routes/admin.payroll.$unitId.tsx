@@ -30,9 +30,7 @@ import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import {
   applyEpfBreakdownToWageComputation,
-  applyEsiToWageComputation,
-  allowancePayable,
-  applyAllowancePf,
+  applyEmployeeAdditions,
   applyLwfToWageComputation,
   applyPtToWageComputation,
   computeAttendanceTotals,
@@ -942,22 +940,12 @@ function PayrollUnitPage() {
         if (wages && isPrimary) {
           const rawAdds = additionsByCandidate.get(c.id) ?? [];
           const extraDeds = deductionsByCandidate.get(c.id) ?? [];
-          const extraAdds = rawAdds
-            .map((a) => ({ ...a, amount: allowancePayable(a, totals.pDays, wages.baseDays) }))
-            .filter((a) => a.amount > 0);
-          const addAdditions: { name: string; amount: number }[] = extraAdds.map((a) => ({ name: a.name, amount: a.amount }));
-          (wages as unknown as { additions: { name: string; amount: number }[] }).additions = addAdditions;
           if (extraDeds.length > 0) {
             wages.deductions = [...wages.deductions, ...extraDeds];
           }
-          const addTotal = extraAdds.reduce((s, a) => s + a.amount, 0);
-          const nonEsiTotal = extraAdds.filter((a) => a.countsForEsi === false).reduce((s, a) => s + a.amount, 0);
-          const pfAllowance = extraAdds.filter((a) => a.countsForPf).reduce((s, a) => s + a.amount, 0);
-          const fullGross = Math.round((wages.earnedGross + addTotal) * 100) / 100;
-          wages.earnedGross = Math.round((fullGross - nonEsiTotal) * 100) / 100;
-          Object.assign(wages, applyEsiToWageComputation(wages, { isDisabled: candidateIsDisabled }));
-          wages.earnedGross = fullGross;
-          Object.assign(wages, applyAllowancePf(wages, pfAllowance));
+          const applied = applyEmployeeAdditions(wages, rawAdds, totals.pDays, { isDisabled: candidateIsDisabled });
+          Object.assign(wages, applied.wages);
+          (wages as unknown as { additions: { name: string; amount: number }[] }).additions = applied.additions;
         }
 
         // Resolve Professional Tax for this employee from state/gender/earnedGross slabs.
