@@ -737,8 +737,13 @@ export function computeWages(
       const subtract = Number(pdb.fixedDays) > 0 ? Number(pdb.fixedDays) : 0;
       baseDays = Math.max(periodDayCount - subtract, 1);
     } else if (pdb.method === "actual_minus_weekly_off") {
-      // Rough approximation: assume ~4 weekly offs in the period.
-      baseDays = Math.max(periodDayCount - 4, 1);
+      // Count the real weekly-off days (default Sunday) in the period when
+      // dates are known; otherwise approximate with 4.
+      const off = pdb.weeklyOffDay ?? 0;
+      const dates = options?.periodDates ?? [];
+      baseDays = dates.length > 0
+        ? Math.max(dates.reduce((n, d) => n + (d.getDay() === off ? 0 : 1), 0), 1)
+        : Math.max(periodDayCount - 4, 1);
     } else if (pdb.method === "actual_days") {
       baseDays = periodDayCount;
     } else if (pdb.method === "custom_weekdays") {
