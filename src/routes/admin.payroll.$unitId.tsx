@@ -1483,7 +1483,7 @@ function PayrollUnitPage() {
           if (!it?.name) return;
           const key = normColName(it.name);
           if (!key || seen.has(key)) return;
-          seen.set(key, it.name);
+          seen.set(key, standardPayItemName(it.name));
         });
       });
       return Array.from(seen.values());
