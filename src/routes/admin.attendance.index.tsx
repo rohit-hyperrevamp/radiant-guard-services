@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Search, X } from "lucide-react";
@@ -84,11 +85,11 @@ const stOf = (u: { client_state?: string | null; billing_state: string | null })
 
 function AttendanceUnitsPage() {
   const search = Route.useSearch();
-  const [q, setQ] = useState("");
-  const [orgFilter, setOrgFilter] = useState<string[]>([]);
-  const [unitFilter, setUnitFilter] = useState<string[]>([]);
-  const [stateFilter, setStateFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "in_progress" | "submitted" | "approved">("all");
+  const [q, setQ] = useSessionState("attendance:q", "");
+  const [orgFilter, setOrgFilter] = useSessionState<string[]>("attendance:orgFilter", []);
+  const [unitFilter, setUnitFilter] = useSessionState<string[]>("attendance:unitFilter", []);
+  const [stateFilter, setStateFilter] = useSessionState<string[]>("attendance:stateFilter", []);
+  const [statusFilter, setStatusFilter] = useSessionState<"all" | "open" | "in_progress" | "submitted" | "approved">("attendance:statusFilter", "all");
 
 
 
@@ -109,7 +110,7 @@ function AttendanceUnitsPage() {
     () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
     [rawUnits, foScope.isScoped, foScope.unitIds],
   );
-  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search);
+  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search, "attendance");
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
   const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
   const unitOptions = useMemo(

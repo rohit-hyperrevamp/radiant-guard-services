@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import {
   buildPayrollWindowOptions,
@@ -11,6 +12,7 @@ import {
 export function usePayrollWindowSelection(
   unitIds: string[],
   initial?: { window?: string; month?: number; year?: number },
+  storageKey = "payroll-window",
 ) {
   const unitKey = Array.from(new Set(unitIds)).sort().join(",");
   const stableIds = useMemo(() => unitKey ? unitKey.split(",") : [], [unitKey]);
@@ -23,11 +25,18 @@ export function usePayrollWindowSelection(
     () => buildPayrollWindowOptions(stableIds, windowsQ.data ?? new Map()),
     [stableIds, windowsQ.data],
   );
-  const [selectedKey, setSelectedKey] = useState(initial?.window ?? "all");
-  const [anchor, setAnchor] = useState(() => ({
-    monthIdx: initial?.month ?? new Date().getMonth(),
-    year: initial?.year ?? new Date().getFullYear(),
+  const [storedKey, setSelectedKey] = useSessionState<string>(`${storageKey}:window`, "all");
+  const selectedKey = storedKey;
+  const [storedAnchor, setAnchor] = useSessionState(`${storageKey}:anchor`, () => ({
+    monthIdx: new Date().getMonth(),
+    year: new Date().getFullYear(),
   }));
+  const anchor = storedAnchor;
+  // Links that carry window/month/year in the URL win once, on arrival.
+  useEffect(() => {
+    if (initial?.window) setSelectedKey(initial.window);
+    if (initial?.month != null && initial?.year != null) setAnchor({ monthIdx: initial.month, year: initial.year });
+  }, [initial?.window, initial?.month, initial?.year]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!options.length || selectedKey === "all" || options.some((option) => option.key === selectedKey)) return;
