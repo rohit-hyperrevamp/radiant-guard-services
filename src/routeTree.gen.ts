@@ -49,6 +49,7 @@ import { Route as AdminEmployerContributionsRouteImport } from './routes/admin.e
 import { Route as AdminEsicBranchManagerRouteImport } from './routes/admin.esic-branch-manager'
 import { Route as AdminExServiceManagerRouteImport } from './routes/admin.ex-service-manager'
 import { Route as AdminFieldDashboardRouteImport } from './routes/admin.field-dashboard'
+import { Route as AdminHearingAlertsRouteImport } from './routes/admin.hearing-alerts'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminInvoiceRouteImport } from './routes/admin.invoice'
 import { Route as AdminInvoiceNumberingRouteImport } from './routes/admin.invoice-numbering'
@@ -357,6 +358,11 @@ const AdminExServiceManagerRoute = AdminExServiceManagerRouteImport.update({
 const AdminFieldDashboardRoute = AdminFieldDashboardRouteImport.update({
   id: '/field-dashboard',
   path: '/field-dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHearingAlertsRoute = AdminHearingAlertsRouteImport.update({
+  id: '/hearing-alerts',
+  path: '/hearing-alerts',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
@@ -937,6 +943,7 @@ export interface FileRoutesByFullPath {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
+  '/admin/hearing-alerts': typeof AdminHearingAlertsRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
   '/admin/invoice-numbering': typeof AdminInvoiceNumberingRoute
@@ -1078,6 +1085,7 @@ export interface FileRoutesByTo {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
+  '/admin/hearing-alerts': typeof AdminHearingAlertsRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice-numbering': typeof AdminInvoiceNumberingRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
@@ -1219,6 +1227,7 @@ export interface FileRoutesById {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
+  '/admin/hearing-alerts': typeof AdminHearingAlertsRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
   '/admin/invoice-numbering': typeof AdminInvoiceNumberingRoute
@@ -1364,6 +1373,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
+    | '/admin/hearing-alerts'
     | '/admin/inventory'
     | '/admin/invoice'
     | '/admin/invoice-numbering'
@@ -1505,6 +1515,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
+    | '/admin/hearing-alerts'
     | '/admin/inventory'
     | '/admin/invoice-numbering'
     | '/admin/language-manager'
@@ -1645,6 +1656,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
+    | '/admin/hearing-alerts'
     | '/admin/inventory'
     | '/admin/invoice'
     | '/admin/invoice-numbering'
@@ -2047,6 +2059,13 @@ declare module '@tanstack/react-router' {
       path: '/field-dashboard'
       fullPath: '/admin/field-dashboard'
       preLoaderRoute: typeof AdminFieldDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/hearing-alerts': {
+      id: '/admin/hearing-alerts'
+      path: '/hearing-alerts'
+      fullPath: '/admin/hearing-alerts'
+      preLoaderRoute: typeof AdminHearingAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/inventory': {
@@ -2982,6 +3001,7 @@ interface AdminRouteChildren {
   AdminEsicBranchManagerRoute: typeof AdminEsicBranchManagerRoute
   AdminExServiceManagerRoute: typeof AdminExServiceManagerRoute
   AdminFieldDashboardRoute: typeof AdminFieldDashboardRoute
+  AdminHearingAlertsRoute: typeof AdminHearingAlertsRoute
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminInvoiceRoute: typeof AdminInvoiceRouteWithChildren
   AdminInvoiceNumberingRoute: typeof AdminInvoiceNumberingRoute
@@ -3061,6 +3081,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEsicBranchManagerRoute: AdminEsicBranchManagerRoute,
   AdminExServiceManagerRoute: AdminExServiceManagerRoute,
   AdminFieldDashboardRoute: AdminFieldDashboardRoute,
+  AdminHearingAlertsRoute: AdminHearingAlertsRoute,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminInvoiceRoute: AdminInvoiceRouteWithChildren,
   AdminInvoiceNumberingRoute: AdminInvoiceNumberingRoute,
