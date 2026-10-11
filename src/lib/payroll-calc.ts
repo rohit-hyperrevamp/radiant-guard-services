@@ -1016,7 +1016,8 @@ export function computeWages(
   if (otSelected.length > 0) {
     otBase = Math.max(
       0,
-      otSelected.reduce((s, c) => s + (Number(c.amount) || 0), 0),
+      // Lines flagged roundOff count at their rounded rupee value (Pages: 1,082.76 → 1,083).
+      otSelected.reduce((s, c) => s + ((c as { roundOff?: boolean }).roundOff ? Math.round(Number(c.amount) || 0) : (Number(c.amount) || 0)), 0),
     );
   } else {
     const excludedFromOt = resource.components
