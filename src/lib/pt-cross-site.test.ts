@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { ptForSite } from "./pt-cross-site";
+import { otherSitePtChanged, ptForSite } from "./pt-cross-site";
 
 // Maharashtra statutory slabs.
 const slabs = [
@@ -23,5 +23,19 @@ describe("professional tax across sites", () => {
   it("women in Maharashtra pay ₹200 only above ₹25,000", () => {
     expect(pt(25500, undefined, "female")).toBe(200);
     expect(pt(24587, undefined, "female")).toBe(0);
+  });
+});
+
+describe("guard working at two IDBI FC Road sites (49344, Sep 2026)", () => {
+  it("9 duties at the first site (₹9,525.60) pays ₹175", () => expect(pt(9525.6)).toBe(175));
+  it("12 duties at the second site after it pays ₹25 (total ₹200)", () =>
+    expect(pt(12700.8, { gross: 9525.6, pt: 175 })).toBe(25));
+  it("processed the other way round: ₹200 then ₹0", () => {
+    expect(pt(12700.8)).toBe(200);
+    expect(pt(9525.6, { gross: 12700.8, pt: 200 })).toBe(0);
+  });
+  it("processing is blocked when another site's PT changed since the page was computed", () => {
+    expect(otherSitePtChanged(new Map([["a", { gross: 0, pt: 0 }]]), new Map([["a", { gross: 9525.6, pt: 175 }]]))).toBe(true);
+    expect(otherSitePtChanged(new Map([["a", { gross: 9525.6, pt: 175 }]]), new Map([["a", { gross: 9525.6, pt: 175 }]]))).toBe(false);
   });
 });
