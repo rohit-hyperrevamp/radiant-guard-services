@@ -77,3 +77,48 @@ export async function fetchOtherSitePtTotals(
   }
   return out;
 }
+
+/** Other sites where these people have attendance this month (any payroll status). */
+export async function fetchOtherSitesWorked(
+  candidateIds: string[],
+  unitId: string,
+  periodEnd: string,
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (!candidateIds.length || !periodEnd) return out;
+  const [y, m] = periodEnd.split("-").map(Number);
+  const monthStart = `${y}-${String(m).padStart(2, "0")}-01`;
+  const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  type Row = { candidate_id: string; unit_id: string; units: { code: string | null } | null };
+  const rows = await fetchInChunks<Row>(candidateIds, (chunk, from, to) =>
+    supabase
+      .from("attendance_entries")
+      .select("candidate_id, unit_id, units!inner(code)")
+      .in("candidate_id", chunk)
+      .neq("unit_id", unitId)
+      .gte("entry_date", monthStart)
+      .lte("entry_date", monthEnd)
+      .range(from, to) as never,
+  ).catch(() => [] as Row[]);
+  const sets = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const s = sets.get(r.candidate_id) ?? new Set<string>();
+    s.add(r.units?.code || r.unit_id);
+    sets.set(r.candidate_id, s);
+  }
+  for (const [k, s] of sets) out.set(k, Array.from(s).sort());
+  return out;
+}
+
+/** True when the PT already charged elsewhere changed since the register was computed. */
+export function otherSitePtChanged(
+  used: Map<string, OtherSitePt | null | undefined>,
+  fresh: Map<string, OtherSitePt>,
+): boolean {
+  for (const [id, u] of used) {
+    const f = fresh.get(id);
+    if (Math.round((u?.pt ?? 0) * 100) !== Math.round((f?.pt ?? 0) * 100)) return true;
+    if (Math.round((u?.gross ?? 0) * 100) !== Math.round((f?.gross ?? 0) * 100)) return true;
+  }
+  return false;
+}

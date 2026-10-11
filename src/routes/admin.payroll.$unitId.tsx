@@ -60,7 +60,7 @@ import {
 import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchOtherSitePtTotals, ptForSite } from "@/lib/pt-cross-site";
+import { fetchOtherSitePtTotals, fetchOtherSitesWorked, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
@@ -924,7 +924,10 @@ function PayrollUnitPage() {
       // Gross and PT already paid to these people at OTHER sites this month
       // (processed payrolls only). PT is one monthly slab per person, so a
       // guard working two sites is taxed on the combined gross, once.
-      const otherSitePt = await fetchOtherSitePtTotals(candidateIds, unitId, end);
+      const [otherSitePt, otherSitesWorked] = await Promise.all([
+        fetchOtherSitePtTotals(candidateIds, unitId, end),
+        fetchOtherSitesWorked(candidateIds, unitId, end),
+      ]);
 
       const rows = Array.from(pairs.values()).map((p) => {
         const c = rosterById.get(p.candidateId)!;
@@ -1128,7 +1131,13 @@ function PayrollUnitPage() {
           ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
         });
         Object.assign(r.wages, applyPtToWageComputation(r.wages, resolved.amount));
-        r.pt = resolved;
+        const other = otherSitePt.get(r.id) ?? null;
+        r.pt = {
+          ...resolved,
+          otherGross: other?.gross ?? 0,
+          otherPt: other?.pt ?? 0,
+          otherSites: otherSitesWorked.get(r.id) ?? [],
+        } as typeof r.pt;
       }
 
 
@@ -1464,6 +1473,20 @@ function PayrollUnitPage() {
   const processRun = useMutation({
     mutationFn: async () => {
       if (!run?.id) throw new Error("Payroll run not found");
+      // PT is one slab per person per month: if another site's payroll for
+      // the same people was processed after this register was computed,
+      // recompute first so PT is never charged twice.
+      const ptUsed = new Map<string, { gross: number; pt: number } | null>();
+      for (const r of rows) {
+        if (!r.wages || !r.isPrimary) continue;
+        const p = r.pt as { otherGross?: number; otherPt?: number } | null | undefined;
+        ptUsed.set(r.id, { gross: p?.otherGross ?? 0, pt: p?.otherPt ?? 0 });
+      }
+      const ptFresh = await fetchOtherSitePtTotals(Array.from(ptUsed.keys()), unitId, end);
+      if (otherSitePtChanged(ptUsed, ptFresh)) {
+        await queryClient.invalidateQueries({ queryKey: ["payroll-register-compute", unitId, start, end] });
+        throw new Error("Another site's payroll for some of these employees was just processed. Professional Tax has been recalculated — please review and process again.");
+      }
       const payloadRows = buildPayloadRows();
 
       const result = await processPayrollRun({
@@ -2888,7 +2911,7 @@ type Line = { name: string; amount: number };
 
 type PaySheetRow = {
   totals: { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
-  pt?: { source: string; state?: string | null; regionLabel?: string | null } | null;
+  pt?: { source: string; state?: string | null; regionLabel?: string | null; otherGross?: number; otherPt?: number; otherSites?: string[] } | null;
   wages: {
     baseDays: number;
     contractGross: number;
@@ -3201,6 +3224,12 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
             if (/\besi(c)?\b/i.test(n)) return "0.75% of earned gross − washing − conveyance";
             if (/\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i.test(n)) {
               if (!r.pt) return null;
+              if (r.pt.source === "resolved" && ((r.pt.otherGross ?? 0) > 0 || (r.pt.otherSites?.length ?? 0) > 0)) {
+                const sites = r.pt.otherSites?.length ? ` Also worked at ${r.pt.otherSites.join(", ")}.` : "";
+                return (r.pt.otherGross ?? 0) > 0
+                  ? `${r.pt.state ?? ""} slab on combined gross ${fmtINR(w.earnedGross + (r.pt.otherGross ?? 0))} minus ${fmtINR(r.pt.otherPt ?? 0)} PT already charged at other sites.${sites}`
+                  : `Per ${r.pt.state ?? ""} slab.${sites} Other site not processed yet — PT there is reduced when processed after this one.`;
+              }
               return r.pt.source === "resolved"
                 ? `Per ${r.pt.state ?? ""} slab`
                 : r.pt.source === "no_state"
