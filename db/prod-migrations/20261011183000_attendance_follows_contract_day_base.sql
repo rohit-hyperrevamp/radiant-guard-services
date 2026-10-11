@@ -215,4 +215,18 @@ CREATE TRIGGER zz_contract_resources_rebalance_attendance
   AFTER INSERT OR UPDATE OF payroll_day_base_id, designation_id ON public.contract_resources
   FOR EACH ROW EXECUTE FUNCTION public.contract_resource_rebalance_attendance();
 
+-- 5. The live limit flags the days it converts.
+DO $$
+DECLARE d text;
+BEGIN
+  SELECT pg_get_functiondef('public.enforce_contract_present_day_limit'::regproc) INTO d;
+  IF position('ed_from_cap' in d) = 0 THEN
+    d := replace(d, E'NEW.code := \'\';', E'NEW.code := \'\';\n    NEW.ed_from_cap := true;');
+    d := replace(d, 'entry_date, code, ot_hours)', 'entry_date, code, ot_hours, ed_from_cap)');
+    d := replace(d, E'v_target, \'\', v_day_value)', E'v_target, \'\', v_day_value, true)');
+    d := replace(d, 'DO UPDATE SET code = '''', ot_hours = EXCLUDED.ot_hours;', 'DO UPDATE SET code = '''', ot_hours = EXCLUDED.ot_hours, ed_from_cap = true;');
+    EXECUTE d;
+  END IF;
+END $$;
+
 COMMIT;
