@@ -1519,3 +1519,21 @@ export function applyEmployeeAdditions(
   w = applyAllowancePf({ ...w, earnedGross: fullGross }, pfTotal);
   return { wages: w, additions: payable.map((a) => ({ name: a.name, amount: a.amount })) };
 }
+
+/**
+ * Final gross is paid in whole rupees (Pages Payroll rule): pay items keep
+ * paise, the summed gross rounds to the nearest rupee (₹0.50 goes up) and net
+ * pay = rounded gross − deductions. Deductions are worked out on the exact
+ * pay items, before this rounding.
+ */
+export function roundFinalGross(wages: WageComputation): WageComputation {
+  const exact = Number(wages.earnedGross) || 0;
+  const gross = Math.floor(exact + 0.5 + 1e-9);
+  if (Math.abs(gross - exact) < 1e-9) return wages;
+  return {
+    ...wages,
+    earnedGross: gross,
+    netPay: Math.max(0, round2(gross - (Number(wages.totalDeductions) || 0))),
+    employerCost: round2((Number(wages.employerCost) || 0) + (gross - exact)),
+  };
+}
