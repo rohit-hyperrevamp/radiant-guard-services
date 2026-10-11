@@ -30,3 +30,4 @@
 - Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
 - Pages-era payslips: read-only `pages_payslip_archive` (/admin/payroll/history) — never recalculated.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`) — stored attendance never keeps a stale cap.
+- Case Desk sub-features (notices, advocates, party history, employee summary) are `legal_cases::<key>` switches checked with `canSwitch` (explicit row wins, else Case Desk View); data tables stay gated by `current_user_module_access('legal_cases',…)` — legal access stays configurable in Access Control.
