@@ -1025,7 +1025,9 @@ export function computeWages(
     otBase = Math.max(0, contractGross - excludedFromOt);
   }
 
-  const perDutyOt = otBase / OT_DIVISOR;
+  // Day rate is rounded to paise before multiplying (Pages register rule:
+  // 25,180.17 / 26 = 968.47 → 3 ED days = 2,905.41).
+  const perDutyOt = round2(otBase / OT_DIVISOR);
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
   if (otAmount > 0) {
