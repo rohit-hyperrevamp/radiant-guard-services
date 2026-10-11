@@ -711,6 +711,9 @@ function MusterRollPage() {
       return { window: win, startDate, contractId, resources };
     },
     enabled: Boolean(unitId),
+    // Payroll Days limit must always reflect the latest contract edit.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const payrollWindow = contractInfo?.window ?? null;
   const contractStartDate = contractInfo?.startDate ?? null;
@@ -744,6 +747,9 @@ function MusterRollPage() {
       }) as Promise<EntryRow[]>;
     },
     enabled: Boolean(unitId),
+    // Contract Payroll Days edits re-shape stored attendance; never show a
+    // cached copy from before the edit.
+    refetchOnMount: "always",
   });
   // People added to this period by hand (slot mapping / add line item) before
   // any attendance exists for them. Cleared when the period or unit changes.
@@ -1968,6 +1974,7 @@ function MusterRollPage() {
     let convertedDays = 0;
     let movedDays = 0;
     const extraRows: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
+    const capConvertedDates = new Set<string>();
     if (cap != null) {
       const rk = rowKey(candidate_id, designation_id, variant);
       const touched = new Set(filtered.map((r) => r.entry_date));
@@ -1996,6 +2003,7 @@ function MusterRollPage() {
             overflow.push({ afterDate: r.entry_date, days: dv });
             return { ...r, code: "" };
           }
+          capConvertedDates.add(r.entry_date);
           return { ...r, code: "", ot_hours: dv };
         });
 
@@ -2012,10 +2020,12 @@ function MusterRollPage() {
           if (free) {
             taken.add(free.date);
             extraRows.push({ entry_date: free.date, code: "", ot_hours: o.days });
+            capConvertedDates.add(free.date);
             movedDays += o.days;
           } else {
             const target = capped.find((r) => r.entry_date === o.afterDate);
             if (target) target.ot_hours = (Number(target.ot_hours) || 0) + o.days;
+            capConvertedDates.add(o.afterDate);
           }
         }
       }
@@ -2051,6 +2061,9 @@ function MusterRollPage() {
       entry_date: r.entry_date,
       code: r.code,
       ot_hours: r.ot_hours,
+      // Extra Duty created only by the Payroll Days limit; turned back into
+      // Present automatically if the contract limit is later relaxed.
+      ed_from_cap: capConvertedDates.has(r.entry_date),
     }));
 
     // A dropped connection ("Failed to fetch") means the write never reached the

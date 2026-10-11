@@ -3263,6 +3263,10 @@ function ClientContractsPage() {
             // Payroll / invoice pages recompute from the edited contract.
             void qc.invalidateQueries({ queryKey: ["payroll-register-compute"] });
             void qc.invalidateQueries({ queryKey: ["invoice-compute"] });
+            // Attendance reads the Payroll Days limit from the contract, and the
+            // database re-shapes stored attendance when that limit changes.
+            void qc.invalidateQueries({ queryKey: ["attendance-contract"] });
+            void qc.invalidateQueries({ queryKey: ["attendance-entries-v4"] });
             void notifySaved({ title: "Saved", description: editing ? "Contract updated" : "Contract created" });
             return null;
           } catch (e) {
