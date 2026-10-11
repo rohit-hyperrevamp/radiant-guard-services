@@ -1,8 +1,8 @@
 # Mobile app UI re-review
 
 ## Consistent allowance names
-- [ ] Apply shared naming to contracts, payroll, payslips and invoices without rewriting rates or formulas.
-- [ ] Audit production labels and CLI2; verify grouping preserves amounts.
+- [x] Apply shared naming to contracts, rate comparisons, payroll, payslips and invoices without rewriting rates or formulas.
+- [x] Audit 23,935 production resource structures and 207 source labels; CLI2 conveyance stays ₹2,200; grouping changes no amounts; 21 regression checks passed.
 - [ ] Verify updated live screens after publication — blocked until publication.
 
 ## Case and task form documents

@@ -2903,13 +2903,13 @@ type PaySheetRow = {
   };
 };
 
-const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const normName = (s: string) => payItemKey(s);
 
 function contractLookup(items: Line[] | null | undefined, name: string): number | null {
   if (!items) return null;
   const t = normName(name);
-  const hit = items.find((i) => normName(i.name) === t);
-  return hit ? Number(hit.amount) || 0 : null;
+  const matches = items.filter((i) => normName(i.name) === t);
+  return matches.length ? matches.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) : null;
 }
 
 function BreakdownSection({
@@ -2937,7 +2937,7 @@ function BreakdownSection({
     violet: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
     amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   } as const;
-  const visible = lines.filter((l) => Math.abs(Number(l.amount) || 0) > 0.004);
+  const visible = mergePayItems(lines).filter((l) => Math.abs(Number(l.amount) || 0) > 0.004);
   return (
     <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
       <div className={`flex items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] ${toneMap[tone]}`}>
