@@ -424,6 +424,14 @@ function CaseDesk() {
               if (on) setSort("hearing");
             },
           },
+          {
+            label: "Needs next date",
+            v: all.filter(
+              (c) => c.status !== "closed" && (!c.next_hearing_on || daysTo(c.next_hearing_on) < 0),
+            ).length,
+            on: attention,
+            click: () => setAttention(!attention),
+          },
           ...Object.entries(STATUS).map(([k, s]) => ({
             label: s.label,
             v: by("status", k),
@@ -478,6 +486,27 @@ function CaseDesk() {
                 </button>
               ))}
             </div>
+            {stateCounts.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="mb-2 text-xs font-medium text-muted-foreground">Cases by state</div>
+                <div className="flex flex-wrap gap-2">
+                  {stateCounts.map(([st, v]) => (
+                    <button
+                      key={st}
+                      onClick={() => setStateF(stateF === st ? "all" : st)}
+                      className={cn(
+                        "rounded-lg border border-border px-3 py-1.5 text-left text-sm transition hover:bg-muted/50",
+                        stateF === st && "ring-2 ring-primary",
+                      )}
+                    >
+                      <span className="font-medium text-foreground">{st}</span>{" "}
+                      <span className="tabular-nums text-foreground">{v.total}</span>
+                      <span className="ml-1 text-[11px] text-muted-foreground">({v.open} active)</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
@@ -530,6 +559,52 @@ function CaseDesk() {
             ...(lk.data?.types ?? []).map((t) => ({ value: t.id, label: t.name })),
           ]}
         />
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative sm:w-56">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Reference no. (incl. old courts)"
+            value={refQ}
+            onChange={(e) => setRefQ(e.target.value)}
+          />
+        </div>
+        <SearchSelect
+          className="sm:w-48"
+          value={stateF}
+          onChange={setStateF}
+          options={[
+            { value: "all", label: "All states" },
+            ...uniq((casesQ.data ?? []).map((c) => c.state || "Not set")).map((v) => ({ value: v, label: v })),
+          ]}
+        />
+        <SearchSelect
+          className="sm:w-64"
+          value={courtF}
+          onChange={setCourtF}
+          options={[
+            { value: "all", label: "All courts" },
+            ...uniq((casesQ.data ?? []).map((c) => c.court_or_authority)).map((v) => ({ value: v, label: v })),
+          ]}
+        />
+        <SearchSelect
+          className="sm:w-56"
+          value={partyF}
+          onChange={setPartyF}
+          options={[
+            { value: "all", label: "All clients / parties" },
+            ...uniq((casesQ.data ?? []).map((c) => c.party_name || c.opposing_party)).map((v) => ({ value: v, label: v })),
+          ]}
+        />
+        {anyFilter && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        )}
+        <span className="text-xs text-muted-foreground sm:ml-auto">
+          Showing {rows.length} of {(casesQ.data ?? []).length}
+        </span>
       </div>
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         {rows.map((c) => (
