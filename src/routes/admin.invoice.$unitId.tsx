@@ -1,3 +1,4 @@
+import { mergePayItems } from "@/lib/pay-item-names";
 import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -20,7 +21,6 @@ import {
   applyPtToWageComputation,
   computeAttendanceTotals,
   computeWages,
-  mergeByCanonicalName,
   fmtINR,
   resolvePtAmount,
   type AttendanceCodeLike,
@@ -59,6 +59,14 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/admin/invoice/$unitId")({
   validateSearch: (s) => searchSchema.parse(s),
+  head: () => ({ meta: [
+    { title: "Client Invoice | Radiant Guard Services" },
+    { name: "description", content: "Review client-period billing, attendance and the Radiant invoice rate breakdown." },
+    { property: "og:title", content: "Client Invoice | Radiant Guard Services" },
+    { property: "og:description", content: "Review client-period billing, attendance and the Radiant invoice rate breakdown." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: PayrollUnitPage,
 });
 
@@ -883,16 +891,16 @@ function PayrollUnitPage() {
         const mergedResource = resource
           ? {
               ...resource,
-              components: mergeByCanonicalName(resource.components),
-              benefits: mergeByCanonicalName(resource.benefits ?? []),
-              deductions: mergeByCanonicalName(resource.deductions ?? []),
-              employerContributions: mergeByCanonicalName(resource.employerContributions ?? []),
+              components: mergePayItems(resource.components),
+              benefits: mergePayItems(resource.benefits ?? []),
+              deductions: mergePayItems(resource.deductions ?? []),
+              employerContributions: mergePayItems(resource.employerContributions ?? []),
             }
           : null;
         if (wages) {
-          wages.components = mergeByCanonicalName(wages.components) as typeof wages.components;
-          wages.deductions = mergeByCanonicalName(wages.deductions) as typeof wages.deductions;
-          wages.employerContributions = mergeByCanonicalName(wages.employerContributions) as typeof wages.employerContributions;
+          wages.components = mergePayItems(wages.components) as typeof wages.components;
+          wages.deductions = mergePayItems(wages.deductions) as typeof wages.deductions;
+          wages.employerContributions = mergePayItems(wages.employerContributions) as typeof wages.employerContributions;
         }
         return {
           id: c.id,
