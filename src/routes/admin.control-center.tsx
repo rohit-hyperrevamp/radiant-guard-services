@@ -243,6 +243,12 @@ const tiles: Tile[] = [
     icon: CalendarRange,
   },
   {
+    to: "/admin/hearing-alerts",
+    label: "Hearing Reminders",
+    description: "When case hearing reminders go out.",
+    icon: CalendarRange,
+  },
+  {
     to: "/admin/case-type-manager",
     label: "Case Types",
     description: "Categories for the legal Case Desk.",
