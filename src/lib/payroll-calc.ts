@@ -1016,7 +1016,8 @@ export function computeWages(
   if (otSelected.length > 0) {
     otBase = Math.max(
       0,
-      otSelected.reduce((s, c) => s + (Number(c.amount) || 0), 0),
+      // Lines flagged roundOff count at their rounded rupee value (Pages: 1,082.76 → 1,083).
+      otSelected.reduce((s, c) => s + ((c as { roundOff?: boolean }).roundOff ? Math.round(Number(c.amount) || 0) : (Number(c.amount) || 0)), 0),
     );
   } else {
     const excludedFromOt = resource.components
@@ -1025,7 +1026,9 @@ export function computeWages(
     otBase = Math.max(0, contractGross - excludedFromOt);
   }
 
-  const perDutyOt = otBase / OT_DIVISOR;
+  // Day rate is rounded to paise before multiplying (Pages register rule:
+  // 25,180.17 / 26 = 968.47 → 3 ED days = 2,905.41).
+  const perDutyOt = round2(otBase / OT_DIVISOR);
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
   if (otAmount > 0) {
