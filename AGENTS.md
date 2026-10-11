@@ -4,7 +4,7 @@
 - Mixed-window charter statuses load via `batch_period_statuses(jsonb)` in one request — no per-window fan-out.
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Approvals (payroll, onboarding, `approval_requests`) follow `workflow_steps` via `workflow_step_matches` (named people/department override role); sensitive employee fields change only through `approval_decide` — approvers stay configurable.
-- Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server-side sends get held (code 211).
+- Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server sends get held (211).
 - Sales & Marketing CRM lives in `crm_*` tables gated by `current_user_can_crm()` (Super Admin + `sales_marketing` RBAC module); prospects convert via the org → unit → contract chain (`OrgUnitChain`) into a pending-approval contract draft — Client Contracts holds contracts only.
 - "View as user" mints the target session server-side (`startImpersonation`, super-admin verified), admin session kept in localStorage `radiant.impersonator`, sign-out `scope: "local"` — real RLS views without touching the employee's sessions.
 - Recruitment: `rec_*` gated by `current_user_can_recruit()`; `rec_onboard_candidate` inserts into `candidates` so one employee ID series is used.
@@ -27,6 +27,6 @@
 - Pay-item displays/grouping use `pay-item-names`; preserve raw rate/formula lines so naming cannot change calculations.
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
-- Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
 - Pages-era payslips: read-only `pages_payslip_archive` (/admin/payroll/history) — never recalculated.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`) — stored attendance never keeps a stale cap.
+- Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.

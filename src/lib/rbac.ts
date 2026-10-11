@@ -166,6 +166,8 @@ export function useCurrentPermissions(): {
   canExport: (moduleKey: string) => boolean;
   /** Explicit-grant switch: only an Access Control row (View) allows it. */
   canExplicit: (moduleKey: string, subKey: string) => boolean;
+  /** Feature switch: explicit row wins, else module View. */
+  canSwitch: (moduleKey: string, subKey: string) => boolean;
 } {
   const { user } = useAuth();
   // Separate useAuth consumers hydrate independently. Read the already-written
@@ -310,6 +312,13 @@ export function useCurrentPermissions(): {
     return map.get(`${moduleKey}::${subKey}`)?.can_view === true;
   };
 
+  // Feature switch: explicit <module>::<sub> row wins, else follows module View.
+  const canSwitch = (moduleKey: string, subKey: string) => {
+    if (isSuperAdmin) return true;
+    const r = map.get(`${moduleKey}::${subKey}`);
+    return r ? r.can_view : can(moduleKey, "view");
+  };
+
   return {
     // Cached values prevent blank screens, but routing must wait for the live
     // role and permission reads so an old device cache cannot select a stale dashboard.
@@ -325,6 +334,7 @@ export function useCurrentPermissions(): {
     canWidget,
     canExport,
     canExplicit,
+    canSwitch,
   };
 }
 
