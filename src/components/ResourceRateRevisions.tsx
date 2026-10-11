@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState, type ComponentType
 import { toast } from "sonner";
 import { CheckCircle2, Copy, Download, Edit2, GitCompare, History, Loader2, X } from "lucide-react";
 import { openExport } from "@/lib/csv-export";
+import { mergePayItems } from "@/lib/pay-item-names";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,12 +332,14 @@ export function ResourceRateRevisions({
       ["Employer cost", comparisonBase.employerContributions, comparisonTarget.employerContributions],
     ];
     return groups.map(([g, a, b]) => {
-      const names = Array.from(new Set([...a, ...b].map((x) => String(x.name ?? ""))));
+      const current = mergePayItems(a.map((x) => ({ ...x, name: x.name ?? "" })));
+      const revised = mergePayItems(b.map((x) => ({ ...x, name: x.name ?? "" })));
+      const names = Array.from(new Set([...current, ...revised].map((x) => x.name)));
       return {
         group: g,
         lines: names.map((n) => {
-          const cur = Number(a.find((x) => x.name === n)?.amount) || 0;
-          const nxt = Number(b.find((x) => x.name === n)?.amount) || 0;
+          const cur = Number(current.find((x) => x.name === n)?.amount) || 0;
+          const nxt = Number(revised.find((x) => x.name === n)?.amount) || 0;
           return { name: n, cur, nxt };
         }),
       };

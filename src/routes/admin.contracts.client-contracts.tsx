@@ -1,3 +1,4 @@
+import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
@@ -108,6 +109,14 @@ export const Route = createFileRoute("/admin/contracts/client-contracts")({
     renewals: search.renewals === true || search.renewals === "true" ? true : undefined,
     unit: typeof search.unit === "string" ? search.unit : undefined,
   }),
+  head: () => ({ meta: [
+    { title: "Client Contracts and Rates | Radiant Guard Services" },
+    { name: "description", content: "Review Radiant client contracts, resource rates, billing periods and approval history." },
+    { property: "og:title", content: "Client Contracts and Rates | Radiant Guard Services" },
+    { property: "og:description", content: "Review Radiant client contracts, resource rates, billing periods and approval history." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ClientContractsPage,
 });
 
@@ -4170,7 +4179,7 @@ function ContractFormDialog({
                       <SelectItem value="none">— None —</SelectItem>
                       {billingTypes.map((b) => (
                         <SelectItem key={b.id} value={b.id}>
-                          {b.name}
+                          {standardPayItemName(b.name)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -4532,12 +4541,12 @@ function ResourcesSection({
     const rows: Record<string, string | number>[] = [];
     const add = (section: string, pick: (r: ContractResource) => { name: string; amount?: unknown }[]) => {
       const names: string[] = [];
-      resources.forEach((r) => pick(r).forEach((c) => { if (!names.includes(c.name)) names.push(c.name); }));
+      resources.forEach((r) => mergePayItems(pick(r)).forEach((c) => { if (!names.includes(c.name)) names.push(c.name); }));
       const totals: Record<string, number> = {};
       for (const n of names) {
         const row: Record<string, string | number> = { section, item: n };
         resources.forEach((r, i) => {
-          const hit = pick(r).find((c) => c.name === n);
+          const hit = mergePayItems(pick(r)).find((c) => payItemKey(c.name) === payItemKey(n));
           const v = hit ? Number(hit.amount) || 0 : 0;
           row[`r${i}`] = hit ? v : "—";
           totals[`r${i}`] = (totals[`r${i}`] ?? 0) + v;
@@ -4686,12 +4695,12 @@ function ResourcesSection({
                       )}
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {r.components.map((c) => (
+                      {mergePayItems(r.components).map((c) => (
                         <span
-                          key={c.allowanceId}
+                          key={c.name}
                           className="rounded bg-secondary/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
                         >
-                          {c.name}: {c.amount.toFixed(2)}
+                          {standardPayItemName(c.name)}: {c.amount.toFixed(2)}
                         </span>
                       ))}
                       {r.components.length === 0 && (
@@ -6043,7 +6052,7 @@ export function ResourceFormDialog({
                           >
                             <div className="flex flex-col">
                               <span className="text-sm">
-                                {a.shortName || a.displayName}
+                                {standardPayItemName(a.shortName || a.displayName)}
                               </span>
                               <span className="text-[11px] text-muted-foreground">
                                 {a.displayName}
@@ -6067,14 +6076,14 @@ export function ResourceFormDialog({
                 {components.map((c) => (
                   <div key={c.allowanceId} className="grid gap-1">
                     <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span className="truncate">{c.name}</span>
+                      <span className="truncate">{standardPayItemName(c.name)}</span>
                       <span className="flex items-center gap-1.5">
-                      <RoundOffToggle on={!!c.roundOff} label={c.name} onToggle={() => toggleComponentRoundOff(c.allowanceId)} />
+                      <RoundOffToggle on={!!c.roundOff} label={standardPayItemName(c.name)} onToggle={() => toggleComponentRoundOff(c.allowanceId)} />
                       <button
                         type="button"
                         onClick={() => removeComponent(c.allowanceId)}
                         className="text-muted-foreground hover:text-destructive"
-                        aria-label={`Remove ${c.name}`}
+                        aria-label={`Remove ${standardPayItemName(c.name)}`}
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -6158,7 +6167,7 @@ export function ResourceFormDialog({
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-semibold text-foreground">
-                            {c.name}
+                            {standardPayItemName(c.name)}
                           </span>
                           <span className="block text-[11px] tabular-nums text-muted-foreground">
                             {Number(c.amount || 0).toFixed(2)}
@@ -6234,11 +6243,11 @@ export function ResourceFormDialog({
                         {filteredAvailableDeductions.map((c) => (
                           <CommandItem
                             key={c.id}
-                            value={`${c.name} ${c.state} ${c.id}`}
+                            value={`${standardPayItemName(c.name)} ${c.state} ${c.id}`}
                             onSelect={() => addDeduction(c)}
                           >
                             <div className="flex flex-col">
-                              <span className="text-sm">{c.name}</span>
+                              <span className="text-sm">{standardPayItemName(c.name)}</span>
                               <span className="text-[11px] text-muted-foreground">
                                 {c.description
                                   ? c.description
@@ -6275,7 +6284,7 @@ export function ResourceFormDialog({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">{b.name}</span>
+                        <span className="text-sm font-semibold text-foreground">{standardPayItemName(b.name)}</span>
                         {b.state && b.state !== "N/A" && (
                           <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                             {b.state}
@@ -6315,7 +6324,7 @@ export function ResourceFormDialog({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <RoundOffToggle on={!!b.roundOff} label={b.name} onToggle={() => toggleDeductionRoundOff(b.costComponentId)} />
+                      <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleDeductionRoundOff(b.costComponentId)} />
                       {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
                          <DecimalAmountInput
                            value={b.amount}
@@ -6391,11 +6400,11 @@ export function ResourceFormDialog({
                         {filteredAvailableEmployer.map((c) => (
                           <CommandItem
                             key={c.id}
-                            value={`${c.name} ${c.state} ${c.id}`}
+                            value={`${standardPayItemName(c.name)} ${c.state} ${c.id}`}
                             onSelect={() => addEmployerContribution(c)}
                           >
                             <div className="flex flex-col">
-                              <span className="text-sm">{c.name}</span>
+                              <span className="text-sm">{standardPayItemName(c.name)}</span>
                               <span className="text-[11px] text-muted-foreground">
                                 {c.description
                                   ? c.description
@@ -6432,7 +6441,7 @@ export function ResourceFormDialog({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">{b.name}</span>
+                        <span className="text-sm font-semibold text-foreground">{standardPayItemName(b.name)}</span>
                         {b.state && b.state !== "N/A" && (
                           <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                             {b.state}
@@ -6479,7 +6488,7 @@ export function ResourceFormDialog({
 
                     </div>
                     <div className="flex items-center gap-2">
-                      <RoundOffToggle on={!!b.roundOff} label={b.name} onToggle={() => toggleEmployerRoundOff(b.costComponentId)} />
+                      <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleEmployerRoundOff(b.costComponentId)} />
                       {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
                          <DecimalAmountInput
                            value={b.amount}
@@ -6858,7 +6867,7 @@ export function SalaryBreakdownTable({
               <td className="text-right font-bold tracking-wider">( EARNED ) Rs.</td>
             </tr>
             {(() => {
-              const visibleComponents = components.filter((c) => Number(c.amount) > 0);
+              const visibleComponents = mergePayItems(components).filter((c) => Number(c.amount) > 0);
               const visibleBenefits = coreBenefits.filter((b) => Number(b.amount) > 0);
               if (visibleComponents.length === 0 && visibleBenefits.length === 0) {
                 return (
@@ -6872,8 +6881,8 @@ export function SalaryBreakdownTable({
               return (
                 <>
                   {visibleComponents.map((c) => (
-                    <tr key={`c-${c.allowanceId}`}>
-                      <td>{c.name}</td>
+                    <tr key={`c-${c.name}`}>
+                      <td>{standardPayItemName(c.name)}</td>
                       <td className="text-center tabular-nums">{Number(c.amount).toFixed(2)}</td>
                       <td />
                       <td className="text-right tabular-nums">{earnedFor(Number(c.amount)).toFixed(2)}</td>
@@ -6882,7 +6891,7 @@ export function SalaryBreakdownTable({
                   {visibleBenefits.map((b) => (
                     <tr key={`b-${b.costComponentId}`}>
                       <td>
-                        {b.name}
+                        {standardPayItemName(b.name)}
                         {b.calcType === "percentage" && (
                           <span className="ml-2 text-[11px] text-muted-foreground">
                             @ {b.percentage}% of{" "}
@@ -6927,7 +6936,7 @@ export function SalaryBreakdownTable({
               return visibleDeductions.map((b) => (
                 <tr key={`d-${b.costComponentId}`}>
                   <td>
-                    {b.name}
+                    {standardPayItemName(b.name)}
                     {isStatutoryEsi(b) ? (
                       <span className="ml-2 text-[11px] text-muted-foreground">
                         {describeRow(b) || `${b.percentage}% · ${ESI_CONTRACT_NOTE}`}
@@ -6977,7 +6986,7 @@ export function SalaryBreakdownTable({
               return visibleEmployer.map((b) => (
                 <tr key={`e-${b.costComponentId}`}>
                   <td>
-                    {b.name}
+                    {standardPayItemName(b.name)}
                     {isStatutoryEsi(b) ? (
                       <span className="ml-2 text-[11px] text-muted-foreground">
                         {describeRow(b) || `${b.percentage}% · ${ESI_CONTRACT_NOTE}`}
@@ -7005,7 +7014,7 @@ export function SalaryBreakdownTable({
               return (
               <tr key={`r-${b.costComponentId}`}>
                 <td>
-                  {b.name}
+                  {standardPayItemName(b.name)}
                   {b.calcType === "percentage" && (
                     <span className="ml-2 text-[11px] text-muted-foreground">
                       @ {b.percentage}% of{" "}
@@ -7035,7 +7044,7 @@ export function SalaryBreakdownTable({
               return (
               <tr key={`m-${b.costComponentId}`} className="bg-amber-50 dark:bg-amber-500/10">
                 <td className="font-semibold">
-                  {b.name}
+                  {standardPayItemName(b.name)}
                   {b.calcType === "percentage" && (
                     <span className="ml-2 text-[11px] text-muted-foreground">
                       @ {b.percentage}% of{" "}

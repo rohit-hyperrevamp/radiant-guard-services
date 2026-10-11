@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Consistent allowance names
+- [x] Apply shared naming to contracts, rate comparisons, payroll, payslips and invoices without rewriting rates or formulas.
+- [x] Audit 23,935 production resource structures and 207 source labels; CLI2 conveyance stays ₹2,200; grouping changes no amounts; 21 regression checks passed.
+- [ ] Verify updated live screens after publication — blocked until publication.
+
 ## Case and task form documents
 - [x] Widen and space case/task forms; add custom-named multiple case documents on save and task documents on completion.
 - [x] Provide later in-app viewing and direct document downloads.
