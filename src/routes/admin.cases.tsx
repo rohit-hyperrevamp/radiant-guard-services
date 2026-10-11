@@ -29,6 +29,8 @@ import { prepareUpload, withUploadRetry } from "@/lib/robust-upload";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { CreatableSelect } from "@/components/CreatableSelect";
 import { CourtHistory, courtOptions } from "@/components/legal/CourtHistory";
+import { HearingDiary } from "@/components/legal/HearingDiary";
+import { CaseMoney } from "@/components/legal/CaseMoney";
 import { EmployeeSummaryDialog, EmployeeSummaryView } from "@/components/legal/EmployeeSummary";
 import { AdvocatesTab } from "@/components/legal/AdvocatesTab";
 import { PartyHistoryTab } from "@/components/legal/PartyHistoryTab";
@@ -1446,6 +1448,17 @@ function CaseDetail({
             canEdit={canEdit}
             onChanged={onChanged}
           />
+          <HearingDiary
+            caseId={c.id}
+            caseNumber={c.case_number}
+            court={c.court_or_authority}
+            hearingOn={c.next_hearing_on}
+            hearingTime={c.next_hearing_time ?? null}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            onChanged={onChanged}
+          />
+          <CaseMoney caseId={c.id} caseNumber={c.case_number} canEdit={canEdit} canDelete={canDelete} />
           {(advLog.data?.length ?? 0) > 0 && (
             <div className="rounded-lg border border-border p-3 text-xs">
               <div className="mb-1 text-sm font-medium">Advocate history</div>
