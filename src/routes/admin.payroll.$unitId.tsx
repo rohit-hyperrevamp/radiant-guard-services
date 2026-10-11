@@ -886,6 +886,27 @@ function PayrollUnitPage() {
         if (!pairs.has(k)) pairs.set(k, { candidateId: e.candidate_id, designationId: e.designation_id, shift: entryShift(e) });
       }
 
+      // The line that carries once-a-month items (PH credit, PT, LWF, personal
+      // additions/deductions): the employee's home-role line when it has a
+      // contract rate here, otherwise their first rated line at this site.
+      // Without this, someone whose home role isn't on this contract would
+      // never be charged PT or their deductions.
+      const carrierByCandidate = new Map<string, string>();
+      const carrierRank = new Map<string, number>();
+      for (const p of pairs.values()) {
+        const c = rosterById.get(p.candidateId);
+        if (!c) continue;
+        const did = p.designationId ? String(p.designationId) : "";
+        const rated = Boolean(resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did, p.shift));
+        const key = pairKey(p.candidateId, p.designationId, p.shift);
+        const isHome = (c.designation_id ?? null) === p.designationId;
+        // Rank: rated home line > rated other line > unrated home line.
+        const rank = rated ? (isHome ? 3 : 2) : isHome ? 1 : 0;
+        if (rank > (carrierRank.get(c.id) ?? -1)) {
+          carrierRank.set(c.id, rank);
+          carrierByCandidate.set(c.id, key);
+        }
+      }
       const rows = Array.from(pairs.values()).map((p) => {
         const c = rosterById.get(p.candidateId)!;
         const did = p.designationId ? String(p.designationId) : "";
@@ -900,7 +921,7 @@ function PayrollUnitPage() {
         // Public holiday credit belongs to the employee, not to each line they
         // appear on: a reliever line (designation other than their own) must not
         // earn a second PH credit in the same unit.
-        const isPrimaryLine = (c.designation_id ?? null) === p.designationId;
+        const isPrimaryLine = carrierByCandidate.get(c.id) === pairKey(p.candidateId, p.designationId, p.shift);
         const totals = computeAttendanceTotals(
           c.id,
           periodDates,
@@ -912,7 +933,7 @@ function PayrollUnitPage() {
         );
         // Apply per-employee day adjustments from additions/deductions that opted into
         // "Include in total days" — only on the candidate's primary designation line.
-        const isPrimaryForAdj = (c.designation_id ?? null) === p.designationId;
+        const isPrimaryForAdj = carrierByCandidate.get(c.id) === pairKey(p.candidateId, p.designationId, p.shift);
         if (isPrimaryForAdj) {
           const adj = dayAdjustmentByCandidate.get(c.id);
           if (adj) {
@@ -931,7 +952,7 @@ function PayrollUnitPage() {
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })
           : null;
-        const isPrimary = (c.designation_id ?? null) === p.designationId;
+        const isPrimary = carrierByCandidate.get(c.id) === pairKey(p.candidateId, p.designationId, p.shift);
         const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
         const candidateIsDisabled = Boolean((c as unknown as { is_disabled?: boolean | null }).is_disabled);
 
