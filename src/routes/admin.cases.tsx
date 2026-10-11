@@ -27,6 +27,13 @@ import { NamedDocumentsPicker, SavedDocumentRow } from "@/components/NamedDocume
 import { documentPath, downloadDocument, type PendingDocument } from "@/lib/named-documents";
 import { prepareUpload, withUploadRetry } from "@/lib/robust-upload";
 import { PriorityBadge } from "@/components/PriorityBadge";
+import { CreatableSelect } from "@/components/CreatableSelect";
+import { CourtHistory, courtOptions } from "@/components/legal/CourtHistory";
+import { EmployeeSummaryDialog, EmployeeSummaryView } from "@/components/legal/EmployeeSummary";
+import { AdvocatesTab } from "@/components/legal/AdvocatesTab";
+import { PartyHistoryTab } from "@/components/legal/PartyHistoryTab";
+import { NoticesTab } from "@/components/legal/NoticesTab";
+import { ensureAdvocate, ensureCourt, ensureParty, LEGAL_MASTERS_KEY, useLegalMasters } from "@/lib/legal";
 
 export const Route = createFileRoute("/admin/cases")({
   head: () => ({
@@ -72,6 +79,12 @@ type Case = {
   amount_involved: number | null;
   owner_id: string | null;
   filed_by_id?: string | null;
+  party_id?: string | null;
+  party_name?: string | null;
+  customer_id?: string | null;
+  state?: string | null;
+  advocate_id?: string | null;
+  representative_id?: string | null;
   outcome: string | null;
   created_at: string;
   updated_at: string;
@@ -134,18 +147,29 @@ function useLookups() {
         db.from("legal_case_types").select("id,name,is_active").order("sort_order"),
         db.from("departments").select("id").eq("name", "Legal").maybeSingle(),
         (async () => {
-          const out: { id: string; name: string; unit_code: string | null }[] = [];
+          const out: { id: string; name: string; unit_code: string | null; state: string | null; customer_id: string | null }[] = [];
           for (let from = 0; from < 10000; from += 1000) {
             const { data } = await db
               .from("units")
-              .select("id,name,code")
+              .select("id,name,code,client_state,billing_state,customer_id")
               .order("name")
               .range(from, from + 999);
             out.push(
-              ...((data ?? []) as { id: string; name: string; code: string | null }[]).map((u) => ({
+              ...(
+                (data ?? []) as {
+                  id: string;
+                  name: string;
+                  code: string | null;
+                  client_state: string | null;
+                  billing_state: string | null;
+                  customer_id: string | null;
+                }[]
+              ).map((u) => ({
                 id: u.id,
                 name: u.name,
                 unit_code: u.code,
+                state: u.client_state || u.billing_state || null,
+                customer_id: u.customer_id,
               })),
             );
             if ((data ?? []).length < 1000) break;
@@ -168,7 +192,7 @@ function useLookups() {
           full_name: string;
           employee_code: string | null;
         }[],
-        units: (u.data ?? []) as { id: string; name: string; unit_code: string | null }[],
+        units: u.data,
       };
     },
   });
@@ -176,8 +200,18 @@ function useLookups() {
 
 function CaseDesk() {
   const { can } = useCurrentPermissions();
+  const { canSwitch } = useCurrentPermissions();
   const canEdit = can("legal_cases", "edit");
   const qc = useQueryClient();
+  const [tab, setTab] = useState("cases");
+  const [summaryId, setSummaryId] = useState("");
+  const tabs = [
+    { key: "cases", label: "Cases", on: true },
+    { key: "notices", label: "Legal notices", on: canSwitch("legal_cases", "legal_notices") },
+    { key: "advocates", label: "Advocates", on: canSwitch("legal_cases", "advocates") },
+    { key: "history", label: "Party history", on: canSwitch("legal_cases", "party_history") },
+    { key: "employee", label: "Employee summary", on: canSwitch("legal_cases", "employee_summary") },
+  ].filter((t) => t.on);
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
   const [prio, setPrio] = useState("all");
@@ -205,7 +239,7 @@ function CaseDesk() {
       Array.from(
         new Set(
           (casesQ.data ?? [])
-            .flatMap((c) => [c.employee_id, c.owner_id, c.filed_by_id])
+            .flatMap((c) => [c.employee_id, c.owner_id, c.filed_by_id, c.representative_id])
             .filter(Boolean) as string[],
         ),
       ).sort(),
@@ -245,7 +279,7 @@ function CaseDesk() {
         (prio === "all" || c.priority === prio) &&
         (type === "all" || c.case_type_id === type) &&
         (!s ||
-          `${c.case_number} ${c.title} ${typeName(c.case_type_id)} ${c.priority} ${c.opposing_party ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`
+          `${c.case_number} ${c.title} ${typeName(c.case_type_id)} ${c.priority} ${c.opposing_party ?? ""} ${c.party_name ?? ""} ${c.state ?? ""} ${c.court_or_authority ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`
             .toLowerCase()
             .includes(s)),
     );
@@ -272,7 +306,7 @@ function CaseDesk() {
         description="Every legal case, hearing, penalty and its documents in one place."
         crumbs={[{ label: "Case Desk" }]}
         actions={
-          canEdit ? (
+          canEdit && tab === "cases" ? (
             <Button onClick={() => setEditing({ status: "open", priority: "medium" })}>
               <Plus className="mr-1 h-4 w-4" />
               New case
@@ -280,7 +314,45 @@ function CaseDesk() {
           ) : undefined
         }
       />
-      {(() => {
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition",
+              tab === t.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "notices" && (
+        <NoticesTab
+          canEdit={canEdit}
+          cases={(casesQ.data ?? []).map((c) => ({ id: c.id, case_number: c.case_number, title: c.title }))}
+        />
+      )}
+      {tab === "advocates" && <AdvocatesTab canEdit={canEdit} />}
+      {tab === "history" && (
+        <PartyHistoryTab
+          onOpenCase={(id) => {
+            setOpenId(id);
+          }}
+        />
+      )}
+      {tab === "employee" && (
+        <div className="space-y-3">
+          <EmployeePicker value={summaryId} onChange={setSummaryId} placeholder="Search any employee by name, ID or phone" />
+          {summaryId && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <EmployeeSummaryView candidateId={summaryId} />
+            </div>
+          )}
+        </div>
+      )}
+      {tab === "cases" && (() => {
         const all = casesQ.data ?? [];
         const by = (k: "status" | "priority", v: string) => all.filter((c) => c[k] === v).length;
         const statusCards = [
@@ -363,6 +435,7 @@ function CaseDesk() {
           </div>
         );
       })()}
+      {tab === "cases" && (<>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -426,7 +499,8 @@ function CaseDesk() {
               </div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">
                 {typeName(c.case_type_id)} ·{" "}
-                {c.employee_id ? personName(c.employee_id) : unitName(c.unit_id)} · Next date{" "}
+                {c.party_name || (c.employee_id ? personName(c.employee_id) : unitName(c.unit_id))}
+                {c.court_or_authority ? ` · ${c.court_or_authority}` : ""} · Next date{" "}
                 {d(c.next_hearing_on)}
                 {c.next_hearing_time ? ` ${tm(c.next_hearing_time)}` : ""}
               </div>
@@ -453,6 +527,7 @@ function CaseDesk() {
           <div className="p-8 text-center text-sm text-muted-foreground">No cases found.</div>
         )}
       </div>
+      </>)}
       {editing && (
         <CaseForm
           initial={editing}

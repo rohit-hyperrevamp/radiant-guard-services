@@ -66,7 +66,10 @@ export function NoticesTab({ canEdit, cases }: { canEdit: boolean; cases: { id: 
   });
   const org = m.data?.org;
   const company = org?.company_name || "Radiant Guard Services Pvt. Ltd.";
-  const blank = (): Notice => ({
+  const blank = (): Notice => {
+    const t = NOTICE_TEMPLATES[0];
+    const ctx = { company, toName: "", deadline: 15 };
+    return {
     template: "payment_recovery",
     status: "draft",
     case_id: null,
@@ -80,12 +83,13 @@ export function NoticesTab({ canEdit, cases }: { canEdit: boolean; cases: { id: 
     to_address: "",
     from_name: company,
     from_address: [org?.corporate_address || org?.registered_address, org?.phone, org?.email].filter(Boolean).join(" · "),
-    subject: "",
-    body: "",
+    subject: t.subject(ctx),
+    body: t.body(ctx),
     demand_amount: null,
     deadline_days: 15,
     sent_on: null,
-  });
+    };
+  };
   const rows = (list.data ?? []).filter((n) =>
     `${n.notice_number} ${n.to_name} ${n.subject} ${n.status}`.toLowerCase().includes(q.trim().toLowerCase()),
   );
