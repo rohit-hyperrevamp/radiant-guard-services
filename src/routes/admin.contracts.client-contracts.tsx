@@ -1,6 +1,7 @@
 import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
+import { ContractHistoryPanel } from "@/components/ContractHistoryPanel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
@@ -3513,6 +3514,10 @@ function ContractViewDialog({
             </div>
           )}
         </div>
+
+        {isClient && contract.unitId ? (
+          <ContractHistoryPanel unitId={contract.unitId} currentId={contract.id} />
+        ) : null}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
