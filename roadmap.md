@@ -580,3 +580,11 @@
 - [x] Fit complete headings and status/task labels on a single line.
 - [x] Run fitting and layout regression checks: 54 full-word/value cases, 100 number cases, and both follow-up layout checks passed.
 - [ ] Verify live appearance after publishing (requires published UI).
+
+## Reminder for Chun Chang (paused 11 Oct 2026)
+- [ ] Pages history: finish ~21,600 former-employee profiles and copy document files (photos, Aadhaar, PAN, signatures) — the background copy stopped when the workspace reset.
+
+## September Pages rupee match (11 Oct 2026)
+- [x] Rates/day rules compared; 490 contract lines corrected to Pages
+- [x] 2,839 Pages Sep deductions added; PT/once-a-month items now land on the employee's rated line
+- [ ] Remaining: 1,889 payslips differ (gross 893, PT 803, ESI 529, EPF 398, duties 187); Bajaj Finance billing days kept as Actual Days per earlier instruction
