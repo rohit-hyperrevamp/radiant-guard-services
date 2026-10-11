@@ -604,6 +604,11 @@ function CaseForm({
   onSaved: () => void;
 }) {
   const [f, setF] = useState<Partial<Case>>(initial);
+  const m = useLegalMasters();
+  const qc = useQueryClient();
+  const [typedParty, setTypedParty] = useState<string | null>(null);
+  const [typedAdvocate, setTypedAdvocate] = useState<string | null>(null);
+  const [typedCourt, setTypedCourt] = useState<string | null>(null);
   const [documents, setDocuments] = useState<PendingDocument[]>([]);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof Case, v: unknown) => setF((p) => ({ ...p, [k]: v === "" ? null : v }));
@@ -620,8 +625,27 @@ function CaseForm({
     )
       return;
     setBusy(true);
+    let party_id = f.party_id ?? null;
+    let advocate_id = f.advocate_id ?? null;
+    try {
+      if (typedParty) party_id = await ensureParty(typedParty, { state: f.state ?? "" });
+      if (typedAdvocate) advocate_id = await ensureAdvocate(typedAdvocate);
+      if (typedCourt) await ensureCourt(typedCourt, f.state ?? "");
+      if (typedParty || typedAdvocate || typedCourt) qc.invalidateQueries({ queryKey: LEGAL_MASTERS_KEY });
+    } catch (e) {
+      setBusy(false);
+      return toast.error(e instanceof Error ? e.message : String(e));
+    }
+    const advocateName =
+      typedAdvocate ?? m.data?.advocates.find((a) => a.id === advocate_id)?.name ?? null;
     const payload = {
       title: f.title.trim(),
+      party_id,
+      party_name: f.party_name ?? null,
+      customer_id: f.customer_id ?? null,
+      state: f.state ?? null,
+      advocate_id,
+      representative_id: f.representative_id ?? null,
       case_type_id: f.case_type_id ?? null,
       status: f.status ?? "open",
       priority: f.priority ?? "medium",
@@ -666,6 +690,37 @@ function CaseForm({
       );
     }
     setBusy(false);
+    if (!f.id && payload.court_or_authority)
+      await db.from("legal_case_courts").insert({
+        case_id: res.data.id,
+        court_name: payload.court_or_authority,
+        reference_no: payload.reference_no,
+        state: payload.state,
+        from_date: payload.filed_on,
+        note: "Original filing",
+        is_current: true,
+      });
+    if (advocate_id && advocate_id !== (initial.advocate_id ?? null)) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (f.id)
+        await db
+          .from("legal_case_advocate_log")
+          .update({ to_date: today })
+          .eq("case_id", res.data.id)
+          .is("to_date", null);
+      await db.from("legal_case_advocate_log").insert({
+        case_id: res.data.id,
+        advocate_id,
+        advocate_name: advocateName ?? "Advocate",
+        from_date: today,
+      });
+      if (f.id)
+        await db.from("legal_case_notes").insert({
+          case_id: res.data.id,
+          kind: "advocate",
+          note: `Advocate changed to ${advocateName}`,
+        });
+    }
     if (f.id && initial.status !== payload.status)
       await db
         .from("legal_case_notes")
@@ -748,10 +803,105 @@ function CaseForm({
               placeholder="Search any employee or guard"
             />
           </Field>
-          <Field label="Client / site">
+          <Field label="Client / party (ours, saved, or type a new name)">
+            <CreatableSelect
+              value={f.customer_id ? `c:${f.customer_id}` : f.party_id ? `p:${f.party_id}` : ""}
+              label={typedParty ?? f.party_name ?? null}
+              options={[
+                ...(m.data?.customers ?? []).map((c) => ({
+                  value: `c:${c.id}`,
+                  label: c.name,
+                  hint: `Our client${c.code ? ` · ${c.code}` : ""}${c.billing_state ? ` · ${c.billing_state}` : ""}`,
+                })),
+                ...(m.data?.parties ?? []).map((p) => ({
+                  value: `p:${p.id}`,
+                  label: p.name,
+                  hint: `Saved party${p.state ? ` · ${p.state}` : ""}`,
+                })),
+              ]}
+              onChange={(v) => {
+                setTypedParty(null);
+                if (!v) return setF((p) => ({ ...p, customer_id: null, party_id: null, party_name: null }));
+                const [kind, id] = v.split(":");
+                if (kind === "c") {
+                  const c = m.data?.customers.find((x) => x.id === id);
+                  setF((p) => ({
+                    ...p,
+                    customer_id: id,
+                    party_id: null,
+                    party_name: c?.name ?? null,
+                    state: c?.billing_state || p.state || null,
+                  }));
+                } else {
+                  const pt = m.data?.parties.find((x) => x.id === id);
+                  setF((p) => ({
+                    ...p,
+                    party_id: id,
+                    customer_id: null,
+                    party_name: pt?.name ?? null,
+                    state: pt?.state || p.state || null,
+                  }));
+                }
+              }}
+              onCreate={(t) => {
+                setTypedParty(t);
+                setF((p) => ({ ...p, customer_id: null, party_id: null, party_name: t }));
+              }}
+            />
+          </Field>
+          <Field label="State">
+            <SearchSelect
+              value={f.state ?? ""}
+              onChange={(v) => set("state", v)}
+              placeholder="Fills from client, or choose"
+              options={(m.data?.states ?? []).map((x) => ({ value: x, label: x }))}
+            />
+          </Field>
+          <Field label="Advocate / retainer filing the case">
+            <CreatableSelect
+              value={f.advocate_id ?? ""}
+              label={typedAdvocate}
+              placeholder="Select or type a new advocate"
+              options={(m.data?.advocates ?? [])
+                .filter((a) => a.is_active || a.id === f.advocate_id)
+                .map((a) => ({
+                  value: a.id,
+                  label: a.name,
+                  hint: [a.kind === "in_house" ? "Our advocate" : "Retainer", a.firm, a.phone].filter(Boolean).join(" · "),
+                }))}
+              onChange={(v) => {
+                setTypedAdvocate(null);
+                set("advocate_id", v);
+              }}
+              onCreate={(t) => {
+                setTypedAdvocate(t);
+                set("advocate_id", null);
+              }}
+            />
+          </Field>
+          <Field label="Representative (our team member)">
+            <EmployeePicker
+              value={f.representative_id ?? ""}
+              onChange={(v) => set("representative_id", v)}
+              placeholder="Any team member or Field Officer"
+              activeOnly
+            />
+          </Field>
+          <Field label="Site">
             <SearchSelect
               value={f.unit_id ?? ""}
-              onChange={(v) => set("unit_id", v)}
+              onChange={(v) => {
+                const u = lk?.units.find((x) => x.id === v);
+                setF((p) => ({
+                  ...p,
+                  unit_id: v || null,
+                  state: p.state || u?.state || null,
+                  customer_id: p.customer_id || p.party_id || p.party_name ? p.customer_id : (u?.customer_id ?? null),
+                  party_name:
+                    p.party_name ||
+                    (u?.customer_id ? (m.data?.customers.find((c) => c.id === u.customer_id)?.name ?? null) : null),
+                }));
+              }}
               placeholder="Optional"
               options={(lk?.units ?? []).map((u) => ({
                 value: u.id,
@@ -766,18 +916,36 @@ function CaseForm({
               onChange={(e) => set("opposing_party", e.target.value)}
             />
           </Field>
-          <Field label="Court / authority">
-            <Input
-              value={f.court_or_authority ?? ""}
-              onChange={(e) => set("court_or_authority", e.target.value)}
-            />
-          </Field>
-          <Field label="Reference / notice no.">
-            <Input
-              value={f.reference_no ?? ""}
-              onChange={(e) => set("reference_no", e.target.value)}
-            />
-          </Field>
+          {f.id ? (
+            <div className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground sm:col-span-2">
+              Court: <b className="text-foreground">{f.court_or_authority || "—"}</b> · Ref.{" "}
+              <b className="text-foreground">{f.reference_no || "—"}</b>. To change court or reference number, open the
+              case and use “Change court / new reference” so the history is kept.
+            </div>
+          ) : (
+            <>
+              <Field label="Court / authority">
+                <CreatableSelect
+                  value={m.data?.courts.find((c) => c.name === f.court_or_authority)?.id ?? ""}
+                  label={f.court_or_authority ?? null}
+                  options={courtOptions(m.data?.courts ?? [])}
+                  placeholder="Search any court in India or type"
+                  onChange={(v) => {
+                    const c = m.data?.courts.find((x) => x.id === v);
+                    setTypedCourt(null);
+                    setF((p) => ({ ...p, court_or_authority: c?.name ?? null, state: p.state || c?.state || null }));
+                  }}
+                  onCreate={(t) => {
+                    setTypedCourt(t);
+                    set("court_or_authority", t);
+                  }}
+                />
+              </Field>
+              <Field label="Reference / case no.">
+                <Input value={f.reference_no ?? ""} onChange={(e) => set("reference_no", e.target.value)} />
+              </Field>
+            </>
+          )}
           <Field label="Amount involved (₹)">
             <Input
               type="number"
@@ -969,6 +1137,21 @@ function CaseDetail({
     }
   };
   const viewFile = useFileViewer();
+  const { canSwitch } = useCurrentPermissions();
+  const lm = useLegalMasters();
+  const [showSummary, setShowSummary] = useState(false);
+  const advLog = useQuery({
+    queryKey: ["legal-case-advocates", c.id],
+    queryFn: async () => {
+      const { data } = await db
+        .from("legal_case_advocate_log")
+        .select("id,advocate_name,from_date,to_date")
+        .eq("case_id", c.id)
+        .order("from_date", { ascending: false });
+      return (data ?? []) as { id: string; advocate_name: string; from_date: string; to_date: string | null }[];
+    },
+  });
+  const advocate = lm.data?.advocates.find((a) => a.id === c.advocate_id);
   const openDoc = async (path: string, name: string, filename: string, download = false) => {
     const { data, error } = await supabase.storage.from("legal-docs").createSignedUrl(path, 3600);
     if (error || !data) return toast.error("Could not open file");
@@ -1044,7 +1227,16 @@ function CaseDetail({
     ["Filed by", personName(c.filed_by_id ?? null)],
     ["Handled by", personName(c.owner_id)],
     ["Employee", personName(c.employee_id)],
-    ["Client / site", unitName(c.unit_id)],
+    ["Client / party", c.party_name ?? "—"],
+    ["State", c.state ?? "—"],
+    ["Site", unitName(c.unit_id)],
+    [
+      "Advocate",
+      advocate
+        ? `${advocate.name}${advocate.kind === "retainer" ? " (retainer)" : ""}${advocate.phone ? ` · ${advocate.phone}` : ""}`
+        : "—",
+    ],
+    ["Representative", personName(c.representative_id ?? null)],
     ["Opposite party", c.opposing_party ?? "—"],
     ["Court / authority", c.court_or_authority ?? "—"],
     ["Reference no.", c.reference_no ?? "—"],
@@ -1116,6 +1308,31 @@ function CaseDetail({
                 Save date
               </Button>
               <Countdown date={c.next_hearing_on} time={c.next_hearing_time} />
+            </div>
+          )}
+          {c.employee_id && canSwitch("legal_cases", "employee_summary") && (
+            <Button size="sm" variant="outline" onClick={() => setShowSummary(true)}>
+              View employee summary — {personName(c.employee_id)}
+            </Button>
+          )}
+          {showSummary && c.employee_id && (
+            <EmployeeSummaryDialog candidateId={c.employee_id} onClose={() => setShowSummary(false)} />
+          )}
+          <CourtHistory
+            caseId={c.id}
+            caseNumber={c.case_number}
+            caseState={c.state ?? null}
+            canEdit={canEdit}
+            onChanged={onChanged}
+          />
+          {(advLog.data?.length ?? 0) > 0 && (
+            <div className="rounded-lg border border-border p-3 text-xs">
+              <div className="mb-1 text-sm font-medium">Advocate history</div>
+              {advLog.data!.map((l) => (
+                <div key={l.id}>
+                  {l.advocate_name} · {d(l.from_date)} – {l.to_date ? d(l.to_date) : "now"}
+                </div>
+              ))}
             </div>
           )}
           {c.description && <p className="whitespace-pre-wrap">{c.description}</p>}
