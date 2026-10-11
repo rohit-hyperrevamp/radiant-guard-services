@@ -602,20 +602,19 @@ export function resolvePtAmount(input: PtResolveInput): PtResolveResult {
   };
 }
 
-function applyPtRule(items: WageComponent[], amount: number, defaultName: string): WageComponent[] {
+function applyPtRule(items: WageComponent[], amount: number, _defaultName: string): WageComponent[] {
+  // CONTRACT DECIDES: PT is charged only when the contract has a PT line.
+  // No PT line on the contract = no PT in payroll (never auto-added).
   // CUSTOM-FORMULA WINS: PT rows with their own formula keep the evaluated
   // amount. Statutory slab lookup only fills plain (formula-less) PT rows.
-  const hasPt = items.some((i) => PT_NAME_RE.test(i.name));
   let placed = false;
-  const mapped = items.map((i) => {
+  return items.map((i) => {
     if (!PT_NAME_RE.test(i.name)) return i;
     if (hasConfiguredFormula(i)) return i;
     if (placed) return { ...i, amount: 0 };
     placed = true;
     return { ...i, amount };
   });
-  if (!hasPt && amount > 0) mapped.push({ name: defaultName, amount });
-  return mapped;
 }
 
 export function applyPtToWageComputation(
