@@ -1,4 +1,5 @@
 import { fetchPeriodContract } from "@/lib/period-contract";
+import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -487,6 +488,16 @@ function PayrollUnitPage() {
       const roster = Array.from(
         new Map([...(primary ?? []), ...(secondary ?? [])].map((c) => [c.id, c])).values(),
       );
+      // People who worked here this period but have since left/been disabled
+      // are still paid for the days they worked.
+      {
+        const have = new Set(roster.map((c) => c.id));
+        const attended = (await fetchAttendedCandidateIds(unitId, start, end)).filter((id) => !have.has(id));
+        if (attended.length) {
+          const { data: leavers } = await supabase.from("candidates").select(candidateCols).in("id", attended);
+          roster.push(...((leavers ?? []) as typeof roster));
+        }
+      }
 
       const designationIds = Array.from(
         new Set(roster.map((c) => c.designation_id).filter(Boolean)),
