@@ -711,6 +711,9 @@ function MusterRollPage() {
       return { window: win, startDate, contractId, resources };
     },
     enabled: Boolean(unitId),
+    // Payroll Days limit must always reflect the latest contract edit.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const payrollWindow = contractInfo?.window ?? null;
   const contractStartDate = contractInfo?.startDate ?? null;
