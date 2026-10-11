@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
@@ -90,6 +90,12 @@ function PayrollUnitsPage() {
         subtitle="Contract payroll periods"
         description="Payroll from approved attendance."
       />
+      <div className="flex justify-end">
+        <Link to="/admin/payroll/history" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+          Payroll history (Apr 2023 – Aug 2026) →
+        </Link>
+      </div>
+
 
       <div className="space-y-2 rounded-xl border border-border/70 bg-card p-2 shadow-sm sm:rounded-2xl sm:p-3">
         <PayrollTabs />

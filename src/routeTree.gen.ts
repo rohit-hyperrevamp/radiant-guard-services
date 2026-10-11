@@ -121,6 +121,7 @@ import { Route as AdminInvoiceIndexRouteImport } from './routes/admin.invoice.in
 import { Route as AdminInvoiceUnitIdRouteImport } from './routes/admin.invoice.$unitId'
 import { Route as AdminPayrollIndexRouteImport } from './routes/admin.payroll.index'
 import { Route as AdminPayrollUnitIdRouteImport } from './routes/admin.payroll.$unitId'
+import { Route as AdminPayrollHistoryRouteImport } from './routes/admin.payroll.history'
 import { Route as AdminSalesDashboardRouteImport } from './routes/admin.sales.dashboard'
 import { Route as AdminSalesQuotesRouteImport } from './routes/admin.sales.quotes'
 import { Route as AdminVehiclesExpenseManagerRouteImport } from './routes/admin.vehicles.expense-manager'
@@ -734,6 +735,11 @@ const AdminPayrollUnitIdRoute = AdminPayrollUnitIdRouteImport.update({
   path: '/$unitId',
   getParentRoute: () => AdminPayrollRoute,
 } as any)
+const AdminPayrollHistoryRoute = AdminPayrollHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AdminPayrollRoute,
+} as any)
 const AdminSalesDashboardRoute = AdminSalesDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -998,6 +1004,7 @@ export interface FileRoutesByFullPath {
   '/admin/inventory/workflows': typeof AdminInventoryWorkflowsRoute
   '/admin/invoice/$unitId': typeof AdminInvoiceUnitIdRoute
   '/admin/payroll/$unitId': typeof AdminPayrollUnitIdRoute
+  '/admin/payroll/history': typeof AdminPayrollHistoryRoute
   '/admin/sales/dashboard': typeof AdminSalesDashboardRoute
   '/admin/sales/quotes': typeof AdminSalesQuotesRoute
   '/admin/vehicles/expense-manager': typeof AdminVehiclesExpenseManagerRoute
@@ -1135,6 +1142,7 @@ export interface FileRoutesByTo {
   '/admin/inventory/workflows': typeof AdminInventoryWorkflowsRoute
   '/admin/invoice/$unitId': typeof AdminInvoiceUnitIdRoute
   '/admin/payroll/$unitId': typeof AdminPayrollUnitIdRoute
+  '/admin/payroll/history': typeof AdminPayrollHistoryRoute
   '/admin/sales/dashboard': typeof AdminSalesDashboardRoute
   '/admin/sales/quotes': typeof AdminSalesQuotesRoute
   '/admin/vehicles/expense-manager': typeof AdminVehiclesExpenseManagerRoute
@@ -1278,6 +1286,7 @@ export interface FileRoutesById {
   '/admin/inventory/workflows': typeof AdminInventoryWorkflowsRoute
   '/admin/invoice/$unitId': typeof AdminInvoiceUnitIdRoute
   '/admin/payroll/$unitId': typeof AdminPayrollUnitIdRoute
+  '/admin/payroll/history': typeof AdminPayrollHistoryRoute
   '/admin/sales/dashboard': typeof AdminSalesDashboardRoute
   '/admin/sales/quotes': typeof AdminSalesQuotesRoute
   '/admin/vehicles/expense-manager': typeof AdminVehiclesExpenseManagerRoute
@@ -1422,6 +1431,7 @@ export interface FileRouteTypes {
     | '/admin/inventory/workflows'
     | '/admin/invoice/$unitId'
     | '/admin/payroll/$unitId'
+    | '/admin/payroll/history'
     | '/admin/sales/dashboard'
     | '/admin/sales/quotes'
     | '/admin/vehicles/expense-manager'
@@ -1559,6 +1569,7 @@ export interface FileRouteTypes {
     | '/admin/inventory/workflows'
     | '/admin/invoice/$unitId'
     | '/admin/payroll/$unitId'
+    | '/admin/payroll/history'
     | '/admin/sales/dashboard'
     | '/admin/sales/quotes'
     | '/admin/vehicles/expense-manager'
@@ -1701,6 +1712,7 @@ export interface FileRouteTypes {
     | '/admin/inventory/workflows'
     | '/admin/invoice/$unitId'
     | '/admin/payroll/$unitId'
+    | '/admin/payroll/history'
     | '/admin/sales/dashboard'
     | '/admin/sales/quotes'
     | '/admin/vehicles/expense-manager'
@@ -2541,6 +2553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPayrollUnitIdRouteImport
       parentRoute: typeof AdminPayrollRoute
     }
+    '/admin/payroll/history': {
+      id: '/admin/payroll/history'
+      path: '/history'
+      fullPath: '/admin/payroll/history'
+      preLoaderRoute: typeof AdminPayrollHistoryRouteImport
+      parentRoute: typeof AdminPayrollRoute
+    }
     '/admin/sales/dashboard': {
       id: '/admin/sales/dashboard'
       path: '/dashboard'
@@ -2848,11 +2867,13 @@ const AdminInvoiceRouteWithChildren = AdminInvoiceRoute._addFileChildren(
 
 interface AdminPayrollRouteChildren {
   AdminPayrollUnitIdRoute: typeof AdminPayrollUnitIdRoute
+  AdminPayrollHistoryRoute: typeof AdminPayrollHistoryRoute
   AdminPayrollIndexRoute: typeof AdminPayrollIndexRoute
 }
 
 const AdminPayrollRouteChildren: AdminPayrollRouteChildren = {
   AdminPayrollUnitIdRoute: AdminPayrollUnitIdRoute,
+  AdminPayrollHistoryRoute: AdminPayrollHistoryRoute,
   AdminPayrollIndexRoute: AdminPayrollIndexRoute,
 }
 

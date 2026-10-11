@@ -18,7 +18,7 @@
 - Dashboard widgets are `dashboard::w_*` sub-modules checked via `canWidget`; no row = visible (still gated by the data module), an explicit role/department/designation/employee row decides — new dashboard sections should get a widget key.
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — the deploy build can bake `process.env.SUPABASE_*` to the empty preview backend.
 - Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view) — alerts follow Access Control, not fixed roles.
-- Exports are gated centrally: `<module>::export` (View) checked by `canExport`; ExportChooser installs a guard so `downloadCsv`/`openExport` refuse on pages of modules without export access — one switch per module, no per-button wiring.
+- Exports are gated centrally: `<module>::export` (View) checked by `canExport`; ExportChooser installs a guard so `downloadCsv`/`openExport` refuse on pages of modules without export access — one switch per module.
 - Console users land on their dashboard without module grants; team cards are presentation-independent and gated by dashboard::w_team_clients — avoids personal-dashboard fallbacks hiding shared scope.
 - Audit trigger `zz_audit` (`audit_row_change(module)`) logs to `system_logs` (actor filled by `system_logs_fill_actor`) — add it to new important tables.
 
@@ -27,3 +27,4 @@
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
+- Pages-era payslips: read-only `pages_payslip_archive` (/admin/payroll/history) — never recalculated.
