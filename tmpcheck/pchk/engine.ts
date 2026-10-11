@@ -1,3 +1,4 @@
+import { fetchPeriodContract } from "@/lib/period-contract";
 import { supabase } from "./shim";
 import { holidayMapForDates, fetchEnabledPublicHolidays } from "@/lib/public-holidays";
 import { normShift, shiftKey } from "@/lib/shift-resources";
@@ -93,14 +94,8 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
         .eq("enabled", true);
 
       // 3. Contract resources for this unit's active contract.
-      const { data: contracts } = await supabase
-        .from("client_contracts")
-        .select("id, payroll_window_id")
-        .eq("unit_id", unitId)
-        .eq("record_type", "client")
-        .eq("status", "active")
-        .order("start_date", { ascending: false })
-        .limit(1);
+      const periodContract = await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id", supabase as any);
+      const contracts = periodContract ? [periodContract as any] : [];
       const contractId = contracts?.[0]?.id;
 
       let resources: Record<string, unknown>[] = [];

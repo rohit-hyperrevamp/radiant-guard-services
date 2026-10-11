@@ -1,3 +1,4 @@
+import { fetchPeriodContract } from "@/lib/period-contract";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -424,14 +425,8 @@ function PayrollUnitPage() {
         .eq("enabled", true);
 
       // 3. Contract resources for this unit's active contract.
-      const { data: contracts } = await supabase
-        .from("client_contracts")
-        .select("id, payroll_window_id, billing_type_id")
-        .eq("unit_id", unitId)
-        .eq("record_type", "client")
-        .eq("status", "active")
-        .order("start_date", { ascending: false })
-        .limit(1);
+      const periodContract = await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, billing_type_id");
+      const contracts = periodContract ? [periodContract as any] : [];
       const contractId = contracts?.[0]?.id;
       const billingTypeId = contracts?.[0]?.billing_type_id ?? null;
 
