@@ -29,3 +29,4 @@
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
 - Pages-era payslips: read-only `pages_payslip_archive` (/admin/payroll/history) — never recalculated.
+- Attendance follows contract Payroll Days: the `zz_contract_resources_rebalance_attendance` trigger re-shapes recent, unprocessed attendance when a line's payroll day base changes (limit-made Extra Duty is flagged `ed_from_cap`) — so a contract edit never leaves stale 26-day caps in stored attendance.
