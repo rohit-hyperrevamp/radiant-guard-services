@@ -263,11 +263,11 @@ begin
               where rm.candidate_id = c.id), '[]'::jsonb),
     'reports_to', (select jsonb_build_object('name', m.full_name, 'mobile', m.mobile) from candidates m where m.id = c.reports_to),
     'payslips', coalesce((select jsonb_agg(x order by x->>'period' desc) from (
-                 select jsonb_build_object('period', coalesce(pr.period_label, to_char(s.created_at,'Mon YYYY')), 'unit', u.name,
+                 select jsonb_build_object('period', to_char(coalesce(pr.period_end, s.created_at::date),'YYYY-MM'), 'period_label', to_char(coalesce(pr.period_end, s.created_at::date),'Mon YYYY'), 'unit', u.name,
                    'paid_days', s.paid_days, 'ed_days', s.ed_days, 'gross', s.gross, 'deductions', s.total_deductions,
                    'net_pay', s.net_pay, 'earnings', s.earnings) x
                  from payroll_run_snapshots s left join units u on u.id = s.unit_id
-                 left join lateral (select null::text as period_label) pr on true
+                 left join payroll_runs pr on pr.id = s.payroll_run_id
                 where s.candidate_id = c.id order by s.created_at desc limit 12) q), '[]'::jsonb),
     'units_paid_at', (select count(distinct unit_id) from payroll_run_snapshots where candidate_id = c.id),
     'total_paid_days', (select coalesce(sum(paid_days),0) from payroll_run_snapshots where candidate_id = c.id),
