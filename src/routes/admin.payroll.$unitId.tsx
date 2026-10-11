@@ -59,6 +59,7 @@ import {
 import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { fetchOtherSitePtTotals, ptForSite } from "@/lib/pt-cross-site";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
@@ -100,7 +101,7 @@ function cleanLedgerName(raw: string | null | undefined): string {
 }
 
 const ESI_COMPONENT_RE = /\besi(c)?\b/i;
-const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bpt\b/i;
+const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i;
 const isEsiItem = (item: { name?: unknown }) => ESI_COMPONENT_RE.test(String(item.name ?? ""));
 const isPtItem = (item: { name?: unknown }) => PT_COMPONENT_RE.test(String(item.name ?? ""));
 const contractTotalAmount = (item: { name?: unknown; amount?: unknown }) =>
@@ -907,6 +908,11 @@ function PayrollUnitPage() {
           carrierByCandidate.set(c.id, key);
         }
       }
+      // Gross and PT already paid to these people at OTHER sites this month
+      // (processed payrolls only). PT is one monthly slab per person, so a
+      // guard working two sites is taxed on the combined gross, once.
+      const otherSitePt = await fetchOtherSitePtTotals(candidateIds, unitId, end);
+
       const rows = Array.from(pairs.values()).map((p) => {
         const c = rosterById.get(p.candidateId)!;
         const did = p.designationId ? String(p.designationId) : "";
@@ -1087,6 +1093,29 @@ function PayrollUnitPage() {
           uan: ((cAny.compliance as Record<string, unknown> | null)?.uan as string) || "",
         };
       });
+
+      // Professional Tax: slab on the person's whole month — every line at
+      // this site (Extra Duty included) plus gross already paid at other sites
+      // — minus PT already charged elsewhere, carried on one line only.
+      const siteGrossByCandidate = new Map<string, number>();
+      for (const r of rows) {
+        if (r.wages) siteGrossByCandidate.set(r.id, (siteGrossByCandidate.get(r.id) ?? 0) + r.wages.earnedGross);
+      }
+      for (const r of rows) {
+        if (!r.wages || !r.isPrimary) continue;
+        const resolved = ptForSite({
+          state: unitState,
+          pincode: unitPincode,
+          gender: ((rosterById.get(r.id) as unknown as { gender?: string | null } | undefined)?.gender ?? "").toString(),
+          siteGross: siteGrossByCandidate.get(r.id) ?? 0,
+          other: otherSitePt.get(r.id),
+          slabs: (ptSlabs ?? []) as PtSlabLike[],
+          ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
+        });
+        Object.assign(r.wages, applyPtToWageComputation(r.wages, resolved.amount));
+        r.pt = resolved;
+      }
+
 
       // Client payroll shows only people with attendance in this period, and
       // never Field Officers (non-billable; paid from the Radiant home unit).
@@ -3149,7 +3178,7 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
           totalEarned={w.totalDeductions}
           note={(n) => {
             if (/\besi(c)?\b/i.test(n)) return "0.75% of earned gross − washing − conveyance";
-            if (/\bprofessional\s*tax\b|\bpt\b/i.test(n)) {
+            if (/\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i.test(n)) {
               if (!r.pt) return null;
               return r.pt.source === "resolved"
                 ? `Per ${r.pt.state ?? ""} slab`

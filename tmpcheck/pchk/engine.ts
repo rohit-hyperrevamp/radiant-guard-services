@@ -30,7 +30,7 @@ function buildDates(start: string, end: string): string[] {
   }
   return out;
 }
-const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bpt\b/i;
+const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i;
 const supabaseSessionReady = async () => {};
 export async function computeUnit(unitId: string, start: string, end: string, G: { publicHolidays: any[]; ptSlabs: any[]; pincodeRanges: any[]; lwfRows: LwfRow[] }) {
   const { ptSlabs, pincodeRanges, lwfRows } = G;
@@ -640,6 +640,14 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
 
         return { c, p, did, designationName, totals, wages, resource, isPrimary, ptResolved, adds: additionsByCandidate.get(c.id) ?? [], deds: deductionsByCandidate.get(c.id) ?? [] };
       });
+      const siteGross = new Map<string, number>();
+      for (const r of rows) if (r.wages) siteGross.set(r.c.id, (siteGross.get(r.c.id) ?? 0) + r.wages.earnedGross);
+      for (const r of rows) {
+        if (!r.wages || !r.isPrimary) continue;
+        const res = resolvePtAmount({ state: unitState, pincode: unitPincode, gender: String((r.c as any).gender ?? ""), earnedGross: siteGross.get(r.c.id) ?? 0, slabs: (ptSlabs ?? []) as PtSlabLike[], ranges: (pincodeRanges ?? []) as PincodeRangeLike[] });
+        Object.assign(r.wages, applyPtToWageComputation(r.wages, res.amount));
+        (r as any).ptResolved = res;
+      }
       return { rows, contractId, unit };
   };
   return __run();
