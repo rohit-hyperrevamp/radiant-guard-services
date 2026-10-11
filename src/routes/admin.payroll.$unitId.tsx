@@ -784,6 +784,9 @@ function PayrollUnitPage() {
           designationId: did,
           components: Array.isArray(r.components)
             ? (r.components as { name: string; amount: number; allowanceId?: string | null; includeInOt?: boolean; formulaMode?: string | null; formulaExpression?: string | null; formulaVersion?: number | null }[]).map((c) => ({
+                // Keep every line setting (rounding, per-duty / lump-sum method,
+                // divisor) — dropping them silently changed earned amounts.
+                ...c,
                 name: String(c.name ?? ""),
                 amount: Number(c.amount) || 0,
                 allowanceId: c.allowanceId ?? null,
