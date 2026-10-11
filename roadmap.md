@@ -587,4 +587,5 @@
 ## September Pages rupee match (11 Oct 2026)
 - [x] Rates/day rules compared; 490 contract lines corrected to Pages
 - [x] 2,839 Pages Sep deductions added; PT/once-a-month items now land on the employee's rated line
-- [ ] Remaining: 1,889 payslips differ (gross 893, PT 803, ESI 529, EPF 398, duties 187); Bajaj Finance billing days kept as Actual Days per earlier instruction
+- [x] Round 2 (11 Oct): payroll windows, cross-site PT, rounding, PF/ESI bases, ED items, billing days (incl. Bajaj), attendance, admin charge, missing allowances — 4,602/5,938 exact
+- [ ] Remaining ~1,336 payslips: Extra Duty at double rate / benefit-inclusive ED rate (needs an ED multiplier setting), per-person Pages deductions, ESI/EPF on groups with no unique fit, 3 sites with overlapping October attendance (CLI394, CLI3356, CLI3938)

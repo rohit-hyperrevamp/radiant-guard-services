@@ -676,6 +676,7 @@ function PayrollUnitPage() {
                 formulaExpression?: string | null;
                 formulaVersion?: number | null;
               }[]).map((c) => ({
+                ...c,
                 name: String(c.name ?? ""),
                 amount: Number(c.amount) || 0,
                 allowanceId: c.allowanceId ?? null,
