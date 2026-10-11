@@ -5366,11 +5366,11 @@ export function ResourceFormDialog({
     });
   };
 
-  const toggleOtComponent = (allowanceId: string) => {
+  const toggleOtComponent = (index: number) => {
     preserveDialogScroll(() => {
       setComponents((prev) =>
-        prev.map((c) =>
-          c.allowanceId === allowanceId
+        prev.map((c, i) =>
+          i === index
             ? { ...c, includeInOt: c.includeInOt === false }
             : c,
         ),
@@ -6150,13 +6150,13 @@ export function ResourceFormDialog({
             ) : (
               <>
                 <div className="grid gap-2 sm:grid-cols-3">
-                  {components.map((c) => {
+                  {components.map((c, idx) => {
                     const on = c.includeInOt !== false;
                     return (
                       <button
-                        key={`ot-${c.allowanceId}`}
+                        key={`ot-${idx}-${c.name}`}
                         type="button"
-                        onClick={() => toggleOtComponent(c.allowanceId)}
+                        onClick={() => toggleOtComponent(idx)}
                         className={cn(
                           "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors",
                           on
