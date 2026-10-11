@@ -1,3 +1,5 @@
+import { fetchPeriodContract } from "@/lib/period-contract";
+import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { supabase } from "./shim";
 import { holidayMapForDates, fetchEnabledPublicHolidays } from "@/lib/public-holidays";
 import { normShift, shiftKey } from "@/lib/shift-resources";
@@ -68,6 +70,16 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
       const roster = Array.from(
         new Map([...(primary ?? []), ...(secondary ?? [])].map((c) => [c.id, c])).values(),
       );
+      // People who worked here this period but have since left/been disabled
+      // are still paid for the days they worked.
+      {
+        const have = new Set(roster.map((c) => c.id));
+        const attended = (await fetchAttendedCandidateIds(unitId, start, end, supabase as any)).filter((id) => !have.has(id));
+        if (attended.length) {
+          const { data: leavers } = await supabase.from("candidates").select(candidateCols).in("id", attended);
+          roster.push(...((leavers ?? []) as typeof roster));
+        }
+      }
 
       const designationIds = Array.from(
         new Set(roster.map((c) => c.designation_id).filter(Boolean)),
@@ -93,14 +105,8 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
         .eq("enabled", true);
 
       // 3. Contract resources for this unit's active contract.
-      const { data: contracts } = await supabase
-        .from("client_contracts")
-        .select("id, payroll_window_id")
-        .eq("unit_id", unitId)
-        .eq("record_type", "client")
-        .eq("status", "active")
-        .order("start_date", { ascending: false })
-        .limit(1);
+      const periodContract = await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id", supabase as any);
+      const contracts = periodContract ? [periodContract as any] : [];
       const contractId = contracts?.[0]?.id;
 
       let resources: Record<string, unknown>[] = [];

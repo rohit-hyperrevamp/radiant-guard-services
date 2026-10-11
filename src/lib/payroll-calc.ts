@@ -742,7 +742,11 @@ function benefitAmountFromConfig(
   const contractByName = amountMap(contractComponents);
   const earnedGross = round2(earnedComponents.reduce((sum, c) => sum + (Number(c.amount) || 0), 0));
   const contractGross = round2(contractComponents.reduce((sum, c) => sum + (Number(c.amount) || 0), 0));
-  const bases = Array.isArray(item.baseComponents) ? item.baseComponents : [];
+  // Older imported lines store bases as plain names ("Basic") rather than
+  // { label, operator } objects; both mean "add this component".
+  const bases = (Array.isArray(item.baseComponents) ? item.baseComponents : []).map((b) =>
+    typeof (b as unknown) === "string" ? { label: b as unknown as string, operator: "+" as const } : b,
+  );
   const base = bases.reduce((sum, b) => {
     const key = normFormulaName(String(b.label ?? ""));
     const contractValue =

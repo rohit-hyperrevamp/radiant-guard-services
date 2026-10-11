@@ -1,3 +1,5 @@
+import { fetchPeriodContract } from "@/lib/period-contract";
+import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -399,6 +401,18 @@ function PayrollUnitPage() {
       const roster = Array.from(
         new Map([...(primary ?? []), ...(secondary ?? [])].map((c) => [c.id, c])).values(),
       );
+      // Bill days worked by people who have since left or been disabled.
+      {
+        const have = new Set(roster.map((c) => c.id));
+        const attended = (await fetchAttendedCandidateIds(unitId, start, end)).filter((id) => !have.has(id));
+        if (attended.length) {
+          const { data: leavers } = await supabase
+            .from("candidates")
+            .select("id, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date")
+            .in("id", attended);
+          roster.push(...((leavers ?? []) as typeof roster));
+        }
+      }
 
       const designationIds = Array.from(
         new Set(roster.map((c) => c.designation_id).filter(Boolean)),
@@ -424,14 +438,8 @@ function PayrollUnitPage() {
         .eq("enabled", true);
 
       // 3. Contract resources for this unit's active contract.
-      const { data: contracts } = await supabase
-        .from("client_contracts")
-        .select("id, payroll_window_id, billing_type_id")
-        .eq("unit_id", unitId)
-        .eq("record_type", "client")
-        .eq("status", "active")
-        .order("start_date", { ascending: false })
-        .limit(1);
+      const periodContract = await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, billing_type_id");
+      const contracts = periodContract ? [periodContract as any] : [];
       const contractId = contracts?.[0]?.id;
       const billingTypeId = contracts?.[0]?.billing_type_id ?? null;
 
