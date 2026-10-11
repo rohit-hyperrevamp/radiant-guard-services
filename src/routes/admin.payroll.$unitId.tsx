@@ -1139,6 +1139,11 @@ function PayrollUnitPage() {
           otherSites: otherSitesWorked.get(r.id) ?? [],
         } as typeof r.pt;
       }
+      // Gross is paid in whole rupees (nearest); net = rounded gross − deductions.
+      for (const r of rows) {
+        if (r.wages) Object.assign(r.wages, roundFinalGross(r.wages));
+      }
+
 
 
       // Client payroll shows only people with attendance in this period, and
