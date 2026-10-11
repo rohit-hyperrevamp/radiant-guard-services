@@ -498,7 +498,7 @@ export type PincodeRangeLike = {
   is_excluded: boolean;
 };
 
-const PT_NAME_RE = /\bprofessional\s*tax\b|\bpt\b/i;
+const PT_NAME_RE = /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i;
 const ptNorm = (s: string) =>
   s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 

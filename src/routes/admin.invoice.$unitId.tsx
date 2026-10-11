@@ -76,7 +76,7 @@ function cleanLedgerName(raw: string | null | undefined): string {
 }
 
 const ESI_COMPONENT_RE = /\besi(c)?\b/i;
-const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bpt\b/i;
+const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i;
 const isEsiItem = (item: { name?: unknown }) => ESI_COMPONENT_RE.test(String(item.name ?? ""));
 const isPtItem = (item: { name?: unknown }) => PT_COMPONENT_RE.test(String(item.name ?? ""));
 const hasConfiguredFormula = (item: { formulaExpression?: string | null }) =>
