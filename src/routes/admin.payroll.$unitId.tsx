@@ -1080,6 +1080,8 @@ function PayrollUnitPage() {
           designation: designationName,
           designationId: p.designationId,
           isPrimary,
+          // Reliever badge mirrors attendance: only lines whose entries are marked reliever.
+          isReliever: lineEntries.length > 0 && lineEntries.every((e) => !!(e as { is_reliever?: boolean | null }).is_reliever),
           totals,
           wages,
           resource: mergedResource ?? null,
@@ -2364,10 +2366,10 @@ function PayrollUnitPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {r.designation}
-                    {!r.isPrimary && (
+                    {r.isReliever && (
                       <span
                         className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-                        title="Duties performed in a role other than the employee's own designation — billed as reliever."
+                        title="Marked as a reliever (Extra Duty only) line in attendance."
                       >
                         Reliever
                       </span>
