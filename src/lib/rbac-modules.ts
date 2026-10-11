@@ -326,6 +326,11 @@ export const RBAC_MODULES: ModuleDef[] = [
     // View = see cases, Edit = add/update cases & upload documents, Delete = remove.
     subModules: [
       { key: "hearing_alerts", label: "Upcoming case date alerts (feed)", path: "/admin/cases#alerts", icon: ShieldCheck },
+      // No row = anyone who can view Case Desk; an explicit row decides.
+      { key: "legal_notices", label: "Legal notices", path: "/admin/cases#notices", icon: ShieldCheck },
+      { key: "advocates", label: "Advocates & retainers", path: "/admin/cases#advocates", icon: ShieldCheck },
+      { key: "party_history", label: "Party history search", path: "/admin/cases#party-history", icon: ShieldCheck },
+      { key: "employee_summary", label: "Employee summary", path: "/admin/cases#employee-summary", icon: ShieldCheck },
     ],
   },
   {
