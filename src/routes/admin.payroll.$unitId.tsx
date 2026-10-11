@@ -3185,7 +3185,7 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
             // PT is never the contract's stored figure: it comes from the
             // Control Center slab for the client's state, gender and gross.
             /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i.test(n) && r.pt
-              ? r.pt.amount
+              ? contractLookup(w.deductions, n)
               : contractLookup(r.resource.deductions, n)
           }
           totalLabel="Total deductions"
