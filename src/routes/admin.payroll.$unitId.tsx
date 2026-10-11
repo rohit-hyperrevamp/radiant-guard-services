@@ -3181,7 +3181,13 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
           title="Deductions"
           tone="rose"
           lines={w.deductions}
-          contractOf={(n) => contractLookup(r.resource.deductions, n)}
+          contractOf={(n) =>
+            // PT is never the contract's stored figure: it comes from the
+            // Control Center slab for the client's state, gender and gross.
+            /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i.test(n) && r.pt
+              ? r.pt.amount
+              : contractLookup(r.resource.deductions, n)
+          }
           totalLabel="Total deductions"
           totalContract={null}
           totalEarned={w.totalDeductions}
