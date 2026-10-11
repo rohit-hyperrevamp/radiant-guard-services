@@ -216,6 +216,11 @@ function CaseDesk() {
   const [type, setType] = useState("all");
   const [prio, setPrio] = useState("all");
   const [q, setQ] = useState("");
+  const [stateF, setStateF] = useState("all");
+  const [courtF, setCourtF] = useState("all");
+  const [partyF, setPartyF] = useState("all");
+  const [refQ, setRefQ] = useState("");
+  const [attention, setAttention] = useState(false);
   const search = Route.useSearch();
   const [upcoming, setUpcoming] = useState(search.view === "upcoming");
   const [sort, setSort] = useState(search.view === "upcoming" ? "hearing" : "updated");
@@ -268,6 +273,20 @@ function CaseDesk() {
       ? (namesQ.data?.get(id) ?? lk.data?.legalTeam.find((p) => p.id === id)?.full_name ?? "—")
       : "—";
   const unitName = (id: string | null) => lk.data?.units.find((u) => u.id === id)?.name ?? "—";
+  const histQ = useQuery({
+    queryKey: ["legal-case-courts-all"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await db
+        .from("legal_case_courts")
+        .select("case_id,court_name,reference_no")
+        .limit(10000);
+      const m = new Map<string, string>();
+      for (const r of (data ?? []) as { case_id: string; court_name: string | null; reference_no: string | null }[])
+        m.set(r.case_id, `${m.get(r.case_id) ?? ""} ${r.court_name ?? ""} ${r.reference_no ?? ""}`);
+      return m;
+    },
+  });
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
     const PR: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -275,11 +294,18 @@ function CaseDesk() {
       (c) =>
         (!upcoming ||
           (c.status !== "closed" && !!c.next_hearing_on && daysTo(c.next_hearing_on) >= 0)) &&
+        (!attention ||
+          (c.status !== "closed" && (!c.next_hearing_on || daysTo(c.next_hearing_on) < 0))) &&
         (status === "all" || c.status === status) &&
         (prio === "all" || c.priority === prio) &&
         (type === "all" || c.case_type_id === type) &&
+        (stateF === "all" || (c.state || "Not set") === stateF) &&
+        (courtF === "all" || c.court_or_authority === courtF) &&
+        (partyF === "all" || (c.party_name || c.opposing_party) === partyF) &&
+        (!refQ.trim() ||
+          `${c.reference_no ?? ""} ${histQ.data?.get(c.id) ?? ""}`.toLowerCase().includes(refQ.trim().toLowerCase())) &&
         (!s ||
-          `${c.case_number} ${c.title} ${typeName(c.case_type_id)} ${c.priority} ${c.opposing_party ?? ""} ${c.party_name ?? ""} ${c.state ?? ""} ${c.court_or_authority ?? ""} ${c.reference_no ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`
+          `${c.case_number} ${c.title} ${typeName(c.case_type_id)} ${c.priority} ${c.opposing_party ?? ""} ${c.party_name ?? ""} ${c.state ?? ""} ${c.court_or_authority ?? ""} ${c.reference_no ?? ""} ${histQ.data?.get(c.id) ?? ""} ${personName(c.employee_id)} ${unitName(c.unit_id)}`
             .toLowerCase()
             .includes(s)),
     );
@@ -293,7 +319,27 @@ function CaseDesk() {
     else if (sort === "created") out.sort((a, b) => b.created_at.localeCompare(a.created_at));
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [casesQ.data, status, prio, type, q, lk.data, upcoming, sort]);
+  }, [casesQ.data, status, prio, type, q, lk.data, upcoming, sort, stateF, courtF, partyF, refQ, attention, histQ.data]);
+  const uniq = (xs: (string | null | undefined)[]) =>
+    Array.from(new Set(xs.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
+  const stateCounts = useMemo(() => {
+    const m = new Map<string, { total: number; open: number }>();
+    for (const c of casesQ.data ?? []) {
+      const k = c.state || "Not set";
+      const v = m.get(k) ?? { total: 0, open: 0 };
+      v.total++;
+      if (c.status !== "closed") v.open++;
+      m.set(k, v);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1].total - a[1].total);
+  }, [casesQ.data]);
+  const anyFilter =
+    status !== "all" || prio !== "all" || type !== "all" || stateF !== "all" || courtF !== "all" ||
+    partyF !== "all" || !!refQ || !!q || upcoming || attention;
+  const clearFilters = () => {
+    setStatus("all"); setPrio("all"); setType("all"); setStateF("all"); setCourtF("all");
+    setPartyF("all"); setRefQ(""); setQ(""); setUpcoming(false); setAttention(false);
+  };
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["legal-cases"] });
     qc.invalidateQueries({ queryKey: ["case-summary"] });
