@@ -5366,11 +5366,11 @@ export function ResourceFormDialog({
     });
   };
 
-  const toggleOtComponent = (allowanceId: string) => {
+  const toggleOtComponent = (index: number) => {
     preserveDialogScroll(() => {
       setComponents((prev) =>
-        prev.map((c) =>
-          c.allowanceId === allowanceId
+        prev.map((c, i) =>
+          i === index
             ? { ...c, includeInOt: c.includeInOt === false }
             : c,
         ),
