@@ -10,17 +10,21 @@ const GROUPS: Array<[string, string[]]> = [
   ["DA", ["da", "dearnessallowance", "spllda", "splda", "specialda"]],
   ["HRA", ["hra", "houserentallowance", "houserent"]],
   ["Washing Allowance", ["wa", "washingallowance", "washallowance", "washingallow", "washing", "washingallowances"]],
-  ["Other Allowance", ["oa", "otherallowance", "otherallowances", "otherallow", "othersallowance"]],
+  ["Other Allowance", ["oa", "otherallowance", "otherallowances", "otherallow", "othersallowance", "others"]],
   ["Bonus", ["bonus", "bonusexgratia", "exgratia", "exgratiabonus", "statutorybonus", "bonusexgratiarounded"]],
   ["Leave Pay", ["leavepay", "leavewithwages", "lww", "leavewages", "earnedleave", "el", "leavewithwage", "leave"]],
   ["Special Allowance", ["specialallowance", "splallowance", "splallow", "spicalallowance", "specialallow", "sa"]],
-  ["Conveyance Allowance", ["conveyance", "conveyanceallowance", "convallow", "convallowance", "conv"]],
+  ["Conveyance Allowance", ["conveyance", "conveyanceallowance", "convallow", "convallowance", "conv", "conveyanceallow", "cca"]],
   ["Transport Allowance", ["transportallowance", "transportationallowance", "transport", "transportation"]],
-  ["Uniform Allowance", ["uniformallowance", "uniform", "uniformmaintenance", "uniformmaintenanceallowance"]],
+  ["Uniform Allowance", ["uniformallowance", "uniform", "uniformmaintenance", "uniformmaintenanceallowance", "ua", "uniformallow", "uniformallowances", "unifformallowance", "uniformalloawnce", "uniormallowance", "unitofmallowance", "unifirm"]],
   ["Paid Holiday", ["paidholiday", "paidholidays", "ph", "nationalholiday", "nh", "nfh"]],
-  ["CCA", ["cca", "citycompensatoryallowance"]],
-  ["Supervisor Allowance", ["supervisorallowance", "securitysupervisorallowance"]],
-  ["Skill Allowance", ["skillallowance", "skilallowance"]],
+  ["City Compensatory Allowance", ["citycompensatoryallowance"]],
+  ["Supervisor Allowance", ["supervisorallowance", "securitysupervisorallowance", "supallowance", "supervisoryallowance"]],
+  ["Education Allowance", ["educationallowance", "educationalallowance"]],
+  ["Driver Allowance", ["driverallowance", "driverallow"]],
+  ["Night Duty Allowance", ["nightdutyallowance", "nightdutyallow"]],
+  ["Ex-Serviceman Allowance", ["exservicemanallowance", "exservicemenallowance", "exservicemanalloawance"]],
+  ["Skill Allowance", ["skillallowance", "skilallowance", "skillallowances", "skillallownce"]],
 ];
 
 const LOOKUP = new Map<string, string>();
@@ -34,7 +38,7 @@ function stripQualifiers(name: string): string {
   // Parentheses describing the base / rate, e.g. "(Basic+DA)", "(Rs.7000)", "(8.33%)".
   s = s.replace(/\(([^)]*)\)/g, (m, inner: string) => (/[\d%+]|basic|\bda\b|rs/i.test(inner) ? " " : m));
   s = s.replace(/\d+(?:\.\d+)?\s*%/g, " ");
-  s = s.replace(/\b(rounded|round(ed)? off|ctc)\b/gi, " ");
+  s = s.replace(/\b(rounded|round(ed)? off|ctc|exact)\b/gi, " ");
   s = s.replace(/\s+\d+(?:\.\d+)?\s*$/g, " ");
   return s.replace(/\s+/g, " ").trim();
 }
@@ -43,12 +47,32 @@ function stripQualifiers(name: string): string {
 export function standardPayItemName(name: string): string {
   const raw = String(name ?? "").trim();
   if (!raw) return raw;
+  // Employee additions are separate from contract wage items.
+  const addition = raw.match(/^(.*?)\s*\(addition\)\s*$/i);
+  if (addition) return `${standardPayItemName(addition[1])} (Addition)`;
   const stripped = stripQualifiers(raw) || raw;
   const hit = LOOKUP.get(compact(stripped)) ?? LOOKUP.get(compact(raw));
-  return hit ?? stripped;
+  return hit ?? raw.replace(/\s+/g, " ");
 }
 
 /** Grouping key: two names with the same key belong in one payroll column. */
 export function payItemKey(name: string): string {
   return compact(standardPayItemName(name));
+}
+
+/** Presentation only: sum equivalent labels without mutating rates or formula lines. */
+export function mergePayItems(
+  items: ReadonlyArray<{ name: string; amount?: unknown }> | null | undefined,
+): { name: string; amount: number }[] {
+  const grouped = new Map<string, { name: string; amount: number }>();
+  for (const item of items ?? []) {
+    const name = standardPayItemName(item.name);
+    const key = payItemKey(name);
+    if (!key) continue;
+    const existing = grouped.get(key);
+    const amount = Number(item.amount) || 0;
+    if (existing) existing.amount += amount;
+    else grouped.set(key, { name, amount });
+  }
+  return Array.from(grouped.values());
 }

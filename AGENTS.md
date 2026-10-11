@@ -24,6 +24,7 @@
 
 <!-- LOVABLE:BEGIN -->
 - Shared dashboard values use TileNumber to fit complete numbers to measured width; all dashboards reuse one TasksSummaryTile to keep summaries consistent.
+- Pay-item displays/grouping use `pay-item-names`; preserve raw rate/formula lines so naming cannot change calculations.
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.

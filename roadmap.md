@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Consistent allowance names
+- [ ] Apply shared naming to contracts, payroll, payslips and invoices without rewriting rates or formulas.
+- [ ] Audit production labels and CLI2; verify grouping preserves amounts.
+- [ ] Verify updated live screens after publication — blocked until publication.
+
 ## Case and task form documents
 - [x] Widen and space case/task forms; add custom-named multiple case documents on save and task documents on completion.
 - [x] Provide later in-app viewing and direct document downloads.
