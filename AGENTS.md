@@ -27,3 +27,4 @@
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Case Desk: `legal_cases*` + private `legal-docs`, gated by `current_user_module_access('legal_cases',…)`; case types are a Control Center master.
+- Historical Pages Payroll payslips (Apr 2023–Aug 2026) live read-only in `pages_payslip_archive`, shown at /admin/payroll/history — kept apart from live payroll so old pay never recalculates.
