@@ -783,6 +783,8 @@ export function computeWages(
      * undefined → legacy behaviour: whatever the contract line configures.
      */
     epfCapEnabled?: boolean;
+    /** ESI lines with no rounding set on the contract round up to the next rupee. */
+    esiRoundUp?: boolean;
   },
 ): WageComputation {
   const contractGross = resource.components.reduce(
@@ -1379,7 +1381,11 @@ export function computeWages(
   const roundFlagged = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] =>
     items.map((i) => {
       const src = contractItems.find((c) => c.name === i.name) as (BenefitLike & { roundMode?: string }) | undefined;
-      const mode = (i as { roundMode?: string | null }).roundMode ?? src?.roundMode;
+      const contractMode = (i as { roundMode?: string | null }).roundMode ?? src?.roundMode;
+      // Contract rounding wins; otherwise the payroll "Round ESI up" switch applies.
+      const mode =
+        contractMode ||
+        (options?.esiRoundUp && !(i.roundOff ?? src?.roundOff) && /\besi(c)?\b/i.test(i.name) ? "up" : contractMode);
       const raw = Number(i.amount) || 0;
       const roundOff = i.roundOff ?? src?.roundOff ?? null;
       const rounded = roundLineAmount(raw, mode, roundOff);
