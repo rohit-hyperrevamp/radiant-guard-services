@@ -225,7 +225,7 @@ function PayrollUnitPage() {
       await supabaseSessionReady();
       const { data } = await supabase
         .from("units")
-        .select("id, code, name, customer_id, billing_state, billing_pincode, epf_cap_enabled")
+        .select("id, code, name, customer_id, billing_state, billing_pincode, pt_state, epf_cap_enabled" as never)
         .eq("id", unitId)
         .maybeSingle();
       if (!data) return null;
@@ -448,6 +448,10 @@ function PayrollUnitPage() {
 
   const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
   const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
+  // Professional Tax / LWF follow the site's work state (`pt_state`, same as Pages'
+  // PT state) when set; billing_state is only the invoicing address (e.g. head office).
+  const ptState = (unit as { pt_state?: string | null } | null | undefined)?.pt_state || unitState;
+  const ptPincode = (unit as { pt_state?: string | null } | null | undefined)?.pt_state ? null : unitPincode;
   // Unit-level EPF cap policy — contracts on this unit inherit it.
   const epfCapEnabled =
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
@@ -470,7 +474,7 @@ function PayrollUnitPage() {
   });
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, esiRoundUp, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
@@ -1016,8 +1020,8 @@ function PayrollUnitPage() {
         let ptResolved: ReturnType<typeof resolvePtAmount> | null = null;
         if (wages && isPrimary) {
           ptResolved = resolvePtAmount({
-            state: unitState,
-            pincode: unitPincode,
+            state: ptState,
+            pincode: ptPincode,
             gender: candidateGender,
             // PT slabs are read on regular earned gross; extra duty never
             // counts towards any deduction base.
@@ -1053,7 +1057,7 @@ function PayrollUnitPage() {
         // Only fires if this period's month is in the master's deduction_months
         // and the master row is enabled. Otherwise LWF rows are zeroed.
         if (wages && isPrimary && lwfRows && pincodeRanges) {
-          const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows, unitState);
+          const lwfRes = resolveLwf(String(ptPincode ?? ""), pincodeRanges as never, lwfRows, ptState);
           const periodMonth = new Date(start).getMonth() + 1; // 1-12
           let applies = false;
           let employee = 0;
@@ -1143,8 +1147,8 @@ function PayrollUnitPage() {
       for (const r of rows) {
         if (!r.wages || !r.isPrimary) continue;
         const resolved = ptForSite({
-          state: unitState,
-          pincode: unitPincode,
+          state: ptState,
+          pincode: ptPincode,
           gender: ((rosterById.get(r.id) as unknown as { gender?: string | null } | undefined)?.gender ?? "").toString(),
           siteGross: siteGrossByCandidate.get(r.id) ?? 0,
           other: otherSitePt.get(r.id),

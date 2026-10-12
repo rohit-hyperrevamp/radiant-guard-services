@@ -140,10 +140,10 @@ function usePtData(ym: string) {
       );
 
       const unitIds = Array.from(new Set(cands.map((c) => c.unit_id).filter(Boolean) as string[]));
-      const units = await fetchInChunks<{ id: string; name: string; billing_state: string | null; shipping_state: string | null }>(
+      const units = await fetchInChunks<{ id: string; name: string; billing_state: string | null; shipping_state: string | null; pt_state?: string | null }>(
         unitIds,
         (chunk, a, b) =>
-          supabase.from("units").select("id, name, billing_state, shipping_state").in("id", chunk).range(a, b),
+          supabase.from("units").select("id, name, billing_state, shipping_state, pt_state" as never).in("id", chunk).range(a, b),
       );
 
       const unitMap = new Map(units.map((u) => [u.id, u]));
@@ -153,7 +153,7 @@ function usePtData(ym: string) {
         const c = candMap.get(r.candidate_id);
         const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
         const state =
-          (u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
+          (u?.pt_state || u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
         const gender = normGender(c?.gender);
         const amount = Number(r.computed_amount ?? r.amount ?? 0);
         const stateSlabs = slabs.filter(

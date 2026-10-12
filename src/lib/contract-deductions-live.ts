@@ -97,14 +97,16 @@ export async function fetchLiveContractDeductions(args: {
   const candidateCols = "id, employee_code, full_name, designation_id, gender, is_disabled";
 
   const [{ data: unit }, { data: primary }, { data: links }] = await Promise.all([
-    supabase.from("units").select("id, name, code, billing_state, billing_pincode, epf_cap_enabled").eq("id", unitId).maybeSingle(),
+    supabase.from("units").select("id, name, code, billing_state, billing_pincode, pt_state, epf_cap_enabled" as never).eq("id", unitId).maybeSingle(),
     supabase.from("candidates").select(candidateCols).eq("unit_id", unitId).eq("is_enabled", true).eq("status", "active"),
     supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
   ]);
 
-  const unitName = args.unitName || (unit?.name as string) || (unit?.code as string) || "—";
-  const unitState = (unit as { billing_state?: string | null } | null)?.billing_state ?? null;
-  const unitPincode = (unit as { billing_pincode?: string | null } | null)?.billing_pincode ?? null;
+  const u0 = unit as { name?: string; code?: string } | null;
+  const unitName = args.unitName || (u0?.name as string) || (u0?.code as string) || "—";
+  const ptOverride = (unit as { pt_state?: string | null } | null)?.pt_state || null;
+  const unitState = ptOverride || ((unit as { billing_state?: string | null } | null)?.billing_state ?? null);
+  const unitPincode = ptOverride ? null : ((unit as { billing_pincode?: string | null } | null)?.billing_pincode ?? null);
   const epfCapEnabled = (unit as { epf_cap_enabled?: boolean | null } | null)?.epf_cap_enabled ?? true;
 
   const linkIds = (links ?? []).map((l) => l.candidate_id);

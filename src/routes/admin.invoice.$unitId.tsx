@@ -252,7 +252,7 @@ function PayrollUnitPage() {
       const { data: rawUnit } = await supabase
         .from("units")
         .select(
-          "id, code, name, customer_id, epf_cap_enabled, gst_number, zone, branch_sap_code, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country" as never,
+          "id, code, name, customer_id, epf_cap_enabled, gst_number, zone, branch_sap_code, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country, pt_state" as never,
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -366,11 +366,15 @@ function PayrollUnitPage() {
 
   const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
   const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
+  // Professional Tax / LWF follow the site's work state (`pt_state`, same as Pages'
+  // PT state) when set; billing_state is only the invoicing address (e.g. head office).
+  const ptState = (unit as { pt_state?: string | null } | null | undefined)?.pt_state || unitState;
+  const ptPincode = (unit as { pt_state?: string | null } | null | undefined)?.pt_state ? null : unitPincode;
   const epfCapEnabled =
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["invoice-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // Always recompute from the live contract when the page opens.
     staleTime: 0,
     refetchOnMount: "always",
@@ -854,8 +858,8 @@ function PayrollUnitPage() {
           Object.assign(wages, applied.wages);
           (wages as unknown as { additions: PerEmpItem[] }).additions = applied.additions;
           const pt = resolvePtAmount({
-            state: unitState,
-            pincode: unitPincode,
+            state: ptState,
+            pincode: ptPincode,
             gender: candidateGender,
             earnedGross: wages.earnedGross,
             slabs: (ptSlabs ?? []) as PtSlabLike[],
@@ -865,7 +869,7 @@ function PayrollUnitPage() {
 
           // LWF from Control Center master (live-synced with payroll).
           if (lwfRows && pincodeRanges) {
-            const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows, unitState);
+            const lwfRes = resolveLwf(String(ptPincode ?? ""), pincodeRanges as never, lwfRows, ptState);
             const periodMonth = new Date(start).getMonth() + 1;
             let applies = false;
             let employee = 0;

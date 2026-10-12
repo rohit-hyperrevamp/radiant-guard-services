@@ -147,7 +147,7 @@ function useLwfData(ym: string) {
       const { data: units } = unitIds.length
         ? await supabase
             .from("units")
-            .select("id, name, billing_state, shipping_state")
+            .select("id, name, billing_state, shipping_state, pt_state" as never)
             .in("id", unitIds)
         : {
             data: [] as Array<{
@@ -164,7 +164,7 @@ function useLwfData(ym: string) {
       const rows: LwfPersonRow[] = ids.map((id) => {
         const c = candMap.get(id);
         const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
-        const state = (u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
+        const state = (u?.pt_state || u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
         return {
           candidateId: id,
           name: c?.full_name ?? "—",
