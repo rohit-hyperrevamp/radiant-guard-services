@@ -155,6 +155,7 @@ function useLwfData(ym: string) {
               name: string;
               billing_state: string | null;
               shipping_state: string | null;
+              pt_state?: string | null;
             }>,
           };
 

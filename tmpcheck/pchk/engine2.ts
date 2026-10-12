@@ -138,7 +138,7 @@ export async function computeUnit(unitId:string,start:string,end:string,G:any){
   const {ptSlabs,pincodeRanges,lwfRows}=G; const esiRoundUp=G.esiRoundUp??true;
   const periodDates=buildDates(start,end);
   const { data: ur } = await supabase.from("units").select("*").eq("id", unitId).maybeSingle();
-  const unit:any=ur; const unitState=unit?.billing_state??null; const unitPincode=unit?.billing_pincode??null; const epfCapEnabled=unit?.epf_cap_enabled??true;
+  const unit:any=ur; const unitState=unit?.pt_state||unit?.billing_state||null; const unitPincode=unit?.pt_state?null:(unit?.billing_pincode??null); const epfCapEnabled=unit?.epf_cap_enabled??true;
   const unitPh = { enabled: Boolean(ur?.ph_enabled), multiplier: Number(ur?.ph_multiplier ?? 1) || 1, dayValue: !ur?.ph_enabled ? 0 : ur?.ph_day_value == null || Number.isNaN(Number(ur.ph_day_value)) ? null : Number(ur.ph_day_value) };
   const publicHolidays=G.publicHolidays;
   const phConfig = (() => { if (!unitPh.enabled) return null; const m = holidayMapForDates(periodDates, publicHolidays); if (m.size === 0) return null; return { dates: Array.from(m.keys()), multiplier: unitPh.multiplier }; })();
