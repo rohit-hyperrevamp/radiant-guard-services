@@ -1,4 +1,5 @@
 import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
+import { unknownFormulaVariables } from "@/lib/payroll-calc";
 import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
@@ -3824,6 +3825,24 @@ function ContractFormDialog({
       rejectionReason: editing?.rejectionReason ?? "", createdBy: editing?.createdBy ?? null,
       promotedAt: editing?.promotedAt ?? null,
     }, approvalValue, editing);
+    // A formula naming a pay item the role doesn't have (e.g. `d_a` on a role
+    // whose line is "DA") silently counts it as ₹0 in payroll — flag it.
+    const formulaProblems: string[] = [];
+    for (const r of resources) {
+      const names = (r.components ?? []).map((c) => String(c.name ?? ""));
+      for (const line of [...(r.components ?? []), ...(r.deductions ?? []), ...(r.employerContributions ?? [])]) {
+        const missing = unknownFormulaVariables((line as { formulaExpression?: string | null }).formulaExpression, names);
+        if (missing.length) formulaProblems.push(`${String(line.name ?? "Line")}: ${missing.join(", ")}`);
+      }
+    }
+    if (formulaProblems.length) {
+      const goOn = await confirmAction({
+        title: "Formula uses pay items this role doesn't have",
+        description: `These count as ₹0 in payroll: ${Array.from(new Set(formulaProblems)).slice(0, 6).join(" · ")}. Fix the formula, or save anyway if that is intended.`,
+        confirmText: "Save anyway", cancelText: "Fix formula",
+      });
+      if (!goOn) return;
+    }
     const ok = await confirmAction({
       title: editing ? "Confirm changes?" : "Create contract?",
       description: editing ? "Save contract changes? Updates will apply to payroll." : "This will create the contract and save all resource details.",
