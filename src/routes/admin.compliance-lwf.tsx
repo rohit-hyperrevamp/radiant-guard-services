@@ -159,7 +159,8 @@ function useLwfData(ym: string) {
             }>,
           };
 
-      const unitMap = new Map((units ?? []).map((u) => [u.id, u]));
+      type LwfUnit = { id: string; name: string; billing_state: string | null; shipping_state: string | null; pt_state?: string | null };
+      const unitMap = new Map(((units ?? []) as unknown as LwfUnit[]).map((u) => [u.id, u]));
       const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
 
       const rows: LwfPersonRow[] = ids.map((id) => {

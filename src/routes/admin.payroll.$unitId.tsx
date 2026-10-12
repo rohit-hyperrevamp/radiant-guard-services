@@ -229,12 +229,13 @@ function PayrollUnitPage() {
         .eq("id", unitId)
         .maybeSingle();
       if (!data) return null;
+      const unitRow = data as unknown as { id: string; code: string | null; name: string; customer_id: string | null; billing_state: string | null; billing_pincode: string | null; pt_state: string | null; epf_cap_enabled: boolean | null };
       const { data: cust } = await supabase
         .from("customers")
         .select("name")
-        .eq("id", data.customer_id ?? "")
+        .eq("id", unitRow.customer_id ?? "")
         .maybeSingle();
-      return { ...data, customer_name: cust?.name ?? "" };
+      return { ...unitRow, customer_name: cust?.name ?? "" };
     },
   });
 
