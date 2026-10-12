@@ -110,6 +110,13 @@ function tokenize(src: string): Tok[] {
     if (c >= "0" && c <= "9" || (c === "." && src[i+1] >= "0" && src[i+1] <= "9")) {
       let j = i;
       while (j < src.length && (/[\d.]/.test(src[j]))) j++;
+      // Pay items whose name starts with a number ("4Hrs Duty" → 4hrs_duty)
+      // are one variable, not a number followed by a name.
+      if (j < src.length && /[a-zA-Z_]/.test(src[j]) && !src.slice(i, j).includes(".")) {
+        while (j < src.length && /[a-zA-Z0-9_]/.test(src[j])) j++;
+        out.push({ t: "id", v: src.slice(i, j).toLowerCase() });
+        i = j; continue;
+      }
       out.push({ t: "num", v: Number(src.slice(i, j)) });
       i = j; continue;
     }

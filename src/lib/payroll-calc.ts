@@ -13,7 +13,7 @@
 // REPLACES the legacy proration for that line. Statutory ESI/EPF/PT still
 // run as a final post-pass unless the line opts out of statutory via its
 // own formula.
-import { evaluateFormula, parseFormulaConfig, slugifyVar, type FormulaContext } from "./formula-engine";
+import { evaluateFormula, looseVarKey, parseFormulaConfig, slugifyVar, type FormulaContext } from "./formula-engine";
 
 export type AttendanceEntryLike = {
   candidate_id: string;
@@ -350,6 +350,33 @@ function addFormulaContextAliases(ctx: FormulaContext, amount: number, name: str
     if (!slug) continue;
     ctx[slug] = round2((ctx[slug] ?? 0) + amount);
   }
+}
+
+/** Variables payroll always provides to deduction / contribution formulas. */
+const BUILTIN_FORMULA_VARS = new Set([
+  "basic", "da", "gross", "fixed_amount", "fixed_days", "working_days", "payable_days", "days_in_month",
+  "present", "worked", "ot", "ph", "wo", "el", "pl", "earned_gross", "earnedgross", "earned_wages",
+  "earnedwages", "fixed_gross", "ed_amount", "ph_amount", "ctc", "total_ctc",
+  "extra_duty", "paid_holiday",
+]);
+const FORMULA_FUNCS = new Set(["min", "max", "round", "floor", "ceil"]);
+
+/**
+ * Variables in `expression` that payroll cannot resolve from the role's pay
+ * lines. The formula engine treats an unknown name as 0, so a formula written
+ * as `basic + d_a` on a role whose line is "DA" silently drops DA — this lists
+ * those names so the editor / audits can flag them instead of under-charging.
+ */
+export function unknownFormulaVariables(expression: string | null | undefined, componentNames: string[]): string[] {
+  const expr = String(expression ?? "").toLowerCase();
+  // Preset formulas are stored as JSON and resolve components by name.
+  if (!expr.trim() || expr.trim().startsWith("{")) return [];
+  const known = new Set<string>(BUILTIN_FORMULA_VARS);
+  const taken = exactFormulaKeys(componentNames);
+  for (const n of componentNames) for (const k of formulaNameAliases(n, taken)) known.add(slugifyVar(k));
+  const knownLoose = new Set(Array.from(known).map((k) => looseVarKey(k)));
+  const vars = Array.from(new Set(expr.match(/\d*[a-z_][a-z0-9_]*/g) ?? []));
+  return vars.filter((v) => !FORMULA_FUNCS.has(v) && !known.has(v) && !knownLoose.has(looseVarKey(v)));
 }
 
 function applyEsiRule(
