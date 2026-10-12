@@ -47,6 +47,24 @@ export function resolveLwf(
   pincodeStr: string,
   ranges: PincodeRange[],
   lwfRows: LwfRow[],
+  fallbackState?: string | null,
+): LwfResolution {
+  const r = resolveLwfByPincode(pincodeStr, ranges, lwfRows);
+  // Pincode missing or outside every configured range: use the site's
+  // billing state, so LWF still follows the master for that state.
+  const st = String(fallbackState ?? "").trim();
+  if (st && (r.kind === "no_pincode" || r.kind === "invalid" || r.kind === "no_state")) {
+    const match = lwfRows.find((l) => norm(l.state) === norm(st));
+    const pin = parseInt(pincodeStr.trim(), 10) || 0;
+    return match ? { kind: "match", pincode: pin, state: st, lwf: match } : { kind: "no_lwf", pincode: pin, state: st };
+  }
+  return r;
+}
+
+function resolveLwfByPincode(
+  pincodeStr: string,
+  ranges: PincodeRange[],
+  lwfRows: LwfRow[],
 ): LwfResolution {
   if (!pincodeStr.trim()) return { kind: "no_pincode" };
   const pin = parseInt(pincodeStr.trim(), 10);

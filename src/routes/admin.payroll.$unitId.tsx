@@ -1053,7 +1053,7 @@ function PayrollUnitPage() {
         // Only fires if this period's month is in the master's deduction_months
         // and the master row is enabled. Otherwise LWF rows are zeroed.
         if (wages && isPrimary && lwfRows && pincodeRanges) {
-          const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows);
+          const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows, unitState);
           const periodMonth = new Date(start).getMonth() + 1; // 1-12
           let applies = false;
           let employee = 0;
