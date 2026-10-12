@@ -64,7 +64,7 @@ import {
 import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchMonthDutiesBySite, fetchOtherSitePtTotals, fetchOtherSitesWorked, otherSitePtChanged, ptForSite, ptSpread } from "@/lib/pt-cross-site";
+import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
@@ -950,10 +950,10 @@ function PayrollUnitPage() {
       // Gross and PT already paid to these people at OTHER sites this month
       // (processed payrolls only). PT is one monthly slab per person, so a
       // guard working two sites is taxed on the combined gross, once.
-      const [otherSitePt, otherSitesWorked, monthDuties] = await Promise.all([
+      const [otherSitePt, otherSitesWorked, ptAllocated] = await Promise.all([
         fetchOtherSitePtTotals(candidateIds, unitId, end),
         fetchOtherSitesWorked(candidateIds, unitId, end),
-        fetchMonthDutiesBySite(candidateIds, end),
+        fetchPtAllocations(candidateIds, unitId, end),
       ]);
 
       const rows = Array.from(pairs.values()).map((p) => {
@@ -1154,7 +1154,7 @@ function PayrollUnitPage() {
           gender: ((rosterById.get(r.id) as unknown as { gender?: string | null } | undefined)?.gender ?? "").toString(),
           siteGross: siteGrossByCandidate.get(r.id) ?? 0,
           other: otherSitePt.get(r.id),
-          spread: ptSpread(monthDuties.get(r.id), unitId),
+          allocated: ptAllocated.get(r.id) ?? null,
           slabs: (ptSlabs ?? []) as PtSlabLike[],
           ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
         });
@@ -1165,6 +1165,7 @@ function PayrollUnitPage() {
           otherGross: other?.gross ?? 0,
           otherPt: other?.pt ?? 0,
           otherSites: otherSitesWorked.get(r.id) ?? [],
+          allocated: ptAllocated.has(r.id),
         } as typeof r.pt;
       }
       // Gross is paid in whole rupees (nearest); net = rounded gross − deductions.
@@ -2953,7 +2954,7 @@ type Line = { name: string; amount: number };
 
 type PaySheetRow = {
   totals: { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
-  pt?: { source: string; state?: string | null; regionLabel?: string | null; otherGross?: number; otherPt?: number; otherSites?: string[] } | null;
+  pt?: { source: string; state?: string | null; regionLabel?: string | null; otherGross?: number; otherPt?: number; otherSites?: string[]; allocated?: boolean } | null;
   wages: {
     baseDays: number;
     contractGross: number;
@@ -3266,6 +3267,10 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
             if (/\besi(c)?\b/i.test(n)) return "0.75% of earned gross − washing − conveyance";
             if (/\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i.test(n)) {
               if (!r.pt) return null;
+              if (r.pt.allocated) {
+                const sites = r.pt.otherSites?.length ? ` Also worked at ${r.pt.otherSites.join(", ")}.` : "";
+                return `One monthly PT per person — charged at the site where Pages charged it this month.${sites}`;
+              }
               if (r.pt.source === "resolved" && ((r.pt.otherGross ?? 0) > 0 || (r.pt.otherSites?.length ?? 0) > 0)) {
                 const sites = r.pt.otherSites?.length ? ` Also worked at ${r.pt.otherSites.join(", ")}.` : "";
                 return (r.pt.otherGross ?? 0) > 0

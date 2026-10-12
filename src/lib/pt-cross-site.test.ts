@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { otherSitePtChanged, ptForSite, ptSpread } from "./pt-cross-site";
+import { otherSitePtChanged, ptForSite } from "./pt-cross-site";
 
 // Maharashtra statutory slabs.
 const slabs = [
@@ -40,16 +40,15 @@ describe("guard working at two IDBI FC Road sites (49344, Sep 2026)", () => {
   });
 });
 
-describe("PT charged once at the busiest site before anything is processed", () => {
-  const duties = new Map([["CLI379", 11.5], ["CLI3301", 12], ["CLI4026", 6]]);
-  const run = (unit: string, siteGross: number) =>
-    ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross, spread: ptSpread(duties, unit), slabs, ranges: [] }).amount;
-  it("busiest site carries the full month slab", () => expect(run("CLI3301", 9317)).toBe(200));
-  it("other sites charge nothing", () => {
-    expect(run("CLI379", 6243)).toBe(0);
-    expect(run("CLI4026", 4768)).toBe(0);
+describe("Rajaram 47510, Sep 2026 — PT where Pages charged it", () => {
+  const run = (siteGross: number, allocated: number | null, other?: { gross: number; pt: number }) =>
+    ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross, other, allocated, slabs, ranges: [] }).amount;
+  it("CLI3301 (Pages ₹0) charges nothing", () => expect(run(9317, 0)).toBe(0));
+  it("CLI379 (Pages ₹200) carries the month's PT", () => expect(run(6243, 200)).toBe(200));
+  it("CLI4026 (Pages ₹0) charges nothing", () => expect(run(4768, 0)).toBe(0));
+  it("without a Pages split, processing order decides: 4,768 → 0, then 6,243 → 200, then 9,317 → 0", () => {
+    expect(run(4768, null)).toBe(0);
+    expect(run(6243, null, { gross: 4768, pt: 0 })).toBe(200);
+    expect(run(9317, null, { gross: 11011, pt: 200 })).toBe(0);
   });
-  it("after the carrier is processed, others subtract it as before", () =>
-    expect(ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross: 6243, other: { gross: 9317, pt: 200 }, spread: ptSpread(duties, "CLI379"), slabs, ranges: [] }).amount).toBe(0));
-  it("single-site guards are unchanged", () => expect(run("X", 0) + ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross: 9841, spread: ptSpread(new Map([["A", 26]]), "A"), slabs, ranges: [] }).amount).toBe(175));
 });
