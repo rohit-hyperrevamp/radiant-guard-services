@@ -2013,7 +2013,7 @@ function PayrollUnitPage() {
                 disabled={esiRoundFlag.isLoading || esiRoundMut.isPending}
                 onCheckedChange={(v) => esiRoundMut.mutate(v)}
               />
-              Round ESI up
+              Round ESI to nearest ₹
             </label>
           </div>
         </div>

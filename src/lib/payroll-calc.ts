@@ -1385,7 +1385,7 @@ export function computeWages(
       // Contract rounding wins; otherwise the payroll "Round ESI up" switch applies.
       const mode =
         contractMode ||
-        (options?.esiRoundUp && !(i.roundOff ?? src?.roundOff) && /\besi(c)?\b/i.test(i.name) ? "up" : contractMode);
+        (options?.esiRoundUp && !(i.roundOff ?? src?.roundOff) && /\besi(c)?\b/i.test(i.name) ? "nearest" : contractMode);
       const raw = Number(i.amount) || 0;
       const roundOff = i.roundOff ?? src?.roundOff ?? null;
       const rounded = roundLineAmount(raw, mode, roundOff);
