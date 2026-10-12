@@ -1,3 +1,5 @@
+import { usePlatformFlag, PLATFORM_SETTING_KEYS, platformFlagQueryKey } from "@/lib/platform-settings";
+import { Switch } from "@/components/ui/switch";
 import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
@@ -449,8 +451,25 @@ function PayrollUnitPage() {
   const epfCapEnabled =
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
+  const esiRoundFlag = usePlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true);
+  const esiRoundUp = esiRoundFlag.enabled;
+  const esiRoundMut = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("inv_settings" as never)
+        .upsert({ key: PLATFORM_SETTING_KEYS.esiRoundUp, value: { enabled }, description: "Round ESI up to the next rupee when the contract sets no rounding" } as never, { onConflict: "key" });
+      if (error) throw error;
+      void logActivity({ module: "Payroll", action: enabled ? "enable" : "disable", entityType: "inv_settings", entityLabel: "Round ESI up" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformFlagQueryKey(PLATFORM_SETTING_KEYS.esiRoundUp) });
+      toast.success("ESI rounding updated");
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   const { data, isPending, error } = useQuery({
-    queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, esiRoundUp, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
@@ -973,7 +992,7 @@ function PayrollUnitPage() {
         const resource = resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did, p.shift);
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
-          ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })
+          ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled, esiRoundUp })
           : null;
         const isPrimary = carrierByCandidate.get(c.id) === pairKey(p.candidateId, p.designationId, p.shift);
         const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
@@ -1988,6 +2007,14 @@ function PayrollUnitPage() {
             >
               Recalculate
             </Button>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground" title="Applies when the contract sets no rounding for ESI">
+              <Switch
+                checked={esiRoundUp}
+                disabled={esiRoundFlag.isLoading || esiRoundMut.isPending}
+                onCheckedChange={(v) => esiRoundMut.mutate(v)}
+              />
+              Round ESI up
+            </label>
           </div>
         </div>
 

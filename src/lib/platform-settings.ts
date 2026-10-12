@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const PLATFORM_SETTING_KEYS = {
   msg91Otp: "msg91_otp_enabled",
   employeeVerification: "employee_verification_enabled",
+  esiRoundUp: "payroll_esi_round_up",
 } as const;
 
 export type PlatformSettingKey =
