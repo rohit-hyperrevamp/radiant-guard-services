@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchInChunks } from "@/lib/supabase-batch";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
@@ -145,8 +146,8 @@ function usePtData(ym: string) {
           supabase.from("units").select("id, name, billing_state, shipping_state").in("id", chunk).range(a, b),
       );
 
-      const unitMap = new Map((units ?? []).map((u) => [u.id, u]));
-      const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
+      const unitMap = new Map(units.map((u) => [u.id, u]));
+      const candMap = new Map(cands.map((c) => [c.id, c]));
 
       const mapped: PtRow[] = rows.map((r) => {
         const c = candMap.get(r.candidate_id);

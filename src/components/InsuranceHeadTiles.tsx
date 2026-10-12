@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, HeartHandshake, HeartPulse, ShieldPlus, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { complianceMonthQuery } from "@/lib/compliance-month";
 import { cn } from "@/lib/utils";
 import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
 
