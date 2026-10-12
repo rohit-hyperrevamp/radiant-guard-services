@@ -5324,11 +5324,11 @@ export function ResourceFormDialog({
     );
   };
 
-  const toggleComponentRoundOff = (allowanceId: string) => {
+  const toggleComponentRoundOff = (target: (typeof components)[number]) => {
     preserveDialogScroll(() => {
       setComponents((prev) =>
         prev.map((c) => {
-          if (c.allowanceId !== allowanceId) return c;
+          if (c !== target) return c;
           const at = findAllowanceForResourceComponent(c, allowanceTypes);
           const computed =
             !(c.calcType === "fixed" && !hasConfiguredFormula(c)) &&
@@ -5339,11 +5339,11 @@ export function ResourceFormDialog({
     });
   };
 
-  const toggleDeductionRoundOff = (id: string) => {
+  const toggleDeductionRoundOff = (target: (typeof deductions)[number]) => {
     preserveDialogScroll(() => {
       setDeductions((prev) =>
         prev.map((b) => {
-          if (b.costComponentId !== id) return b;
+          if (b !== target) return b;
           const computed = b.calcType === "percentage" || hasConfiguredFormula(b);
           const next = toggleLineRoundOff(b, computed);
           return computed ? { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes) } : next;
@@ -5352,18 +5352,18 @@ export function ResourceFormDialog({
     });
   };
 
-  const toggleEmployerRoundOff = (id: string) => {
+  const toggleEmployerRoundOff = (target: (typeof employerContributions)[number]) => {
     preserveDialogScroll(() => {
       setEmployerContributions((prev) =>
         prev.map((b) => {
-          if (b.costComponentId !== id) return b;
+          if (b !== target) return b;
           const computed = b.calcType === "percentage" || hasConfiguredFormula(b);
           const next = toggleLineRoundOff(b, computed);
           if (!computed) return next;
           const refsCtc =
             formulaReferencesCtc(b.formulaExpression) ||
             b.baseComponents.some((x) => /^(total\s+)?ctc$/i.test(x.label.trim()));
-          const ctcBase = refsCtc ? prev.filter((x) => x.costComponentId !== id && !isBillingAddOn(x)) : [];
+          const ctcBase = refsCtc ? prev.filter((x) => x !== target && !isBillingAddOn(x)) : [];
           return { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes, ctcBase) };
         }),
       );
@@ -6082,7 +6082,7 @@ export function ResourceFormDialog({
                     <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                       <span className="truncate">{standardPayItemName(c.name)}</span>
                       <span className="flex items-center gap-1.5">
-                      <RoundOffToggle on={!!c.roundOff} label={standardPayItemName(c.name)} onToggle={() => toggleComponentRoundOff(c.allowanceId)} />
+                      <RoundOffToggle on={!!c.roundOff} label={standardPayItemName(c.name)} onToggle={() => toggleComponentRoundOff(c)} />
                       <button
                         type="button"
                         onClick={() => removeComponent(c.allowanceId)}
@@ -6328,7 +6328,7 @@ export function ResourceFormDialog({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleDeductionRoundOff(b.costComponentId)} />
+                      <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleDeductionRoundOff(b)} />
                       {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
                          <DecimalAmountInput
                            value={b.amount}
@@ -6492,7 +6492,7 @@ export function ResourceFormDialog({
 
                     </div>
                     <div className="flex items-center gap-2">
-                      <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleEmployerRoundOff(b.costComponentId)} />
+                      <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleEmployerRoundOff(b)} />
                       {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
                          <DecimalAmountInput
                            value={b.amount}
