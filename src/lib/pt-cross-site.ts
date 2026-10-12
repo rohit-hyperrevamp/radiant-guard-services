@@ -18,27 +18,18 @@ export function ptForSite(input: {
   gender: string;
   siteGross: number;
   other?: OtherSitePt | null;
-  /** Month duties across all sites (see `ptSpread`); absent = this site only. */
+  /**
+   * PT Pages already settled for this person at THIS site this month
+   * (`pt_site_allocations`; 0 when Pages charged it at another site).
+   * Absent = no recorded allocation, use the processing-order rule.
+   */
+  allocated?: number | null;
+  /** @deprecated kept for callers; PT now follows processing order like Pages. */
   spread?: PtSpread | null;
   slabs: PtSlabLike[];
   ranges: PincodeRangeLike[];
 }) {
   const other = input.other ?? { gross: 0, pt: 0 };
-  const spread = input.spread;
-  // Nothing charged elsewhere yet and the person works other sites: charge the
-  // whole month's slab once, at the site with the most duties (where Pages
-  // usually charges it), on the estimated combined gross; other sites charge 0.
-  if (spread && other.pt <= 0 && spread.siteShare < 1) {
-    const base = resolvePtAmount({
-      state: input.state,
-      pincode: input.pincode,
-      gender: input.gender,
-      earnedGross: Math.max(0, input.siteGross / Math.max(spread.siteShare, 0.0001), input.siteGross + other.gross),
-      slabs: input.slabs,
-      ranges: input.ranges,
-    });
-    return { ...base, amount: spread.isCarrier ? base.amount : 0 };
-  }
   const resolved = resolvePtAmount({
     state: input.state,
     pincode: input.pincode,
@@ -47,15 +38,47 @@ export function ptForSite(input: {
     slabs: input.slabs,
     ranges: input.ranges,
   });
+  if (input.allocated != null && Number.isFinite(input.allocated)) {
+    return { ...resolved, amount: Math.max(0, Number(input.allocated)) };
+  }
+  // Pages rule: each site, when processed, charges slab(gross at this site +
+  // gross at sites already processed this month) − PT already charged there.
   return { ...resolved, amount: Math.max(0, resolved.amount - other.pt) };
+}
+
+/**
+ * PT Pages charged per person per site for the month of `periodEnd`, for
+ * people Pages paid at more than one site. A person with rows this month but
+ * none for `unitId` gets 0 here (Pages charged them elsewhere).
+ */
+export async function fetchPtAllocations(
+  candidateIds: string[],
+  unitId: string,
+  periodEnd: string,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (!candidateIds.length || !periodEnd) return out;
+  const [y, m] = periodEnd.split("-").map(Number);
+  type Row = { candidate_id: string; unit_id: string; pt_amount: number | string | null };
+  const rows = await fetchInChunks<Row>(candidateIds, (chunk, from, to) =>
+    (supabase as unknown as { from: (t: string) => any })
+      .from("pt_site_allocations")
+      .select("candidate_id, unit_id, pt_amount")
+      .in("candidate_id", chunk)
+      .eq("period_year", y)
+      .eq("period_month", m)
+      .range(from, to) as never,
+  ).catch(() => [] as Row[]);
+  for (const r of rows) {
+    if (!out.has(r.candidate_id)) out.set(r.candidate_id, 0);
+    if (r.unit_id === unitId) out.set(r.candidate_id, (out.get(r.candidate_id) ?? 0) + (Number(r.pt_amount) || 0));
+  }
+  return out;
 }
 
 export type PtSpread = { isCarrier: boolean; siteShare: number };
 
-/**
- * Decide which site carries a person's monthly PT: most duties wins, ties go
- * to the lowest unit id so every site reaches the same answer.
- */
+/** Most-duties site per person (informational only; no longer decides PT). */
 export function ptSpread(dutiesByUnit: Map<string, number> | undefined, unitId: string): PtSpread | null {
   if (!dutiesByUnit || dutiesByUnit.size === 0) return null;
   let total = 0;
