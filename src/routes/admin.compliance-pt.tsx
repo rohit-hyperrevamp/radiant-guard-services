@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchInChunks } from "@/lib/supabase-batch";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
@@ -125,21 +126,28 @@ function usePtData(ym: string) {
       const rows = deds ?? [];
       if (rows.length === 0) return { rows: [], slabs };
 
-      const ids = Array.from(new Set(rows.map((r) => r.candidate_id).filter(Boolean)));
-      const { data: cands } = await supabase
-        .from("candidates")
-        .select("id, full_name, employee_code, candidate_code, gender, permanent_state, unit_id")
-        .in("id", ids);
-
-      const unitIds = Array.from(
-        new Set((cands ?? []).map((c) => c.unit_id).filter(Boolean) as string[]),
+      const ids = Array.from(new Set(rows.map((r) => r.candidate_id).filter(Boolean))) as string[];
+      // Chunked: one `.in()` over ~1000 ids overflows the request URL and stalls the page.
+      const cands = await fetchInChunks<{
+        id: string; full_name: string | null; employee_code: string | null; candidate_code: string | null;
+        gender: string | null; permanent_state: string | null; unit_id: string | null;
+      }>(ids, (chunk, a, b) =>
+        supabase
+          .from("candidates")
+          .select("id, full_name, employee_code, candidate_code, gender, permanent_state, unit_id")
+          .in("id", chunk)
+          .range(a, b),
       );
-      const { data: units } = unitIds.length
-        ? await supabase.from("units").select("id, name, billing_state, shipping_state").in("id", unitIds)
-        : { data: [] as Array<{ id: string; name: string; billing_state: string | null; shipping_state: string | null }> };
 
-      const unitMap = new Map((units ?? []).map((u) => [u.id, u]));
-      const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
+      const unitIds = Array.from(new Set(cands.map((c) => c.unit_id).filter(Boolean) as string[]));
+      const units = await fetchInChunks<{ id: string; name: string; billing_state: string | null; shipping_state: string | null }>(
+        unitIds,
+        (chunk, a, b) =>
+          supabase.from("units").select("id, name, billing_state, shipping_state").in("id", chunk).range(a, b),
+      );
+
+      const unitMap = new Map(units.map((u) => [u.id, u]));
+      const candMap = new Map(cands.map((c) => [c.id, c]));
 
       const mapped: PtRow[] = rows.map((r) => {
         const c = candMap.get(r.candidate_id);
