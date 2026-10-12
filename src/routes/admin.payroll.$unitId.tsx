@@ -457,9 +457,9 @@ function PayrollUnitPage() {
     mutationFn: async (enabled: boolean) => {
       const { error } = await supabase
         .from("inv_settings" as never)
-        .upsert({ key: PLATFORM_SETTING_KEYS.esiRoundUp, value: { enabled }, description: "Round ESI up to the next rupee when the contract sets no rounding" } as never, { onConflict: "key" });
+        .upsert({ key: PLATFORM_SETTING_KEYS.esiRoundUp, value: { enabled }, description: "Round ESI to the nearest rupee when the contract sets no rounding" } as never, { onConflict: "key" });
       if (error) throw error;
-      void logActivity({ module: "Payroll", action: enabled ? "enable" : "disable", entityType: "inv_settings", entityLabel: "Round ESI up" });
+      void logActivity({ module: "Payroll", action: enabled ? "enable" : "disable", entityType: "inv_settings", entityLabel: "Round ESI to nearest ₹" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformFlagQueryKey(PLATFORM_SETTING_KEYS.esiRoundUp) });
@@ -2013,7 +2013,7 @@ function PayrollUnitPage() {
                 disabled={esiRoundFlag.isLoading || esiRoundMut.isPending}
                 onCheckedChange={(v) => esiRoundMut.mutate(v)}
               />
-              Round ESI up
+              Round ESI to nearest ₹
             </label>
           </div>
         </div>
