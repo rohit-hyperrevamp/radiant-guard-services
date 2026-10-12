@@ -231,12 +231,15 @@ export function useAttendanceMoneyRealtime() {
             );
           },
         });
-      }, 1200);
+      }, 5000);
     };
 
+    // Only status changes (sheet submitted/approved, payroll run updated) refresh
+    // money pages. Per-day attendance rows change thousands of times a day (guard
+    // punches, bulk imports); listening to them re-downloaded every open payroll
+    // and invoice page continuously and overloaded the database.
     const channel = supabase
       .channel("attendance-money-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "attendance_entries" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance_sheets" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "payroll_runs" }, invalidate)
       .subscribe();
