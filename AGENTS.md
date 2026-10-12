@@ -5,11 +5,11 @@
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Approvals (payroll, onboarding, `approval_requests`) follow `workflow_steps` via `workflow_step_matches` (named people/department override role); sensitive employee fields change only through `approval_decide` — approvers stay configurable.
 - Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server sends get held (211).
-- Sales & Marketing CRM lives in `crm_*` tables gated by `current_user_can_crm()` (Super Admin + `sales_marketing` RBAC module); prospects convert via the org → unit → contract chain (`OrgUnitChain`) into a pending-approval contract draft — Client Contracts holds contracts only.
+- CRM: `crm_*` gated by `current_user_can_crm()`; prospects convert via `OrgUnitChain` into a pending contract draft — Client Contracts holds contracts only.
 - "View as user" mints the target session server-side (`startImpersonation`, super-admin verified), admin session kept in localStorage `radiant.impersonator`, sign-out `scope: "local"` — real RLS views without touching the employee's sessions.
 - Recruitment: `rec_*` gated by `current_user_can_recruit()`; `rec_onboard_candidate` inserts into `candidates` so one employee ID series is used.
 - Dashboard profitability is unit-level: invoice minus earned gross and employer contribution, posted values overriding computed ones.
-- Contract rate changes are versioned in `contract_rate_revisions` (approved with applicable-from/till); payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (calendar-day split), a daily job promotes due rates, upcoming ones edit via `update_scheduled_contract_rate_revision` — past periods keep old rates.
+- Rate changes are versioned in `contract_rate_revisions`; payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (day split), a daily job promotes due rates — past periods keep old rates.
 - Effective permissions resolve employee > designation-in-dept > designation > department (`access_overrides`) > role_permissions via `current_user_effective_permissions()`; `prevent_hr_contract_mutation` enforces contracts sub-modules — access survives staff turnover, nothing role-hardcoded.
 - Attendance/payroll/invoice actions (mark, upload, submit, approve, reopen, amend, process, finalise, upload_tally) are RBAC sub-modules via `canAction` / `current_user_explicit_permission`; explicit action row wins, else module grant (payroll approve/process also accept Workflow Manager approvers).
 - Master-data tables carry an `rbac_guard` trigger (`enforce_rbac_table_permission(module, sub)`) that refuses writes only when Access Control explicitly withholds Edit/Delete — new master tables should get the same trigger.
@@ -18,7 +18,7 @@
 - Dashboard widgets are `dashboard::w_*` sub-modules checked via `canWidget`; no row = visible (still gated by the data module), an explicit role/department/designation/employee row decides — new dashboard sections should get a widget key.
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — the deploy build can bake `process.env.SUPABASE_*` to the empty preview backend.
 - Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view) — alerts follow Access Control, not fixed roles.
-- Exports are gated centrally: `<module>::export` (View) checked by `canExport`; ExportChooser installs a guard so `downloadCsv`/`openExport` refuse on pages of modules without export access — one switch per module.
+- Exports gated by `<module>::export` via `canExport`; ExportChooser guards `downloadCsv`/`openExport` — one switch per module.
 - Console users land on their dashboard without module grants; team cards are presentation-independent and gated by dashboard::w_team_clients — avoids personal-dashboard fallbacks hiding shared scope.
 - Audit trigger `zz_audit` (`audit_row_change(module)`) logs to `system_logs` (actor filled by `system_logs_fill_actor`) — add it to new important tables.
 
@@ -30,5 +30,4 @@
 - Pages-era payslips: read-only `pages_payslip_archive` (/admin/payroll/history) — never recalculated.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`) — stored attendance never keeps a stale cap.
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
-
 - Never add high-volume tables (attendance_entries, punches) to realtime or to page-wide invalidation listeners — listen to status tables (attendance_sheets, payroll_runs) only; per-row streams overloaded the database.
