@@ -64,7 +64,7 @@ import {
 import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchOtherSitePtTotals, fetchOtherSitesWorked, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
+import { fetchMonthDutiesBySite, fetchOtherSitePtTotals, fetchOtherSitesWorked, otherSitePtChanged, ptForSite, ptSpread } from "@/lib/pt-cross-site";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
@@ -950,9 +950,10 @@ function PayrollUnitPage() {
       // Gross and PT already paid to these people at OTHER sites this month
       // (processed payrolls only). PT is one monthly slab per person, so a
       // guard working two sites is taxed on the combined gross, once.
-      const [otherSitePt, otherSitesWorked] = await Promise.all([
+      const [otherSitePt, otherSitesWorked, monthDuties] = await Promise.all([
         fetchOtherSitePtTotals(candidateIds, unitId, end),
         fetchOtherSitesWorked(candidateIds, unitId, end),
+        fetchMonthDutiesBySite(candidateIds, end),
       ]);
 
       const rows = Array.from(pairs.values()).map((p) => {
@@ -1153,6 +1154,7 @@ function PayrollUnitPage() {
           gender: ((rosterById.get(r.id) as unknown as { gender?: string | null } | undefined)?.gender ?? "").toString(),
           siteGross: siteGrossByCandidate.get(r.id) ?? 0,
           other: otherSitePt.get(r.id),
+          spread: ptSpread(monthDuties.get(r.id), unitId),
           slabs: (ptSlabs ?? []) as PtSlabLike[],
           ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
         });

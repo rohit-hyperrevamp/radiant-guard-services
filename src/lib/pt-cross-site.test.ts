@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { otherSitePtChanged, ptForSite } from "./pt-cross-site";
+import { otherSitePtChanged, ptForSite, ptSpread } from "./pt-cross-site";
 
 // Maharashtra statutory slabs.
 const slabs = [
@@ -38,4 +38,18 @@ describe("guard working at two IDBI FC Road sites (49344, Sep 2026)", () => {
     expect(otherSitePtChanged(new Map([["a", { gross: 0, pt: 0 }]]), new Map([["a", { gross: 9525.6, pt: 175 }]]))).toBe(true);
     expect(otherSitePtChanged(new Map([["a", { gross: 9525.6, pt: 175 }]]), new Map([["a", { gross: 9525.6, pt: 175 }]]))).toBe(false);
   });
+});
+
+describe("PT charged once at the busiest site before anything is processed", () => {
+  const duties = new Map([["CLI379", 11.5], ["CLI3301", 12], ["CLI4026", 6]]);
+  const run = (unit: string, siteGross: number) =>
+    ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross, spread: ptSpread(duties, unit), slabs, ranges: [] }).amount;
+  it("busiest site carries the full month slab", () => expect(run("CLI3301", 9317)).toBe(200));
+  it("other sites charge nothing", () => {
+    expect(run("CLI379", 6243)).toBe(0);
+    expect(run("CLI4026", 4768)).toBe(0);
+  });
+  it("after the carrier is processed, others subtract it as before", () =>
+    expect(ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross: 6243, other: { gross: 9317, pt: 200 }, spread: ptSpread(duties, "CLI379"), slabs, ranges: [] }).amount).toBe(0));
+  it("single-site guards are unchanged", () => expect(run("X", 0) + ptForSite({ state: "Maharashtra", pincode: null, gender: "male", siteGross: 9841, spread: ptSpread(new Map([["A", 26]]), "A"), slabs, ranges: [] }).amount).toBe(175));
 });

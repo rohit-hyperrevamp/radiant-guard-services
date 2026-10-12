@@ -18,10 +18,27 @@ export function ptForSite(input: {
   gender: string;
   siteGross: number;
   other?: OtherSitePt | null;
+  /** Month duties across all sites (see `ptSpread`); absent = this site only. */
+  spread?: PtSpread | null;
   slabs: PtSlabLike[];
   ranges: PincodeRangeLike[];
 }) {
   const other = input.other ?? { gross: 0, pt: 0 };
+  const spread = input.spread;
+  // Nothing charged elsewhere yet and the person works other sites: charge the
+  // whole month's slab once, at the site with the most duties (where Pages
+  // usually charges it), on the estimated combined gross; other sites charge 0.
+  if (spread && other.pt <= 0 && spread.siteShare < 1) {
+    const base = resolvePtAmount({
+      state: input.state,
+      pincode: input.pincode,
+      gender: input.gender,
+      earnedGross: Math.max(0, input.siteGross / Math.max(spread.siteShare, 0.0001), input.siteGross + other.gross),
+      slabs: input.slabs,
+      ranges: input.ranges,
+    });
+    return { ...base, amount: spread.isCarrier ? base.amount : 0 };
+  }
   const resolved = resolvePtAmount({
     state: input.state,
     pincode: input.pincode,
@@ -31,6 +48,66 @@ export function ptForSite(input: {
     ranges: input.ranges,
   });
   return { ...resolved, amount: Math.max(0, resolved.amount - other.pt) };
+}
+
+export type PtSpread = { isCarrier: boolean; siteShare: number };
+
+/**
+ * Decide which site carries a person's monthly PT: most duties wins, ties go
+ * to the lowest unit id so every site reaches the same answer.
+ */
+export function ptSpread(dutiesByUnit: Map<string, number> | undefined, unitId: string): PtSpread | null {
+  if (!dutiesByUnit || dutiesByUnit.size === 0) return null;
+  let total = 0;
+  let carrier = "";
+  let best = -1;
+  for (const [u, d] of Array.from(dutiesByUnit.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+    total += d;
+    if (d > best) {
+      best = d;
+      carrier = u;
+    }
+  }
+  const site = dutiesByUnit.get(unitId) ?? 0;
+  if (total <= 0 || site <= 0) return null;
+  return { isCarrier: carrier === unitId, siteShare: site / total };
+}
+
+/** Duties (present days + Extra Duty) per person per site for the month of `periodEnd`. */
+export async function fetchMonthDutiesBySite(
+  candidateIds: string[],
+  periodEnd: string,
+): Promise<Map<string, Map<string, number>>> {
+  const out = new Map<string, Map<string, number>>();
+  if (!candidateIds.length || !periodEnd) return out;
+  const [y, m] = periodEnd.split("-").map(Number);
+  const monthStart = `${y}-${String(m).padStart(2, "0")}-01`;
+  const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  const { data: codes } = await supabase.from("attendance_codes").select("code, counts_as_present, day_value");
+  const dayValue = new Map(
+    ((codes ?? []) as { code: string; counts_as_present: boolean | null; day_value: number | string | null }[]).map((c) => [
+      String(c.code).toUpperCase(),
+      c.counts_as_present ? Number(c.day_value ?? 1) || 1 : 0,
+    ]),
+  );
+  type Row = { candidate_id: string; unit_id: string; code: string | null; ot_hours: number | string | null };
+  const rows = await fetchInChunks<Row>(candidateIds, (chunk, from, to) =>
+    supabase
+      .from("attendance_entries")
+      .select("candidate_id, unit_id, code, ot_hours")
+      .in("candidate_id", chunk)
+      .gte("entry_date", monthStart)
+      .lte("entry_date", monthEnd)
+      .range(from, to) as never,
+  ).catch(() => [] as Row[]);
+  for (const r of rows) {
+    const d = (dayValue.get(String(r.code ?? "").toUpperCase()) ?? 0) + (Number(r.ot_hours) || 0);
+    if (d <= 0) continue;
+    const per = out.get(r.candidate_id) ?? new Map<string, number>();
+    per.set(r.unit_id, (per.get(r.unit_id) ?? 0) + d);
+    out.set(r.candidate_id, per);
+  }
+  return out;
 }
 
 /** Gross and PT from processed payrolls at other sites whose period ends in the same month. */
