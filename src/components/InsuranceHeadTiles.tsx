@@ -63,22 +63,9 @@ export const matchesHead = (name: string | null | undefined, head: InsuranceHead
 
 function useInsuranceTotals(ym: string) {
   return useQuery({
-    queryKey: ["insurance-heads", ym],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { from, to } = monthRange(ym);
-      const [{ data: deds }, { data: contribs }] = await Promise.all([
-        supabase
-          .from("deductions")
-          .select("candidate_id, amount, computed_amount, deduction_name")
-          .gte("deduction_date", from)
-          .lte("deduction_date", to),
-        supabase
-          .from("employer_contributions")
-          .select("candidate_id, amount, contribution_name")
-          .gte("contribution_date", from)
-          .lte("contribution_date", to),
-      ]);
+    ...complianceMonthQuery(ym),
+    select: ({ deds, contribs }) => {
+
 
       const out: Record<InsuranceHeadKey, { amount: number; people: Set<string> }> = {
         gpaip: { amount: 0, people: new Set() },
