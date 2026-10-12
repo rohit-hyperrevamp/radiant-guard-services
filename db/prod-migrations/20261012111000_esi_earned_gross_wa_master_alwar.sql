@@ -4,10 +4,10 @@ BEGIN;
 UPDATE public.cost_components SET formula_expression='(gross - washing_allowance) * 0.0075', updated_at=now() WHERE id='cc130430-0001-4001-8001-000000000003';
 UPDATE public.cost_components SET formula_expression='(gross - washing_allowance) * 0.0325', updated_at=now() WHERE id='cc130430-0001-4001-8001-000000000004';
 INSERT INTO public.cost_components (id,name,calc_type,percentage,base_components,deduction_calc_type,fixed_calc_method,fixed_duty_components,formula_mode,formula_expression,formula_version,party,enabled,code,day_driver,sort_order,state)
-SELECT 'cc130430-0001-4001-8001-000000000013','EE ESI 0.75% (Earned Gross-WA)',calc_type,percentage,base_components,deduction_calc_type,fixed_calc_method,fixed_duty_components,'advanced','(earned_gross - washing_allowance) * 0.0075',1,party,true,code||'-EG',day_driver,sort_order,state FROM public.cost_components WHERE id='cc130430-0001-4001-8001-000000000003'
+SELECT 'cc130430-0001-4001-8001-000000000013','EE ESI 0.75% (Earned Gross-WA)',calc_type,percentage,base_components,deduction_calc_type,fixed_calc_method,fixed_duty_components,'advanced','(earned_gross - washing_allowance) * 0.0075',1,party,true,'ESI_EE_EGWA',day_driver,sort_order,state FROM public.cost_components WHERE id='cc130430-0001-4001-8001-000000000003'
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.cost_components (id,name,calc_type,percentage,base_components,deduction_calc_type,fixed_calc_method,fixed_duty_components,formula_mode,formula_expression,formula_version,party,enabled,code,day_driver,sort_order,state)
-SELECT 'cc130430-0001-4001-8001-000000000014','ER ESI 3.25% (Earned Gross-WA)',calc_type,percentage,base_components,deduction_calc_type,fixed_calc_method,fixed_duty_components,'advanced','(earned_gross - washing_allowance) * 0.0325',1,party,true,code||'-EG',day_driver,sort_order,state FROM public.cost_components WHERE id='cc130430-0001-4001-8001-000000000004'
+SELECT 'cc130430-0001-4001-8001-000000000014','ER ESI 3.25% (Earned Gross-WA)',calc_type,percentage,base_components,deduction_calc_type,fixed_calc_method,fixed_duty_components,'advanced','(earned_gross - washing_allowance) * 0.0325',1,party,true,'ESI_ER_EGWA',day_driver,sort_order,state FROM public.cost_components WHERE id='cc130430-0001-4001-8001-000000000004'
 ON CONFLICT (id) DO NOTHING;
 -- other contracts: back to original line expression
 UPDATE public.contract_resources cr SET
