@@ -656,7 +656,7 @@ export async function computeInvoice(unitId:string,start:string,end:string,G:any
 
           // LWF from Control Center master (live-synced with payroll).
           if (lwfRows && pincodeRanges) {
-            const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows);
+            const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows, unitState);
             const periodMonth = new Date(start).getMonth() + 1;
             let applies = false;
             let employee = 0;
