@@ -42,6 +42,7 @@ import {
   fmtINR,
   resolvePtAmount,
   roundFinalGross,
+  roundEsiUp,
   type AttendanceCodeLike,
   type AttendanceEntryLike,
   type ContractResourceLike,
@@ -1161,6 +1162,7 @@ function PayrollUnitPage() {
       }
       // Gross is paid in whole rupees (nearest); net = rounded gross − deductions.
       for (const r of rows) {
+        if (r.wages && esiRoundUp) Object.assign(r.wages, roundEsiUp(r.wages));
         if (r.wages) Object.assign(r.wages, roundFinalGross(r.wages));
       }
 

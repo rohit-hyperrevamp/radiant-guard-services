@@ -1527,6 +1527,42 @@ export function applyEmployeeAdditions(
 }
 
 /**
+ * Final ESI rounding pass (payroll "Round ESI up" switch): every ESI line the
+ * contract leaves unrounded goes up to the next whole rupee. Lines whose
+ * contract sets "nearest"/round-off keep the contract's rule. Runs after all
+ * additions/re-computations so later ESI recalculations can't undo it.
+ */
+export function roundEsiUp(wages: WageComputation): WageComputation {
+  const re = /\besi(c)?\b|state\s+insurance/i;
+  let changed = false;
+  const fix = (items: WageComponent[]) =>
+    items.map((i) => {
+      if (!re.test(i.name)) return i;
+      const mode = (i as { roundMode?: string | null }).roundMode;
+      if ((mode && mode !== "up") || (!mode && i.roundOff)) return i;
+      const raw = Number(i.amount) || 0;
+      const up = Math.ceil(round2(raw));
+      if (up === raw) return i;
+      changed = true;
+      return { ...i, amount: up, roundMode: "up", preRoundAmount: i.preRoundAmount ?? raw };
+    });
+  const deductions = fix(wages.deductions);
+  const employerContributions = fix(wages.employerContributions);
+  if (!changed) return wages;
+  const totalDeductions = round2(deductions.reduce((s, d) => s + d.amount, 0));
+  const totalEmployerContributions = round2(employerContributions.reduce((s, d) => s + d.amount, 0));
+  return {
+    ...wages,
+    deductions,
+    employerContributions,
+    totalDeductions,
+    totalEmployerContributions,
+    netPay: Math.max(0, round2(wages.earnedGross - totalDeductions)),
+    employerCost: round2(wages.earnedGross + totalEmployerContributions),
+  };
+}
+
+/**
  * Final gross is paid in whole rupees (Pages Payroll rule): pay items keep
  * paise, the summed gross rounds to the nearest rupee (₹0.50 goes up) and net
  * pay = rounded gross − deductions. Deductions are worked out on the exact
