@@ -216,7 +216,7 @@ export async function fetchLiveContractDeductions(args: {
   }
 
   const periodMonth = new Date(`${start}T00:00:00`).getMonth() + 1;
-  const lwfRes = resolveLwf(String(unitPincode ?? ""), (pincodeRanges ?? []) as never, (lwfRows ?? []) as LwfRow[]);
+  const lwfRes = resolveLwf(String(unitPincode ?? ""), (pincodeRanges ?? []) as never, (lwfRows ?? []) as LwfRow[], unitState);
   let lwfEmployee = 0;
   let lwfEmployer = 0;
   let lwfApplies = false;

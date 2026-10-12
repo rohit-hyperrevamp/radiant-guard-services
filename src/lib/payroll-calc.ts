@@ -1393,7 +1393,12 @@ export function computeWages(
         ? i
         : { ...i, amount: rounded, roundMode: mode ?? null, roundOff, preRoundAmount: raw };
     });
-  const finalDeductions = edOnly ? [] : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
+  // Professional Tax is a slab on the person's monthly gross (Extra Duty
+  // included), so an ED-only line still keeps the contract's PT row; the slab
+  // amount is filled later by applyPtToWageComputation (Pages does the same).
+  const finalDeductions = edOnly
+    ? deductions.filter((d) => PT_NAME_RE.test(d.name) && !hasConfiguredFormula(d)).map((d) => ({ ...d, amount: 0 }))
+    : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
   const finalEmployerContributions = edOnly
     ? []
     : roundFlagged(clampEpf(employerContributions, resource.employerContributions), resource.employerContributions);
