@@ -49,6 +49,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { PERIOD_STATUS_QK } from "@/lib/period-status";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
+import { fetchPagesReportedInvoice } from "@/lib/pages-reported";
 import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 
 const searchSchema = z.object({
@@ -1133,7 +1134,40 @@ function PayrollUnitPage() {
   const r2 = (v: number) => Math.round(v * 100) / 100;
   // Configured extra charges for this unit + period (e.g. Technical Allowance).
   const { data: extraCharges = [] } = useInvoiceExtraCharges(unitId, start, end);
-  const activeExtras = extraCharges.filter((c) => c.enabled && (!splitActive || invoiceSplit.assign.extras === activePart));
+  // Pages tax invoice (PDF) for this site + period: the invoice is brought to
+  // exactly that taxable value with one labelled adjustment line.
+  const { data: pagesInvoice = null } = useQuery({
+    queryKey: ["pages-reported-invoice", unitId, start, end],
+    queryFn: () => fetchPagesReportedInvoice(unitId, start, end),
+    staleTime: 60_000,
+  });
+  const configuredExtras = extraCharges.filter((c) => c.enabled && (!splitActive || invoiceSplit.assign.extras === activePart));
+  const configuredExtrasTotal = r2(configuredExtras.reduce((s, c) => s + c.amount, 0));
+  const pagesAdjustment =
+    pagesInvoice && (!splitActive || activePart === "main")
+      ? r2(Number(pagesInvoice.taxable_value) - r2(totals.actualTotal + configuredExtrasTotal))
+      : 0;
+  const activeExtras =
+    Math.abs(pagesAdjustment) >= 0.005
+      ? [
+          ...configuredExtras,
+          {
+            id: "pages-invoice-adjustment",
+            unitId,
+            contractId: null,
+            periodStart: start,
+            periodEnd: end,
+            description: "Adjustment as per Pages tax invoice",
+            hsnSac: orgSettings?.default_hsn_sac ?? "",
+            quantity: 1,
+            rate: pagesAdjustment,
+            perLabel: "Lump sum",
+            enabled: true,
+            sortOrder: 9999,
+            amount: pagesAdjustment,
+          },
+        ]
+      : configuredExtras;
   const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
   const taxableValue = r2(totals.actualTotal + extrasTotal);
   const tax = taxSplit(taxableValue, isIntraState);
