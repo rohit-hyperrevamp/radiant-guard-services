@@ -5552,7 +5552,7 @@ export function ResourceFormDialog({
     });
   };
 
-  const updateDeductionAmount = (id: string, amount: number) => {
+  const updateDeductionAmount = (target: unknown, amount: number) => {
     setDeductions((prev) => prev.map((b) => (b === target ? withManualAmount(b, amount) : b)));
   };
 
@@ -5605,7 +5605,7 @@ export function ResourceFormDialog({
     });
   };
 
-  const updateEmployerAmount = (id: string, amount: number) => {
+  const updateEmployerAmount = (target: unknown, amount: number) => {
     setEmployerContributions((prev) => prev.map((b) => (b === target ? withManualAmount(b, amount) : b)));
   };
 
