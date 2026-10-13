@@ -344,6 +344,8 @@ export type ContractResource = {
   /** Round the final billing rate (Total CTC + reliever + management fee) to the nearest rupee. */
   roundOffFinal?: boolean;
   roundOffTotals?: Record<string, boolean>;
+  /** Extra Duty multiplier (Pages "2X"): ED per duty = ED base ÷ payroll days × this. */
+  otMultiplier?: number;
 };
 
 function cloneBenefitItem(item: BenefitItem): BenefitItem {
@@ -376,6 +378,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     employerContributions: (resource.employerContributions ?? []).map(cloneBenefitItem),
     roundOffFinal: resource.roundOffFinal === true,
     roundOffTotals: { ...(resource.roundOffTotals ?? {}) },
+    otMultiplier: Number(resource.otMultiplier) > 0 ? Number(resource.otMultiplier) : 1,
   };
 }
 
@@ -1217,7 +1220,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1239,6 +1242,7 @@ function useContractResources(contractId: string | null) {
         employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
         roundOffFinal: r.round_off_final === true,
         roundOffTotals: (r.round_off_totals ?? {}) as Record<string, boolean>,
+        otMultiplier: Number(r.ot_multiplier ?? 1) || 1,
       }));
     },
   });
@@ -1913,6 +1917,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     employer_contributions: r.employerContributions,
     round_off_final: r.roundOffFinal === true,
     round_off_totals: r.roundOffTotals ?? {},
+    ot_multiplier: Number(r.otMultiplier) > 0 ? Number(r.otMultiplier) : 1,
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
@@ -4914,6 +4919,7 @@ export function ResourceFormDialog({
   const [employerContributions, setEmployerContributions] = useState<BenefitItem[]>([]);
   const [roundOffFinal, setRoundOffFinal] = useState(false);
   const [roundTotals, setRoundTotals] = useState<Record<string, boolean>>({});
+  const [otMultiplier, setOtMultiplier] = useState<string>("1");
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -4965,7 +4971,8 @@ export function ResourceFormDialog({
       setEmployerContributions(nextEmployerContributions);
       setRoundOffFinal(initial.roundOffFinal === true);
       setRoundTotals({ ...(initial.roundOffTotals ?? {}) });
-      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
+      setOtMultiplier(String(initial.otMultiplier ?? 1));
+      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, otMultiplier: Number(initial.otMultiplier ?? 1) || 1, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
     } else {
       const nextComponents = allowanceTypes
         .filter((a) => a.isDefault)
@@ -5018,9 +5025,11 @@ export function ResourceFormDialog({
           employerContributions,
           roundOffFinal,
           roundOffTotals: roundTotals,
+      otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
+          otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -5735,6 +5744,7 @@ export function ResourceFormDialog({
       employerContributions,
       roundOffFinal,
       roundOffTotals: roundTotals,
+      otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
     });
   };
 
@@ -5759,6 +5769,7 @@ export function ResourceFormDialog({
       employerContributions,
       roundOffFinal,
       roundOffTotals: roundTotals,
+      otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inline, currentResourceSnapshot]);
@@ -6210,8 +6221,22 @@ export function ResourceFormDialog({
                   <span className="text-[11px] text-muted-foreground">
                     ED per duty = ED base ÷ payroll days
                     {otDivisorDays ? ` (${otDivisorDays})` : ""}
-                    {otDivisorDays ? ` = ${(otBaseTotal / otDivisorDays).toFixed(2)}` : ""}
+                    {` × ${Number(otMultiplier) > 0 ? Number(otMultiplier) : 1}`}
+                    {otDivisorDays ? ` = ${((otBaseTotal / otDivisorDays) * (Number(otMultiplier) > 0 ? Number(otMultiplier) : 1)).toFixed(2)}` : ""}
                   </span>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    ED rate
+                    <Select value={["1","1.5","2","2.5","3"].includes(String(Number(otMultiplier))) ? String(Number(otMultiplier)) : "1"} onValueChange={(v) => preserveDialogScroll(() => setOtMultiplier(v))}>
+                      <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1X</SelectItem>
+                        <SelectItem value="1.5">1.5X</SelectItem>
+                        <SelectItem value="2">2X</SelectItem>
+                        <SelectItem value="2.5">2.5X</SelectItem>
+                        <SelectItem value="3">3X</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </label>
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     ED Base
                   </span>

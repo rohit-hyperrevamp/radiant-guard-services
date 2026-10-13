@@ -557,7 +557,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources")
           .select(
-            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier",
           )
           .eq("contract_id", contractId);
         resources = r ?? [];
@@ -834,6 +834,7 @@ function PayrollUnitPage() {
           employerContributions: Array.isArray(r.employer_contributions)
             ? (r.employer_contributions as { name: string; amount: number; allowanceId?: string | null; costComponentId?: string | null; deductionCalcType?: "earned_salary" | "fixed_amount"; formulaMode?: string | null; formulaExpression?: string | null }[])
             : [],
+          otMultiplier: Number((r as { ot_multiplier?: unknown }).ot_multiplier ?? 1) || 1,
           payrollDayBase: r.payroll_day_base_id
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
             : null,

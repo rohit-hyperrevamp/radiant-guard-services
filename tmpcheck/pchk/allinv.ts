@@ -9,4 +9,4 @@ const todo=runs.filter(r=>!done0.has(r.unit_id)&&(!only||only.has(r.unit_id))); 
 let i=0,n=0;
 async function w(){ while(i<todo.length){ const run=todo[i++]; try{ const r:any=await computeInvoice(run.unit_id,run.period_start,run.period_end,G); appendFileSync(OUT, JSON.stringify({u:run.unit_id,s:run.period_start,e:run.period_end,...r})+"\n"); }catch(e:any){appendFileSync(OUT,JSON.stringify({u:run.unit_id,s:run.period_start,error:String(e?.message??e).slice(0,200)})+"\n");}
  if(++n%50===0) console.log(n,"/",todo.length); } }
-await Promise.all(Array.from({length:4},w)); console.log("done"); process.exit(0);
+await Promise.all(Array.from({length:8},w)); console.log("done"); process.exit(0);

@@ -225,6 +225,8 @@ export type ContractResourceLike = {
   benefits: BenefitLike[];
   deductions: BenefitLike[];
   employerContributions: BenefitLike[];
+  /** Extra Duty multiplier (Pages "2X"); default 1. */
+  otMultiplier?: number | null;
   payrollDayBase: {
     method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
     fixedDays: number | null;
@@ -1056,7 +1058,8 @@ export function computeWages(
 
   // Day rate is rounded to paise before multiplying (Pages register rule:
   // 25,180.17 / 26 = 968.47 → 3 ED days = 2,905.41).
-  const perDutyOt = round2(otBase / OT_DIVISOR);
+  const otMult = Number(resource.otMultiplier) > 0 ? Number(resource.otMultiplier) : 1;
+  const perDutyOt = round2((otBase / OT_DIVISOR) * otMult);
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
   if (otAmount > 0) {
