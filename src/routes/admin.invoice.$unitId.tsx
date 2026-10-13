@@ -1147,29 +1147,11 @@ function PayrollUnitPage() {
     pagesInvoice && (!splitActive || activePart === "main")
       ? r2(Number(pagesInvoice.taxable_value) - r2(totals.actualTotal + configuredExtrasTotal))
       : 0;
-  const activeExtras =
-    Math.abs(pagesAdjustment) >= 0.005
-      ? [
-          ...configuredExtras,
-          {
-            id: "pages-invoice-adjustment",
-            unitId,
-            contractId: null,
-            periodStart: start,
-            periodEnd: end,
-            description: "Adjustment as per Pages tax invoice",
-            hsnSac: orgSettings?.default_hsn_sac ?? "",
-            quantity: 1,
-            rate: pagesAdjustment,
-            perLabel: "Lump sum",
-            enabled: true,
-            sortOrder: 9999,
-            amount: pagesAdjustment,
-          },
-        ]
-      : configuredExtras;
-  const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
-  const taxableValue = r2(totals.actualTotal + extrasTotal);
+  const activeExtras = configuredExtras;
+  const extrasTotal = configuredExtrasTotal;
+  // Reported invoice value is spread over the billed lines (rates follow).
+  const billedTotal = r2(totals.actualTotal + pagesAdjustment);
+  const taxableValue = r2(billedTotal + extrasTotal);
   const tax = taxSplit(taxableValue, isIntraState);
   const cgstAmount = tax.cgst;
   const sgstAmount = tax.sgst;
@@ -1213,6 +1195,17 @@ function PayrollUnitPage() {
       groups.set(key, g);
     }
     const list = Array.from(groups.values());
+    if (Math.abs(pagesAdjustment) >= 0.005 && list.length > 0) {
+      const raw = list.reduce((s, g) => s + g.amount, 0);
+      let left = billedTotal;
+      list.forEach((g, i) => {
+        const amt = i === list.length - 1 ? r2(left) : r2(raw > 0 ? (g.amount / raw) * billedTotal : billedTotal / list.length);
+        left = r2(left - amt);
+        g.amount = amt;
+        if (g.quantity > 0) g.unitRate = r2(amt / g.quantity);
+        g.monthly = g.payrollDays > 0 ? r2(g.unitRate * g.payrollDays) : g.monthly;
+      });
+    }
     const totalQuantity = r2(list.reduce((s, g) => s + g.quantity, 0));
     const quantityUnit = list[0]?.unitLabel ?? "Duty";
     const monthIdx = Number(start.split("-")[1]) - 1;
@@ -1299,7 +1292,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
+  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, pagesAdjustment, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
 
 
   /**
@@ -1792,7 +1785,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-right text-xs tabular-nums">{g.billedHours} hrs</td>
                   <td className="px-4 py-3 text-right text-xs tabular-nums">₹{g.perHour.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmtINR(g.contracted)}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(g.actual)}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(totals.actualTotal > 0 ? g.actual * (billedTotal / totals.actualTotal) : g.actual)}</td>
                 </tr>
               ))}
             </tbody>
