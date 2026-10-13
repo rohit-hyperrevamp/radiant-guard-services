@@ -1147,29 +1147,11 @@ function PayrollUnitPage() {
     pagesInvoice && (!splitActive || activePart === "main")
       ? r2(Number(pagesInvoice.taxable_value) - r2(totals.actualTotal + configuredExtrasTotal))
       : 0;
-  const activeExtras =
-    Math.abs(pagesAdjustment) >= 0.005
-      ? [
-          ...configuredExtras,
-          {
-            id: "pages-invoice-adjustment",
-            unitId,
-            contractId: null,
-            periodStart: start,
-            periodEnd: end,
-            description: "Adjustment as per Pages tax invoice",
-            hsnSac: orgSettings?.default_hsn_sac ?? "",
-            quantity: 1,
-            rate: pagesAdjustment,
-            perLabel: "Lump sum",
-            enabled: true,
-            sortOrder: 9999,
-            amount: pagesAdjustment,
-          },
-        ]
-      : configuredExtras;
-  const extrasTotal = r2(activeExtras.reduce((s, c) => s + c.amount, 0));
-  const taxableValue = r2(totals.actualTotal + extrasTotal);
+  const activeExtras = configuredExtras;
+  const extrasTotal = configuredExtrasTotal;
+  // Reported invoice value is spread over the billed lines (rates follow).
+  const billedTotal = r2(totals.actualTotal + pagesAdjustment);
+  const taxableValue = r2(billedTotal + extrasTotal);
   const tax = taxSplit(taxableValue, isIntraState);
   const cgstAmount = tax.cgst;
   const sgstAmount = tax.sgst;
