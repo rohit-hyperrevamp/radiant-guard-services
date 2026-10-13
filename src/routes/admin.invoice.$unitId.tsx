@@ -49,7 +49,6 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { PERIOD_STATUS_QK } from "@/lib/period-status";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
-import { fetchPagesReportedInvoice } from "@/lib/pages-reported";
 import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 
 const searchSchema = z.object({
@@ -1134,23 +1133,11 @@ function PayrollUnitPage() {
   const r2 = (v: number) => Math.round(v * 100) / 100;
   // Configured extra charges for this unit + period (e.g. Technical Allowance).
   const { data: extraCharges = [] } = useInvoiceExtraCharges(unitId, start, end);
-  // Pages tax invoice (PDF) for this site + period: the invoice is brought to
-  // exactly that taxable value with one labelled adjustment line.
-  const { data: pagesInvoice = null } = useQuery({
-    queryKey: ["pages-reported-invoice", unitId, start, end],
-    queryFn: () => fetchPagesReportedInvoice(unitId, start, end),
-    staleTime: 60_000,
-  });
   const configuredExtras = extraCharges.filter((c) => c.enabled && (!splitActive || invoiceSplit.assign.extras === activePart));
   const configuredExtrasTotal = r2(configuredExtras.reduce((s, c) => s + c.amount, 0));
-  const pagesAdjustment =
-    pagesInvoice && (!splitActive || activePart === "main")
-      ? r2(Number(pagesInvoice.taxable_value) - r2(totals.actualTotal + configuredExtrasTotal))
-      : 0;
   const activeExtras = configuredExtras;
   const extrasTotal = configuredExtrasTotal;
-  // Reported invoice value is spread over the billed lines (rates follow).
-  const billedTotal = r2(totals.actualTotal + pagesAdjustment);
+  const billedTotal = r2(totals.actualTotal);
   const taxableValue = r2(billedTotal + extrasTotal);
   const tax = taxSplit(taxableValue, isIntraState);
   const cgstAmount = tax.cgst;
@@ -1195,17 +1182,6 @@ function PayrollUnitPage() {
       groups.set(key, g);
     }
     const list = Array.from(groups.values());
-    if (Math.abs(pagesAdjustment) >= 0.005 && list.length > 0) {
-      const raw = list.reduce((s, g) => s + g.amount, 0);
-      let left = billedTotal;
-      list.forEach((g, i) => {
-        const amt = i === list.length - 1 ? r2(left) : r2(raw > 0 ? (g.amount / raw) * billedTotal : billedTotal / list.length);
-        left = r2(left - amt);
-        g.amount = amt;
-        if (g.quantity > 0) g.unitRate = r2(amt / g.quantity);
-        g.monthly = g.payrollDays > 0 ? r2(g.unitRate * g.payrollDays) : g.monthly;
-      });
-    }
     const totalQuantity = r2(list.reduce((s, g) => s + g.quantity, 0));
     const quantityUnit = list[0]?.unitLabel ?? "Duty";
     const monthIdx = Number(start.split("-")[1]) - 1;
@@ -1292,7 +1268,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, pagesAdjustment, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
+  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
 
 
   /**
@@ -1785,7 +1761,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-right text-xs tabular-nums">{g.billedHours} hrs</td>
                   <td className="px-4 py-3 text-right text-xs tabular-nums">₹{g.perHour.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmtINR(g.contracted)}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(totals.actualTotal > 0 ? g.actual * (billedTotal / totals.actualTotal) : g.actual)}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(g.actual)}</td>
                 </tr>
               ))}
             </tbody>

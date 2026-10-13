@@ -65,7 +65,6 @@ import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAtt
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
-import { applyPagesReportedPayroll, fetchPagesReportedPayroll } from "@/lib/pages-reported";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 
@@ -1176,14 +1175,6 @@ function PayrollUnitPage() {
         if (r.wages) Object.assign(r.wages, roundFinalGross(r.wages));
       }
 
-      // Pages-reported figures for this site + period (wage register) replace
-      // the live numbers for those employees, shown as the payroll figures.
-      try {
-        const pagesFigures = await fetchPagesReportedPayroll(unitId, start, end);
-        applyPagesReportedPayroll(rows, pagesFigures);
-      } catch (err) {
-        console.warn("Pages-reported payroll not loaded", err);
-      }
 
 
 
