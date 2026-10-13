@@ -18,7 +18,7 @@
 - Dashboard widgets are `dashboard::w_*` sub-modules checked via `canWidget`; no row = visible (still gated by the data module), an explicit role/department/designation/employee row decides — new dashboard sections should get a widget key.
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — the deploy build can bake `process.env.SUPABASE_*` to the empty preview backend.
 - Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view) — alerts follow Access Control, not fixed roles.
-- Exports gated by `<module>::export` via `canExport`; ExportChooser guards `downloadCsv`/`openExport` — one switch per module.
+- Exports gated by `<module>::export` via `canExport` (ExportChooser) — one switch per module.
 - Console users land on their dashboard without module grants; team cards are presentation-independent and gated by dashboard::w_team_clients — avoids personal-dashboard fallbacks hiding shared scope.
 - Audit trigger `zz_audit` (`audit_row_change(module)`) logs to `system_logs` (actor filled by `system_logs_fill_actor`) — add it to new important tables.
 
@@ -27,8 +27,7 @@
 - Pay-item displays/grouping use `pay-item-names`; preserve raw rate/formula lines so naming cannot change calculations.
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
-- Pages-era payslips: read-only `pages_payslip_archive` (/admin/payroll/history) — never recalculated.
+- Pages data: archived payslips are read-only `pages_payslip_archive` (never recalculated); Pages-reported overrides are in `src/lib/AGENTS.md`.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`) — stored attendance never keeps a stale cap.
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
 - Never add high-volume tables (attendance_entries, punches) to realtime or to page-wide invalidation listeners — listen to status tables (attendance_sheets, payroll_runs) only; per-row streams overloaded the database.
-- Pages-reported figures (`pages_reported_payroll`, `pages_reported_invoices`, `src/lib/pages-reported.ts`) override the live payroll/invoice numbers for that site+period, labelled "As per Pages"; rules stay untouched — delete rows to fall back to calculation.
