@@ -1195,6 +1195,17 @@ function PayrollUnitPage() {
       groups.set(key, g);
     }
     const list = Array.from(groups.values());
+    if (Math.abs(pagesAdjustment) >= 0.005 && list.length > 0) {
+      const raw = list.reduce((s, g) => s + g.amount, 0);
+      let left = billedTotal;
+      list.forEach((g, i) => {
+        const amt = i === list.length - 1 ? r2(left) : r2(raw > 0 ? (g.amount / raw) * billedTotal : billedTotal / list.length);
+        left = r2(left - amt);
+        g.amount = amt;
+        if (g.quantity > 0) g.unitRate = r2(amt / g.quantity);
+        g.monthly = g.payrollDays > 0 ? r2(g.unitRate * g.payrollDays) : g.monthly;
+      });
+    }
     const totalQuantity = r2(list.reduce((s, g) => s + g.quantity, 0));
     const quantityUnit = list[0]?.unitLabel ?? "Duty";
     const monthIdx = Number(start.split("-")[1]) - 1;
