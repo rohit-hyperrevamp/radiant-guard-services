@@ -5345,9 +5345,9 @@ export function ResourceFormDialog({
     [availableEmployer],
   );
 
-  const updateAmount = (allowanceId: string, amount: number) => {
+  const updateAmount = (target: unknown, amount: number) => {
     setComponents((prev) =>
-      prev.map((c) => (c.allowanceId === allowanceId ? withManualAmount(c, amount) : c)),
+      prev.map((c) => (c === target ? withManualAmount(c, amount) : c)),
     );
   };
 
@@ -5514,8 +5514,8 @@ export function ResourceFormDialog({
     });
   };
 
-  const updateBenefitAmount = (id: string, amount: number) => {
-    setBenefits((prev) => prev.map((b) => (b.costComponentId === id ? { ...b, amount } : b)));
+  const updateBenefitAmount = (target: unknown, amount: number) => {
+    setBenefits((prev) => prev.map((b) => (b === target ? { ...b, amount } : b)));
   };
 
   const removeBenefit = (line: unknown) => {
@@ -5553,7 +5553,7 @@ export function ResourceFormDialog({
   };
 
   const updateDeductionAmount = (id: string, amount: number) => {
-    setDeductions((prev) => prev.map((b) => (b.costComponentId === id ? withManualAmount(b, amount) : b)));
+    setDeductions((prev) => prev.map((b) => (b === target ? withManualAmount(b, amount) : b)));
   };
 
   const removeDeduction = (line: unknown) => {
@@ -5606,7 +5606,7 @@ export function ResourceFormDialog({
   };
 
   const updateEmployerAmount = (id: string, amount: number) => {
-    setEmployerContributions((prev) => prev.map((b) => (b.costComponentId === id ? withManualAmount(b, amount) : b)));
+    setEmployerContributions((prev) => prev.map((b) => (b === target ? withManualAmount(b, amount) : b)));
   };
 
   const removeEmployerContribution = (line: unknown) => {
@@ -6125,7 +6125,7 @@ export function ResourceFormDialog({
                     </Label>
                     <DecimalAmountInput
                       value={c.amount}
-                      onValueChange={(amount) => updateAmount(c.allowanceId, amount)}
+                      onValueChange={(amount) => updateAmount(c, amount)}
                     />
                   </div>
                 ))}
@@ -6377,7 +6377,7 @@ export function ResourceFormDialog({
                          <DecimalAmountInput
                            value={b.amount}
                            className="h-9 w-28"
-                           onValueChange={(amount) => updateDeductionAmount(b.costComponentId, amount)}
+                           onValueChange={(amount) => updateDeductionAmount(b, amount)}
                          />
                       ) : (
                         <span className="w-28 text-right text-sm font-semibold text-foreground">
@@ -6541,7 +6541,7 @@ export function ResourceFormDialog({
                          <DecimalAmountInput
                            value={b.amount}
                            className="h-9 w-28"
-                           onValueChange={(amount) => updateEmployerAmount(b.costComponentId, amount)}
+                           onValueChange={(amount) => updateEmployerAmount(b, amount)}
                          />
                       ) : (
                         <span className="w-28 text-right text-sm font-semibold text-foreground">
