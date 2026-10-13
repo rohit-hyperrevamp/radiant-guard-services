@@ -6325,9 +6325,9 @@ export function ResourceFormDialog({
               </div>
             ) : (
               <div className="space-y-2">
-                {deductions.map((b) => (
+                {deductions.map((b, bi) => (
                   <div
-                    key={b.costComponentId}
+                    key={`${b.costComponentId}-${bi}`}
                     className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
                   >
                     <div className="min-w-0 flex-1">
@@ -6482,9 +6482,9 @@ export function ResourceFormDialog({
               </div>
             ) : (
               <div className="space-y-2">
-                {employerContributions.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b)).map((b) => (
+                {employerContributions.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b)).map((b, bi) => (
                   <div
-                    key={b.costComponentId}
+                    key={`${b.costComponentId}-${bi}`}
                     className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
                   >
                     <div className="min-w-0 flex-1">
