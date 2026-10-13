@@ -5068,7 +5068,7 @@ export function ResourceFormDialog({
         if (!at) return c;
         const hasFormula = hasConfiguredFormula(at);
         if (!hasFormula && at.calcType !== "percentage") return c;
-        const others = prev.filter((x) => x.allowanceId !== c.allowanceId);
+        const others = prev.filter((x) => x !== c);
         const newAmt = computeBenefitAmount(
           {
             calcType: at.calcType,
