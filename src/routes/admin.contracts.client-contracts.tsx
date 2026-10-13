@@ -5025,7 +5025,6 @@ export function ResourceFormDialog({
           employerContributions,
           roundOffFinal,
           roundOffTotals: roundTotals,
-      otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
           otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
         },
       ]),

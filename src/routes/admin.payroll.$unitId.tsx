@@ -560,7 +560,7 @@ function PayrollUnitPage() {
             "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier",
           )
           .eq("contract_id", contractId);
-        resources = r ?? [];
+        resources = ((r ?? []) as unknown) as Record<string, unknown>[];
         resources = await applyRateRevisionsForPeriod(resources as Record<string, unknown>[], start, end);
       }
 
