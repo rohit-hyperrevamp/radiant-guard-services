@@ -679,12 +679,13 @@ function MusterRollPage() {
         if (pdbIds.length) {
           const { data: bases } = await supabase
             .from("payroll_day_bases")
-            .select("id, method, fixed_days, weekly_off_day, included_weekdays")
+            .select("id, method, fixed_days, weekly_off_day, included_weekdays, caps_present" as never)
             .in("id", pdbIds);
           for (const b of (bases ?? []) as Array<Record<string, unknown>>) {
             pdbById.set(String(b.id), {
               method: String(b.method) as PayrollDayBaseLike["method"] | "fixed_annual_average",
               fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
+              capsPresent: b.caps_present !== false,
               weeklyOffDay: b.weekly_off_day == null ? null : Number(b.weekly_off_day),
               includedWeekdays: Array.isArray(b.included_weekdays)
                 ? (b.included_weekdays as unknown[])
@@ -802,7 +803,8 @@ function MusterRollPage() {
       // is used for invoicing and should not cap attendance either.
       if (
         d.payrollDayBase?.method === "actual_days" ||
-        d.payrollDayBase?.method === "fixed_annual_average"
+        d.payrollDayBase?.method === "fixed_annual_average" ||
+        d.payrollDayBase?.capsPresent === false
       )
         continue;
       const cap = resolvePayrollDayCount(d.payrollDayBase, dates);

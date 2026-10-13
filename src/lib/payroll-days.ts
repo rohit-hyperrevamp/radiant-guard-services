@@ -12,6 +12,8 @@ export type PayrollDayBaseLike = {
     /** Actual days in the period minus a fixed number (e.g. 31 − 4 = 27). */
     | "actual_minus_days";
   fixedDays?: number | null;
+  /** false = the day count is only the pay divisor; Present days are not limited. */
+  capsPresent?: boolean;
   weeklyOffDay?: number | null;
   includedWeekdays?: number[] | null;
 };
