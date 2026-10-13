@@ -258,7 +258,7 @@ export async function computeInvoice(unitId:string,start:string,end:string,G:any
         const { data: r } = await supabase
           .from("contract_resources" as never)
           .select(
-            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours, ot_multiplier",
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
@@ -498,6 +498,7 @@ export async function computeInvoice(unitId:string,start:string,end:string,G:any
           employerContributions: Array.isArray(r.employer_contributions)
             ? (r.employer_contributions as { name: string; amount: number; allowanceId?: string | null; costComponentId?: string | null }[])
             : [],
+          otMultiplier: Number((r as any).ot_multiplier ?? 1) || 1,
           payrollDayBase: r.payroll_day_base_id
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
             : null,
