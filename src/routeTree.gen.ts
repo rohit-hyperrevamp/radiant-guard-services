@@ -77,6 +77,7 @@ import { Route as AdminRbacRouteImport } from './routes/admin.rbac'
 import { Route as AdminRolesManagerRouteImport } from './routes/admin.roles-manager'
 import { Route as AdminSalesRouteImport } from './routes/admin.sales'
 import { Route as AdminServiceTypeManagerRouteImport } from './routes/admin.service-type-manager'
+import { Route as AdminSystemBackupsRouteImport } from './routes/admin.system-backups'
 import { Route as AdminSystemLogsRouteImport } from './routes/admin.system-logs'
 import { Route as AdminTasksRouteImport } from './routes/admin.tasks'
 import { Route as AdminTrainingRouteImport } from './routes/admin.training'
@@ -501,6 +502,11 @@ const AdminSalesRoute = AdminSalesRouteImport.update({
 const AdminServiceTypeManagerRoute = AdminServiceTypeManagerRouteImport.update({
   id: '/service-type-manager',
   path: '/service-type-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSystemBackupsRoute = AdminSystemBackupsRouteImport.update({
+  id: '/system-backups',
+  path: '/system-backups',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSystemLogsRoute = AdminSystemLogsRouteImport.update({
@@ -971,6 +977,7 @@ export interface FileRoutesByFullPath {
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/sales': typeof AdminSalesRouteWithChildren
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
+  '/admin/system-backups': typeof AdminSystemBackupsRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -1111,6 +1118,7 @@ export interface FileRoutesByTo {
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/sales': typeof AdminSalesRouteWithChildren
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
+  '/admin/system-backups': typeof AdminSystemBackupsRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -1255,6 +1263,7 @@ export interface FileRoutesById {
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/sales': typeof AdminSalesRouteWithChildren
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
+  '/admin/system-backups': typeof AdminSystemBackupsRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -1401,6 +1410,7 @@ export interface FileRouteTypes {
     | '/admin/roles-manager'
     | '/admin/sales'
     | '/admin/service-type-manager'
+    | '/admin/system-backups'
     | '/admin/system-logs'
     | '/admin/tasks'
     | '/admin/training'
@@ -1541,6 +1551,7 @@ export interface FileRouteTypes {
     | '/admin/roles-manager'
     | '/admin/sales'
     | '/admin/service-type-manager'
+    | '/admin/system-backups'
     | '/admin/system-logs'
     | '/admin/tasks'
     | '/admin/training'
@@ -1684,6 +1695,7 @@ export interface FileRouteTypes {
     | '/admin/roles-manager'
     | '/admin/sales'
     | '/admin/service-type-manager'
+    | '/admin/system-backups'
     | '/admin/system-logs'
     | '/admin/tasks'
     | '/admin/training'
@@ -2255,6 +2267,13 @@ declare module '@tanstack/react-router' {
       path: '/service-type-manager'
       fullPath: '/admin/service-type-manager'
       preLoaderRoute: typeof AdminServiceTypeManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/system-backups': {
+      id: '/admin/system-backups'
+      path: '/system-backups'
+      fullPath: '/admin/system-backups'
+      preLoaderRoute: typeof AdminSystemBackupsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/system-logs': {
@@ -3029,6 +3048,7 @@ interface AdminRouteChildren {
   AdminRolesManagerRoute: typeof AdminRolesManagerRoute
   AdminSalesRoute: typeof AdminSalesRouteWithChildren
   AdminServiceTypeManagerRoute: typeof AdminServiceTypeManagerRoute
+  AdminSystemBackupsRoute: typeof AdminSystemBackupsRoute
   AdminSystemLogsRoute: typeof AdminSystemLogsRoute
   AdminTasksRoute: typeof AdminTasksRoute
   AdminTrainingRoute: typeof AdminTrainingRoute
@@ -3109,6 +3129,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRolesManagerRoute: AdminRolesManagerRoute,
   AdminSalesRoute: AdminSalesRouteWithChildren,
   AdminServiceTypeManagerRoute: AdminServiceTypeManagerRoute,
+  AdminSystemBackupsRoute: AdminSystemBackupsRoute,
   AdminSystemLogsRoute: AdminSystemLogsRoute,
   AdminTasksRoute: AdminTasksRoute,
   AdminTrainingRoute: AdminTrainingRoute,

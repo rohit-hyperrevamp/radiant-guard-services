@@ -260,7 +260,12 @@ const tiles: Tile[] = [
     description: "Role-wise training documents.",
     icon: FileBadge,
   },
-
+  {
+    to: "/admin/system-backups",
+    label: "System Backups",
+    description: "Save and restore the whole system.",
+    icon: DatabaseZap,
+  },
 
 
 ];
