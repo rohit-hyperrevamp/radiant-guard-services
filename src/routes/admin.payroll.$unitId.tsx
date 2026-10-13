@@ -1177,7 +1177,7 @@ function PayrollUnitPage() {
       }
 
       // Pages-reported figures for this site + period (wage register) replace
-      // the live numbers for those employees, labelled "As per Pages".
+      // the live numbers for those employees, shown as the payroll figures.
       try {
         const pagesFigures = await fetchPagesReportedPayroll(unitId, start, end);
         applyPagesReportedPayroll(rows, pagesFigures);
@@ -2448,18 +2448,6 @@ function PayrollUnitPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {r.designation}
-                    {(r as { pagesReported?: string }).pagesReported && (
-                      <span
-                        className="ml-2 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary"
-                        title={
-                          (r as { pagesReported?: string }).pagesReported === "main"
-                            ? "Pay shown as per the Pages wage register for this period."
-                            : "Included in this person's Pages figure on their main line."
-                        }
-                      >
-                        {(r as { pagesReported?: string }).pagesReported === "main" ? "As per Pages" : "In Pages line"}
-                      </span>
-                    )}
                     {r.isReliever && (
                       <span
                         className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"

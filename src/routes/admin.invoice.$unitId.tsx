@@ -1292,7 +1292,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
+  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, pagesAdjustment, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
 
 
   /**
@@ -1785,7 +1785,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-right text-xs tabular-nums">{g.billedHours} hrs</td>
                   <td className="px-4 py-3 text-right text-xs tabular-nums">₹{g.perHour.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmtINR(g.contracted)}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(g.actual)}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(totals.actualTotal > 0 ? g.actual * (billedTotal / totals.actualTotal) : g.actual)}</td>
                 </tr>
               ))}
             </tbody>
