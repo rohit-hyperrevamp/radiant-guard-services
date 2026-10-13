@@ -5437,8 +5437,9 @@ export function ResourceFormDialog({
     return 0;
   }, [payrollDayBaseId, payrollDayBases]);
 
-  const removeComponent = (allowanceId: string) => {
-    setComponents((prev) => prev.filter((c) => c.allowanceId !== allowanceId));
+  const removeComponent = (line: ResourceComponent) => {
+    // Remove only this exact line — several lines can share the same item id.
+    setComponents((prev) => prev.filter((c) => c !== line));
   };
 
 
@@ -5517,8 +5518,8 @@ export function ResourceFormDialog({
     setBenefits((prev) => prev.map((b) => (b.costComponentId === id ? { ...b, amount } : b)));
   };
 
-  const removeBenefit = (id: string) => {
-    setBenefits((prev) => prev.filter((b) => b.costComponentId !== id));
+  const removeBenefit = (line: unknown) => {
+    setBenefits((prev) => prev.filter((b) => b !== line));
   };
 
   const addDeduction = (c: CostComponentOption) => {
@@ -5555,8 +5556,8 @@ export function ResourceFormDialog({
     setDeductions((prev) => prev.map((b) => (b.costComponentId === id ? withManualAmount(b, amount) : b)));
   };
 
-  const removeDeduction = (id: string) => {
-    setDeductions((prev) => prev.filter((b) => b.costComponentId !== id));
+  const removeDeduction = (line: unknown) => {
+    setDeductions((prev) => prev.filter((b) => b !== line));
   };
 
   const buildEmployerItem = (c: CostComponentOption): BenefitItem => {
@@ -5608,8 +5609,8 @@ export function ResourceFormDialog({
     setEmployerContributions((prev) => prev.map((b) => (b.costComponentId === id ? withManualAmount(b, amount) : b)));
   };
 
-  const removeEmployerContribution = (id: string) => {
-    setEmployerContributions((prev) => prev.filter((b) => b.costComponentId !== id));
+  const removeEmployerContribution = (line: unknown) => {
+    setEmployerContributions((prev) => prev.filter((b) => b !== line));
   };
 
   // ---- Billing add-ons (Reliever charges / Management fee) -----------------
@@ -6106,15 +6107,15 @@ export function ResourceFormDialog({
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-3">
-                {components.map((c) => (
-                  <div key={c.allowanceId} className="grid gap-1">
+                {components.map((c, ci) => (
+                  <div key={`${c.allowanceId}-${ci}`} className="grid gap-1">
                     <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                       <span className="truncate">{standardPayItemName(c.name)}</span>
                       <span className="flex items-center gap-1.5">
                       <RoundOffToggle on={!!c.roundOff} label={standardPayItemName(c.name)} onToggle={() => toggleComponentRoundOff(c)} />
                       <button
                         type="button"
-                        onClick={() => removeComponent(c.allowanceId)}
+                        onClick={() => removeComponent(c)}
                         className="text-muted-foreground hover:text-destructive"
                         aria-label={`Remove ${standardPayItemName(c.name)}`}
                       >
@@ -6388,7 +6389,7 @@ export function ResourceFormDialog({
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeDeduction(b.costComponentId)}
+                        onClick={() => removeDeduction(b)}
                         aria-label="Remove"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -6552,7 +6553,7 @@ export function ResourceFormDialog({
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeEmployerContribution(b.costComponentId)}
+                        onClick={() => removeEmployerContribution(b)}
                         aria-label="Remove"
                       >
                         <X className="h-3.5 w-3.5" />
