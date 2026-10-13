@@ -681,7 +681,7 @@ function MusterRollPage() {
             .from("payroll_day_bases")
             .select("id, method, fixed_days, weekly_off_day, included_weekdays, caps_present" as never)
             .in("id", pdbIds);
-          for (const b of (bases ?? []) as Array<Record<string, unknown>>) {
+          for (const b of (bases ?? []) as unknown as Array<Record<string, unknown>>) {
             pdbById.set(String(b.id), {
               method: String(b.method) as PayrollDayBaseLike["method"] | "fixed_annual_average",
               fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
