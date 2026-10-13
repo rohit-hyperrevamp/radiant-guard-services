@@ -40,8 +40,8 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
   const { data: ur } = await supabase.from("units").select("ph_enabled, ph_multiplier, ph_day_value").eq("id", unitId).maybeSingle();
   const unitPh = { enabled: Boolean(ur?.ph_enabled), multiplier: Number(ur?.ph_multiplier ?? 1) || 1, dayValue: !ur?.ph_enabled ? 0 : ur?.ph_day_value == null || Number.isNaN(Number(ur.ph_day_value)) ? null : Number(ur.ph_day_value) };
   const phConfig = (() => { if (!unitPh.enabled) return null; const m = holidayMapForDates(periodDates, G.publicHolidays); if (m.size === 0) return null; return { dates: Array.from(m.keys()), multiplier: unitPh.multiplier }; })();
-  const { data: unit } = await supabase.from("units").select("id, code, name, customer_id, billing_state, billing_pincode, epf_cap_enabled").eq("id", unitId).maybeSingle();
-  const unitState = unit?.billing_state ?? null; const unitPincode = unit?.billing_pincode ?? null; const epfCapEnabled = unit?.epf_cap_enabled ?? true;
+  const { data: unit } = await supabase.from("units").select("id, code, name, customer_id, billing_state, billing_pincode, pt_state, epf_cap_enabled").eq("id", unitId).maybeSingle();
+  const unitState0 = unit?.billing_state ?? null; const unitPincode0 = unit?.billing_pincode ?? null; const unitState = (unit as any)?.pt_state || unitState0; const unitPincode = (unit as any)?.pt_state ? null : unitPincode0; const epfCapEnabled = unit?.epf_cap_enabled ?? true;
   const __run = async () => {
       await supabaseSessionReady();
       // 1. Roster: candidates mapped to this unit (primary + secondary).
@@ -600,7 +600,8 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
         // Only fires if this period's month is in the master's deduction_months
         // and the master row is enabled. Otherwise LWF rows are zeroed.
         if (wages && isPrimary && lwfRows && pincodeRanges) {
-          const lwfRes = resolveLwf(String(unitPincode ?? ""), pincodeRanges as never, lwfRows);
+          let lwfRes: any = resolveLwf(String(unitPincode0 ?? ""), pincodeRanges as never, lwfRows);
+          if (lwfRes.kind !== "match") { const st = String(unitState || "").toLowerCase(); const row = (lwfRows as any[]).find((l) => String(l.state).toLowerCase() === st); if (row) lwfRes = { kind: "match", lwf: row }; }
           const periodMonth = new Date(start).getMonth() + 1; // 1-12
           let applies = false;
           let employee = 0;
