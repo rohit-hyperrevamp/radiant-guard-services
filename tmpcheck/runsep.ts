@@ -34,5 +34,5 @@ async function worker() {
     if (++done % 100 === 0) console.log(done, "/", runs.length);
   }
 }
-await Promise.all(Array.from({ length: 6 }, worker));
+await Promise.all(Array.from({ length: 10 }, worker));
 console.log("done", runs.length); process.exit(0);
