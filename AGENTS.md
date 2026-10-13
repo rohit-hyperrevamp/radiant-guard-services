@@ -31,3 +31,4 @@
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`) — stored attendance never keeps a stale cap.
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
 - Never add high-volume tables (attendance_entries, punches) to realtime or to page-wide invalidation listeners — listen to status tables (attendance_sheets, payroll_runs) only; per-row streams overloaded the database.
+- Pages-reported figures (`pages_reported_payroll`, `pages_reported_invoices`, `src/lib/pages-reported.ts`) override the live payroll/invoice numbers for that site+period, labelled "As per Pages"; rules stay untouched — delete rows to fall back to calculation.
