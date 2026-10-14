@@ -16,6 +16,7 @@ import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PrivacypolicyRouteImport } from './routes/privacypolicy'
 import { Route as RequestDataDeletionRouteImport } from './routes/request-data-deletion'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as ZzFeeHarnessRouteImport } from './routes/zz-fee-harness'
 import { Route as AdminAdditionTypeManagerRouteImport } from './routes/admin.addition-type-manager'
 import { Route as AdminAdditionsRouteImport } from './routes/admin.additions'
 import { Route as AdminAllowanceManagerRouteImport } from './routes/admin.allowance-manager'
@@ -186,6 +187,11 @@ const RequestDataDeletionRoute = RequestDataDeletionRouteImport.update({
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZzFeeHarnessRoute = ZzFeeHarnessRouteImport.update({
+  id: '/zz-fee-harness',
+  path: '/zz-fee-harness',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAdditionTypeManagerRoute =
@@ -916,6 +922,7 @@ export interface FileRoutesByFullPath {
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
+  '/zz-fee-harness': typeof ZzFeeHarnessRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
@@ -1061,6 +1068,7 @@ export interface FileRoutesByTo {
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
+  '/zz-fee-harness': typeof ZzFeeHarnessRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
@@ -1202,6 +1210,7 @@ export interface FileRoutesById {
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
+  '/zz-fee-harness': typeof ZzFeeHarnessRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
@@ -1349,6 +1358,7 @@ export interface FileRouteTypes {
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
+    | '/zz-fee-harness'
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
@@ -1494,6 +1504,7 @@ export interface FileRouteTypes {
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
+    | '/zz-fee-harness'
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
@@ -1634,6 +1645,7 @@ export interface FileRouteTypes {
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
+    | '/zz-fee-harness'
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
@@ -1780,6 +1792,7 @@ export interface RootRouteChildren {
   PrivacypolicyRoute: typeof PrivacypolicyRoute
   RequestDataDeletionRoute: typeof RequestDataDeletionRoute
   WelcomeRoute: typeof WelcomeRoute
+  ZzFeeHarnessRoute: typeof ZzFeeHarnessRoute
   DigilockerCallbackRoute: typeof DigilockerCallbackRoute
   ApiPublicDataDeletionRequestRoute: typeof ApiPublicDataDeletionRequestRoute
   ApiPublicOtpHealthRoute: typeof ApiPublicOtpHealthRoute
@@ -1840,6 +1853,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zz-fee-harness': {
+      id: '/zz-fee-harness'
+      path: '/zz-fee-harness'
+      fullPath: '/zz-fee-harness'
+      preLoaderRoute: typeof ZzFeeHarnessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/addition-type-manager': {
@@ -3158,6 +3178,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacypolicyRoute: PrivacypolicyRoute,
   RequestDataDeletionRoute: RequestDataDeletionRoute,
   WelcomeRoute: WelcomeRoute,
+  ZzFeeHarnessRoute: ZzFeeHarnessRoute,
   DigilockerCallbackRoute: DigilockerCallbackRoute,
   ApiPublicDataDeletionRequestRoute: ApiPublicDataDeletionRequestRoute,
   ApiPublicOtpHealthRoute: ApiPublicOtpHealthRoute,
