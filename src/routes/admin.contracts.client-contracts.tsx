@@ -6627,7 +6627,7 @@ export function ResourceFormDialog({
                           placeholder="Enter custom amount"
                           onChange={(event) =>
                             updateEmployerAmount(
-                              item.costComponentId,
+                              item,
                               Math.max(0, Number(event.target.value) || 0),
                             )
                           }
