@@ -485,6 +485,8 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
       // never be charged PT or their deductions.
       const carrierByCandidate = new Map<string, string>();
       const carrierRank = new Map<string, number>();
+      const attendedLines = new Set<string>();
+      for (const e of entries as any[]) attendedLines.add(pairKey(e.candidate_id, e.designation_id, Number(e.shift_hours) || 0));
       for (const p of pairs.values()) {
         const c = rosterById.get(p.candidateId);
         if (!c) continue;
@@ -492,8 +494,7 @@ export async function computeUnit(unitId: string, start: string, end: string, G:
         const rated = Boolean(resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did, p.shift));
         const key = pairKey(p.candidateId, p.designationId, p.shift);
         const isHome = (c.designation_id ?? null) === p.designationId;
-        // Rank: rated home line > rated other line > unrated home line.
-        const rank = rated ? (isHome ? 3 : 2) : isHome ? 1 : 0;
+        const rank = (attendedLines.has(key) ? 10 : 0) + (rated ? (isHome ? 3 : 2) : isHome ? 1 : 0);
         if (rank > (carrierRank.get(c.id) ?? -1)) {
           carrierRank.set(c.id, rank);
           carrierByCandidate.set(c.id, key);
