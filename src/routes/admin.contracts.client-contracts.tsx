@@ -5613,6 +5613,16 @@ export function ResourceFormDialog({
     setEmployerContributions((prev) => prev.filter((b) => b !== line));
   };
 
+  // Custom reliever / management fee amounts are matched by their fixed
+  // custom id, never by the row object or a master id, so a typed amount can
+  // never miss its row and silently save as 0.
+  const updateCustomAddOnAmount = (kind: "reliever" | "mgmt", amount: number) => {
+    const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
+    setEmployerContributions((prev) =>
+      prev.map((b) => (b.costComponentId === customId ? withManualAmount(b, amount) : b)),
+    );
+  };
+
   // ---- Billing add-ons (Reliever charges / Management fee) -----------------
   // These are picked as a single choice each (multiple masters can exist), and
   // are stored alongside employer contributions so all downstream calculation
@@ -6626,8 +6636,8 @@ export function ResourceFormDialog({
                           value={Number(item.roundOff ? item.unroundedAmount ?? item.amount : item.amount) || ""}
                           placeholder="Enter custom amount"
                           onChange={(event) =>
-                            updateEmployerAmount(
-                              item,
+                            updateCustomAddOnAmount(
+                              cfg.kind,
                               Math.max(0, Number(event.target.value) || 0),
                             )
                           }
