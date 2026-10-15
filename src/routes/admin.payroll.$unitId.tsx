@@ -1635,6 +1635,11 @@ function PayrollUnitPage() {
 
     const earningNames = collect((r) => r.wages?.components as NamedAmount[] | undefined)
       .filter((n) => rows.some((r) => Math.abs(lookupAmount(r.wages?.components as NamedAmount[] | undefined, n)) > 0.005));
+    const additionNames = collect((r) =>
+      (r.wages as unknown as { additions?: NamedAmount[] } | null)?.additions,
+    ).filter((n) => rows.some((r) => Math.abs(lookupAmount(
+      (r.wages as unknown as { additions?: NamedAmount[] } | null)?.additions, n,
+    )) > 0.005));
     const deductionGroups = groupColsByHeader(
       collect((r) => r.wages?.deductions as NamedAmount[] | undefined),
       deductionHeaderOf,
@@ -1644,7 +1649,7 @@ function PayrollUnitPage() {
       employerHeaderOf,
     ).filter((g) => rows.some((r) => Math.abs(sumAmounts(r.wages?.employerContributions as NamedAmount[] | undefined, g.names)) > 0.005));
 
-    return { earningNames, deductionGroups, employerGroups };
+    return { earningNames, additionNames, deductionGroups, employerGroups };
   }, [rows]);
 
   const showEarnings = true;
@@ -1652,6 +1657,7 @@ function PayrollUnitPage() {
   const showEmployerCols = false;
 
   const earningCols = showEarnings ? registerCols.earningNames : [];
+  const additionCols = showEarnings ? registerCols.additionNames : [];
   const deductionCols = showDeductionCols ? registerCols.deductionGroups : [];
   const employerCols = showEmployerCols ? registerCols.employerGroups : [];
   // Evaluate the entire payroll, not just the current pagination page.
@@ -1670,7 +1676,7 @@ function PayrollUnitPage() {
   // Pay-status / hold column only matters once payroll is approved.
   const showHoldColumn = runStatus === "approved";
   const registerColCount =
-    6 + (showExtraDutyDays ? 1 : 0) + (showPhDays ? 1 : 0) + (showHoldColumn ? 1 : 0) + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
+    6 + (showExtraDutyDays ? 1 : 0) + (showPhDays ? 1 : 0) + (showHoldColumn ? 1 : 0) + earningCols.length + additionCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
 
 
   const exportCsv = () => {
@@ -2370,6 +2376,9 @@ function PayrollUnitPage() {
                 {earningCols.map((n) => (
                   <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
                 ))}
+                {additionCols.map((n) => (
+                  <th key={`h-a-${n}`} className="px-4 py-3 text-left font-medium" title={`Employee addition: ${n}`}>{n}</th>
+                ))}
                 <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including extra duty and paid holiday">Earned gross</th>
                 {deductionCols.map((g) => (
                   <th key={`h-d-${g.header}`} className="px-4 py-3 text-left font-medium" title={g.names.join(", ")}>{g.header}</th>
@@ -2485,6 +2494,11 @@ function PayrollUnitPage() {
                       {r.wages ? fmtINR(lookupAmount(r.wages.components as NamedAmount[], n)) : "—"}
                     </td>
                   ))}
+                  {additionCols.map((n) => (
+                    <td key={`${r.rowKey}-a-${n}`} className="px-4 py-3 text-left tabular-nums">
+                      {r.wages ? fmtINR(lookupAmount((r.wages as unknown as { additions?: NamedAmount[] }).additions, n)) : "—"}
+                    </td>
+                  ))}
                   <td className="px-4 py-3 text-left font-medium">{r.wages ? fmtINR(r.wages.earnedGross) : "—"}</td>
                   {deductionCols.map((g) => (
                     <td key={`${r.rowKey}-d-${g.header}`} className="px-4 py-3 text-left tabular-nums">
@@ -2531,6 +2545,11 @@ function PayrollUnitPage() {
                   {earningCols.map((n) => (
                     <td key={`f-e-${n}`} className="px-4 py-3 text-left tabular-nums">
                       {fmtINR(rows.reduce((s, r) => s + lookupAmount(r.wages?.components as NamedAmount[] | undefined, n), 0))}
+                    </td>
+                  ))}
+                  {additionCols.map((n) => (
+                    <td key={`f-a-${n}`} className="px-4 py-3 text-left tabular-nums">
+                      {fmtINR(rows.reduce((s, r) => s + lookupAmount((r.wages as unknown as { additions?: NamedAmount[] } | null)?.additions, n), 0))}
                     </td>
                   ))}
                   <td className="px-4 py-3 text-left">{fmtINR(totals.earnedGross)}</td>
