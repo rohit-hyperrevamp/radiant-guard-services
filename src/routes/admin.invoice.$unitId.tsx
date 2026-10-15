@@ -784,7 +784,15 @@ function PayrollUnitPage() {
       // 4. Build line items per (candidate, designation_id).
       // Each candidate gets a primary line (their own designation) plus an extra
       // line for any other designation found in their attendance entries.
-      const rosterById = new Map(roster.map((c) => [c.id, c]));
+      // Field Officers are non-billable (paid from the Radiant home unit) — never
+      // bill their attendance at a client site, matching payroll.
+      const isFoDesig = (id: string | null | undefined) =>
+        /field[\s-]*officer/i.test((id && desigMap.get(id)) || "");
+      const rosterById = new Map(
+        roster
+          .filter((c) => unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1" || !isFoDesig(c.designation_id))
+          .map((c) => [c.id, c]),
+      );
       const pairKey = (cid: string, did: string | null, sh = 0) => `${cid}|${did ?? "__none__"}|${sh}`;
       const entryShift = (e: unknown) => Number((e as { shift_hours?: number | null }).shift_hours) || 0;
       // Regular vs reliever is decided by the attendance line itself
