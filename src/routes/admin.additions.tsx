@@ -745,13 +745,18 @@ function AdditionForm() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div className="grid gap-1.5">
                 <Label>Site (CLI)</Label>
-                <Select value={unitId || "__all"} onValueChange={(v) => setUnitId(v === "__all" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="All sites" /></SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    <SelectItem value="__all">All sites</SelectItem>
-                    {(units.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.code} — {u.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchSelect
+                  value={unitId || "__all"}
+                  onChange={(v) => setUnitId(v === "__all" ? "" : v)}
+                  options={[
+                    { value: "__all", label: "All sites" },
+                    ...(units.data ?? []).map((u) => ({ value: u.id, label: `${u.code ?? "CLI"} — ${u.name ?? ""}`.trim(), hint: u.code || undefined })),
+                  ]}
+                  placeholder="All sites"
+                  searchPlaceholder="Search site (CLI or name)…"
+                  emptyText="No site found."
+                  ariaLabel="Select site for addition"
+                />
               </div>
               {repeatMonthly && (
                 <div className="grid gap-1.5">
