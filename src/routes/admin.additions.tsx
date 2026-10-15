@@ -167,7 +167,10 @@ function AdditionList() {
       if (error) throw error;
       void logActivity({ module: "Additions", action: "delete", entityType: "additions", entityId: id });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_ADD }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: QK_ADD }),
+      qc.invalidateQueries({ queryKey: ["payroll-register-compute"] }),
+    ]),
   });
 
   const [deleting, setDeleting] = useState<Addition | null>(null);
@@ -576,6 +579,7 @@ function AdditionForm() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QK_ADD });
+      qc.invalidateQueries({ queryKey: ["payroll-register-compute"] });
       toast.success(isEdit ? "Addition updated" : "Additions created");
       navigate({ to: "/admin/additions", search: { mode: "list" } });
     },
