@@ -229,6 +229,8 @@ export type ContractResourceLike = {
   employerContributions: BenefitLike[];
   /** Extra Duty multiplier (Pages "2X"); default 1. */
   otMultiplier?: number | null;
+  /** ED base: selected components (default), full-month gross, or this month's earned gross. */
+  otBasis?: "components" | "gross" | "earned_gross" | null;
   payrollDayBase: {
     method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
     fixedDays: number | null;
@@ -1045,7 +1047,14 @@ export function computeWages(
   // fall back to the legacy basis (full contract gross minus uniform).
   const otSelected = resource.components.filter((c) => c.includeInOt !== false);
   let otBase: number;
-  if (otSelected.length > 0) {
+  if (resource.otBasis === "gross") {
+    otBase = Math.max(0, contractGross);
+  } else if (resource.otBasis === "earned_gross") {
+    // Earned regular wages this period (pro-rated, before PH and ED).
+    otBase = Math.max(0, components
+      .filter((c) => c.name !== "Paid Holiday")
+      .reduce((s, c) => s + (Number(c.amount) || 0), 0));
+  } else if (otSelected.length > 0) {
     otBase = Math.max(
       0,
       // Lines flagged roundOff count at their rounded rupee value (Pages: 1,082.76 → 1,083).
