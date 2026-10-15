@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   Upload,
   Users,
+  Trash2,
   X,
   XCircle,
 } from "lucide-react";
