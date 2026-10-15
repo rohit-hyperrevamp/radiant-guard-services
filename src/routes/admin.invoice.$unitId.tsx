@@ -488,7 +488,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources" as never)
           .select(
-            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours, ot_multiplier",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours, ot_multiplier, ot_basis",
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
@@ -731,6 +731,7 @@ function PayrollUnitPage() {
             ? (r.employer_contributions as { name: string; amount: number; allowanceId?: string | null; costComponentId?: string | null }[])
             : [],
           otMultiplier: Number((r as { ot_multiplier?: unknown }).ot_multiplier ?? 1) || 1,
+          otBasis: ((r as { ot_basis?: string | null }).ot_basis ?? "components") as "components" | "gross" | "earned_gross",
           payrollDayBase: r.payroll_day_base_id
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
             : null,
