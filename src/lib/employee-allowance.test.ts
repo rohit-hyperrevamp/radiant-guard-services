@@ -23,3 +23,12 @@ describe("per-guard allowance", () => {
     expect(applyAllowancePf(base(1800, 15000), 2000).deductions[0].amount).toBe(1800);
   });
 });
+
+import { additionFormulaContext } from "./payroll-calc";
+import { evaluateExpression } from "./formula-engine";
+describe("formula additions", () => {
+  it("amount / payroll days × present × multiplier", () => {
+    const ctx = additionFormulaContext({ name: "SA", amount: 2600 }, { baseDays: 26, contractGross: 0, earnedGross: 0, perDayRate: 0, components: [] }, 13);
+    expect(evaluateExpression("amount / payroll_days * present * 2", ctx)).toBe(2600);
+  });
+});

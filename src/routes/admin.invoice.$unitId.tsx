@@ -499,7 +499,7 @@ function PayrollUnitPage() {
       // Mirrors admin.payroll.$unitId.tsx so invoice employer-cost lines up
       // 1:1 with the payroll register (previously omitted).
       const candidateIds = roster.map((c) => c.id);
-      type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean };
+      type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean; formula?: string | null; inputs?: { amount?: number; days?: number; per_day?: number } };
       type DayAdj = { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
       const additionsByCandidate = new Map<string, PerEmpItem[]>();
       const deductionsByCandidate = new Map<string, PerEmpItem[]>();
@@ -510,7 +510,7 @@ function PayrollUnitPage() {
         const [addsRes, dedsRes, addTypesRes] = await Promise.all([
           supabase
             .from("additions" as never)
-            .select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi")
+            .select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount")
             .in("candidate_id", candidateIds)
             .lte("addition_date", end)
             .or(`addition_date.gte.${start},and(repeat_monthly.eq.true,or(end_date.is.null,end_date.gte.${start}))`)
@@ -531,7 +531,7 @@ function PayrollUnitPage() {
             .filter((t) => (t.code ?? "").toLowerCase() === "paid_holidays")
             .map((t) => t.id),
         );
-        type RawAdd = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; repeat_monthly?: boolean | null; prorate_by_days?: boolean | null; counts_for_pf?: boolean | null; counts_for_esi?: boolean | null };
+        type RawAdd = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; repeat_monthly?: boolean | null; prorate_by_days?: boolean | null; counts_for_pf?: boolean | null; counts_for_esi?: boolean | null; formula_expression?: string | null; per_day_amount?: number | string | null };
         type RawDed = { candidate_id: string; deduction_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null };
         const applyDayAdj = (cid: string, dayDelta: number, buckets: string[] | null | undefined, sign: 1 | -1) => {
           if (!dayDelta) return;
@@ -576,6 +576,8 @@ function PayrollUnitPage() {
               prorate: !!a.prorate_by_days,
               countsForPf: !!a.counts_for_pf,
               countsForEsi: a.counts_for_esi !== false,
+              formula: a.formula_expression ?? null,
+              inputs: { amount: Number(a.amount) || 0, days: Number(a.days) || 0, per_day: Number(a.per_day_amount) || 0 },
             });
             additionsByCandidate.set(a.candidate_id, arr);
           }
@@ -873,7 +875,7 @@ function PayrollUnitPage() {
             wages.deductions = [...wages.deductions, ...extraDeds];
           }
           // Same additions step as the payroll register (proration, ESI/PF flags).
-          const applied = applyEmployeeAdditions(wages, extraAdds, totals.pDays, { isDisabled: candidateIsDisabled });
+          const applied = applyEmployeeAdditions(wages, extraAdds, totals.pDays, { isDisabled: candidateIsDisabled, period: { ot: totals.otDays, ph: totals.phDays, payable_days: totals.tDays, days_in_month: periodDates.length } });
           Object.assign(wages, applied.wages);
           (wages as unknown as { additions: PerEmpItem[] }).additions = applied.additions;
           const pt = resolvePtAmount({
