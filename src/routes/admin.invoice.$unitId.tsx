@@ -801,7 +801,7 @@ function PayrollUnitPage() {
       const lineKey = (cid: string, did: string | null, sh: number, rel: boolean) => `${pairKey(cid, did, sh)}|${rel ? "R" : "N"}`;
       const pairs = new Map<string, { candidateId: string; designationId: string | null; shift: number; reliever: boolean }>();
 
-      for (const c of roster) {
+      for (const c of rosterById.values()) {
         const sh = postingShift.get(c.id) ?? 0;
         const k = lineKey(c.id, c.designation_id ?? null, sh, false);
         pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null, shift: sh, reliever: false });
