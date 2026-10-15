@@ -1210,7 +1210,9 @@ function PayrollUnitPage() {
         if ((t.pDays + t.phDays + t.otDays + t.otherPaidDays) <= 0) return false;
         if (unitId !== FO_HOME_UNIT_ID) {
           const c = rosterById.get(r.id);
-          if (isFoDesignation(c?.designation_id) || isFoDesignation(r.designationId)) return false;
+          // A Field Officer may hold a secondary billable posting here (e.g. as
+          // Security Guard): only lines in a Field Officer designation are hidden.
+          if (isFoDesignation(r.designationId ?? c?.designation_id)) return false;
         }
         return true;
       });

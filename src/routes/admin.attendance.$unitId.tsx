@@ -584,7 +584,14 @@ function MusterRollPage() {
             employee_type: classifyAttendanceEmployee(c.role_key, designationName),
             doj: c.preferred_joining_date || "",
             left_on: ((c as { offboarded_at?: string | null }).offboarded_at || "").slice(0, 10),
-            is_non_billable: isNonBillable,
+            // A secondary billable posting at this unit (unit mapping with a
+            // billable designation) puts non-billable staff on this muster too.
+            is_non_billable:
+              isNonBillable &&
+              !(
+                unitDesigByCandidate.has(c.id) &&
+                !/field[\s-]*officer/i.test(dMap.get(unitDesigByCandidate.get(c.id)!) || "")
+              ),
             is_home_mapped: homeMapped.has(c.id),
             is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
             role_key: (c.role_key || "").toLowerCase(),
