@@ -788,11 +788,10 @@ function PayrollUnitPage() {
       // bill their attendance at a client site, matching payroll.
       const isFoDesig = (id: string | null | undefined) =>
         /field[\s-]*officer/i.test((id && desigMap.get(id)) || "");
-      const rosterById = new Map(
-        roster
-          .filter((c) => unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1" || !isFoDesig(c.designation_id))
-          .map((c) => [c.id, c]),
-      );
+      // A Field Officer with a secondary billable posting here stays on the
+      // roster; only lines in a Field Officer designation are left off.
+      const isFoHome = unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+      const rosterById = new Map(roster.map((c) => [c.id, c]));
       const pairKey = (cid: string, did: string | null, sh = 0) => `${cid}|${did ?? "__none__"}|${sh}`;
       const entryShift = (e: unknown) => Number((e as { shift_hours?: number | null }).shift_hours) || 0;
       // Regular vs reliever is decided by the attendance line itself
@@ -802,6 +801,7 @@ function PayrollUnitPage() {
       const pairs = new Map<string, { candidateId: string; designationId: string | null; shift: number; reliever: boolean }>();
 
       for (const c of rosterById.values()) {
+        if (!isFoHome && isFoDesig(c.designation_id)) continue;
         const sh = postingShift.get(c.id) ?? 0;
         const k = lineKey(c.id, c.designation_id ?? null, sh, false);
         pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null, shift: sh, reliever: false });
@@ -809,6 +809,7 @@ function PayrollUnitPage() {
       const entryCountByLine = new Map<string, number>();
       for (const e of entries) {
         if (!rosterById.has(e.candidate_id)) continue;
+        if (!isFoHome && isFoDesig(e.designation_id ?? rosterById.get(e.candidate_id)?.designation_id)) continue;
         const rel = entryReliever(e);
         const k = lineKey(e.candidate_id, e.designation_id, entryShift(e), rel);
         entryCountByLine.set(k, (entryCountByLine.get(k) ?? 0) + 1);
