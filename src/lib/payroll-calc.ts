@@ -1,3 +1,4 @@
+import { evaluateExpression } from "./formula-engine";
 // Shared payroll computation helpers used by the Payroll section.
 //
 // Wage formulas mirror the attendance page derivations: a candidate's earned
@@ -1488,7 +1489,56 @@ export type EmployeeAllowance = {
   prorate?: boolean;
   countsForPf?: boolean;
   countsForEsi?: boolean;
+  /** Custom formula worked out per employee at payroll time (overrides amount/prorate). */
+  formula?: string | null;
+  /** Values entered on the addition, available to the formula as amount/days/per_day. */
+  inputs?: { amount?: number; days?: number; per_day?: number };
 };
+
+/** Payroll figures a formula addition can use, per employee and period. */
+export type AdditionFormulaPeriod = {
+  ot?: number;
+  ph?: number;
+  wo?: number;
+  payable_days?: number;
+  days_in_month?: number;
+};
+
+export function additionFormulaContext(
+  a: EmployeeAllowance,
+  wages: Pick<WageComputation, "baseDays" | "contractGross" | "earnedGross" | "perDayRate" | "components">,
+  presentDays: number,
+  period: AdditionFormulaPeriod = {},
+): Record<string, number> {
+  const ctx: Record<string, number> = {};
+  for (const c of wages.components ?? []) {
+    const key = String(c.name ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    if (key) ctx[key] = (ctx[key] ?? 0) + (Number(c.amount) || 0);
+  }
+  const findComp = (re: RegExp) => (wages.components ?? []).filter((c) => re.test(c.name)).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  if (ctx.basic === undefined) ctx.basic = findComp(/\bbasic\b/i);
+  if (ctx.da === undefined) ctx.da = findComp(/\bda\b|dearness/i);
+  const base = Number(wages.baseDays) || 0;
+  Object.assign(ctx, {
+    amount: Number(a.inputs?.amount ?? a.amount) || 0,
+    days: Number(a.inputs?.days) || 0,
+    per_day: Number(a.inputs?.per_day) || 0,
+    present: presentDays,
+    worked: presentDays,
+    ot: Number(period.ot) || 0,
+    ph: Number(period.ph) || 0,
+    wo: Number(period.wo) || 0,
+    payable_days: Number(period.payable_days ?? presentDays) || 0,
+    payroll_days: base,
+    working_days: base,
+    fixed_days: base,
+    days_in_month: Number(period.days_in_month) || 0,
+    gross: Number(wages.contractGross) || 0,
+    earned_gross: Number(wages.earnedGross) || 0,
+    per_day_rate: Number(wages.perDayRate) || 0,
+  });
+  return ctx;
+}
 
 export function allowancePayable(a: EmployeeAllowance, presentDays: number, baseDays: number): number {
   const amt = Number(a.amount) || 0;
@@ -1544,10 +1594,15 @@ export function applyEmployeeAdditions(
   wages: WageComputation,
   adds: EmployeeAllowance[],
   presentDays: number,
-  opts: { isDisabled?: boolean } = {},
+  opts: { isDisabled?: boolean; period?: AdditionFormulaPeriod } = {},
 ): { wages: WageComputation; additions: { name: string; amount: number }[] } {
   const payable = adds
-    .map((a) => ({ ...a, amount: allowancePayable(a, presentDays, wages.baseDays) }))
+    .map((a) => ({
+      ...a,
+      amount: a.formula && a.formula.trim()
+        ? Math.max(0, round2(evaluateExpression(a.formula, additionFormulaContext(a, wages, presentDays, opts.period))))
+        : allowancePayable(a, presentDays, wages.baseDays),
+    }))
     .filter((a) => a.amount > 0);
   const sum = (list: typeof payable) => round2(list.reduce((s, a) => s + a.amount, 0));
   const addTotal = sum(payable);
