@@ -1,4 +1,3 @@
-import { evaluateExpression } from "./formula-engine";
 // Shared payroll computation helpers used by the Payroll section.
 //
 // Wage formulas mirror the attendance page derivations: a candidate's earned
@@ -14,7 +13,7 @@ import { evaluateExpression } from "./formula-engine";
 // REPLACES the legacy proration for that line. Statutory ESI/EPF/PT still
 // run as a final post-pass unless the line opts out of statutory via its
 // own formula.
-import { evaluateFormula, looseVarKey, parseFormulaConfig, slugifyVar, type FormulaContext } from "./formula-engine";
+import { evaluateExpression, evaluateFormula, looseVarKey, parseFormulaConfig, slugifyVar, type FormulaContext } from "./formula-engine";
 
 export type AttendanceEntryLike = {
   candidate_id: string;
