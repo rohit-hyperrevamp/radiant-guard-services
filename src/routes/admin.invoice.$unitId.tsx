@@ -1120,6 +1120,8 @@ function PayrollUnitPage() {
     >();
     for (const r of rows) {
       if (!r.wages) continue;
+      // Hide roles with zero attendance — fixed-value contracts still show.
+      if (billingMode !== "lumpsum" && billingMode !== "man_months" && (r.totals.tDays ?? 0) <= 0) continue;
       const m = invoiceMathFor(r);
       const key = String(r.designationId ?? "__none__");
       const existing =
@@ -1168,7 +1170,14 @@ function PayrollUnitPage() {
 
   // Printed tax invoice: one line per designation × hourly rate, billed on hours.
   const invoiceSheetData: TaxInvoiceData | null = useMemo(() => {
-    const billable = rows.filter((r) => r.wages && r.resource);
+    // Hide roles with zero attendance from the printed invoice — fixed-value
+    // (lumpsum / man_months) contracts still bill their contracted value.
+    const billable = rows.filter(
+      (r) =>
+        r.wages &&
+        r.resource &&
+        (billingMode === "lumpsum" || billingMode === "man_months" || (r.totals.tDays ?? 0) > 0),
+    );
     if (billable.length === 0) return null;
     const hsn = orgSettings?.default_hsn_sac ?? "";
     type Group = {
