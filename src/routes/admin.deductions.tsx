@@ -325,16 +325,28 @@ function DeductionList() {
 
   // Recorded / auto-generated deduction rows for this period.
   const recordedQ = useQuery({
-    queryKey: [...QK_DED, start, monthEnd],
+    queryKey: [...QK_DED, start, monthEnd, effectiveUnitId],
+    enabled: !!effectiveUnitId,
     queryFn: async (): Promise<Deduction[]> => {
-      const { data, error } = await supabase
-        .from("deductions" as never)
-        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,source_kind,created_at")
-        .gte("deduction_date", start)
-        .lte("deduction_date", monthEnd)
-        .order("deduction_date", { ascending: false });
-      if (error) throw error;
-      return (data as unknown) as Deduction[];
+      // A month holds thousands of rows across all sites; scope to the unit
+      // (or unit-less rows) and page past the 1,000-row API cap.
+      const out: Deduction[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("deductions" as never)
+          .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,source_kind,created_at")
+          .gte("deduction_date", start)
+          .lte("deduction_date", monthEnd)
+          .or(`unit_id.eq.${effectiveUnitId},unit_id.is.null`)
+          .order("deduction_date", { ascending: false })
+          .order("id")
+          .range(from, from + 999);
+        if (error) throw error;
+        const page = (data as unknown) as Deduction[];
+        out.push(...page);
+        if (page.length < 1000) break;
+      }
+      return out;
     },
   });
 
