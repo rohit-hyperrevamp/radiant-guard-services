@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   Upload,
   Users,
+  Trash2,
   X,
   XCircle,
 } from "lucide-react";
@@ -4509,6 +4510,8 @@ function ResourcesSection({
   const { canSub: canSubPerm, isSuperAdmin: isSuperPerm, canExplicit } = useCurrentPermissions();
   const canExportRates = canExplicit("contracts", "rate_export");
   const canManageResources = isSuperPerm || canSubPerm("contracts", "resources", "edit");
+  // Deleting saved resources is off unless Access Control explicitly grants it.
+  const canDeleteSavedResources = canExplicit("contracts", "delete_resources");
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
   const serviceTypes = useServiceTypes();
@@ -4825,6 +4828,21 @@ function ResourcesSection({
                           <Lock className="h-3.5 w-3.5" />
                         </span>
                         )}
+                        {canDeleteSavedResources ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => {
+                              if (window.confirm(`Delete the "${dn?.name ?? "resource"}" role from this contract? It is removed when you save the contract.`)) onDelete(idx);
+                            }}
+                            aria-label="Delete resource"
+                            title="Delete resource"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
                       </>
                     ) : (
                       <Button

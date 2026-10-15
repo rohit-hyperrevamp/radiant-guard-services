@@ -94,13 +94,22 @@ function useEmployees() {
   return useQuery({
     queryKey: ["admin", "employees-lite"],
     queryFn: async (): Promise<Emp[]> => {
-      const { data, error } = await supabase
-        .from("candidates")
-        .select("id,full_name,employee_code,mobile")
-        .in("status", ["approved", "active"])
-        .order("full_name");
-      if (error) throw error;
-      return (data ?? []).map((c) => ({
+      // Page through all rows — the API caps a single request at 1,000.
+      const all: Array<Record<string, unknown>> = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("candidates")
+          .select("id,full_name,employee_code,mobile")
+          .not("employee_code", "is", null)
+          .order("full_name")
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        all.push(...((data ?? []) as Array<Record<string, unknown>>));
+        if (!data || data.length < PAGE) break;
+      }
+      return all.map((c) => ({
         id: c.id as string,
         full_name: (c.full_name as string) ?? "",
         employee_code: (c.employee_code as string) ?? "",
@@ -329,13 +338,17 @@ function EmployeeMultiCombobox({
   }, [value, employees, placeholder]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return employees;
-    return employees.filter((e) =>
+    const sel = employees.filter((e) => value.includes(e.id));
+    if (!q) return [...sel, ...employees.filter((e) => !value.includes(e.id)).slice(0, 200)];
+    const exact = employees.filter((e) => e.employee_code.toLowerCase() === q);
+    const rest = employees.filter((e) =>
+      e.employee_code.toLowerCase() !== q && (
       e.full_name.toLowerCase().includes(q) ||
       e.employee_code.toLowerCase().includes(q) ||
-      (e.mobile && e.mobile.includes(q))
+      (e.mobile && e.mobile.includes(q)))
     );
-  }, [employees, search]);
+    return [...exact, ...rest].slice(0, 200);
+  }, [employees, search, value]);
   const toggle = (id: string) => {
     const next = new Set(value);
     if (next.has(id)) next.delete(id); else next.add(id);
