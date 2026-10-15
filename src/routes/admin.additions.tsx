@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { downloadCsv } from "@/lib/csv-export";
+import { SearchSelect } from "@/components/SearchSelect";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { DataPagination, usePagination } from "@/components/DataPagination";
