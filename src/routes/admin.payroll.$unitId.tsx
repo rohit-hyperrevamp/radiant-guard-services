@@ -492,7 +492,7 @@ function PayrollUnitPage() {
   });
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
