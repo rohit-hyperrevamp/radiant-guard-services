@@ -18,7 +18,7 @@ export function useCurrentUserRole() {
       const { data: cand } = await supabase
         .from("candidates")
         .select("id,role_key")
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
       return {
         userId: authUser?.id ?? null,

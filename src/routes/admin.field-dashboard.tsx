@@ -211,7 +211,7 @@ function FieldOfficerDashboard() {
       const { data: me } = await supabase
         .from("candidates")
         .select("id,unit_id")
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
       const meRow = me as { id?: string; unit_id?: string | null } | null;
       const meId = meRow?.id ?? null;

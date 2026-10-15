@@ -130,7 +130,7 @@ function IssuancesPage() {
     queryKey: ["candidate-by-phone", myPhone],
     enabled: !!myPhone && !isSuperAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key,status,unit_id,reports_to").eq("mobile", myPhone).maybeSingle();
+      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key,status,unit_id,reports_to").eq("mobile", myPhone).neq("status", "inactive").maybeSingle();
       if (error) throw error;
       return (data as unknown as Candidate) ?? null;
     },
