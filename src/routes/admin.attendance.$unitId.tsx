@@ -732,6 +732,24 @@ function MusterRollPage() {
   const periodEnd =
     periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
 
+  // Contract switch: count Weekly Off (WO) as paid Present days in this period.
+  const { data: woAsPresent = false } = useQuery({
+    queryKey: ["attendance-wo-as-present", unitId, periodStart, periodEnd],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_contracts")
+        .select("wo_as_present" as never)
+        .eq("unit_id", unitId)
+        .eq("record_type", "client")
+        .eq("status", "active")
+        .lte("start_date", periodEnd)
+        .or(`end_date.is.null,end_date.gte.${periodStart}`)
+        .order("start_date", { ascending: false })
+        .limit(1);
+      return Boolean(((data ?? [])[0] as { wo_as_present?: boolean } | undefined)?.wo_as_present);
+    },
+  });
+
   // ---- Period roster -----------------------------------------------------
   // Every period starts with an EMPTY muster roll. Unit mappings (primary
   // guards, relievers, unit scopes) never pre-fill a month: whatever is
@@ -2847,7 +2865,10 @@ function MusterRollPage() {
                   : Number(meta.day_value);
             continue;
           }
-          if (row.code === "WO" || row.code === "W") continue;
+          if (row.code === "WO" || row.code === "W") {
+            if (woAsPresent) pDays += 1;
+            continue;
+          }
           const dayValue =
             meta.day_value == null || Number.isNaN(Number(meta.day_value))
               ? 1
@@ -3858,6 +3879,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
     let phCount = 0;
     let unitPhDays = 0;
     let otherPaidDays = 0;
+    let woDays = 0;
     for (const cell of periodCells) {
       const e = entryMap.get(`${rk}|${cell.date}`);
       if (!e) continue;
@@ -3887,8 +3909,11 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
         phCount += phValue;
         continue;
       }
-      // Weekly off is not a payable duty — it must never inflate the payable total.
-      if (e.code === "WO" || e.code === "W") continue;
+      // Weekly off is paid only when the contract switch "Count WO as Present" is on.
+      if (e.code === "WO" || e.code === "W") {
+        woDays += c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value) || 1;
+        continue;
+      }
       const dayValue =
         c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       if (c.counts_as_present) pDays += dayValue;
@@ -3898,8 +3923,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
     const otDays = Math.round(otDaysSum * 100) / 100;
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
-    const tDays = pDays + phDays + otDays;
-    return { pDays, otHours, otDays, phDays, tDays };
+    const tDays = Math.round((pDays + (woAsPresent ? woDays : 0) + phDays + otDays) * 100) / 100;
+    return { pDays, woDays, otHours, otDays, phDays, tDays };
   };
 
   const principalEmployer = unit
@@ -5379,6 +5404,15 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                   P<br />
                   Days
                 </th>
+                <th
+                  className="border border-slate-400 p-1 align-middle"
+                  rowSpan={2}
+                  title={woAsPresent ? "Week Off — counted as Present days" : "Week Off — not counted (contract setting off)"}
+                >
+                  WO
+                  <br />
+                  Days
+                </th>
                 <th className="border border-slate-400 p-1 align-middle">
                   ED
                   <br />
@@ -5392,7 +5426,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                 <th
                   className="border border-slate-400 p-1 align-middle"
                   rowSpan={2}
-                  title="Total paid days = P + ED + PH"
+                  title={woAsPresent ? "Total paid days = P + WO + ED + PH" : "Total paid days = P + ED + PH"}
                 >
                   Total
                   <br />
@@ -5684,6 +5718,13 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
 
                       <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>
                         {totals.pDays}
+                      </td>
+                      <td
+                        className={cn(cellBase, "p-1 font-semibold", !woAsPresent && "opacity-50")}
+                        rowSpan={2}
+                        title={woAsPresent ? "Week Off counted as Present (contract setting)" : "Week Off not paid for this contract"}
+                      >
+                        {totals.woDays}
                       </td>
                       <td className={cn(cellBase, "p-1 font-semibold")}>{totals.otHours}</td>
                       <td className={cn(cellBase, "p-1 font-semibold")} rowSpan={2}>
