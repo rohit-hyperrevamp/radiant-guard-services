@@ -230,7 +230,9 @@ export type ContractResourceLike = {
   /** Extra Duty multiplier (Pages "2X"); default 1. */
   otMultiplier?: number | null;
   /** ED base: selected components (default), full-month gross, or this month's earned gross. */
-  otBasis?: "components" | "gross" | "earned_gross" | null;
+  otBasis?: "components" | "gross" | "earned_gross" | "formula" | null;
+  /** Custom ED per-duty formula, e.g. "earned_gross / payroll_days * 2". */
+  otFormula?: string | null;
   payrollDayBase: {
     method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
     fixedDays: number | null;
@@ -1070,7 +1072,29 @@ export function computeWages(
   // Day rate is rounded to paise before multiplying (Pages register rule:
   // 25,180.17 / 26 = 968.47 → 3 ED days = 2,905.41).
   const otMult = Number(resource.otMultiplier) > 0 ? Number(resource.otMultiplier) : 1;
-  const perDutyOt = round2((otBase / OT_DIVISOR) * otMult);
+  let perDutyOt = round2((otBase / OT_DIVISOR) * otMult);
+  if (resource.otBasis === "formula" && (resource.otFormula ?? "").trim()) {
+    // Custom ED formula = rate per ED duty. Variables: earned components
+    // (basic, da, hra…), earned_gross, gross, payroll_days, present.
+    const edCtx: FormulaContext = { ...baseFormulaCtx };
+    for (const c of [...resource.components, ...components]) {
+      for (const key of formulaNameAliases(c.name)) {
+        const slug = slugifyVar(key);
+        if (slug) edCtx[slug] = 0;
+      }
+    }
+    const taken = exactFormulaKeys(components.map((c) => c.name));
+    components.forEach((c) => addFormulaContextAliases(edCtx, Number(c.amount) || 0, c.name, taken));
+    edCtx.earned_gross = round2(components.reduce((s, c) => s + (Number(c.amount) || 0), 0));
+    edCtx.fixed_gross = round2(contractGross);
+    edCtx.payroll_days = OT_DIVISOR;
+    try {
+      const v = evaluateExpression(String(resource.otFormula), edCtx);
+      perDutyOt = Number.isFinite(v) ? round2(Math.max(0, v)) : 0;
+    } catch {
+      perDutyOt = 0;
+    }
+  }
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
   if (otAmount > 0) {
