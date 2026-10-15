@@ -15,6 +15,8 @@ import {
   computeWages,
   fmtINR,
   resolvePtAmount,
+  roundFinalGross,
+  roundEsiUp,
   type AttendanceCodeLike,
   type AttendanceEntryLike,
   type ContractResourceLike,
@@ -24,7 +26,7 @@ import {
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchOtherSitePtTotals, ptForSite } from "@/lib/pt-cross-site";
+import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
 const supabaseSessionReady = async () => {};
 function cleanLedgerName(raw: string | null | undefined): string {
   const s = String(raw ?? "").trim();
