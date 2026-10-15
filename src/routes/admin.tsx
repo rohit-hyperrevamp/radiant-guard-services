@@ -85,6 +85,7 @@ import { useTheme } from "@/lib/use-theme";
 import { isNativePlatform } from "@/lib/native";
 import { toast } from "sonner";
 import { isAdminConsoleRole, isFieldOfficerRole, OPERATIONS_ROLES } from "@/lib/role-keys";
+import { useSecondaryPostings } from "@/lib/use-secondary-postings";
 
 
 
@@ -327,7 +328,7 @@ function AdminLayout() {
     if (readStoredAuthUser()?.role === "super_admin") return;
     if (pathname === "/admin/hr/recruitment/interviews" || /^\/admin\/hr\/recruitment\/candidates\/[^/]+$/.test(pathname)) return;
     // Recover managers stranded by old personal-dashboard bookmarks/fallbacks.
-    if (!isGuardRole && !isFieldOfficerRole(roleKey) && pathname === "/admin/employee-dashboard") {
+    if (!isGuardRole && !isFieldOfficerRole(roleKey) && !hasSecondary && pathname === "/admin/employee-dashboard") {
       navigate({ to: "/admin/dashboard", replace: true });
       return;
     }
@@ -436,6 +437,10 @@ function AdminLayout() {
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
   const isFieldOfficer = !isSuperAdmin && roleKey === "field_officer";
+  // Staff with a secondary billable posting (e.g. FO also a Security Guard)
+  // get their guard pages merged into their own menu.
+  const { postings: secondaryPostings, hasSecondary } = useSecondaryPostings(!!user && !isSuperAdmin);
+  const secondaryDutyLabel = hasSecondary ? `My ${secondaryPostings[0].designation_name} Duty` : "";
   const isControlCenterRole = roleKey === "control_center_head" || roleKey === "control_center";
 
   const groups: GroupItem[] = useMemo(
@@ -595,9 +600,22 @@ function AdminLayout() {
         return { ...g, children: filtered };
       });
 
-    if (isFieldOfficer) {
-      // FO gets a single dashboard entry that already shows their units and team.
-      return base;
+    if (hasSecondary && !isGuardRole) {
+      const have = new Set(base.flatMap((g) => [g.to, ...(g.children ?? []).map((c) => c.to)]));
+      const children: LeafItem[] = [
+        { to: "/admin/employee-dashboard", label: "My Guard Dashboard", icon: LayoutGrid },
+        { to: "/admin/my-attendance", label: "My Attendance", icon: CalendarClock },
+        { to: "/admin/my-inventory", label: "My Uniform", icon: Boxes },
+        { to: "/admin/my-training", label: "Training", icon: GraduationCap },
+      ].filter((c) => !have.has(c.to));
+      if (children.length)
+        base.push({
+          key: "secondary-duty",
+          label: secondaryDutyLabel,
+          icon: ShieldCheck,
+          children,
+          activePrefixes: children.map((c) => c.to),
+        });
     }
     return base;
   })();
@@ -941,6 +959,10 @@ function AdminLayout() {
         const addMoreItem = (item: BottomNavMoreItem) => {
           if (!moreItems.some((entry) => entry.to === item.to)) moreItems.push(item);
         };
+        if (hasSecondary && !isGuard) {
+          addMoreItem({ key: "sec-dashboard", to: "/admin/employee-dashboard", label: "My Guard Dashboard", icon: LayoutGrid, active: isActive("/admin/employee-dashboard") });
+          addMoreItem({ key: "sec-uniform", to: "/admin/my-inventory", label: "My Uniform", icon: Boxes, active: isActive("/admin/my-inventory") });
+        }
         if (!isGuard) addMoreItem({ key: "profile", to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
         addMoreItem({ key: "my-attendance", to: "/admin/my-attendance", label: "My Attendance", icon: CalendarClock, active: isActive("/admin/my-attendance") });
         if (!isGuard) addMoreItem({ key: "notifications", to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });

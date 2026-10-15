@@ -1,3 +1,4 @@
+import { useSecondaryPostings } from "@/lib/use-secondary-postings";
 import { TileNumber } from "@/components/TileNumber";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -167,6 +168,30 @@ function writeSnapshot(key: string, value: unknown) {
   } catch {
     /* optional cache */
   }
+}
+
+function SecondaryDutyCard() {
+  const { postings } = useSecondaryPostings();
+  if (!postings.length) return null;
+  return (
+    <div className="rounded-2xl border bg-card p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-sm font-semibold">My guard duty</div>
+        <div className="flex gap-2">
+          <Link to="/admin/my-attendance" className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">My Attendance</Link>
+          <Link to="/admin/employee-dashboard" className="rounded-full border px-3 py-1 text-xs font-medium">Guard view</Link>
+        </div>
+      </div>
+      <ul className="space-y-1">
+        {postings.map((p) => (
+          <li key={p.unit_id + p.designation_id} className="flex justify-between text-xs">
+            <span className="truncate">{p.unit_code} · {p.unit_name}</span>
+            <span className="ml-2 shrink-0 text-muted-foreground">{p.designation_name}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function FieldOfficerDashboard() {
@@ -748,6 +773,7 @@ function FieldOfficerDashboard() {
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
+        <SecondaryDutyCard />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <HeroStat
             label="Team"
