@@ -101,6 +101,8 @@ export function computeAttendanceTotals(
    * Nothing about the holiday value is hard-coded anywhere in this file.
    */
   phDayValueOverride?: number | null,
+  /** Contract setting: Weekly Off (WO) marks count as Present days. */
+  woAsPresent?: boolean,
 ): AttendanceTotals {
   const phDatesSet = new Set(ph?.dates ?? []);
   const phUnitMultiplier = Number(ph?.multiplier ?? 0) || 0;
@@ -145,7 +147,7 @@ export function computeAttendanceTotals(
     // Fractional day contribution: HD = 0.5, full-day codes = 1, WO/A/etc = 0.
     // Default to 1 for legacy rows that don't have day_value populated.
     const dv = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
-    if (c.counts_as_present) pDays += dv;
+    if (c.counts_as_present || (woAsPresent && e.code === "WO")) pDays += dv;
     else if (c.is_paid) otherPaidDays += dv;
   }
 

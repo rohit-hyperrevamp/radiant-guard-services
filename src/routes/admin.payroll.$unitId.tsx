@@ -212,6 +212,23 @@ function PayrollUnitPage() {
       };
     },
   });
+  // Contract switch: count Weekly Off (WO) as Present days for this period.
+  const { data: woAsPresent = false } = useQuery({
+    queryKey: ["payroll-wo-as-present", unitId, start, end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_contracts")
+        .select("wo_as_present" as never)
+        .eq("unit_id", unitId)
+        .eq("record_type", "client")
+        .eq("status", "active")
+        .lte("start_date", end)
+        .or(`end_date.is.null,end_date.gte.${start}`)
+        .order("start_date", { ascending: false })
+        .limit(1);
+      return Boolean(((data ?? [])[0] as { wo_as_present?: boolean } | undefined)?.wo_as_present);
+    },
+  });
   const phConfig = useMemo(() => {
     if (!unitPh?.enabled) return null;
     const map = holidayMapForDates(periodDates, publicHolidays);
@@ -475,7 +492,7 @@ function PayrollUnitPage() {
   });
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
@@ -980,6 +997,7 @@ function PayrollUnitPage() {
           isPrimaryLine ? phConfig : null,
           (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
           unitPh?.dayValue ?? null,
+          woAsPresent,
         );
         // Apply per-employee day adjustments from additions/deductions that opted into
         // "Include in total days" — only on the candidate's primary designation line.

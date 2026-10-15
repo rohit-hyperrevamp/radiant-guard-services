@@ -238,6 +238,23 @@ function PayrollUnitPage() {
       };
     },
   });
+  // Contract switch: count Weekly Off (WO) as Present days for this period.
+  const { data: woAsPresent = false } = useQuery({
+    queryKey: ["invoice-wo-as-present", unitId, start, end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_contracts")
+        .select("wo_as_present" as never)
+        .eq("unit_id", unitId)
+        .eq("record_type", "client")
+        .eq("status", "active")
+        .lte("start_date", end)
+        .or(`end_date.is.null,end_date.gte.${start}`)
+        .order("start_date", { ascending: false })
+        .limit(1);
+      return Boolean(((data ?? [])[0] as { wo_as_present?: boolean } | undefined)?.wo_as_present);
+    },
+  });
   const phConfig = useMemo(() => {
     if (!unitPh?.enabled) return null;
     const map = holidayMapForDates(periodDates, publicHolidays);
@@ -374,7 +391,7 @@ function PayrollUnitPage() {
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // Always recompute from the live contract when the page opens.
     staleTime: 0,
     refetchOnMount: "always",
@@ -821,6 +838,7 @@ function PayrollUnitPage() {
           isPrimary ? phConfig : null,
           (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
           unitPh?.dayValue ?? null,
+          woAsPresent,
         );
         // Apply per-employee day adjustments — primary designation line only.
         if (isPrimary) {

@@ -194,7 +194,7 @@ type ClientContract = {
   serviceTypeId: string | null;
   payrollWindowId: string | null;
   billingTypeId: string | null;
-  
+  woAsPresent?: boolean;
   gstOption: GstOption;
   status: ContractStatus;
   approvalStatus: ApprovalStatus;
@@ -522,6 +522,7 @@ function rowToContract(r: Record<string, unknown>): ClientContract {
     billingTypeId: r.billing_type_id ? String(r.billing_type_id) : null,
     
     gstOption: (r.gst_option as GstOption) ?? "csgst",
+    woAsPresent: Boolean(r.wo_as_present),
     status: (r.status as ContractStatus) ?? "inactive",
     approvalStatus: (r.approval_status as ApprovalStatus) ?? "pending",
     prospectStage: (r.prospect_stage as ProspectStage) ?? "new",
@@ -646,7 +647,7 @@ function useContracts() {
           fetchAllPages<Record<string, unknown>>((from, to) =>
             supabase
               .from("client_contracts" as never)
-              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,status,approval_status,rejection_reason,created_by,created_at")
+              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,wo_as_present,status,approval_status,rejection_reason,created_by,created_at")
               .order("created_at", { ascending: false })
               .range(from, to)
               .abortSignal(controller.signal),
@@ -721,6 +722,7 @@ function useContracts() {
       payroll_window_id: p.payrollWindowId,
       billing_type_id: p.billingTypeId,
       gst_option: p.gstOption,
+      wo_as_present: Boolean(p.woAsPresent),
     };
     if (opts.isNew) {
       // New entries are always prospects, inactive, pending approval.
@@ -3478,6 +3480,7 @@ function ContractViewDialog({
           <ViewRow label="Original start" value={contract.originalStartDate} />
           <ViewRow label="Renewals so far" value={String(contract.renewalCount ?? 0)} />
           <ViewRow label="GST option" value={contract.gstOption?.toUpperCase()} />
+          <ViewRow label="Week Off as Present" value={contract.woAsPresent ? "Yes" : "No"} />
           <ViewRow
             label="Payroll window"
             value={payrollWindows.find((p) => p.id === contract.payrollWindowId)?.label ?? "—"}
@@ -3607,6 +3610,7 @@ function ContractFormDialog({
   const [billingTypeId, setBillingTypeId] = useState<string>("");
   
   const [gstOption, setGstOption] = useState<GstOption>("csgst");
+  const [woAsPresent, setWoAsPresent] = useState(false);
   const [approvalValue, setApprovalValue] = useState<ApprovalPickerValue>(null);
   const [unitPickerOpen, setUnitPickerOpen] = useState(false);
   const [quickUnitOpen, setQuickUnitOpen] = useState(false);
@@ -3678,6 +3682,7 @@ function ContractFormDialog({
       setBillingTypeId(editing.billingTypeId ?? "");
       
       setGstOption(editing.gstOption);
+      setWoAsPresent(Boolean(editing.woAsPresent));
       setApprovalValue(getApprovalPickerValue(editing));
     } else {
       setContractCode("");
@@ -3694,7 +3699,7 @@ function ContractFormDialog({
       setPayrollWindowId("");
       setBillingTypeId("");
       
-      setGstOption("csgst");
+      setGstOption("csgst"); setWoAsPresent(false);
       setApprovalValue(null);
     }
     setResources([]);
@@ -3825,7 +3830,7 @@ function ContractFormDialog({
       startDate: submittedStartDate, endDate: submittedEndDate,
       expiryDate: submittedExpiryDate, originalStartDate: originalStartDate || submittedStartDate, renewalCount, description,
       serviceTypeId: serviceTypeId || null, payrollWindowId: payrollWindowId || null,
-      billingTypeId: billingTypeId || null, gstOption, status: editing?.status ?? "inactive",
+      billingTypeId: billingTypeId || null, gstOption, woAsPresent, status: editing?.status ?? "inactive",
       approvalStatus: editing?.approvalStatus ?? "pending", prospectStage: editing?.prospectStage ?? "new",
       rejectionReason: editing?.rejectionReason ?? "", createdBy: editing?.createdBy ?? null,
       promotedAt: editing?.promotedAt ?? null,
@@ -4277,6 +4282,20 @@ function ContractFormDialog({
                 </label>
               ))}
             </div>
+            <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={woAsPresent}
+                onChange={(e) => setWoAsPresent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-accent"
+              />
+              <span>
+                <span className="font-medium">Count Week Off (WO) as Present days</span>
+                <span className="block text-xs text-muted-foreground">
+                  WO marked in attendance is paid and billed as a P day for this contract.
+                </span>
+              </span>
+            </label>
           </Section>
           </div>
 
