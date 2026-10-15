@@ -3709,6 +3709,23 @@ function ContractFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
 
+  // The register list can be stale (e.g. reopened right after a save); read the
+  // Week-Off switch fresh so saving the form never silently turns it back off.
+  useEffect(() => {
+    if (!open || !editing?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("client_contracts" as never)
+        .select("wo_as_present" as never)
+        .eq("id", editing.id)
+        .maybeSingle();
+      const v = (data as { wo_as_present?: boolean } | null)?.wo_as_present;
+      if (!cancelled && typeof v === "boolean") setWoAsPresent(v);
+    })();
+    return () => { cancelled = true; };
+  }, [open, editing?.id]);
+
   // Auto-derive expiry date = start date + 6 months (unless user manually overrode).
   useEffect(() => {
     if (!open) return;
