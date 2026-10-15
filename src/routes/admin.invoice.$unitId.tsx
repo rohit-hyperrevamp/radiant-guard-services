@@ -391,7 +391,7 @@ function PayrollUnitPage() {
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // Always recompute from the live contract when the page opens.
     staleTime: 0,
     refetchOnMount: "always",
