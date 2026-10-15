@@ -27,7 +27,7 @@ export const startImpersonation = createServerFn({ method: "POST" })
       const { data: me } = await supabaseAdmin
         .from("candidates")
         .select("role_key")
-        .eq("mobile", callerPhone)
+        .eq("mobile", callerPhone).neq("status", "inactive")
         .maybeSingle();
       isSuper = me?.role_key === "super_admin";
     }
@@ -104,7 +104,7 @@ export const searchImpersonationTargets = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
     let isSuper = callerPhone === superPhone;
     if (!isSuper && callerPhone) {
-      const { data: me } = await supabaseAdmin.from("candidates").select("role_key").eq("mobile", callerPhone).maybeSingle();
+      const { data: me } = await supabaseAdmin.from("candidates").select("role_key").eq("mobile", callerPhone).neq("status", "inactive").maybeSingle();
       isSuper = me?.role_key === "super_admin";
     }
     if (!isSuper) throw new Error("Only the Super Admin can view as another user.");

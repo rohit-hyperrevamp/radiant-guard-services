@@ -63,7 +63,7 @@ function CollectionsPage() {
       const { data, error } = await supabase
         .from("candidates" as never)
         .select("id,full_name,employee_code,mobile,role_key,unit_id,reports_to")
-        .eq("mobile", myPhone)
+        .eq("mobile", myPhone).neq("status", "inactive")
         .maybeSingle();
       if (error) throw error;
       return (data as unknown as Candidate) ?? null;

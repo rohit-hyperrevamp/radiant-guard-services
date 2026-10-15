@@ -37,7 +37,7 @@ function MyInventoryPage() {
     queryKey: ["candidate-by-phone", phone],
     enabled: !!phone,
     queryFn: async () => {
-      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key").eq("mobile", phone).maybeSingle();
+      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key").eq("mobile", phone).neq("status", "inactive").maybeSingle();
       if (error) throw error;
       return data as unknown as { id: string; full_name: string; employee_code: string; role_key: string } | null;
     },

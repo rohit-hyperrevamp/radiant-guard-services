@@ -191,7 +191,7 @@ export function useCurrentPermissions(): {
       const { data, error } = await supabase
         .from("candidates")
         .select("role_key")
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
       if (error) throw error;
       const key = (data?.role_key as string | undefined) ?? null;

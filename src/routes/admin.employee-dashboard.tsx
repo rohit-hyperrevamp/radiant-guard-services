@@ -175,7 +175,7 @@ function EmployeeDashboard() {
         .select(
           "id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,reports_to,date_of_birth,approved_at,created_at",
         )
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
       if (error) throw error;
       return (data as unknown as Me) ?? null;

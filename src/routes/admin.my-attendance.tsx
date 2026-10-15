@@ -144,7 +144,7 @@ function MyAttendancePage() {
       const { data: c } = await supabase
         .from("candidates")
         .select("id,full_name,employee_code,role_key,unit_id,designation_id")
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
       const row = c as {
         id?: string;

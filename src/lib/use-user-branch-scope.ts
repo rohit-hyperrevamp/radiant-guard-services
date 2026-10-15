@@ -29,7 +29,7 @@ export function useUserBranchScope(): UserBranchScope {
       const { data: cand, error: cErr } = await supabase
         .from("candidates")
         .select("id,role_key")
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
       if (cErr) throw cErr;
       if (!cand?.id) return null;

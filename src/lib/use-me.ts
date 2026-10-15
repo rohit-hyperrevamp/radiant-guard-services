@@ -37,7 +37,7 @@ export function useMe(): MeProfile & { isLoading: boolean } {
       const { data: cand } = await supabase
         .from("candidates")
         .select("id,full_name,photo_url,designation_id,role_key")
-        .eq("mobile", phone)
+        .eq("mobile", phone).neq("status", "inactive")
         .maybeSingle();
 
       let designation = "";
