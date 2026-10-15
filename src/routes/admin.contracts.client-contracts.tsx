@@ -3480,6 +3480,7 @@ function ContractViewDialog({
           <ViewRow label="Original start" value={contract.originalStartDate} />
           <ViewRow label="Renewals so far" value={String(contract.renewalCount ?? 0)} />
           <ViewRow label="GST option" value={contract.gstOption?.toUpperCase()} />
+          <ViewRow label="Week Off as Present" value={contract.woAsPresent ? "Yes" : "No"} />
           <ViewRow
             label="Payroll window"
             value={payrollWindows.find((p) => p.id === contract.payrollWindowId)?.label ?? "—"}
@@ -3698,7 +3699,7 @@ function ContractFormDialog({
       setPayrollWindowId("");
       setBillingTypeId("");
       
-      setGstOption("csgst");
+      setGstOption("csgst"); setWoAsPresent(false);
       setApprovalValue(null);
     }
     setResources([]);
