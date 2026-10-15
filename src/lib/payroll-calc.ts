@@ -1050,9 +1050,9 @@ export function computeWages(
   if (resource.otBasis === "gross") {
     otBase = Math.max(0, contractGross);
   } else if (resource.otBasis === "earned_gross") {
-    // Earned regular wages this period (pro-rated, before PH and ED).
+    // Earned gross this period: every earned line (incl. Paid Holiday and
+    // employee additions), before the Extra Duty line itself is added.
     otBase = Math.max(0, components
-      .filter((c) => c.name !== "Paid Holiday")
       .reduce((s, c) => s + (Number(c.amount) || 0), 0));
   } else if (otSelected.length > 0) {
     otBase = Math.max(
