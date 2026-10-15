@@ -417,7 +417,7 @@ function AdditionForm() {
     queryFn: async (): Promise<Addition | null> => {
       const { data, error } = await supabase
         .from("additions" as never)
-        .select("id,candidate_id,addition_type_id,addition_date,addition_name,calculation_type,amount,installments,description,status,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for,unit_id,repeat_monthly,end_date,prorate_by_days,counts_for_pf,counts_for_esi")
+        .select("id,candidate_id,addition_type_id,addition_date,addition_name,calculation_type,amount,installments,description,status,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for,unit_id,repeat_monthly,end_date,prorate_by_days,counts_for_pf,counts_for_esi,formula_expression")
         .eq("id", search.id!)
         .maybeSingle();
       if (error) throw error;
@@ -432,6 +432,9 @@ function AdditionForm() {
   const [entryMode, setEntryMode] = useState<EntryMode>("lumpsum");
   const [days, setDays] = useState<string>("");
   const [perDayAmount, setPerDayAmount] = useState<string>("");
+  const [useFormula, setUseFormula] = useState(false);
+  const [formula, setFormula] = useState("");
+  const [baseAmount, setBaseAmount] = useState("");
   const [amount, setAmount] = useState<string>("");
   const [installments, setInstallments] = useState<string>("1");
   const [includeInTotalDays, setIncludeInTotalDays] = useState(false);
@@ -481,6 +484,8 @@ function AdditionForm() {
     setRepeatMonthly(!!x.repeat_monthly);
     setEndDate(x.end_date ?? "");
     setProrate(!!x.prorate_by_days);
+    const fx = (d as unknown as { formula_expression?: string | null }).formula_expression;
+    if (fx && fx.trim()) { setUseFormula(true); setFormula(fx); setBaseAmount(String(d.amount ?? "")); }
     setCountsPf(!!x.counts_for_pf);
     setCountsEsi(x.counts_for_esi !== false);
     setHydrated(true);
@@ -488,13 +493,14 @@ function AdditionForm() {
 
   // Auto-compute amount in days-mode
   const computedAmount = useMemo(() => {
+    if (entryMode === "days_x_per_day" && useFormula) return Number(baseAmount) || 0;
     if (entryMode === "days_x_per_day") {
       const dn = Number(days) || 0;
       const pdn = Number(perDayAmount) || 0;
       return Math.round(dn * pdn * 100) / 100;
     }
     return Number(amount) || 0;
-  }, [entryMode, days, perDayAmount, amount]);
+  }, [entryMode, days, perDayAmount, amount, useFormula, baseAmount]);
 
   const firstEmp = useMemo(() => (emps.data ?? []).find((e) => e.id === candidateIds[0]), [emps.data, candidateIds]);
   const type = useMemo(() => (types.data ?? []).find((t) => t.id === typeId), [types.data, typeId]);
@@ -522,8 +528,15 @@ function AdditionForm() {
       const inst = Math.max(1, parseInt(installments, 10) || 1);
       if (repeatMonthly && !unitId) throw new Error("Pick the site for a monthly allowance, so it is not paid at the guard's other sites");
       if (repeatMonthly && endDate && endDate < date) throw new Error("End date must be after the start date");
+      const formulaOn = entryMode === "days_x_per_day" && useFormula;
+      if (formulaOn) {
+        if (!formula.trim()) throw new Error("Write the formula");
+        const v = validateExpression(formula);
+        if (!v.ok) throw new Error(`Formula: ${v.error}`);
+      }
       const typePart = type?.name || "Addition";
       const basePayload = {
+        formula_expression: formulaOn ? formula.trim() : null,
         addition_type_id: typeId,
         addition_date: date,
         calculation_type: calc,
@@ -672,6 +685,28 @@ function AdditionForm() {
           </div>
 
           {entryMode === "days_x_per_day" && (
+            <div className="grid gap-3 md:col-span-2 lg:col-span-4 rounded-xl border border-border bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-foreground">Use a custom formula</Label>
+                  <p className="text-xs text-muted-foreground">Worked out separately for each employee in payroll, using their own days and pay.</p>
+                </div>
+                <Switch checked={useFormula} onCheckedChange={setUseFormula} />
+              </div>
+              {useFormula && (
+                <AdditionFormulaBuilder
+                  formula={formula}
+                  setFormula={setFormula}
+                  baseAmount={baseAmount}
+                  setBaseAmount={setBaseAmount}
+                  days={Number(days) || 0}
+                  perDay={Number(perDayAmount) || 0}
+                />
+              )}
+            </div>
+          )}
+
+          {entryMode === "days_x_per_day" && (
             <div className="grid gap-1.5 md:col-span-2 lg:col-span-4 rounded-xl border border-dashed border-border bg-muted/20 p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -755,3 +790,60 @@ function AdditionForm() {
 }
 
 
+
+const ADDITION_FORMULA_VARS: { key: string; label: string; sample: number }[] = [
+  { key: "amount", label: "Amount entered", sample: 0 },
+  { key: "days", label: "Days entered", sample: 0 },
+  { key: "per_day", label: "Per-day entered", sample: 0 },
+  { key: "present", label: "Present days", sample: 24 },
+  { key: "ot", label: "Extra Duty days", sample: 2 },
+  { key: "ph", label: "Paid Holiday days", sample: 1 },
+  { key: "payable_days", label: "Total paid days", sample: 27 },
+  { key: "payroll_days", label: "Payroll days (contract base)", sample: 26 },
+  { key: "days_in_month", label: "Days in month", sample: 30 },
+  { key: "basic", label: "Basic", sample: 12000 },
+  { key: "da", label: "DA", sample: 4000 },
+  { key: "gross", label: "Contract gross", sample: 20000 },
+  { key: "earned_gross", label: "Earned gross", sample: 18000 },
+];
+
+function AdditionFormulaBuilder({ formula, setFormula, baseAmount, setBaseAmount, days, perDay }: {
+  formula: string; setFormula: (v: string) => void; baseAmount: string; setBaseAmount: (v: string) => void; days: number; perDay: number;
+}) {
+  const insert = (t: string) => setFormula((formula.trim() ? formula.trimEnd() + " " : "") + t);
+  const sampleCtx: Record<string, number> = Object.fromEntries(ADDITION_FORMULA_VARS.map((v) => [v.key, v.sample]));
+  sampleCtx.amount = Number(baseAmount) || 0; sampleCtx.days = days; sampleCtx.per_day = perDay;
+  sampleCtx.worked = sampleCtx.present; sampleCtx.working_days = sampleCtx.payroll_days;
+  const check = formula.trim() ? validateExpression(formula) : null;
+  let preview: number | null = null;
+  if (check?.ok) { try { preview = Math.max(0, Math.round(evaluateExpression(formula, sampleCtx) * 100) / 100); } catch { preview = null; } }
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-1.5 md:max-w-xs">
+        <Label>Amount (₹) — use as "amount" in the formula</Label>
+        <Input type="number" min="0" step="0.01" value={baseAmount} onChange={(e) => setBaseAmount(e.target.value)} placeholder="e.g. 3000" />
+      </div>
+      <div className="grid gap-1.5">
+        <Label>Formula</Label>
+        <Input value={formula} onChange={(e) => setFormula(e.target.value)} placeholder="e.g. amount / payroll_days * present * 2" className="font-mono" />
+        {check && !check.ok && <p className="text-xs text-destructive">{check.error}</p>}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {ADDITION_FORMULA_VARS.map((v) => (
+          <button key={v.key} type="button" title={v.label} onClick={() => insert(v.key)}
+            className="rounded-md border border-border px-2 py-1 text-xs text-foreground hover:border-primary hover:text-primary">
+            {v.label} <span className="font-mono text-muted-foreground">{v.key}</span>
+          </button>
+        ))}
+        {["+", "-", "*", "/", "(", ")", "min(", "max(", "round("].map((op) => (
+          <button key={op} type="button" onClick={() => insert(op)}
+            className="rounded-md border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:border-primary hover:text-primary">{op}</button>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Use * for a multiplier (e.g. "* 2"). Pay item names from the contract also work (e.g. special_allowance, hra).
+        {preview != null && <> Example for 24 present / 26 payroll days / 30-day month: <span className="font-semibold text-foreground">₹{preview.toLocaleString("en-IN")}</span></>}
+      </p>
+    </div>
+  );
+}
