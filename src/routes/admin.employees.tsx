@@ -1,6 +1,5 @@
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { Network } from "lucide-react";
 import { EmployeePostingsDialog } from "@/components/EmployeePostingsDialog";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { RecordViewButton } from "@/components/RecordViewButton";
