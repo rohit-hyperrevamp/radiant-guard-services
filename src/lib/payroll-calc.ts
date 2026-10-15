@@ -1077,6 +1077,12 @@ export function computeWages(
     // Custom ED formula = rate per ED duty. Variables: earned components
     // (basic, da, hra…), earned_gross, gross, payroll_days, present.
     const edCtx: FormulaContext = { ...baseFormulaCtx };
+    for (const c of [...resource.components, ...components]) {
+      for (const key of formulaNameAliases(c.name)) {
+        const slug = slugifyVar(key);
+        if (slug) edCtx[slug] = 0;
+      }
+    }
     const taken = exactFormulaKeys(components.map((c) => c.name));
     components.forEach((c) => addFormulaContextAliases(edCtx, Number(c.amount) || 0, c.name, taken));
     edCtx.earned_gross = round2(components.reduce((s, c) => s + (Number(c.amount) || 0), 0));
