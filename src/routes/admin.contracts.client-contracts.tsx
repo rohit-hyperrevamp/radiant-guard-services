@@ -347,7 +347,8 @@ export type ContractResource = {
   roundOffTotals?: Record<string, boolean>;
   /** Extra Duty multiplier (Pages "2X"): ED per duty = ED base ÷ payroll days × this. */
   otMultiplier?: number;
-  otBasis?: "components" | "gross" | "earned_gross";
+  otBasis?: "components" | "gross" | "earned_gross" | "formula";
+  otFormula?: string;
 };
 
 function cloneBenefitItem(item: BenefitItem): BenefitItem {
@@ -382,6 +383,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     roundOffTotals: { ...(resource.roundOffTotals ?? {}) },
     otMultiplier: Number(resource.otMultiplier) > 0 ? Number(resource.otMultiplier) : 1,
     otBasis: resource.otBasis ?? "components",
+    otFormula: resource.otFormula ?? "",
   };
 }
 
@@ -1225,7 +1227,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1248,7 +1250,8 @@ function useContractResources(contractId: string | null) {
         roundOffFinal: r.round_off_final === true,
         roundOffTotals: (r.round_off_totals ?? {}) as Record<string, boolean>,
         otMultiplier: Number(r.ot_multiplier ?? 1) || 1,
-        otBasis: ((r as { ot_basis?: string }).ot_basis ?? "components") as "components" | "gross" | "earned_gross",
+        otFormula: (r as { ot_formula?: string | null }).ot_formula ?? "",
+        otBasis: ((r as { ot_basis?: string }).ot_basis ?? "components") as "components" | "gross" | "earned_gross" | "formula",
       }));
     },
   });
@@ -1925,6 +1928,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     round_off_totals: r.roundOffTotals ?? {},
     ot_multiplier: Number(r.otMultiplier) > 0 ? Number(r.otMultiplier) : 1,
     ot_basis: r.otBasis ?? "components",
+    ot_formula: r.otBasis === "formula" ? (r.otFormula ?? "").trim() || null : null,
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
@@ -4978,7 +4982,8 @@ export function ResourceFormDialog({
   const [roundOffFinal, setRoundOffFinal] = useState(false);
   const [roundTotals, setRoundTotals] = useState<Record<string, boolean>>({});
   const [otMultiplier, setOtMultiplier] = useState<string>("1");
-  const [otBasis, setOtBasis] = useState<"components" | "gross" | "earned_gross">("components");
+  const [otFormula, setOtFormula] = useState<string>("earned_gross / payroll_days * 2");
+  const [otBasis, setOtBasis] = useState<"components" | "gross" | "earned_gross" | "formula">("components");
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -5032,7 +5037,8 @@ export function ResourceFormDialog({
       setRoundTotals({ ...(initial.roundOffTotals ?? {}) });
       setOtMultiplier(String(initial.otMultiplier ?? 1));
       setOtBasis(initial.otBasis ?? "components");
-      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, otMultiplier: Number(initial.otMultiplier ?? 1) || 1, otBasis: initial.otBasis ?? "components", components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
+      setOtFormula(initial.otFormula || "earned_gross / payroll_days * 2");
+      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, otMultiplier: Number(initial.otMultiplier ?? 1) || 1, otBasis: initial.otBasis ?? "components", otFormula: initial.otFormula ?? "", components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
     } else {
       const nextComponents = allowanceTypes
         .filter((a) => a.isDefault)
@@ -5087,9 +5093,10 @@ export function ResourceFormDialog({
           roundOffTotals: roundTotals,
           otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
+      otFormula: otBasis === "formula" ? otFormula : "",
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -5817,6 +5824,7 @@ export function ResourceFormDialog({
       roundOffTotals: roundTotals,
       otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
+      otFormula: otBasis === "formula" ? otFormula : "",
     });
   };
 
@@ -5843,6 +5851,7 @@ export function ResourceFormDialog({
       roundOffTotals: roundTotals,
       otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
+      otFormula: otBasis === "formula" ? otFormula : "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inline, currentResourceSnapshot]);
@@ -6306,9 +6315,47 @@ export function ResourceFormDialog({
                         <SelectItem value="components">Selected components</SelectItem>
                         <SelectItem value="gross">Gross (full month)</SelectItem>
                         <SelectItem value="earned_gross">Earned Gross</SelectItem>
+                        <SelectItem value="formula">Custom formula</SelectItem>
                       </SelectContent>
                     </Select>
                   </label>
+                  {otBasis === "formula" ? (
+                    <div className="w-full space-y-2 rounded-lg border border-border bg-background p-2">
+                      <div className="text-[11px] font-semibold text-muted-foreground">ED rate per duty =</div>
+                      <Input
+                        className="h-8 font-mono text-xs"
+                        value={otFormula}
+                        onChange={(e) => setOtFormula(e.target.value)}
+                        placeholder="earned_gross / payroll_days * 2"
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          ["Earned Gross ×2", "earned_gross / payroll_days * 2"],
+                          ["Basic ×2", "basic / payroll_days * 2"],
+                          ["Basic + DA ×2", "(basic + da) / payroll_days * 2"],
+                          ["Full Gross ×1.5", "fixed_gross / payroll_days * 1.5"],
+                        ].map(([label, f]) => (
+                          <Button key={label} type="button" size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setOtFormula(f)}>
+                            {label}
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          ...components.map((c) => slugifyVar(c.name)).filter(Boolean),
+                          "earned_gross", "fixed_gross", "payroll_days", "present",
+                          "+", "-", "*", "/", "(", ")",
+                        ].filter((v, i, a) => a.indexOf(v) === i).map((v) => (
+                          <button key={v} type="button" className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setOtFormula((f) => `${f.trimEnd()} ${v}`.trim())}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Tap a name to add it, or type. Component values are what the employee earned that month; fixed_gross is the full-month wages. Result is paid × ED days.
+                      </p>
+                    </div>
+                  ) : null}
                   <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                     Multiplier ×
                     <Input
