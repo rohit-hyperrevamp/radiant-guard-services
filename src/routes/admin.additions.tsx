@@ -604,12 +604,15 @@ function AdditionForm() {
           </div>
           <div className="grid gap-1.5">
             <Label>* Addition Type</Label>
-            <Select value={typeId} onValueChange={setTypeId}>
-              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {(types.data ?? []).map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchSelect
+              value={typeId}
+              onChange={setTypeId}
+              options={(types.data ?? []).map((t) => ({ value: t.id, label: t.name, hint: t.code || undefined }))}
+              placeholder="Select type"
+              searchPlaceholder="Search type…"
+              emptyText="No type found."
+              ariaLabel="Select addition type"
+            />
           </div>
           <div className="grid gap-1.5">
             <Label>* Date</Label>
