@@ -1544,47 +1544,44 @@ function useCandidates() {
       return runWithQueryTimeout(
         "Employees",
         async (signal) => {
+          // Load working (non-inactive) staff first so Active is complete
+          // immediately, then page through the large inactive history.
           const pageSize = 1000;
-          const fetchPage = (page: number) =>
-            supabase
+          const fetchPage = (inactive: boolean, page: number) => {
+            let q = supabase
               .from("candidates" as never)
-              .select(CANDIDATE_LIST_COLUMNS)
+              .select(CANDIDATE_LIST_COLUMNS);
+            q = inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
+            return q
               .order("created_at", { ascending: false })
               .order("id", { ascending: true })
               .range(page * pageSize, (page + 1) * pageSize - 1)
               .abortSignal(signal);
+          };
 
-          const first = await fetchPage(0);
-          if (first.error) throw first.error;
-
-          const rows = ((first.data ?? []) as unknown as CandidateListItem[]).slice();
-          qc.setQueryData(QK, rows);
-
-          if (rows.length < pageSize) {
-            writeSnapshot(SNAP_CANDIDATES, rows);
-            return rows;
-          }
-
-          const batchSize = 4;
-          for (let startPage = 1; startPage < 60; startPage += batchSize) {
-            const results = await Promise.all(
-              Array.from({ length: batchSize }, (_, offset) => fetchPage(startPage + offset)),
-            );
-            let reachedEnd = false;
-            for (const result of results) {
-              if (result.error) throw result.error;
-              const pageRows = (result.data ?? []) as unknown as CandidateListItem[];
-              rows.push(...pageRows);
-              if (pageRows.length < pageSize) reachedEnd = true;
+          const rows: CandidateListItem[] = [];
+          for (const inactive of [false, true]) {
+            const batchSize = 4;
+            for (let startPage = 0; startPage < 80; startPage += batchSize) {
+              const results = await Promise.all(
+                Array.from({ length: batchSize }, (_, offset) => fetchPage(inactive, startPage + offset)),
+              );
+              let reachedEnd = false;
+              for (const result of results) {
+                if (result.error) throw result.error;
+                const pageRows = (result.data ?? []) as unknown as CandidateListItem[];
+                rows.push(...pageRows);
+                if (pageRows.length < pageSize) reachedEnd = true;
+              }
+              qc.setQueryData(QK, rows.slice());
+              if (reachedEnd) break;
             }
-            qc.setQueryData(QK, rows.slice());
-            if (reachedEnd) break;
           }
 
           writeSnapshot(SNAP_CANDIDATES, rows);
           return rows;
         },
-        30_000,
+        90_000,
       );
     },
   });
