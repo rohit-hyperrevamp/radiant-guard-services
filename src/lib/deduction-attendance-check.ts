@@ -70,3 +70,32 @@ export function shiftDate(iso: string, days: number): string {
 }
 
 export { chunks as chunkIds };
+
+/** Attendance days per unit for each candidate between from and to (inclusive). */
+export async function attendanceUnitsByCandidate(args: {
+  candidateIds: string[];
+  from: string;
+  to: string;
+}): Promise<Map<string, Map<string, number>>> {
+  const out = new Map<string, Map<string, number>>();
+  const ids = Array.from(new Set(args.candidateIds.filter(Boolean)));
+  for (const part of chunks(ids, 40)) {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase
+        .from("attendance_entries")
+        .select("candidate_id,unit_id")
+        .in("candidate_id", part)
+        .gte("entry_date", args.from)
+        .lte("entry_date", args.to)
+        .range(from, from + 999);
+      if (error) throw error;
+      for (const r of (data ?? []) as { candidate_id: string; unit_id: string }[]) {
+        const m = out.get(r.candidate_id) ?? new Map<string, number>();
+        m.set(r.unit_id, (m.get(r.unit_id) ?? 0) + 1);
+        out.set(r.candidate_id, m);
+      }
+      if (!data || data.length < 1000) break;
+    }
+  }
+  return out;
+}
