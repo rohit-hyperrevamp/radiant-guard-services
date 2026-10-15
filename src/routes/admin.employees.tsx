@@ -1,5 +1,7 @@
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { Network } from "lucide-react";
+import { EmployeePostingsDialog } from "@/components/EmployeePostingsDialog";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
@@ -2213,6 +2215,7 @@ function EmployeesPage() {
   const [editing, setEditing] = useState<Candidate | null>(null);
   const [openingCandidateId, setOpeningCandidateId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CandidateListItem | null>(null);
+  const [postingsFor, setPostingsFor] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<CandidateListItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [approvePreview, setApprovePreview] = useState<CandidateListItem | null>(null);
@@ -4570,6 +4573,7 @@ function EmployeesPage() {
                           <Edit2 className="h-4 w-4" />
                         )}
                       </Button>}
+{!isHrExecutive && mode === "employee" && (<Button variant="ghost" size="icon" onClick={() => setPostingsFor(c.id)} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Billing type & postings" aria-label="Billing type & postings"><Network className="h-4 w-4" /></Button>)}
                     </>
                   );
                 })()}
@@ -4978,6 +4982,7 @@ function EmployeesPage() {
                     <Edit2 className="h-4 w-4" />
                   )}
                 </Button>}
+{!isHrExecutive && mode === "employee" && (<Button variant="ghost" size="icon" onClick={() => setPostingsFor(c.id)} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Billing type & postings" aria-label="Billing type & postings"><Network className="h-4 w-4" /></Button>)}
                 {mode === "candidate" && (
                   <Button
                     variant="ghost"
@@ -5731,6 +5736,7 @@ function EmployeesPage() {
         }}
       />
 
+      <EmployeePostingsDialog candidateId={postingsFor} open={!!postingsFor} onOpenChange={(o) => !o && setPostingsFor(null)} />
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
