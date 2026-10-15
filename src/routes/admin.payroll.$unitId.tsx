@@ -584,7 +584,7 @@ function PayrollUnitPage() {
       // 3b. Per-employee Additions & Deductions (Control Center catalog).
       // Pull anything dated within the payroll period and still active.
       const candidateIds = roster.map((c) => c.id);
-      type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean };
+      type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean; formula?: string | null; inputs?: { amount?: number; days?: number; per_day?: number } };
       type DayAdj = { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
       const additionsByCandidate = new Map<string, PerEmpItem[]>();
       const deductionsByCandidate = new Map<string, PerEmpItem[]>();

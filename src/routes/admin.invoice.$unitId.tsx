@@ -499,7 +499,7 @@ function PayrollUnitPage() {
       // Mirrors admin.payroll.$unitId.tsx so invoice employer-cost lines up
       // 1:1 with the payroll register (previously omitted).
       const candidateIds = roster.map((c) => c.id);
-      type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean };
+      type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean; formula?: string | null; inputs?: { amount?: number; days?: number; per_day?: number } };
       type DayAdj = { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
       const additionsByCandidate = new Map<string, PerEmpItem[]>();
       const deductionsByCandidate = new Map<string, PerEmpItem[]>();
