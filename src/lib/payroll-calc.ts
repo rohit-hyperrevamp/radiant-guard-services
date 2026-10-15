@@ -1080,7 +1080,6 @@ export function computeWages(
     const taken = exactFormulaKeys(components.map((c) => c.name));
     components.forEach((c) => addFormulaContextAliases(edCtx, Number(c.amount) || 0, c.name, taken));
     edCtx.earned_gross = round2(components.reduce((s, c) => s + (Number(c.amount) || 0), 0));
-    edCtx.gross = round2(contractGross);
     edCtx.fixed_gross = round2(contractGross);
     edCtx.payroll_days = OT_DIVISOR;
     try {
