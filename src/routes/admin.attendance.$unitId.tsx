@@ -1831,16 +1831,21 @@ function MusterRollPage() {
           // posting flag disagrees with the saved rows for the same designation
           // and duty length, show ONE line (the saved one) instead of a
           // phantom regular + reliever pair for the same person.
+          // A posting with no duty length (0) is the default line: saved days
+          // stamped with the unit's default 8h/12h belong to it, not to a
+          // second row for the same person.
+          const savedShift = (e: { shift_hours?: number | null }) =>
+            Number(e.shift_hours) === 8 || Number(e.shift_hours) === 12 ? Number(e.shift_hours) : 0;
           const sameShape = savedLines.filter(
             (e) =>
               (e.designation_id ?? null) === (lineDesig ?? null) &&
-              (Number(e.shift_hours) === 8 || Number(e.shift_hours) === 12 ? Number(e.shift_hours) : 0) === shiftNum,
+              (shiftNum === 0 || savedShift(e) === shiftNum),
           );
-          const flagMatches = sameShape.some((e) => !!e.is_reliever === !!l.is_reliever);
-          const variant =
-            sameShape.length && !flagMatches
-              ? lineVariant(shiftNum, sameShape[0].is_reliever)
-              : lineVariant(l.shift_hours, l.is_reliever);
+          const preferred =
+            sameShape.find((e) => !!e.is_reliever === !!l.is_reliever) ?? sameShape[0];
+          const variant = preferred
+            ? lineVariant(savedShift(preferred), preferred.is_reliever)
+            : lineVariant(l.shift_hours, l.is_reliever);
           pushRow(lineDesig, variant, true, l.id);
         }
       } else if (assigned && savedLines.length === 0) {
