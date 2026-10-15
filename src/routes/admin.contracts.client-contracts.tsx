@@ -6356,7 +6356,7 @@ export function ResourceFormDialog({
                       </p>
                     </div>
                   ) : null}
-                  <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <label className={`${otBasis === "formula" ? "hidden" : "flex"} items-center gap-2 text-xs font-semibold text-muted-foreground`}>
                     Multiplier ×
                     <Input
                       type="number"
