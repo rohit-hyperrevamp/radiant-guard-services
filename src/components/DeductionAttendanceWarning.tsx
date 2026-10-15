@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { attendanceCountByCandidate, namesLookAlike, shiftDate } from "@/lib/deduction-attendance-check";
+import { attendanceCountByCandidate, attendanceUnitsByCandidate, namesLookAlike, shiftDate } from "@/lib/deduction-attendance-check";
 
 type Emp = { id: string; full_name: string; employee_code: string };
 
@@ -17,14 +17,19 @@ export function DeductionAttendanceWarning({
   unitId,
   unitName,
   employees,
+  units = [],
   onReplace,
+  onUseUnit,
 }: {
   candidateIds: string[];
   date: string;
   unitId: string;
   unitName?: string;
   employees: Emp[];
+  units?: { id: string; label: string }[];
   onReplace: (fromId: string, toId: string) => void;
+  /** Switch the deduction to a site where the employee actually has attendance. */
+  onUseUnit?: (unitId: string) => void;
 }) {
   const ids = candidateIds.slice(0, 50);
   const from = date ? shiftDate(date, -31) : "";
@@ -52,9 +57,17 @@ export function DeductionAttendanceWarning({
       const alikeCounts = allAlikeIds.length
         ? await attendanceCountByCandidate({ candidateIds: allAlikeIds, from, to, unitId: unitId || null })
         : new Map<string, number>();
+      // With a unit picked, show the sites where the person does have attendance
+      // (look-alike site names are the usual trap, e.g. two "(TAKWE)" sites).
+      const elsewhere = unitId
+        ? await attendanceUnitsByCandidate({ candidateIds: missing, from, to })
+        : new Map<string, Map<string, number>>();
       return missing.map((id) => ({
         emp: byId.get(id),
         id,
+        otherUnits: Array.from(elsewhere.get(id)?.entries() ?? [])
+          .filter(([u]) => u !== unitId)
+          .map(([u, days]) => ({ unitId: u, days })),
         suggestions: (lookAlikes.get(id) ?? [])
           .map((e) => ({ ...e, days: alikeCounts.get(e.id) ?? 0 }))
           .filter((e) => e.days > 0),
@@ -78,6 +91,17 @@ export function DeductionAttendanceWarning({
               <div>
                 <span className="font-semibold">{it.emp?.employee_code} · {it.emp?.full_name}</span> has no attendance between {from} and {to}.
               </div>
+              {it.otherUnits.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-muted-foreground">Has attendance at:</span>
+                  {it.otherUnits.map((o) => (
+                    <Button key={o.unitId} type="button" size="sm" variant="outline" className="h-7 text-xs"
+                      disabled={!onUseUnit} onClick={() => onUseUnit?.(o.unitId)}>
+                      Use {units.find((u) => u.id === o.unitId)?.label ?? "that site"} ({o.days} days)
+                    </Button>
+                  ))}
+                </div>
+              )}
               {it.suggestions.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <span className="text-muted-foreground">Did you mean:</span>

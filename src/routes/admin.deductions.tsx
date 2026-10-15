@@ -989,7 +989,7 @@ function DeductionForm() {
               onChange={(v) => setDedUnitId(v === "__all__" ? "" : v)}
               options={[
                 { value: "__all__", label: "Any unit (all payrolls)" },
-                ...(formUnitsQ.data?.units ?? []).map((u) => ({ value: u.id, label: u.name || u.code, hint: u.customer_name || undefined })),
+                ...(formUnitsQ.data?.units ?? []).map((u) => ({ value: u.id, label: u.code ? `${u.code} · ${u.name || u.code}` : u.name, hint: u.customer_name || undefined })),
               ]}
               placeholder="Any unit"
               searchPlaceholder="Search unit…"
@@ -1004,6 +1004,8 @@ function DeductionForm() {
               unitId={dedUnitId}
               unitName={(formUnitsQ.data?.units ?? []).find((u) => u.id === dedUnitId)?.name}
               employees={emps.data ?? []}
+              units={(formUnitsQ.data?.units ?? []).map((u) => ({ id: u.id, label: u.code ? `${u.code} · ${u.name || u.code}` : u.name }))}
+              onUseUnit={setDedUnitId}
               onReplace={(fromId, toId) =>
                 setCandidateIds((prev) => Array.from(new Set(prev.map((id) => (id === fromId ? toId : id)))))
               }
