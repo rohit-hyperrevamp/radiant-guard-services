@@ -18,4 +18,9 @@ describe("Extra Duty basis", () => {
     const w = computeWages({ pDays: 13, otHours: 8, otDays: 1, phDays: 0, otherPaidDays: 0, tDays: 14 }, mk("earned_gross"), 26);
     expect(w.components.find((c) => c.name === "Extra Duty")?.amount).toBe(600);
   });
+  it("earned gross includes Paid Holiday: 13 P + 1 PH = 8,400 / 26 × 2 ≈ 646.15 per ED day", () => {
+    const w = computeWages({ pDays: 13, otHours: 8, otDays: 1, phDays: 1, otherPaidDays: 0, tDays: 15 }, mk("earned_gross"), 26);
+    // earned gross = 7,800 wages + 600 PH = 8,400; 8,400/26×2 = 646.1538… → 646.15
+    expect(w.components.find((c) => c.name === "Extra Duty")?.amount).toBe(646.15);
+  });
 });
