@@ -1,3 +1,4 @@
+import { evaluateExpression, validateExpression } from "@/lib/formula-engine";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { RecordViewButton } from "@/components/RecordViewButton";
