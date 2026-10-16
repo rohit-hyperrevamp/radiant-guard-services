@@ -29,9 +29,9 @@ export const startImpersonation = createServerFn({ method: "POST" })
         .select("role_key")
         .eq("mobile", callerPhone).neq("status", "inactive")
         .maybeSingle();
-      isSuper = me?.role_key === "super_admin";
+      isSuper = me?.role_key === "super_admin" || me?.role_key === "leadership";
     }
-    if (!isSuper) throw new Error("Only the Super Admin can view as another user.");
+    if (!isSuper) throw new Error("Only the Super Admin or Leadership can view as another user.");
 
     const { data: target, error: tErr } = await supabaseAdmin
       .from("candidates")
@@ -105,9 +105,9 @@ export const searchImpersonationTargets = createServerFn({ method: "POST" })
     let isSuper = callerPhone === superPhone;
     if (!isSuper && callerPhone) {
       const { data: me } = await supabaseAdmin.from("candidates").select("role_key").eq("mobile", callerPhone).neq("status", "inactive").maybeSingle();
-      isSuper = me?.role_key === "super_admin";
+      isSuper = me?.role_key === "super_admin" || me?.role_key === "leadership";
     }
-    if (!isSuper) throw new Error("Only the Super Admin can view as another user.");
+    if (!isSuper) throw new Error("Only the Super Admin or Leadership can view as another user.");
     const PAGE = 25;
     const words = data.q.replace(/[,()%*]/g, " ").trim().split(/\s+/).filter(Boolean);
     const run = async (mode: "all" | "any") => {

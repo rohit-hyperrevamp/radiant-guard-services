@@ -813,7 +813,7 @@ function AdminLayout() {
               collapsed && "mt-1.5 justify-center border-0 bg-transparent p-0",
             )}
           >
-            {isSuperAdmin && !collapsed && <ViewAsUserButton className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/[0.08] hover:text-white" />}
+            {(isSuperAdmin || roleKey === "leadership") && !collapsed && <ViewAsUserButton className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/[0.08] hover:text-white" />}
             <NotificationBell triggerClassName="relative inline-flex h-11 w-11 shrink-0 aspect-square items-center justify-center rounded-full text-white/70 outline-none transition-colors focus-visible:outline-none hover:bg-white/[0.08] hover:text-white" />
             {!collapsed && (
               <span className="flex-1 truncate text-[12px] font-semibold text-white">
@@ -850,7 +850,7 @@ function AdminLayout() {
           <div className="truncate text-[14px] font-semibold leading-tight text-foreground">Radiant</div>
         </Link>
         <div className="flex shrink-0 items-center">
-          {isSuperAdmin && <ViewAsUserButton />}
+          {(isSuperAdmin || roleKey === "leadership") && <ViewAsUserButton />}
           <NotificationBell />
           <Link
             to="/admin/profile"

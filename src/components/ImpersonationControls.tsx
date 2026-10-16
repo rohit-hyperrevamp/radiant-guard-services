@@ -36,7 +36,7 @@ export function ImpersonationBanner() {
         }}
         className="inline-flex items-center gap-1 rounded-full bg-background px-3 py-1 text-xs font-semibold text-foreground"
       >
-        <Undo2 className="h-3.5 w-3.5" /> {busy ? "Switching…" : "Back to Super Admin view"}
+        <Undo2 className="h-3.5 w-3.5" /> {busy ? "Switching…" : "Back to my view"}
       </button>
     </div>
   );
