@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
 import { totalsForPart, type InvoiceSplit } from "./invoice-split";
+import { computeAttendanceTotals } from "./payroll-calc";
 
 const split: InvoiceSplit = {
   parts: [{ key: "main", label: "Regular" }, { key: "ed", label: "Extra Duty / reliever" }],
@@ -10,6 +11,18 @@ const split: InvoiceSplit = {
 };
 
 describe("separate regular and Extra Duty invoices", () => {
+  it("does not divide stored Extra Duty days by an eight-hour shift again", () => {
+    const totals = computeAttendanceTotals(
+      "employee",
+      ["2026-09-01"],
+      [{ candidate_id: "employee", entry_date: "2026-09-01", code: "P", ot_hours: 4 }],
+      [{ code: "P", counts_as_present: true, is_paid: true, day_value: 1 }],
+    );
+    expect(totals.pDays).toBe(1);
+    expect(totals.otDays).toBe(4);
+    expect(totals.tDays).toBe(5);
+  });
+
   it("allocates 26 regular plus 4 Extra Duty as 30 duties without counting either twice", () => {
     const totals = { pDays: 26, phDays: 0, otDays: 4, otHours: 4, tDays: 30 };
     const regular = totalsForPart(totals, true, split, "main");
