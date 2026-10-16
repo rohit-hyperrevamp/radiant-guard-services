@@ -1,6 +1,7 @@
 # Mobile app UI re-review
 
 ## Payroll-cycle status workbook
+- [ ] Fill a versioned tracker with source-backed payroll/invoice results and explicit pending reasons; explain the temporary BFL group and missing cycle assignments.
 - [x] Export current client-to-payroll-cycle assignments for the September 2026 review: 1,721 clients; retain an Unassigned sheet.
 - [x] Create seven cycle sheets with serial number, client ID/name and payroll/invoice Match/Not match dropdowns plus automatic summary counts; unverified statuses remain blank.
 - [x] Recalculate, test both dropdowns against detail/summary totals, inspect all 122 rendered pages and deliver the final Excel workbook.
