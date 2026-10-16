@@ -596,5 +596,5 @@
 - [ ] Remaining ~1,336 payslips: Extra Duty at double rate / benefit-inclusive ED rate (needs an ED multiplier setting), per-person Pages deductions, ESI/EPF on groups with no unique fit, 3 sites with overlapping October attendance (CLI394, CLI3356, CLI3938)
 
 ## Manager email matching and Excel list
-- [ ] Attach spreadsheet emails to uniquely matched active employees only.
-- [ ] Verify saved emails and export existing/missing users with names, designations, phones and status; exclude inactive profiles.
+- [x] Attach spreadsheet emails to uniquely matched active employees only (9 verified updates).
+- [x] Verify saved emails and export existing/missing users with names, designations, phones and status; exclude inactive profiles (9 active, 4 without an active match).
