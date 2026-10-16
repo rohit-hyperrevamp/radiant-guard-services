@@ -613,6 +613,7 @@
 - [x] Recover the original shared folder and cached five-state invoice sources; confirm 736 parsed invoice objects and 420 prior comparison rows.
 - [x] Identify that the cached comparison chooses site combinations by closest invoice total; treat those mappings as unverified rather than exact matches.
 - [x] Connect Vipit's Google Drive and verify the Radiant Launch folder, September attendance folders, client rate files and all five state invoice PDFs through successful reads.
+- [ ] Complete the renewed all-file review requested after Drive access restoration; preserve designations and apply only source-supported rates, divisors and attendance.
 - [ ] Review current Drive invoice, rate and attendance contents, including multi-site invoices — folder access restored; document-level reconciliation remains incomplete.
 - [ ] Validate client identity, applicable rate version, billing divisor and employee-level attendance before applying supported corrections — document-level review remains incomplete; do not infer salary CTC from invoice totals or invent duty records.
 - [ ] Recompute through the live invoice/payroll calculation and report exact matches and unresolved differences — blocked by validated source mapping and authorized live database tooling.
