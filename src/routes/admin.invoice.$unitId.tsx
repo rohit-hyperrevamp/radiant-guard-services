@@ -239,12 +239,12 @@ function PayrollUnitPage() {
     },
   });
   // Contract switch: count Weekly Off (WO) as Present days for this period.
-  const { data: woAsPresent = false } = useQuery({
+  const { data: contractFlags } = useQuery({
     queryKey: ["invoice-wo-as-present", unitId, start, end],
     queryFn: async () => {
       const { data } = await supabase
         .from("client_contracts")
-        .select("wo_as_present" as never)
+        .select("wo_as_present, exact_day_rate" as never)
         .eq("unit_id", unitId)
         .eq("record_type", "client")
         .eq("status", "active")
@@ -252,9 +252,12 @@ function PayrollUnitPage() {
         .or(`end_date.is.null,end_date.gte.${start}`)
         .order("start_date", { ascending: false })
         .limit(1);
-      return Boolean(((data ?? [])[0] as { wo_as_present?: boolean } | undefined)?.wo_as_present);
+      const row = (data ?? [])[0] as { wo_as_present?: boolean; exact_day_rate?: boolean } | undefined;
+      return { woAsPresent: Boolean(row?.wo_as_present), exactDayRate: Boolean(row?.exact_day_rate) };
     },
   });
+  const woAsPresent = contractFlags?.woAsPresent ?? false;
+  const exactDayRate = contractFlags?.exactDayRate ?? false;
   const phConfig = useMemo(() => {
     if (!unitPh?.enabled) return null;
     const map = holidayMapForDates(periodDates, publicHolidays);
@@ -1071,12 +1074,17 @@ function PayrollUnitPage() {
     const unitRate = billsHourly ? perHour : perDay;
     const unitQuantity = billsHourly ? billedHours : billedDays;
     const unitLabel = billsHourly ? "hrs" : "Duty";
+    // Contracts flagged exact_day_rate (client MIS rule) multiply the unrounded
+    // day/hour rate and round once at the end.
+    const exactRate = billsHourly
+      ? billingDays > 0 && shiftHours > 0 ? contracted / billingDays / shiftHours : 0
+      : billingDays > 0 ? contracted / billingDays : 0;
     const actual =
       !r.wages || !r.resource
         ? 0
         : billingMode === "lumpsum" || billingMode === "man_months"
           ? contracted
-          : Math.round(unitRate * unitQuantity * 100) / 100;
+          : Math.round((exactDayRate ? exactRate : unitRate) * unitQuantity * 100) / 100;
     return {
       contracted,
       payrollDays,
