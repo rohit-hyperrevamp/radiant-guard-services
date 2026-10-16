@@ -17,11 +17,11 @@ with cur0 as (
 cur as (
   select id, unit_id, is_internal from cur0
   union all
-  select distinct on (c.unit_id) c.id, c.unit_id, c.is_internal
-  from client_contracts c
-  where c.status = 'active' and c.record_type = 'client' and c.unit_id is not null
-    and c.unit_id not in (select unit_id from cur0)
-  order by c.unit_id, c.start_date desc, c.id
+  (select distinct on (c.unit_id) c.id, c.unit_id, c.is_internal
+   from client_contracts c
+   where c.status = 'active' and c.record_type = 'client' and c.unit_id is not null
+     and c.unit_id not in (select unit_id from cur0)
+   order by c.unit_id, c.start_date desc, c.id)
 ),
 u as (
   select cur.id as contract_id,
