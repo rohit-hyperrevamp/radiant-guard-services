@@ -610,6 +610,8 @@
 - [x] Check steps against existing screens and deliver the workbook; 10 tabs verified. Challan PDF printing is clearly marked unavailable.
 
 ## Source-backed September Drive reconciliation
+- [x] Recheck fresh BFSL/L&T MIS with stored ED as days, preserve invoice parts, and production-read-back 12 documented BFSL supplement corrections (₹12,073.68 duplicate billing removed); four regression tests pass.
+- [x] Deliver September_Split_Invoices_and_Adjustments_v2.xlsx: 22/38 BFSL billing-input matches and 117/219 L&T employee-site billing-input matches; no generated payroll/invoice approval claimed.
 - [ ] Recheck regular/Extra Duty/reliever invoice parts without double-counting sites or duties; compare documented invoice charges separately from payroll additions/deductions.
 - [ ] Verify duty reclassification against contract rules and source attendance/MIS/Pages, then deliver updated invoice and payroll evidence with unresolved cases clearly identified.
 - [x] Recover the original shared folder and cached five-state invoice sources; confirm 736 parsed invoice objects and 420 prior comparison rows.
