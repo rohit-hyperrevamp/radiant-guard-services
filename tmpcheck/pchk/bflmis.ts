@@ -1,6 +1,9 @@
 const prod = "https://yimpxawqoarprhtxapie.supabase.co";
 process.env.SUPABASE_URL = prod;
 process.env.VITE_SUPABASE_URL = prod;
+const prodKey = (await import("@/lib/server-env")).PRODUCTION_SUPABASE.SUPABASE_SERVICE_ROLE_KEY;
+process.env.SUPABASE_PUBLISHABLE_KEY = prodKey;
+process.env.VITE_SUPABASE_PUBLISHABLE_KEY = prodKey;
 const { computeInvoice } = await import("./inveng");
 import { supabase } from "./shim";
 import { appendFileSync, existsSync, readFileSync } from "fs";
