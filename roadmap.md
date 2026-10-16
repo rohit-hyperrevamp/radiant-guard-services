@@ -610,6 +610,8 @@
 - [x] Check steps against existing screens and deliver the workbook; 10 tabs verified. Challan PDF printing is clearly marked unavailable.
 
 ## Source-backed September Drive reconciliation
+- [ ] Recheck regular/Extra Duty/reliever invoice parts without double-counting sites or duties; compare documented invoice charges separately from payroll additions/deductions.
+- [ ] Verify duty reclassification against contract rules and source attendance/MIS/Pages, then deliver updated invoice and payroll evidence with unresolved cases clearly identified.
 - [x] Recover the original shared folder and cached five-state invoice sources; confirm 736 parsed invoice objects and 420 prior comparison rows.
 - [x] Identify that the cached comparison chooses site combinations by closest invoice total; treat those mappings as unverified rather than exact matches.
 - [x] Connect Vipit's Google Drive and verify the Radiant Launch folder, September attendance folders, client rate files and all five state invoice PDFs through successful reads.
