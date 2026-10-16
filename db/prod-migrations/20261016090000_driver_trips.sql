@@ -62,7 +62,7 @@ BEGIN
   _user_id := public.get_user_id_by_candidate(NEW.driver_id);
   IF _user_id IS NULL THEN RETURN NEW; END IF;
   SELECT COALESCE(vehicle_number, '') INTO _vehicle FROM public.vehicles WHERE id = NEW.vehicle_id;
-  INSERT INTO public.notifications (user_id, title, body, type, data)
+  INSERT INTO public.notifications (user_id, title, message, type, entity_type, entity_id, link)
   VALUES (
     _user_id,
     'New trip assigned',
@@ -74,7 +74,9 @@ BEGIN
       ' · ', to_char(NEW.trip_date, 'DD Mon')
     )),
     'driver_trip',
-    jsonb_build_object('trip_id', NEW.id)
+    'driver_trip',
+    NEW.id,
+    '/admin'
   );
   RETURN NEW;
 END;
