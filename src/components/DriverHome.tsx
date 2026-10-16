@@ -208,6 +208,20 @@ export function DriverHome() {
   const trips = tripsQ.data ?? [];
   const pending = useMemo(() => trips.filter((t) => t.status === "pending"), [trips]);
 
+  // A vehicle is "theirs" only while a trip assigns it — pending or
+  // acknowledged, today or upcoming. Drivers never see the full fleet.
+  const assignedVehicles = useMemo(() => {
+    const ids = new Set(
+      trips
+        .filter((t) => (t.status === "pending" || t.status === "acknowledged") && t.vehicle_id)
+        .map((t) => t.vehicle_id as string),
+    );
+    return (vehiclesQ.data ?? []).filter((v) => ids.has(v.id));
+  }, [trips, vehiclesQ.data]);
+
+  // Auto-select when exactly one vehicle is currently assigned.
+  if (!vehicleId && assignedVehicles.length === 1) setVehicleId(assignedVehicles[0].id);
+
   return (
     <div className="mx-auto w-full max-w-xl space-y-4 pb-8">
       <header className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -281,14 +295,20 @@ export function DriverHome() {
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <Label className="text-xs">Vehicle</Label>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Choose vehicle" /></SelectTrigger>
-              <SelectContent>
-                {(vehiclesQ.data ?? []).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{vehicleLabel(v)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {assignedVehicles.length === 0 ? (
+              <p className="mt-1 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                No vehicle assigned to you right now. When a trip with a vehicle is assigned, it will appear here.
+              </p>
+            ) : (
+              <Select value={vehicleId} onValueChange={setVehicleId}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Choose vehicle" /></SelectTrigger>
+                <SelectContent>
+                  {assignedVehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{vehicleLabel(v)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div>
             <Label className="text-xs">Type</Label>
@@ -322,7 +342,7 @@ export function DriverHome() {
             <Input className="mt-1" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Pump / location" />
           </div>
         </div>
-        <Button className="mt-3 w-full" onClick={() => saveFuel.mutate()} disabled={saveFuel.isPending}>
+        <Button className="mt-3 w-full" onClick={() => saveFuel.mutate()} disabled={saveFuel.isPending || assignedVehicles.length === 0}>
           {saveFuel.isPending ? "Saving…" : "Save expense"}
         </Button>
       </Card>
