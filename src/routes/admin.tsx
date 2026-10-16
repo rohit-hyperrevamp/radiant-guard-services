@@ -522,7 +522,17 @@ function AdminLayout() {
     { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
   ], []);
 
+  // Drivers are the most limited transport users: only their dashboard
+  // (trips, check-in, fuel), their attendance and training — no fleet console.
+  const isDriver = roleKey === "transport" && me.designation.trim().toLowerCase() === "driver";
+  const driverGroups: GroupItem[] = [
+    { key: "dashboard", label: "My Dashboard", icon: LayoutGrid, to: "/admin/dashboard", activePrefixes: ["/admin/dashboard"] },
+    { key: "my-attendance", label: "My Attendance", icon: CalendarClock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
+    { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
+  ];
+
   const visibleGroups: GroupItem[] = (() => {
+    if (isDriver && !isSuperAdmin) return driverGroups;
     if (isGuard) return guardGroups;
     if (isControlCenterRole) {
       const children = controlCenterRadarChildren.filter(
