@@ -930,7 +930,7 @@ export function FinanceCharter({
           .eq("record_type", "client")
           .eq("status", "active")
           .in("unit_id", ids.slice(i, i + 100));
-        for (const c of (data ?? []) as { unit_id: string; exact_day_rate?: boolean }[]) {
+        for (const c of (data ?? []) as unknown as { unit_id: string; exact_day_rate?: boolean }[]) {
           if (c.exact_day_rate) exactUnits.add(String(c.unit_id));
         }
       }
