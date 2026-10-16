@@ -208,6 +208,20 @@ export function DriverHome() {
   const trips = tripsQ.data ?? [];
   const pending = useMemo(() => trips.filter((t) => t.status === "pending"), [trips]);
 
+  // A vehicle is "theirs" only while a trip assigns it — pending or
+  // acknowledged, today or upcoming. Drivers never see the full fleet.
+  const assignedVehicles = useMemo(() => {
+    const ids = new Set(
+      trips
+        .filter((t) => (t.status === "pending" || t.status === "acknowledged") && t.vehicle_id)
+        .map((t) => t.vehicle_id as string),
+    );
+    return (vehiclesQ.data ?? []).filter((v) => ids.has(v.id));
+  }, [trips, vehiclesQ.data]);
+
+  // Auto-select when exactly one vehicle is currently assigned.
+  if (!vehicleId && assignedVehicles.length === 1) setVehicleId(assignedVehicles[0].id);
+
   return (
     <div className="mx-auto w-full max-w-xl space-y-4 pb-8">
       <header className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
