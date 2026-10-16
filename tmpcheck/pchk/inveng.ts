@@ -774,7 +774,7 @@ export async function computeInvoice(unitId:string,start:string,end:string,G:any
         ? 0
         : billingMode === "lumpsum" || billingMode === "man_months"
           ? contracted
-          : Math.round(unitRate * unitQuantity * 100) / 100;
+          : Math.round((process.env.EXACT === "1" ? (billsHourly ? contracted / billingDays / shiftHours : contracted / billingDays) : unitRate) * unitQuantity * 100) / 100;
     return {
       contracted,
       payrollDays,
