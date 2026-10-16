@@ -600,6 +600,7 @@
 - [x] Verify saved emails and export existing/missing users with names, designations, phones and status; exclude inactive profiles (9 active, 4 without an active match).
 
 ## CTC billing add-on choices
-- [ ] Add selectable management fee at 7% of CTC.
-- [ ] Add selectable reliever charge at 16.67% of CTC.
-- [ ] Verify both formulas and preserve existing contract selections.
+- [x] Add selectable management fee at 7% of CTC.
+- [x] Verify existing selectable reliever charge at 16.67% of CTC.
+- [x] Verify both production formulas and preserve existing contract selections; five calculation tests pass.
+- [ ] Verify the changed downstream CTC refresh on the live site after publication.
