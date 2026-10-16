@@ -1,9 +1,9 @@
 # Mobile app UI re-review
 
 ## Payroll-cycle status workbook
-- [ ] Export current client-to-payroll-cycle assignments for the September 2026 review.
-- [ ] Create simple cycle sheets with serial number, client ID/name and payroll/invoice dropdowns plus automatic summary counts.
-- [ ] Recalculate, test dropdown-driven totals, inspect every sheet and deliver the final Excel workbook.
+- [x] Export current client-to-payroll-cycle assignments for the September 2026 review: 1,721 clients; retain an Unassigned sheet.
+- [x] Create seven cycle sheets with serial number, client ID/name and payroll/invoice Match/Not match dropdowns plus automatic summary counts; unverified statuses remain blank.
+- [x] Recalculate, test both dropdowns against detail/summary totals, inspect all 122 rendered pages and deliver the final Excel workbook.
 
 ## Consistent allowance names
 - [x] Apply shared naming to contracts, rate comparisons, payroll, payslips and invoices without rewriting rates or formulas.
