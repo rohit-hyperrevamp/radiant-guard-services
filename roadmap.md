@@ -608,3 +608,10 @@
 ## Inventory team demo guide
 - [x] Create a concise Excel workbook with separate workflow tabs covering setup, stock, requests, vendor receipts, challans, uniform issuance and returns.
 - [x] Check steps against existing screens and deliver the workbook; 10 tabs verified. Challan PDF printing is clearly marked unavailable.
+
+## Source-backed September Drive reconciliation
+- [x] Recover the original shared folder and cached five-state invoice sources; confirm 736 parsed invoice objects and 420 prior comparison rows.
+- [x] Identify that the cached comparison chooses site combinations by closest invoice total; treat those mappings as unverified rather than exact matches.
+- [ ] Review current Drive invoice, rate and attendance contents, including multi-site invoices — blocked by no accessible Drive connection in this session.
+- [ ] Validate client identity, applicable rate version, billing divisor and employee-level attendance before applying supported corrections — blocked by current source access; do not infer salary CTC from invoice totals or invent duty records.
+- [ ] Recompute through the live invoice/payroll calculation and report exact matches and unresolved differences — blocked by validated source mapping and authorized live database tooling.
