@@ -606,5 +606,5 @@
 - [ ] Verify the changed downstream CTC refresh on the live site after publication.
 
 ## Inventory team demo guide
-- [ ] Create a concise Excel workbook with separate workflow tabs covering setup, stock, requests, vendor receipts, challans, uniform issuance and returns.
-- [ ] Check steps against existing screens and deliver the workbook.
+- [x] Create a concise Excel workbook with separate workflow tabs covering setup, stock, requests, vendor receipts, challans, uniform issuance and returns.
+- [x] Check steps against existing screens and deliver the workbook; 10 tabs verified. Challan PDF printing is clearly marked unavailable.
