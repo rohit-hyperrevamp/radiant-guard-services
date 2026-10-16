@@ -1,6 +1,7 @@
 # Mobile app UI re-review
 
 ## Priority one: September exact reconciliation
+- [ ] Include all applicable client-provided Drive rate structures in the current September re-review of payroll and invoices.
 - [ ] Re-audit September payroll against Pages and invoices/MIS against original rate/attendance evidence; preserve already-matched records.
 - [ ] Apply backed corrections to mismatching inputs only, retain before/after evidence, and validate actual generated totals.
 - [ ] Update the summary from verified final outputs only; do not label unverified records as 100% matched.
