@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Payroll-cycle status workbook
+- [x] Export current client-to-payroll-cycle assignments for the September 2026 review: 1,721 clients; retain an Unassigned sheet.
+- [x] Create seven cycle sheets with serial number, client ID/name and payroll/invoice Match/Not match dropdowns plus automatic summary counts; unverified statuses remain blank.
+- [x] Recalculate, test both dropdowns against detail/summary totals, inspect all 122 rendered pages and deliver the final Excel workbook.
+
 ## Consistent allowance names
 - [x] Apply shared naming to contracts, rate comparisons, payroll, payslips and invoices without rewriting rates or formulas.
 - [x] Audit 23,935 production resource structures and 207 source labels; CLI2 conveyance stays ₹2,200; grouping changes no amounts; 21 regression checks passed.
