@@ -48,7 +48,7 @@ import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
 import { fmtINR, computeWages, type ContractResourceLike } from "@/lib/payroll-calc";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
-import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
+import { refreshBillingAddOns, employerCostOnly } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
@@ -674,12 +674,13 @@ function DashboardPage() {
           if (runIds.length) {
             const { data: snaps } = await supabase
               .from("payroll_run_snapshots" as never)
-              .select("unit_id,gross,total_employer")
+              .select("unit_id,gross,total_employer,employer_contributions")
               .in("payroll_run_id", runIds);
             for (const s of (snaps ?? []) as {
               unit_id: string;
               gross: number;
               total_employer: number;
+              employer_contributions: { name?: string; amount?: number }[] | null;
             }[]) {
               postedPayroll.set(
                 s.unit_id,
@@ -687,7 +688,10 @@ function DashboardPage() {
               );
               postedEmployerContribution.set(
                 s.unit_id,
-                (postedEmployerContribution.get(s.unit_id) ?? 0) + (Number(s.total_employer) || 0),
+                (postedEmployerContribution.get(s.unit_id) ?? 0) +
+                  (Array.isArray(s.employer_contributions)
+                    ? employerCostOnly(s.employer_contributions)
+                    : Number(s.total_employer) || 0),
               );
             }
           }
@@ -898,7 +902,8 @@ function DashboardPage() {
           }
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += wages.earnedGross;
-          employerContribution += wages.totalEmployerContributions;
+          // Management fee / reliever / service charges are billed margin, not cost.
+          employerContribution += employerCostOnly(wages.employerContributions);
         }
 
         if (!isInternal) invoiceAmount = round2(invoiceAmount + (extrasByUnit.get(u.unit_id) ?? 0));
