@@ -12,13 +12,15 @@ export type AttendanceEntryFetchRow = {
   is_reliever?: boolean | null;
 };
 
+type Client = typeof supabase;
+
 export async function fetchAttendanceEntriesForPeriod(params: {
   unitId?: string;
   unitIds?: string[];
   start: string;
   end: string;
   includeUnitId?: boolean;
-}): Promise<AttendanceEntryFetchRow[]> {
+}, client: Client = supabase): Promise<AttendanceEntryFetchRow[]> {
   const unitIds = params.unitId ? [params.unitId] : Array.from(new Set(params.unitIds ?? []));
   if (unitIds.length === 0) return [];
 
@@ -26,7 +28,7 @@ export async function fetchAttendanceEntriesForPeriod(params: {
   const selectCols = `id, ${params.includeUnitId ? "unit_id, " : ""}candidate_id, designation_id, shift_hours, is_reliever, entry_date, code, ot_hours`;
 
   const fetched = await fetchInChunks<AttendanceEntryFetchRow>(unitIds, (chunk, from, to) =>
-    supabase
+    client
       .from("attendance_entries")
       .select(selectCols)
       .gte("entry_date", params.start)

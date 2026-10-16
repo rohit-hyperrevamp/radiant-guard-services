@@ -203,7 +203,7 @@ export async function computeInvoice(unitId:string,start:string,end:string,G:any
       // Bill days worked by people who have since left or been disabled.
       {
         const have = new Set(roster.map((c) => c.id));
-        const attended = (await fetchAttendedCandidateIds(unitId, start, end)).filter((id) => !have.has(id));
+        const attended = (await fetchAttendedCandidateIds(unitId, start, end, supabase as never)).filter((id) => !have.has(id));
         if (attended.length) {
           const { data: leavers } = await supabase
             .from("candidates")
@@ -223,7 +223,7 @@ export async function computeInvoice(unitId:string,start:string,end:string,G:any
       const desigMap = new Map((designations ?? []).map((d) => [d.id, d.name as string]));
 
       // 2. Attendance entries (fetched per day to avoid backend row caps)
-      const entries = await fetchAttendanceEntriesForPeriod({ unitId, start, end }) as Array<{
+      const entries = await fetchAttendanceEntriesForPeriod({ unitId, start, end }, supabase as never) as Array<{
         candidate_id: string;
         designation_id: string | null;
         entry_date: string;
