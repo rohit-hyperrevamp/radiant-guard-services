@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
+import { DriverHome } from "@/components/DriverHome";
+import { useMe } from "@/lib/use-me";
 import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
 import { UnitAttendanceCoverage } from "@/components/UnitAttendanceCoverage";
 import { DashboardShell } from "@/components/LiveFeed";
@@ -275,6 +277,11 @@ function DashboardPage() {
   // Transport owns fleet and assets only — no payroll window, no leadership
   // snapshot, no client money. Their homepage is vehicles + assets combined.
   const showTransportDashboard = roleKey === ROLE_KEYS.TRANSPORT;
+  // Drivers (transport role + Driver designation) get a mobile-first home:
+  // check-in/out, trips to acknowledge, fuel/expense entry — not the fleet console.
+  const meProfile = useMe();
+  const showDriverDashboard =
+    showTransportDashboard && meProfile.designation.trim().toLowerCase() === "driver";
   const showHrExecutiveDashboard = roleKey === ROLE_KEYS.HR_EXECUTIVE;
   // Payroll team: homepage is the payroll lifecycle for the selected window only.
   const showPayrollDashboard = roleKey === ROLE_KEYS.PAYROLL;
@@ -1450,6 +1457,16 @@ function DashboardPage() {
           />
           <MyUpcomingInterviewsCard />
           <HrExecutiveDashboard />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (showDriverDashboard) {
+    return (
+      <DashboardShell>
+        <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
+          <DriverHome />
         </div>
       </DashboardShell>
     );
