@@ -921,6 +921,19 @@ export function FinanceCharter({
         new Set(unitRows.map((u) => String(u.customer_id ?? "")).filter(Boolean)),
       );
       const { template, unitValues } = await loadSharedMisTemplate(customerIds, ids);
+      // Contracts flagged exact_day_rate bill monthly ÷ billing days × duties, rounded once.
+      const exactUnits = new Set<string>();
+      for (let i = 0; i < ids.length; i += 100) {
+        const { data } = await supabase
+          .from("client_contracts")
+          .select("unit_id, exact_day_rate" as never)
+          .eq("record_type", "client")
+          .eq("status", "active")
+          .in("unit_id", ids.slice(i, i + 100));
+        for (const c of (data ?? []) as { unit_id: string; exact_day_rate?: boolean }[]) {
+          if (c.exact_day_rate) exactUnits.add(String(c.unit_id));
+        }
+      }
       const sourceRows: MisSourceRow[] = [];
       let serial = 1;
       const sgCountedUnits = new Set<string>();
@@ -961,7 +974,9 @@ export function FinanceCharter({
             perDay,
             billedDays,
             otDays: line.otDays,
-            total: perDay * billedDays,
+            total: exactUnits.has(u.id)
+              ? (resolveBillingDivisor(rate, periodDates) > 0 ? (rate.billRate / resolveBillingDivisor(rate, periodDates)) * billedDays : 0)
+              : perDay * billedDays,
             intraState,
             // Regular duties can never exceed the contract's billing days; the
             // surplus is Extra Duty at the same rate.
