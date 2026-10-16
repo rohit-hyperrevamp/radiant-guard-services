@@ -1084,7 +1084,7 @@ function PayrollUnitPage() {
         ? 0
         : billingMode === "lumpsum" || billingMode === "man_months"
           ? contracted
-          : Math.round((exactDayRate ? exactRate : unitRate) * unitQuantity * 100) / 100;
+          : Math.round((exactDayRate ? exactRate * (billsHourly ? (r.totals.tDays ?? 0) * shiftHours : (r.totals.tDays ?? 0)) : unitRate * unitQuantity) * 100) / 100;
     return {
       contracted,
       payrollDays,
