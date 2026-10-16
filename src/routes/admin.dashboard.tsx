@@ -1227,7 +1227,9 @@ function DashboardPage() {
             />
           ),
         });
-      if (can("employees")) t.push({ key: "uan", module: "employees", node: <UanFollowUp /> });
+      // UAN follow-up is widget-gated only, so executives in every department
+      // see it whenever their managers do (Access Control can still hide it).
+      t.push({ key: "uan", module: "employees", node: <UanFollowUp /> });
       if (can("vehicles"))
         t.push({
           key: "veh",
