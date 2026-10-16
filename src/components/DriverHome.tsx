@@ -295,14 +295,20 @@ export function DriverHome() {
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <Label className="text-xs">Vehicle</Label>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Choose vehicle" /></SelectTrigger>
-              <SelectContent>
-                {(vehiclesQ.data ?? []).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{vehicleLabel(v)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {assignedVehicles.length === 0 ? (
+              <p className="mt-1 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                No vehicle assigned to you right now. When a trip with a vehicle is assigned, it will appear here.
+              </p>
+            ) : (
+              <Select value={vehicleId} onValueChange={setVehicleId}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Choose vehicle" /></SelectTrigger>
+                <SelectContent>
+                  {assignedVehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{vehicleLabel(v)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div>
             <Label className="text-xs">Type</Label>
