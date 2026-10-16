@@ -1,4 +1,7 @@
-import { computeInvoice } from "./inveng";
+const prod = "https://yimpxawqoarprhtxapie.supabase.co";
+process.env.SUPABASE_URL = prod;
+process.env.VITE_SUPABASE_URL = prod;
+const { computeInvoice } = await import("./inveng");
 import { supabase } from "./shim";
 import { appendFileSync, existsSync, readFileSync } from "fs";
 const G:any={publicHolidays:(await supabase.from("public_holidays").select("*").eq("enabled",true)).data,ptSlabs:(await supabase.from("professional_tax_slabs").select("*")).data,pincodeRanges:(await supabase.from("pincode_ranges").select("*")).data,lwfRows:(await supabase.from("labour_welfare_funds").select("*")).data};
