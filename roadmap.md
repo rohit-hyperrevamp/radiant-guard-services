@@ -604,3 +604,7 @@
 - [x] Verify existing selectable reliever charge at 16.67% of CTC.
 - [x] Verify both production formulas and preserve existing contract selections; five calculation tests pass.
 - [ ] Verify the changed downstream CTC refresh on the live site after publication.
+
+## Inventory team demo guide
+- [ ] Create a concise Excel workbook with separate workflow tabs covering setup, stock, requests, vendor receipts, challans, uniform issuance and returns.
+- [ ] Check steps against existing screens and deliver the workbook.
