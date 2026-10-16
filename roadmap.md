@@ -1,7 +1,7 @@
 # Mobile app UI re-review
 
 ## Payroll-cycle status workbook
-- [ ] Fill a versioned tracker with source-backed payroll/invoice results and explicit pending reasons; explain the temporary BFL group and missing cycle assignments.
+- [x] Fill a versioned tracker with 1,721 source-report results and explicit pending reasons; explain the 27-site BFL holding group and 378 missing cycle assignments. Payroll: 1,045 Match / 242 Not match / 434 Pending; invoice/MIS: 529 Match / 2 Not match / 1,190 Pending. These are comparison results, not fresh generated approvals; latest BFSL/L&T and independently unverified five-state invoice mappings remain Pending. All 150 rendered pages inspected, formula counts verified and populated dropdown changes tested.
 - [x] Export current client-to-payroll-cycle assignments for the September 2026 review: 1,721 clients; retain an Unassigned sheet.
 - [x] Create seven cycle sheets with serial number, client ID/name and payroll/invoice Match/Not match dropdowns plus automatic summary counts; unverified statuses remain blank.
 - [x] Recalculate, test both dropdowns against detail/summary totals, inspect all 122 rendered pages and deliver the final Excel workbook.
