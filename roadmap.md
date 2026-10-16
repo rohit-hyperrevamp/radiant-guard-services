@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Priority one: September exact reconciliation
+- [ ] Re-audit September payroll against Pages and invoices/MIS against original rate/attendance evidence; preserve already-matched records.
+- [ ] Apply backed corrections to mismatching inputs only, retain before/after evidence, and validate actual generated totals.
+- [ ] Update the summary from verified final outputs only; do not label unverified records as 100% matched.
+
 ## Payroll-cycle status workbook
 - [x] Fill a versioned tracker with 1,721 source-report results and explicit pending reasons; explain the 27-site BFL holding group and 378 missing cycle assignments. Payroll: 1,045 Match / 242 Not match / 434 Pending; invoice/MIS: 529 Match / 2 Not match / 1,190 Pending. These are comparison results, not fresh generated approvals; latest BFSL/L&T and independently unverified five-state invoice mappings remain Pending. All 150 rendered pages inspected, formula counts verified and populated dropdown changes tested.
 - [x] Export current client-to-payroll-cycle assignments for the September 2026 review: 1,721 clients; retain an Unassigned sheet.
