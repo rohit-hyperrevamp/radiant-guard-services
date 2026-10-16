@@ -50,6 +50,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns, employerCostOnly } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
+import { normShift } from "@/lib/shift-resources";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
@@ -531,6 +532,7 @@ function DashboardPage() {
         deductions: unknown;
         employer_contributions: unknown;
         payroll_day_base_id: string | null;
+        shift_hours?: number | null;
       };
       type PairRow = {
         unit_id: string;
@@ -540,6 +542,7 @@ function DashboardPage() {
         ph_days: number | string;
         other_paid_days: number | string;
         ot_days: number | string;
+        shift?: number | null;
       };
       type DayBaseRow = {
         id: string;
@@ -601,18 +604,30 @@ function DashboardPage() {
         if (!r.designation_id) continue;
         if (!resByContractDesig.has(r.contract_id))
           resByContractDesig.set(r.contract_id, new Map());
-        resByContractDesig.get(r.contract_id)!.set(r.designation_id, r);
+        // Several shift lines (8h / 12h) can share one role — keep each.
+        const m = resByContractDesig.get(r.contract_id)!;
+        const sk = `${r.designation_id}|${normShift(r.shift_hours)}`;
+        if (!m.has(r.designation_id)) m.set(r.designation_id, r);
+        m.set(sk, r);
       }
 
       const hydratedResources = (await hydrateFormulasFromMaster(resources.map(toResource))).map(
         refreshBillingAddOns,
       );
-      const hydratedByContractDesignation = new Map(
-        resources.map((row, index) => [
-          `${row.contract_id}|${row.designation_id ?? ""}`,
-          hydratedResources[index] ?? toResource(row),
-        ]),
-      );
+      const hydratedByContractDesignation = new Map<string, ContractResourceLike>();
+      resources.forEach((row, index) => {
+        const h = hydratedResources[index] ?? toResource(row);
+        const base = `${row.contract_id}|${row.designation_id ?? ""}`;
+        if (!hydratedByContractDesignation.has(base)) hydratedByContractDesignation.set(base, h);
+        hydratedByContractDesignation.set(`${base}|${normShift(row.shift_hours)}`, h);
+      });
+      // Same rule as payroll: the line's own shift when the contract offers it,
+      // else the role's first contract line.
+      const lineShiftKey = (contractId: string, designationId: string, shift?: number | null) => {
+        const base = `${contractId}|${designationId}`;
+        const wanted = shift === 8 || shift === 12 ? `${base}|${shift}` : null;
+        return wanted && hydratedByContractDesignation.has(wanted) ? wanted : base;
+      };
       const isNonBillableInvoiceItem = (item: { name?: string }) =>
         /\besi(c)?\b|\bprofessional\s*tax\b|\bpt\b/i.test(String(item.name ?? ""));
 
@@ -771,7 +786,13 @@ function DashboardPage() {
             ]);
             for (const r of (crs ?? []) as Record<string, unknown>[]) {
               const h = Number(r.shift_hours);
-              billingMeta.set(`${r.contract_id}|${r.designation_id ?? ""}`, {
+              const mk = `${r.contract_id}|${r.designation_id ?? ""}`;
+              if (!billingMeta.has(mk))
+                billingMeta.set(mk, {
+                  bdb: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
+                  shift: Number.isFinite(h) && h > 0 ? h : 8,
+                });
+              billingMeta.set(`${mk}|${normShift(r.shift_hours)}`, {
                 bdb: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
                 shift: Number.isFinite(h) && h > 0 ? h : 8,
               });
@@ -816,11 +837,14 @@ function DashboardPage() {
         let contractValue = 0;
         let committedPayroll = 0;
         let committedStrength = 0;
-        for (const r of resMap.values()) {
+        for (const [k, r] of resMap) {
+          if (!k.includes("|")) continue; // per-shift entries only, no double count
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
           const resource =
-            hydratedByContractDesignation.get(`${r.contract_id}|${r.designation_id ?? ""}`) ??
+            hydratedByContractDesignation.get(
+              `${r.contract_id}|${r.designation_id ?? ""}|${normShift(r.shift_hours)}`,
+            ) ??
             toResource(r);
           const payrollPerHead = resource.components.reduce(
             (sum, item) => sum + (Number(item.amount) || 0),
@@ -856,7 +880,7 @@ function DashboardPage() {
             tDays: round2(pDays + phDays + otDays),
           };
           const resource =
-            hydratedByContractDesignation.get(`${u.contract_id}|${p.designation_id}`) ??
+            hydratedByContractDesignation.get(lineShiftKey(u.contract_id, p.designation_id, p.shift)) ??
             toResource(resRow);
           const wages = computeWages(totals, resource, periodDates.length, {
             periodDates: periodDateObjects,
@@ -880,7 +904,9 @@ function DashboardPage() {
           const payrollDays =
             resolvePayrollDayCount(resource.payrollDayBase, periodDates) ??
             (wages.baseDays || periodDates.length || 30);
-          const meta = billingMeta.get(`${u.contract_id}|${p.designation_id}`);
+          const meta =
+            billingMeta.get(lineShiftKey(u.contract_id, p.designation_id, p.shift)) ??
+            billingMeta.get(`${u.contract_id}|${p.designation_id}`);
           const billingDays =
             resolvePayrollDayCount(
               (meta?.bdb ? bdbMap.get(meta.bdb) : null) ?? resource.payrollDayBase ?? null,
