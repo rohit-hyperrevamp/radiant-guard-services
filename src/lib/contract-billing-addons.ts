@@ -78,7 +78,7 @@ export function liveAddOnAmount(
   const benefits = (resource.benefits ?? []).filter((b) => !isBillingAddOn(b));
   const employer = [
     ...(resource.employerContributions ?? []).filter((b) => !isBillingAddOn(b)),
-    ...extraEmployer,
+    ...extraEmployer.filter((b) => !isBillingAddOn(b)),
   ];
 
   const componentsTotal = components.reduce((s, c) => s + num(c.amount), 0);

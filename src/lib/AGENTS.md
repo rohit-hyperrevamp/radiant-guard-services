@@ -7,3 +7,4 @@
 - A payroll-day option with `caps_present = false` is only the pay divisor (Pages "Fixed Duties"): attendance keeps every Present day and only real overtime is Extra Duty; the limit trigger, `present_cap_for_period` and the attendance screen all honour it — matches Pages sites that pay 28 duties ÷ 26.
 
 - Dashboard P&L mirrors payroll rules (period contract, attended roster, shift lines, unit PH); employer cost excludes billing markup — keeps margins aligned.
+- Billing add-on refresh excludes reliever/management fee from CTC even when passed as extra employer lines — keeps CTC-only formulas consistent with the contract editor.
