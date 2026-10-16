@@ -8,5 +8,5 @@ update contract_resources r set employer_contributions =
   || jsonb_build_array(jsonb_build_object('name','Billing Rate Adjustment (as per client invoice)','state','N/A','amount',v.a,'calcType','fixed','capAmount',null,'percentage',0,'formulaMode','preset','capFlatAmount',null,'baseComponents','[]'::jsonb,'formulaVersion',1,'costComponentId',null,'fixedCalcMethod','flat','fixedDutyDivisor',null,'deductionCalcType','fixed_amount','formulaExpression',null,'fixedDutyComponents','[]'::jsonb)),
   updated_at=now()
 from v where r.id=v.id;
-update contract_resources set billing_day_base_id='fe52c7ac-4cfd-4de2-924f-56c69dfb2d96', updated_at=now() where id='413a404f-e4c5-4a74-9cec-1fbcff3bcbef';
+update contract_resources set billing_day_base_id='abea52aa-6151-4d0a-9209-f102d3ecf226', updated_at=now() where id='413a404f-e4c5-4a74-9cec-1fbcff3bcbef';
 update attendance_entries set ot_hours=0, updated_at=now() where id='10f5b93d-0218-4a4d-96bc-ab53a0b8d84c';
