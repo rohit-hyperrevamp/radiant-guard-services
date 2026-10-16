@@ -18,7 +18,7 @@ for (const [s,e] of [["2026-09-01","2026-09-30"],["2026-08-21","2026-09-20"],["2
  const agg=new Map<string,any>();
  for (const p of P.pairs){ const u:any=units.get(p.unit_id); if(!u) continue; const res:any=H.get(`${u.contract_id}|${p.designation_id}`); if(!res) continue;
   const t={pDays:+p.p_days||0,otHours:+p.ot_days||0,otDays:+p.ot_days||0,phDays:+p.ph_days||0,otherPaidDays:+p.other_paid_days||0,tDays:(+p.p_days||0)+(+p.ph_days||0)+(+p.ot_days||0)};
-  const w:any=computeWages(t as any,res,dates.length,{periodDates:dobj,epfCapEnabled:u.epf_cap_enabled??true} as any);
+  const w:any=computeWages(t as any,res,dates.length,{periodDates:dobj,epfCapEnabled:u.epf_cap_enabled??true,dayBases:[...pdb].map(([id,b]:any)=>({id,...b}))} as any);
   const a=agg.get(p.unit_id)??{g:0,er:0,lines:[]}; a.g+=w.earnedGross; a.er+=w.totalEmployerContributions; a.lines.push({c:p.candidate_id,d:p.designation_id,t,g:w.earnedGross,er:w.totalEmployerContributions}); agg.set(p.unit_id,a);}
  for (const [u,a] of agg) out.push({u,s,code:(units.get(u) as any).unit_code,...a});
 }

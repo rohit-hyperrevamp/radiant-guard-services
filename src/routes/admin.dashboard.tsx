@@ -579,6 +579,7 @@ function DashboardPage() {
         ]),
       );
 
+      const dayBaseDefs = Array.from(pdbMap.entries()).map(([id, b]) => ({ id, ...b }));
       const toResource = (r: ResourceRow): ContractResourceLike => ({
         designationId: r.designation_id ?? "",
         components: Array.isArray(r.components)
@@ -860,6 +861,9 @@ function DashboardPage() {
           const wages = computeWages(totals, resource, periodDates.length, {
             periodDates: periodDateObjects,
             epfCapEnabled: u.epf_cap_enabled ?? true,
+            // Formula day bases (ED / pay formulas using `payroll_days`) — same
+            // list the payroll page passes, otherwise ED pay comes out different.
+            dayBases: dayBaseDefs,
           });
           // Same maths as the Invoices page (contractBillableMonthly +
           // invoiceMathFor): saved components + benefits + employer lines,
