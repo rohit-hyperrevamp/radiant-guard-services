@@ -342,7 +342,7 @@ export function DriverHome() {
             <Input className="mt-1" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Pump / location" />
           </div>
         </div>
-        <Button className="mt-3 w-full" onClick={() => saveFuel.mutate()} disabled={saveFuel.isPending}>
+        <Button className="mt-3 w-full" onClick={() => saveFuel.mutate()} disabled={saveFuel.isPending || assignedVehicles.length === 0}>
           {saveFuel.isPending ? "Saving…" : "Save expense"}
         </Button>
       </Card>
