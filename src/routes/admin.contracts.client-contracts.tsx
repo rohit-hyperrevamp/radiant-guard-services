@@ -4686,17 +4686,32 @@ function ResourcesSection({
                       Monthly {fmtRate(d.monthly)}
                     </span>
                   </div>
-                  {d.billingMethod === "actual_days" || (d.billingMethod === "fixed_days" && d.billingFixedDays > 0) ? (
+                  {d.billingMethod === "actual_days" ? (
+                    // Actual days = days in the payroll period being billed
+                    // (21 Aug–20 Sep = 31), so show every period length.
+                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                      {[31, 30, 29, 28].map((n) => (
+                        <div key={n} className={cn("rounded-md border px-2 py-1.5", n === currentPayrollPeriodDays ? "border-accent bg-accent/10" : "border-border bg-background/60")}>
+                          <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
+                            <span>{n}-day payroll period</span>
+                            {n === currentPayrollPeriodDays ? <span className="font-medium text-accent">Current</span> : null}
+                          </div>
+                          <div className="mt-0.5 text-sm font-semibold text-foreground">{fmtRate(d.monthly / n)}</div>
+                          <div className="text-[10px] text-muted-foreground">÷ {n} days</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : d.billingMethod === "fixed_days" && d.billingFixedDays > 0 ? (
                     <div className="rounded-md border border-accent bg-accent/10 px-2 py-1.5">
                       <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
                         <span>{currentPayrollPeriodDays}-day payroll period</span>
                         <span className="font-medium text-accent">Current</span>
                       </div>
                       <div className="mt-0.5 text-sm font-semibold text-foreground">
-                        {fmtRate(d.monthly / (d.billingMethod === "actual_days" ? currentPayrollPeriodDays : d.billingFixedDays))}
+                        {fmtRate(d.monthly / d.billingFixedDays)}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        ÷ {d.billingMethod === "actual_days" ? `${currentPayrollPeriodDays} days in month` : `${d.billingFixedDays} billing days`}
+                        ÷ {`${d.billingFixedDays} billing days`}
                       </div>
                     </div>
                   ) : (
