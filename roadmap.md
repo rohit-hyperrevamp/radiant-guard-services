@@ -594,3 +594,7 @@
 - [x] 2,839 Pages Sep deductions added; PT/once-a-month items now land on the employee's rated line
 - [x] Round 2 (11 Oct): payroll windows, cross-site PT, rounding, PF/ESI bases, ED items, billing days (incl. Bajaj), attendance, admin charge, missing allowances — 4,602/5,938 exact
 - [ ] Remaining ~1,336 payslips: Extra Duty at double rate / benefit-inclusive ED rate (needs an ED multiplier setting), per-person Pages deductions, ESI/EPF on groups with no unique fit, 3 sites with overlapping October attendance (CLI394, CLI3356, CLI3938)
+
+## Manager email matching and Excel list
+- [ ] Attach spreadsheet emails to uniquely matched active employees only.
+- [ ] Verify saved emails and export existing/missing users with names, designations, phones and status; exclude inactive profiles.
