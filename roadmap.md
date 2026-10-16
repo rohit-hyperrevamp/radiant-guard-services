@@ -598,3 +598,9 @@
 ## Manager email matching and Excel list
 - [x] Attach spreadsheet emails to uniquely matched active employees only (9 verified updates).
 - [x] Verify saved emails and export existing/missing users with names, designations, phones and status; exclude inactive profiles (9 active, 4 without an active match).
+
+## CTC billing add-on choices
+- [x] Add selectable management fee at 7% of CTC.
+- [x] Verify existing selectable reliever charge at 16.67% of CTC.
+- [x] Verify both production formulas and preserve existing contract selections; five calculation tests pass.
+- [ ] Verify the changed downstream CTC refresh on the live site after publication.
