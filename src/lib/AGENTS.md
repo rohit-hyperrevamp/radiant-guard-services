@@ -5,3 +5,5 @@
 - Invoices bill the saved `contract_resources` amounts, so any import or bulk write must store formula lines already evaluated exactly as the contract editor does on Save (`computeBenefitAmount`); otherwise pressing Save silently changes the billing rate.
 - Formula variables that don't match a pay line on the role evaluate to 0 silently; `unknownFormulaVariables` (payroll-calc) lists them and the contract editor warns on Save. Any import or bulk formula write must check it — renamed items (`d_a`, `leave_with_wages`) and dropped items (`bonus_addition`) were the main cause of ESI/PF drifting from Pages.
 - A payroll-day option with `caps_present = false` is only the pay divisor (Pages "Fixed Duties"): attendance keeps every Present day and only real overtime is Extra Duty; the limit trigger, `present_cap_for_period` and the attendance screen all honour it — matches Pages sites that pay 28 duties ÷ 26.
+
+- Dashboard P&L mirrors payroll rules (period contract, attended roster, shift lines, unit PH); employer cost excludes billing markup — keeps margins aligned.

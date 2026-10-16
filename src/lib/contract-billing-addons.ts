@@ -156,3 +156,19 @@ export function refreshBillingAddOns<T extends AddOnResource>(resource: T): T {
 export function refreshBillingAddOnsAll<T extends AddOnResource>(resources: T[]): T[] {
   return resources.map(refreshBillingAddOns);
 }
+
+/**
+ * Lines billed to the client as our margin — not a cost we pay out.
+ * P&L must treat them as revenue, never as employer cost.
+ */
+export const isBillingMarkupLine = (x: { name?: unknown }) => {
+  const n = String(x?.name ?? "");
+  if (isBillingAddOn(x)) return true;
+  if (/service\s*charge|billing[\s-]*only|billing\s*rate\s*adjustment|rounding\s*adjustment|\bprofit\b|\bmargin\b|commission/i.test(n)) return true;
+  // Agency admin fee, but not statutory EPF/EDLI admin charges.
+  return /admin(istrative)?\s*charges?/i.test(n) && !/\b(e?pf|edli)\b|0\.5\s*%/i.test(n);
+};
+
+/** Employer cost excluding billing markup lines. */
+export const employerCostOnly = (items: { name?: unknown; amount?: unknown }[] | undefined) =>
+  Math.round((items ?? []).reduce((s, i) => s + (isBillingMarkupLine(i) ? 0 : Number(i.amount) || 0), 0) * 100) / 100;
