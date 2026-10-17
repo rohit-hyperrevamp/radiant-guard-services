@@ -1,6 +1,8 @@
 # Mobile app UI re-review
 
 ## Urgent dashboard loading delay
+- [x] Fix zeros/"could not load" after background sign-in recovery: refetch on session recovery, dashboard waits for a real session.
+- [x] Throttle live-location driven refetches on dashboard cards.
 - [x] Diagnose the live dashboard's slow counts and payroll/invoice totals: serial lifecycle wait, unresolved window requests, timer-based full financial reloads, and nested JSONB serialization.
 - [x] Optimize production P&L serialization without changing records, privileges, or values; separate authenticated count/lifecycle requests and avoid premature/polling P&L loads.
 - [x] Verify identical October and September payloads, production basic counts (43ms) and P&L (1.5–1.7s versus prior 3.6s mean), three period-contract tests, and clean automatic compilation.
