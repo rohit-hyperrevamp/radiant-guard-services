@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { downloadCsv } from "@/lib/csv-export";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
 import { fetchAttendanceTotalsForPeriod } from "@/lib/attendance-fetch";
@@ -353,23 +355,90 @@ export function AttendanceCharter({
   }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, allStatusQ.data, periodsByUnit, year, monthIdx]);
 
 
-  const exportCsv = () => {
-    downloadCsv(
-      "attendance-charter",
-      rows.map((r) => ({
-        Contract: r.contractCode,
-        Organisation: r.unit.customer_name,
-        Unit: r.unit.name || r.unit.code,
-        "Shift hours": r.unitShift,
-        Committed: r.committed,
-        Actual: r.actual,
-        Variance: r.actual - r.committed,
-        "Projected man-hours (period to date)": Math.round(r.projectedHours),
-        "Actual man-hours (period to date)": Math.round(r.actualHours),
-        "Extra duty hours (period to date)": Math.round(r.otHours),
-        "Period-to-date attendance %": r.mtdPct,
-      })),
-    );
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSel, setExportSel] = useState<Set<string>>(new Set());
+  const [exportSearch, setExportSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const openExportPicker = () => {
+    setExportSel(new Set(filteredUnits.map((u) => u.id)));
+    setExportSearch("");
+    setExportOpen(true);
+  };
+  const exportList = useMemo(() => {
+    const t = exportSearch.trim().toLowerCase();
+    if (!t) return filteredUnits;
+    return filteredUnits.filter((u) => `${u.code} ${u.name} ${u.customer_name}`.toLowerCase().includes(t));
+  }, [filteredUnits, exportSearch]);
+  const allChecked = exportList.length > 0 && exportList.every((u) => exportSel.has(u.id));
+
+  const exportCsv = async () => {
+    const chosen = filteredUnits.filter((u) => exportSel.has(u.id));
+    if (!chosen.length) return;
+    setExporting(true);
+    try {
+      const ids = chosen.map((u) => u.id);
+      const periods = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+      for (const id of ids) periods.set(id, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(id)));
+      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
+      for (const [id, p] of periods) {
+        const k = `${p.start}|${p.mtdEnd}`;
+        const g = groups.get(k) ?? { start: p.start, end: p.mtdEnd, unitIds: [] };
+        g.unitIds.push(id);
+        groups.set(k, g);
+      }
+      const [shifts, entryPages] = await Promise.all([
+        fetchShiftHoursMap(ids),
+        Promise.all(Array.from(groups.values()).map((g) => fetchAttendanceTotalsForPeriod({ unitIds: g.unitIds, start: g.start, end: g.end }))),
+      ]);
+      const agg = new Map<string, { actual: number; ot: number; people: Set<string> }>();
+      for (const e of entryPages.flat()) {
+        const uid = e.unit_id ?? "";
+        if (!uid) continue;
+        const a = agg.get(uid) ?? { actual: 0, ot: 0, people: new Set<string>() };
+        const shift = shiftHoursFor(shifts, uid, e.designation_id, e.candidate_id) || DEFAULT_SHIFT_HOURS;
+        const code = codeMap.get(e.code);
+        const raw = code?.day_value;
+        const dv = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
+        const counted = (code ? (code.counts_as_present || code.is_paid ? dv : 0) : 0) * ((e as { days?: number }).days ?? 1);
+        const ot = Number(e.ot_hours) || 0;
+        a.actual += counted * shift + ot * shift;
+        a.ot += ot * shift;
+        a.people.add(e.candidate_id);
+        agg.set(uid, a);
+      }
+      downloadCsv(
+        "attendance-charter",
+        chosen.map((u) => {
+          const cov = coverageByUnit.get(u.id);
+          const committed = cov?.committed ?? 0;
+          const actual = cov?.actual ?? u.security_guards.length;
+          const p = periods.get(u.id)!;
+          const unitShift = shiftHoursFor(shifts, u.id, null) || DEFAULT_SHIFT_HOURS;
+          const projected = (committed > 0 ? committed : actual) * p.elapsedDays * unitShift;
+          const a = agg.get(u.id);
+          return {
+            Contract: cov?.contractCode ?? u.contract_codes[0] ?? "—",
+            Organisation: u.customer_name,
+            "Client ID": u.code,
+            Unit: u.name || u.code,
+            Period: `${p.start} to ${p.end}`,
+            "Attendance status": allStatusQ.data?.get(u.id)?.attendance ?? "none",
+            "Shift hours": unitShift,
+            Committed: committed,
+            Actual: actual,
+            Variance: actual - committed,
+            "Staff marked": a?.people.size ?? 0,
+            "Projected man-hours (period to date)": Math.round(projected),
+            "Actual man-hours (period to date)": Math.round(a?.actual ?? 0),
+            "Extra duty hours (period to date)": Math.round(a?.ot ?? 0),
+            "Period-to-date attendance %": pct(a?.actual ?? 0, projected),
+          };
+        }),
+      );
+      setExportOpen(false);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const loading = entriesQ.isLoading || shiftQ.isLoading;
@@ -454,10 +523,54 @@ export function AttendanceCharter({
           </div>
         )}
         <div className="hidden flex-1 sm:block" />
-        <Button variant="outline" className="col-span-2 h-9 w-fit rounded-lg sm:rounded-xl" onClick={exportCsv}>
+        <Button variant="outline" className="col-span-2 h-9 w-fit rounded-lg sm:rounded-xl" onClick={openExportPicker}>
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
       </div>
+
+      <Dialog open={exportOpen} onOpenChange={(o) => !exporting && setExportOpen(o)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Export attendance</DialogTitle>
+            <DialogDescription>Pick the sites to include. All selected sites go into one file.</DialogDescription>
+          </DialogHeader>
+          <Input value={exportSearch} onChange={(e) => setExportSearch(e.target.value)} placeholder="Search sites…" className="h-9" />
+          <label className="flex items-center gap-2 border-b border-border pb-2 text-sm font-medium">
+            <Checkbox
+              checked={allChecked}
+              onCheckedChange={(v) => {
+                const next = new Set(exportSel);
+                for (const u of exportList) v ? next.add(u.id) : next.delete(u.id);
+                setExportSel(next);
+              }}
+            />
+            Select all ({exportList.length})
+            <span className="ml-auto text-xs text-muted-foreground">{exportSel.size} selected</span>
+          </label>
+          <div className="max-h-72 space-y-1 overflow-y-auto">
+            {exportList.map((u) => (
+              <label key={u.id} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted">
+                <Checkbox
+                  checked={exportSel.has(u.id)}
+                  onCheckedChange={(v) => {
+                    const next = new Set(exportSel);
+                    v ? next.add(u.id) : next.delete(u.id);
+                    setExportSel(next);
+                  }}
+                />
+                <span className="truncate">{u.code} · {u.name}</span>
+                <span className="ml-auto truncate text-xs text-muted-foreground">{u.customer_name}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>Cancel</Button>
+            <Button onClick={exportCsv} disabled={exporting || exportSel.size === 0}>
+              {exporting ? "Preparing…" : `Export ${exportSel.size}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
