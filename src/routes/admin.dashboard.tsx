@@ -32,6 +32,8 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { DriverHome } from "@/components/DriverHome";
 import { useMe } from "@/lib/use-me";
+import { useAuth } from "@/lib/auth";
+import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
 import { UnitAttendanceCoverage } from "@/components/UnitAttendanceCoverage";
 import { DashboardShell } from "@/components/LiveFeed";
@@ -252,6 +254,7 @@ type PnLRow = {
 };
 
 function DashboardPage() {
+  const { user, isReady: authReady } = useAuth();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -300,6 +303,7 @@ function DashboardPage() {
   const charterUnitsQ = useQuery({
     queryKey: CHARTER_UNITS_QK,
     queryFn: fetchCharterUnits,
+    enabled: authReady && !!user,
     initialData: () => readCharterUnitsSnapshot() ?? undefined,
     placeholderData: (previous) => previous,
     staleTime: 60_000,
@@ -332,9 +336,9 @@ function DashboardPage() {
   // Fast tile counts paint first; the heavy month P&L loads in a second,
   // independent query so the dashboard is usable immediately.
   const countsQuery = useQuery({
-    queryKey: ["dashboard-counts", year, month, periodSelection.selectedKey],
+    queryKey: ["dashboard-counts", user?.id, year, month, periodSelection.selectedKey],
     enabled:
-      !permsLoading &&
+      authReady && !!user && !permsLoading &&
       !showInventoryDashboard &&
       !showTransportDashboard &&
       !showHrExecutiveDashboard,
@@ -342,11 +346,12 @@ function DashboardPage() {
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
     initialData: () =>
-      readDashboardCountsSnapshot(`${year}-${month}-${periodSelection.selectedKey}`),
+      readDashboardCountsSnapshot(`${user?.id}-${year}-${month}-${periodSelection.selectedKey}`),
     initialDataUpdatedAt: 0,
-    retry: 3,
+    retry: 1,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
     queryFn: async () => {
+      await supabaseSessionReady();
       const sixtyDaysOut = new Date();
       sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60);
       const sixtyStr = sixtyDaysOut.toISOString().slice(0, 10);
@@ -365,20 +370,6 @@ function DashboardPage() {
         } as never,
       );
       if (error) throw error;
-
-      const lifecycleResult =
-        can("attendance") || can("payroll") || can("invoice")
-          ? await supabase.rpc(
-              "dashboard_lifecycle_counts" as never,
-              {
-                p_year: year,
-                p_month: month + 1,
-                p_window_start: selectedWindow?.windowStartDay ?? null,
-                p_window_end: selectedWindow?.windowEndDay ?? null,
-              } as never,
-            )
-          : { data: null, error: null };
-      const lifecycleData = lifecycleResult.error ? null : lifecycleResult.data;
 
       const d = (data ?? {}) as {
         orgs?: number;
@@ -421,41 +412,9 @@ function DashboardPage() {
         processed: v?.processed ?? 0,
       });
 
-      const lifecycle = (lifecycleData ?? {}) as {
-        attendance?: { approved?: number; submitted?: number; rejected?: number; open?: number };
-        payroll?: { processed?: number; ready?: number; approved?: number; open?: number };
-        invoice?: { processed?: number; ready?: number; open?: number };
-      };
-      const sheetCounts = lifecycleData
-        ? {
-            approved: lifecycle.attendance?.approved ?? 0,
-            pending: lifecycle.attendance?.submitted ?? 0,
-            draft: 0,
-            rejected: lifecycle.attendance?.rejected ?? 0,
-            open: lifecycle.attendance?.open ?? 0,
-            processed: 0,
-          }
-        : buckets(d.sheetCounts);
-      const runCounts = lifecycleData
-        ? {
-            pending: lifecycle.payroll?.ready ?? 0,
-            approved: lifecycle.payroll?.approved ?? 0,
-            draft: 0,
-            rejected: 0,
-            open: lifecycle.payroll?.open ?? 0,
-            processed: lifecycle.payroll?.processed ?? 0,
-          }
-        : buckets(d.runCounts);
-      const invoiceCounts = lifecycleData
-        ? {
-            approved: 0,
-            pending: lifecycle.invoice?.ready ?? 0,
-            draft: 0,
-            rejected: 0,
-            open: lifecycle.invoice?.open ?? 0,
-            processed: lifecycle.invoice?.processed ?? 0,
-          }
-        : buckets(undefined);
+      const sheetCounts = buckets(d.sheetCounts);
+      const runCounts = buckets(d.runCounts);
+      const invoiceCounts = buckets(undefined);
 
       const result: DashboardCounts = {
         orgs: d.orgs ?? 0,
@@ -470,29 +429,97 @@ function DashboardPage() {
         runCounts,
         invoiceCounts,
       };
-      writeDashboardCountsSnapshot(`${year}-${month}-${periodSelection.selectedKey}`, result);
+      writeDashboardCountsSnapshot(`${user?.id}-${year}-${month}-${periodSelection.selectedKey}`, result);
       return result;
     },
   });
 
+  const lifecycleQuery = useQuery({
+    queryKey: ["dashboard-lifecycle", user?.id, year, month, periodSelection.selectedKey],
+    enabled: authReady && !!user && !permsLoading && !showInventoryDashboard &&
+      !showTransportDashboard && !showHrExecutiveDashboard &&
+      (can("attendance") || can("payroll") || can("invoice")),
+    staleTime: 2 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    queryFn: async () => {
+      await supabaseSessionReady();
+      const lifecycleResult =
+        can("attendance") || can("payroll") || can("invoice")
+          ? await supabase.rpc(
+              "dashboard_lifecycle_counts" as never,
+              {
+                p_year: year,
+                p_month: month + 1,
+                p_window_start: selectedWindow?.windowStartDay ?? null,
+                p_window_end: selectedWindow?.windowEndDay ?? null,
+              } as never,
+            )
+          : { data: null, error: null };
+      if (lifecycleResult.error) throw lifecycleResult.error;
+      const lifecycleData = lifecycleResult.data;
+
+      const lifecycle = (lifecycleData ?? {}) as {
+        attendance?: { approved?: number; submitted?: number; rejected?: number; open?: number };
+        payroll?: { processed?: number; ready?: number; approved?: number; open?: number };
+        invoice?: { processed?: number; ready?: number; open?: number };
+      };
+      const sheetCounts = lifecycleData
+        ? {
+            approved: lifecycle.attendance?.approved ?? 0,
+            pending: lifecycle.attendance?.submitted ?? 0,
+            draft: 0,
+            rejected: lifecycle.attendance?.rejected ?? 0,
+            open: lifecycle.attendance?.open ?? 0,
+            processed: 0,
+          }
+        : { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
+      const runCounts = lifecycleData
+        ? {
+            pending: lifecycle.payroll?.ready ?? 0,
+            approved: lifecycle.payroll?.approved ?? 0,
+            draft: 0,
+            rejected: 0,
+            open: lifecycle.payroll?.open ?? 0,
+            processed: lifecycle.payroll?.processed ?? 0,
+          }
+        : { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
+      const invoiceCounts = lifecycleData
+        ? {
+            approved: 0,
+            pending: lifecycle.invoice?.ready ?? 0,
+            draft: 0,
+            rejected: 0,
+            open: lifecycle.invoice?.open ?? 0,
+            processed: lifecycle.invoice?.processed ?? 0,
+          }
+        : { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
+
+      return { sheetCounts, runCounts, invoiceCounts };
+    },
+  });
+
   const pnlQuery = useQuery({
-    queryKey: ["dashboard-pnl", year, month, periodSelection.selectedKey],
+    queryKey: ["dashboard-pnl", user?.id, year, month, periodSelection.selectedKey, [...periodSelection.unitIdsForWindow].sort().join(",")],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
     enabled:
-      !permsLoading &&
+      authReady && !!user && !permsLoading &&
       !showInventoryDashboard &&
       !showTransportDashboard &&
       !showPayrollDashboard &&
       !opsFocus &&
       !lightMode &&
+      !charterUnitsQ.isLoading && !periodSelection.isLoading &&
+      periodSelection.unitIdsForWindow.size > 0 &&
       (can("payroll") || can("invoice") || can("contracts")),
     staleTime: 60_000,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    retry: 1,
     placeholderData: keepPreviousData,
     queryFn: async () => {
+      await supabaseSessionReady();
       const todayStr = new Date().toISOString().slice(0, 10);
       const selectedPeriodIsCurrent = monthStart <= todayStr && todayStr <= monthEnd;
       const attendanceEnd = selectedPeriodIsCurrent ? todayStr : monthEnd;
@@ -1070,11 +1097,12 @@ function DashboardPage() {
     if (!countsQuery.data) return undefined;
     return {
       ...countsQuery.data,
+      ...(lifecycleQuery.data ?? {}),
       ...(scopedCountsQuery.data ?? {}),
       pnlRows: pnlQuery.data?.pnlRows ?? ([] as PnLRow[]),
       pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0, employer: 0 },
     };
-  }, [countsQuery.data, scopedCountsQuery.data, pnlQuery.data]);
+  }, [countsQuery.data, lifecycleQuery.data, scopedCountsQuery.data, pnlQuery.data]);
 
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
