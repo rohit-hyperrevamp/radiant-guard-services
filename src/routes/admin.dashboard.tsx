@@ -336,7 +336,7 @@ function DashboardPage() {
   // Fast tile counts paint first; the heavy month P&L loads in a second,
   // independent query so the dashboard is usable immediately.
   const countsQuery = useQuery({
-    queryKey: ["dashboard-counts", user?.id, year, month, periodSelection.selectedKey],
+    queryKey: ["dashboard-counts", user?.phone, year, month, periodSelection.selectedKey],
     enabled:
       authReady && !!user && !permsLoading &&
       !showInventoryDashboard &&
@@ -346,7 +346,7 @@ function DashboardPage() {
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
     initialData: () =>
-      readDashboardCountsSnapshot(`${user?.id}-${year}-${month}-${periodSelection.selectedKey}`),
+      readDashboardCountsSnapshot(`${user?.phone}-${year}-${month}-${periodSelection.selectedKey}`),
     initialDataUpdatedAt: 0,
     retry: 1,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
@@ -429,13 +429,13 @@ function DashboardPage() {
         runCounts,
         invoiceCounts,
       };
-      writeDashboardCountsSnapshot(`${user?.id}-${year}-${month}-${periodSelection.selectedKey}`, result);
+      writeDashboardCountsSnapshot(`${user?.phone}-${year}-${month}-${periodSelection.selectedKey}`, result);
       return result;
     },
   });
 
   const lifecycleQuery = useQuery({
-    queryKey: ["dashboard-lifecycle", user?.id, year, month, periodSelection.selectedKey],
+    queryKey: ["dashboard-lifecycle", user?.phone, year, month, periodSelection.selectedKey],
     enabled: authReady && !!user && !permsLoading && !showInventoryDashboard &&
       !showTransportDashboard && !showHrExecutiveDashboard &&
       (can("attendance") || can("payroll") || can("invoice")),
@@ -500,7 +500,7 @@ function DashboardPage() {
   });
 
   const pnlQuery = useQuery({
-    queryKey: ["dashboard-pnl", user?.id, year, month, periodSelection.selectedKey, [...periodSelection.unitIdsForWindow].sort().join(",")],
+    queryKey: ["dashboard-pnl", user?.phone, year, month, periodSelection.selectedKey, [...periodSelection.unitIdsForWindow].sort().join(",")],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
