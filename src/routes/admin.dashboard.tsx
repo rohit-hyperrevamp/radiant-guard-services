@@ -1621,6 +1621,9 @@ function DashboardPage() {
   // invoicing access — payroll-only roles (HR) get payroll columns zeroed of
   // any client-billing data, so no profit can be derived from what renders.
   const canSeeCommercial = can("invoice");
+  // Super Admin and Leadership asked to drop the heavy "Deployments by client
+  // site" list from their dashboards.
+  const hideDeployments = roleKey === ROLE_KEYS.SUPER_ADMIN || roleKey === ROLE_KEYS.LEADERSHIP;
   const charterByUnitId = new Map(dashboardUnits.map((u) => [u.id, u]));
   const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
     unit_id: r.unit_id,
@@ -1673,7 +1676,7 @@ function DashboardPage() {
                     <OperationsRadarSummary />
                     <AdminVisitProgressCard />
                     <OperationsClientLocations data={operationsOverview} />
-                    <OperationsDeployments />
+                    {!hideDeployments && <OperationsDeployments />}
                   </>
                 )}
                 {canWidget("org_tree") && <OperationsOrgTree />}
@@ -1684,7 +1687,7 @@ function DashboardPage() {
                   canWidget("team_clients") &&
                   teamRadarScope.isScoped &&
                   teamRadarScope.fieldOfficerIds.size > 0 && <OperationsRadarSummary />}
-                {canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
+                {!hideDeployments && canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
                 {!isLoading &&
                   data &&
                   canWidget("readiness") &&
