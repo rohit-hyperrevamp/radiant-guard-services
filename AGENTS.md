@@ -31,3 +31,4 @@
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
 - Never add high-volume tables (attendance_entries, punches) to realtime or to page-wide invalidation listeners — listen to status tables (attendance_sheets, payroll_runs) only; per-row streams overloaded the database.
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
+- Period contract resolution (`fetchPeriodContract`) breaks equal start dates by status (active first) then newest `created_at` — overlapping contract copies otherwise made payroll/invoice flip between runs.
