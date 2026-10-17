@@ -8,3 +8,5 @@
 
 - Dashboard P&L mirrors payroll rules (period contract, attended roster, shift lines, unit PH); employer cost excludes billing markup — keeps margins aligned.
 - Billing add-on refresh excludes reliever/management fee from CTC even when passed as extra employer lines — keeps CTC-only formulas consistent with the contract editor.
+- Rate changes are versioned in `contract_rate_revisions`; payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (day split), a daily job promotes due rates — past periods keep old rates.
+- Period contract resolution (`fetchPeriodContract`) breaks equal start dates by status (active first) then newest `created_at` — overlapping contract copies otherwise made payroll/invoice flip between runs.
