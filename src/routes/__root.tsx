@@ -18,7 +18,7 @@ import { FileViewerProvider } from "@/components/FileViewer";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
-import { supabaseSessionReady } from "@/lib/supabase-ready";
+import { onSessionRecovered, supabaseSessionReady } from "@/lib/supabase-ready";
 import { setPushRouter } from "@/lib/push-deeplink";
 
 import { NativeAppLock } from "@/components/NativeAppLock";
