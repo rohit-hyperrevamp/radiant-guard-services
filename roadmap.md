@@ -6,6 +6,10 @@
 - [ ] Apply backed corrections to mismatching inputs only, retain before/after evidence, and validate actual generated totals.
 - [x] Correct five additional BFSL duplicate ED supplements; fresh production calculations exactly match source taxable/GST/final totals for Kolkata, Ranchi, Patna, Gurugram and Indore. Only five invoice-charge rows changed; 21 focused tests pass. Not a generated-invoice or payroll approval.
 - [ ] Update the summary from verified final outputs only; do not label unverified records as 100% matched.
+- [x] Re-check CLI1359 and every BFL 21–20 site against the client MIS SG rate and amounts: Midwest = client invoice ₹2,12,041.20; all 343 MIS rows (323 site groups) within ₹1, total diff ₹0.86.
+- [ ] Payroll Not match: 129 moved to Match under the duty-split rule; 139 left (other-deduction or PF/ESI/PT gaps at same gross) need per-employee fixes against Pages.
+- [ ] Payroll Pending (268): search Pages by client ID and name; match where found.
+- [ ] Invoice Not match (174) and Pending (508): Match only where contract, payroll and invoice math agree.
 - [ ] Recover original September Pages payslips after temporary workspace reset and complete authenticated live payroll/invoice output checks; original 6,503-slip cache is absent and the current-query runner has not executed successfully, so full-period verification is blocked. Recovered Guwahati/Raipur PDFs and BFSL MIS from Drive; Guwahati has a ₹0.01 source GST rounding conflict, so no exact all-field claim or charge edit made there.
 
 ## Payroll-cycle status workbook
