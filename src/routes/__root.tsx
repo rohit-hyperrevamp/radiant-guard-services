@@ -178,6 +178,12 @@ function RootComponent() {
     };
   }, [queryClient]);
 
+  // An expired token is recovered in the background while the user stays on
+  // screen. Anything fetched during that gap came back empty (zeros), so
+  // refetch once the session is back instead of keeping those zeros cached.
+  useEffect(() => onSessionRecovered(() => void queryClient.invalidateQueries()), [queryClient]);
+
+
 
   // Promote any [title] into [data-tip] (to suppress the slow native tooltip)
   // and render a portal-mounted floating pill on hover/focus. Using a fixed
