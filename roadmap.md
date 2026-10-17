@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Urgent dashboard loading delay
+- [ ] Diagnose the live dashboard's slow counts and payroll/invoice totals.
+- [ ] Optimize the verified bottleneck without changing financial records or access.
+- [ ] Verify production request timings and focused regression tests; identify any deployment blocker.
+
 ## Priority one: September exact reconciliation
 - [ ] Include all applicable client-provided Drive rate structures in the current September re-review of payroll and invoices.
 - [ ] Re-audit September payroll against Pages and invoices/MIS against original rate/attendance evidence; preserve already-matched records.
