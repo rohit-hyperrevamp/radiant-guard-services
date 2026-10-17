@@ -6,6 +6,7 @@
 - [ ] Apply backed corrections to mismatching inputs only, retain before/after evidence, and validate actual generated totals.
 - [x] Correct five additional BFSL duplicate ED supplements; fresh production calculations exactly match source taxable/GST/final totals for Kolkata, Ranchi, Patna, Gurugram and Indore. Only five invoice-charge rows changed; 21 focused tests pass. Not a generated-invoice or payroll approval.
 - [ ] Update the summary from verified final outputs only; do not label unverified records as 100% matched.
+- [ ] Recover original September Pages payslips after temporary workspace reset and complete authenticated live payroll/invoice output checks; original 6,503-slip cache is absent and the current-query runner has not executed successfully, so full-period verification is blocked. Recovered Guwahati/Raipur PDFs and BFSL MIS from Drive; Guwahati has a ₹0.01 source GST rounding conflict, so no exact all-field claim or charge edit made there.
 
 ## Payroll-cycle status workbook
 - [x] Fill a versioned tracker with 1,721 source-report results and explicit pending reasons; explain the 27-site BFL holding group and 378 missing cycle assignments. Payroll: 1,045 Match / 242 Not match / 434 Pending; invoice/MIS: 529 Match / 2 Not match / 1,190 Pending. These are comparison results, not fresh generated approvals; latest BFSL/L&T and independently unverified five-state invoice mappings remain Pending. All 150 rendered pages inspected, formula counts verified and populated dropdown changes tested.
