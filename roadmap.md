@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Urgent dashboard loading delay
+- [x] Diagnose the live dashboard's slow counts and payroll/invoice totals: serial lifecycle wait, unresolved window requests, timer-based full financial reloads, and nested JSONB serialization.
+- [x] Optimize production P&L serialization without changing records, privileges, or values; separate authenticated count/lifecycle requests and avoid premature/polling P&L loads.
+- [x] Verify identical October and September payloads, production basic counts (43ms) and P&L (1.5–1.7s versus prior 3.6s mean), three period-contract tests, and clean automatic compilation.
+- [ ] Verify the signed-in live dashboard after publishing the page changes; blocked on publication and an available production session.
+
 ## Priority one: September exact reconciliation
 - [ ] Include all applicable client-provided Drive rate structures in the current September re-review of payroll and invoices.
 - [ ] Re-audit September payroll against Pages and invoices/MIS against original rate/attendance evidence; preserve already-matched records.
