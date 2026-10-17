@@ -33,7 +33,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { DriverHome } from "@/components/DriverHome";
 import { useMe } from "@/lib/use-me";
 import { useAuth } from "@/lib/auth";
-import { supabaseSessionReady } from "@/lib/supabase-ready";
+import { supabaseSessionReady, useHasSupabaseSession } from "@/lib/supabase-ready";
 import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
 import { UnitAttendanceCoverage } from "@/components/UnitAttendanceCoverage";
 import { DashboardShell } from "@/components/LiveFeed";
@@ -254,7 +254,9 @@ type PnLRow = {
 };
 
 function DashboardPage() {
-  const { user, isReady: authReady } = useAuth();
+  const { user, isReady: authIsReady } = useAuth();
+  const hasSession = useHasSupabaseSession();
+  const authReady = authIsReady && hasSession;
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());

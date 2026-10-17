@@ -76,7 +76,7 @@ export function LiveFieldOfficersCard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "self_attendance_punches" },
         () => {
-          void qc.invalidateQueries({ queryKey: ["live-field-officers", today()] });
+          throttledRefresh(() => void qc.invalidateQueries({ queryKey: ["live-field-officers", today()] }))
         },
       ).subscribe();
     } catch (error) {
@@ -182,4 +182,23 @@ export function LiveFieldOfficersCard() {
       </ul>
     </section>
   );
+}
+
+// Location beacons update punches every few seconds. Refetching on each one
+// flooded the database whenever a dashboard was open; refresh at most every 30s.
+let lastRefresh = 0;
+let pendingRefresh: ReturnType<typeof setTimeout> | null = null;
+function throttledRefresh(run: () => void) {
+  const wait = 30_000 - (Date.now() - lastRefresh);
+  if (wait <= 0) {
+    lastRefresh = Date.now();
+    run();
+    return;
+  }
+  if (pendingRefresh) return;
+  pendingRefresh = setTimeout(() => {
+    pendingRefresh = null;
+    lastRefresh = Date.now();
+    run();
+  }, wait);
 }

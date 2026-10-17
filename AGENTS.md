@@ -8,7 +8,6 @@
 - "View as user" mints the target session server-side (`startImpersonation`, super-admin verified), admin session kept in localStorage `radiant.impersonator`, sign-out `scope: "local"` — real RLS views.
 - Recruitment: `rec_*` gated by `current_user_can_recruit()`; `rec_onboard_candidate` inserts into `candidates` so one employee ID series is used.
 - Dashboard profitability is unit-level: invoice minus earned gross and employer contribution, posted values overriding computed ones.
-- Rate changes are versioned in `contract_rate_revisions`; payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (day split), a daily job promotes due rates — past periods keep old rates.
 - Effective permissions resolve employee > designation-in-dept > designation > department (`access_overrides`) > role_permissions via `current_user_effective_permissions()`; `prevent_hr_contract_mutation` enforces contracts sub-modules — nothing role-hardcoded.
 - Attendance/payroll/invoice actions (mark, upload, submit, approve, reopen, amend, process, finalise, upload_tally) are RBAC sub-modules via `canAction` / `current_user_explicit_permission`; explicit action row wins, else module grant (payroll approve/process also accept Workflow Manager approvers).
 - Master-data tables carry an `rbac_guard` trigger (`enforce_rbac_table_permission(module, sub)`) that refuses writes only when Access Control explicitly withholds Edit/Delete — new master tables should get the same trigger.
@@ -29,6 +28,6 @@
 - Pages data: archived payslips are read-only `pages_payslip_archive` (never recalculated); Pages-reported overrides are in `src/lib/AGENTS.md`.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`).
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
-- Never add high-volume tables (attendance_entries, punches) to realtime or to page-wide invalidation listeners — listen to status tables (attendance_sheets, payroll_runs) only; per-row streams overloaded the database.
+- Never add high-volume tables (attendance_entries, punches) to realtime or page-wide invalidation — listen to status tables (attendance_sheets, payroll_runs); existing punch listeners refetch at most every 30s — per-row streams overloaded the database.
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
-- Period contract resolution (`fetchPeriodContract`) breaks equal start dates by status (active first) then newest `created_at` — overlapping contract copies otherwise made payroll/invoice flip between runs.
+- Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — the remembered user outlives token recovery, and gap queries return zeros.

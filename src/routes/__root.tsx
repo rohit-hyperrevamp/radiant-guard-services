@@ -18,7 +18,7 @@ import { FileViewerProvider } from "@/components/FileViewer";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
-import { supabaseSessionReady } from "@/lib/supabase-ready";
+import { onSessionRecovered, supabaseSessionReady } from "@/lib/supabase-ready";
 import { setPushRouter } from "@/lib/push-deeplink";
 
 import { NativeAppLock } from "@/components/NativeAppLock";
@@ -177,6 +177,12 @@ function RootComponent() {
       cancelled = true;
     };
   }, [queryClient]);
+
+  // An expired token is recovered in the background while the user stays on
+  // screen. Anything fetched during that gap came back empty (zeros), so
+  // refetch once the session is back instead of keeping those zeros cached.
+  useEffect(() => onSessionRecovered(() => void queryClient.invalidateQueries()), [queryClient]);
+
 
 
   // Promote any [title] into [data-tip] (to suppress the slow native tooltip)
