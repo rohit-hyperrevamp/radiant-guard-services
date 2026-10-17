@@ -25,6 +25,12 @@ export async function fetchPeriodContract<T extends Record<string, unknown>>(
     .lte("start_date", periodEnd)
     .or(`end_date.is.null,end_date.gte.${periodStart}`)
     .order("start_date", { ascending: false })
+    // Two contracts can share a start date (a superseded copy kept as
+    // "expired" next to the live one). Without a tie-break the database picks
+    // either, so the same payroll/invoice flipped between runs. The active
+    // contract wins, then the most recently created.
+    .order("status", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(1);
   if (overlap && overlap.length) return overlap[0] as unknown as T;
   const { data: active } = await client
