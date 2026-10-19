@@ -1,3 +1,4 @@
+import { ListSkeleton } from "@/components/Skeletons";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -89,8 +90,8 @@ function MyTrainingPage() {
       </div>
 
       {modulesQ.isLoading ? (
-        <div className="grid flex-1 place-items-center rounded-2xl border bg-card">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="flex-1 rounded-2xl border bg-card">
+          <ListSkeleton rows={6} />
         </div>
       ) : modules.length === 0 ? (
         <div className="grid flex-1 place-items-center rounded-2xl border bg-card p-8 text-center">

@@ -1,3 +1,4 @@
+import { PageSkeleton } from "@/components/Skeletons";
 import { EmployeeChangeRequest } from "@/components/EmployeeChangeRequest";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
@@ -313,9 +314,7 @@ function CandidateDetailsPage() {
 
   if (isLoading || !form) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <PageSkeleton />
     );
   }
 
