@@ -2144,7 +2144,7 @@ function EmployeesPage() {
   const rowCandidates = candidates;
   const units = unitsQuery.data ?? [];
   const designations = designationsQuery.data ?? [];
-  const exServices = exServicesQuery.data ?? [];
+  const isLoading = candidatesQuery.isLoading || (empStatusTab === "inactive" && candidatesQuery.inactiveLoading);
   const languagesList = languagesQuery.data ?? [];
   const rolesList = rolesQuery.data ?? [];
   const esicBranches = esicBranchesQuery.data ?? [];
