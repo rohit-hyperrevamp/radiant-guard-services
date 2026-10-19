@@ -31,3 +31,4 @@
 - Never add high-volume tables (attendance_entries, punches) to realtime or page-wide invalidation — listen to status tables (attendance_sheets, payroll_runs); existing punch listeners refetch at most every 30s — per-row streams overloaded the database.
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — the remembered user outlives token recovery, and gap queries return zeros.
+- List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
