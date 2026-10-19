@@ -2346,3 +2346,12 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
 }
 [data-slot="dialog-content"] { border-color: transparent !important; }
+
+/* Long list text never overlaps neighbouring columns */
+.ios-table tbody td {
+  overflow-wrap: anywhere;
+}
+.ios-table tbody td :where(.inline-flex) {
+  max-width: 100%;
+  flex-wrap: wrap;
+}

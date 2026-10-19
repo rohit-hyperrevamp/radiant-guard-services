@@ -1,3 +1,4 @@
+import { LongText } from "@/components/LongText";
 import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
@@ -217,7 +218,7 @@ function ServiceTypeManagerPage() {
                       {i.name}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-foreground/90">{i.description || "—"}</td>
+                  <td className="px-5 py-3 text-foreground/90"><LongText text={i.description} title="Description" /></td>
                   <td className="px-5 py-3">
                     <Switch
                       checked={i.enabled}

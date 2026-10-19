@@ -1454,7 +1454,7 @@ function DashboardPage() {
             crumbs={[{ label: "Dashboard" }]}
           />
           <MyUpcomingInterviewsCard />
-          <div className="scrollbar-hide flex min-w-0 max-w-full items-center gap-2 overflow-x-auto pb-0.5">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 pb-0.5">
             <PayrollWindowPeriodPicker
               options={periodSelection.options}
               selectedKey={periodSelection.selectedKey}
@@ -1765,7 +1765,7 @@ function DashboardPage() {
               </div>
             </div>
 
-            <div className="scrollbar-hide flex min-w-0 max-w-full items-center gap-2 overflow-x-auto pb-0.5">
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 pb-0.5">
               <PayrollWindowPeriodPicker
                 options={periodSelection.options}
                 selectedKey={periodSelection.selectedKey}

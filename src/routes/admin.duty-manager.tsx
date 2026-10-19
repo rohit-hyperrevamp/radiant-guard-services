@@ -1,3 +1,4 @@
+import { LongText } from "@/components/LongText";
 import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
@@ -225,7 +226,7 @@ function DutyManagerPage() {
                       {i.name}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-foreground/90">{i.description || "—"}</td>
+                  <td className="px-5 py-3 text-foreground/90"><LongText text={i.description} title="Description" /></td>
                   <td className="px-5 py-3 text-right font-mono text-foreground/90">{i.hours}</td>
                   <td className="px-5 py-3">
                     <Switch

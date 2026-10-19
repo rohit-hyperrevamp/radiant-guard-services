@@ -1,3 +1,4 @@
+import { LongText } from "@/components/LongText";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -241,7 +242,7 @@ function AssetExpenseManagerPage() {
                   <td className="px-5 py-3 tabular-nums">₹{Math.round(it.amount).toLocaleString("en-IN")}</td>
                   <td className="px-5 py-3">{it.payment_mode || "—"}</td>
                   <td className="px-5 py-3">{it.vendor_name || "—"}</td>
-                  <td className="px-5 py-3 max-w-xs truncate" title={it.notes}>{it.notes || "—"}</td>
+                  <td className="px-5 py-3" title={it.notes}><LongText text={it.notes} title="Notes" /></td>
                   <td className="px-5 py-3"><Switch checked={it.enabled} onCheckedChange={async (v) => {
                     const { error } = await supabase.from("property_expenses" as never).update({ enabled: v } as never).eq("id", it.id);
                     if (error) { toast.error(error.message); return; }
