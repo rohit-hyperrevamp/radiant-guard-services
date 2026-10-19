@@ -1,3 +1,4 @@
+import { LongText } from "@/components/LongText";
 import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
@@ -476,12 +477,12 @@ function CostComponentManagerPage() {
               {pg.pageRows.map((i) => (
                 <tr key={i.id} className="hover:bg-secondary/30">
                   <td className="px-5 py-3 font-medium text-foreground">
-                    <span className="inline-flex items-center gap-2">
-                      <Calculator className="h-4 w-4 text-muted-foreground" />
+                    <span className="flex min-w-0 items-start gap-2">
+                      <Calculator className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       {i.name}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-foreground/80">{displayDescription(i)}</td>
+                  <td className="px-5 py-3 text-foreground/80"><LongText text={displayDescription(i)} title="Description" /></td>
                   <td className="px-5 py-3 text-foreground/90">
                     {displayPercent(i)}
                   </td>

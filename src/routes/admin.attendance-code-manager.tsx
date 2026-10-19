@@ -1,3 +1,4 @@
+import { LongText } from "@/components/LongText";
 import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
@@ -271,7 +272,7 @@ function AttendanceCodeManagerPage() {
                     </span>
                   </td>
                   <td data-label="Label" className="px-5 py-3 font-medium text-foreground">{i.label}</td>
-                  <td data-label="Description" className="px-5 py-3 text-foreground/80">{i.description || "—"}</td>
+                  <td data-label="Description" className="px-5 py-3 text-foreground/80"><LongText text={i.description} title="Description" /></td>
                   <td data-label="Present" className="px-5 py-3 text-center">{i.counts_as_present ? "✓" : "—"}</td>
                   <td data-label="Paid" className="px-5 py-3 text-center">{i.is_paid ? "✓" : "—"}</td>
                   <td data-label="Leave" className="px-5 py-3 text-center">{i.is_leave ? "✓" : "—"}</td>
