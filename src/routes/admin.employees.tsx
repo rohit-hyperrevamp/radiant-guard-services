@@ -1562,6 +1562,11 @@ function useCandidates() {
           };
 
           const rows: CandidateListItem[] = [];
+          // When a saved copy exists the page already shows full totals;
+          // streaming partial pages would make counts climb 1,000 → 6,000.
+          const hasSnapshot =
+            (qc.getQueryData<CandidateListItem[]>(QK)?.length ?? 0) > 0 ||
+            (readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES)?.length ?? 0) > 0;
           for (const inactive of [false, true]) {
             const batchSize = 4;
             for (let startPage = 0; startPage < 80; startPage += batchSize) {
@@ -1575,7 +1580,7 @@ function useCandidates() {
                 rows.push(...pageRows);
                 if (pageRows.length < pageSize) reachedEnd = true;
               }
-              qc.setQueryData(QK, rows.slice());
+              if (!hasSnapshot) qc.setQueryData(QK, rows.slice());
               if (reachedEnd) break;
             }
           }
