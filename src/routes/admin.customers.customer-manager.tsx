@@ -1,6 +1,7 @@
 import { matchesSearch, statusRank } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
+import { SearchSelect } from "@/components/SearchSelect";
 import { InvoiceFormatEditor, OrgInvoiceFormatDialog, saveOrgInvoiceSplit } from "@/components/InvoiceSplitSettings";
 import { DEFAULT_SPLIT, loadOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
 import { useQueryClient as useQC } from "@tanstack/react-query";
@@ -865,18 +866,12 @@ function CustomerFormDialog({
               />
             </Field>
             <Field label="Industry / Organization type">
-              <select
+              <SearchSelect
                 value={form.industryType}
-                onChange={(e) => set("industryType", e.target.value)}
-                className="flex h-10 w-full rounded-xl border border-border/80 bg-card px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
-              >
-                <option value="">Select industry…</option>
-                {INDUSTRY_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                onChange={(next) => set("industryType", next)}
+                placeholder="Select industry…"
+                options={[{ value: "", label: "Select industry…" }, ...INDUSTRY_TYPES.map((type) => ({ value: type, label: type }))]}
+              />
             </Field>
             <Field label="Website">
               <Input

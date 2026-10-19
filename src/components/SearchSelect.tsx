@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useDropdownSearch } from "@/components/dropdown-search";
 
 export type SearchSelectOption = {
   value: string;
@@ -50,11 +51,7 @@ export function SearchSelect({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter((o) => `${o.label} ${o.hint ?? ""}`.toLowerCase().includes(q));
-  }, [options, query]);
+  const filtered = useDropdownSearch(options, query);
 
   const selected = options.find((o) => o.value === value);
 

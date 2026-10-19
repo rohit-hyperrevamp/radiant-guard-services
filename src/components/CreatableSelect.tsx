@@ -5,6 +5,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { SearchSelectOption } from "@/components/SearchSelect";
+import { useDropdownSearch } from "@/components/dropdown-search";
 
 /** Searchable dropdown that also lets you add a typed name that isn't in the list. */
 export function CreatableSelect({
@@ -30,10 +31,7 @@ export function CreatableSelect({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const q = query.trim().toLowerCase();
-  const filtered = React.useMemo(
-    () => (q ? options.filter((o) => `${o.label} ${o.hint ?? ""}`.toLowerCase().includes(q)).slice(0, 200) : options.slice(0, 200)),
-    [options, q],
-  );
+  const filtered = useDropdownSearch(options, query).slice(0, 200);
   const exact = options.some((o) => o.label.toLowerCase() === q);
   const shown = options.find((o) => o.value === value)?.label ?? label ?? "";
   return (

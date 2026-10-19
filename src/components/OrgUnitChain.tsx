@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
+import { useDropdownSearch } from "@/components/dropdown-search";
 
 // ---------------------------------------------------------------------------
 // Organization → Unit chain used whenever a contract is onboarded.
@@ -61,13 +62,10 @@ function Picker<T extends { id: string; code: string; name: string }>({
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const selected = items.find((i) => i.id === value);
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    const list = s ? items.filter((i) => `${i.code} ${i.name}`.toLowerCase().includes(s)) : items;
-    return list.slice(0, 100);
-  }, [items, q]);
+  const options = useMemo(() => items.map((item) => ({ ...item, value: item.code, label: item.name })), [items]);
+  const filtered = useDropdownSearch(options, q);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQ(""); }}>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" role="combobox" disabled={disabled} className="h-10 w-full justify-between rounded-lg font-normal">
           {selected ? <span className="truncate"><span className="font-mono text-xs text-muted-foreground">{selected.code}</span> {selected.name}</span> : <span className="text-muted-foreground">{placeholder}</span>}
