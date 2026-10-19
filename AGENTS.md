@@ -31,3 +31,4 @@
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
 - Subdirectories (e.g. `src/lib/`) have their own `AGENTS.md` — read before changing files there.
+- Root owns cache restoration and identity cleanup before mounting page consumers; persistence details are governed by src/lib/AGENTS.md, so stale cached identities cannot bleed between sessions.

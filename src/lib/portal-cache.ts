@@ -9,18 +9,9 @@ const LISTS = new Set([
 ]);
 export const CACHE_MAX_AGE = 5 * 60_000;
 const PREFIX = "radiant.portal-cache.v1.";
-let activeOwner: string | null = null;
 
 export function isSavedList(key: QueryKey): boolean {
   return key.length === 2 && key[0] === "admin" && typeof key[1] === "string" && LISTS.has(key[1]);
-}
-
-export function readSavedList<T>(key: QueryKey): T | undefined {
-  if (typeof window === "undefined" || !activeOwner || !isSavedList(key)) return undefined;
-  try {
-    const entries = JSON.parse(window.sessionStorage.getItem(PREFIX + activeOwner) ?? "[]") as SavedEntry[];
-    return entries.find((entry) => validEntry(entry, Date.now()) && JSON.stringify(entry.key) === JSON.stringify(key))?.data as T | undefined;
-  } catch { return undefined; }
 }
 
 type SavedEntry = { key: QueryKey; data: unknown; at: number };
@@ -69,7 +60,6 @@ export function createPortalCache(client: QueryClient, storage: Storage) {
       restoring = true;
       if (owner !== null) { purge(); client.clear(); }
       owner = next;
-      activeOwner = next;
       try {
         if (next) {
           const entries = JSON.parse(storage.getItem(PREFIX + next) ?? "[]") as SavedEntry[];
@@ -92,6 +82,6 @@ export function createPortalCache(client: QueryClient, storage: Storage) {
       } catch { /* Invalid or unavailable storage must not prevent login. */ }
       finally { restoring = false; }
     },
-    dispose() { if (timer) { clearTimeout(timer); save(); } unsubscribe(); activeOwner = null; },
+    dispose() { if (timer) { clearTimeout(timer); save(); } unsubscribe(); },
   };
 }
