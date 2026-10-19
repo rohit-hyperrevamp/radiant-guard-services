@@ -227,6 +227,8 @@ function UnitManagerPage() {
         };
       })
       .sort((a, b) => {
+        const r = statusRank(a.status) - statusRank(b.status);
+        if (r) return r;
         const na = parseInt(a.code.replace(/\D/g, ""), 10) || 0;
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
@@ -242,18 +244,18 @@ function UnitManagerPage() {
       return true;
     });
     if (!query.trim()) return filtered;
-    const q = query.trim().toLowerCase();
-    return filtered.filter(
-      (u) =>
-        u.code.toLowerCase().includes(q) ||
-        u.name.toLowerCase().includes(q) ||
-        u.location.toLowerCase().includes(q) ||
-        u.branchLabel.toLowerCase().includes(q) ||
-        u.customerLabel.toLowerCase().includes(q) ||
-        u.stateLabel.toLowerCase().includes(q) ||
-        u.cityLabel.toLowerCase().includes(q) ||
-        u.zone.toLowerCase().includes(q) ||
-        u.branchSapCode.toLowerCase().includes(q),
+    return filtered.filter((u) =>
+      matchesSearch(query, [
+        u.code,
+        u.name,
+        u.location,
+        u.branchLabel,
+        u.customerLabel,
+        u.stateLabel,
+        u.cityLabel,
+        u.zone,
+        u.branchSapCode,
+      ]),
     );
   }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter, stateFilter, cityFilter]);
 
