@@ -1,3 +1,4 @@
+import { matchesSearch as matchesSearchText } from "@/lib/search-match";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { EmployeePostingsDialog } from "@/components/EmployeePostingsDialog";
@@ -2606,18 +2607,15 @@ function EmployeesPage() {
       myUnitsQuery.isFetching ||
       (unitsQuery.isLoading && (myUnitsQuery.data?.length ?? 0) === 0));
 
-  const matchesSearch = (c: CandidateListItem) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return [
+  const matchesSearch = (c: CandidateListItem) =>
+    matchesSearchText(search, [
       c.full_name,
       c.aadhaar_number,
       c.mobile,
       c.email,
       c.candidate_code,
       c.employee_code,
-    ].some((v) => (v ?? "").toLowerCase().includes(q));
-  };
+    ]);
 
   const matchesFilters = (c: CandidateListItem) => {
     if (filterRole !== "all" && c.role_key !== filterRole) return false;

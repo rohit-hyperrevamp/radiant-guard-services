@@ -1,9 +1,10 @@
+import { matchesSearch, statusRank } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { notifySaved } from "@/components/ConfirmProvider";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, Edit2, MapPin, Plus, Search, Warehouse, X } from "lucide-react";
@@ -196,7 +197,8 @@ function UnitManagerPage() {
     [customers, foScope.isScoped, foScope.customerIds],
   );
 
-  const [query, setQuery] = useState(client ?? "");
+  const [queryInput, setQuery] = useState(client ?? "");
+  const query = useDeferredValue(queryInput);
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
@@ -227,6 +229,8 @@ function UnitManagerPage() {
         };
       })
       .sort((a, b) => {
+        const r = statusRank(a.status) - statusRank(b.status);
+        if (r) return r;
         const na = parseInt(a.code.replace(/\D/g, ""), 10) || 0;
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
@@ -242,18 +246,18 @@ function UnitManagerPage() {
       return true;
     });
     if (!query.trim()) return filtered;
-    const q = query.trim().toLowerCase();
-    return filtered.filter(
-      (u) =>
-        u.code.toLowerCase().includes(q) ||
-        u.name.toLowerCase().includes(q) ||
-        u.location.toLowerCase().includes(q) ||
-        u.branchLabel.toLowerCase().includes(q) ||
-        u.customerLabel.toLowerCase().includes(q) ||
-        u.stateLabel.toLowerCase().includes(q) ||
-        u.cityLabel.toLowerCase().includes(q) ||
-        u.zone.toLowerCase().includes(q) ||
-        u.branchSapCode.toLowerCase().includes(q),
+    return filtered.filter((u) =>
+      matchesSearch(query, [
+        u.code,
+        u.name,
+        u.location,
+        u.branchLabel,
+        u.customerLabel,
+        u.stateLabel,
+        u.cityLabel,
+        u.zone,
+        u.branchSapCode,
+      ]),
     );
   }, [scopedUnits, branchById, customerById, stateById, query, statusFilter, orgFilter, stateFilter, cityFilter]);
 
@@ -334,7 +338,7 @@ function UnitManagerPage() {
           <div className="relative col-span-2 w-full sm:min-w-56 sm:max-w-sm sm:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
+              value={queryInput}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by code, name, branch, organisation…"
               className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
