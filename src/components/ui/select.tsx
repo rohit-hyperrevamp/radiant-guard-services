@@ -136,6 +136,23 @@ const SelectContent = React.forwardRef<
         position={position}
         collisionPadding={12}
         {...props}
+        onKeyDownCapture={(event) => {
+          props.onKeyDownCapture?.(event);
+          if (event.defaultPrevented || !showSearch || event.target === inputRef.current || event.nativeEvent.isComposing) return;
+          if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey && event.key !== " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            search?.setQuery((search?.query ?? "") + event.key);
+            inputRef.current?.focus();
+          } else if (event.key === "ArrowUp") {
+            const first = event.currentTarget.querySelector('[data-slot="select-item"]:not([data-disabled]):not([hidden])');
+            if (event.target === first) {
+              event.preventDefault();
+              event.stopPropagation();
+              inputRef.current?.focus();
+            }
+          }
+        }}
       >
         {showSearch && search && (
           <div className="shrink-0 border-b border-border/60 p-2">
