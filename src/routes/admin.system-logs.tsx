@@ -269,7 +269,7 @@ function SystemLogsPage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Search module, action, entity, user, IP, error…"
-              className="h-10 pl-9"
+              className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
             />
           </div>
         </div>

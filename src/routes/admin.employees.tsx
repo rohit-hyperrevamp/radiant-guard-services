@@ -6078,7 +6078,7 @@ function EmployeesPage() {
               value={siteMapSearch}
               onChange={(e) => setSiteMapSearch(e.target.value)}
               placeholder="Search client, site or site code"
-              className="h-9 pl-9 text-sm"
+              className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
             />
           </div>
           <div className="max-h-[55vh] overflow-y-auto rounded-xl border">

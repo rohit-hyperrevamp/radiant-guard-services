@@ -94,10 +94,10 @@ function AdditionTypeManagerPage() {
         description="Catalog of addition categories used when recording employee additions."
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Addition Types" }]}
       />
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mobile-directory-toolbar mobile-glass-surface mb-3 flex flex-col gap-2 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-10 rounded-lg pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
         </div>
         <Button onClick={() => setAddOpen(true)} className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90">
           <Plus className="mr-1.5 h-4 w-4" /> Add Addition Type
