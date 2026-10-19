@@ -1229,6 +1229,8 @@ type ExServiceLite = { id: string; name: string; description: string };
 type LanguageLite = { id: string; name: string };
 
 const QK = ["admin", "candidates"] as const;
+const QK_WORKING = ["admin", "candidates", "working"] as const;
+const QK_INACTIVE = ["admin", "candidates", "inactive"] as const;
 const QK_UNITS = ["admin", "units-lite"] as const;
 const QK_DESIG = ["admin", "designations-lite"] as const;
 const QK_EX_SERVICES = ["admin", "ex-services-lite"] as const;
@@ -1504,61 +1506,88 @@ function InlinePicker({
   );
 }
 
-function useCandidates() {
-  const qc = useQueryClient();
-  return useQuery({
-    queryKey: QK,
+/** Fetch every row for one slice (working staff or inactive history) in parallel pages. */
+async function fetchCandidateSlice(inactive: boolean, signal: AbortSignal): Promise<CandidateListItem[]> {
+  const pageSize = 1000;
+  const base = () => {
+    const q = supabase.from("candidates" as never).select("id", { count: "exact", head: true });
+    return inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
+  };
+  const { count, error: countError } = await base().abortSignal(signal);
+  if (countError) throw countError;
+  const pages = Math.max(1, Math.ceil((count ?? 0) / pageSize) + 1);
+  const results = await Promise.all(
+    Array.from({ length: pages }, (_, page) => {
+      let q = supabase.from("candidates" as never).select(CANDIDATE_LIST_COLUMNS);
+      q = inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
+      return q
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+        .abortSignal(signal);
+    }),
+  );
+  const rows: CandidateListItem[] = [];
+  const seen = new Set<string>();
+  for (const result of results) {
+    if (result.error) throw result.error;
+    for (const row of (result.data ?? []) as unknown as CandidateListItem[]) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+/**
+ * Working staff (~7k) load on open; the large inactive history (~22k) loads
+ * only when the Inactive tab or a search needs it — it used to be fetched
+ * and processed on every visit, which made the page slow.
+ */
+function useCandidates(includeInactive: boolean) {
+  const common = {
     retry: 2,
-    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 4_000),
+    retryDelay: (attempt: number) => Math.min(1_000 * 2 ** attempt, 4_000),
     refetchOnWindowFocus: false,
     staleTime: 5 * 60_000,
-    queryFn: async (): Promise<CandidateListItem[]> => {
-      return runWithQueryTimeout(
-        "Employees",
-        async (signal) => {
-          // Load working (non-inactive) staff first so Active is complete
-          // immediately, then page through the large inactive history.
-          const pageSize = 1000;
-          const fetchPage = (inactive: boolean, page: number) => {
-            let q = supabase
-              .from("candidates" as never)
-              .select(CANDIDATE_LIST_COLUMNS);
-            q = inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
-            return q
-              .order("created_at", { ascending: false })
-              .order("id", { ascending: true })
-              .range(page * pageSize, (page + 1) * pageSize - 1)
-              .abortSignal(signal);
-          };
-
-          const rows: CandidateListItem[] = [];
-          // When a saved copy exists the page already shows full totals;
-          // streaming partial pages would make counts climb 1,000 → 6,000.
-          const hasSnapshot = (qc.getQueryData<CandidateListItem[]>(QK)?.length ?? 0) > 0;
-          for (const inactive of [false, true]) {
-            const batchSize = 4;
-            for (let startPage = 0; startPage < 80; startPage += batchSize) {
-              const results = await Promise.all(
-                Array.from({ length: batchSize }, (_, offset) => fetchPage(inactive, startPage + offset)),
-              );
-              let reachedEnd = false;
-              for (const result of results) {
-                if (result.error) throw result.error;
-                const pageRows = (result.data ?? []) as unknown as CandidateListItem[];
-                rows.push(...pageRows);
-                if (pageRows.length < pageSize) reachedEnd = true;
-              }
-              if (!hasSnapshot) qc.setQueryData(QK, rows.slice());
-              if (reachedEnd) break;
-            }
-          }
-
-          return rows;
-        },
-        90_000,
-      );
+  } as const;
+  const working = useQuery({
+    ...common,
+    queryKey: QK_WORKING,
+    queryFn: () => runWithQueryTimeout("Employees", (signal) => fetchCandidateSlice(false, signal), 90_000),
+  });
+  const inactive = useQuery({
+    ...common,
+    queryKey: QK_INACTIVE,
+    enabled: includeInactive,
+    queryFn: () => runWithQueryTimeout("Inactive employees", (signal) => fetchCandidateSlice(true, signal), 90_000),
+  });
+  const inactiveCount = useQuery({
+    ...common,
+    queryKey: [...QK, "inactive-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("candidates" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "inactive");
+      if (error) throw error;
+      return count ?? 0;
     },
   });
+  const data = useMemo(() => {
+    if (!working.data) return undefined;
+    return inactive.data ? [...working.data, ...inactive.data] : working.data;
+  }, [working.data, inactive.data]);
+  return {
+    data,
+    isLoading: working.isLoading,
+    inactiveLoading: includeInactive && inactive.isLoading,
+    inactiveLoaded: !!inactive.data,
+    inactiveCount: inactiveCount.data,
+    error: working.error ?? inactive.error,
+    refetch: () => Promise.all([working.refetch(), includeInactive ? inactive.refetch() : null]),
+  };
 }
 
 function EmployeeSearchInput({
