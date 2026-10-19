@@ -9,6 +9,7 @@ import { useDeferredValue, useCallback, useEffect, useMemo, useRef, useState } f
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SearchSelect } from "@/components/SearchSelect";
+import { useDropdownSearch } from "@/components/dropdown-search";
 import { ContractExportDialog } from "@/components/ContractExportDialog";
 import {
   Check,
@@ -3779,17 +3780,11 @@ function ContractFormDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUnit?.id, editing?.id]);
-  const filteredUnits = useMemo(() => {
-    const query = unitQuery.trim().toLowerCase();
-    if (!query) return units;
-    return units.filter((u) => {
-      const org = u.customerId ? customerById.get(u.customerId) : null;
-      return [u.code, u.name, org?.name ?? "", u.id]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [customerById, unitQuery, units]);
+  const unitOptions = useMemo(() => units.map((unit) => ({
+    ...unit, value: unit.code, label: unit.name,
+    hint: unit.customerId ? customerById.get(unit.customerId)?.name : undefined,
+  })), [units, customerById]);
+  const filteredUnits = useDropdownSearch(unitOptions, unitQuery);
 
   const selectedWindow = payrollWindows.find((w) => w.id === payrollWindowId);
   const payDate = selectedWindow ? `Day ${selectedWindow.processingDay}` : "—";
@@ -5111,23 +5106,11 @@ export function ResourceFormDialog({
   const gross = components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
   const usedIds = new Set(components.map((c) => c.allowanceId));
   const availableExtras = allowanceTypes.filter((a) => !usedIds.has(a.id));
-  const filteredDesignations = useMemo(() => {
-    const query = designationQuery.trim().toLowerCase();
-    if (!query) return designations;
-    return designations.filter((d) =>
-      matchesSearch(query, [d.code, d.name, d.id]),
-    );
-  }, [designationQuery, designations]);
-  const filteredAvailableExtras = useMemo(() => {
-    const query = allowanceQuery.trim().toLowerCase();
-    if (!query) return availableExtras;
-    return availableExtras.filter((a) =>
-      [a.shortName, a.displayName, a.name, a.id]
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [allowanceQuery, availableExtras]);
+  const designationOptions = useMemo(() => designations.map((d) => ({ ...d, value: d.code || d.id, label: d.name })), [designations]);
+  const filteredDesignations = useDropdownSearch(designationOptions, designationQuery);
+  const extraOptions = useMemo(() => allowanceTypes.filter((a) => !components.some((c) => c.allowanceId === a.id))
+    .map((a) => ({ ...a, value: a.id, label: a.name, hint: `${a.shortName} ${a.displayName}` })), [allowanceTypes, components]);
+  const filteredAvailableExtras = useDropdownSearch(extraOptions, allowanceQuery);
 
   // Recompute formula-based wage components (e.g. HRA = 5% of Basic + DA)
   // whenever any other component changes. Skips self-reference and no-ops
