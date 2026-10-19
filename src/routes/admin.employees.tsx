@@ -6,6 +6,7 @@ import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { NOMANS_UNIT_ID as NOMANS_UNIT_ID_CONST } from "@/lib/business-constants";
 import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
 import {
@@ -1430,7 +1431,7 @@ async function runWithQueryTimeout<T>(
 // Employee and client data are reused only in the current query cache.
 
 const CANDIDATE_LIST_COLUMNS =
-  "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
+  "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,photo_thumb_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
 
 type InlinePickerOption = { id: string; label: string; hint?: string };
 
