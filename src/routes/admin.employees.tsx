@@ -4708,17 +4708,12 @@ function EmployeesPage() {
               )}
             >
               <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
-                {c.photo_url ? (
-                  <img loading="lazy" decoding="async"
-                    src={c.photo_url}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm ring-1 ring-border/70"
-                  />
-                ) : (
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground shadow-sm ring-1 ring-border/70">
-                    <UserPlus className="h-4 w-4" />
-                  </div>
-                )}
+                <EmployeeAvatar
+                  id={c.id}
+                  photoUrl={c.photo_url}
+                  thumbUrl={c.photo_thumb_url}
+                  className="h-10 w-10 shadow-sm ring-1 ring-border/70"
+                />
 
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
