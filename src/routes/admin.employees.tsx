@@ -4130,7 +4130,7 @@ function EmployeesPage() {
               <HoverCardTrigger asChild>
                 <div className="grid cursor-default grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5">
                   {c.photo_url ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={c.photo_url}
                       alt=""
                       className="h-8 w-8 flex-shrink-0 rounded-full object-cover shadow-sm ring-2 ring-card"
@@ -4714,7 +4714,7 @@ function EmployeesPage() {
             >
               <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
                 {c.photo_url ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={c.photo_url}
                     alt=""
                     className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm ring-1 ring-border/70"
@@ -5915,7 +5915,7 @@ function EmployeesPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3">
                     {c.photo_url ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={c.photo_url}
                         alt={c.full_name ?? ""}
                         className="h-14 w-14 rounded-full object-cover ring-2 ring-border"
