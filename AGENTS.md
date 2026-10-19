@@ -16,7 +16,7 @@
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — deploy build can bake preview env.
 - Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view).
 - Exports gated by `<module>::export` via `canExport` (ExportChooser) — one switch per module.
-- Console users land on their dashboard without module grants; team cards are presentation-independent and gated by dashboard::w_team_clients.
+- Console users land on their dashboard without module grants; team cards gated by dashboard::w_team_clients.
 - Audit trigger `zz_audit` (`audit_row_change(module)`) logs to `system_logs` (actor filled by `system_logs_fill_actor`) — add it to new important tables.
 
 <!-- LOVABLE:BEGIN -->
@@ -31,4 +31,4 @@
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
 - Subdirectories (`src/lib/`, `src/routes/`, `src/components/`) have their own `AGENTS.md` — read before changing files there.
-- Root owns cache restoration and identity cleanup before mounting page consumers; persistence details are governed by src/lib/AGENTS.md, so stale cached identities cannot bleed between sessions.
+- Root restores cache and clears old identities before mounting pages (details in src/lib/AGENTS.md) — no cross-session data bleed.
