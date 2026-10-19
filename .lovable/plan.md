@@ -6,6 +6,12 @@
 - Fix: typing updates only the box instantly; the list updates after a short pause (about 250ms); previous results stay visible while new ones load; old in-flight requests are cancelled; heavy filtering is memoized.
 - One shared search box used everywhere so behaviour is identical.
 
+## 1b. Search finds people by any part of their name
+- Typing any part of a name works: first, middle or last name (e.g. "Tarun", "Singh"), in capitals or small letters, plus employee ID and phone number.
+- Several words ("tarun singh", "singh tarun") match when every word appears somewhere, in any order.
+- Extra spaces and dots are ignored; phone search works with or without +91 or spaces.
+- Applies to employee, candidate, client, organization, contract and case searches and all pick-a-person boxes.
+
 ## 2. Clients: active first
 - Client list (and client search results) sort Active first, then Pending/Inactive, then Expired, keeping current order within each group.
 
