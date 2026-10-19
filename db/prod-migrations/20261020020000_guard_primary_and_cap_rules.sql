@@ -81,8 +81,7 @@ BEGIN
         WHERE x.id = ae.id AND NOT x.locked AND x.unit_id <> v_primary AND NOT ae.is_reliever
           AND ac.code = ae.code AND ac.counts_as_present;
       GET DIAGNOSTICS v_present = ROW_COUNT; v_changed := v_changed + v_present;
-      IF m >= (date_trunc('month', CURRENT_DATE) - interval '1 month')::date
-         AND NOT EXISTS (SELECT 1 FROM _gar x WHERE x.pe > (SELECT max(pe) FROM _gar WHERE unit_id = v_primary) + 31) THEN
+      IF m >= (date_trunc('month', CURRENT_DATE) - interval '1 month')::date THEN
         UPDATE candidates SET unit_id = v_primary WHERE id = _cand AND unit_id IS DISTINCT FROM v_primary;
       END IF;
     END IF;
