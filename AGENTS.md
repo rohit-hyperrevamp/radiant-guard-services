@@ -1,7 +1,6 @@
 
 - Training files (`training/<role_key>/`) and attendance selfies (420px JPEG) live in private storage with short-lived signed links.
 - Mixed-window charter statuses load via `batch_period_statuses(jsonb)` in one request — no per-window fan-out.
-- Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Approvals (payroll, onboarding, `approval_requests`) follow `workflow_steps` via `workflow_step_matches` (named people/department override role); sensitive employee fields change only through `approval_decide` — approvers stay configurable.
 - Login OTP SMS is sent and verified by the MSG91 OTP Widget in the browser — server sends get held (211).
 - CRM: `crm_*` gated by `current_user_can_crm()`; prospects convert via `OrgUnitChain` into a pending contract draft — Client Contracts holds contracts only.
@@ -25,11 +24,10 @@
 - Pay-item displays/grouping use `pay-item-names`; preserve raw rate/formula lines so naming cannot change calculations.
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
-- Pages data: archived payslips are read-only `pages_payslip_archive` (never recalculated); Pages-reported overrides are in `src/lib/AGENTS.md`.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`).
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
 - Never add high-volume tables (attendance_entries, punches) to realtime or page-wide invalidation — listen to status tables (attendance_sheets, payroll_runs); existing punch listeners refetch at most every 30s — per-row streams overloaded the database.
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — the remembered user outlives token recovery, and gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
-- Extra Duty rule (basis, multiplier, formula, ticked components) always comes from the contract resource via `withContractEdRule` (src/lib/ed-rule.ts), even when an employee has their own salary setup; all-unticked = ₹0 ED — so the contract choice is never silently replaced.
+- Subdirectories (e.g. `src/lib/`) have their own `AGENTS.md` — read before changing files there.

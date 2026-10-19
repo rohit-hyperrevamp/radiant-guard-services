@@ -10,3 +10,7 @@
 - Billing add-on refresh excludes reliever/management fee from CTC even when passed as extra employer lines — keeps CTC-only formulas consistent with the contract editor.
 - Rate changes are versioned in `contract_rate_revisions`; payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (day split), a daily job promotes due rates — past periods keep old rates.
 - Period contract resolution (`fetchPeriodContract`) breaks equal start dates by status (active first) then newest `created_at` — overlapping contract copies otherwise made payroll/invoice flip between runs.
+
+- Extra Duty rule (basis, multiplier, formula, ticked components) always comes from the contract resource via `withContractEdRule` (src/lib/ed-rule.ts), even when an employee has their own salary setup; all-unticked = ₹0 ED — so the contract choice is never silently replaced.
+- Pages data: archived payslips are read-only `pages_payslip_archive` (never recalculated).
+- Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
