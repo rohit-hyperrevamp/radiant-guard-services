@@ -23,16 +23,20 @@ describe("Extra Duty uses only the contract's selected components", () => {
   });
 });
 
-describe("explicitly unticking every component", () => {
-  it("gives zero Extra Duty pay instead of falling back to full gross", () => {
-    const resource = {
-      designationId: "x",
-      components: [{ name: "Basic", amount: 26000, calcType: "fixed", includeInOt: false }],
-      benefits: [], deductions: [], employerContributions: [],
-      otBasis: "components" as const, otMultiplier: 1,
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = computeWages({ presentDays: 26, otDays: 2 } as any, resource as any, 30) as any;
-    expect(Number(w.otAmount ?? w.ot ?? 0)).toBe(0);
+const ed = (components: object[]) =>
+  computeWages({ pDays: 26, otHours: 16, otDays: 2, phDays: 0, otherPaidDays: 0, tDays: 28 },
+    { components, deductions: [], employerContributions: [], otBasis: "components", otMultiplier: 1 } as never, 26)
+    .components.find((c) => c.name === "Extra Duty")?.amount ?? 0;
+
+describe("Extra Duty on selected components", () => {
+  it("Basic 10,000 + DA 3,000 ticked, HRA unticked: 13,000 / 26 × 2 days = 1,000", () => {
+    expect(ed([
+      { name: "Basic", amount: 10000, calcType: "fixed", includeInOt: true },
+      { name: "DA", amount: 3000, calcType: "fixed", includeInOt: true },
+      { name: "HRA", amount: 2600, calcType: "fixed", includeInOt: false },
+    ])).toBe(1000);
+  });
+  it("every component unticked gives no Extra Duty pay, never full gross", () => {
+    expect(ed([{ name: "Basic", amount: 26000, calcType: "fixed", includeInOt: false }])).toBe(0);
   });
 });
