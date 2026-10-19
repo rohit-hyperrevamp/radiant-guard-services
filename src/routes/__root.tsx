@@ -7,7 +7,7 @@ import {
   Scripts,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
 import favicon from "../assets/radiant-logo-v2.png";
@@ -18,7 +18,9 @@ import { FileViewerProvider } from "@/components/FileViewer";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
-import { onSessionRecovered, supabaseSessionReady } from "@/lib/supabase-ready";
+import { onSessionRecovered } from "@/lib/supabase-ready";
+import { createPortalCache } from "@/lib/portal-cache";
+import { supabase } from "@/integrations/supabase/client";
 import { setPushRouter } from "@/lib/push-deeplink";
 
 import { NativeAppLock } from "@/components/NativeAppLock";
@@ -149,6 +151,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [cacheReady, setCacheReady] = useState(false);
 
   const router = useRouter();
 
@@ -163,18 +166,32 @@ function RootComponent() {
     void initNative();
   }, []);
 
-  // The Supabase session hydrates asynchronously. Queries that fired before
-  // the bearer token was attached come back empty (RLS returns zero rows with
-  // no error) — that is the "everything shows 0 until I refresh again" bug.
-  // Once the session is ready, refetch everything that loaded too early.
+  // Restore only reviewed reference data after the real identity is known.
+  // Children mount afterwards, eliminating the duplicate opening refetch.
   useEffect(() => {
     let cancelled = false;
-    void supabaseSessionReady().then((hasSession) => {
-      if (cancelled || !hasSession) return;
-      void queryClient.invalidateQueries();
+    let cache: ReturnType<typeof createPortalCache> | undefined;
+    try { cache = createPortalCache(queryClient, window.sessionStorage); } catch { /* Private mode. */ }
+    let authEventSeen = false;
+    let previousOwner: string | null = null;
+    const applySession = (owner: string | null) => {
+      if (cancelled) return;
+      if (!cache && previousOwner !== owner) queryClient.clear();
+      previousOwner = owner;
+      cache?.setOwner(owner);
+      setCacheReady(true);
+    };
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEventSeen = true;
+      applySession(session?.user.id ?? null);
     });
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!authEventSeen) applySession(data.session?.user.id ?? null);
+    }).catch(() => { if (!authEventSeen) applySession(null); });
     return () => {
       cancelled = true;
+      data.subscription.unsubscribe();
+      cache?.dispose();
     };
   }, [queryClient]);
 
@@ -412,7 +429,7 @@ function RootComponent() {
       <LanguageProvider>
         <ConfirmProvider>
           <FileViewerProvider>
-          <Outlet />
+           {cacheReady ? <Outlet /> : <div className="min-h-screen bg-background" />}
           </FileViewerProvider>
           <NativeAppLock />
           <ExportChooser />

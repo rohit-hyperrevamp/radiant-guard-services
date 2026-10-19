@@ -1429,28 +1429,15 @@ async function runWithQueryTimeout<T>(
  * Local snapshots so the list and client dropdowns paint instantly on
  * revisit while the fresh rows load in the background.
  */
-const SNAP_TTL_MS = 24 * 60 * 60 * 1000;
-
 function readSnapshot<T>(key: string): T | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return undefined;
-    const parsed = JSON.parse(raw) as { at?: number; rows?: T };
-    if (!parsed?.at || !parsed.rows || Date.now() - parsed.at > SNAP_TTL_MS) return undefined;
-    return parsed.rows;
-  } catch {
-    return undefined;
-  }
+  // Employee records are memory-only; never restore another user's PII.
+  void key;
+  return undefined;
 }
 
 function writeSnapshot(key: string, rows: unknown) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify({ at: Date.now(), rows }));
-  } catch {
-    /* quota or private mode — snapshots are best effort */
-  }
+  void key;
+  void rows;
 }
 
 const SNAP_UNITS = "radiant.snapshot.units.v1";
@@ -1540,7 +1527,7 @@ function useCandidates() {
     retry: 2,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 4_000),
     refetchOnWindowFocus: false,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     placeholderData: () => readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES),
     queryFn: async (): Promise<CandidateListItem[]> => {
       return runWithQueryTimeout(

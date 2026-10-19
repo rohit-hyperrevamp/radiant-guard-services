@@ -3,7 +3,7 @@ import { hydrate, type QueryClient, type QueryKey } from "@tanstack/react-query"
 // Deliberately exclude permissions, balances, payroll, attendance, documents,
 // tokens and calculated results. Session storage ends when the tab is closed.
 const LISTS = new Set([
-  "candidates", "units", "designations", "departments", "departments-lite",
+  "designations", "departments", "departments-lite",
   "ex-services", "billing-types", "offboarding-reasons", "languages",
   "duties", "service-types",
 ]);
@@ -84,6 +84,11 @@ export function createPortalCache(client: QueryClient, storage: Storage) {
             })) });
           }
         } else { purge(); client.clear(); }
+        // Remove the old browser-global employee snapshots (sensitive PII).
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("radiant.snapshot.candidates.v2");
+          window.localStorage.removeItem("radiant.snapshot.units.v1");
+        }
       } catch { /* Invalid or unavailable storage must not prevent login. */ }
       finally { restoring = false; }
     },
