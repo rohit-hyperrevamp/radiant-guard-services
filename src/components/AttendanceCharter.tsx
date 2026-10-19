@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -367,7 +368,7 @@ export function AttendanceCharter({
   const exportList = useMemo(() => {
     const t = exportSearch.trim().toLowerCase();
     if (!t) return filteredUnits;
-    return filteredUnits.filter((u) => `${u.code} ${u.name} ${u.customer_name}`.toLowerCase().includes(t));
+    return filteredUnits.filter((u) => matchesSearch(t, [u.code, u.name, u.customer_name]));
   }, [filteredUnits, exportSearch]);
   const allChecked = exportList.length > 0 && exportList.every((u) => exportSel.has(u.id));
 
