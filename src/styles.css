@@ -1294,11 +1294,13 @@
   .ios-table [data-col="employee-actions"] svg,
   .bg-card table [data-col="actions"] svg { flex-shrink: 0; }
 
-  /* Employee rows stay as a single scan line; richer values are available
-     from the employee hover card and native control tooltips. */
+  /* Long cell text wraps inside its own column — never spills into the next. */
   .ios-table tbody td {
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
+  .ios-table tbody td.num,
+  .ios-table tbody td .num { white-space: nowrap; overflow-wrap: normal; }
 
   /* Data tables may need horizontal scroll on narrow screens to avoid
      wrapping numbers/labels. Individual pages can still opt into clip. */
@@ -2354,4 +2356,27 @@ nav[data-bottom-nav] li > * > div > span:last-child {
 .ios-table tbody td :where(.inline-flex) {
   max-width: 100%;
   flex-wrap: wrap;
+}
+
+/* One control language inside every list toolbar: same height, radius and
+   surface for search boxes, dropdowns, date pickers and buttons. */
+@media (min-width: 640px) {
+  .mobile-directory-toolbar :where(input:not([type="checkbox"]):not([type="radio"]), [data-slot="select-trigger"], [data-slot="button"], button[role="combobox"]) {
+    height: 40px;
+    border-radius: 12px;
+  }
+  .mobile-directory-toolbar :where([data-slot="select-trigger"], button[role="combobox"]) {
+    min-width: 160px;
+    background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+  .mobile-directory-toolbar > :where(div, form) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .mobile-directory-toolbar > .relative { display: block; flex: 1 1 260px; max-width: 360px; }
 }
