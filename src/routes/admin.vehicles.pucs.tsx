@@ -149,7 +149,7 @@ function PucManagerPage() {
       if (q) {
         const v = vMap.get(i.vehicle_id);
         const hit =
-          matchesSearch(q, [i.puc_number, i.issuing_authority, (v?.vehicle_number]) ?? false);
+          matchesSearch(q, [i.puc_number, i.issuing_authority, v?.vehicle_number]);
         if (!hit) return false;
       }
       if (status === "all") return true;

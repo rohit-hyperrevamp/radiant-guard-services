@@ -160,7 +160,7 @@ function InsuranceManagerPage() {
       if (q) {
         const v = vMap.get(i.vehicle_id);
         const hit =
-          matchesSearch(q, [i.policy_number, i.insurance_company, i.engine_number, i.chassis_number, (v?.vehicle_number]) ?? false);
+          matchesSearch(q, [i.policy_number, i.insurance_company, i.engine_number, i.chassis_number, v?.vehicle_number]);
         if (!hit) return false;
       }
       if (status === "all") return true;

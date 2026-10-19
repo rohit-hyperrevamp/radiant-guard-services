@@ -192,7 +192,7 @@ function FastTagManagerPage() {
       if (!q) return true;
       const v = vMap.get(i.vehicle_id);
       return (
-        matchesSearch(q, [i.fastag_number, i.bank_name, i.account_number, (v?.vehicle_number]) ?? false)
+        matchesSearch(q, [i.fastag_number, i.bank_name, i.account_number, v?.vehicle_number])
       );
     });
   }, [items, query, vMap, bankFilter, statusFilter]);
