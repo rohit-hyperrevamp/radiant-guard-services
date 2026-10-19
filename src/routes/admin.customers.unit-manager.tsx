@@ -338,7 +338,7 @@ function UnitManagerPage() {
           <div className="relative col-span-2 w-full sm:min-w-56 sm:max-w-sm sm:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
+              value={queryInput}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by code, name, branch, organisation…"
               className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
