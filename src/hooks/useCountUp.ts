@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
  */
 export function useCountUp(target: number, duration = 600, decimals = 0) {
   const safe = Number.isFinite(target) ? target : 0;
-  const animatedRef = useRef(false);
+  const animatedRef = useRef(safe !== 0); // cached value at mount → no roll
   const [value, setValue] = useState(safe);
   const rafRef = useRef<number | null>(null);
 
