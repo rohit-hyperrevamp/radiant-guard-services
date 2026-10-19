@@ -225,7 +225,7 @@ function InsuranceManagerPage() {
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:max-w-xl">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by vehicle, policy, insurer…" className="h-10 rounded-lg pl-9" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by vehicle, policy, insurer…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
           </div>
           <Select
             value={status}

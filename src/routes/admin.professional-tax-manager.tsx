@@ -238,7 +238,7 @@ function ProfessionalTaxManagerPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search state, region, pincode…"
-              className="h-10 rounded-lg pl-9"
+              className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
             />
           </div>
           <Select value={stateFilter} onValueChange={setStateFilter}>

@@ -110,10 +110,10 @@ function ProspectsPage() {
         }
       />
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mobile-directory-toolbar mobile-glass-surface mb-3 flex flex-col gap-2 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
         <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="h-10 pl-9" placeholder="Search company, contact, city…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" placeholder="Search company, contact, city…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {view === "list" && (
           <Select value={search.stage ?? "all"} onValueChange={(v) => navigate({ search: { ...search, stage: v === "all" ? undefined : v } })}>

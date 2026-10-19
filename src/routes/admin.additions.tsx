@@ -188,7 +188,7 @@ function AdditionList() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employee, type, name…" className="h-10 rounded-lg pl-9" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employee, type, name…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
           </div>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
             <SelectTrigger className="h-10 w-40 rounded-lg"><SelectValue /></SelectTrigger>

@@ -181,7 +181,7 @@ function MyReporteesPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search…"
-            className="h-9 pl-9 text-sm"
+            className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
           />
           {q && (
             <button

@@ -524,7 +524,7 @@ function DeductionList() {
             <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Resource</Label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employee…" className="h-10 rounded-lg pl-9" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employee…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
             </div>
           </div>
         </div>

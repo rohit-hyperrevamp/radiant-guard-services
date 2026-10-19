@@ -269,7 +269,7 @@ function POPage() {
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search PO #, vendor…" className="h-10 rounded-lg pl-9" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search PO #, vendor…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-10 w-full rounded-lg sm:w-52"><SelectValue /></SelectTrigger>

@@ -393,7 +393,7 @@ function MisManagerPage() {
           value={q}
           onChange={(e) => { setQ(e.target.value); pager.setPage(1); }}
           placeholder="Search organization or format"
-          className="h-9 rounded-xl pl-9"
+          className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
         />
       </div>
 
@@ -742,7 +742,7 @@ function MisUnitValuesDialog({
             value={q}
             onChange={(e) => { setQ(e.target.value); pager.setPage(1); }}
             placeholder="Search site"
-            className="h-9 rounded-xl pl-9"
+            className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
           />
         </div>
 
