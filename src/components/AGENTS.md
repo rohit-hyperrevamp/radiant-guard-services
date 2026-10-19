@@ -1,0 +1,1 @@
+- List avatars render only `candidates.photo_thumb_url` (128px) via `EmployeeAvatar`; a changed `photo_url` clears the thumb (trigger) and the list regenerates it — full photos are 1–4 MB and froze list scrolling.

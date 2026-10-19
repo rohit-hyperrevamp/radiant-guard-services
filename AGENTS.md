@@ -30,7 +30,5 @@
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
-- Subdirectories (e.g. `src/lib/`) have their own `AGENTS.md` — read before changing files there.
+- Subdirectories (`src/lib/`, `src/routes/`, `src/components/`) have their own `AGENTS.md` — read before changing files there.
 - Root owns cache restoration and identity cleanup before mounting page consumers; persistence details are governed by src/lib/AGENTS.md, so stale cached identities cannot bleed between sessions.
-- List avatars render only `candidates.photo_thumb_url` (128px) via `EmployeeAvatar`; a changed `photo_url` clears the thumb (trigger) and the list regenerates it — full photos are 1–4 MB and froze list scrolling.
-- Employees page loads working staff on open and the inactive history only for the Inactive tab, search or offboarding filter — the full 28k history made the page slow.
