@@ -4129,17 +4129,12 @@ function EmployeesPage() {
             <HoverCard openDelay={250} closeDelay={100}>
               <HoverCardTrigger asChild>
                 <div className="grid cursor-default grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5">
-                  {c.photo_url ? (
-                    <img loading="lazy" decoding="async"
-                      src={c.photo_url}
-                      alt=""
-                      className="h-8 w-8 flex-shrink-0 rounded-full object-cover shadow-sm ring-2 ring-card"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground shadow-sm ring-2 ring-card">
-                      <UserPlus className="h-3.5 w-3.5" />
-                    </div>
-                  )}
+                  <EmployeeAvatar
+                    id={c.id}
+                    photoUrl={c.photo_url}
+                    thumbUrl={c.photo_thumb_url}
+                    className="h-8 w-8 shadow-sm ring-2 ring-card"
+                  />
 
                   <div className="min-w-0">
                     <div
