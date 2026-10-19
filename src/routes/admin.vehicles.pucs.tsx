@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -148,9 +149,7 @@ function PucManagerPage() {
       if (q) {
         const v = vMap.get(i.vehicle_id);
         const hit =
-          i.puc_number.toLowerCase().includes(q) ||
-          i.issuing_authority.toLowerCase().includes(q) ||
-          (v?.vehicle_number.toLowerCase().includes(q) ?? false);
+          matchesSearch(q, [i.puc_number, i.issuing_authority, v?.vehicle_number]);
         if (!hit) return false;
       }
       if (status === "all") return true;

@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { TileNumber } from "@/components/TileNumber";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -420,7 +421,7 @@ function AttendanceCharterDialog({
       if (onlyGaps && r.absent === 0 && r.unmarked === 0) return false;
       if (!q) return true;
       return (
-        [r.unitName, r.orgName, r.contractCode].some((v) => v.toLowerCase().includes(q)) ||
+        matchesSearch(q, [r.unitName, r.orgName, r.contractCode]) ||
         r.people.some((p) => p.name.toLowerCase().includes(q))
       );
     });

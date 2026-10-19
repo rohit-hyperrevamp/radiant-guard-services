@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
@@ -111,10 +112,7 @@ function EmployerContributionsPage() {
       if (freq !== "all" && r.frequency !== freq) return false;
       if (!s) return true;
       return (
-        r.empName.toLowerCase().includes(s) ||
-        r.empCode.toLowerCase().includes(s) ||
-        r.unitName.toLowerCase().includes(s) ||
-        r.contribution_name.toLowerCase().includes(s)
+        matchesSearch(s, [r.empName, r.empCode, r.unitName, r.contribution_name])
       );
     });
   }, [enriched, q, freq]);

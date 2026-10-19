@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState, useEffect } from "react";
@@ -200,9 +201,7 @@ function ProfessionalTaxManagerPage() {
       if (genderFilter !== "all" && s.gender !== genderFilter) return false;
       if (!q) return true;
       return (
-        s.state.toLowerCase().includes(q) ||
-        s.regionLabel.toLowerCase().includes(q) ||
-        s.pincodeCoverage.toLowerCase().includes(q)
+        matchesSearch(q, [s.state, s.regionLabel, s.pincodeCoverage])
       );
     });
   }, [slabs, query, stateFilter, genderFilter]);

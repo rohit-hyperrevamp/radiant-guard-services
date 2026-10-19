@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -219,10 +220,7 @@ function AllowanceManagerPage() {
     if (!q) return items;
     return items.filter(
       (i) =>
-        i.name.toLowerCase().includes(q) ||
-        i.earning_type.toLowerCase().includes(q) ||
-        i.display_name.toLowerCase().includes(q) ||
-        i.short_name.toLowerCase().includes(q),
+        matchesSearch(q, [i.name, i.earning_type, i.display_name, i.short_name]),
     );
   }, [items, query]);
 

@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -121,7 +122,7 @@ function VendorsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return vendors;
-    return vendors.filter((v) => v.name.toLowerCase().includes(q) || v.vendor_code.toLowerCase().includes(q) || v.gstin.toLowerCase().includes(q) || v.phone.includes(q));
+    return vendors.filter((v) => matchesSearch(q, [v.name, v.vendor_code, v.gstin]) || v.phone.includes(q));
   }, [vendors, query]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: QK });

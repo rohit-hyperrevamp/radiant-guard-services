@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
@@ -194,10 +195,7 @@ function PolicyManagerPage() {
     if (!q) return items;
     return items.filter(
       (i) =>
-        i.name.toLowerCase().includes(q) ||
-        i.provider.toLowerCase().includes(q) ||
-        i.policyNumber.toLowerCase().includes(q) ||
-        i.description.toLowerCase().includes(q),
+        matchesSearch(q, [i.name, i.provider, i.policyNumber, i.description]),
     );
   }, [items, query]);
 

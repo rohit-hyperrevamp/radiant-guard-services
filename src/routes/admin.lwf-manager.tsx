@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
@@ -205,8 +206,7 @@ function LwfManagerPage() {
       if (freqFilter !== "all" && i.frequency !== freqFilter) return false;
       if (!q) return true;
       return (
-        i.state.toLowerCase().includes(q) ||
-        FREQ_LABEL[i.frequency].toLowerCase().includes(q)
+        matchesSearch(q, [i.state, FREQ_LABEL[i.frequency]])
       );
     });
   }, [items, query, stateFilter, freqFilter]);

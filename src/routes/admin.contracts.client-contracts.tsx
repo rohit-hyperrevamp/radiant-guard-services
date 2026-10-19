@@ -5115,7 +5115,7 @@ export function ResourceFormDialog({
     const query = designationQuery.trim().toLowerCase();
     if (!query) return designations;
     return designations.filter((d) =>
-      [d.code, d.name, d.id].join(" ").toLowerCase().includes(query),
+      matchesSearch(query, [d.code, d.name, d.id]),
     );
   }, [designationQuery, designations]);
   const filteredAvailableExtras = useMemo(() => {
@@ -5391,21 +5391,21 @@ export function ResourceFormDialog({
     const q = benefitQuery.trim().toLowerCase();
     if (!q) return availableBenefits;
     return availableBenefits.filter((c) =>
-      [c.name, c.description, c.state, c.id].join(" ").toLowerCase().includes(q),
+      matchesSearch(q, [c.name, c.description, c.state, c.id]),
     );
   }, [benefitQuery, availableBenefits]);
   const filteredAvailableDeductions = useMemo(() => {
     const q = deductionQuery.trim().toLowerCase();
     if (!q) return availableDeductions;
     return availableDeductions.filter((c) =>
-      [c.name, c.description, c.state, c.id].join(" ").toLowerCase().includes(q),
+      matchesSearch(q, [c.name, c.description, c.state, c.id]),
     );
   }, [deductionQuery, availableDeductions]);
   const filteredAvailableEmployer = useMemo(() => {
     const q = employerQuery.trim().toLowerCase();
     if (!q) return availableEmployer;
     return availableEmployer.filter((c) =>
-      [c.name, c.description, c.state, c.id].join(" ").toLowerCase().includes(q),
+      matchesSearch(q, [c.name, c.description, c.state, c.id]),
     );
   }, [employerQuery, availableEmployer]);
   const benefitOptionsKey = useMemo(

@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useCallback, useMemo, useState } from "react";
@@ -171,14 +172,7 @@ function VehicleInventoryPage() {
       if (statusFilter === "disabled" && i.enabled) return false;
       if (!q) return true;
       return (
-        i.vehicle_id.toLowerCase().includes(q) ||
-        i.vehicle_number.toLowerCase().includes(q) ||
-        i.name.toLowerCase().includes(q) ||
-        i.brand.toLowerCase().includes(q) ||
-        i.make.toLowerCase().includes(q) ||
-        i.engine_number.toLowerCase().includes(q) ||
-        i.chassis_number.toLowerCase().includes(q) ||
-        i.owner.toLowerCase().includes(q)
+        matchesSearch(q, [i.vehicle_id, i.vehicle_number, i.name, i.brand, i.make, i.engine_number, i.chassis_number, i.owner])
       );
     });
   }, [items, query, typeFilter, fuelFilter, statusFilter]);

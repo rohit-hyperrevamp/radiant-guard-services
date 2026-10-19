@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -137,7 +138,7 @@ function EsicBranchManagerPage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter(
-      (i) => i.location.toLowerCase().includes(q) || i.esic_code.toLowerCase().includes(q),
+      (i) => matchesSearch(q, [i.location, i.esic_code]),
     );
   }, [items, query]);
 

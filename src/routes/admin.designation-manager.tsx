@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -150,7 +151,7 @@ function DesignationManagerPage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter(
-      (i) => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q),
+      (i) => matchesSearch(q, [i.name, i.code]),
     );
   }, [items, query]);
 

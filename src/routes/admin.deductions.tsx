@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
@@ -144,8 +145,7 @@ function EmployeeCombobox({
     const q = search.toLowerCase();
     return employees.filter(
       (e) =>
-        e.full_name.toLowerCase().includes(q) ||
-        e.employee_code.toLowerCase().includes(q) ||
+        matchesSearch(q, [e.full_name, e.employee_code]) ||
         (e.mobile && e.mobile.includes(q))
     );
   }, [employees, search]);
@@ -453,10 +453,7 @@ function DeductionList() {
       if (headFilter !== "all" && r.head !== headFilter) return false;
       if (!s) return true;
       return (
-        r.employee.toLowerCase().includes(s) ||
-        r.employeeCode.toLowerCase().includes(s) ||
-        r.head.toLowerCase().includes(s) ||
-        r.designation.toLowerCase().includes(s)
+        matchesSearch(s, [r.employee, r.employeeCode, r.head, r.designation])
       );
     });
   }, [rows, q, headFilter]);

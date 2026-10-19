@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -66,9 +67,7 @@ function RolesManagerPage() {
     if (!q) return roles;
     return roles.filter(
       (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.key.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q),
+        matchesSearch(q, [r.name, r.key, r.description]),
     );
   }, [roles, search]);
 

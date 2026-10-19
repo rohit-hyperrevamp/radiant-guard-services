@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -391,9 +392,7 @@ function CostComponentManagerPage() {
     return items.filter((i) => {
       const desc = displayDescription(i).toLowerCase();
       return (
-        i.name.toLowerCase().includes(q) ||
-        i.state.toLowerCase().includes(q) ||
-        PARTY_LABEL[i.party].toLowerCase().includes(q) ||
+        matchesSearch(q, [i.name, i.state, PARTY_LABEL[i.party]]) ||
         desc.includes(q)
       );
     });

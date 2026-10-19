@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useCallback, useMemo, useState } from "react";
@@ -102,7 +103,7 @@ function ItemsPage() {
     return items.filter((i) => {
       if (catFilter !== "all" && i.category_id !== catFilter) return false;
       if (!q) return true;
-      return i.name.toLowerCase().includes(q) || i.item_code.toLowerCase().includes(q) || i.hsn_code.toLowerCase().includes(q);
+      return matchesSearch(q, [i.name, i.item_code, i.hsn_code]);
     });
   }, [items, query, catFilter]);
   const pg = usePagination(filtered);
