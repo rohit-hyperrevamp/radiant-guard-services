@@ -2091,7 +2091,7 @@ function TileHeader({
           {label}
         </TileNumber>
         {sub && (
-          <div className="mt-0.5 truncate whitespace-nowrap text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
+          <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground sm:mt-1 sm:text-[11px]">
             {sub}
           </div>
         )}
@@ -2175,7 +2175,7 @@ function DualTile({
           {display}
         </TileNumber>
         <div className="dashboard-tile-secondary min-w-0 flex flex-col items-end text-right">
-          <span className="w-full truncate whitespace-nowrap text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
+          <span className="w-full leading-tight text-[9px] uppercase tracking-[0.08em] text-muted-foreground sm:text-[10px] sm:tracking-[0.1em]">
             {secondaryLabel}
           </span>
           <span className="mt-0.5 flex w-full min-w-0 items-center gap-1 font-display text-xs font-medium text-foreground sm:text-sm">
@@ -2313,7 +2313,7 @@ function ContractsTile({
         >
           <AlertTriangle className="h-3 w-3 shrink-0" />
           <span
-            className="truncate leading-none"
+            className="leading-tight"
             title={hasExpiring && soonest?.end_date ? `Soonest: ${soonest.end_date}` : alertText}
           >
             {alertText}
