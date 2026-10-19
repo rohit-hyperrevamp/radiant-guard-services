@@ -1,3 +1,4 @@
+import { withContractEdRule } from "@/lib/ed-rule";
 import { matchesSearch } from "@/lib/search-match";
 import { usePlatformFlag, PLATFORM_SETTING_KEYS, platformFlagQueryKey } from "@/lib/platform-settings";
 import { Switch } from "@/components/ui/switch";
@@ -1020,7 +1021,8 @@ function PayrollUnitPage() {
           const phDisplay = phDisplayCountByCandidate.get(c.id) ?? 0;
           if (phDisplay) totals.phDays = totals.phDays + phDisplay;
         }
-        const resource = resourceByCandidate.get(c.id) ?? resourceForLine(c.id, did, p.shift);
+        const contractResource = resourceForLine(c.id, did, p.shift);
+        const resource = withContractEdRule(resourceByCandidate.get(c.id), contractResource) ?? contractResource;
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled, esiRoundUp })
