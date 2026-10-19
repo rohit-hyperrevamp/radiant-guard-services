@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Smart search in long dropdowns
+- [ ] Add consistent local search to long client, organization, branch, state and inventory dropdowns, preserving selection and cascading filters.
+- [ ] Verify word-order matching, selection retention and existing search tests.
+- [ ] Verify signed-in production forms after publication; blocked until publication and an authorized production session are available.
+
 ## Reuse unchanged portal data
 - [x] Add session-isolated saved reference-list caching with bounded freshness and write invalidation; exclude employee PII, financial results and permissions.
 - [x] Remove duplicate opening refreshes while preserving expired-session recovery and existing change listeners; employee list stays fresh in memory for five minutes.
