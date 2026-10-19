@@ -2479,7 +2479,7 @@ function EmployeesPage() {
       .filter(
         (u) =>
           !q ||
-          matchesSearch(q, [u.name, u.code, u.customer_name]),
+          matchesSearchText(q, [u.name, u.code, u.customer_name]),
       )
       .sort(
         (a, b) =>
@@ -11286,7 +11286,7 @@ function AssetMultiPicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return pickable;
     return pickable.filter((a) =>
-      matchesSearch(needle, [a.name, a.category]),
+      matchesSearchText(needle, [a.name, a.category]),
     );
   }, [query, pickable]);
 
@@ -11582,7 +11582,7 @@ function MultiUnitPicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return units;
     return units.filter((u) =>
-      matchesSearch(needle, [u.code, u.name, u.customer_name ?? "", u.id]),
+      matchesSearchText(needle, [u.code, u.name, u.customer_name ?? "", u.id]),
     );
   }, [query, units]);
 
@@ -11821,7 +11821,7 @@ function DesignationPicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return designations;
     return designations.filter((d) =>
-      matchesSearch(needle, [d.code ?? "", d.name]),
+      matchesSearchText(needle, [d.code ?? "", d.name]),
     );
   }, [query, designations]);
 
