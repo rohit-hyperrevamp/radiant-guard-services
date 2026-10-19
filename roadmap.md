@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Reuse unchanged portal data
+- [ ] Add session-isolated saved reference-list caching with bounded freshness and write invalidation.
+- [ ] Remove duplicate opening refreshes while preserving expired-session recovery and existing change listeners.
+- [ ] Test cache restore, expiry, invalidation, account isolation and unavailable storage; live reopening check requires publication.
+
 ## Additional September attendance — 19 October
 - [x] Review all 11 worksheets: ANZ/RMZ Hours contain 2,790 dated duties totaling 11,164 hours; Dynamic sheets contain undated monthly totals only. CLI4109 is missing 38 duties; CLI4108 flags an employee attribution for verification. Register daily cells are zero despite positive totals, so use Hours evidence, not the register cells.
 - [ ] Match identities and import date-backed ANZ/RMZ attendance; blocked on an authorized live-site session (live attendance redirects to login; managed preview session targets a different backend).
