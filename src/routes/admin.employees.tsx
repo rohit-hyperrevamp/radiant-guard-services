@@ -2129,7 +2129,11 @@ function useRolesLite() {
 function EmployeesPage() {
   const routeSearch = useSearch({ from: "/admin/employees" });
   const [search, setSearch] = useState("");
-  const candidatesQuery = useCandidates();
+  const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
+  const [filterOffboardReasonEarly, setFilterOffboardReasonEarly] = useState(false);
+  const candidatesQuery = useCandidates(
+    empStatusTab === "inactive" || search.trim().length > 0 || filterOffboardReasonEarly,
+  );
   const unitsQuery = useUnits();
   const designationsQuery = useDesignations();
   const exServicesQuery = useExServices();
@@ -2207,7 +2211,6 @@ function EmployeesPage() {
     }
   }, [routeSearch.rehire, rehireByCandidate]);
 
-  const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
   const [openWizard, setOpenWizard] = useState(false);
   const [wizardMode, setWizardMode] = useState<"candidate" | "employee">("candidate");
@@ -2347,6 +2350,9 @@ function EmployeesPage() {
   const [filterEnabled, setFilterEnabled] = useState<"all" | "enabled" | "disabled">("all");
   const [filterBillable, setFilterBillable] = useState<"all" | "billable" | "nonbillable">("all");
   const [filterOffboardReason, setFilterOffboardReason] = useState<string>("all");
+  useEffect(() => {
+    setFilterOffboardReasonEarly(filterOffboardReason !== "all");
+  }, [filterOffboardReason]);
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
 
   const departmentsListQuery = useDepartmentsLite();
@@ -3284,7 +3290,7 @@ function EmployeesPage() {
       }
       if (rec.sourceId) {
         qc.setQueryData<CandidateListItem[]>(
-          QK,
+          QK_INACTIVE,
           (old) => old?.filter((row) => row.id !== rec.sourceId) ?? old,
         );
       }
