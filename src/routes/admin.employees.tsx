@@ -2144,11 +2144,11 @@ function EmployeesPage() {
   const rowCandidates = candidates;
   const units = unitsQuery.data ?? [];
   const designations = designationsQuery.data ?? [];
-  const isLoading = candidatesQuery.isLoading || (empStatusTab === "inactive" && candidatesQuery.inactiveLoading);
+  const exServices = exServicesQuery.data ?? [];
   const languagesList = languagesQuery.data ?? [];
   const rolesList = rolesQuery.data ?? [];
   const esicBranches = esicBranchesQuery.data ?? [];
-  const isLoading = candidatesQuery.isLoading;
+  const isLoading = candidatesQuery.isLoading || (empStatusTab === "inactive" && candidatesQuery.inactiveLoading);
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
 
