@@ -2133,7 +2133,7 @@ function MetricTile({
   return (
     <Shell to={to} search={search} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
-      <div className="relative mt-auto flex items-end justify-between gap-3">
+      <div className="relative mt-auto flex flex-wrap items-end justify-between gap-2">
         <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[34px] xl:text-[36px]">
           {display}
         </TileNumber>
@@ -2309,7 +2309,7 @@ function ContractsTile({
           {display}
         </TileNumber>
         <div
-          className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}
+          className={`flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}
         >
           <AlertTriangle className="h-3 w-3 shrink-0" />
           <span
