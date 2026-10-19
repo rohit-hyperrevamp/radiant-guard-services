@@ -1,8 +1,8 @@
 # Mobile app UI re-review
 
 ## Smart search in long dropdowns
-- [ ] Add consistent local search to long client, organization, branch, state and inventory dropdowns, preserving selection and cascading filters.
-- [ ] Verify word-order matching, selection retention and existing search tests.
+- [x] Add automatic search to shared dropdowns with more than ten options, covering contracts, branches, states and inventory; unify existing organization/client and designation pickers with indexed local matching without changing scoped options.
+- [x] Verify word-order/name/code matching, selection retention, no dirty marking while searching, keyboard selection, empty/cleared results and short-list behavior; 19 tests pass and automatic build is clean.
 - [ ] Verify signed-in production forms after publication; blocked until publication and an authorized production session are available.
 
 ## Reuse unchanged portal data
