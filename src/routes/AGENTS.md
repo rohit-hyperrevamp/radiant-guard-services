@@ -1,0 +1,1 @@
+- Employees page loads working staff on open and the inactive history only for the Inactive tab, search or offboarding filter — the full 28k history made the page slow.

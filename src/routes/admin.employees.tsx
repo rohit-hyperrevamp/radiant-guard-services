@@ -6,6 +6,7 @@ import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { EmployeeAvatar } from "@/components/EmployeeAvatar";
 import { NOMANS_UNIT_ID as NOMANS_UNIT_ID_CONST } from "@/lib/business-constants";
 import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
 import {
@@ -1181,6 +1182,7 @@ type CandidateListItem = Pick<
   | "status"
 > & {
   employee_code: string;
+  photo_thumb_url?: string | null;
   role_key: string;
   non_billable: boolean;
   is_enabled: boolean;
@@ -1430,7 +1432,7 @@ async function runWithQueryTimeout<T>(
 // Employee and client data are reused only in the current query cache.
 
 const CANDIDATE_LIST_COLUMNS =
-  "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
+  "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,photo_thumb_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
 
 type InlinePickerOption = { id: string; label: string; hint?: string };
 
@@ -4129,17 +4131,12 @@ function EmployeesPage() {
             <HoverCard openDelay={250} closeDelay={100}>
               <HoverCardTrigger asChild>
                 <div className="grid cursor-default grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5">
-                  {c.photo_url ? (
-                    <img loading="lazy" decoding="async"
-                      src={c.photo_url}
-                      alt=""
-                      className="h-8 w-8 flex-shrink-0 rounded-full object-cover shadow-sm ring-2 ring-card"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground shadow-sm ring-2 ring-card">
-                      <UserPlus className="h-3.5 w-3.5" />
-                    </div>
-                  )}
+                  <EmployeeAvatar
+                    id={c.id}
+                    photoUrl={c.photo_url}
+                    thumbUrl={c.photo_thumb_url}
+                    className="h-8 w-8 shadow-sm ring-2 ring-card"
+                  />
 
                   <div className="min-w-0">
                     <div
@@ -4713,17 +4710,12 @@ function EmployeesPage() {
               )}
             >
               <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
-                {c.photo_url ? (
-                  <img loading="lazy" decoding="async"
-                    src={c.photo_url}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm ring-1 ring-border/70"
-                  />
-                ) : (
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground shadow-sm ring-1 ring-border/70">
-                    <UserPlus className="h-4 w-4" />
-                  </div>
-                )}
+                <EmployeeAvatar
+                  id={c.id}
+                  photoUrl={c.photo_url}
+                  thumbUrl={c.photo_thumb_url}
+                  className="h-10 w-10 shadow-sm ring-1 ring-border/70"
+                />
 
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
