@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -140,8 +141,7 @@ function DutyManagerPage() {
     if (!q) return items;
     return items.filter(
       (i) =>
-        i.name.toLowerCase().includes(q) ||
-        i.description.toLowerCase().includes(q),
+        matchesSearch(q, [i.name, i.description]),
     );
   }, [items, query]);
 

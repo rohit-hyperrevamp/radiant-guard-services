@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -168,9 +169,7 @@ function AttendanceCodeManagerPage() {
     if (!q) return items;
     return items.filter(
       (i) =>
-        i.code.toLowerCase().includes(q) ||
-        i.label.toLowerCase().includes(q) ||
-        i.description.toLowerCase().includes(q),
+        matchesSearch(q, [i.code, i.label, i.description]),
     );
   }, [items, query]);
 

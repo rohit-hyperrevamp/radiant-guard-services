@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -86,7 +87,7 @@ export function HrExecutiveDashboard() {
     const pick = { df, cycle, day, type };
     const term = search.trim().toLowerCase();
     const filtered = rows.filter((r) => Object.entries(filters).every(([kind, values]) => values.includes(pick[kind as keyof typeof pick](r)))
-      && (!term || [r.code, r.name, r.customers?.name].some((v) => (v ?? "").toLowerCase().includes(term))));
+      && (!term || matchesSearch(term, [r.code, r.name, r.customers?.name])));
     return { rows, filtered, cycle, df, day, type, byDf: count(df), byCycle: count(cycle), byDay: count(day), byType: count(type) };
   }, [q.data, search, filters]);
   const toggleF = (kind: "df" | "cycle" | "day" | "type") => (value: string) => {

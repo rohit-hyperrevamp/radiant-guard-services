@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -260,7 +261,7 @@ export function GuardReportingManagersEditor({
               .filter((o) => {
                 const q = foSearch.trim().toLowerCase();
                 if (!q) return true;
-                return [o.full_name, o.employee_code, o.mobile].some((v) => (v ?? "").toLowerCase().includes(q));
+                return matchesSearch(q, [o.full_name, o.employee_code, o.mobile]);
               })
               .map((o) => {
               const checked = pendingIds.has(o.id);

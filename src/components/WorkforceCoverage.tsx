@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { TileNumber } from "@/components/TileNumber";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -414,7 +415,7 @@ function DeploymentCharterDialog({
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.unitName, r.orgName, r.contractCode].some((v) => v.toLowerCase().includes(q)),
+      matchesSearch(q, [r.unitName, r.orgName, r.contractCode]),
     );
   }, [query, rows]);
 

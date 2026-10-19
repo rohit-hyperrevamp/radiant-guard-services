@@ -2479,9 +2479,7 @@ function EmployeesPage() {
       .filter(
         (u) =>
           !q ||
-          (u.name ?? "").toLowerCase().includes(q) ||
-          (u.code ?? "").toLowerCase().includes(q) ||
-          (u.customer_name ?? "").toLowerCase().includes(q),
+          matchesSearch(q, [u.name, u.code, u.customer_name]),
       )
       .sort(
         (a, b) =>
@@ -11288,7 +11286,7 @@ function AssetMultiPicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return pickable;
     return pickable.filter((a) =>
-      [a.name, a.category].some((p) => (p ?? "").toLowerCase().includes(needle)),
+      matchesSearch(needle, [a.name, a.category]),
     );
   }, [query, pickable]);
 
@@ -11584,7 +11582,7 @@ function MultiUnitPicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return units;
     return units.filter((u) =>
-      [u.code, u.name, u.customer_name ?? "", u.id].some((p) => p.toLowerCase().includes(needle)),
+      matchesSearch(needle, [u.code, u.name, u.customer_name ?? "", u.id]),
     );
   }, [query, units]);
 
@@ -11823,7 +11821,7 @@ function DesignationPicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return designations;
     return designations.filter((d) =>
-      [d.code ?? "", d.name].some((p) => p.toLowerCase().includes(needle)),
+      matchesSearch(needle, [d.code ?? "", d.name]),
     );
   }, [query, designations]);
 

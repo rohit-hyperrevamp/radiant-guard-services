@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -191,10 +192,7 @@ function FastTagManagerPage() {
       if (!q) return true;
       const v = vMap.get(i.vehicle_id);
       return (
-        i.fastag_number.toLowerCase().includes(q) ||
-        i.bank_name.toLowerCase().includes(q) ||
-        i.account_number.toLowerCase().includes(q) ||
-        (v?.vehicle_number.toLowerCase().includes(q) ?? false)
+        matchesSearch(q, [i.fastag_number, i.bank_name, i.account_number, (v?.vehicle_number]) ?? false)
       );
     });
   }, [items, query, vMap, bankFilter, statusFilter]);

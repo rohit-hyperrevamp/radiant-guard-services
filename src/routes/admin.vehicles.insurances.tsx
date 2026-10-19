@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -159,11 +160,7 @@ function InsuranceManagerPage() {
       if (q) {
         const v = vMap.get(i.vehicle_id);
         const hit =
-          i.policy_number.toLowerCase().includes(q) ||
-          i.insurance_company.toLowerCase().includes(q) ||
-          i.engine_number.toLowerCase().includes(q) ||
-          i.chassis_number.toLowerCase().includes(q) ||
-          (v?.vehicle_number.toLowerCase().includes(q) ?? false);
+          matchesSearch(q, [i.policy_number, i.insurance_company, i.engine_number, i.chassis_number, (v?.vehicle_number]) ?? false);
         if (!hit) return false;
       }
       if (status === "all") return true;

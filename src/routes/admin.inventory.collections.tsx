@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, PackageCheck, Inbox, ShieldCheck, Warehouse, ChevronDown, ChevronRight, X } from "lucide-react";
@@ -230,7 +231,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     const uniqueGuards = Array.from(new Map(recoverableGuards.map((g) => [g.id, g])).values());
     const filteredGuards = uniqueGuards.filter((g) => {
       if (!s) return true;
-      return g.full_name.toLowerCase().includes(s) || (g.employee_code ?? "").toLowerCase().includes(s) || (g.mobile ?? "").includes(s);
+      return matchesSearch(s, [g.full_name, g.employee_code]) || (g.mobile ?? "").includes(s);
     });
     const m = new Map<string, Candidate[]>();
     const UNASSIGNED = "__unassigned__";

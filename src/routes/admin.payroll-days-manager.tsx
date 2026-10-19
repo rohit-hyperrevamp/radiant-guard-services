@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -356,9 +357,7 @@ function PayrollDaysManagerPage() {
     if (!q) return items;
     return items.filter(
       (i) =>
-        i.name.toLowerCase().includes(q) ||
-        i.code.toLowerCase().includes(q) ||
-        METHOD_META[i.method].label.toLowerCase().includes(q),
+        matchesSearch(q, [i.name, i.code, METHOD_META[i.method].label]),
     );
   }, [items, query]);
 

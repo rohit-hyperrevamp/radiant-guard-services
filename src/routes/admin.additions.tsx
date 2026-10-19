@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { evaluateExpression, validateExpression } from "@/lib/formula-engine";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
@@ -153,10 +154,7 @@ function AdditionList() {
       const emp = empMap.get(i.candidate_id);
       const type = typeMap.get(i.addition_type_id);
       return (
-        i.addition_name.toLowerCase().includes(s) ||
-        emp?.full_name.toLowerCase().includes(s) ||
-        emp?.employee_code.toLowerCase().includes(s) ||
-        type?.name.toLowerCase().includes(s)
+        matchesSearch(s, [i.addition_name, emp?.full_name, emp?.employee_code, type?.name])
       );
     });
   }, [items, q, statusFilter, empMap, typeMap]);
@@ -348,8 +346,7 @@ function EmployeeMultiCombobox({
     const exact = employees.filter((e) => e.employee_code.toLowerCase() === q);
     const rest = employees.filter((e) =>
       e.employee_code.toLowerCase() !== q && (
-      e.full_name.toLowerCase().includes(q) ||
-      e.employee_code.toLowerCase().includes(q) ||
+      matchesSearch(q, [e.full_name, e.employee_code]) ||
       (e.mobile && e.mobile.includes(q)))
     );
     return [...exact, ...rest].slice(0, 200);

@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2, FileText, Edit2, Eye, AlertTriangle, Download } from "lucide-react";
@@ -199,7 +200,7 @@ function POPage() {
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (!q) return true;
       const v = p.vendor_id ? vendorMap.get(p.vendor_id)?.name ?? "" : "";
-      return p.po_number.toLowerCase().includes(q) || v.toLowerCase().includes(q);
+      return matchesSearch(q, [p.po_number, v]);
     });
   }, [pos, query, statusFilter, vendorMap]);
   const pg = usePagination(filtered);

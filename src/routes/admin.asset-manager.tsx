@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -156,9 +157,7 @@ function AssetManagerPage() {
       if (categoryFilter !== "all" && i.category !== categoryFilter) return false;
       if (!q) return true;
       return (
-        i.name.toLowerCase().includes(q) ||
-        i.category.toLowerCase().includes(q) ||
-        i.description.toLowerCase().includes(q)
+        matchesSearch(q, [i.name, i.category, i.description])
       );
     });
   }, [items, query, categoryFilter]);

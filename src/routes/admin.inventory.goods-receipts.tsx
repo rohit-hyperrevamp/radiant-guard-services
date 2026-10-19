@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus, Search, PackageCheck, Eye, Trash2, FileText } from "lucide-react";
@@ -209,7 +210,7 @@ function GRNPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return grns;
-    return grns.filter((g) => g.grn_number.toLowerCase().includes(q) || (g.vendor_invoice_number ?? "").toLowerCase().includes(q));
+    return grns.filter((g) => matchesSearch(q, [g.grn_number, g.vendor_invoice_number]));
   }, [grns, query]);
 
   // Resolve linked demand_id for each GRN: direct demand_id, or via transfer.demand_id

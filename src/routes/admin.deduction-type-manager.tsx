@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -81,7 +82,7 @@ function DeductionTypeManagerPage() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return items;
-    return items.filter((i) => i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s));
+    return items.filter((i) => matchesSearch(s, [i.name, i.code]));
   }, [items, q]);
 
   const pg = usePagination(filtered);

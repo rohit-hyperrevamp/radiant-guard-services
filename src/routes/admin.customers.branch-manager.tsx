@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useEffect, useMemo, useState } from "react";
@@ -85,10 +86,7 @@ function BranchManagerPage() {
     const q = query.trim().toLowerCase();
     return list.filter(
       (b) =>
-        b.code.toLowerCase().includes(q) ||
-        b.stateName.toLowerCase().includes(q) ||
-        b.name.toLowerCase().includes(q) ||
-        b.description.toLowerCase().includes(q),
+        matchesSearch(q, [b.code, b.stateName, b.name, b.description]),
     );
   }, [branches, stateById, query]);
 

@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -66,7 +67,7 @@ function WarehousesPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
-    return items.filter((i) => i.name.toLowerCase().includes(q) || i.warehouse_code.toLowerCase().includes(q) || i.city.toLowerCase().includes(q));
+    return items.filter((i) => matchesSearch(q, [i.name, i.warehouse_code, i.city]));
   }, [items, query]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: QK });

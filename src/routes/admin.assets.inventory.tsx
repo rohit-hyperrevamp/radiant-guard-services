@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
@@ -164,8 +165,7 @@ function AssetInventoryPage() {
     const s = q.trim().toLowerCase();
     if (!s) return items;
     return items.filter((it) =>
-      [it.house_number, it.name, it.owner, it.city, it.state, it.address1, it.configuration]
-        .join(" ").toLowerCase().includes(s),
+      matchesSearch(s, [it.house_number, it.name, it.owner, it.city, it.state, it.address1, it.configuration]),
     );
   }, [items, q]);
 

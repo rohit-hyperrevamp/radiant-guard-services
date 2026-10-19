@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -150,8 +151,7 @@ function MyReporteesPage() {
       if (unitFilter !== "all" && !r.placements.some((p) => p.unitId === unitFilter)) return false;
       if (!needle) return true;
       return (
-        r.name.toLowerCase().includes(needle) ||
-        (r.code ?? "").toLowerCase().includes(needle) ||
+        matchesSearch(needle, [r.name, r.code]) ||
         (r.mobile ?? "").includes(needle)
       );
     });

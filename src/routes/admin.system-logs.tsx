@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
@@ -161,14 +162,7 @@ function SystemLogsPage() {
     if (!t) return logs;
     return logs.filter(
       (l) =>
-        l.module.toLowerCase().includes(t) ||
-        l.action.toLowerCase().includes(t) ||
-        l.entity_label.toLowerCase().includes(t) ||
-        (l.actor_name ?? "").toLowerCase().includes(t) ||
-        l.entity_type.toLowerCase().includes(t) ||
-        l.user_phone.toLowerCase().includes(t) ||
-        l.ip_address.toLowerCase().includes(t) ||
-        l.error_message.toLowerCase().includes(t),
+        matchesSearch(t, [l.module, l.action, l.entity_label, l.actor_name, l.entity_type, l.user_phone, l.ip_address, l.error_message]),
     );
   }, [logs, text]);
 
