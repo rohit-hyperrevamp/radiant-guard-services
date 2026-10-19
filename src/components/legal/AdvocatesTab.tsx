@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -43,7 +44,7 @@ export function AdvocatesTab({ canEdit }: { canEdit: boolean }) {
   });
   const [open, setOpen] = useState<string | null>(null);
   const list = (m.data?.advocates ?? []).filter((a) =>
-    `${a.name} ${a.firm ?? ""} ${a.phone ?? ""} ${a.email ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()),
+    matchesSearch(q, [a.name, a.firm, a.phone, a.email]),
   );
   const save = async () => {
     const f = editing!;

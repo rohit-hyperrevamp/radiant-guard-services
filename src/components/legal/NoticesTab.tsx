@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -91,7 +92,7 @@ export function NoticesTab({ canEdit, cases }: { canEdit: boolean; cases: { id: 
     };
   };
   const rows = (list.data ?? []).filter((n) =>
-    `${n.notice_number} ${n.to_name} ${n.subject} ${n.status}`.toLowerCase().includes(q.trim().toLowerCase()),
+    matchesSearch(q, [n.notice_number, n.to_name, n.subject, n.status]),
   );
   const signer = (n: Notice) => {
     const a = m.data?.advocates.find((x) => x.id === n.advocate_id);

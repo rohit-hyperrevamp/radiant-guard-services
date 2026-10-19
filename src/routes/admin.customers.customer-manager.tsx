@@ -1,9 +1,10 @@
+import { matchesSearch, statusRank } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { InvoiceFormatEditor, OrgInvoiceFormatDialog, saveOrgInvoiceSplit } from "@/components/InvoiceSplitSettings";
 import { DEFAULT_SPLIT, loadOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
 import { useQueryClient as useQC } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, Download, FileStack, Edit2, ExternalLink, List as ListIcon, MapPin, Network, Plus, Search, Users, Warehouse } from "lucide-react";
 import { DeleteGuardButton } from "@/components/DeleteGuardButton";
 import { csvStatus, downloadCsv } from "@/lib/csv-export";
@@ -102,7 +103,8 @@ function CustomerManagerPage() {
     [allCustomers, foScope.isScoped, foScope.customerIds],
   );
 
-  const [query, setQuery] = useState("");
+  const [queryInput, setQuery] = useState("");
+  const query = useDeferredValue(queryInput);
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
@@ -114,20 +116,14 @@ function CustomerManagerPage() {
     const list = [...customers]
       .filter((c) => statusFilter === "all" || c.status === statusFilter)
       .sort((a, b) => {
+        const r = statusRank(a.status) - statusRank(b.status);
+        if (r) return r;
         const na = parseInt(a.code.replace(/\D/g, ""), 10) || 0;
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;
       });
     if (!query.trim()) return list;
-    const q = query.trim().toLowerCase();
-    return list.filter(
-      (c) =>
-        c.code.toLowerCase().includes(q) ||
-        c.name.toLowerCase().includes(q) ||
-        c.website.toLowerCase().includes(q) ||
-        c.phone.toLowerCase().includes(q) ||
-        c.address.toLowerCase().includes(q),
-    );
+    return list.filter((c) => matchesSearch(query, [c.code, c.name, c.website, c.phone, c.address]));
   }, [customers, query, statusFilter]);
 
   const activeCount = customers.filter((c) => c.status === "active").length;
@@ -158,7 +154,7 @@ function CustomerManagerPage() {
           <div className="relative w-full sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
+              value={queryInput}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by ID, name, website, phone, address…"
               className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
@@ -434,6 +430,8 @@ function CustomerUnitsDialog({
     return units
       .filter((u) => u.customerId === customer.id)
       .sort((a, b) => {
+        const r = statusRank(a.status) - statusRank(b.status);
+        if (r) return r;
         const na = parseInt(a.code.replace(/\D/g, ""), 10) || 0;
         const nb = parseInt(b.code.replace(/\D/g, ""), 10) || 0;
         return na - nb;

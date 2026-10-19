@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { TileNumber } from "@/components/TileNumber";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -307,7 +308,7 @@ function CharterDialog({
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.unit_name, r.customer_name, r.unit_code].some((v) => (v ?? "").toLowerCase().includes(q)),
+      matchesSearch(q, [r.unit_name, r.customer_name, r.unit_code]),
     );
   }, [query, rows]);
 

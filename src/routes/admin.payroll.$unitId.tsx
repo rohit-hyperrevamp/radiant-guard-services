@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search-match";
 import { usePlatformFlag, PLATFORM_SETTING_KEYS, platformFlagQueryKey } from "@/lib/platform-settings";
 import { Switch } from "@/components/ui/switch";
 import { fetchPeriodContract } from "@/lib/period-contract";
@@ -2685,8 +2686,7 @@ function DeductionsSection({ rows }: { rows: DeductionSourceRow[] }) {
     return people.filter((p) => {
       if (head !== "all" && !(p.buckets[head] > 0)) return false;
       if (!q) return true;
-      if (p.name.toLowerCase().includes(q)) return true;
-      if (p.employeeCode.toLowerCase().includes(q)) return true;
+      if (matchesSearch(q, [p.name, p.employeeCode])) return true;
       if (Array.from(p.designations).some((d) => d.toLowerCase().includes(q))) return true;
       return p.lines.some((l) => l.name.toLowerCase().includes(q));
     });
@@ -2879,8 +2879,7 @@ function EmployerContribSection({ rows }: { rows: DeductionSourceRow[] }) {
     return people.filter((p) => {
       if (head !== "all" && !(p.heads[head] > 0)) return false;
       if (!q) return true;
-      if (p.name.toLowerCase().includes(q)) return true;
-      if (p.employeeCode.toLowerCase().includes(q)) return true;
+      if (matchesSearch(q, [p.name, p.employeeCode])) return true;
       if (Array.from(p.designations).some((d) => d.toLowerCase().includes(q))) return true;
       return Object.keys(p.heads).some((h) => h.toLowerCase().includes(q));
     });
