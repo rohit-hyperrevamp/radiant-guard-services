@@ -1,3 +1,4 @@
+import { matchesSearch as matchesSearchText } from "@/lib/search-match";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { EmployeePostingsDialog } from "@/components/EmployeePostingsDialog";

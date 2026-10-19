@@ -1,3 +1,4 @@
+import { serverSearchWords } from "@/lib/search-match";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, Search, X } from "lucide-react";

@@ -1,3 +1,4 @@
+import { matchesSearch, statusRank } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { notifySaved } from "@/components/ConfirmProvider";
