@@ -1425,36 +1425,7 @@ async function runWithQueryTimeout<T>(
 
 // ---------------- Hooks ---------------- //
 
-/**
- * Local snapshots so the list and client dropdowns paint instantly on
- * revisit while the fresh rows load in the background.
- */
-const SNAP_TTL_MS = 24 * 60 * 60 * 1000;
-
-function readSnapshot<T>(key: string): T | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return undefined;
-    const parsed = JSON.parse(raw) as { at?: number; rows?: T };
-    if (!parsed?.at || !parsed.rows || Date.now() - parsed.at > SNAP_TTL_MS) return undefined;
-    return parsed.rows;
-  } catch {
-    return undefined;
-  }
-}
-
-function writeSnapshot(key: string, rows: unknown) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify({ at: Date.now(), rows }));
-  } catch {
-    /* quota or private mode — snapshots are best effort */
-  }
-}
-
-const SNAP_UNITS = "radiant.snapshot.units.v1";
-const SNAP_CANDIDATES = "radiant.snapshot.candidates.v2";
+// Employee and client data are reused only in the current query cache.
 
 const CANDIDATE_LIST_COLUMNS =
   "id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,department_id,status,role_key,non_billable,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at";
@@ -1540,8 +1511,7 @@ function useCandidates() {
     retry: 2,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 4_000),
     refetchOnWindowFocus: false,
-    staleTime: 60_000,
-    placeholderData: () => readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES),
+    staleTime: 5 * 60_000,
     queryFn: async (): Promise<CandidateListItem[]> => {
       return runWithQueryTimeout(
         "Employees",
@@ -1564,9 +1534,7 @@ function useCandidates() {
           const rows: CandidateListItem[] = [];
           // When a saved copy exists the page already shows full totals;
           // streaming partial pages would make counts climb 1,000 → 6,000.
-          const hasSnapshot =
-            (qc.getQueryData<CandidateListItem[]>(QK)?.length ?? 0) > 0 ||
-            (readSnapshot<CandidateListItem[]>(SNAP_CANDIDATES)?.length ?? 0) > 0;
+          const hasSnapshot = (qc.getQueryData<CandidateListItem[]>(QK)?.length ?? 0) > 0;
           for (const inactive of [false, true]) {
             const batchSize = 4;
             for (let startPage = 0; startPage < 80; startPage += batchSize) {
@@ -1585,7 +1553,6 @@ function useCandidates() {
             }
           }
 
-          writeSnapshot(SNAP_CANDIDATES, rows);
           return rows;
         },
         90_000,
@@ -1632,7 +1599,6 @@ function useUnits() {
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60_000,
-    placeholderData: () => readSnapshot<UnitLite[]>(SNAP_UNITS),
     queryFn: async (): Promise<UnitLite[]> => {
       /**
        * PostgREST caps a single response at its `max-rows` limit (1000), so a
@@ -1682,7 +1648,6 @@ function useUnits() {
         ...u,
         customer_name: u.customer_id ? (custMap.get(u.customer_id) ?? "") : "",
       }));
-      writeSnapshot(SNAP_UNITS, withNames);
       return withNames;
     },
   });
