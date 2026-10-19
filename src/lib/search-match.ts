@@ -41,3 +41,24 @@ export function statusRank(status: string | null | undefined): number {
 export function serverSearchWords(query: string): string[] {
   return searchTokens(query).map((w) => w.replace(/[%,()*]/g, "")).filter(Boolean).slice(0, 4);
 }
+
+/** Pre-built search text for one row — build once per list, reuse on every keystroke. */
+export type SearchHay = { text: string; digits: string };
+export function buildSearchHay(fields: Array<string | null | undefined>): SearchHay {
+  return {
+    text: fields.filter(Boolean).join(" ").toLowerCase().replace(/[.,]/g, " ").replace(/\s+/g, " "),
+    digits: fields.map((f) => digitsOnly(f ?? "")).join(" "),
+  };
+}
+
+/** Compile a query once; the returned test is cheap enough for thousands of rows. */
+export function compileSearch(query: string): ((hay: SearchHay) => boolean) | null {
+  const tokens = searchTokens(query);
+  if (tokens.length === 0) return null;
+  const phoneQuery = digitsOnly(query);
+  const phone =
+    phoneQuery.length >= 4 && /^[\d\s+()-]+$/.test(query.trim())
+      ? phoneQuery.length > 10 && phoneQuery.startsWith("91") ? phoneQuery.slice(-10) : phoneQuery
+      : null;
+  return (hay) => (phone !== null && hay.digits.includes(phone)) || tokens.every((t) => hay.text.includes(t));
+}
