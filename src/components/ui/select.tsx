@@ -2,22 +2,58 @@
 
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useDialogDirty, useDialogPortalContainer } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { buildSearchHay, compileSearch } from "@/lib/search-match";
 
-const Select = ({ onValueChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) => {
+const SelectSearchContext = React.createContext<{
+  query: string;
+  setQuery: (query: string) => void;
+  test: ReturnType<typeof compileSearch>;
+} | null>(null);
+
+function optionText(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(optionText).join(" ");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return optionText(node.props.children);
+  return "";
+}
+
+function collectOptions(children: React.ReactNode): Array<{ value: string; text: string; disabled?: boolean }> {
+  const options: Array<{ value: string; text: string; disabled?: boolean }> = [];
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement<{ value?: string; textValue?: string; disabled?: boolean; children?: React.ReactNode }>(child)) return;
+    if (child.type === SelectItem && typeof child.props.value === "string") {
+      options.push({ value: child.props.value, text: child.props.textValue ?? optionText(child.props.children), disabled: child.props.disabled });
+    } else if (child.props.children) options.push(...collectOptions(child.props.children));
+  });
+  return options;
+}
+
+const Select = ({ onValueChange, onOpenChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) => {
   const { markDirty } = useDialogDirty();
+  const [query, setQuery] = React.useState("");
+  const deferredQuery = React.useDeferredValue(query);
+  const test = React.useMemo(() => compileSearch(deferredQuery), [deferredQuery]);
+  const search = React.useMemo(() => ({ query, setQuery, test }), [query, test]);
 
   return (
+    <SelectSearchContext.Provider value={search}>
     <SelectPrimitive.Root
       {...props}
+      onOpenChange={(open) => {
+        setQuery("");
+        onOpenChange?.(open);
+      }}
       onValueChange={(value) => {
         markDirty();
         onValueChange?.(value);
       }}
     />
+    </SelectSearchContext.Provider>
   );
 };
 
@@ -76,9 +112,15 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { searchable?: boolean; searchPlaceholder?: string }
+>(({ className, children, position = "popper", searchable, searchPlaceholder = "Search…", ...props }, ref) => {
   const container = useDialogPortalContainer();
+  const search = React.useContext(SelectSearchContext);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const options = React.useMemo(() => collectOptions(children), [children]);
+  const indexed = React.useMemo(() => options.map((option) => ({ ...option, hay: buildSearchHay([option.text, option.value]) })), [options]);
+  const showSearch = searchable ?? options.length > 10;
+  const hasMatches = indexed.some((option) => !search?.test || search.test(option.hay));
 
   return (
     <SelectPrimitive.Portal container={container ?? undefined}>
@@ -95,6 +137,29 @@ const SelectContent = React.forwardRef<
         collisionPadding={12}
         {...props}
       >
+        {showSearch && search && (
+          <div className="shrink-0 border-b border-border/60 p-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input ref={inputRef} value={search.query} aria-label="Search options" placeholder={searchPlaceholder}
+                className="h-9 pl-8" onChange={(event) => search.setQuery(event.target.value)}
+                onPointerDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") return;
+                  event.stopPropagation();
+                  if (event.nativeEvent.isComposing) return;
+                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    const content = event.currentTarget.closest('[data-slot="select-content"]');
+                    const items = content?.querySelectorAll<HTMLElement>('[data-slot="select-item"]:not([data-disabled]):not([hidden])');
+                    const item = event.key === "ArrowDown" ? items?.[0] : items?.[items.length - 1];
+                    item?.focus();
+                  } else if (event.key === "Enter") event.preventDefault();
+                  else if (event.key === "Tab") event.preventDefault();
+                }} />
+            </div>
+          </div>
+        )}
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
@@ -104,6 +169,7 @@ const SelectContent = React.forwardRef<
           )}
         >
           {children}
+          {showSearch && !hasMatches && <p className="px-3 py-4 text-center text-sm text-muted-foreground" role="status">No matches.</p>}
         </SelectPrimitive.Viewport>
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
@@ -127,12 +193,20 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName;
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, disabled, textValue, ...props }, ref) => {
+  const search = React.useContext(SelectSearchContext);
+  const text = textValue ?? optionText(children);
+  const hay = React.useMemo(() => buildSearchHay([text, props.value]), [text, props.value]);
+  const hidden = Boolean(search?.test && !search.test(hay));
+  return (
   <SelectPrimitive.Item
     data-slot="select-item"
     ref={ref}
+    hidden={hidden}
+    disabled={disabled || hidden}
+    textValue={text}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-base md:text-sm outline-none focus:bg-accent focus:text-white focus:[&_*]:!text-white data-[state=checked]:bg-accent data-[state=checked]:text-white data-[state=checked]:[&_*]:!text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-base md:text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hidden:hidden [&>span]:break-words",
       className,
     )}
     {...props}
@@ -144,7 +218,8 @@ const SelectItem = React.forwardRef<
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
-));
+  );
+});
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
 const SelectSeparator = React.forwardRef<
