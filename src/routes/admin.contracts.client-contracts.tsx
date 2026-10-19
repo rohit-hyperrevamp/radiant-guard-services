@@ -1,10 +1,11 @@
+import { matchesSearch } from "@/lib/search-match";
 import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { unknownFormulaVariables } from "@/lib/payroll-calc";
 import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
 import { ContractHistoryPanel } from "@/components/ContractHistoryPanel";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -2526,7 +2527,8 @@ function ClientContractsPage() {
     [customers],
   );
 
-  const [query, setQuery] = useState("");
+  const [queryInput, setQuery] = useState("");
+  const query = useDeferredValue(queryInput);
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [unitFilter, setUnitFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -2663,16 +2665,7 @@ function ClientContractsPage() {
       if (citySet.size && !citySet.has((c.cityLabel ?? "").trim().toLowerCase())) return false;
       if (windowFilter !== "all" && (c.payrollWindowId ?? "") !== windowFilter) return false;
       if (!q) return true;
-      return (
-        c.contractCode.toLowerCase().includes(q) ||
-        c.prospectCode.toLowerCase().includes(q) ||
-        c.unitName.toLowerCase().includes(q) ||
-        c.unitCode.toLowerCase().includes(q) ||
-        c.orgName.toLowerCase().includes(q) ||
-        (c.stateLabel ?? "").toLowerCase().includes(q) ||
-        (c.cityLabel ?? "").toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q)
-      );
+      return matchesSearch(q, [c.contractCode, c.prospectCode, c.unitName, c.unitCode, c.orgName, c.stateLabel, c.cityLabel, c.description]);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enriched, query, statusFilter, orgFilter, unitFilter, stateFilter, cityFilter, windowFilter, tab, renewalOnly, renewalWindow]);
@@ -2964,7 +2957,7 @@ function ClientContractsPage() {
           <div className="relative col-span-2 lg:col-span-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
+              value={queryInput}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by contract ID, client, organisation…"
               className="h-10 rounded-lg pl-9"
