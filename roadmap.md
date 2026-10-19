@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Additional September attendance — 19 October
+- [x] Review all 11 worksheets: ANZ/RMZ Hours contain 2,790 dated duties totaling 11,164 hours; Dynamic sheets contain undated monthly totals only. CLI4109 is missing 38 duties; CLI4108 flags an employee attribution for verification. Register daily cells are zero despite positive totals, so use Hours evidence, not the register cells.
+- [ ] Match identities and import date-backed ANZ/RMZ attendance; blocked on an authorized live-site session (live attendance redirects to login; managed preview session targets a different backend).
+- [ ] Import and verify Dynamic Logistics attendance; blocked on original dated muster pages, CLI4109 missing pages 5–6, and CLI4108 attribution clarification. Preserve existing records until then.
+
 ## Urgent dashboard loading delay
 - [x] Fix zeros/"could not load" after background sign-in recovery: refetch on session recovery, dashboard waits for a real session.
 - [x] Throttle live-location driven refetches on dashboard cards.
