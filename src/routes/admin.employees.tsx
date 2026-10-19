@@ -1,4 +1,4 @@
-import { matchesSearch as matchesSearchText } from "@/lib/search-match";
+import { matchesSearch as matchesSearchText, buildSearchHay, compileSearch, type SearchHay } from "@/lib/search-match";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { EmployeePostingsDialog } from "@/components/EmployeePostingsDialog";
@@ -32,7 +32,7 @@ import {
 } from "./admin.contracts.client-contracts";
 
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Camera,
@@ -1603,7 +1603,7 @@ function EmployeeSearchInput({
   }, [value]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => onChange(draft), 150);
+    const timer = window.setTimeout(() => onChange(draft), 220);
     return () => window.clearTimeout(timer);
   }, [draft, onChange]);
 
@@ -2605,15 +2605,21 @@ function EmployeesPage() {
       myUnitsQuery.isFetching ||
       (unitsQuery.isLoading && (myUnitsQuery.data?.length ?? 0) === 0));
 
-  const matchesSearch = (c: CandidateListItem) =>
-    matchesSearchText(search, [
-      c.full_name,
-      c.aadhaar_number,
-      c.mobile,
-      c.email,
-      c.candidate_code,
-      c.employee_code,
-    ]);
+  // Search text is built once per list load; each keystroke only runs a cheap
+  // compiled test, and filtering is deferred so typing never waits on the list.
+  const searchHayById = useMemo(() => {
+    const m = new Map<string, SearchHay>();
+    for (const c of rowCandidates)
+      m.set(c.id, buildSearchHay([c.full_name, c.aadhaar_number, c.mobile, c.email, c.candidate_code, c.employee_code]));
+    return m;
+  }, [rowCandidates]);
+  const deferredSearch = useDeferredValue(search);
+  const searchTest = useMemo(() => compileSearch(deferredSearch), [deferredSearch]);
+  const matchesSearch = (c: CandidateListItem) => {
+    if (!searchTest) return true;
+    const hay = searchHayById.get(c.id);
+    return hay ? searchTest(hay) : true;
+  };
 
   const matchesFilters = (c: CandidateListItem) => {
     if (filterRole !== "all" && c.role_key !== filterRole) return false;
@@ -2707,7 +2713,8 @@ function EmployeesPage() {
       rowCandidates,
       supersededEmployeeIds,
       rehireByCandidate,
-      search,
+      searchTest,
+      searchHayById,
       filterRole,
       filterDesignation,
       filterCustomer,
@@ -2743,7 +2750,7 @@ function EmployeesPage() {
         return true;
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rowCandidates, rehireByCandidate, search, isFieldOfficer, currentUserId, scopedUnitIdSet],
+    [rowCandidates, rehireByCandidate, searchTest, searchHayById, isFieldOfficer, currentUserId, scopedUnitIdSet],
   );
 
   const pgEmployees = usePagination(employees);
