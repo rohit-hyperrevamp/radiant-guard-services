@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## Additional September attendance — 19 October
+- [ ] Review Attendance_September_2026.xls, match client/employee identities, and distinguish daily evidence from summary-only rows.
+- [ ] Import only safely identified, date-backed attendance into the production system and verify employee/site totals; preserve unrelated records.
+
 ## Urgent dashboard loading delay
 - [x] Fix zeros/"could not load" after background sign-in recovery: refetch on session recovery, dashboard waits for a real session.
 - [x] Throttle live-location driven refetches on dashboard cards.
