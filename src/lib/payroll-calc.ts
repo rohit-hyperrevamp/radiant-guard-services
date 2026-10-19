@@ -1056,6 +1056,9 @@ export function computeWages(
     // employee additions), before the Extra Duty line itself is added.
     otBase = Math.max(0, components
       .reduce((s, c) => s + (Number(c.amount) || 0), 0));
+  } else if (resource.otBasis !== "formula" && resource.components.length > 0 && otSelected.length === 0) {
+    // Every component was explicitly unticked — honour it: no ED base.
+    otBase = 0;
   } else if (otSelected.length > 0) {
     otBase = Math.max(
       0,

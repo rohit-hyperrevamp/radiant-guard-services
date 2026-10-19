@@ -6273,7 +6273,16 @@ export function ResourceFormDialog({
               </div>
             ) : (
               <>
-                <div className="grid gap-2 sm:grid-cols-3">
+                {otBasis !== "components" ? (
+                  <div className="mb-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground">
+                    ED is set to <b>{otBasis === "gross" ? "Gross (full month)" : otBasis === "earned_gross" ? "Earned Gross" : "Custom formula"}</b>, so the ticks below are not used. Choose <b>Selected components</b> in "ED on" to pay ED only on the ticked items.
+                  </div>
+                ) : components.every((c) => c.includeInOt === false) ? (
+                  <div className="mb-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
+                    No component is ticked — Extra Duty will pay ₹0 for this role.
+                  </div>
+                ) : null}
+                <div className={cn("grid gap-2 sm:grid-cols-3", otBasis !== "components" && "pointer-events-none opacity-40")}>
                   {components.map((c, idx) => {
                     const on = c.includeInOt !== false;
                     return (
