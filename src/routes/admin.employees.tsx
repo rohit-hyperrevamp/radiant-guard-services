@@ -1182,6 +1182,7 @@ type CandidateListItem = Pick<
   | "status"
 > & {
   employee_code: string;
+  photo_thumb_url?: string | null;
   role_key: string;
   non_billable: boolean;
   is_enabled: boolean;
