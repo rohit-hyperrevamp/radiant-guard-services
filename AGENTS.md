@@ -32,3 +32,4 @@
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — the remembered user outlives token recovery, and gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
+- Extra Duty rule (basis, multiplier, formula, ticked components) always comes from the contract resource via `withContractEdRule` (src/lib/ed-rule.ts), even when an employee has their own salary setup; all-unticked = ₹0 ED — so the contract choice is never silently replaced.
