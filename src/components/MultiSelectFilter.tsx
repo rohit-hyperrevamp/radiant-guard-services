@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useDropdownSearch } from "@/components/dropdown-search";
 
 export type MultiSelectOption = { value: string; label: string };
 
@@ -33,11 +34,7 @@ export function MultiSelectFilter({
   const [query, setQuery] = useState("");
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return options;
-    return options.filter((o) => o.label.toLowerCase().includes(term));
-  }, [options, query]);
+  const filtered = useDropdownSearch(options, query);
 
   const toggle = (value: string) => {
     if (selectedSet.has(value)) onChange(selected.filter((v) => v !== value));
