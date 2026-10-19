@@ -2357,3 +2357,26 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   max-width: 100%;
   flex-wrap: wrap;
 }
+
+/* One control language inside every list toolbar: same height, radius and
+   surface for search boxes, dropdowns, date pickers and buttons. */
+@media (min-width: 640px) {
+  .mobile-directory-toolbar :where(input:not([type="checkbox"]):not([type="radio"]), [data-slot="select-trigger"], [data-slot="button"], button[role="combobox"]) {
+    height: 40px;
+    border-radius: 12px;
+  }
+  .mobile-directory-toolbar :where([data-slot="select-trigger"], button[role="combobox"]) {
+    min-width: 160px;
+    background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+  .mobile-directory-toolbar > :where(div, form) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .mobile-directory-toolbar > .relative { display: block; flex: 1 1 260px; max-width: 360px; }
+}
