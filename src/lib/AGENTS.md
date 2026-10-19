@@ -14,3 +14,4 @@
 - Extra Duty rule (basis, multiplier, formula, ticked components) always comes from the contract resource via `withContractEdRule` (src/lib/ed-rule.ts), even when an employee has their own salary setup; all-unticked = ₹0 ED — so the contract choice is never silently replaced.
 - Pages data: archived payslips are read-only `pages_payslip_archive` (never recalculated).
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
+- Punch/location listeners refetch at most every 30s (never per-row streams).
