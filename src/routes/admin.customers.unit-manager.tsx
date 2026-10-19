@@ -197,7 +197,8 @@ function UnitManagerPage() {
     [customers, foScope.isScoped, foScope.customerIds],
   );
 
-  const [query, setQuery] = useState(client ?? "");
+  const [queryInput, setQuery] = useState(client ?? "");
+  const query = useDeferredValue(queryInput);
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
