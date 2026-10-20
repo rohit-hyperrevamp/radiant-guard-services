@@ -408,6 +408,11 @@ function applyEsiRule(
       return aboveCeiling && !(i as { noEsiCeiling?: boolean }).noEsiCeiling
         ? { ...i, amount: 0 }
         : i;
+    // An amount typed on the contract itself is kept (already prorated).
+    if ((i as { contractOverride?: boolean }).contractOverride === true && !placed) {
+      placed = true;
+      return aboveCeiling ? { ...i, amount: 0 } : i;
+    }
     if (placed) return { ...i, amount: 0 };
     placed = true;
     return { ...i, amount: share };
@@ -760,7 +765,12 @@ function benefitAmountFromConfig(
   ratio: number,
 ): number {
   if (!item) return 0;
-  if (item.calcType !== "percentage") return round2(Number(item.amount) || 0);
+  if (item.calcType !== "percentage") {
+    // An amount typed on the contract follows attendance like the line it replaced.
+    return (item as { contractOverride?: boolean }).contractOverride === true
+      ? round2((Number(item.amount) || 0) * ratio)
+      : round2(Number(item.amount) || 0);
+  }
 
   const amountMap = (items: WageComponent[]) => {
     const map = new Map<string, number>();
