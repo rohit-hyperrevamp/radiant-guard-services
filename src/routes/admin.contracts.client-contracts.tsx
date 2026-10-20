@@ -4970,6 +4970,203 @@ function ResourcesSection({
   );
 }
 
+const round2Display = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+
+function ContractOverrideBadge() {
+  return (
+    <span
+      className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary"
+      title="Edited on this contract — the master no longer changes this line"
+    >
+      Edited
+    </span>
+  );
+}
+
+function LineRuleActions({
+  editing,
+  onToggle,
+  showReset,
+  onReset,
+  label,
+}: {
+  editing: boolean;
+  onToggle: () => void;
+  showReset: boolean;
+  onReset: () => void;
+  label: string;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant={editing ? "secondary" : "ghost"}
+        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+        onClick={onToggle}
+        aria-label={`Edit ${label} rule`}
+        title="Change amount, percentage or formula"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+      {showReset && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+          onClick={onReset}
+          aria-label={`Reset ${label} to master`}
+          title="Reset to the master rule"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </>
+  );
+}
+
+/** Edit a deduction / employer line's own rule: fixed amount, % of components, or formula. */
+function LineRuleEditor({
+  item,
+  componentNames,
+  onApply,
+  onCancel,
+}: {
+  item: BenefitItem;
+  componentNames: string[];
+  onApply: (next: BenefitItem) => void;
+  onCancel: () => void;
+}) {
+  const initialExpr = (() => {
+    if (!hasConfiguredFormula(item)) return "";
+    const cfg = parseFormulaConfig(item.formulaMode ?? null, item.formulaExpression ?? null);
+    if (cfg?.mode === "preset") return presetToExpression(cfg.preset);
+    return String(item.formulaExpression ?? "");
+  })();
+  const [mode, setMode] = useState<LineRuleMode>(
+    hasConfiguredFormula(item) ? "formula" : item.calcType === "percentage" ? "percentage" : "fixed",
+  );
+  const [amount, setAmount] = useState(String(round2Display(Number(item.amount) || 0)));
+  const [pct, setPct] = useState(String(item.percentage ?? 0));
+  const [bases, setBases] = useState<string[]>(item.baseComponents.map((b) => b.label));
+  const [cap, setCap] = useState(item.capAmount ? String(item.capAmount) : "");
+  const [expr, setExpr] = useState(initialExpr);
+  const baseOptions = Array.from(new Set([...componentNames, "Gross", ...bases]));
+  const vars = Array.from(
+    new Set([...componentNames.map((n) => slugifyVar(n)).filter(Boolean), "gross", "earned_gross", "payable_days", "days_in_month", "ctc"]),
+  );
+  const unknown = mode === "formula" ? unknownFormulaVariables(expr, componentNames) : [];
+  const canApply =
+    mode === "fixed"
+      ? Number.isFinite(Number(amount))
+      : mode === "percentage"
+      ? Number(pct) >= 0 && bases.length > 0
+      : expr.trim().length > 0 && unknown.length === 0;
+
+  const apply = () => {
+    if (!canApply) return;
+    if (mode === "fixed") onApply(applyLineRule(item, { mode: "fixed", amount: Number(amount) || 0 }));
+    else if (mode === "percentage")
+      onApply(applyLineRule(item, { mode: "percentage", percentage: Number(pct) || 0, bases, cap: Number(cap) || null }));
+    else onApply(applyLineRule(item, { mode: "formula", expression: expr }));
+  };
+
+  return (
+    <div className="mt-1 space-y-3 rounded-lg border border-border bg-background p-3">
+      <div className="flex flex-wrap gap-1">
+        {([
+          ["fixed", "Fixed amount"],
+          ["percentage", "% of components"],
+          ["formula", "Formula"],
+        ] as const).map(([m, label]) => (
+          <Button key={m} type="button" size="sm" variant={mode === m ? "default" : "outline"} className="h-7 px-3 text-xs" onClick={() => setMode(m)}>
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {mode === "fixed" && (
+        <div className="grid gap-1 sm:max-w-xs">
+          <Label className="text-xs text-muted-foreground">Monthly amount (₹)</Label>
+          <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9" />
+        </div>
+      )}
+
+      {mode === "percentage" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-3">
+            <div className="grid gap-1">
+              <Label className="text-xs text-muted-foreground">Percentage (%)</Label>
+              <Input inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} className="h-9 w-28" />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs text-muted-foreground">Cap on base (₹, optional)</Label>
+              <Input inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} className="h-9 w-36" placeholder="No cap" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Of these components</Label>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {baseOptions.map((n) => {
+                const on = bases.includes(n);
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setBases((prev) => (on ? prev.filter((x) => x !== n) : [...prev, n]))}
+                    className={cn(
+                      "rounded border px-2 py-0.5 text-[11px]",
+                      on ? "border-primary/40 bg-primary/10 text-foreground" : "border-border text-muted-foreground",
+                    )}
+                    aria-pressed={on}
+                  >
+                    {standardPayItemName(n)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === "formula" && (
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Monthly amount =</Label>
+          <Textarea value={expr} onChange={(e) => setExpr(e.target.value)} rows={2} className="font-mono text-xs" placeholder="(basic + da) * 12 / 100" />
+          <div className="flex flex-wrap gap-1">
+            {[...vars, "+", "-", "*", "/", "(", ")", "min(", "max("].map((v) => (
+              <button
+                key={v}
+                type="button"
+                className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={() => setExpr((f) => `${f.trimEnd()} ${v}`.trim())}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          {unknown.length > 0 && (
+            <p className="text-[11px] text-destructive">Unknown name: {unknown.join(", ")}</p>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground">Applies to this contract only. Payroll and invoices use it after you save the contract.</p>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="ghost" className="h-8" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="button" size="sm" className="h-8" disabled={!canApply} onClick={apply}>
+            Apply
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export type WagesSubject = {
   name: string;
   employeeCode?: string | null;
