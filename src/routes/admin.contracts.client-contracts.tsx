@@ -1,4 +1,5 @@
 import { matchesSearch } from "@/lib/search-match";
+import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { unknownFormulaVariables } from "@/lib/payroll-calc";
 import { Link as RouterLink } from "@tanstack/react-router";
@@ -337,46 +338,6 @@ function withManualAmount<T extends { amount: number; roundOff?: boolean; unroun
   return item.roundOff ? { ...item, unroundedAmount: amount, amount: Math.round(amount) } : { ...item, amount };
 }
 
-/** Typing a number into a %/formula line turns it into this contract's own fixed amount. */
-export function asContractManualAmount<
-  T extends { amount: number; roundOff?: boolean; unroundedAmount?: number | null },
->(item: T, amount: number): T {
-  return withManualAmount(
-    { ...item, calcType: "fixed", formulaMode: null, formulaExpression: null, contractOverride: true } as T,
-    amount,
-  );
-}
-
-export type LineRuleMode = "fixed" | "percentage" | "formula";
-/** Apply a fixed / percentage / formula rule chosen on the contract line itself. */
-export function applyLineRule(
-  item: BenefitItem,
-  rule:
-    | { mode: "fixed"; amount: number }
-    | { mode: "percentage"; percentage: number; bases: string[]; cap: number | null }
-    | { mode: "formula"; expression: string },
-): BenefitItem {
-  if (rule.mode === "fixed") return asContractManualAmount(item, rule.amount);
-  if (rule.mode === "percentage") {
-    return {
-      ...item,
-      calcType: "percentage",
-      percentage: rule.percentage,
-      baseComponents: rule.bases.map((label) => ({ label, operator: "+" as const })),
-      capAmount: rule.cap && rule.cap > 0 ? rule.cap : null,
-      formulaMode: null,
-      formulaExpression: null,
-      contractOverride: true,
-    };
-  }
-  return {
-    ...item,
-    calcType: item.calcType === "fixed" ? "percentage" : item.calcType,
-    formulaMode: "advanced",
-    formulaExpression: rule.expression.trim(),
-    contractOverride: true,
-  };
-}
 
 export type ContractResource = {
   id?: string;
