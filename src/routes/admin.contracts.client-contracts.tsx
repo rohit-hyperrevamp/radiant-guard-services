@@ -19,6 +19,8 @@ import {
   Lock,
   Download,
   Edit2,
+  Pencil,
+  RotateCcw,
   Eye,
 
   FileSignature,
@@ -286,6 +288,8 @@ export type ResourceComponent = {
   roundOff?: boolean;
   /** Exact manual amount kept while roundOff is on, restored when it is turned off. */
   unroundedAmount?: number | null;
+  /** Edited on this contract: the master never overwrites this line again. */
+  contractOverride?: boolean;
 };
 
 type FixedCalcMethod = "flat" | "per_duty";
@@ -313,6 +317,8 @@ export type BenefitItem = {
   roundOff?: boolean;
   /** Exact manual amount kept while roundOff is on, restored when it is turned off. */
   unroundedAmount?: number | null;
+  /** Edited on this contract: the master never overwrites this line again. */
+  contractOverride?: boolean;
 };
 
 /** Toggle round-off on a line; manual amounts keep their exact value for un-toggling. */
@@ -329,6 +335,47 @@ export function toggleLineRoundOff<T extends { amount: number; roundOff?: boolea
 
 function withManualAmount<T extends { amount: number; roundOff?: boolean; unroundedAmount?: number | null }>(item: T, amount: number): T {
   return item.roundOff ? { ...item, unroundedAmount: amount, amount: Math.round(amount) } : { ...item, amount };
+}
+
+/** Typing a number into a %/formula line turns it into this contract's own fixed amount. */
+export function asContractManualAmount<
+  T extends { amount: number; roundOff?: boolean; unroundedAmount?: number | null },
+>(item: T, amount: number): T {
+  return withManualAmount(
+    { ...item, calcType: "fixed", formulaMode: null, formulaExpression: null, contractOverride: true } as T,
+    amount,
+  );
+}
+
+export type LineRuleMode = "fixed" | "percentage" | "formula";
+/** Apply a fixed / percentage / formula rule chosen on the contract line itself. */
+export function applyLineRule(
+  item: BenefitItem,
+  rule:
+    | { mode: "fixed"; amount: number }
+    | { mode: "percentage"; percentage: number; bases: string[]; cap: number | null }
+    | { mode: "formula"; expression: string },
+): BenefitItem {
+  if (rule.mode === "fixed") return asContractManualAmount(item, rule.amount);
+  if (rule.mode === "percentage") {
+    return {
+      ...item,
+      calcType: "percentage",
+      percentage: rule.percentage,
+      baseComponents: rule.bases.map((label) => ({ label, operator: "+" as const })),
+      capAmount: rule.cap && rule.cap > 0 ? rule.cap : null,
+      formulaMode: null,
+      formulaExpression: null,
+      contractOverride: true,
+    };
+  }
+  return {
+    ...item,
+    calcType: item.calcType === "fixed" ? "percentage" : item.calcType,
+    formulaMode: "advanced",
+    formulaExpression: rule.expression.trim(),
+    contractOverride: true,
+  };
 }
 
 export type ContractResource = {
