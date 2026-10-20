@@ -5045,6 +5045,8 @@ export function ResourceFormDialog({
   const [employerPickerOpen, setEmployerPickerOpen] = useState(false);
   const [employerQuery, setEmployerQuery] = useState("");
   const [resourceBaselineSnapshot, setResourceBaselineSnapshot] = useState("");
+  /** Which deduction / employer line has its rule editor open. */
+  const [ruleEditKey, setRuleEditKey] = useState<string | null>(null);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
 
   const preserveDialogScroll = (update: () => void) => {
@@ -5170,6 +5172,7 @@ export function ResourceFormDialog({
         // master may use a generic formula that is valid for new contracts but
         // must not recalculate this imported contract line.
         if (c.calcType === "fixed" && !hasConfiguredFormula(c)) return c;
+        if (c.contractOverride) return c;
         const at = findAllowanceForResourceComponent(c, allowanceTypes);
         if (!at) return c;
         const hasFormula = hasConfiguredFormula(at);
@@ -5266,6 +5269,8 @@ export function ResourceFormDialog({
     const byId = new Map(costComponents.map((c) => [c.id, c]));
     const componentNameKey = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
     const findMaster = (b: BenefitItem) => {
+      // Lines edited on this contract belong to the contract, not the master.
+      if (b.contractOverride) return undefined;
       // Do not hydrate source-locked fixed rows from a generic master formula.
       if (b.calcType === "fixed" && !hasConfiguredFormula(b)) return undefined;
       // Custom (manually entered) billing add-ons have synthetic ids and must
@@ -5453,7 +5458,45 @@ export function ResourceFormDialog({
 
   const updateAmount = (target: unknown, amount: number) => {
     setComponents((prev) =>
-      prev.map((c) => (c === target ? withManualAmount(c, amount) : c)),
+      prev.map((c) => {
+        if (c !== target) return c;
+        const at = findAllowanceForResourceComponent(c, allowanceTypes);
+        // A master-driven (%/formula) wage line becomes this contract's own
+        // fixed amount once typed into, so the master can't overwrite it.
+        const computed =
+          !c.contractOverride &&
+          !(c.calcType === "fixed" && !hasConfiguredFormula(c)) &&
+          (hasConfiguredFormula(c) || (!!at && (hasConfiguredFormula(at) || at.calcType === "percentage")));
+        return computed ? asContractManualAmount(c, amount) : withManualAmount(c, amount);
+      }),
+    );
+  };
+
+  const resetComponentLine = (target: ResourceComponent) => {
+    preserveDialogScroll(() => {
+      setComponents((prev) =>
+        prev.map((c) => (c === target ? { ...c, calcType: undefined, contractOverride: false } : c)),
+      );
+    });
+  };
+
+  const isComputedLine = (b: BenefitItem) => b.calcType === "percentage" || hasConfiguredFormula(b);
+
+  /** Recompute %/formula employer lines (CTC-based ones on the second pass). */
+  const recomputeEmployerList = (list: BenefitItem[]): BenefitItem[] => {
+    const refsCtc = (b: BenefitItem) =>
+      formulaReferencesCtc(b.formulaExpression) ||
+      b.baseComponents.some((x) => /^(total\s+)?ctc$/i.test(x.label.trim()));
+    const first = list.map((b) =>
+      isComputedLine(b) && !refsCtc(b)
+        ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes) }
+        : b,
+    );
+    const ctcBase = first.filter((b) => !refsCtc(b) && !isBillingAddOn(b));
+    return first.map((b) =>
+      isComputedLine(b) && refsCtc(b)
+        ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcBase) }
+        : b,
     );
   };
 
@@ -5659,7 +5702,35 @@ export function ResourceFormDialog({
   };
 
   const updateDeductionAmount = (target: unknown, amount: number) => {
-    setDeductions((prev) => prev.map((b) => (b === target ? withManualAmount(b, amount) : b)));
+    setDeductions((prev) =>
+      prev.map((b) => (b === target ? (isComputedLine(b) ? asContractManualAmount(b, amount) : withManualAmount(b, amount)) : b)),
+    );
+  };
+
+  const recomputeDeduction = (b: BenefitItem): BenefitItem =>
+    isComputedLine(b) ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes) } : b;
+
+  const applyDeductionLineRule = (target: BenefitItem, next: BenefitItem) => {
+    preserveDialogScroll(() => {
+      setDeductions((prev) => prev.map((b) => (b === target ? recomputeDeduction(next) : b)));
+      setRuleEditKey(null);
+    });
+  };
+
+  const resetDeductionLine = (target: BenefitItem) => {
+    preserveDialogScroll(() => {
+      setDeductions((prev) => prev.map((b) => (b === target ? recomputeDeduction(lineFromMaster(b)) : b)));
+      setRuleEditKey(null);
+    });
+  };
+
+  /** Rebuild a line from its master (cost component), keeping only round-off. */
+  const lineFromMaster = (b: BenefitItem): BenefitItem => {
+    const master =
+      costComponents.find((c) => c.id === b.costComponentId) ??
+      (b.costComponentId === PT_SYNTHETIC_ID ? ptSynthetic : undefined);
+    if (!master) return { ...b, contractOverride: false };
+    return { ...buildEmployerItem(master), roundOff: b.roundOff, unroundedAmount: null, contractOverride: false };
   };
 
   const removeDeduction = (line: unknown) => {
@@ -5712,7 +5783,27 @@ export function ResourceFormDialog({
   };
 
   const updateEmployerAmount = (target: unknown, amount: number) => {
-    setEmployerContributions((prev) => prev.map((b) => (b === target ? withManualAmount(b, amount) : b)));
+    setEmployerContributions((prev) =>
+      recomputeEmployerList(
+        prev.map((b) => (b === target ? (isComputedLine(b) ? asContractManualAmount(b, amount) : withManualAmount(b, amount)) : b)),
+      ),
+    );
+  };
+
+  const applyEmployerLineRule = (target: BenefitItem, next: BenefitItem) => {
+    preserveDialogScroll(() => {
+      setEmployerContributions((prev) => recomputeEmployerList(prev.map((b) => (b === target ? next : b))));
+      setRuleEditKey(null);
+    });
+  };
+
+  const resetEmployerLine = (target: BenefitItem) => {
+    preserveDialogScroll(() => {
+      setEmployerContributions((prev) =>
+        recomputeEmployerList(prev.map((b) => (b === target ? lineFromMaster(b) : b))),
+      );
+      setRuleEditKey(null);
+    });
   };
 
   const removeEmployerContribution = (line: unknown) => {
@@ -6232,6 +6323,17 @@ export function ResourceFormDialog({
                     <Label className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                       <span className="truncate">{standardPayItemName(c.name)}</span>
                       <span className="flex items-center gap-1.5">
+                      {c.contractOverride && (
+                        <button
+                          type="button"
+                          onClick={() => resetComponentLine(c)}
+                          className="text-muted-foreground hover:text-foreground"
+                          title="Edited on this contract — reset to the master formula"
+                          aria-label={`Reset ${standardPayItemName(c.name)} to master`}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                        </button>
+                      )}
                       <RoundOffToggle on={!!c.roundOff} label={standardPayItemName(c.name)} onToggle={() => toggleComponentRoundOff(c)} />
                       <button
                         type="button"
@@ -6533,11 +6635,12 @@ export function ResourceFormDialog({
                             ? `${b.percentage}%`
                             : "Fixed"}
                         </span>
-                        {hasConfiguredFormula(b) && b.formulaVersion != null && (
+                        {hasConfiguredFormula(b) && b.formulaVersion != null && !b.contractOverride && (
                           <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-mono text-violet-700 dark:text-violet-300" title="Formula master version">
                             v{b.formulaVersion}
                           </span>
                         )}
+                        {b.contractOverride && <ContractOverrideBadge />}
                       </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground" title={hasConfiguredFormula(b) ? String(b.formulaExpression ?? "") : undefined}>
                         {hasConfiguredFormula(b)
@@ -6551,17 +6654,22 @@ export function ResourceFormDialog({
                     </div>
                     <div className="flex items-center gap-2">
                       <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleDeductionRoundOff(b)} />
-                      {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
-                         <DecimalAmountInput
-                           value={b.amount}
-                           className="h-9 w-28"
-                           onValueChange={(amount) => updateDeductionAmount(b, amount)}
-                         />
-                      ) : (
-                        <span className="w-28 text-right text-sm font-semibold text-foreground">
-                          {isStatutoryEsi(b) ? esiEmployeeAmount.toFixed(2) : Number(b.amount).toFixed(2)}
-                        </span>
-                      )}
+                      <DecimalAmountInput
+                        value={round2Display(
+                          !(b.calcType === "fixed" && !hasConfiguredFormula(b)) && isStatutoryEsi(b)
+                            ? esiEmployeeAmount
+                            : Number(b.amount) || 0,
+                        )}
+                        className="h-9 w-28"
+                        onValueChange={(amount) => updateDeductionAmount(b, amount)}
+                      />
+                      <LineRuleActions
+                        editing={ruleEditKey === `d-${b.costComponentId}-${bi}`}
+                        onToggle={() => setRuleEditKey((k) => (k === `d-${b.costComponentId}-${bi}` ? null : `d-${b.costComponentId}-${bi}`))}
+                        showReset={!!b.contractOverride}
+                        onReset={() => resetDeductionLine(b)}
+                        label={standardPayItemName(b.name)}
+                      />
                       <Button
                         type="button"
                         size="sm"
@@ -6694,11 +6802,12 @@ export function ResourceFormDialog({
                               ? "Prorated"
                               : "Fixed"}
                         </span>
-                        {hasConfiguredFormula(b) && b.formulaVersion != null && (
+                        {hasConfiguredFormula(b) && b.formulaVersion != null && !b.contractOverride && (
                           <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-mono text-violet-700 dark:text-violet-300" title="Formula master version">
                             v{b.formulaVersion}
                           </span>
                         )}
+                        {b.contractOverride && <ContractOverrideBadge />}
                       </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground" title={hasConfiguredFormula(b) ? String(b.formulaExpression ?? "") : undefined}>
                         {hasConfiguredFormula(b)
@@ -6715,17 +6824,22 @@ export function ResourceFormDialog({
                     </div>
                     <div className="flex items-center gap-2">
                       <RoundOffToggle on={!!b.roundOff} label={standardPayItemName(b.name)} onToggle={() => toggleEmployerRoundOff(b)} />
-                      {b.calcType === "fixed" && !hasConfiguredFormula(b) ? (
-                         <DecimalAmountInput
-                           value={b.amount}
-                           className="h-9 w-28"
-                           onValueChange={(amount) => updateEmployerAmount(b, amount)}
-                         />
-                      ) : (
-                        <span className="w-28 text-right text-sm font-semibold text-foreground">
-                          {isStatutoryEsi(b) ? esiEmployerAmount.toFixed(2) : Number(b.amount).toFixed(2)}
-                        </span>
-                      )}
+                      <DecimalAmountInput
+                        value={round2Display(
+                          !(b.calcType === "fixed" && !hasConfiguredFormula(b)) && isStatutoryEsi(b)
+                            ? esiEmployerAmount
+                            : Number(b.amount) || 0,
+                        )}
+                        className="h-9 w-28"
+                        onValueChange={(amount) => updateEmployerAmount(b, amount)}
+                      />
+                      <LineRuleActions
+                        editing={ruleEditKey === `e-${b.costComponentId}-${bi}`}
+                        onToggle={() => setRuleEditKey((k) => (k === `e-${b.costComponentId}-${bi}` ? null : `e-${b.costComponentId}-${bi}`))}
+                        showReset={!!b.contractOverride}
+                        onReset={() => resetEmployerLine(b)}
+                        label={standardPayItemName(b.name)}
+                      />
                       <Button
                         type="button"
                         size="sm"
