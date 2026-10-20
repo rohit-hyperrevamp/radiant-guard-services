@@ -6681,6 +6681,16 @@ export function ResourceFormDialog({
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                    {ruleEditKey === `d-${b.costComponentId}-${bi}` && (
+                      <div className="basis-full">
+                        <LineRuleEditor
+                          item={b}
+                          componentNames={components.map((c) => c.name)}
+                          onApply={(next) => applyDeductionLineRule(b, next)}
+                          onCancel={() => setRuleEditKey(null)}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="flex items-center justify-end border-t border-border pt-2">
@@ -6851,6 +6861,16 @@ export function ResourceFormDialog({
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                    {ruleEditKey === `e-${b.costComponentId}-${bi}` && (
+                      <div className="basis-full">
+                        <LineRuleEditor
+                          item={b}
+                          componentNames={components.map((c) => c.name)}
+                          onApply={(next) => applyEmployerLineRule(b, next)}
+                          onCancel={() => setRuleEditKey(null)}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="flex items-center justify-end border-t border-border pt-2">
