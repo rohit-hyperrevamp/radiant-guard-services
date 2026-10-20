@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Copy CLI4337 rates to L&T Rajasthan
+- [ ] Read CLI4337's current saved contract resource formulas and rates from the authorized live site.
+- [ ] Apply its rate structure to matching L&T Finance Rajasthan roles only, preserving site identities, staffing quantities and unmatched roles.
+- [ ] Verify saved target rates against CLI4337 and report any access blocker without claiming completion.
+
 ## Smart search in long dropdowns
 - [x] Add automatic search to shared dropdowns with more than ten options, covering contracts, branches, states and inventory; unify existing organization/client and designation pickers with indexed local matching without changing scoped options.
 - [x] Verify word-order/name/code matching, selection retention, no dirty marking while searching, keyboard selection, empty/cleared results and short-list behavior; 19 tests pass and automatic build is clean.
