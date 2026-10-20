@@ -98,6 +98,9 @@ export async function hydrateFormulasFromMaster<T extends ResourceShape>(
   }
 
   const overlay = (line: LineWithIds): LineWithIds => {
+    // A line edited on the contract itself (amount, % or formula) belongs to
+    // the contract — the master must never overwrite it.
+    if (line.contractOverride === true) return line;
     // Source-card contracts deliberately keep exact fixed amounts. A linked
     // master ID is retained for traceability, but must not turn that fixed
     // snapshot back into a live formula during payroll or invoicing.
