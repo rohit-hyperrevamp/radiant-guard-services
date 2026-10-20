@@ -11,7 +11,7 @@ import { applyLineRule, asContractManualAmount } from "./contract-line-override"
 import { hydrateFormulasFromMaster } from "./contract-hydrate";
 import { applyEsiToWageComputation, computeWages } from "./payroll-calc";
 
-const pfLine: Record<string, unknown> & Parameters<typeof applyLineRule>[0] & { contractOverride?: boolean; formulaVersion?: number | null } = {
+const pfLine: Parameters<typeof applyLineRule>[0] & { costComponentId: string; name: string; contractOverride?: boolean; formulaVersion?: number | null } = {
   costComponentId: "m-epf",
   name: "EE EPF 12%",
   calcType: "percentage" as const,
