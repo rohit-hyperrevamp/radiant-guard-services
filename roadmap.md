@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Copy CLI4337 rates to L&T Rajasthan
+- [ ] Read CLI4337's current saved contract resource formulas and rates; blocked because the live contract page redirects to login and available database read tools target a different backend.
+- [ ] Apply its rate structure to matching L&T Finance Rajasthan roles only, preserving site identities, staffing quantities and unmatched roles; blocked on authorized production access.
+- [ ] Verify saved target rates against CLI4337; blocked on the same production access. No contract rates changed.
+
 ## Smart search in long dropdowns
 - [x] Add automatic search to shared dropdowns with more than ten options, covering contracts, branches, states and inventory; unify existing organization/client and designation pickers with indexed local matching without changing scoped options.
 - [x] Verify word-order/name/code matching, selection retention, no dirty marking while searching, keyboard selection, empty/cleared results and short-list behavior; 19 tests pass and automatic build is clean.
