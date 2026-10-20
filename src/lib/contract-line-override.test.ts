@@ -64,7 +64,7 @@ describe("Contract lines can be edited on the contract", () => {
     };
     const totals = { candidateId: "x", pDays: 26, otDays: 0, phDays: 0, otherPaidDays: 0, totalPaidDays: 26, absentDays: 0 };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wages = applyEsiToWageComputation(computeWages(resource as any, totals as any, new Date(2026, 8, 1)) as any);
+    const wages = applyEsiToWageComputation(computeWages(totals as any, resource as any, 30, {} as any));
     expect(wages.deductions.find((d) => /esi/i.test(d.name))?.amount).toBe(100);
   });
 });
