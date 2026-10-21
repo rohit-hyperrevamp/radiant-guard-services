@@ -221,6 +221,26 @@ export type BenefitLike = {
 };
 
 
+/** Optional ESI on Extra Duty (client exception). Formulas come from Cost Component Manager. */
+export type OtEsiSetting = {
+  enabled: boolean;
+  eeId?: string | null;
+  eeName?: string | null;
+  eeFormula?: string | null;
+  erId?: string | null;
+  erName?: string | null;
+  erFormula?: string | null;
+};
+
+export function normalizeOtEsi(raw: unknown): OtEsiSetting | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as OtEsiSetting;
+  return r.enabled === true ? { ...r, enabled: true } : null;
+}
+
+/** Lines produced by ESI-on-Extra-Duty; statutory ESI placement leaves them alone. */
+const isEdEsiLine = (i: unknown) => (i as { edEsi?: boolean } | null)?.edEsi === true;
+
 export type ContractResourceLike = {
   designationId: string;
   components: WageComponent[];
@@ -233,6 +253,8 @@ export type ContractResourceLike = {
   otBasis?: "components" | "gross" | "earned_gross" | "formula" | null;
   /** Custom ED per-duty formula, e.g. "earned_gross / payroll_days * 2". */
   otFormula?: string | null;
+  /** ESI charged on the Extra Duty amount, only when switched on for the role. */
+  otEsi?: OtEsiSetting | null;
   payrollDayBase: {
     method: "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
     fixedDays: number | null;
@@ -402,7 +424,7 @@ function applyEsiRule(
   // but the statutory wage ceiling still zeroes it.
   let placed = false;
   return items.map((i) => {
-    if (!ESI_NAME_RE.test(i.name)) return i;
+    if (!ESI_NAME_RE.test(i.name) || isEdEsiLine(i)) return i;
     // Per-line opt-out: `noEsiCeiling` charges the formula regardless of gross.
     if (hasConfiguredFormula(i))
       return aboveCeiling && !(i as { noEsiCeiling?: boolean }).noEsiCeiling
@@ -456,7 +478,7 @@ export function applyEsiToWageComputation(
   wages: WageComputation,
   opts: { isDisabled?: boolean; extraEsiWage?: number } = {},
 ): WageComputation {
-  const firstEsi = (items: WageComponent[]) => items.find((i) => ESI_NAME_RE.test(i.name));
+  const firstEsi = (items: WageComponent[]) => items.find((i) => ESI_NAME_RE.test(i.name) && !isEdEsiLine(i));
   const employeeEsi = firstEsi(wages.deductions);
   const employerEsi = firstEsi(wages.employerContributions);
   // Statutory disability workers get raised ceiling of ₹25,000.
@@ -482,7 +504,7 @@ export function applyEsiToWageComputation(
     if (!(extra > 0)) return items;
     let placed = false;
     return items.map((i) => {
-      if (placed || !ESI_NAME_RE.test(i.name) || !hasConfiguredFormula(i)) return i;
+      if (placed || !ESI_NAME_RE.test(i.name) || isEdEsiLine(i) || !hasConfiguredFormula(i)) return i;
       placed = true;
       // Zero = not covered this month (above the ESI limit); allowances don't change that.
       if (!((Number(i.amount) || 0) > 0)) return i;
@@ -1480,6 +1502,51 @@ export function computeWages(
   const finalEmployerContributions = edOnly
     ? []
     : roundFlagged(clampEpf(employerContributions, resource.employerContributions), resource.employerContributions);
+
+  // ---- ESI on Extra Duty (only when the contract role switches it on) ----
+  // Formula variables are the Extra Duty share of each pay item: with
+  // "Selected components" each ticked item's share is amount ÷ payroll days ×
+  // multiplier × ED days; other ED bases split the ED amount across pay items
+  // by their contract amounts. gross / earned_gross / ed_amount = ED amount.
+  // PF and PT are never charged on ED.
+  if (resource.otEsi?.enabled && otAmount > 0 && !esiAboveCeiling) {
+    const edCtx: FormulaContext = { ...baseFormulaCtx };
+    for (const c of [...resource.components, ...components]) {
+      for (const key of formulaNameAliases(c.name)) {
+        const slug = slugifyVar(key);
+        if (slug) edCtx[slug] = 0;
+      }
+    }
+    const shareSrc = resource.otBasis === "components" || !resource.otBasis
+      ? resource.components.filter((c) => c.includeInOt !== false)
+      : resource.components.filter((c) => !EXTRA_DUTY_COMPONENT_RE.test(c.name));
+    const srcTotal = shareSrc.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+    const shares = shareSrc.map((c) => ({
+      name: c.name,
+      amount: resource.otBasis === "components" || !resource.otBasis
+        ? round2(((Number(c.amount) || 0) / OT_DIVISOR) * otMult * totals.otDays)
+        : srcTotal > 0 ? round2(((Number(c.amount) || 0) / srcTotal) * otAmount) : 0,
+    }));
+    const shareTaken = exactFormulaKeys(shares.map((c) => c.name));
+    shares.forEach((c) => addFormulaContextAliases(edCtx, c.amount, c.name, shareTaken));
+    edCtx.gross = otAmount;
+    edCtx.earned_gross = otAmount;
+    edCtx.ed_amount = otAmount;
+    edCtx.fixed_gross = round2(contractGross);
+    edCtx.payroll_days = OT_DIVISOR;
+    const edEsiLine = (formula: string | null | undefined, name: string): WageComponent | null => {
+      if (!(formula ?? "").trim()) return null;
+      let v = 0;
+      try { v = evaluateExpression(String(formula), edCtx); } catch { v = 0; }
+      if (!Number.isFinite(v) || v <= 0) return null;
+      const raw = round2(v);
+      return { name, amount: Math.ceil(raw - 1e-9), calcType: "fixed", roundMode: "up", preRoundAmount: raw, edEsi: true } as WageComponent;
+    };
+    const ee = edEsiLine(resource.otEsi.eeFormula, "EE ESI on Extra Duty");
+    const er = edEsiLine(resource.otEsi.erFormula, "ER ESI on Extra Duty");
+    if (ee) finalDeductions.push(ee);
+    if (er) finalEmployerContributions.push(er);
+  }
   const totalDeductions = finalDeductions.reduce((s, d) => s + d.amount, 0);
   const totalEmployerContributions = finalEmployerContributions.reduce(
     (s, d) => s + d.amount,
