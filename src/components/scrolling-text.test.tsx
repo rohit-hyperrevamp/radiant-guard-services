@@ -86,7 +86,7 @@ describe("ScrollingText animation", () => {
     const { track } = trigger();
     expect(captures.length).toBeGreaterThanOrEqual(1);
     expect(track.textContent).toContain("Anz Acacia");
-    const [{ keyframes, options }] = captures[captures.length - 1];
+    const { keyframes, options } = captures[captures.length - 1];
     expect(keyframes).toHaveLength(3);
     expect(keyframes[0].transform).toBe("translateX(0)");
     expect(keyframes[1].transform).toBe("translateX(0)");
