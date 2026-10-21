@@ -2,3 +2,4 @@
 - Use ScrollingText for bounded one-line list names; it measures overflow, suspends off-screen animation, preserves accessible text and respects reduced motion so long labels cannot enlarge rows.
 - Mark list action cells with `data-col="actions"` and keep controls in one row; shared CSS reserves their intrinsic width so long labels cannot push Delete below other actions.
 - SmartListLayout progressively discloses secondary directory-table fields in a row dialog while retaining action cells; exclude registers, calendars, editable matrices and forms so calculations remain untouched.
+- Use Button's explicit data-icon-only metadata for circular sizing; SVG :only-child ignores bare text and incorrectly squares labelled actions.

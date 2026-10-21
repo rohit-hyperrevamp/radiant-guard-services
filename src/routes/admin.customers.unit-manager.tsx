@@ -530,7 +530,7 @@ function UnitManagerPage() {
             className="h-9 rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add client
+            Add Client
           </Button>
         </div>}
       </div>
