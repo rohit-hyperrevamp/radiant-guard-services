@@ -120,7 +120,7 @@ export function DeleteGuardButton({
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex">{btn}</span>
+          <span className="inline-flex shrink-0 items-center whitespace-nowrap">{btn}</span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs text-xs leading-snug">
           {message}

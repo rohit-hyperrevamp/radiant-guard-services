@@ -1,8 +1,8 @@
 # Mobile app UI re-review
 
 ## Single-line list action alignment — 21 October
-- [ ] Remove the shared wrapping conflict and reserve enough space for every row action, including Delete.
-- [ ] Review list action cells across other pages and apply consistent one-line alignment without changing permissions or actions.
+- [x] Remove the shared wrapping conflict, reserve intrinsic action-row width and keep Delete's tooltip wrapper from shrinking; contracts use contained horizontal scrolling rather than clipping.
+- [x] Review contract, employee setup, inventory, recruitment and management-list action groups; shared protection covers marked columns and legacy trailing icon groups without changing permissions or actions.
 - [ ] Check compilation and existing relevant tests; signed-in live visual verification waits on publication and an authorized production session.
 
 ## Single-line scrolling list names — 21 October
