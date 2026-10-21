@@ -2581,6 +2581,11 @@ table[data-smart-list][data-smart-stacked="true"] { display: block !important; }
   min-width: 0;
   max-width: 100%;
 }
+/* Labelled tile commands need their own row, never overlaid on the value. */
+.dashboard-summary-tile:has(> [data-slot="button"]) { height: auto; min-height: 156px; }
+@media (min-width: 640px) {
+  .dashboard-summary-tile:has(> [data-slot="button"]) { min-height: 192px; }
+}
 .page-header-actions [data-slot="button"][data-icon-only="false"],
 .mobile-directory-toolbar [data-slot="button"][data-icon-only="false"] {
   width: max-content !important;
