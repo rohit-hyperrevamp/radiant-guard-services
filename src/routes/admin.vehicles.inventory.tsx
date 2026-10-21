@@ -26,6 +26,14 @@ import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFor
 
 export const Route = createFileRoute("/admin/vehicles/inventory")({
   component: VehicleInventoryPage,
+  head: () => ({ meta: [
+    { title: "Vehicle Inventory | Radiant Guard Services" },
+    { name: "description", content: "Manage fleet vehicles, registration details and vehicle status at Radiant Guard Services." },
+    { property: "og:title", content: "Vehicle Inventory | Radiant Guard Services" },
+    { property: "og:description", content: "Manage Radiant fleet vehicle records and registration details." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type Vehicle = {
