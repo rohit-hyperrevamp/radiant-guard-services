@@ -2,9 +2,9 @@
 
 ## Canara, SBI and L&T uploaded attendance — 21 October
 - [x] Extract 222 scanned pages and three spreadsheets; retain source references and identify duplicate archive contents.
-- [ ] Match source client/employee identities and payroll dates to production; verify existing attendance without overwriting filled entries.
-- [ ] Fill only safely verified missing attendance; preserve processed periods and global primary-unit/Extra Duty caps; read back saved results.
-- [ ] Report unresolved source rows and any existing attendance differences honestly.
+- [ ] Complete date-by-date verification: 258 extracted rows have mapped client/employee IDs and 217 have stored entries, but stored entries are not proof of matching; conflicting names, misaligned daily columns and blank printed rows prevent automatic import.
+- [ ] Fill safely verified missing attendance; blocked on an authorized production write path and source clarification for conflicting dates/IDs. CLI4510 employee 25828 has six clear Present marks (15–20 September). No attendance, posting, payroll or client status changed.
+- [x] Deliver Canara_SBI_LT_Attendance_Review.xlsx with 360 extracted-row review results and explicit incomplete-verification notes; flag calendar-month Canara spreadsheet differences and inactive Rajasthan source sites without reopening them.
 
 ## CLI4096 regular employees
 - [x] Review the current CLI4096 roster and other postings; no processed payroll periods affected; inactive staff and employee 47940's prior CLI3708 reassignment preserved.
