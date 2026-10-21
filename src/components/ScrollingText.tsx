@@ -29,13 +29,13 @@ export const ScrollingText = memo(function ScrollingText({
       element.dataset.overflow = String(distance > 1);
       if (!visible || motion.matches || distance <= 1) return;
       const travel = Math.max(2000, distance / 24 * 1000);
-      const duration = travel * 2 + 4000;
+      const duration = 2000 + travel;
+      // Single direction: hold, scroll left to the end, then the loop restart
+      // jumps straight back to the start — never slides backwards.
       animation = track.animate([
         { transform: "translateX(0)", offset: 0 },
         { transform: "translateX(0)", offset: 2000 / duration },
-        { transform: `translateX(-${distance}px)`, offset: (2000 + travel) / duration },
-        { transform: `translateX(-${distance}px)`, offset: (4000 + travel) / duration },
-        { transform: "translateX(0)", offset: 1 },
+        { transform: `translateX(-${distance}px)`, offset: 1 },
       ], { duration, iterations: Infinity, easing: "linear" });
     };
     const resize = new ResizeObserver(update);
