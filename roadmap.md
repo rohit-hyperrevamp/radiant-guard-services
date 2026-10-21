@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Screenshot finishing fixes — 22 October
+- [ ] Fix clipped labelled Add/Export actions and toolbar overlap across Tasks, Clients and Vehicles.
+- [ ] Restore mildly rounded rectangular task/case/history/notification surfaces; add explicit payroll/invoice View actions.
+- [ ] Run relevant checks; production visual verification requires publication and an authorized live session.
+
 ## Labelled controls and sidebar — 22 October
 - [x] Correct shared icon detection so labelled actions remain pills; unify tabs/search controls and align client/organization actions.
 - [x] Compact the sidebar expand/collapse control; 13 existing control checks pass and automatic compilation is clean.
