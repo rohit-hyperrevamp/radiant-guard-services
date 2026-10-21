@@ -2479,3 +2479,14 @@ nav[aria-label="pagination"] :is(a, button),
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
+
+/* Badges/pills in list cells never break into two lines; they keep their natural width. */
+.ios-table tbody td :where(.inline-flex.rounded-full, .cell-pill, [class*="rounded-full"][class*="uppercase"]) {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  width: max-content;
+  max-width: none !important;
+  flex-shrink: 0;
+}
+.ios-table tbody td[data-label="Status"], .ios-table [data-col="status"] { width: 1%; white-space: nowrap; }
+.ios-table tbody td[data-label="Client ID"] { width: 1%; white-space: nowrap; }
