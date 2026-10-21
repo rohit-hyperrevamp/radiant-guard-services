@@ -2698,3 +2698,19 @@ li[data-panel="true"], [data-panel="true"] [data-panel="true"] {
   .mobile-directory-toolbar > :first-child { flex: 1 1 auto !important; width: auto !important; min-width: 0; flex-shrink: 1 !important; }
   .mobile-directory-toolbar > :last-child:not(:first-child) { flex-wrap: nowrap; }
 }
+
+/* Final action style: filled signature-colour circles with a clear white symbol. */
+html body :is(td, .list-row, [data-col="actions"], [data-col="employee-actions"], .directory-actions, .row-actions, [data-smart-list]) :is(button, a)[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([role="combobox"]):not(.smart-details-button):not([data-no-pill]),
+html body [data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]):not(.smart-details-button) {
+  background: var(--row-action, var(--action-view)) !important;
+  border-color: transparent !important;
+  color: oklch(1 0 0) !important;
+}
+html body :is(td, .list-row, [data-col="actions"], [data-col="employee-actions"], .directory-actions, .row-actions, [data-smart-list]) :is(button, a)[data-icon-only="true"]:not(.smart-details-button) svg,
+html body [data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]):not(.smart-details-button) svg {
+  color: oklch(1 0 0) !important;
+  stroke: oklch(1 0 0) !important;
+  opacity: 1 !important;
+}
+html body :is(td, .list-row, [data-col="actions"], .directory-actions, [data-smart-list]) :is(button, a)[data-icon-only="true"]:hover,
+html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-action, var(--action-view)) !important; filter: brightness(0.9); }
