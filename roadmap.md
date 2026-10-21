@@ -1,9 +1,9 @@
 # Mobile app UI re-review
 
 ## Single-line scrolling list names — 21 October
-- [ ] Add a shared overflow-only scrolling label with consistent typography, bounded width, off-screen suspension and reduced-motion support.
-- [ ] Apply to shared long text, list names and selection labels across the requested modules without changing data or actions.
-- [ ] Check edited presentation and compilation; live visual verification requires publication and an authorized production session.
+- [x] Add a shared overflow-only scrolling label with consistent typography, bounded width, off-screen suspension and reduced-motion support.
+- [x] Apply to shared long text and selection labels, employee/candidate, contract, organization/client, recruitment, inventory, cost-component and posting names without changing data or actions; numeric cells and status controls stay stationary.
+- [ ] Verify signed-in live visual rendering; blocked on publication and an authorized production session. Automatic compilation is checked separately.
 
 ## CLI4096 manual attendance saves — 21 October
 - [x] Reproduced a CLI4096 Absent correction reverting to its old Present/ED mark; a before-update trigger now clears obsolete original-rule values on explicit edits, retaining metadata during internal recalculation.

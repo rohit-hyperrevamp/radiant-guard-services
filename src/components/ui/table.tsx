@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { ScrollingText } from "@/components/ScrollingText";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
@@ -81,8 +80,7 @@ const TableCell = React.forwardRef<
     )}
     {...props}
   >
-    {typeof children === "string" && /[a-zA-Z]/.test(children)
-      ? <ScrollingText text={children} /> : children}
+    {children}
   </td>
 ));
 TableCell.displayName = "TableCell";

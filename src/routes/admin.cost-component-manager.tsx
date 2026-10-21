@@ -1,4 +1,5 @@
 import { LongText } from "@/components/LongText";
+import { ScrollingText } from "@/components/ScrollingText";
 import { matchesSearch } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
@@ -45,6 +46,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/admin/cost-component-manager")({
+  head: () => ({ meta: [
+    { title: "Cost Component Manager — Radiant" },
+    { name: "description", content: "Manage Radiant employee and employer cost components and calculation formulas." },
+    { property: "og:title", content: "Cost Component Manager — Radiant" },
+    { property: "og:description", content: "Manage Radiant employee and employer cost components and calculation formulas." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: CostComponentManagerPage,
 });
 
@@ -479,7 +488,7 @@ function CostComponentManagerPage() {
                   <td className="px-5 py-3 font-medium text-foreground">
                     <span className="flex min-w-0 items-start gap-2">
                       <Calculator className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                      {i.name}
+                      <ScrollingText text={i.name} className="flex-1" />
                     </span>
                   </td>
                   <td className="px-5 py-3 text-foreground/80"><LongText text={displayDescription(i)} title="Description" /></td>

@@ -2370,6 +2370,8 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   white-space: nowrap !important;
 }
 td .scrolling-text { width: 12rem; max-width: 100%; }
+.scrolling-text.flex-1 { width: 0; }
+.ios-table .scrolling-text { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .scrolling-text[data-overflow="true"] { overflow-x: auto; scrollbar-width: none; }
 }

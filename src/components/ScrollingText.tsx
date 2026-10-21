@@ -43,6 +43,8 @@ export const ScrollingText = memo(function ScrollingText({
     const resume = () => animation?.play();
     element.addEventListener("pointerenter", pause);
     element.addEventListener("pointerleave", resume);
+    element.addEventListener("focusin", pause);
+    element.addEventListener("focusout", resume);
     motion.addEventListener("change", update);
     return () => {
       animation?.cancel();
@@ -50,6 +52,8 @@ export const ScrollingText = memo(function ScrollingText({
       intersection.disconnect();
       element.removeEventListener("pointerenter", pause);
       element.removeEventListener("pointerleave", resume);
+      element.removeEventListener("focusin", pause);
+      element.removeEventListener("focusout", resume);
       motion.removeEventListener("change", update);
     };
   }, [value]);
