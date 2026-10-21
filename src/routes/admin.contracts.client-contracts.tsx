@@ -1,7 +1,8 @@
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
-import { unknownFormulaVariables } from "@/lib/payroll-calc";
+import { unknownFormulaVariables, normalizeOtEsi, type OtEsiSetting } from "@/lib/payroll-calc";
+import { Switch } from "@/components/ui/switch";
 import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
@@ -359,6 +360,8 @@ export type ContractResource = {
   otMultiplier?: number;
   otBasis?: "components" | "gross" | "earned_gross" | "formula";
   otFormula?: string;
+  /** Optional ESI charged on the Extra Duty amount (client exception). */
+  otEsi?: OtEsiSetting | null;
 };
 
 function cloneBenefitItem(item: BenefitItem): BenefitItem {
@@ -394,6 +397,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     otMultiplier: Number(resource.otMultiplier) > 0 ? Number(resource.otMultiplier) : 1,
     otBasis: resource.otBasis ?? "components",
     otFormula: resource.otFormula ?? "",
+    otEsi: resource.otEsi?.enabled ? { ...resource.otEsi } : null,
   };
 }
 
@@ -1237,7 +1241,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula,ot_esi",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1261,6 +1265,7 @@ function useContractResources(contractId: string | null) {
         roundOffTotals: (r.round_off_totals ?? {}) as Record<string, boolean>,
         otMultiplier: Number(r.ot_multiplier ?? 1) || 1,
         otFormula: (r as { ot_formula?: string | null }).ot_formula ?? "",
+        otEsi: normalizeOtEsi((r as { ot_esi?: unknown }).ot_esi),
         otBasis: ((r as { ot_basis?: string }).ot_basis ?? "components") as "components" | "gross" | "earned_gross" | "formula",
       }));
     },
@@ -1939,6 +1944,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     ot_multiplier: Number(r.otMultiplier) > 0 ? Number(r.otMultiplier) : 1,
     ot_basis: r.otBasis ?? "components",
     ot_formula: r.otBasis === "formula" ? (r.otFormula ?? "").trim() || null : null,
+    ot_esi: r.otEsi?.enabled ? r.otEsi : null,
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
@@ -5192,6 +5198,7 @@ export function ResourceFormDialog({
   const [otMultiplier, setOtMultiplier] = useState<string>("1");
   const [otFormula, setOtFormula] = useState<string>("earned_gross / payroll_days * 2");
   const [otBasis, setOtBasis] = useState<"components" | "gross" | "earned_gross" | "formula">("components");
+  const [otEsi, setOtEsi] = useState<OtEsiSetting | null>(null);
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -5248,7 +5255,8 @@ export function ResourceFormDialog({
       setOtMultiplier(String(initial.otMultiplier ?? 1));
       setOtBasis(initial.otBasis ?? "components");
       setOtFormula(initial.otFormula || "earned_gross / payroll_days * 2");
-      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, otMultiplier: Number(initial.otMultiplier ?? 1) || 1, otBasis: initial.otBasis ?? "components", otFormula: initial.otFormula ?? "", components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
+      setOtEsi(initial.otEsi?.enabled ? { ...initial.otEsi } : null);
+      setResourceBaselineSnapshot(serializeContractResources([{ ...initial, otMultiplier: Number(initial.otMultiplier ?? 1) || 1, otBasis: initial.otBasis ?? "components", otFormula: initial.otFormula ?? "", otEsi: initial.otEsi?.enabled ? { ...initial.otEsi } : null, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
     } else {
       const nextComponents = allowanceTypes
         .filter((a) => a.isDefault)
@@ -5304,9 +5312,10 @@ export function ResourceFormDialog({
           otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
       otFormula: otBasis === "formula" ? otFormula : "",
+      otEsi: otEsi?.enabled ? otEsi : null,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula, otEsi],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -6112,6 +6121,7 @@ export function ResourceFormDialog({
       otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
       otFormula: otBasis === "formula" ? otFormula : "",
+      otEsi: otEsi?.enabled ? otEsi : null,
     });
   };
 
@@ -6139,6 +6149,7 @@ export function ResourceFormDialog({
       otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
       otFormula: otBasis === "formula" ? otFormula : "",
+      otEsi: otEsi?.enabled ? otEsi : null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inline, currentResourceSnapshot]);
@@ -6675,6 +6686,59 @@ export function ResourceFormDialog({
                       onChange={(e) => setOtMultiplier(e.target.value)}
                     />
                   </label>
+                  <div className="w-full space-y-2 rounded-lg border border-border bg-background p-2">
+                    <label className="flex items-center justify-between gap-3 text-xs font-semibold text-foreground">
+                      <span>
+                        Charge ESI on Extra Duty
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          Only for sites that ask for it. Formula variables (basic, da…) mean the Extra Duty share of each pay item; PF and PT stay off ED.
+                        </span>
+                      </span>
+                      <Switch
+                        checked={otEsi?.enabled === true}
+                        onCheckedChange={(on) => setOtEsi(on ? { enabled: true, ...(otEsi ?? {}) } : null)}
+                      />
+                    </label>
+                    {otEsi?.enabled ? (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {([
+                          ["ee", "Employee ESI formula", ["employee", "both"]],
+                          ["er", "Employer ESI formula (billed on invoice)", ["employer", "both"]],
+                        ] as const).map(([side, label, parties]) => {
+                          const opts = costComponents.filter((c) => /\besi(c)?\b/i.test(c.name) && c.formulaMode === "advanced" && (c.formulaExpression ?? "").trim() && (parties as readonly string[]).includes(c.party));
+                          const idKey = side === "ee" ? "eeId" : "erId";
+                          return (
+                            <label key={side} className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+                              {label}
+                              <Select
+                                value={otEsi[idKey] || "none"}
+                                onValueChange={(v) => {
+                                  const cc = opts.find((o) => o.id === v);
+                                  setOtEsi({
+                                    ...otEsi,
+                                    [idKey]: cc?.id ?? null,
+                                    [side === "ee" ? "eeName" : "erName"]: cc?.name ?? null,
+                                    [side === "ee" ? "eeFormula" : "erFormula"]: cc?.formulaExpression ?? null,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-8"><SelectValue placeholder="Not charged" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Not charged</SelectItem>
+                                  {opts.map((o) => (
+                                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {otEsi[side === "ee" ? "eeFormula" : "erFormula"] ? (
+                                <span className="block font-mono font-normal">{otEsi[side === "ee" ? "eeFormula" : "erFormula"]}</span>
+                              ) : null}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     ED Base
                   </span>
