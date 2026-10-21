@@ -1,11 +1,12 @@
 # Mobile app UI re-review
 
 ## Canara, SBI and L&T uploaded attendance — 21 October
-- [ ] Extend the identified expired/closed uploaded-sheet clients and latest contracts to 31 December 2026, restore active status, and verify production readback; do not alter rates or older contract copies.
-- [ ] Complete source-backed missing attendance after the extensions, retaining existing entries and processed periods; report any unreadable identities or dates individually.
+- [x] Extend all 38 identified expired/closed uploaded-sheet clients and latest contracts to 31 December 2026; fresh production readback confirms active status and dates, with other contract terms unchanged.
+- [x] Save and verify 260 source-backed daily cells for 14 employees across 13 sites, including all eight reopened Rajasthan sites; retained existing dates and processed periods, with global-rule original values checked. Ponda date mapping corrected to the actual 30 printed columns (no August 31).
+- [ ] Complete ambiguous source cells: Nagaur Noratan ID 47548 conflicts with Sundaram Raju Singh; Mohan Singh has P/P and unclear marks; Khatipura/Tonk OT-row P marks need numeric ED interpretation; dash/SUNDAY need paid/unpaid-off confirmation; Washim Nitin's WO conflicts with reliever posting. Blank printed rows do not establish attendance.
 - [x] Extract 222 scanned pages and three spreadsheets; retain source references and identify duplicate archive contents.
 - [ ] Complete date-by-date verification: 258 extracted rows have mapped client/employee IDs and 217 have stored entries, but stored entries are not proof of matching; conflicting names, misaligned daily columns and blank printed rows prevent automatic import.
-- [ ] Fill safely verified missing attendance; blocked on an authorized production write path and source clarification for conflicting dates/IDs. CLI4510 employee 25828 has six clear Present marks (15–20 September). No attendance, posting, payroll or client status changed.
+- [x] Production writes available: safely verified missing attendance saved and read back; CLI4510 employee 25828 has exactly six Present marks (15–20 September) and 24 Absent cells on the printed dates. No payroll processed or approved and no existing attendance replaced outside corrections to this task's new Ponda cells.
 - [x] Deliver Canara_SBI_LT_Attendance_Review.xlsx with 360 extracted-row review results and explicit incomplete-verification notes; flag calendar-month Canara spreadsheet differences and inactive Rajasthan source sites without reopening them.
 
 ## CLI4096 regular employees
