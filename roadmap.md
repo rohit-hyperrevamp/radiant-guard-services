@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Single-line list action alignment — 21 October
+- [x] Remove the shared wrapping conflict, reserve intrinsic action-row width and keep Delete's tooltip wrapper from shrinking; contracts use contained horizontal scrolling rather than clipping.
+- [x] Review contract, employee setup, inventory, recruitment and management-list action groups; shared protection covers marked columns and legacy trailing icon groups without changing permissions or actions.
+- [x] Automatic compilation is clean and ten shared dropdown tests pass.
+- [ ] Verify signed-in live action alignment; blocked on publication and an authorized production session.
+
 ## Single-line scrolling list names — 21 October
 - [x] Add a shared overflow-only scrolling label with consistent typography, bounded width, off-screen suspension and reduced-motion support.
 - [x] Apply to shared long text and selection labels, employee/candidate, contract, organization/client, recruitment, inventory, cost-component and posting names without changing data or actions; numeric cells and status controls stay stationary.
