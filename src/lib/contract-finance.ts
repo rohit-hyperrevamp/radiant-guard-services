@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
+import { invoiceExtraDutyRate } from "@/lib/invoice-duty-rates";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -32,6 +33,7 @@ export type ResourceRate = {
   netRate: number;
   /** What the client is billed = gross + employer cost lines. */
   billRate: number;
+  extraDutyBillRate?: number | null;
 };
 
 export type UnitFinance = {
@@ -150,6 +152,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
       billRate: Math.round((grossRate + employerTotal) * 100) / 100,
+      extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : []),
       payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
       billingDayBase: r.billing_day_base_id ? billingBaseById.get(String(r.billing_day_base_id)) ?? null : null,
     };
@@ -189,6 +192,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
               ? Math.max(0, (monthlyPayroll - monthlyDeductions) / committed)
               : rates[0].netRate,
           billRate: committed > 0 ? monthlyContracted / committed : rates[0].billRate,
+          extraDutyBillRate: rates[0].extraDutyBillRate,
           payrollDayBase: rates[0].payrollDayBase,
           billingDayBase: rates[0].billingDayBase,
         }
