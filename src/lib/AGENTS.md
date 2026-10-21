@@ -17,3 +17,4 @@
 - Punch/location listeners refetch at most every 30s (never per-row streams).
 - Portal persistence is an explicit reference-list allowlist in session storage, owned by the root's real auth identity; never persist employee PII, permissions, financial results or signed links. Bounded freshness handles changes missed while closed.
 - Contract pay lines with `contractOverride: true` (set when edited on the contract: amount, %, or formula) are contract-owned — editor overlays, `hydrateFormulasFromMaster` and statutory ESI must not overwrite them; Reset clears the flag.
+- Invoice duty-rate exceptions use `invoice-duty-rates`; detail, print and exports price regular/ED quantities separately so totals reconcile without modifying payroll.
