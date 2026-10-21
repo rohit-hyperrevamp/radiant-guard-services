@@ -64,7 +64,8 @@ function trigger() {
   const frame = document.querySelector<HTMLElement>(".scrolling-text");
   const track = frame?.firstElementChild as HTMLElement;
   if (!frame || !track) throw new Error("scrolling-text not rendered");
-  setSize(frame, 100, 400); // 300px overflow
+  setSize(frame, 100, 100); // frame is 100px wide
+  setSize(track, 400, 400); // track is 400px wide → 300px overflow
   for (const { cb } of resizeCbs) cb();
   intersectCb?.([{ isIntersecting: true }]);
   for (const { cb } of resizeCbs) cb();
