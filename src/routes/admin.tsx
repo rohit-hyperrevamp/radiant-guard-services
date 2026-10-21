@@ -258,7 +258,16 @@ function AdminLayout() {
 
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsedState] = useState(false);
+  useEffect(() => {
+    if (window.localStorage.getItem("radiant.sidebar.collapsed") === "1") setCollapsedState(true);
+  }, []);
+  const setCollapsed = (fn: (v: boolean) => boolean) =>
+    setCollapsedState((v) => {
+      const next = fn(v);
+      window.localStorage.setItem("radiant.sidebar.collapsed", next ? "1" : "0");
+      return next;
+    });
   const [nativeShell, setNativeShell] = useState(false);
   const { theme, toggle: toggleTheme, mounted: themeMounted } = useTheme();
 
@@ -647,7 +656,7 @@ function AdminLayout() {
     });
 
   const sidebarWidth = collapsed ? "lg:w-[72px]" : "lg:w-[244px]";
-  const mainOffset = nativeShell ? "" : collapsed ? "lg:ml-24" : "lg:ml-[260px]";
+  const mainOffset = nativeShell ? "" : collapsed ? "lg:ml-[72px]" : "lg:ml-[244px]";
 
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
@@ -667,7 +676,7 @@ function AdminLayout() {
       {/* Desktop vertical sidebar — glass / iPadOS */}
       <aside
         className={cn(
-          "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_50px_-20px_rgba(0,0,0,0.65)] transition-[width] duration-300 lg:flex animate-slide-in-left",
+          "fixed inset-y-0 left-0 z-30 hidden flex-col rounded-none border-r border-white/10 bg-black text-white transition-[width] duration-300 lg:flex animate-slide-in-left",
           nativeShell && "lg:hidden",
           sidebarWidth,
         )}
@@ -898,7 +907,7 @@ function AdminLayout() {
       <main data-admin-scroll className={cn("relative z-10 min-h-0 min-w-0 flex-1 overflow-y-visible safe-x py-2 !pb-[calc(82px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
 
 
-        <div className="mx-auto min-w-0 max-w-[1500px]">
+        <div className="mx-auto min-w-0 max-w-none">
           <div
             key={pathname}
             className={cn(!pathname.startsWith("/admin/payroll/") && "page-enter")}
