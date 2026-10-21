@@ -206,7 +206,7 @@ function VehicleInventoryPage() {
 
 
       <div className="mobile-directory-toolbar mobile-glass-surface mb-3 flex flex-col gap-2 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search vehicles…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
@@ -234,7 +234,7 @@ function VehicleInventoryPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="directory-actions flex flex-wrap gap-2">
           <Button onClick={() => setAddOpen(true)} className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90">
             <Plus className="mr-1.5 h-4 w-4" />Add Vehicle
           </Button>

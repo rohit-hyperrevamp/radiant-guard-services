@@ -2565,3 +2565,19 @@ table[data-smart-list][data-smart-stacked="true"] { display: block !important; }
 }
 .directory-actions { align-items: center; flex-shrink: 0; }
 .directory-actions [data-slot="button"] { height: 40px; min-height: 40px; padding-inline: 16px; }
+
+/* A clickable record/summary is a panel, not a command capsule. */
+[data-panel="true"] {
+  border-radius: var(--radius) !important;
+  aspect-ratio: auto !important;
+}
+.page-header-actions [data-slot="button"][data-icon-only="false"],
+.mobile-directory-toolbar [data-slot="button"][data-icon-only="false"] {
+  width: max-content !important;
+  min-width: max-content !important;
+  max-width: none;
+  padding-inline: 16px !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal;
+}
+.mobile-directory-toolbar { flex-wrap: wrap; }

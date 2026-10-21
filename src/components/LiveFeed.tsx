@@ -115,6 +115,7 @@ export function LiveFeed({ className }: { className?: string }) {
           {/* Featured latest notification — larger, richer */}
           <button
             type="button"
+            data-panel="true"
             onClick={() => handleOpen(featured)}
             className={cn(
               "group relative m-3 mb-2 flex items-start gap-3 rounded-2xl border p-3 text-left transition-all",
@@ -127,7 +128,7 @@ export function LiveFeed({ className }: { className?: string }) {
               className={cn(
                 "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
                 !featured.readAt
-                  ? "bg-white/25 text-accent-foreground"
+                  ? "bg-accent-foreground/25 text-accent-foreground"
                   : "bg-secondary text-muted-foreground ring-1 ring-inset ring-border",
               )}
             >
@@ -178,6 +179,7 @@ export function LiveFeed({ className }: { className?: string }) {
                     <li key={n.id}>
                       <button
                         type="button"
+                        data-panel="true"
                         onClick={() => handleOpen(n)}
                         className={cn(
                           "group flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-card",

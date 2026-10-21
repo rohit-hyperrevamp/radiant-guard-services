@@ -78,7 +78,7 @@ export function PageHeader({
             </div>
           </div>
           {actions && (
-            <div className="scrollbar-hide -mx-1 flex w-[calc(100%+0.5rem)] snap-x items-center gap-1.5 overflow-x-auto px-1 pb-0.5 self-start [&>*]:h-9 [&>*]:shrink-0 [&>*]:snap-start sm:mx-0 sm:w-auto sm:justify-end sm:overflow-visible sm:px-0 sm:pb-0 sm:[&>*]:h-9">
+            <div className="page-header-actions flex min-w-0 flex-wrap items-center gap-2 self-start sm:justify-end [&>*]:h-9 [&>*]:shrink-0">
               {actions}
             </div>
           )}
