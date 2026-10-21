@@ -18,8 +18,8 @@ describe("Extra Duty uses only the contract's selected components", () => {
       { name: "DA", allowanceId: "d", amount: 3000, includeInOt: true },
       { name: "HRA", allowanceId: "h", amount: 2000, includeInOt: true },
     ] };
-    const r = withContractEdRule(emp, contract)!;
-    expect(r.components.map((c) => c.includeInOt)).toEqual([true, true, false]);
+    const r = withContractEdRule(emp, contract);
+    expect(r?.components.map((c) => c.includeInOt)).toEqual([true, true, false]);
   });
 });
 
@@ -29,6 +29,23 @@ const ed = (components: object[]) =>
     .components.find((c) => c.name === "Extra Duty")?.amount ?? 0;
 
 describe("Extra Duty on selected components", () => {
+  it("Poonawalla Gujarat pays (Basic 12,324 + DA 1,573) / 26 × 2 per ED day, even with no Present days", () => {
+    const wages = computeWages(
+      { pDays: 0, otHours: 16, otDays: 2, phDays: 0, otherPaidDays: 0, tDays: 2 },
+      {
+        components: [
+          { name: "Basic", amount: 12324, includeInOt: true },
+          { name: "DA", amount: 1573, includeInOt: true },
+          { name: "HRA", amount: 695, includeInOt: false },
+        ],
+        deductions: [], employerContributions: [],
+        otBasis: "components", otMultiplier: 2,
+        payrollDayBase: { method: "fixed_days", fixedDays: 26 },
+      } as never,
+      31,
+    );
+    expect(wages.components.find((c) => c.name === "Extra Duty")?.amount).toBe(2138);
+  });
   it("Basic 10,000 + DA 3,000 ticked, HRA unticked: 13,000 / 26 × 2 days = 1,000", () => {
     expect(ed([
       { name: "Basic", amount: 10000, calcType: "fixed", includeInOt: true },
