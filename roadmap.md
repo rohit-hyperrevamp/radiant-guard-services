@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Single-line list action alignment — 21 October
+- [ ] Remove the shared wrapping conflict and reserve enough space for every row action, including Delete.
+- [ ] Review list action cells across other pages and apply consistent one-line alignment without changing permissions or actions.
+- [ ] Check compilation and existing relevant tests; signed-in live visual verification waits on publication and an authorized production session.
+
 ## Single-line scrolling list names — 21 October
 - [x] Add a shared overflow-only scrolling label with consistent typography, bounded width, off-screen suspension and reduced-motion support.
 - [x] Apply to shared long text and selection labels, employee/candidate, contract, organization/client, recruitment, inventory, cost-component and posting names without changing data or actions; numeric cells and status controls stay stationary.

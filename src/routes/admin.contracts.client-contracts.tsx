@@ -3053,7 +3053,7 @@ function ClientContractsPage() {
       </div>
 
       <div className="ios-table-card overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="overflow-x-clip">
+        <div className="min-w-0 overflow-x-auto overscroll-x-contain">
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>

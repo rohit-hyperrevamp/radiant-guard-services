@@ -1183,10 +1183,11 @@
   .ios-table [data-col="employee-actions"] > div {
     display: inline-flex !important;
     align-items: center;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
+    justify-content: flex-start;
+    flex-wrap: nowrap !important;
     gap: 6px;
-    width: 100%;
+    width: max-content;
+    max-width: none !important;
   }
   /* Nested wrappers inside the row collapse so siblings share the same gap. */
   .ios-table [data-col="actions"] > div > div,
@@ -2385,9 +2386,29 @@ td .scrolling-text { width: 12rem; max-width: 100%; }
 .ios-table tbody td {
   overflow-wrap: anywhere;
 }
-.ios-table tbody td :where(.inline-flex) {
+.ios-table tbody td:not([data-col="actions"]):not([data-col="employee-actions"]) :where(.inline-flex) {
   max-width: 100%;
   flex-wrap: wrap;
+}
+
+/* Reserve the full action row before distributing space to list labels. */
+table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) {
+  white-space: nowrap !important;
+  vertical-align: middle;
+  max-width: none;
+}
+table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) > :is(div, span) {
+  display: inline-flex !important;
+  width: max-content;
+  max-width: none !important;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap !important;
+  gap: 6px;
+}
+table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(button, a, [data-slot="tooltip-trigger"]) {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* One control language inside every list toolbar: same height, radius and
