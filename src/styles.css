@@ -2644,3 +2644,57 @@ li[data-panel="true"], [data-panel="true"] [data-panel="true"] {
 :is(button, a, [role="button"]):not([data-icon-only="true"]):has(> span > span + span) {
   border-radius: var(--radius) !important;
 }
+
+/* Signature action palette: only the dashboard tile hues (violet, blue,
+   amber) plus ink. Actions are white circles with a coloured symbol. */
+:root {
+  --sig-violet: oklch(0.56 0.21 295);
+  --sig-blue: oklch(0.56 0.19 255);
+  --sig-amber: oklch(0.66 0.15 70);
+  --action-view: var(--sig-blue);
+  --action-edit: var(--sig-amber);
+  --action-copy: var(--sig-violet);
+  --action-delete: var(--foreground);
+  --action-confirm: var(--sig-blue);
+  --action-download: var(--sig-violet);
+  --action-upload: var(--sig-blue);
+  --action-send: var(--sig-violet);
+  --action-history: var(--sig-amber);
+  --action-add: var(--sig-blue);
+  --action-warn: var(--sig-amber);
+  --action-settings: var(--foreground);
+}
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-network, .lucide-workflow, .lucide-git-fork, .lucide-building, .lucide-building-2, .lucide-sitemap)) { --row-action: var(--sig-violet); }
+:is(td, .list-row, [data-col="actions"], [data-col="employee-actions"], .directory-actions, .row-actions) :is(button, a)[data-slot="button"][data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([role="combobox"]):not(.smart-details-button):not([data-no-pill]),
+[data-smart-list] tbody td :is(button, a)[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([role="combobox"]),
+.list-row :is(button, a)[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]),
+[data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]) {
+  background: var(--card) !important;
+  color: var(--row-action, var(--action-view)) !important;
+  border: 1px solid color-mix(in oklab, var(--row-action, var(--action-view)) 28%, var(--border)) !important;
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 8%, transparent) !important;
+  opacity: 1 !important;
+}
+:is(td, .list-row, [data-col="actions"], [data-col="employee-actions"], .directory-actions, .row-actions) :is(button, a)[data-slot="button"][data-icon-only="true"] svg,
+[data-smart-list] td :is(button, a)[data-icon-only="true"] svg,
+.list-row :is(button, a)[data-icon-only="true"] svg,
+[data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]) svg {
+  color: var(--row-action, var(--action-view)) !important;
+}
+:is(td, .list-row, [data-col="actions"], .directory-actions) :is(button, a)[data-slot="button"][data-icon-only="true"]:hover,
+[data-slot="button"][data-size="icon"]:hover {
+  background: color-mix(in oklab, var(--row-action, var(--action-view)) 10%, var(--card)) !important;
+  filter: none;
+}
+:is(button, a)[data-icon-only="true"]:disabled, :is(button, a)[data-icon-only="true"][aria-disabled="true"] { opacity: 0.45 !important; }
+
+/* Search, filters and page actions share one line on wider screens. */
+@media (min-width: 1024px) {
+  .mobile-directory-toolbar { flex-wrap: nowrap !important; }
+  .mobile-directory-toolbar > * { flex-shrink: 0; }
+  .mobile-directory-toolbar > .relative, .mobile-directory-toolbar > :has(input[type="search"], input[placeholder^="Search"]) { flex: 1 1 260px; min-width: 200px; flex-shrink: 1; }
+}
+@media (min-width: 1024px) {
+  .mobile-directory-toolbar > :first-child { flex: 1 1 auto !important; width: auto !important; min-width: 0; flex-shrink: 1 !important; }
+  .mobile-directory-toolbar > :last-child:not(:first-child) { flex-wrap: nowrap; }
+}
