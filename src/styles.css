@@ -2466,3 +2466,16 @@ table tbody td :is(button, a) > svg:is(.lucide-pencil, .lucide-pen, .lucide-squa
 table tbody td :is(button, a) > svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files) { color: oklch(0.55 0.18 300) !important; }
 table tbody td :is(button, a, span) svg:is(.lucide-trash, .lucide-trash-2) { color: oklch(0.58 0.21 25) !important; }
 table tbody td :is(button, a) > svg:is(.lucide-download, .lucide-check, .lucide-circle-check) { color: oklch(0.58 0.15 155) !important; }
+
+/* Consistent shape: every button is a pill; icon-only buttons and page numbers are circles. */
+:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-slot="popover-trigger"][aria-haspopup="dialog"]):not([data-no-pill]) {
+  border-radius: 9999px !important;
+}
+:where(button, a, [role="button"]):has(> svg:only-child):not([role="switch"]):not([role="checkbox"]):not([data-no-pill]),
+nav[aria-label="pagination"] :is(a, button),
+[data-slot="pagination-link"] {
+  border-radius: 9999px !important;
+  aspect-ratio: 1 / 1;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
