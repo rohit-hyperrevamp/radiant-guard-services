@@ -2597,3 +2597,42 @@ table[data-smart-list][data-smart-stacked="true"] { display: block !important; }
   overflow-wrap: normal;
 }
 .mobile-directory-toolbar { flex-wrap: wrap; }
+
+/* Card-like clickable surfaces (they hold stacked text blocks) are always
+   rectangles with the shared modest corner — never pills, ovals or circles. */
+:is(button, a, [role="button"]):not([data-icon-only="true"]):not([role="switch"]):not([role="checkbox"]):has(> :is(div, p, h2, h3, h4, ul, ol, dl)),
+:is(button, a, [role="button"]).dashboard-summary-tile,
+li[data-panel="true"], [data-panel="true"] [data-panel="true"] {
+  border-radius: var(--radius) !important;
+  aspect-ratio: auto !important;
+}
+
+/* Row actions: every icon-only action in a list or action group is a filled
+   circle in its own colour, with a white symbol. */
+:root {
+  --action-warn: oklch(0.58 0.15 50);
+  --action-settings: oklch(0.45 0.03 260);
+  --action-upload: oklch(0.50 0.13 230);
+}
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-eye, .lucide-external-link, .lucide-file-text, .lucide-arrow-up-right, .lucide-maximize-2)) { --row-action: var(--action-view); }
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-upload, .lucide-file-up, .lucide-cloud-upload)) { --row-action: var(--action-upload); }
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-refresh-cw, .lucide-undo, .lucide-undo-2, .lucide-rotate-cw)) { --row-action: var(--action-history); }
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-user-check, .lucide-shield-check, .lucide-badge-check, .lucide-thumbs-up)) { --row-action: var(--action-confirm); }
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-archive, .lucide-archive-restore, .lucide-lock, .lucide-unlock, .lucide-lock-open, .lucide-power, .lucide-ban, .lucide-user-x, .lucide-pause, .lucide-play)) { --row-action: var(--action-warn); }
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-settings, .lucide-settings-2, .lucide-user-cog, .lucide-key, .lucide-key-round, .lucide-ellipsis, .lucide-ellipsis-vertical, .lucide-more-horizontal, .lucide-more-vertical)) { --row-action: var(--action-settings); }
+:is(button, a)[data-icon-only="true"]:has(svg:is(.lucide-printer, .lucide-link, .lucide-link-2)) { --row-action: var(--action-download); }
+
+:is(td, .list-row, [data-col="actions"], [data-col="employee-actions"], .directory-actions, .row-actions) :is(button, a)[data-slot="button"][data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([role="combobox"]):not(.smart-details-button):not([data-no-pill]) {
+  background: var(--row-action, var(--action-view)) !important;
+  color: var(--action-icon) !important;
+  border-color: transparent !important;
+  border-radius: 9999px !important;
+  width: 30px !important; height: 30px !important; min-width: 30px; min-height: 30px;
+  padding: 0 !important;
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--row-action, var(--action-view)) 35%, transparent);
+}
+:is(td, .list-row, [data-col="actions"], [data-col="employee-actions"], .directory-actions, .row-actions) :is(button, a)[data-slot="button"][data-icon-only="true"]:not(.smart-details-button) svg,
+[data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]) svg {
+  color: var(--action-icon) !important;
+}
+:is(td, .list-row, [data-col="actions"], .directory-actions) :is(button, a)[data-slot="button"][data-icon-only="true"]:hover { filter: brightness(0.9); }
