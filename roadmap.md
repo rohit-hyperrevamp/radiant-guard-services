@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## BFSL uploaded September attendance — 21 October
+- [x] Visually review all 40 pages and independently check clear daily grids against production identities; retain unreadable IDs, compound marks, source-year conflicts and unallocated Extra Duty as pending, not guessed.
+- [x] Save 1,025 confirmed daily cells for 36 employees across 25 BFSL sites with before-change backups; retain existing line identities, put confirmed new secondary-site duties into Extra Duty, and convert clock-hour ED using the contracted eight-hour shift.
+- [x] Read back all 1,025 cells with zero mismatches after restoring rule-original values for comparison; no dates outside 21 August–20 September changed, no processed payroll affected, and no regular line exceeds its 27-day cap. Deliver BFSL_September_2026_Attendance_Verification.csv with source-row exceptions; no full-sheet match or new approval claimed.
+- [ ] Finish BFSL unresolved cells: user confirmation needed for conflicting employee/client IDs (Ranchi, Vadodara, Lucknow, Gorakhpur, Bhubaneswar and Mahesh at Giga Space), September 2025 heading, unclear compound holidays, secondary-site off-days, and conflicting/unallocated ED summaries; clearer daily source evidence needed for blurred rows. Blank source spans are not attendance or permission to delete prior records.
+
 ## Canara, SBI and L&T uploaded attendance — 21 October
 - [x] Check requested Canara/SBI/L&T approvals: fresh production read shows all 128 existing September-overlapping sheets already approved (30 Canara, 13 SBI, 85 L&T). No additional approvals issued: new/partial sheets still require full-period verification; Ponda also contains a second employee's six existing entries beyond the 30 cells checked.
 - [x] Extend all 38 identified expired/closed uploaded-sheet clients and latest contracts to 31 December 2026; fresh production readback confirms active status and dates, with other contract terms unchanged.
