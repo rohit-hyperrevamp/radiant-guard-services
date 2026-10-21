@@ -12,6 +12,13 @@ export const ScrollingText = memo(function ScrollingText({
     const element = frame.current;
     const track = element?.firstElementChild;
     if (!element || !(track instanceof HTMLElement)) return;
+    if (typeof window.matchMedia !== "function" || typeof ResizeObserver === "undefined"
+      || typeof IntersectionObserver === "undefined" || typeof track.animate !== "function") {
+      element.dataset.overflow = "true";
+      element.dataset.static = "true";
+      return;
+    }
+    delete element.dataset.static;
     let visible = false;
     let animation: Animation | undefined;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
