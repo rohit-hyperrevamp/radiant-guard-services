@@ -846,7 +846,7 @@ function AdminLayout() {
             variant="ghost"
             onClick={() => setCollapsed((v) => !v)}
             className={cn(
-              "mx-auto mt-2 flex h-8 w-fit min-h-8 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+              "mx-auto mt-2 flex h-8 w-fit min-h-8 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold text-dock-foreground/70 hover:bg-dock-foreground/10 hover:text-dock-foreground",
               collapsed && "mt-1.5 h-8 w-8 min-w-8 p-0",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
