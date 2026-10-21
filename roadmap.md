@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI4096 manual attendance saves — 21 October
+- [x] Reproduced a CLI4096 Absent correction reverting to its old Present/ED mark; a before-update trigger now clears obsolete original-rule values on explicit edits, retaining metadata during internal recalculation.
+- [x] Applied production migration; rollback-only regressions confirm Absent and cleared ED persist through repeated rules, and the Present-day cap stays enforced. No actual attendance marks altered by tests.
+- [ ] Verify the user's signed-in edit flow on the live site; blocked on an authorized production session. Database fix is already active and does not require publication.
+
 ## CLI4096 separate Extra Duty invoice rate — 21 October
 - [x] Traced invoice's single-rate multiplication of all duties; regular fixed-27 rate unchanged.
 - [x] Apply (Basic + DA) / 26 × 2 to CLI4096 invoice Extra Duty only, with separate regular/ED lines in detail/print/Tally and consistent MIS/charter billing.
