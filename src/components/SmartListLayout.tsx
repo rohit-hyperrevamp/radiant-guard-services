@@ -40,25 +40,34 @@ export function SmartListLayout() {
         if (!observed.has(shell)) { observed.add(shell); resize.observe(shell); }
         const headings = Array.from(header.cells).map((cell) => cell.textContent?.trim() || "Details");
         if (Array.from(header.cells).some((cell) => cell.colSpan > 1)) return;
+        // Only record lists with row actions participate. Analytics matrices
+        // and plain report tables must keep their original presentation.
+        if (!headings.some((label) => /actions?/i.test(label)) && !body.querySelector('[data-col="actions"], [data-col="employee-actions"]')) return;
         const width = shell.clientWidth;
         if (!width) return;
         table.setAttribute("data-smart-list", "true");
         shell.setAttribute("data-smart-list-shell", "true");
         const visible = new Set<number>([0, 1]);
         const bodyRows = Array.from(body.rows).filter((row) => row.cells.length === headings.length && row.cells[0]?.colSpan === 1);
+        const actionWidth = Math.max(110, ...bodyRows.map((row) => {
+          const cell = Array.from(row.cells).find((cell, index) => /actions?/i.test(headings[index]) || /actions/.test(cell.dataset.col ?? ""));
+          return cell ? cell.querySelectorAll("button, a").length * 36 + 20 : 0;
+        }));
+        table.style.setProperty("--smart-action-width", `${actionWidth}px`);
         // Status, key totals and every actionable cell stay in the main row.
         headings.forEach((label, index) => {
           if (/status|active|actions?|amount|total|net pay/i.test(label) || bodyRows.some((row) => row.cells[index]?.querySelector('button, a, input, [role="switch"], [role="checkbox"]'))) visible.add(index);
         });
-        const budget = Math.max(3, Math.min(7, Math.floor(width / 155)));
+        const budget = Math.max(3, Math.min(7, Math.floor((width - actionWidth) / 150) + 1));
         headings.forEach((_, index) => { if (visible.size < budget) visible.add(index); });
         const hidden = headings.map((_, index) => index).filter((index) => !visible.has(index));
-        table.setAttribute("data-smart-stacked", String(width < visible.size * 115));
+        table.setAttribute("data-smart-stacked", String(width < (visible.size - 1) * 115 + actionWidth));
         Array.from(header.cells).forEach((cell, index) => cell.setAttribute("data-smart-secondary", String(hidden.includes(index))));
         bodyRows.forEach((row) => {
           Array.from(row.cells).forEach((cell, index) => {
             cell.setAttribute("data-smart-secondary", String(hidden.includes(index)));
             if (!cell.dataset.label) cell.dataset.label = headings[index];
+            if (/actions?/i.test(headings[index]) && !cell.dataset.col) cell.dataset.col = "actions";
           });
           const primary = row.cells[1] ?? row.cells[0];
           if (!primary) return;
