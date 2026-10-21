@@ -54,6 +54,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
+import { SmartListLayout } from "@/components/SmartListLayout";
 import brandLogo from "@/assets/radiant-logo-v2.png";
 import { MobileBottomNav, type BottomNavItem, type BottomNavMoreItem } from "@/components/MobileBottomNav";
 import { useT } from "@/lib/i18n";
@@ -94,6 +95,14 @@ export const Route = createFileRoute("/admin")({
   // The signed-in shell depends on the browser session, so server HTML can only
   // ever be a throwaway guess that React then has to discard and re-render.
   ssr: false,
+  head: () => ({ meta: [
+    { title: "Operations Console | Radiant Guard Services" },
+    { name: "description", content: "Manage Radiant operations, employees, clients and contracts." },
+    { property: "og:title", content: "Operations Console | Radiant Guard Services" },
+    { property: "og:description", content: "Manage Radiant operations, employees, clients and contracts." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: AdminLayout,
 });
 
@@ -897,6 +906,7 @@ function AdminLayout() {
               <RoutePermissionGuard>
                 <SaveConfirmGuard />
                 <MyClientsBanner />
+                <SmartListLayout key={pathname} />
                 <Outlet />
               </RoutePermissionGuard>
             ) : (

@@ -544,11 +544,8 @@ function UnitManagerPage() {
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3">Client ID</th>
-                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Client</th>
                 <th className="px-5 py-3">Location</th>
-                <th className="px-5 py-3">State</th>
-                <th className="px-5 py-3">City</th>
-                <th className="px-5 py-3">Branch</th>
                 <th className="px-5 py-3">Organisation</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
@@ -561,7 +558,7 @@ function UnitManagerPage() {
                   <td data-label="Name" className="px-5 py-3 font-semibold text-foreground"><ScrollingText text={u.name} /></td>
                   <td data-label="Location" className="px-5 py-3 text-muted-foreground" data-wrap="true">
                     <div className="flex min-w-0 items-center gap-2">
-                      <ScrollingText text={u.location} className="flex-1" />
+                      <ScrollingText text={[u.cityLabel, u.stateLabel].filter(Boolean).join(" · ")} className="flex-1" />
                       {(u.latitude != null && u.longitude != null) && (
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}`}
@@ -575,11 +572,12 @@ function UnitManagerPage() {
                         </a>
                       )}
                     </div>
+                    <ScrollingText text={u.location} className="text-xs text-muted-foreground" />
                   </td>
-                  <td data-label="State" className="px-5 py-3 text-foreground"><ScrollingText text={u.stateLabel} /></td>
-                  <td data-label="City" className="px-5 py-3 text-foreground"><ScrollingText text={u.cityLabel} /></td>
-                  <td data-label="Branch" className="px-5 py-3 text-foreground"><ScrollingText text={u.branchLabel} /></td>
-                  <td data-label="Organization" className="px-5 py-3 text-foreground"><ScrollingText text={u.customerLabel} /></td>
+                  <td data-label="Organization" className="px-5 py-3 text-foreground">
+                    <ScrollingText text={u.customerLabel} />
+                    <ScrollingText text={u.branchLabel} className="text-xs text-muted-foreground" />
+                  </td>
                   <td data-label="Status" className="px-5 py-3">
                     <StatusBadge active={u.status === "active"} />
                   </td>
@@ -620,7 +618,7 @@ function UnitManagerPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     <Warehouse className="mx-auto mb-2 h-6 w-6 opacity-50" />
                     {units.length === 0
                       ? "No clients yet. Add your first client to get started."

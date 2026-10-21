@@ -1,3 +1,4 @@
 - List avatars render only `candidates.photo_thumb_url` (128px) via `EmployeeAvatar`; a changed `photo_url` clears the thumb (trigger) and the list regenerates it — full photos are 1–4 MB and froze list scrolling.
 - Use ScrollingText for bounded one-line list names; it measures overflow, suspends off-screen animation, preserves accessible text and respects reduced motion so long labels cannot enlarge rows.
 - Mark list action cells with `data-col="actions"` and keep controls in one row; shared CSS reserves their intrinsic width so long labels cannot push Delete below other actions.
+- SmartListLayout progressively discloses secondary directory-table fields in a row dialog while retaining action cells; exclude registers, calendars, editable matrices and forms so calculations remain untouched.

@@ -86,7 +86,8 @@ export function SmartListLayout() {
     const observer = new MutationObserver((records) => {
       if (records.some((record) => {
         const element = record.target instanceof Element ? record.target : record.target.parentElement;
-        return !element?.closest("[data-smart-details-host]");
+        if (element?.closest("[data-smart-details-host]")) return false;
+        return Boolean(element?.closest("table") || Array.from(record.addedNodes).some((node) => node instanceof Element && (node.matches("table") || node.querySelector("table"))));
       })) schedule();
     });
     observer.observe(root, { childList: true, subtree: true, characterData: true });
