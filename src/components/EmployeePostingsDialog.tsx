@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity-log";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { ScrollingText } from "@/components/ScrollingText";
 import {
   Dialog,
   DialogContent,
@@ -341,7 +342,7 @@ export function EmployeePostingsDialog({ candidateId, open, onOpenChange }: Prop
               {postings.map((p, i) => (
                 <div key={p.id ?? p.unit_id} className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
                   <span className="w-20 text-xs font-medium text-muted-foreground">{postingLabel(i + offset)}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm">{p.unit_label}</span>
+                  <ScrollingText text={p.unit_label} className="flex-1 text-sm" />
                   <Select
                     value={p.designation_id ?? ""}
                     onValueChange={(v) =>

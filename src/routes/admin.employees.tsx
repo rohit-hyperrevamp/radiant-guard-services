@@ -7,6 +7,7 @@ import { RecordViewButton } from "@/components/RecordViewButton";
 import { useServerFn } from "@tanstack/react-start";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { EmployeeAvatar } from "@/components/EmployeeAvatar";
+import { ScrollingText } from "@/components/ScrollingText";
 import { NOMANS_UNIT_ID as NOMANS_UNIT_ID_CONST } from "@/lib/business-constants";
 import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
 import {
@@ -1461,9 +1462,7 @@ function InlinePicker({
           className="h-9 min-w-0 flex-1 justify-start rounded-xl border-border/60 bg-card px-2.5 text-left text-xs font-normal sm:w-[150px] sm:flex-none"
           title={current?.label ?? placeholder}
         >
-          <span className={cn("truncate", !current && "text-muted-foreground")}>
-            {current?.label ?? placeholder}
-          </span>
+          <ScrollingText text={current?.label ?? placeholder} className={cn("flex-1", !current && "text-muted-foreground")} />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(268px,calc(100vw-1rem))] p-0">
@@ -4139,12 +4138,7 @@ function EmployeesPage() {
                   />
 
                   <div className="min-w-0">
-                    <div
-                      style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                      className="font-semibold leading-tight text-foreground group-hover:text-amber-900 dark:group-hover:text-amber-300"
-                    >
-                      {c.full_name || "—"}
-                    </div>
+                    <ScrollingText text={c.full_name} className="font-semibold text-foreground" />
                   </div>
                 </div>
               </HoverCardTrigger>
@@ -4181,9 +4175,7 @@ function EmployeesPage() {
           )}
           {mode === "employee" && columnsVisible.email && (
             <td className="hidden max-w-[180px] px-2.5 py-2.5 text-sm text-muted-foreground md:table-cell">
-              <span className="block truncate" title={c.email ?? ""}>
-                {c.email || "—"}
-              </span>
+              <ScrollingText text={c.email} />
             </td>
           )}
           {(mode === "candidate" || columnsVisible.unit) && (
@@ -4229,12 +4221,7 @@ function EmployeesPage() {
                   }
                 />
               ) : (
-                <span
-                  className="block max-w-[130px] truncate text-sm text-muted-foreground"
-                  title={desig?.name ?? ""}
-                >
-                  {desig?.name ?? "—"}
-                </span>
+                <ScrollingText text={desig?.name} className="max-w-[130px] text-sm text-muted-foreground" />
               )}
             </td>
           )}
@@ -4249,12 +4236,7 @@ function EmployeesPage() {
                   onChange={(id) => assignDepartmentMut.mutate({ candidate: c, departmentId: id })}
                 />
               ) : (
-                <span
-                  className="block max-w-[130px] truncate text-sm text-muted-foreground"
-                  title={deptName}
-                >
-                  {deptName || "—"}
-                </span>
+                <ScrollingText text={deptName} className="max-w-[130px] text-sm text-muted-foreground" />
               )}
             </td>
           )}
@@ -4718,9 +4700,9 @@ function EmployeesPage() {
                 />
 
                 <div className="min-w-0">
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <h3 className="max-w-full truncate text-sm font-semibold leading-tight text-foreground">
-                      {c.full_name || "—"}
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <h3 className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+                      <ScrollingText text={c.full_name} />
                     </h3>
                     <span className="inline-flex shrink-0 items-center rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
                       {code}
@@ -4728,16 +4710,14 @@ function EmployeesPage() {
                   </div>
                   <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                     <span className="truncate">{c.mobile || "No mobile"}</span>
-                    <span className="truncate text-right">{roleName}</span>
+                    <ScrollingText text={roleName} />
                     <span
                       className="truncate font-mono"
                       title={unit ? `${unit.name}${unit.customer_name ? ` · ${unit.customer_name}` : ""}` : ""}
                     >
                       {unit?.code || "No client"}
                     </span>
-                    <span className="truncate text-right" title={desig?.name ?? ""}>
-                      {desig?.name || "No designation"}
-                    </span>
+                    <ScrollingText text={desig?.name || "No designation"} />
                   </div>
                 </div>
 

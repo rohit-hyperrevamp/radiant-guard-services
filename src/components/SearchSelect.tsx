@@ -13,6 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useDropdownSearch } from "@/components/dropdown-search";
+import { ScrollingText } from "@/components/ScrollingText";
 
 export type SearchSelectOption = {
   value: string;
@@ -77,9 +78,7 @@ export function SearchSelect({
             className,
           )}
         >
-          <span className={cn("truncate text-left", !selected && "text-muted-foreground")}>
-            {selected ? selected.label : placeholder}
-          </span>
+          <ScrollingText text={selected ? selected.label : placeholder} className={cn("flex-1 text-left", !selected && "text-muted-foreground")} />
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -109,9 +108,9 @@ export function SearchSelect({
                   }}
                 >
                   <Check className={cn("mr-2 h-4 w-4", value === o.value ? "opacity-100" : "opacity-0")} />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm">{o.label}</span>
-                    {o.hint && <span className="truncate text-[11px] text-muted-foreground">{o.hint}</span>}
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <ScrollingText text={o.label} className="text-sm" />
+                    {o.hint && <ScrollingText text={o.hint} className="text-[11px] text-muted-foreground" />}
                   </div>
                 </CommandItem>
               ))}

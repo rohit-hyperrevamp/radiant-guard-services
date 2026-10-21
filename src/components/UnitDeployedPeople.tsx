@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, Shield, UserCog, Users } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollingText } from "@/components/ScrollingText";
 import {
   resolveFieldOfficersForUnit,
   resolveGuardsForUnit,
@@ -106,7 +107,7 @@ function NonBillableHierarchy({ unitId, className = "" }: { unitId: string; clas
                 const mgr = p.reports_to ? nameById.get(p.reports_to) : "";
                 return (
                   <li key={p.id} className="flex flex-wrap items-center gap-x-1.5 text-[11px]">
-                    <span className="font-semibold text-foreground">{p.full_name}</span>
+                    <ScrollingText text={p.full_name} className="flex-1 font-semibold text-foreground" />
                     <span className="font-mono text-[10px] text-muted-foreground">
                       {p.employee_code || p.candidate_code || ""}
                     </span>
@@ -189,7 +190,7 @@ export function UnitDeployedPeople({
           <ul className="ml-4 space-y-0.5">
             {fms.map(({ fm }) => (
               <li key={fm.id} className="flex items-center gap-1.5 text-[11px]">
-                <span className="text-foreground">{fm.full_name}</span>
+                <ScrollingText text={fm.full_name} className="flex-1 text-foreground" />
                 <span className="font-mono text-[10px] text-muted-foreground">{fm.employee_code}</span>
               </li>
             ))}
@@ -208,7 +209,7 @@ export function UnitDeployedPeople({
               const mgr = employees.find((e) => e.id === g.reports_to);
               return (
                 <li key={g.id} className="flex items-center gap-1.5 text-[11px]">
-                  <span className="text-foreground">{g.full_name}</span>
+                  <ScrollingText text={g.full_name} className="flex-1 text-foreground" />
                   <span className="font-mono text-[10px] text-muted-foreground">{g.employee_code}</span>
                   {mgr && (
                     <span className="text-[10px] text-muted-foreground">→ {mgr.full_name}</span>
