@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnlineUserIds } from "@/lib/online-presence";
 
@@ -137,14 +138,17 @@ function LiveStaffPage() {
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {tiles.map((t) => (
-          <button
+          <Button
+            data-panel="true"
+            variant="outline"
+            aria-pressed={filter === t.key}
             key={t.key}
             onClick={() => { setFilter(t.key); setPage(0); }}
-            className={`rounded-xl border bg-card p-3 text-left transition-colors ${filter === t.key ? "border-accent" : "border-border hover:border-accent/40"}`}
+            className={`h-auto flex-col items-start gap-1 border bg-card p-3 text-left transition-colors ${filter === t.key ? "border-accent" : "border-border hover:border-accent/40"}`}
           >
             <div className="text-xs text-muted-foreground">{t.label}</div>
             <div className={`font-display text-2xl font-semibold ${t.tone}`}>{t.value}</div>
-          </button>
+          </Button>
         ))}
       </div>
 

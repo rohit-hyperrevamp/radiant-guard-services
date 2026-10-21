@@ -63,6 +63,7 @@ export function TasksSummaryTile({ summary }: { summary: { mine: Sum; created: S
   ];
   return (
     <Link
+      data-panel="true"
       to="/admin/tasks"
       search={{} as never}
       className={`dashboard-summary-tile task-summary-tile group relative flex h-[124px] min-w-0 flex-col rounded-2xl border border-border/40 ${ACCENT_TILE_BG.violet} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}

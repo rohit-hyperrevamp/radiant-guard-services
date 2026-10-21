@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -1086,6 +1086,7 @@ export function FinanceCharter({
     : allStatusQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
+  const recordsRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -1113,6 +1114,13 @@ export function FinanceCharter({
         />
         <CharterTile
           label={registerLabel}
+          action={{
+            label: mode === "invoice" ? "View invoices" : "View payroll",
+            onClick: () => {
+              recordsRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+              recordsRef.current?.focus({ preventScroll: true });
+            },
+          }}
           sub="all units, by stage"
           countTo={registers.total}
           icon={mode === "invoice" ? Receipt : Wallet}
@@ -1331,7 +1339,7 @@ export function FinanceCharter({
           No units match this search.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div ref={recordsRef} tabIndex={-1} aria-label={mode === "invoice" ? "Invoice records" : "Payroll records"} className="space-y-2 scroll-mt-20 outline-none">
           {rows.map((r) => {
             const isOpen = !!expanded[r.unit.id];
             if (mode === "payroll") {
