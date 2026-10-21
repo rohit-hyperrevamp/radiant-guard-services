@@ -2461,17 +2461,6 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
 .ios-table thead th { white-space: nowrap; overflow-wrap: normal; }
 table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):not(:has(svg:only-child)) { white-space: nowrap !important; }
 .ios-table [data-col="approval"] { white-space: nowrap; }
-table tbody td :is(button, a):has(> svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search)):not(:has(> span)) { background: oklch(0.55 0.17 250) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
-table tbody td :is(button, a):has(> svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
-table tbody td :is(button, a):has(> svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit)):not(:has(> span)) { background: oklch(0.66 0.15 65) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
-table tbody td :is(button, a):has(> svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
-table tbody td :is(button, a):has(> svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)):not(:has(> span)) { background: oklch(0.55 0.18 300) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
-table tbody td :is(button, a):has(> svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
-table tbody td :is(button, a):has(svg:is(.lucide-trash, .lucide-trash-2)):not(:has(> span:not(:has(svg)))) { background: oklch(0.58 0.21 25) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
-table tbody td :is(button, a) svg:is(.lucide-trash, .lucide-trash-2) { color: var(--primary-foreground) !important; }
-table tbody td :is(button, a):has(> svg:is(.lucide-download, .lucide-check, .lucide-circle-check)):not(:has(> span)) { background: oklch(0.58 0.15 155) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
-table tbody td :is(button, a):has(> svg:is(.lucide-download, .lucide-check, .lucide-circle-check)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
-
 /* Consistent shape: every button is a pill; icon-only buttons and page numbers are circles. */
 :where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]):not(.dashboard-summary-tile):not([class*="rounded-[2"]):not(.rounded-3xl) {
   border-radius: 9999px !important;
@@ -2507,3 +2496,56 @@ nav[aria-label="pagination"] :is(a, button),
 .ios-table tbody td { padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px; max-width: 13rem; }
 .ios-table thead th { padding-left: 10px; padding-right: 10px; }
 .ios-table tbody td .scrolling-text, td .scrolling-text { max-width: 11rem; }
+
+/* Directory lists: primary fields stay visible; secondary fields remain in
+   the per-row detail dialog. Never apply this to attendance/pay registers. */
+:root {
+  --action-view: oklch(0.52 0.18 250);
+  --action-edit: oklch(0.57 0.14 65);
+  --action-copy: oklch(0.52 0.18 300);
+  --action-delete: oklch(0.53 0.20 25);
+  --action-confirm: oklch(0.49 0.14 155);
+  --action-icon: oklch(1 0 0);
+}
+[data-smart-list-shell] { min-width: 0; max-width: 100%; overflow-x: clip !important; container-type: inline-size; }
+table[data-smart-list] { display: table !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: fixed !important; }
+[data-smart-list] :is(th, td) { min-width: 0 !important; max-width: none !important; width: auto !important; padding: 9px 10px !important; letter-spacing: 0 !important; }
+[data-smart-list] th { font-size: 10px; white-space: normal !important; }
+[data-smart-list] td { font-size: 12px; overflow-wrap: anywhere; }
+[data-smart-list] :is(th, td)[data-smart-secondary="true"] { display: none !important; }
+[data-smart-list] td > .scrolling-text, [data-smart-list] td .scrolling-text { width: 100%; max-width: 100%; }
+[data-smart-list] td:has(> [data-smart-details-host]) { position: relative; padding-right: 40px !important; }
+[data-smart-details-host] { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); display: inline-flex; }
+[data-smart-list] .smart-details-button { width: 26px !important; height: 26px !important; min-height: 26px !important; min-width: 26px !important; padding: 0 !important; }
+[data-smart-list] :is(th, td)[data-col="actions"], [data-smart-list] :is(th, td)[data-col="employee-actions"] { width: 190px !important; }
+[data-smart-list] tbody td :is(button, a):has(svg:only-child):not([role="switch"]):not([role="checkbox"]):not([role="combobox"]),
+.list-row :is(button, a):has(svg:only-child):not([role="switch"]):not([role="checkbox"]),
+[data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]) {
+  --row-action: var(--action-view);
+  background: var(--row-action) !important; color: var(--action-icon) !important;
+  border: 1px solid transparent !important; border-radius: 9999px !important;
+  width: 30px; height: 30px; min-width: 30px; min-height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 0 !important;
+}
+[data-admin-scroll] :is(button, a):has(svg:is(.lucide-pencil, .lucide-pencil-line, .lucide-pen, .lucide-square-pen, .lucide-pen-line)) { --row-action: var(--action-edit); }
+[data-admin-scroll] :is(button, a):has(svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)) { --row-action: var(--action-copy); }
+[data-admin-scroll] :is(button, a):has(svg:is(.lucide-trash, .lucide-trash-2, .lucide-x, .lucide-circle-x)) { --row-action: var(--action-delete); }
+[data-admin-scroll] :is(button, a):has(svg:is(.lucide-download, .lucide-check, .lucide-circle-check, .lucide-file-spreadsheet)) { --row-action: var(--action-confirm); }
+[data-smart-list] td :is(button, a):has(svg:only-child) svg,
+.list-row :is(button, a):has(svg:only-child) svg { color: var(--action-icon) !important; width: 14px; height: 14px; }
+[data-smart-list] td :is(button, a):hover { filter: brightness(0.92); }
+[data-smart-list] td :is(button, a)[aria-disabled="true"] { opacity: 0.4; }
+[data-smart-list] td :is(.inline-flex.rounded-full, .cell-pill, [data-slot="badge"]) { flex-wrap: nowrap !important; white-space: nowrap !important; }
+/* At tight widths, a flat compact row group is safer than tiny columns.
+   All visible fields and actions remain available, with no sideways scroll. */
+table[data-smart-list][data-smart-stacked="true"] { display: block !important; }
+[data-smart-list][data-smart-stacked="true"] thead { display: none !important; }
+[data-smart-list][data-smart-stacked="true"] tbody { display: block; padding: 0; }
+[data-smart-list][data-smart-stacked="true"] tbody tr { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border: 0; border-radius: 0; gap: 0; border-bottom: 1px solid var(--border); }
+[data-smart-list][data-smart-stacked="true"] tbody td:not([data-smart-secondary="true"]) { display: block !important; width: auto !important; }
+[data-smart-list][data-smart-stacked="true"] td::before { content: attr(data-label); display: block; margin-bottom: 3px; font-size: 10px; color: var(--muted-foreground); }
+[data-smart-list][data-smart-stacked="true"] td[data-col="actions"],
+[data-smart-list][data-smart-stacked="true"] td[data-col="employee-actions"],
+[data-smart-list][data-smart-stacked="true"] td:last-child:has(button),
+[data-smart-list][data-smart-stacked="true"] td[colspan] { grid-column: 1 / -1; }
