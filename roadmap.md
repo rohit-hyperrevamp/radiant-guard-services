@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## CLI4096 manual attendance saves — 21 October
+- [ ] Diagnose and fix attendance edits being rejected or reverted, preserving existing cap, primary-site and processed-period protections.
+- [ ] Verify production save/readback behavior with rollback-only regression checks.
+
 ## CLI4096 separate Extra Duty invoice rate — 21 October
 - [x] Traced invoice's single-rate multiplication of all duties; regular fixed-27 rate unchanged.
 - [x] Apply (Basic + DA) / 26 × 2 to CLI4096 invoice Extra Duty only, with separate regular/ED lines in detail/print/Tally and consistent MIS/charter billing.
