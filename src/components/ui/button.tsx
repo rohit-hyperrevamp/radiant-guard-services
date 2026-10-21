@@ -36,6 +36,15 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+// CSS :only-child ignores text nodes: <Download /> Export is not icon-only.
+function hasLabel(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).some((child) => {
+    if (typeof child === "string" || typeof child === "number") return String(child).trim().length > 0;
+    if (!React.isValidElement<{ children?: React.ReactNode; text?: unknown; label?: unknown }>(child)) return false;
+    return Boolean(child.props.text || child.props.label) || hasLabel(child.props.children);
+  });
+}
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, type, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
@@ -45,6 +54,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         data-slot="button"
         data-variant={variant ?? "default"}
         data-size={size ?? "default"}
+        data-icon-only={size === "icon" || (!hasLabel(props.children) && React.Children.count(props.children) > 0) ? "true" : "false"}
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...buttonProps}

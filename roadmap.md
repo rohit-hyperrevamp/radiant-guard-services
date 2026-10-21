@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Labelled controls and sidebar — 22 October
+- [ ] Correct shared icon detection so labelled actions remain pills; unify tabs/search controls and align client/organization actions.
+- [ ] Compact the sidebar expand/collapse control and run relevant checks.
+- [ ] Signed-in production visual review requires publication and an authorized live session.
+
 ## Compact smart lists — 22 October
 - [x] Audit directory-table patterns across clients, contracts, employees, organizations, inventory, recruitment and master data; consolidate Clients location/state/city and organization/branch into paired cells.
 - [x] Apply shared width-aware primary fields and secondary detail dialogs to action-bearing directory tables, including legacy raw tables; retain original actions, exports and data. Narrow layouts use compact flat row groups rather than horizontal scrolling; calculation registers/forms are excluded.
