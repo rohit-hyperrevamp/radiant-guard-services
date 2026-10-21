@@ -28,6 +28,7 @@ import type { CharterUnitRow } from "@/lib/charter-units";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadSharedMisTemplate, type MisSourceRow } from "@/lib/mis-template";
 import { billingRatePerDay, misBillingLine, periodDateList, resolveBillingDivisor } from "@/lib/mis-billing";
+import { splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
@@ -362,7 +363,7 @@ export function FinanceCharter({
       // leave are part of the wage but are never billed as duties.
       const billed = (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) * n + ot;
       if (rate) {
-        person.invoiceAmount += billPerDay * billed;
+        person.invoiceAmount += billPerDay * (billed - ot) + (rate.extraDutyBillRate ?? billPerDay) * ot;
         person.payrollAmount += (rate.grossRate / divisor) * payable;
         person.deductionAmount += (rate.deductionRate / divisor) * payable;
         person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
@@ -583,17 +584,24 @@ export function FinanceCharter({
       const paid = code && (code.counts_as_present || code.is_paid) ? dayValue : 0;
       const ot = Number(entry.ot_hours) || 0;
       const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
-      const perDay = rate.billRate / periodDays;
+      const period = allPeriodsByUnit.get(entryUnitId);
+      const perDay = rate.extraDutyBillRate != null && period
+        ? billingRatePerDay(rate.billRate, rate, periodDateList(period.start, period.end))
+        : rate.billRate / periodDays;
+      const edRate = rate.extraDutyBillRate ?? perDay;
       const desig = entry.designation_id ?? "—";
       const split = splitFor(entryUnitId);
       const route = (item: InvoiceItemKey) => (split && isSplit(split) ? split.assign[item] : "main");
       if ((entry as any).is_reliever) {
-        add(entryUnitId, route("reliever"), desig, paid + ot, perDay * (paid + ot), rate.billRate);
+        if (rate.extraDutyBillRate != null) {
+          add(entryUnitId, route("reliever"), desig, paid, perDay * paid, rate.billRate);
+          add(entryUnitId, route("reliever"), `${desig}|ed`, ot, edRate * ot, rate.billRate);
+        } else add(entryUnitId, route("reliever"), desig, paid + ot, perDay * (paid + ot), rate.billRate);
         continue;
       }
       const isPh = !!code && code.code.toUpperCase().startsWith("PH");
       add(entryUnitId, route(isPh ? "ph" : "regular"), desig, paid, perDay * paid, rate.billRate);
-      add(entryUnitId, route("ed"), desig, ot, perDay * ot, rate.billRate);
+      add(entryUnitId, route("ed"), rate.extraDutyBillRate != null ? `${desig}|ed` : desig, ot, edRate * ot, rate.billRate);
     }
     const partLabel = (unitId: string, part: string) =>
       splitFor(unitId)?.parts.find((p) => p.key === part)?.label ?? "Main invoice";
@@ -970,24 +978,28 @@ export function FinanceCharter({
           // in the cycle. Extra Duty bills at the same per-duty rate.
           const perDay = billingRatePerDay(rate.billRate, rate, periodDates);
           const billedDays = line.workingDays + line.otDays;
+          const dutySplit = rate.extraDutyBillRate != null
+            ? splitInvoiceDuties({ billedDays, otDays: line.otDays, regularRate: perDay, extraDutyRate: rate.extraDutyBillRate })
+            : null;
           const misLine = misBillingLine({
             perDay,
             billedDays,
             otDays: line.otDays,
-            total: exactUnits.has(u.id)
+            extraDutyRate: rate.extraDutyBillRate,
+            total: dutySplit?.actual ?? (exactUnits.has(u.id)
               ? (resolveBillingDivisor(rate, periodDates) > 0 ? (rate.billRate / resolveBillingDivisor(rate, periodDates)) * billedDays : 0)
-              : perDay * billedDays,
+              : perDay * billedDays),
             intraState,
             // Regular duties can never exceed the contract's billing days; the
             // surplus is Extra Duty at the same rate.
-            maxWorkingDays: resolveBillingDivisor(rate, periodDates),
+            maxWorkingDays: dutySplit ? null : resolveBillingDivisor(rate, periodDates),
           });
           const workingDays = misLine.workingDays;
           const otDuties = misLine.otDays;
           const otHours = otDuties * (rate.shiftHours || 8);
           // OT rate is hourly: per-duty rate divided by the contractual shift
           // length (8h or 12h unit).
-          const otRate = misLine.otRate / (rate.shiftHours || 8);
+          const otRate = rate.extraDutyBillRate != null ? misLine.otRate : misLine.otRate / (rate.shiftHours || 8);
           const otAmount = misLine.otAmount;
           const regular = misLine.regularBilling;
           const otBilling = misLine.otBilling;

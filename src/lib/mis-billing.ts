@@ -4,8 +4,8 @@
  * The MIS sheet must never invent its own rate. The invoice bills a duty at
  *   per-duty rate = monthly contract value ÷ the contract's billing-days rule
  * (e.g. ₹28,026.11 ÷ 27 = ₹1,038.00) and charges every billed duty at that
- * rate. Extra Duty (OT) is a duty like any other, so it bills at the very same
- * per-duty rate — there is no separate OT formula.
+ * rate. Extra Duty normally bills at that rate; explicit site exceptions pass
+ * the invoice's separate Extra Duty rate into the same reconciliation helper.
  *
  * Both MIS exports (per-invoice and the combined charter export) build their
  * numbers here so the sheet always reconciles with the invoice.
@@ -67,7 +67,7 @@ export type MisBillingLine = {
   /** Regular duties billed = all billed duties minus Extra Duty. */
   workingDays: number;
   otDays: number;
-  /** Extra Duty bills at the duty rate — same rate, no separate formula. */
+  /** Extra Duty rate used by the invoice, including explicit site exceptions. */
   otRate: number;
   otAmount: number;
   regularBilling: number;
@@ -94,6 +94,7 @@ export function misBillingLine({
   total,
   intraState,
   maxWorkingDays,
+  extraDutyRate,
 }: {
   perDay: number;
   billedDays: number;
@@ -103,9 +104,11 @@ export function misBillingLine({
   /**
    * Billing divisor for the period (e.g. 27). A month can never bill more
    * regular duties than the contract's divisor — anything beyond it is Extra
-   * Duty, billed at the same per-duty rate, so the total never changes.
+    * Duty. Separate-rate callers must use actual attendance ED and omit this cap.
    */
   maxWorkingDays?: number | null;
+  /** Explicit invoice exception; other sites retain the regular duty rate. */
+  extraDutyRate?: number | null;
 }): MisBillingLine {
   let ot = Math.max(0, r2(otDays));
   let workingDays = Math.max(0, r2(billedDays - ot));
@@ -114,7 +117,8 @@ export function misBillingLine({
     ot = r2(ot + (workingDays - cap));
     workingDays = cap;
   }
-  const otBilling = r2(perDay * ot);
+  const otRate = extraDutyRate ?? perDay;
+  const otBilling = r2(otRate * ot);
   const totalBilling = r2(total);
   const regularBilling = r2(totalBilling - otBilling);
   const tax = taxSplit(totalBilling, intraState);
@@ -123,7 +127,7 @@ export function misBillingLine({
     perDay: r2(perDay),
     workingDays,
     otDays: ot,
-    otRate: r2(perDay),
+    otRate: r2(otRate),
     otAmount: otBilling,
     regularBilling,
     otBilling,
