@@ -65,7 +65,7 @@ function trigger() {
   const track = frame?.firstElementChild as HTMLElement;
   if (!frame || !track) throw new Error("scrolling-text not rendered");
   setSize(frame, 100, 100); // frame is 100px wide
-  setSize(track, 400, 400); // track is 400px wide → 300px overflow
+  setSize(track.firstElementChild!, 400, 400); // text is 400px wide → overflows
   for (const { cb } of resizeCbs) cb();
   intersectCb?.([{ isIntersecting: true }]);
   for (const { cb } of resizeCbs) cb();
@@ -80,26 +80,20 @@ afterEach(() => {
 });
 
 describe("ScrollingText animation", () => {
-  it("scrolls in one direction only: hold, sweep left, then restart jumps back", () => {
+  it("scrolls endlessly in one direction", () => {
     roots.push(mount("Anz Acacia many extra words to overflow the narrow frame"));
     captures.length = 0;
     const { track } = trigger();
     expect(captures.length).toBeGreaterThanOrEqual(1);
     expect(track.textContent).toContain("Anz Acacia");
     const { keyframes, options } = captures[captures.length - 1];
-    expect(keyframes).toHaveLength(3);
+    // Endless single direction: only forward keyframes, looping by text + gap.
+    expect(keyframes).toHaveLength(2);
     expect(keyframes[0].transform).toBe("translateX(0)");
-    expect(keyframes[1].transform).toBe("translateX(0)");
-    expect(keyframes[2].transform).toBe("translateX(-300px)");
-    // Single direction: the sweep is the last segment and ends at the cycle end,
-    // so the loop restart is an instant jump — never a backwards slide.
-    expect(keyframes[2].offset).toBe(1);
-    const duration = options.duration ?? 0;
-    const travel = Math.max(2000, (300 / 24) * 1000);
-    expect(duration).toBe(2000 + travel);
+    expect(keyframes[1].transform).toBe("translateX(-440px)");
     expect(options.iterations).toBe(Infinity);
-    // No keyframe between the hold and the end (no bounce segment).
-    expect(keyframes.filter((k) => k.offset !== 0 && k.offset !== 1)).toHaveLength(1);
+    expect(options.easing).toBe("linear");
+    expect(track.querySelector(".scrolling-text-copy")?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("does not animate when the text fits its frame", () => {
@@ -108,7 +102,7 @@ describe("ScrollingText animation", () => {
     const track = frame?.firstElementChild as HTMLElement;
     if (!frame || !track) throw new Error("scrolling-text not rendered");
     setSize(frame, 400, 400); // text fits: no overflow
-    setSize(track, 400, 400);
+    setSize(track.firstElementChild!, 400, 400);
     for (const { cb } of resizeCbs) cb();
     intersectCb?.([{ isIntersecting: true }]);
     for (const { cb } of resizeCbs) cb();

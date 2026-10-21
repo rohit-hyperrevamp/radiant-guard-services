@@ -1246,7 +1246,7 @@
     justify-content: center;
     flex: 0 0 auto;
   }
-  .ios-table [data-col="status"] { width: auto; min-width: 156px; white-space: normal; text-align: left !important; }
+  .ios-table [data-col="status"] { width: auto; min-width: 0; white-space: nowrap; text-align: left !important; }
   .ios-table [data-col="approval"] { min-width: 156px; white-space: normal; }
   .ios-table [data-col="date"] { width: 108px; }
   .ios-table [data-col="code"] { width: 150px; }
@@ -2370,6 +2370,10 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   min-width: 100%;
   white-space: nowrap !important;
 }
+.scrolling-text-item, .scrolling-text-copy { display: inline-block; }
+.scrolling-text-copy { display: none; padding-left: 40px; }
+.scrolling-text[data-overflow="true"]:not([data-static="true"]) .scrolling-text-copy { display: inline-block; }
+@media (prefers-reduced-motion: reduce) { .scrolling-text .scrolling-text-copy { display: none !important; } }
 td .scrolling-text { width: 12rem; max-width: 100%; }
 .scrolling-text.flex-1 { width: 0; }
 .ios-table .scrolling-text { overflow: hidden; }
@@ -2450,3 +2454,15 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
   }
   .mobile-directory-toolbar > .relative { display: block; flex: 1 1 260px; max-width: 360px; }
 }
+
+/* Smart lists: fit the screen width, single-line badges, colour-coded row actions. */
+.ios-table tbody td { min-width: 0; max-width: 16rem; }
+.ios-table tbody td .scrolling-text, td .scrolling-text { width: 100%; max-width: 14rem; }
+.ios-table thead th { white-space: nowrap; overflow-wrap: normal; }
+table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):not(:has(svg:only-child)) { white-space: nowrap !important; }
+.ios-table [data-col="approval"] { white-space: nowrap; }
+table tbody td :is(button, a) > svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search) { color: oklch(0.55 0.17 250) !important; }
+table tbody td :is(button, a) > svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit) { color: oklch(0.62 0.15 65) !important; }
+table tbody td :is(button, a) > svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files) { color: oklch(0.55 0.18 300) !important; }
+table tbody td :is(button, a, span) svg:is(.lucide-trash, .lucide-trash-2) { color: oklch(0.58 0.21 25) !important; }
+table tbody td :is(button, a) > svg:is(.lucide-download, .lucide-check, .lucide-circle-check) { color: oklch(0.58 0.15 155) !important; }
