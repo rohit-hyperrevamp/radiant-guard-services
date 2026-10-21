@@ -70,7 +70,7 @@ const SelectTrigger = React.forwardRef<
     data-slot="select-trigger"
     ref={ref}
     className={cn(
-      "flex h-10 w-full min-w-0 items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-border/80 bg-card px-3 py-1.5 text-base md:text-sm shadow-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-accent/50 data-[placeholder]:text-muted-foreground focus:border-accent focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-muted/45 disabled:opacity-60 [&>span]:min-w-0 [&>span:first-child]:flex-1",
+      "flex h-10 w-full min-w-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border border-border/80 bg-card px-3 py-1.5 text-base md:text-sm shadow-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-accent/50 data-[placeholder]:text-muted-foreground focus:border-accent focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-muted/45 disabled:opacity-60 [&>span]:min-w-0 [&>span:first-child]:flex-1",
       className,
     )}
     {...props}

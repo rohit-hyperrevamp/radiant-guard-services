@@ -1937,7 +1937,7 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   [data-admin-scroll] .mobile-directory-filters :where(input, [data-slot="select-trigger"], [data-slot="button"]) {
     height: 2.25rem !important;
     min-height: 2.25rem !important;
-    border-radius: 0.625rem !important;
+    border-radius: 9999px !important;
     font-size: 0.75rem !important;
   }
 
@@ -2461,14 +2461,19 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
 .ios-table thead th { white-space: nowrap; overflow-wrap: normal; }
 table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):not(:has(svg:only-child)) { white-space: nowrap !important; }
 .ios-table [data-col="approval"] { white-space: nowrap; }
-table tbody td :is(button, a) > svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search) { color: oklch(0.55 0.17 250) !important; }
-table tbody td :is(button, a) > svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit) { color: oklch(0.62 0.15 65) !important; }
-table tbody td :is(button, a) > svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files) { color: oklch(0.55 0.18 300) !important; }
-table tbody td :is(button, a, span) svg:is(.lucide-trash, .lucide-trash-2) { color: oklch(0.58 0.21 25) !important; }
-table tbody td :is(button, a) > svg:is(.lucide-download, .lucide-check, .lucide-circle-check) { color: oklch(0.58 0.15 155) !important; }
+table tbody td :is(button, a):has(> svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search)):not(:has(> span)) { background: oklch(0.55 0.17 250) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
+table tbody td :is(button, a):has(> svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
+table tbody td :is(button, a):has(> svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit)):not(:has(> span)) { background: oklch(0.66 0.15 65) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
+table tbody td :is(button, a):has(> svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
+table tbody td :is(button, a):has(> svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)):not(:has(> span)) { background: oklch(0.55 0.18 300) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
+table tbody td :is(button, a):has(> svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
+table tbody td :is(button, a):has(svg:is(.lucide-trash, .lucide-trash-2)):not(:has(> span:not(:has(svg)))) { background: oklch(0.58 0.21 25) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
+table tbody td :is(button, a) svg:is(.lucide-trash, .lucide-trash-2) { color: var(--primary-foreground) !important; }
+table tbody td :is(button, a):has(> svg:is(.lucide-download, .lucide-check, .lucide-circle-check)):not(:has(> span)) { background: oklch(0.58 0.15 155) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
+table tbody td :is(button, a):has(> svg:is(.lucide-download, .lucide-check, .lucide-circle-check)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
 
 /* Consistent shape: every button is a pill; icon-only buttons and page numbers are circles. */
-:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-slot="popover-trigger"][aria-haspopup="dialog"]):not([data-no-pill]) {
+:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]) {
   border-radius: 9999px !important;
 }
 :where(button, a, [role="button"]):has(> svg:only-child):not([role="switch"]):not([role="checkbox"]):not([data-no-pill]),
@@ -2490,3 +2495,9 @@ nav[aria-label="pagination"] :is(a, button),
 }
 .ios-table tbody td[data-label="Status"], .ios-table [data-col="status"] { width: 1%; white-space: nowrap; }
 .ios-table tbody td[data-label="Client ID"] { width: 1%; white-space: nowrap; }
+
+/* Pill-shaped inputs/dropdown triggers and smart, screen-fitting lists. */
+[data-slot="select-trigger"], [data-slot="popover-trigger"], button[role="combobox"] { border-radius: 9999px !important; }
+.ios-table tbody td { padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px; max-width: 13rem; }
+.ios-table thead th { padding-left: 10px; padding-right: 10px; }
+.ios-table tbody td .scrolling-text, td .scrolling-text { max-width: 11rem; }
