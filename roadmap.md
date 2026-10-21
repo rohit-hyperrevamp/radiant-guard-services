@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Compact smart lists — 22 October
+- [ ] Review list layouts across the system and consolidate the Clients list's repeated fields.
+- [ ] Apply shared screen-fitting lists with accessible secondary details and consistent filled circular actions.
+- [ ] Run relevant checks; live visual review requires publication and authorized production sign-in.
+
 ## Single-line list action alignment — 21 October
 - [x] Remove the shared wrapping conflict, reserve intrinsic action-row width and keep Delete's tooltip wrapper from shrinking; contracts use contained horizontal scrolling rather than clipping.
 - [x] Review contract, employee setup, inventory, recruitment and management-list action groups; shared protection covers marked columns and legacy trailing icon groups without changing permissions or actions.
