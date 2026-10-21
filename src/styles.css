@@ -2694,3 +2694,7 @@ li[data-panel="true"], [data-panel="true"] [data-panel="true"] {
   .mobile-directory-toolbar > * { flex-shrink: 0; }
   .mobile-directory-toolbar > .relative, .mobile-directory-toolbar > :has(input[type="search"], input[placeholder^="Search"]) { flex: 1 1 260px; min-width: 200px; flex-shrink: 1; }
 }
+@media (min-width: 1024px) {
+  .mobile-directory-toolbar > :first-child { flex: 1 1 auto !important; width: auto !important; min-width: 0; flex-shrink: 1 !important; }
+  .mobile-directory-toolbar > :last-child:not(:first-child) { flex-wrap: nowrap; }
+}
