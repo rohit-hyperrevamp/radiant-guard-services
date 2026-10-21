@@ -2462,8 +2462,10 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
 table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):not([data-icon-only="true"]) { white-space: nowrap !important; }
 .ios-table [data-col="approval"] { white-space: nowrap; }
 /* Consistent shape: every button is a pill; icon-only buttons and page numbers are circles. */
-:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]):not(.dashboard-summary-tile):not([class*="rounded-[2"]):not(.rounded-3xl) {
-  border-radius: 9999px !important;
+:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]):not(.dashboard-summary-tile):not([class*="rounded-[2"]):not(.rounded-3xl):not([data-panel="true"]) {
+  /* Fixed radius: normal-height buttons read as pills, while tall clickable
+     cards stay soft rectangles instead of big ovals. */
+  border-radius: 20px !important;
 }
 :where(button, a, [role="button"])[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([data-no-pill]):not(.dashboard-summary-tile),
 nav[aria-label="pagination"] :is(a, button),
@@ -2636,3 +2638,9 @@ li[data-panel="true"], [data-panel="true"] [data-panel="true"] {
   color: var(--action-icon) !important;
 }
 :is(td, .list-row, [data-col="actions"], .directory-actions) :is(button, a)[data-slot="button"][data-icon-only="true"]:hover { filter: brightness(0.9); }
+
+/* Tall clickable items (cards, feed entries, tiles) never become ovals. */
+:is(button, a, [role="button"]):not([data-icon-only="true"]):has(:is(div, p, h2, h3, h4, ul, ol, dl, img)),
+:is(button, a, [role="button"]):not([data-icon-only="true"]):has(> span > span + span) {
+  border-radius: var(--radius) !important;
+}
