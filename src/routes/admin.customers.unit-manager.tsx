@@ -406,7 +406,7 @@ function UnitManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        {!isHrExecutive && <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
+        {!isHrExecutive && <div className="directory-actions grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={() =>

@@ -1,8 +1,8 @@
 # Mobile app UI re-review
 
 ## Labelled controls and sidebar — 22 October
-- [ ] Correct shared icon detection so labelled actions remain pills; unify tabs/search controls and align client/organization actions.
-- [ ] Compact the sidebar expand/collapse control and run relevant checks.
+- [x] Correct shared icon detection so labelled actions remain pills; unify tabs/search controls and align client/organization actions.
+- [x] Compact the sidebar expand/collapse control; 13 existing control checks pass and automatic compilation is clean.
 - [ ] Signed-in production visual review requires publication and an authorized live session.
 
 ## Compact smart lists — 22 October
