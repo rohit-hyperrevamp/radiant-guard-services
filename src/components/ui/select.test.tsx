@@ -43,6 +43,11 @@ async function type(query: string) {
   return input;
 }
 const visibleOptions = () => Array.from(document.querySelectorAll<HTMLElement>('[role="option"]')).filter((item) => !item.hidden);
+const accessibleValue = (item: Element | null) => {
+  const copy = item?.cloneNode(true) as Element | undefined;
+  copy?.querySelectorAll('[aria-hidden="true"]').forEach((node) => node.remove());
+  return copy?.textContent;
+};
 
 describe("long dropdown selection", () => {
   it("leaves short lists without search", async () => {
@@ -52,7 +57,7 @@ describe("long dropdown selection", () => {
   it("filters grouped lists without changing the selected label or marking the form dirty", async () => {
     await mount();
     await type("NAGAR bank");
-    expect(visibleOptions().map((item) => item.textContent)).toEqual(["Bank of Baroda Ram Nagar"]);
+    expect(visibleOptions().map(accessibleValue)).toEqual(["Bank of Baroda Ram Nagar"]);
     expect(host.textContent).toContain("Bank of Baroda Ram Nagar");
     expect(markDirty).not.toHaveBeenCalled();
     expect(document.querySelector<HTMLElement>('[role="option"][hidden]')?.hasAttribute("data-disabled")).toBe(true);
@@ -61,7 +66,7 @@ describe("long dropdown selection", () => {
     const onChange = await mount();
     const input = await type("Client 9");
     await act(async () => { input.focus(); input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })); });
-    expect(document.activeElement?.textContent).toBe("Client 9");
+    expect(accessibleValue(document.activeElement)).toBe("Client 9");
     await act(async () => { document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); });
     expect(onChange).toHaveBeenCalledWith("9");
     expect(markDirty).toHaveBeenCalledTimes(1);

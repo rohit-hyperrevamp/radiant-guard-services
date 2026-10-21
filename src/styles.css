@@ -2517,12 +2517,11 @@ table[data-smart-list] { display: table !important; width: 100% !important; min-
 [data-smart-list] td:has(> [data-smart-details-host]) { position: relative; padding-right: 40px !important; }
 [data-smart-details-host] { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); display: inline-flex; }
 [data-smart-list] .smart-details-button { width: 26px !important; height: 26px !important; min-height: 26px !important; min-width: 26px !important; padding: 0 !important; }
-[data-smart-list] :is(th, td)[data-col="actions"], [data-smart-list] :is(th, td)[data-col="employee-actions"] { width: 190px !important; }
+[data-smart-list] :is(th, td)[data-col="actions"], [data-smart-list] :is(th, td)[data-col="employee-actions"] { width: var(--smart-action-width, 190px) !important; }
 [data-smart-list] tbody td :is(button, a):has(svg:only-child):not([role="switch"]):not([role="checkbox"]):not([role="combobox"]),
 .list-row :is(button, a):has(svg:only-child):not([role="switch"]):not([role="checkbox"]),
 [data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]) {
-  --row-action: var(--action-view);
-  background: var(--row-action) !important; color: var(--action-icon) !important;
+  background: var(--row-action, var(--action-view)) !important; color: var(--action-icon) !important;
   border: 1px solid transparent !important; border-radius: 9999px !important;
   width: 30px; height: 30px; min-width: 30px; min-height: 30px;
   display: inline-flex; align-items: center; justify-content: center;
