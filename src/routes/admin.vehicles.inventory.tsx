@@ -370,17 +370,17 @@ function VehicleInventoryPage() {
                 </div>
               )}
 
-              <div className="mt-auto flex items-center justify-end gap-1 border-t border-border/60 pt-2">
+              <div className="list-row mt-auto flex items-center justify-end gap-1.5 border-t border-border/60 pt-2">
                 <RecordViewButton
                   record={i}
                   title="Inventory details"
                   onEdit={() => setEditing(i)}
                 />
-                <Button size="sm" variant="ghost" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditing(i)}>
-                  <Edit2 className="h-3.5 w-3.5" /> Edit
+                <Button size="icon" variant="ghost" aria-label="Edit vehicle" title="Edit vehicle" onClick={() => setEditing(i)}>
+                  <Edit2 className="h-3.5 w-3.5" />
                 </Button>
-                <Button size="sm" variant="ghost" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => setDeleting(i)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                <Button size="icon" variant="ghost" aria-label="Delete vehicle" title="Delete vehicle" onClick={() => setDeleting(i)}>
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

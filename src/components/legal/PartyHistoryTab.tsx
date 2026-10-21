@@ -96,7 +96,7 @@ export function PartyHistoryTab({ onOpenCase }: { onOpenCase: (id: string) => vo
           )}
           <div className="space-y-1">
             {q.data.cases.map((c) => (
-              <button key={c.id} onClick={() => onOpenCase(c.id)} className="block w-full rounded-md bg-muted/40 px-2 py-1.5 text-left text-xs hover:bg-muted">
+              <button data-panel="true" key={c.id} onClick={() => onOpenCase(c.id)} className="block w-full rounded-md bg-muted/40 px-2 py-1.5 text-left text-xs hover:bg-muted">
                 <div className="font-medium text-foreground">
                   {c.case_number} · {c.title} · <span className="capitalize">{c.status.replace("_", " ")}</span>
                 </div>

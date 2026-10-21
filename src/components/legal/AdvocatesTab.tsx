@@ -94,7 +94,7 @@ export function AdvocatesTab({ canEdit }: { canEdit: boolean }) {
           const used = (log.data ?? []).filter((l) => l.advocate_id === a.id);
           return (
             <div key={a.id} className="border-b border-border last:border-0">
-              <button className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/5" onClick={() => setOpen(open === a.id ? null : a.id)}>
+              <button data-panel="true" className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/5" onClick={() => setOpen(open === a.id ? null : a.id)}>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-foreground">{a.name}</div>
                   <div className="truncate text-xs text-muted-foreground">
