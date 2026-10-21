@@ -94,6 +94,7 @@ export function misBillingLine({
   total,
   intraState,
   maxWorkingDays,
+  extraDutyRate,
 }: {
   perDay: number;
   billedDays: number;
@@ -106,6 +107,8 @@ export function misBillingLine({
    * Duty, billed at the same per-duty rate, so the total never changes.
    */
   maxWorkingDays?: number | null;
+  /** Explicit invoice exception; other sites retain the regular duty rate. */
+  extraDutyRate?: number | null;
 }): MisBillingLine {
   let ot = Math.max(0, r2(otDays));
   let workingDays = Math.max(0, r2(billedDays - ot));
@@ -114,7 +117,8 @@ export function misBillingLine({
     ot = r2(ot + (workingDays - cap));
     workingDays = cap;
   }
-  const otBilling = r2(perDay * ot);
+  const otRate = extraDutyRate ?? perDay;
+  const otBilling = r2(otRate * ot);
   const totalBilling = r2(total);
   const regularBilling = r2(totalBilling - otBilling);
   const tax = taxSplit(totalBilling, intraState);
@@ -123,7 +127,7 @@ export function misBillingLine({
     perDay: r2(perDay),
     workingDays,
     otDays: ot,
-    otRate: r2(perDay),
+    otRate: r2(otRate),
     otAmount: otBilling,
     regularBilling,
     otBilling,
