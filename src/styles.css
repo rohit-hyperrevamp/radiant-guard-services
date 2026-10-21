@@ -1205,8 +1205,8 @@
      circular pills with a soft white surface and a dark hover state that
      flips the icon to white. Skip elements that explicitly opt out via
      data-variant (colored approve/reject chips) or data-no-pill. */
-  .ios-table tbody td button:where(:has(> svg:only-child)):not([data-variant]):not([data-no-pill]),
-  .ios-table tbody td a:where(:has(> svg:only-child)):not([data-variant]):not([data-no-pill]) {
+  .ios-table tbody td button:where([data-icon-only="true"]):not([data-variant]):not([data-no-pill]),
+  .ios-table tbody td a:where([data-icon-only="true"]):not([data-variant]):not([data-no-pill]) {
     height: 32px !important;
     width: 32px !important;
     padding: 0 !important;
@@ -1220,23 +1220,23 @@
     color: var(--muted-foreground);
     transition: background-color .15s ease, color .15s ease, border-color .15s ease;
   }
-  .ios-table tbody td button:where(:has(> svg:only-child)):not([data-variant]):not([data-no-pill]):hover,
-  .ios-table tbody td a:where(:has(> svg:only-child)):not([data-variant]):not([data-no-pill]):hover {
+  .ios-table tbody td button:where([data-icon-only="true"]):not([data-variant]):not([data-no-pill]):hover,
+  .ios-table tbody td a:where([data-icon-only="true"]):not([data-variant]):not([data-no-pill]):hover {
     background: var(--foreground);
     border-color: var(--foreground);
     color: white;
   }
-  .ios-table tbody td button:where(:has(> svg:only-child)) > svg,
-  .ios-table tbody td a:where(:has(> svg:only-child)) > svg {
+  .ios-table tbody td button:where([data-icon-only="true"]) > svg,
+  .ios-table tbody td a:where([data-icon-only="true"]) > svg {
     height: 15px;
     width: 15px;
     color: inherit;
   }
   /* Colored variants (approve / reject / warn) keep their accent color but
      still respect the circular pill sizing. */
-  .ios-table tbody td button[data-variant="success"]:where(:has(> svg:only-child)),
-  .ios-table tbody td button[data-variant="danger"]:where(:has(> svg:only-child)),
-  .ios-table tbody td button[data-variant="warn"]:where(:has(> svg:only-child)) {
+  .ios-table tbody td button[data-variant="success"]:where([data-icon-only="true"]),
+  .ios-table tbody td button[data-variant="danger"]:where([data-icon-only="true"]),
+  .ios-table tbody td button[data-variant="warn"]:where([data-icon-only="true"]) {
     height: 32px !important;
     width: 32px !important;
     padding: 0 !important;
@@ -1513,8 +1513,8 @@
   .bg-card:has(> * > .ios-table) { padding: 0 !important; }
 
   /* Tap targets on mobile — icon-only buttons deserve ≥36px hit area. */
-  button:where(:has(> svg:only-child)),
-  a:where(:has(> svg:only-child)) { min-height: 36px; min-width: 36px; }
+  button:where([data-icon-only="true"]),
+  a:where([data-icon-only="true"]) { min-height: 36px; min-width: 36px; }
 
   /* Big display headings scale down further for phones. */
   h1 { font-size: clamp(1.125rem, 4.5vw, 1.375rem) !important; }
@@ -1620,8 +1620,8 @@ body {
     min-height: 44px;
   }
   /* Icon-only controls — square hit area */
-  button:where(:has(> svg:only-child)),
-  a:where(:has(> svg:only-child)) {
+  button:where([data-icon-only="true"]),
+  a:where([data-icon-only="true"]) {
     min-height: 44px !important;
     min-width: 44px !important;
   }
@@ -2437,7 +2437,7 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
 @media (min-width: 640px) {
   .mobile-directory-toolbar :where(input:not([type="checkbox"]):not([type="radio"]), [data-slot="select-trigger"], [data-slot="button"], button[role="combobox"]) {
     height: 40px;
-    border-radius: 12px;
+    border-radius: 9999px;
   }
   .mobile-directory-toolbar :where([data-slot="select-trigger"], button[role="combobox"]) {
     min-width: 160px;
@@ -2459,13 +2459,13 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
 .ios-table tbody td { min-width: 0; max-width: 16rem; }
 .ios-table tbody td .scrolling-text, td .scrolling-text { width: 100%; max-width: 14rem; }
 .ios-table thead th { white-space: nowrap; overflow-wrap: normal; }
-table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):not(:has(svg:only-child)) { white-space: nowrap !important; }
+table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):not([data-icon-only="true"]) { white-space: nowrap !important; }
 .ios-table [data-col="approval"] { white-space: nowrap; }
 /* Consistent shape: every button is a pill; icon-only buttons and page numbers are circles. */
 :where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]):not(.dashboard-summary-tile):not([class*="rounded-[2"]):not(.rounded-3xl) {
   border-radius: 9999px !important;
 }
-:where(button, a, [role="button"]):has(> svg:only-child):not([role="switch"]):not([role="checkbox"]):not([data-no-pill]):not(.dashboard-summary-tile),
+:where(button, a, [role="button"])[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([data-no-pill]):not(.dashboard-summary-tile),
 nav[aria-label="pagination"] :is(a, button),
 [data-slot="pagination-link"] {
   border-radius: 9999px !important;
@@ -2518,8 +2518,8 @@ table[data-smart-list] { display: table !important; width: 100% !important; min-
 [data-smart-details-host] { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); display: inline-flex; }
 [data-smart-list] .smart-details-button { width: 26px !important; height: 26px !important; min-height: 26px !important; min-width: 26px !important; padding: 0 !important; }
 [data-smart-list] :is(th, td)[data-col="actions"], [data-smart-list] :is(th, td)[data-col="employee-actions"] { width: var(--smart-action-width, 190px) !important; }
-[data-smart-list] tbody td :is(button, a):has(svg:only-child):not([role="switch"]):not([role="checkbox"]):not([role="combobox"]),
-.list-row :is(button, a):has(svg:only-child):not([role="switch"]):not([role="checkbox"]),
+[data-smart-list] tbody td :is(button, a)[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]):not([role="combobox"]),
+.list-row :is(button, a)[data-icon-only="true"]:not([role="switch"]):not([role="checkbox"]),
 [data-slot="button"][data-size="icon"]:not([role="switch"]):not([role="checkbox"]) {
   background: var(--row-action, var(--action-view)) !important; color: var(--action-icon) !important;
   border: 1px solid transparent !important; border-radius: 9999px !important;
@@ -2531,8 +2531,8 @@ table[data-smart-list] { display: table !important; width: 100% !important; min-
 [data-admin-scroll] :is(button, a):has(svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)) { --row-action: var(--action-copy); }
 [data-admin-scroll] :is(button, a):has(svg:is(.lucide-trash, .lucide-trash-2, .lucide-x, .lucide-circle-x)) { --row-action: var(--action-delete); }
 [data-admin-scroll] :is(button, a):has(svg:is(.lucide-download, .lucide-check, .lucide-circle-check, .lucide-file-spreadsheet)) { --row-action: var(--action-confirm); }
-[data-smart-list] td :is(button, a):has(svg:only-child) svg,
-.list-row :is(button, a):has(svg:only-child) svg { color: var(--action-icon) !important; width: 14px; height: 14px; }
+[data-smart-list] td :is(button, a)[data-icon-only="true"] svg,
+.list-row :is(button, a)[data-icon-only="true"] svg { color: var(--action-icon) !important; width: 14px; height: 14px; }
 [data-smart-list] td :is(button, a):hover { filter: brightness(0.92); }
 [data-smart-list] td :is(button, a)[aria-disabled="true"] { opacity: 0.4; }
 [data-smart-list] td :is(.inline-flex.rounded-full, .cell-pill, [data-slot="badge"]) { flex-wrap: nowrap !important; white-space: nowrap !important; }
@@ -2548,3 +2548,20 @@ table[data-smart-list][data-smart-stacked="true"] { display: block !important; }
 [data-smart-list][data-smart-stacked="true"] td[data-col="employee-actions"],
 [data-smart-list][data-smart-stacked="true"] td:last-child:has(button),
 [data-smart-list][data-smart-stacked="true"] td[colspan] { grid-column: 1 / -1; }
+
+/* Labelled controls are content-width pills, never inferred from SVG children.
+   Explicit icon metadata avoids mistaking an icon + bare text for a circle. */
+[data-slot="button"][data-icon-only="false"]:not(.dashboard-summary-tile):not([data-no-pill]) {
+  aspect-ratio: auto !important;
+  width: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+[data-slot="tabs-list"], [data-slot="tabs-trigger"], [role="tab"],
+.mobile-directory-toolbar input:not([type="checkbox"]):not([type="radio"]),
+.mobile-directory-filters input:not([type="checkbox"]):not([type="radio"]),
+[data-admin-scroll] input[type="search"] {
+  border-radius: 9999px !important;
+}
+.directory-actions { align-items: center; flex-shrink: 0; }
+.directory-actions [data-slot="button"] { height: 40px; min-height: 40px; padding-inline: 16px; }
