@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## CLI4096 fixed daily billing — 21 October
+- [x] Production CLI4096 / CON15788 billing basis is Fixed 27 Days; payroll remains Days Minus Four, attendance untouched, no dated revisions or finalized invoices found.
+- [x] Read back ₹21,753.58 ÷ 27 = ₹805.69 per duty; 26 duties ₹20,947.94 and 27 duties ₹21,753.63 before GST. Three focused calculation tests passed. Saved-data/calculation verified; signed-in live invoice screen not checked.
+
 ## BFSL uploaded September attendance — 21 October
 - [x] Visually review all 40 pages and independently check clear daily grids against production identities; retain unreadable IDs, compound marks, source-year conflicts and unallocated Extra Duty as pending, not guessed.
 - [x] Save 1,025 confirmed daily cells for 36 employees across 25 BFSL sites with before-change backups; retain existing line identities, put confirmed new secondary-site duties into Extra Duty, and convert clock-hour ED using the contracted eight-hour shift.
