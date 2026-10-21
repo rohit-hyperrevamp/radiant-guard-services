@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Single-line scrolling list names — 21 October
+- [ ] Add a shared overflow-only scrolling label with consistent typography, bounded width, off-screen suspension and reduced-motion support.
+- [ ] Apply to shared long text, list names and selection labels across the requested modules without changing data or actions.
+- [ ] Check edited presentation and compilation; live visual verification requires publication and an authorized production session.
+
 ## CLI4096 manual attendance saves — 21 October
 - [x] Reproduced a CLI4096 Absent correction reverting to its old Present/ED mark; a before-update trigger now clears obsolete original-rule values on explicit edits, retaining metadata during internal recalculation.
 - [x] Applied production migration; rollback-only regressions confirm Absent and cleared ED persist through repeated rules, and the Present-day cap stays enforced. No actual attendance marks altered by tests.
