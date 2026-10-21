@@ -1,7 +1,8 @@
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
-import { unknownFormulaVariables } from "@/lib/payroll-calc";
+import { unknownFormulaVariables, normalizeOtEsi, type OtEsiSetting } from "@/lib/payroll-calc";
+import { Switch } from "@/components/ui/switch";
 import { Link as RouterLink } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourceRateRevisions } from "@/components/ResourceRateRevisions";
