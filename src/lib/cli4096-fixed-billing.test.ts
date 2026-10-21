@@ -51,4 +51,9 @@ describe("CLI4096 separate Extra Duty invoice billing", () => {
   it("prices a half-day Extra Duty proportionally", () => {
     expect(splitInvoiceDuties({ billedDays: 26.5, otDays: 0.5, regularRate: 805.69, extraDutyRate: 1069 }).edAmount).toBe(534.5);
   });
+  it("bills ED-only attendance without a regular charge", () => {
+    const split = splitInvoiceDuties({ billedDays: 2, otDays: 2, regularRate: 805.69, extraDutyRate: 1069 });
+    expect(split.regularAmount).toBe(0);
+    expect(split.actual).toBe(2138);
+  });
 });
