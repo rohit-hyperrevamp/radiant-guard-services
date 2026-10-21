@@ -75,7 +75,6 @@ describe("ScrollingText animation", () => {
     const { track } = trigger();
     expect(captures).toHaveLength(1);
     const [{ keyframes, options }] = captures;
-    expect(track.textContent).toBe("A".repeat(0) || track.textContent);
     expect(keyframes).toHaveLength(3);
     expect(keyframes[0].transform).toBe("translateX(0)");
     expect(keyframes[1].transform).toBe("translateX(0)");
