@@ -102,11 +102,11 @@ describe("ScrollingText animation", () => {
   });
 
   it("does not animate when the text fits its frame", () => {
-    captures.length = 0;
+    roots.push(mount("Short"));
     const frame = document.querySelector<HTMLElement>(".scrolling-text");
     const track = frame?.firstElementChild as HTMLElement;
     if (!frame || !track) throw new Error("scrolling-text not rendered");
-    setSize(frame, 400, 400);
+    setSize(frame, 400, 400); // text fits: no overflow
     for (const { cb } of resizeCbs) cb();
     intersectCb?.([{ isIntersecting: true }]);
     for (const { cb } of resizeCbs) cb();
