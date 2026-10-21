@@ -841,17 +841,18 @@ function AdminLayout() {
             )}
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setCollapsed((v) => !v)}
             className={cn(
-              "mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-white/50 hover:bg-white/10 hover:text-white",
-              collapsed && "mx-auto mt-1.5 h-11 w-11 rounded-full p-0",
+              "mx-auto mt-2 flex h-8 w-fit min-h-8 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold text-dock-foreground/70 hover:bg-dock-foreground/10 hover:text-dock-foreground",
+              collapsed && "mt-1.5 h-8 w-8 min-w-8 p-0",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronsRight className="h-[18px] w-[18px]" /> : <><ChevronsLeft className="h-4 w-4" /> Collapse</>}
-          </button>
+          </Button>
 
         </div>
       </aside>

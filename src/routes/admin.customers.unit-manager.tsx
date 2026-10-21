@@ -406,7 +406,7 @@ function UnitManagerPage() {
             </SelectContent>
           </Select>
         </div>
-        {!isHrExecutive && <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
+        {!isHrExecutive && <div className="directory-actions grid grid-cols-2 gap-1.5 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={() =>
@@ -530,7 +530,7 @@ function UnitManagerPage() {
             className="h-9 rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add client
+            Add Client
           </Button>
         </div>}
       </div>
