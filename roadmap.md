@@ -1,6 +1,8 @@
 # Mobile app UI re-review
 
 ## Canara, SBI and L&T uploaded attendance — 21 October
+- [ ] Extend the identified expired/closed uploaded-sheet clients and latest contracts to 31 December 2026, restore active status, and verify production readback; do not alter rates or older contract copies.
+- [ ] Complete source-backed missing attendance after the extensions, retaining existing entries and processed periods; report any unreadable identities or dates individually.
 - [x] Extract 222 scanned pages and three spreadsheets; retain source references and identify duplicate archive contents.
 - [ ] Complete date-by-date verification: 258 extracted rows have mapped client/employee IDs and 217 have stored entries, but stored entries are not proof of matching; conflicting names, misaligned daily columns and blank printed rows prevent automatic import.
 - [ ] Fill safely verified missing attendance; blocked on an authorized production write path and source clarification for conflicting dates/IDs. CLI4510 employee 25828 has six clear Present marks (15–20 September). No attendance, posting, payroll or client status changed.
