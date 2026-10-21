@@ -28,7 +28,7 @@ export function DocumentPreview({
   if (!isHtmlBody(body)) {
     return (
       <pre
-        className={`whitespace-pre-wrap rounded-md bg-secondary/40 p-4 font-sans text-sm leading-relaxed text-foreground ${className}`}
+        className={`overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md bg-secondary/40 p-4 font-sans text-sm leading-relaxed text-foreground ${className}`}
       >
         {body}
       </pre>
