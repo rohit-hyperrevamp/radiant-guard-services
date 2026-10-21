@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Compact smart lists — 22 October
+- [x] Audit directory-table patterns across clients, contracts, employees, organizations, inventory, recruitment and master data; consolidate Clients location/state/city and organization/branch into paired cells.
+- [x] Apply shared width-aware primary fields and secondary detail dialogs to action-bearing directory tables, including legacy raw tables; retain original actions, exports and data. Narrow layouts use compact flat row groups rather than horizontal scrolling; calculation registers/forms are excluded.
+- [x] Thirteen checks pass, including secondary values read through the detail dialog and original Delete action; automatic compilation is clean.
+- [ ] Verify every signed-in list visually on production; blocked on publication and an authorized production session. Bespoke non-table lists and calculation matrices have not been fully visually reviewed.
+
 ## Single-line list action alignment — 21 October
 - [x] Remove the shared wrapping conflict, reserve intrinsic action-row width and keep Delete's tooltip wrapper from shrinking; contracts use contained horizontal scrolling rather than clipping.
 - [x] Review contract, employee setup, inventory, recruitment and management-list action groups; shared protection covers marked columns and legacy trailing icon groups without changing permissions or actions.
