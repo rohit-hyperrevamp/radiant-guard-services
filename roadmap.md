@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Canara, SBI and L&T uploaded attendance — 21 October
+- [x] Extract 222 scanned pages and three spreadsheets; retain source references and identify duplicate archive contents.
+- [ ] Match source client/employee identities and payroll dates to production; verify existing attendance without overwriting filled entries.
+- [ ] Fill only safely verified missing attendance; preserve processed periods and global primary-unit/Extra Duty caps; read back saved results.
+- [ ] Report unresolved source rows and any existing attendance differences honestly.
+
 ## CLI4096 regular employees
 - [x] Review the current CLI4096 roster and other postings; no processed payroll periods affected; inactive staff and employee 47940's prior CLI3708 reassignment preserved.
 - [x] Production readback confirms 120 active employees regular/primary at CLI4096 and 175 other postings reliever-only; 6,235 attendance entries retained with identical employee/site/month duty totals. Historical manual Extra Duty remains Extra Duty rather than inventing Present; payroll-day caps still apply.
