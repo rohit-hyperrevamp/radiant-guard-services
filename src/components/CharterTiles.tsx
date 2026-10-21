@@ -1,4 +1,5 @@
 import { TileNumber } from "@/components/TileNumber";
+import { Button } from "@/components/ui/button";
 import type { ComponentType, ReactNode } from "react";
 
 import { useCountUp } from "@/hooks/useCountUp";
@@ -36,6 +37,7 @@ export function CharterTile({
   icon: Icon,
   accent = "indigo",
   segments,
+  action,
 }: {
   label: string;
   sub?: string;
@@ -46,12 +48,14 @@ export function CharterTile({
   icon?: ComponentType<{ className?: string }>;
   accent?: Accent;
   segments?: TileSegment[];
+  action?: { label: string; onClick: () => void };
 }) {
   const rolled = useCountUp(countTo ?? 0);
   const display = countTo == null ? (value ?? "—") : rolled;
 
   return (
     <div
+      data-panel="true"
       className={cn(
         "dashboard-summary-tile group relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-colors sm:h-[172px] sm:w-auto sm:max-w-none sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[accent],
@@ -105,6 +109,11 @@ export function CharterTile({
       <TileNumber className="relative mt-auto min-w-0 whitespace-nowrap pt-2 font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
         {display}
       </TileNumber>
+      {action && (
+        <Button size="sm" className="mt-2 h-7 self-start text-xs" onClick={action.onClick}>
+          {action.label}
+        </Button>
+      )}
     </div>
   );
 }

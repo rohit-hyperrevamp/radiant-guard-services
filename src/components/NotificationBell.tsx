@@ -226,12 +226,14 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
             {top.map((n) => {
               const { Icon, tone } = notificationVisual(n.type);
               return (
-              <li key={n.id} className="overflow-hidden rounded-xl">
-                <button
+              <li key={n.id} data-panel="true" className="overflow-hidden rounded-xl">
+                <Button
+                  data-panel="true"
+                  variant="ghost"
                   type="button"
                   onClick={() => void handleOpenNotification(n)}
                   className={cn(
-                    "flex w-full items-center gap-3 px-2.5 py-2.5 text-left transition-colors hover:bg-secondary/60 [-webkit-tap-highlight-color:transparent] sm:px-3",
+                    "flex h-auto w-full items-center justify-start gap-3 px-2.5 py-2.5 text-left transition-colors hover:bg-secondary/60 [-webkit-tap-highlight-color:transparent] sm:px-3",
                     !n.readAt ? "bg-accent/[0.06]" : "bg-card/40",
                   )}
                 >
@@ -262,7 +264,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                </button>
+                </Button>
               </li>
             );})}
           </ul>

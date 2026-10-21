@@ -20,6 +20,14 @@ import { NotificationDetailDialog } from "@/components/NotificationDetailDialog"
 
 export const Route = createFileRoute("/admin/notifications")({
   component: NotificationCenter,
+  head: () => ({ meta: [
+    { title: "Notification Center | Radiant Guard Services" },
+    { name: "description", content: "Review and manage your Radiant notifications and unread updates." },
+    { property: "og:title", content: "Notification Center | Radiant Guard Services" },
+    { property: "og:description", content: "Review and manage your Radiant notifications and unread updates." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 const NQK = ["notifications", "mine"] as const;
@@ -56,7 +64,7 @@ function NotificationCenter() {
         crumbs={[{ label: "Notification Center" }]}
       />
 
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-border bg-card p-1 text-xs font-semibold">
           {(["all", "unread"] as const).map((k) => (
             <button
@@ -88,7 +96,7 @@ function NotificationCenter() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div data-panel="true" className="overflow-hidden border border-border bg-card">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center text-sm text-muted-foreground">
             <Bell className="mb-2 h-6 w-6 opacity-50" />
@@ -113,7 +121,7 @@ function NotificationCenter() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-sm font-semibold text-foreground">
                       {n.title}
                     </div>
@@ -126,7 +134,7 @@ function NotificationCenter() {
                       {n.message}
                     </div>
                   )}
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"

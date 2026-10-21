@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Remaining panels and Compliance — 22 October
+- [x] Rectify Staff, My Tasks, notification and Compliance tiles; centre the score and align exception controls.
+- [x] Distinguish circular actions by purpose, including portal dialogs; add payroll/invoice summary View commands that focus the records while retaining existing per-record View destinations.
+- [x] Thirteen shared controls/list checks pass; automatic compilation is clean.
+- [ ] Live visual and exception-sweep review waits on publication and an authorized production session; no signed-in production session is available.
+
 ## Screenshot finishing fixes — 22 October
 - [x] Protect labelled Add/Export action width and allow toolbar wrapping across Tasks, Clients and Vehicles.
 - [x] Restore mildly rounded rectangular task/case/history/notification surfaces; add explicit payroll/invoice View destinations and labelled Breakdown actions.
