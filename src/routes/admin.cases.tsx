@@ -455,6 +455,7 @@ function CaseDesk() {
               {statusCards.map((c) => (
                 <button
                   key={c.label}
+                  data-panel="true"
                   onClick={c.click}
                   className={cn(
                     "rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50",
@@ -472,6 +473,7 @@ function CaseDesk() {
               {prioCards.map((c) => (
                 <button
                   key={c.key}
+                  data-panel="true"
                   onClick={() => setPrio(prio === c.key ? "all" : c.key)}
                   className={cn(
                     "rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50",
@@ -612,6 +614,7 @@ function CaseDesk() {
         {rows.map((c) => (
           <button
             key={c.id}
+            data-panel="true"
             onClick={() => setOpenId(c.id)}
             className="flex w-full items-center gap-3 border-b border-border p-3 text-left last:border-0 hover:bg-accent/5"
           >

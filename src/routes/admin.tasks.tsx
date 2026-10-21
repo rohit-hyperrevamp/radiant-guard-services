@@ -247,7 +247,7 @@ function TasksPage() {
         description="Assign work with a due time, follow it until it is done, and keep the proof in one place."
         actions={
           <Button onClick={() => setCreating(true)} className="gap-1">
-            <Plus className="h-4 w-4" /> New task
+            <Plus className="h-4 w-4" /> New Task
           </Button>
         }
       />
@@ -271,6 +271,7 @@ function TasksPage() {
         {prioCounts.map((c) => (
           <button
             key={c.p}
+            data-panel="true"
             onClick={() => setPrio(prio === c.p ? "all" : c.p)}
             className={cn(
               "rounded-xl border border-border bg-card p-3 text-left transition hover:bg-muted/50",
@@ -323,6 +324,7 @@ function TasksPage() {
           return (
             <button
               key={t.id}
+              data-panel="true"
               onClick={() => setOpenId(t.id)}
               className="flex w-full items-start justify-between gap-3 p-3 text-left hover:bg-muted/40"
             >

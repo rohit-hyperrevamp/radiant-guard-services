@@ -26,6 +26,14 @@ import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFor
 
 export const Route = createFileRoute("/admin/vehicles/inventory")({
   component: VehicleInventoryPage,
+  head: () => ({ meta: [
+    { title: "Vehicle Inventory | Radiant Guard Services" },
+    { name: "description", content: "Manage fleet vehicles, registration details and vehicle status at Radiant Guard Services." },
+    { property: "og:title", content: "Vehicle Inventory | Radiant Guard Services" },
+    { property: "og:description", content: "Manage Radiant fleet vehicle records and registration details." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type Vehicle = {
@@ -206,7 +214,7 @@ function VehicleInventoryPage() {
 
 
       <div className="mobile-directory-toolbar mobile-glass-surface mb-3 flex flex-col gap-2 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search vehicles…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
@@ -234,7 +242,7 @@ function VehicleInventoryPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="directory-actions flex flex-wrap gap-2">
           <Button onClick={() => setAddOpen(true)} className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90">
             <Plus className="mr-1.5 h-4 w-4" />Add Vehicle
           </Button>
@@ -370,17 +378,17 @@ function VehicleInventoryPage() {
                 </div>
               )}
 
-              <div className="mt-auto flex items-center justify-end gap-1 border-t border-border/60 pt-2">
+              <div className="list-row mt-auto flex items-center justify-end gap-1.5 border-t border-border/60 pt-2">
                 <RecordViewButton
                   record={i}
                   title="Inventory details"
                   onEdit={() => setEditing(i)}
                 />
-                <Button size="sm" variant="ghost" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditing(i)}>
-                  <Edit2 className="h-3.5 w-3.5" /> Edit
+                <Button size="icon" variant="ghost" aria-label="Edit vehicle" title="Edit vehicle" onClick={() => setEditing(i)}>
+                  <Edit2 className="h-3.5 w-3.5" />
                 </Button>
-                <Button size="sm" variant="ghost" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => setDeleting(i)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                <Button size="icon" variant="ghost" aria-label="Delete vehicle" title="Delete vehicle" onClick={() => setDeleting(i)}>
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

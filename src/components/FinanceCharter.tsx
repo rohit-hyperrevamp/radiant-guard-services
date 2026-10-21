@@ -1341,7 +1341,8 @@ export function FinanceCharter({
                   to={linkTo}
                   params={{ unitId: r.unit.id }}
                   search={{ start: r.period.start, end: r.period.end }}
-                  className="group flex min-h-16 items-center gap-4 rounded-2xl border border-border/70 bg-card px-3 py-3 transition-colors hover:border-primary/40 sm:px-4"
+                  data-panel="true"
+                  className="group grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-3 transition-colors hover:border-primary/40 sm:px-4"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold group-hover:text-primary">
@@ -1352,7 +1353,10 @@ export function FinanceCharter({
                       <span className="truncate">{r.contractCode}</span>
                     </div>
                   </div>
-                  <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
+                  <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+                    <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">View Payroll <Wallet className="h-3.5 w-3.5" /></span>
+                  </div>
                 </Link>
               );
             }
@@ -1360,12 +1364,12 @@ export function FinanceCharter({
               <div
                 key={r.unit.id}
                 className={cn(
-                  "group overflow-hidden rounded-2xl border border-border/70 bg-card transition-all",
+                  "group overflow-hidden rounded-lg border border-border/70 bg-card transition-all",
                   "hover:border-primary/40 hover:shadow-[0_8px_24px_-16px_rgba(0,0,0,0.45)]",
                   isOpen && "border-primary/40",
                 )}
               >
-                <div className="flex items-stretch">
+                <div className="flex min-w-0 flex-wrap items-center gap-y-2">
                   {canFinalise && !r.finalInvoice && r.status.attendance === "approved" && (
                     <div className="flex w-9 shrink-0 items-center justify-center border-r border-border/60">
                       <Checkbox
@@ -1413,24 +1417,29 @@ export function FinanceCharter({
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-1.5 pr-1">
+                    <div className="flex shrink-0 flex-col items-end gap-1.5 pr-1 sm:flex-row sm:items-center">
                       {r.finalInvoice && (
                         <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-600">
                           {r.finalInvoice.invoice_no}
                         </span>
                       )}
                       <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">View Invoice <Receipt className="h-3.5 w-3.5" /></span>
                     </div>
                   </Link>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     aria-label={isOpen ? "Hide breakdown" : "Show breakdown"}
+                    aria-expanded={isOpen}
                     onClick={() => setExpanded((p) => ({ ...p, [r.unit.id]: !p[r.unit.id] }))}
-                    className="flex w-11 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="mr-3 shrink-0 text-xs"
                   >
+                    {isOpen ? "Hide Breakdown" : "Breakdown"}
                     <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                  </button>
+                  </Button>
                 </div>
 
                 {isOpen && (

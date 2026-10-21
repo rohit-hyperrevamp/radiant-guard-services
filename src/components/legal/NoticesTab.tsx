@@ -127,7 +127,7 @@ export function NoticesTab({ canEdit, cases }: { canEdit: boolean; cases: { id: 
         {rows.map((n) => (
           <div key={n.id} className="flex items-center gap-3 border-b border-border p-3 last:border-0">
             <FileText className="h-4 w-4 shrink-0 text-primary" />
-            <button className="min-w-0 flex-1 text-left" onClick={() => setEditing(n)}>
+            <button data-panel="true" className="min-w-0 flex-1 text-left" onClick={() => setEditing(n)}>
               <div className="truncate font-medium text-foreground">
                 <span className="mr-2 text-xs text-muted-foreground">{n.notice_number}</span>
                 {n.subject || "Untitled notice"}
