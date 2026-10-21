@@ -2463,7 +2463,8 @@ table :is([data-slot="badge"], .badge, [class*="rounded-full"][class*="px-"]):no
 .ios-table [data-col="approval"] { white-space: nowrap; }
 table tbody td :is(button, a):has(> svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search)):not(:has(> span)) { background: oklch(0.55 0.17 250) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
 table tbody td :is(button, a):has(> svg:is(.lucide-eye, .lucide-external-link, .lucide-file-search)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
-table tbody td :is(button, a) > svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit) { color: oklch(0.62 0.15 65) !important; }
+table tbody td :is(button, a):has(> svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit)):not(:has(> span)) { background: oklch(0.66 0.15 65) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
+table tbody td :is(button, a):has(> svg:is(.lucide-pencil, .lucide-pen, .lucide-square-pen, .lucide-pen-line, .lucide-edit)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
 table tbody td :is(button, a):has(> svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)):not(:has(> span)) { background: oklch(0.55 0.18 300) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
 table tbody td :is(button, a):has(> svg:is(.lucide-copy, .lucide-copy-plus, .lucide-files)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
 table tbody td :is(button, a):has(svg:is(.lucide-trash, .lucide-trash-2)):not(:has(> span:not(:has(svg)))) { background: oklch(0.58 0.21 25) !important; border-color: transparent !important; border-radius: 9999px !important; width: 2rem; height: 2rem; }
