@@ -71,11 +71,20 @@ function trigger() {
   return { frame, track };
 }
 
+const roots: Root[] = [];
+afterEach(() => {
+  for (const root of roots) act(() => root.unmount());
+  roots.length = 0;
+  captures.length = 0;
+});
+
 describe("ScrollingText animation", () => {
   it("scrolls in one direction only: hold, sweep left, then restart jumps back", () => {
+    roots.push(mount("Anz Acacia many extra words to overflow the narrow frame"));
     captures.length = 0;
     const { track } = trigger();
     expect(captures).toHaveLength(1);
+    expect(track.textContent).toContain("Anz Acacia");
     const [{ keyframes, options }] = captures;
     expect(keyframes).toHaveLength(3);
     expect(keyframes[0].transform).toBe("translateX(0)");
