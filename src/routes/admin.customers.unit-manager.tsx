@@ -1,6 +1,7 @@
 import { matchesSearch, statusRank } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
+import { ScrollingText } from "@/components/ScrollingText";
 import { notifySaved } from "@/components/ConfirmProvider";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
@@ -557,10 +558,10 @@ function UnitManagerPage() {
               {pg.pageRows.map((u) => (
                 <tr key={u.id} className="hover:bg-secondary/30">
                   <td data-label="Client ID" className="px-5 py-3"><CopyableId value={u.code} label="Client ID" /></td>
-                  <td data-label="Name" className="px-5 py-3 font-semibold text-foreground" data-wrap="true">{u.name}</td>
+                  <td data-label="Name" className="px-5 py-3 font-semibold text-foreground"><ScrollingText text={u.name} /></td>
                   <td data-label="Location" className="px-5 py-3 text-muted-foreground" data-wrap="true">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span>{u.location || <span className="italic opacity-60">—</span>}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <ScrollingText text={u.location} className="flex-1" />
                       {(u.latitude != null && u.longitude != null) && (
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}`}
@@ -575,10 +576,10 @@ function UnitManagerPage() {
                       )}
                     </div>
                   </td>
-                  <td data-label="State" className="px-5 py-3 text-foreground" data-wrap="true">{u.stateLabel || <span className="italic opacity-60">—</span>}</td>
-                  <td data-label="City" className="px-5 py-3 text-foreground" data-wrap="true">{u.cityLabel || <span className="italic opacity-60">—</span>}</td>
-                  <td data-label="Branch" className="px-5 py-3 text-foreground" data-wrap="true">{u.branchLabel}</td>
-                  <td data-label="Organization" className="px-5 py-3 text-foreground" data-wrap="true">{u.customerLabel}</td>
+                  <td data-label="State" className="px-5 py-3 text-foreground"><ScrollingText text={u.stateLabel} /></td>
+                  <td data-label="City" className="px-5 py-3 text-foreground"><ScrollingText text={u.cityLabel} /></td>
+                  <td data-label="Branch" className="px-5 py-3 text-foreground"><ScrollingText text={u.branchLabel} /></td>
+                  <td data-label="Organization" className="px-5 py-3 text-foreground"><ScrollingText text={u.customerLabel} /></td>
                   <td data-label="Status" className="px-5 py-3">
                     <StatusBadge active={u.status === "active"} />
                   </td>

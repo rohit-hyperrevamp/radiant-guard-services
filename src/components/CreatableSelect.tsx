@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import type { SearchSelectOption } from "@/components/SearchSelect";
 import { useDropdownSearch } from "@/components/dropdown-search";
+import { ScrollingText } from "@/components/ScrollingText";
 
 /** Searchable dropdown that also lets you add a typed name that isn't in the list. */
 export function CreatableSelect({
@@ -39,8 +40,8 @@ export function CreatableSelect({
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" role="combobox" disabled={disabled}
           className={cn("h-10 w-full justify-between rounded-md border-input bg-background px-3 font-normal", className)}>
-          <span className={cn("truncate text-left", !shown && "text-muted-foreground")}>{shown || placeholder}</span>
-          <span className="flex items-center">
+          <ScrollingText text={shown || placeholder} className={cn("flex-1 text-left", !shown && "text-muted-foreground")} />
+          <span className="flex shrink-0 items-center">
             {shown && !disabled && (
               <X className="mr-1 h-3.5 w-3.5 opacity-60 hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); onChange(""); }} />
@@ -59,16 +60,16 @@ export function CreatableSelect({
               {q && !exact && (
                 <CommandItem value={`__create__${query}`} onSelect={() => { onCreate(query.trim()); setQuery(""); setOpen(false); }}>
                   <Plus className="mr-2 h-4 w-4 text-primary" />
-                  <span className="truncate text-sm">Add “{query.trim()}”</span>
+                  <ScrollingText text={`Add “${query.trim()}”`} className="flex-1 text-sm" />
                 </CommandItem>
               )}
               {filtered.map((o) => (
                 <CommandItem key={o.value} value={`${o.label} ${o.hint ?? ""} ${o.value}`}
                   onSelect={() => { onChange(o.value); setQuery(""); setOpen(false); }}>
                   <Check className={cn("mr-2 h-4 w-4", value === o.value ? "opacity-100" : "opacity-0")} />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm">{o.label}</span>
-                    {o.hint && <span className="truncate text-[11px] text-muted-foreground">{o.hint}</span>}
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <ScrollingText text={o.label} className="text-sm" />
+                    {o.hint && <ScrollingText text={o.hint} className="text-[11px] text-muted-foreground" />}
                   </div>
                 </CommandItem>
               ))}

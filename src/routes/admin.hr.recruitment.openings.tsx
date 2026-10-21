@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Briefcase, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ScrollingText } from "@/components/ScrollingText";
 import { EmployeePicker } from "@/components/EmployeePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,10 +58,8 @@ function OpeningsPage() {
             <div key={o.id} className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-display font-semibold">{o.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {[o.designation_id && desig.get(o.designation_id), o.department_id && dept.get(o.department_id)].filter(Boolean).join(" · ") || "—"}
-                  </div>
+                  <ScrollingText text={o.title} className="text-sm font-semibold" />
+                  <ScrollingText text={[o.designation_id && desig.get(o.designation_id), o.department_id && dept.get(o.department_id)].filter(Boolean).join(" · ")} className="text-xs text-muted-foreground" />
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setEdit(o)} aria-label="Edit opening"><Pencil className="h-4 w-4" /></Button>
               </div>

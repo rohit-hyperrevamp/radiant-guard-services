@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ScrollingText } from "@/components/ScrollingText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/admin/hr/recruitment/candidates/")({
       { name: "description", content: "All staff-hiring candidates, their stage, opening and interviews." },
       { property: "og:title", content: "Recruitment Candidates — Radiant" },
       { property: "og:description", content: "All staff-hiring candidates, their stage, opening and interviews." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CandidatesPage,
@@ -109,10 +112,10 @@ function CandidatesPage() {
             {pageRows.map((c) => (
               <tr key={c.id} role="link" tabIndex={0} className="cursor-pointer hover:bg-muted/30" onClick={() => navigate({ to: "/admin/hr/recruitment/candidates/$recId", params: { recId: c.id } })} onKeyDown={(e) => { if (e.key === "Enter") navigate({ to: "/admin/hr/recruitment/candidates/$recId", params: { recId: c.id } }); }}>
                 <td className="p-3">
-                  <Link to="/admin/hr/recruitment/candidates/$recId" params={{ recId: c.id }} className="font-medium hover:text-accent">{c.full_name}</Link>
+                   <Link to="/admin/hr/recruitment/candidates/$recId" params={{ recId: c.id }} className="block font-medium hover:text-accent"><ScrollingText text={c.full_name} /></Link>
                   <div className="text-xs text-muted-foreground">{c.code} · {c.mobile}</div>
                 </td>
-                <td className="p-3">{c.opening_id ? openingTitle.get(c.opening_id) ?? "—" : "—"}</td>
+                 <td className="p-3"><ScrollingText text={c.opening_id ? openingTitle.get(c.opening_id) : null} /></td>
                 <td className="p-3"><span className={cn("rounded-full px-2 py-0.5 text-xs", stageTone(c.stage))}>{stageLabel(c.stage)}</span></td>
                 <td className="p-3 tabular-nums">{c.rounds_cleared}/{c.total_rounds}</td>
                 <td className="p-3 tabular-nums">{inr(c.expected_ctc)}</td>

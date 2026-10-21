@@ -71,7 +71,7 @@ TableHead.displayName = "TableHead";
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
@@ -79,7 +79,9 @@ const TableCell = React.forwardRef<
       className,
     )}
     {...props}
-  />
+  >
+    {children}
+  </td>
 ));
 TableCell.displayName = "TableCell";
 

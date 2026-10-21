@@ -11,6 +11,7 @@ import { useDeferredValue, useCallback, useEffect, useMemo, useRef, useState } f
 import * as XLSX from "xlsx";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import { SearchSelect } from "@/components/SearchSelect";
+import { ScrollingText } from "@/components/ScrollingText";
 import { useDropdownSearch } from "@/components/dropdown-search";
 import { ContractExportDialog } from "@/components/ContractExportDialog";
 import {
@@ -3078,12 +3079,12 @@ function ClientContractsPage() {
                     <CopyableId value={tab === "client" ? c.contractCode : c.prospectCode} label={tab === "client" ? "Contract ID" : "Draft ID"} />
                   </td>
                   <td className="px-5 py-3 font-medium text-foreground">
-                    <span className="cell-primary">{c.orgName}</span>
+                    <ScrollingText text={c.orgName} />
                   </td>
                   <td className="px-5 py-3 text-foreground">
                     <div className="cell-stack">
                       <span className="cell-secondary font-mono">{c.unitCode}</span>
-                      <span className="cell-primary">{c.unitName}</span>
+                      <ScrollingText text={c.unitName} />
                     </div>
                   </td>
                   {tab === "client" ? (

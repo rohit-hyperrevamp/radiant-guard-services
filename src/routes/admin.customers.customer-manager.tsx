@@ -2,6 +2,7 @@ import { matchesSearch, statusRank } from "@/lib/search-match";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { SearchSelect } from "@/components/SearchSelect";
+import { ScrollingText } from "@/components/ScrollingText";
 import { InvoiceFormatEditor, OrgInvoiceFormatDialog, saveOrgInvoiceSplit } from "@/components/InvoiceSplitSettings";
 import { DEFAULT_SPLIT, loadOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
 import { useQueryClient as useQC } from "@tanstack/react-query";
@@ -239,11 +240,9 @@ function CustomerManagerPage() {
                     {c.code}
                   </td>
                   <td data-label="Organization" className="px-5 py-3" data-wrap="true">
-                    <div className="font-semibold text-foreground">{c.name}</div>
+                    <ScrollingText text={c.name} className="font-semibold text-foreground" />
                     {c.address && (
-                      <div className="text-xs text-muted-foreground">
-                        {c.address}
-                      </div>
+                      <ScrollingText text={c.address} className="text-xs text-muted-foreground" />
                     )}
                   </td>
                   <td data-label="Website" className="px-5 py-3 text-muted-foreground" data-wrap="true">
@@ -255,7 +254,7 @@ function CustomerManagerPage() {
                         className="cell-pill"
                         title={c.website}
                       >
-                        <span>{c.website}</span>
+                        <ScrollingText text={c.website} className="flex-1" />
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
