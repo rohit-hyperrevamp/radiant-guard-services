@@ -33,6 +33,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { misBillingLine } from "@/lib/mis-billing";
+import { invoiceExtraDutyRate, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1079,13 +1080,25 @@ function PayrollUnitPage() {
     const exactRate = billsHourly
       ? billingDays > 0 && shiftHours > 0 ? contracted / billingDays / shiftHours : 0
       : billingDays > 0 ? contracted / billingDays : 0;
-    const actual =
+    const extraDutyRate = invoiceExtraDutyRate(unitId, r.resource?.components ?? []);
+    const dutySplit = extraDutyRate != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
+      ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly })
+      : null;
+    const actual = dutySplit?.actual ?? (
       !r.wages || !r.resource
         ? 0
         : billingMode === "lumpsum" || billingMode === "man_months"
           ? contracted
-          : Math.round((exactDayRate ? exactRate * (billsHourly ? (r.totals.tDays ?? 0) * shiftHours : (r.totals.tDays ?? 0)) : unitRate * unitQuantity) * 100) / 100;
+          : Math.round((exactDayRate ? exactRate * (billsHourly ? (r.totals.tDays ?? 0) * shiftHours : (r.totals.tDays ?? 0)) : unitRate * unitQuantity) * 100) / 100);
     return {
+      extraDutyRate,
+      dutySplit,
+      billingLines: dutySplit
+        ? [
+            { kind: "Regular duties", rate: dutySplit.regularRate, quantity: dutySplit.regularQuantity, amount: dutySplit.regularAmount },
+            { kind: "Extra Duty", rate: dutySplit.edRate, quantity: dutySplit.edQuantity, amount: dutySplit.edAmount },
+          ].filter((item) => item.quantity > 0)
+        : [{ kind: "", rate: unitRate, quantity: unitQuantity, amount: actual }],
       contracted,
       payrollDays,
       billingDays,
@@ -1144,26 +1157,22 @@ function PayrollUnitPage() {
       // Hide roles with zero attendance — fixed-value contracts still show.
       if (billingMode !== "lumpsum" && billingMode !== "man_months" && (r.totals.tDays ?? 0) <= 0) continue;
       const m = invoiceMathFor(r);
-      const key = String(r.designationId ?? "__none__");
-      const existing =
-        map.get(key) ??
-        {
+      for (const item of m.billingLines) {
+        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${item.rate}|${item.kind}`;
+        const existing = map.get(key) ?? {
           key,
-          designation: r.designation,
-          headcount: 0,
-          billedDays: 0,
-          billedHours: 0,
-          perHour: m.unitRate,
-          contracted: 0,
-          actual: 0,
+          designation: item.kind ? `${r.designation} · ${item.kind}` : r.designation,
+          headcount: 0, billedDays: 0, billedHours: 0,
+          perHour: item.rate, contracted: 0, actual: 0,
         };
-      existing.headcount += 1;
-      existing.billedDays = Math.round((existing.billedDays + m.billedDays) * 100) / 100;
-      existing.billedHours = Math.round((existing.billedHours + m.billedHours) * 100) / 100;
-      existing.perHour = m.unitRate || existing.perHour;
-      existing.contracted = Math.round((existing.contracted + m.contracted) * 100) / 100;
-      existing.actual = Math.round((existing.actual + m.actual) * 100) / 100;
-      map.set(key, existing);
+        existing.headcount += 1;
+        const days = billingMode === "man_hours" ? item.quantity / m.shiftHours : item.quantity;
+        existing.billedDays = Math.round((existing.billedDays + days) * 100) / 100;
+        existing.billedHours = Math.round((existing.billedHours + days * m.shiftHours) * 100) / 100;
+        existing.contracted = Math.round((existing.contracted + (item.kind === "Extra Duty" ? 0 : m.contracted)) * 100) / 100;
+        existing.actual = Math.round((existing.actual + item.amount) * 100) / 100;
+        map.set(key, existing);
+      }
     }
     return Array.from(map.values()).sort((a, b) => a.designation.localeCompare(b.designation));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1214,20 +1223,18 @@ function PayrollUnitPage() {
     const groups = new Map<string, Group>();
     for (const r of billable) {
       const m = invoiceMathFor(r);
-      const key = `${r.designation}|${m.unitRate}|${m.shiftHours}|${m.payrollDays}`;
-      const g = groups.get(key) ?? {
-        designation: r.designation,
-        monthly: m.contracted,
-        payrollDays: m.payrollDays,
-        shiftHours: m.shiftHours,
-        unitRate: m.unitRate,
-        unitLabel: m.unitLabel,
-        quantity: 0,
-        amount: 0,
-      };
-      g.quantity = r2(g.quantity + m.unitQuantity);
-      g.amount = r2(g.amount + m.actual);
-      groups.set(key, g);
+      for (const item of m.billingLines) {
+        const designation = item.kind ? `${r.designation} · ${item.kind}` : r.designation;
+        const key = `${designation}|${item.rate}|${m.shiftHours}|${m.payrollDays}`;
+        const g = groups.get(key) ?? {
+          designation, monthly: m.contracted, payrollDays: m.payrollDays,
+          shiftHours: m.shiftHours, unitRate: item.rate, unitLabel: m.unitLabel,
+          quantity: 0, amount: 0,
+        };
+        g.quantity = r2(g.quantity + item.quantity);
+        g.amount = r2(g.amount + item.amount);
+        groups.set(key, g);
+      }
     }
     const list = Array.from(groups.values());
     const totalQuantity = r2(list.reduce((s, g) => s + g.quantity, 0));
@@ -1283,7 +1290,9 @@ function PayrollUnitPage() {
           description:
             g.unitLabel === "hrs"
               ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`
-              : `${g.designation} @ Rs ${Math.round(g.monthly)}/-`,
+              : invoiceExtraDutyRate(unitId, []) != null
+                ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Duty`
+                : `${g.designation} @ Rs ${Math.round(g.monthly)}/-`,
           hsnSac: hsn,
           quantityLabel: g.unitLabel === "hrs" ? `${g.quantity.toFixed(2)} hrs` : g.quantity.toFixed(2),
           rate: g.unitRate,
@@ -1368,7 +1377,8 @@ function PayrollUnitPage() {
         otDays: r.totals.otDays ?? 0,
         total: m.actual,
         intraState: isIntraState,
-        maxWorkingDays: m.billingDays,
+        maxWorkingDays: m.dutySplit ? null : m.billingDays,
+        extraDutyRate: m.extraDutyRate,
       });
 
       const otDays = line.otDays;
@@ -1376,7 +1386,7 @@ function PayrollUnitPage() {
       const otHours = otDays;
       // OT rate is hourly: the invoice's per-duty rate divided by the
       // contractual shift length (8h or 12h unit).
-      const otRate = r2(line.otRate / (m.shiftHours > 0 ? m.shiftHours : 8));
+      const otRate = m.extraDutyRate != null ? line.otRate : r2(line.otRate / (m.shiftHours > 0 ? m.shiftHours : 8));
       const otAmount = line.otAmount;
       const regular = line.regularBilling;
       const otBilling = line.otBilling;
@@ -1480,17 +1490,14 @@ function PayrollUnitPage() {
 
     const lines = rows
       .filter((row) => row.wages && row.resource)
-      .map((row) => {
+      .flatMap((row) => {
         const math = invoiceMathFor(row);
         if (billingMode === "lumpsum") {
-          return { qty: 1, rate: math.actual, amount: math.actual, monthly: math.contracted };
+          return [{ qty: 1, rate: math.actual, amount: math.actual, monthly: math.contracted }];
         }
-        return {
-          qty: math.unitQuantity,
-          rate: math.unitRate,
-          amount: math.actual,
-          monthly: math.contracted,
-        };
+        return math.billingLines.map((item) => ({
+          qty: item.quantity, rate: item.rate, amount: item.amount, monthly: math.contracted,
+        }));
       })
       .filter((line) => line.amount > 0);
 
