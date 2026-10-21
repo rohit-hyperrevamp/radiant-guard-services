@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI4096 separate Extra Duty invoice rate — 21 October
+- [ ] Trace why Extra Duty bills at the regular duty rate; keep the regular fixed-27 rate unchanged.
+- [ ] Apply (Basic + DA) / 26 × 2 to CLI4096 invoice Extra Duty only, with separate regular/ED lines and consistent exports.
+- [ ] Test saved production inputs and invoice calculations; signed-in live verification depends on publication and a production session.
+
 ## CLI4096 fixed daily billing — 21 October
 - [x] Production CLI4096 / CON15788 billing basis is Fixed 27 Days; payroll remains Days Minus Four, attendance untouched, no dated revisions or finalized invoices found.
 - [x] Read back ₹21,753.58 ÷ 27 = ₹805.69 per duty; 26 duties ₹20,947.94 and 27 duties ₹21,753.63 before GST. Three focused calculation tests passed. Saved-data/calculation verified; signed-in live invoice screen not checked.
