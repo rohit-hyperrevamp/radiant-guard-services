@@ -133,9 +133,9 @@ function ScoreRing({ score }: { score: number }) {
           strokeDashoffset={c - (c * score) / 100}
         />
       </svg>
-      <div className="absolute inset-0 grid place-items-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
         <span className={cn("text-[28px] font-semibold leading-none tabular-nums", tone.text)}>{score}</span>
-        <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="text-[10px] font-semibold uppercase tracking-normal text-muted-foreground">
           {tone.verdict}
         </span>
       </div>
@@ -263,9 +263,11 @@ function CompliancePage() {
       <InsuranceHeadTiles ym={ym} />
 
       {!showExceptions && (
-        <button
+        <Button
+          data-panel="true"
+          variant="outline"
           onClick={() => setShowExceptions(true)}
-          className="mb-4 flex w-full items-center gap-3 rounded-[26px] border border-border/60 bg-card/70 p-4 text-left backdrop-blur transition-all hover:border-border hover:shadow-sm"
+          className="mb-4 flex h-auto w-full items-center justify-start gap-3 whitespace-normal border border-border/60 bg-card/70 p-4 text-left backdrop-blur transition-all hover:border-border hover:shadow-sm"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20">
             <AlertTriangle className="h-5 w-5" />
@@ -277,15 +279,15 @@ function CompliancePage() {
             </span>
           </span>
           <ArrowUpRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
-        </button>
+        </Button>
       )}
 
       {showExceptions && (<>
       {/* Hero: score + severity ladder */}
-      <div className="mb-4 overflow-hidden rounded-[26px] border border-border/60 bg-gradient-to-br from-card/90 via-card/70 to-card/40 p-4 shadow-sm backdrop-blur-xl sm:p-5">
+      <div data-panel="true" className="mb-4 overflow-hidden border border-border/60 bg-card p-4 shadow-sm sm:p-5">
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
           <ScoreRing score={isLoading ? 0 : score} />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 w-full flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Compliance score
             </p>
@@ -303,11 +305,14 @@ function CompliancePage() {
                 const style = SEVERITY_STYLE[s];
                 const active = severity === s;
                 return (
-                  <button
+                  <Button
+                    data-panel="true"
+                    variant="outline"
+                    aria-pressed={active}
                     key={s}
                     onClick={() => setSeverity(active ? "all" : s)}
                     className={cn(
-                      "rounded-2xl border px-3 py-2 text-left transition-all",
+                      "h-auto w-full flex-col items-start gap-0 border px-3 py-2 text-left transition-all",
                       active
                         ? "border-transparent shadow-sm ring-2 " + style.ring + " " + style.chip
                         : "border-border/60 bg-background/50 hover:border-border",
@@ -320,7 +325,7 @@ function CompliancePage() {
                       </span>
                     </span>
                     <span className="mt-0.5 block text-xl font-semibold whitespace-nowrap tabular-nums">{bySeverity[s]}</span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -338,11 +343,14 @@ function CompliancePage() {
           const active = domain === key;
           const worst = SEVERITY_ORDER.find((s) => stats.sev[s] > 0);
           return (
-            <button
+            <Button
+              data-panel="true"
+              variant="outline"
+              aria-pressed={active}
               key={key}
               onClick={() => setDomain(active ? "all" : key)}
               className={cn(
-                "group relative overflow-hidden rounded-2xl border p-3 text-left transition-all",
+                "group relative flex h-auto w-full flex-col items-stretch gap-0 overflow-hidden border p-3 text-left transition-all",
                 active
                   ? "border-accent/40 bg-accent/5 shadow-sm"
                   : "border-border/60 bg-card/70 backdrop-blur hover:border-border hover:shadow-sm",
@@ -375,7 +383,7 @@ function CompliancePage() {
                   )
                 )}
               </div>
-            </button>
+            </Button>
           );
         })}
       </div>
