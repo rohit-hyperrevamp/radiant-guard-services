@@ -2286,7 +2286,7 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   height: 144px;
   min-height: 144px;
   padding: 14px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   gap: 8px;
 }
 .dashboard-summary-tile .dashboard-tile-title {
@@ -2473,7 +2473,7 @@ table tbody td :is(button, a):has(> svg:is(.lucide-download, .lucide-check, .luc
 table tbody td :is(button, a):has(> svg:is(.lucide-download, .lucide-check, .lucide-circle-check)):not(:has(> span)) > svg { color: var(--primary-foreground) !important; }
 
 /* Consistent shape: every button is a pill; icon-only buttons and page numbers are circles. */
-:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]) {
+:where(button, [role="button"], a[data-slot="button"], [data-slot="button"], input[type="button"], input[type="submit"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([role="option"]):not([role="menuitem"]):not([data-slot="select-trigger"]):not([data-no-pill]):not(.dashboard-summary-tile) {
   border-radius: 9999px !important;
 }
 :where(button, a, [role="button"]):has(> svg:only-child):not([role="switch"]):not([role="checkbox"]):not([data-no-pill]),
