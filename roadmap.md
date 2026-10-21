@@ -1,7 +1,7 @@
 # Mobile app UI re-review
 
 ## Canara, SBI and L&T uploaded attendance — 21 October
-- [ ] Approve uploaded Canara/SBI/L&T attendance only where the full client-period sheet is verified; partial-cell verification and unresolved identities/marks block approval.
+- [x] Check requested Canara/SBI/L&T approvals: fresh production read shows all 128 existing September-overlapping sheets already approved (30 Canara, 13 SBI, 85 L&T). No additional approvals issued: new/partial sheets still require full-period verification; Ponda also contains a second employee's six existing entries beyond the 30 cells checked.
 - [x] Extend all 38 identified expired/closed uploaded-sheet clients and latest contracts to 31 December 2026; fresh production readback confirms active status and dates, with other contract terms unchanged.
 - [x] Save and verify 260 source-backed daily cells for 14 employees across 13 sites, including all eight reopened Rajasthan sites; retained existing dates and processed periods, with global-rule original values checked. Ponda date mapping corrected to the actual 30 printed columns (no August 31).
 - [ ] Complete ambiguous source cells: Nagaur Noratan ID 47548 conflicts with Sundaram Raju Singh; Mohan Singh has P/P and unclear marks; Khatipura/Tonk OT-row P marks need numeric ED interpretation; dash/SUNDAY need paid/unpaid-off confirmation; Washim Nitin's WO conflicts with reliever posting. Blank printed rows do not establish attendance.
