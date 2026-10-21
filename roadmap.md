@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## BFSL uploaded September attendance — 21 October
+- [ ] Verify all 40 pages of ACE_Scanner_20261001.pdf against client/employee identities and printed day columns; separate clock-hour Extra Duty from duty days.
+- [ ] Save source-confirmed BFSL attendance with before-change backups, preserving processed periods and enforcing monthly primary-site and contract Present-day caps.
+- [ ] Read back every saved row and report uncertain source cells, identity/date conflicts and protected periods without claiming a full match.
+
 ## Canara, SBI and L&T uploaded attendance — 21 October
 - [x] Check requested Canara/SBI/L&T approvals: fresh production read shows all 128 existing September-overlapping sheets already approved (30 Canara, 13 SBI, 85 L&T). No additional approvals issued: new/partial sheets still require full-period verification; Ponda also contains a second employee's six existing entries beyond the 30 cells checked.
 - [x] Extend all 38 identified expired/closed uploaded-sheet clients and latest contracts to 31 December 2026; fresh production readback confirms active status and dates, with other contract terms unchanged.
