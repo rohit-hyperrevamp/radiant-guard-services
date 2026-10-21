@@ -2410,6 +2410,23 @@ table tbody :is(td[data-col="actions"], td[data-col="employee-actions"]) :is(but
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* Older management lists identify actions by a trailing icon-button group. */
+.ios-table tbody td:last-child:has(> .inline-flex > :is(button, a, span) svg) {
+  white-space: nowrap !important;
+  max-width: none;
+  vertical-align: middle;
+}
+.ios-table tbody td:last-child > .inline-flex:has(> :is(button, a, span) svg) {
+  width: max-content;
+  max-width: none !important;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap !important;
+  gap: 6px;
+}
+.ios-table tbody td:last-child > .inline-flex:has(> :is(button, a, span) svg) > * {
+  flex-shrink: 0;
+}
 
 /* One control language inside every list toolbar: same height, radius and
    surface for search boxes, dropdowns, date pickers and buttons. */
