@@ -14,6 +14,19 @@ export const FORMULA_TEMPLATES: { id: string; label: string; config: FormulaConf
       },
     },
   },
+  {
+    id: "lww-basic-da-4",
+    label: "Leave Pay / LWW 4% (Basic+DA)",
+    config: {
+      mode: "preset",
+      preset: {
+        base: { kind: "basic_plus_da" },
+        operator: "percent",
+        percent: 4,
+        multipliers: [],
+      },
+    },
+  },
 ];
 
 export function selectFormulaTemplate(id: string): FormulaConfig | null {
