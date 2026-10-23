@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI1651 uploaded October muster — 23 October
+- [x] User confirmed both uploaded pages apply to CLI1651 despite printed CLI1654; period 21 September–20 October. Production sheet/payroll are draft and unprocessed; private before-state saved.
+- [ ] Verify all dated source marks, duplicate employee/role rows and holiday totals; correct only confirmed differences with primary/cap rules intact.
+- [ ] Read back corrections and report any source ambiguity or unsupported individual PH exclusions.
+
 ## CLI325 Japan Tubular rate structure — 23 October
 - [x] Verified active CON16246 role rates against both supplied sheets. User confirmed apply 2025 sheets to current contract, Guard final billing ₹29,234, Supervisor ESI removed/WC ₹200 retained.
 - [x] Existing enabled reusable allowance HRA 5% (Basic+DA), expression `(basic + da) * 0.05`, is already selectable; wired both roles to it without duplicating or changing other HRA masters. Added dedicated derived-line masters for Exgratia, Leave Pay, Bonus, PF, ESI, Gratuity and Reliever formulas.
