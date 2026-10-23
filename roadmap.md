@@ -1,9 +1,10 @@
 # Mobile app UI re-review
 
 ## CLI2098 Pradeep / Ekanath correction — 23 October
-- [ ] Verify identities 49748 (Pradeep Rathore) and 49653 (Ekanath), postings, October window and existing attendance without merging personal records.
-- [ ] Correct verified employee mapping and record 30 October-period duties at CLI2098, retaining primary-unit/cap rules and processed-period protection.
-- [ ] Read back identity and dated attendance totals; report any cap conversion or blocking ambiguity.
+- [x] Production verified 49748 already belongs to Pradip Raosaheb Rathod (inactive Security Guard at CLI2098), and 49653 to Ekanath Jaanrao Palaspagar; no identity merge needed. User confirmed 49748 is the same person called Pradeep Rathore.
+- [x] User confirmed 30 duties in 21 September–20 October, keep cap and joining date unchanged. Restored 49748 active/enabled; reopened approved attendance and submitted (unprocessed) payroll to draft; replaced existing 30 dated marks with Present input. Global rules returned exactly 26 Present + 4 Extra Duty; no dates added or lost. Production before/after backups retained privately.
+- [x] Read back 30 dated entries and 26 P + 4 ED; verified Ekanath 49653 name unchanged. Payroll/attendance require resubmission and approval.
+- [ ] Change displayed name to Pradeep Rathore through the configured sensitive-employee approval process. Blocked on an authorized production session; do not bypass approval with a privileged direct name update.
 
 ## CLI2098 October attendance — 23 October
 - [x] Inspect production: CLI2098 October period is 21 September–20 October; no entries or postings there for any of the three employees. Their current attendance is at CLI1651.
