@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Leave Pay formula — 23 October
+- [x] Exposed existing Leave with Wages 4% (Basic+DA) master with clear labels and added Leave Pay / LWW 4% template; existing contracts and other variants unchanged.
+- [x] Production labels read back; six formula save/load and Japan calculation tests pass; automatic compilation clean.
+- [ ] Signed-in live formula selection awaits publication and an authorized production session.
+
 ## HRA formula visibility — 23 October
 - [x] Corrected the existing production HRA master's blank display/short labels, Add allowance name fallback and variant detail; added named HRA 5% (Basic+DA) selection to the shared formula box and aligned Cost Component Manager allowance cache invalidation.
 - [x] Production master readback verified; five formula selection/save-load and Japan calculation tests pass, latest automatic compilation clean. No contract amounts changed.
