@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## CLI384 supplied rate correction — 23 October
+- [x] Visually read supplied eight-hour Security Guard sheet: gross ₹11,098.11, deductions ₹1,532.56, net ₹9,565.55; listed employer costs plus management fee imply ₹14,082.71 versus printed ₹14,186.81.
+- [ ] Confirm the unexplained ₹104.10 billing difference before introducing a balancing line; do not double-count Paid Holiday.
+- [ ] Inspect and correct current production contract only, preserving staffing, historical contracts and processed outputs. Blocked on an authorized live session or supported production-targeted database tools; built-in tools target the unrelated sandbox and shell database inspection/updates are not permitted by current tool rules.
+- [ ] Verify saved rates and actual live contract totals after authorized correction.
+
 ## Leave Pay formula — 23 October
 - [x] Exposed existing Leave with Wages 4% (Basic+DA) master with clear labels and added Leave Pay / LWW 4% template; existing contracts and other variants unchanged.
 - [x] Production labels read back; six formula save/load and Japan calculation tests pass; automatic compilation clean.
