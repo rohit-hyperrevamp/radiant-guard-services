@@ -2,8 +2,8 @@
 
 ## CLI1651 uploaded October muster — 23 October
 - [x] User confirmed both uploaded pages apply to CLI1651 despite printed CLI1654; period 21 September–20 October. Production sheet/payroll are draft and unprocessed; private before-state saved.
-- [ ] Verify all dated source marks, duplicate employee/role rows and holiday totals; correct only confirmed differences with primary/cap rules intact.
-- [ ] Read back corrections and report any source ambiguity or unsupported individual PH exclusions.
+- [x] Visually verified 34 source role rows; saved 179 corrections for 27 employees. All 959 unambiguous merged cells match production readback. Combined 636 Present, 25 automatic PH-eligible lines, no explicit PH duplicates or ED; primary/cap rules left enabled. Draft attendance/payroll remain unprocessed.
+- [ ] Resolve 37414 October 8 conflict (page 1 P, page 2 W); existing P retained, not overwritten. Resolve 49844 printed LSG versus saved SG pay role; attendance dates corrected without changing designation. Blocked on user/source confirmation. Signed-in live UI verification unavailable; production readback verified.
 
 ## CLI325 Japan Tubular rate structure — 23 October
 - [x] Verified active CON16246 role rates against both supplied sheets. User confirmed apply 2025 sheets to current contract, Guard final billing ₹29,234, Supervisor ESI removed/WC ₹200 retained.
@@ -18,7 +18,7 @@
 
 ## CLI2098 October attendance — 23 October
 - [x] Inspect production: CLI2098 October period is 21 September–20 October; no entries or postings there for any of the three employees. Their current attendance is at CLI1651.
-- [ ] Remove 37391/37414 PH credit at confirmed CLI1651: neither has stored PH/ED; attendance and payroll synthesize the holiday credit from unit settings. Per-employee exclusion is not supported; cannot turn off PH for the whole unit or remove their worked/absent day as a substitute. Requires a production-supported exclusion change; no safe production schema-write tool available in this turn.
+- [x] Latest uploaded source resolves PH: 37391 has no October 2 mark (cleared erroneous A from source), so no automatic PH; 37414 has 1 PH on page 2 despite 0 on page 1, retained via regular October 2 P. No employee-exclusion or unit-wide PH setting change needed.
 - [x] User confirmed CLI1651, not CLI2098. Restored existing 49566 Amresh Kumar to active/enabled at CLI1651, retained Security Guard designation and posting, corrected joining date to 20 September; production readback passed.
 - [x] Verified October contract period 21 September–20 October: Amresh already has exactly 22 P + one PH on 2 October and zero stored ED. Retained those dated marks without adding a duplicate holiday/ED payment.
 
