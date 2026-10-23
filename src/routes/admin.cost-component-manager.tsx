@@ -159,7 +159,7 @@ type AllowanceRow = { id: string; name: string; display_name: string; short_name
 type StateRow = { id: string; name: string };
 
 const QK = ["admin", "cost-components"] as const;
-const ALLOW_QK = ["admin", "cost-components", "allowance-options"] as const;
+const ALLOW_QK = ["admin", "allowance-types", "cost-component-options"] as const;
 const STATES_QK = ["admin", "cost-components", "states"] as const;
 const STATUTORY_ESI_BASE: BaseRef[] = [
   { label: "Gross", operator: "+" },
