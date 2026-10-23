@@ -1,8 +1,9 @@
 # Mobile app UI re-review
 
 ## HRA formula visibility — 23 October
-- [ ] Correct blank HRA master labels and Add allowance fallback; expose a named HRA 5% (Basic+DA) choice in the shared formula box.
-- [ ] Verify formula selection, calculations and production master readback; signed-in live selection requires an authorized production session.
+- [x] Corrected the existing production HRA master's blank display/short labels, Add allowance name fallback and variant detail; added named HRA 5% (Basic+DA) selection to the shared formula box and aligned Cost Component Manager allowance cache invalidation.
+- [x] Production master readback verified; five formula selection/save-load and Japan calculation tests pass, latest automatic compilation clean. No contract amounts changed.
+- [ ] Verify signed-in live selection; blocked on publication of formula-box changes and an authorized production session.
 
 ## CLI1651 uploaded October muster — 23 October
 - [x] User confirmed both uploaded pages apply to CLI1651 despite printed CLI1654; period 21 September–20 October. Production sheet/payroll are draft and unprocessed; private before-state saved.
