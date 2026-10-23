@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI2098 October attendance — 23 October
+- [ ] Inspect employees 37391/37414 and remove only their unwanted PH Extra Duty; verify saved results.
+- [ ] Locate employee 49566 Amresh, assign Security Guard at CLI2098 and joining date 20 September 2026.
+- [ ] Record 22 Present and one PH Extra Duty for October's contract period using verified dates; read back totals with global attendance rules preserved.
+
 ## CLI4808 and CLI4809 — 23 October
 - [x] Retrieve both authoritative Pages profiles; full contract directory and client-specific/mini-contract requests return no contracts for either client.
 - [x] Create CLI4808 Hyderabad and update existing CLI4809 Plant 2.0 in production, linked to ORG207 and source branches; source addresses, dates, GST/PAN, PT/LWF and contacts preserved without duplicate clients. Existing managers and operational terms retained.
