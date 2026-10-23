@@ -1,9 +1,9 @@
 # Mobile app UI re-review
 
 ## CLI325 Japan Tubular rate structure — 23 October
-- [ ] Verify contract roles against uploaded SG/Supervisor sheets and reconcile printed totals/formulas.
-- [ ] Add reusable HRA 5% (Basic + DA) formula and expose it in formula choices.
-- [ ] Replace CLI325 verified role rates, back up old values, and verify calculations/readback; clarify conflicting totals before changing them.
+- [x] Verified active CON16246 role rates against both supplied sheets. User confirmed apply 2025 sheets to current contract, Guard final billing ₹29,234, Supervisor ESI removed/WC ₹200 retained.
+- [x] Existing enabled reusable allowance HRA 5% (Basic+DA), expression `(basic + da) * 0.05`, is already selectable; wired both roles to it without duplicating or changing other HRA masters. Added dedicated derived-line masters for Exgratia, Leave Pay, Bonus, PF, ESI, Gratuity and Reliever formulas.
+- [x] Backed up current resources privately; updated only two active role resources, preserved quantities/shift/day bases/ED rules and historical contracts. Verified every saved field and formula against extracted contract-editor computeBenefitAmount, no unknown variables. Supervisor gross/net/final ₹22,918/₹20,918/₹27,668; Guard ₹20,558/₹18,404/₹29,234. Three regression tests passed. Signed-in live contract view unavailable; no processed payroll changed.
 
 ## CLI2098 Pradeep / Ekanath correction — 23 October
 - [x] Production verified 49748 already belongs to Pradip Raosaheb Rathod (inactive Security Guard at CLI2098), and 49653 to Ekanath Jaanrao Palaspagar; no identity merge needed. User confirmed 49748 is the same person called Pradeep Rathore.
