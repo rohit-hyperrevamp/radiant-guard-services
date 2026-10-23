@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## CLI4808 and CLI4809 — 23 October
+- [x] Retrieve both authoritative Pages profiles; full contract directory and client-specific/mini-contract requests return no contracts for either client.
+- [x] Create CLI4808 Hyderabad and update existing CLI4809 Plant 2.0 in production, linked to ORG207 and source branches; source addresses, dates, GST/PAN, PT/LWF and contacts preserved without duplicate clients. Existing managers and operational terms retained.
+- [x] Read back every imported profile field with zero mismatches; confirm no fabricated contracts/resources and no unrelated existing field changes.
+- [ ] Import verified contracts/rate structures: blocked on source contract documents or availability in Pages; payroll report returns a source server error. Signed-in live client-page review remains unavailable.
+
 ## Remaining panels and Compliance — 22 October
 - [x] Rectify Staff, My Tasks, notification and Compliance tiles; centre the score and align exception controls.
 - [x] Distinguish circular actions by purpose, including portal dialogs; add payroll/invoice summary View commands that focus the records while retaining existing per-record View destinations.
