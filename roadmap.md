@@ -2,9 +2,9 @@
 
 ## CLI2098 October attendance — 23 October
 - [x] Inspect production: CLI2098 October period is 21 September–20 October; no entries or postings there for any of the three employees. Their current attendance is at CLI1651.
-- [ ] Remove 37391/37414 PH Extra Duty: blocked on client confirmation; neither has PH or ED at CLI1651 in this period, and neither has CLI2098 entries.
-- [ ] Assign 49566 Amresh Kumar as Security Guard and joining date 20 September: blocked on client confirmation; existing employee is inactive at CLI1651 with joining date 25 September.
-- [ ] Record 22 Present + one PH Extra Duty: blocked on client/date confirmation. Existing CLI1651 attendance has exactly 22 P and PH on 2 October with zero ED; no marks moved or invented.
+- [ ] Remove 37391/37414 PH credit at confirmed CLI1651: neither has stored PH/ED; attendance and payroll synthesize the holiday credit from unit settings. Per-employee exclusion is not supported; cannot turn off PH for the whole unit or remove their worked/absent day as a substitute. Requires a production-supported exclusion change; no safe production schema-write tool available in this turn.
+- [x] User confirmed CLI1651, not CLI2098. Restored existing 49566 Amresh Kumar to active/enabled at CLI1651, retained Security Guard designation and posting, corrected joining date to 20 September; production readback passed.
+- [x] Verified October contract period 21 September–20 October: Amresh already has exactly 22 P + one PH on 2 October and zero stored ED. Retained those dated marks without adding a duplicate holiday/ED payment.
 
 ## CLI4808 and CLI4809 — 23 October
 - [x] Retrieve both authoritative Pages profiles; full contract directory and client-specific/mini-contract requests return no contracts for either client.
