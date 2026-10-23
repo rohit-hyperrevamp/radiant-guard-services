@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI4808 and CLI4809 — 23 October
+- [ ] Retrieve both clients' authoritative details, contracts and rate structures from Pages and Payroll.
+- [ ] Add verified records to production without duplicates or invented terms.
+- [ ] Read back client details and validate each saved contract structure against the source.
+
 ## Remaining panels and Compliance — 22 October
 - [x] Rectify Staff, My Tasks, notification and Compliance tiles; centre the score and align exception controls.
 - [x] Distinguish circular actions by purpose, including portal dialogs; add payroll/invoice summary View commands that focus the records while retaining existing per-record View destinations.
