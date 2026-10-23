@@ -1205,7 +1205,7 @@ export function useAllowanceTypes() {
         .map((r) => ({
           id: String(r.id),
           name: String(r.name),
-          displayName: String(r.display_name ?? r.name),
+          displayName: String(r.display_name || r.name),
           shortName: String(r.short_name ?? ""),
           isDefault: Boolean(r.is_default),
           calcType: (String(r.calc_type ?? "fixed") as "fixed" | "percentage"),
@@ -6467,10 +6467,10 @@ export function ResourceFormDialog({
                           >
                             <div className="flex flex-col">
                               <span className="text-sm">
-                                {standardPayItemName(a.shortName || a.displayName)}
+                                {standardPayItemName(a.shortName || a.displayName || a.name)}
                               </span>
                               <span className="text-[11px] text-muted-foreground">
-                                {a.displayName}
+                                {a.name}
                               </span>
                             </div>
                           </CommandItem>

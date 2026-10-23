@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FORMULA_TEMPLATES, selectFormulaTemplate } from "@/lib/formula-templates";
 import {
   DEFAULT_PRESET,
   FORMULA_VARIABLES,
@@ -161,6 +162,26 @@ export function FormulaBuilder({ value, onChange, availableBases }: Props) {
             onClick={() => setMode("advanced")}
           >Advanced</button>
         </div>
+      </div>
+
+      <div className="border-b border-border px-4 py-3">
+        <Label className="mb-2 block text-xs">Formula template</Label>
+        <Select
+          value=""
+          onValueChange={(id) => {
+            const config = selectFormulaTemplate(id);
+            if (config) onChange(config);
+          }}
+        >
+          <SelectTrigger className="h-9" aria-label="Formula template">
+            <SelectValue placeholder="Choose formula…" />
+          </SelectTrigger>
+          <SelectContent>
+            {FORMULA_TEMPLATES.map((template) => (
+              <SelectItem key={template.id} value={template.id}>{template.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {mode === "preset" ? (
