@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## EE EPF Gross minus HRA formula — 23 October
+- [ ] Add an enabled employee deduction choice: 12% × (Gross − HRA), preserving existing formulas and contracts.
+- [ ] Verify production readback and formula arithmetic.
+
 ## CLI384 supplied rate correction — 23 October
 - [x] Visually read supplied eight-hour Security Guard sheet: gross ₹11,098.11, deductions ₹1,532.56, net ₹9,565.55; listed employer costs plus management fee imply ₹14,082.71 versus printed ₹14,186.81.
 - [x] User confirmed use listed charges: CTC ₹12,824.73 and billing ₹14,082.71, no balancing line or duplicated Paid Holiday.
