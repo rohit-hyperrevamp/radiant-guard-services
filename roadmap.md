@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI2098 Pradeep / Ekanath correction — 23 October
+- [ ] Verify identities 49748 (Pradeep Rathore) and 49653 (Ekanath), postings, October window and existing attendance without merging personal records.
+- [ ] Correct verified employee mapping and record 30 October-period duties at CLI2098, retaining primary-unit/cap rules and processed-period protection.
+- [ ] Read back identity and dated attendance totals; report any cap conversion or blocking ambiguity.
+
 ## CLI2098 October attendance — 23 October
 - [x] Inspect production: CLI2098 October period is 21 September–20 October; no entries or postings there for any of the three employees. Their current attendance is at CLI1651.
 - [ ] Remove 37391/37414 PH credit at confirmed CLI1651: neither has stored PH/ED; attendance and payroll synthesize the holiday credit from unit settings. Per-employee exclusion is not supported; cannot turn off PH for the whole unit or remove their worked/absent day as a substitute. Requires a production-supported exclusion change; no safe production schema-write tool available in this turn.
