@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## HRA formula visibility — 23 October
+- [x] Corrected the existing production HRA master's blank display/short labels, Add allowance name fallback and variant detail; added named HRA 5% (Basic+DA) selection to the shared formula box and aligned Cost Component Manager allowance cache invalidation.
+- [x] Production master readback verified; five formula selection/save-load and Japan calculation tests pass, latest automatic compilation clean. No contract amounts changed.
+- [ ] Verify signed-in live selection; blocked on publication of formula-box changes and an authorized production session.
+
 ## CLI1651 uploaded October muster — 23 October
 - [x] User confirmed both uploaded pages apply to CLI1651 despite printed CLI1654; period 21 September–20 October. Production sheet/payroll are draft and unprocessed; private before-state saved.
 - [x] Visually verified 34 source role rows; saved 179 corrections for 27 employees. All 959 unambiguous merged cells match production readback. Combined 636 Present, 25 automatic PH-eligible lines, no explicit PH duplicates or ED; primary/cap rules left enabled. Draft attendance/payroll remain unprocessed.

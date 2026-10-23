@@ -43,6 +43,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/admin/allowance-manager")({
+  head: () => ({ meta: [
+    { title: "Allowance Manager | Radiant Guard Services" },
+    { name: "description", content: "Manage Radiant earning allowances and reusable pay formulas." },
+    { property: "og:title", content: "Allowance Manager | Radiant Guard Services" },
+    { property: "og:description", content: "Manage Radiant earning allowances and reusable pay formulas." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: AllowanceManagerPage,
 });
 

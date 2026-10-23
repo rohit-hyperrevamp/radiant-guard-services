@@ -33,3 +33,4 @@
 - Subdirectories (`src/lib/`, `src/routes/`, `src/components/`) have their own `AGENTS.md` — read before changing files there.
 - Public dependency tarballs use the canonical npm registry while keeping locked versions and integrity hashes unchanged, avoiding regional mirror rate limits.
 - Root restores cache and clears old identities before mounting pages (details in src/lib/AGENTS.md) — no cross-session data bleed.
+- Shared formula templates live in `src/lib/formula-templates.ts` and are selected through FormulaBuilder; allowance pickers fall back to the master name for blank display labels so imported masters remain visible.
