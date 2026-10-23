@@ -1,9 +1,10 @@
 # Mobile app UI re-review
 
 ## CLI2098 October attendance — 23 October
-- [ ] Inspect employees 37391/37414 and remove only their unwanted PH Extra Duty; verify saved results.
-- [ ] Locate employee 49566 Amresh, assign Security Guard at CLI2098 and joining date 20 September 2026.
-- [ ] Record 22 Present and one PH Extra Duty for October's contract period using verified dates; read back totals with global attendance rules preserved.
+- [x] Inspect production: CLI2098 October period is 21 September–20 October; no entries or postings there for any of the three employees. Their current attendance is at CLI1651.
+- [ ] Remove 37391/37414 PH Extra Duty: blocked on client confirmation; neither has PH or ED at CLI1651 in this period, and neither has CLI2098 entries.
+- [ ] Assign 49566 Amresh Kumar as Security Guard and joining date 20 September: blocked on client confirmation; existing employee is inactive at CLI1651 with joining date 25 September.
+- [ ] Record 22 Present + one PH Extra Duty: blocked on client/date confirmation. Existing CLI1651 attendance has exactly 22 P and PH on 2 October with zero ED; no marks moved or invented.
 
 ## CLI4808 and CLI4809 — 23 October
 - [x] Retrieve both authoritative Pages profiles; full contract directory and client-specific/mini-contract requests return no contracts for either client.
