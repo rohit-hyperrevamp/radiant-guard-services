@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI325 Japan Tubular rate structure — 23 October
+- [ ] Verify contract roles against uploaded SG/Supervisor sheets and reconcile printed totals/formulas.
+- [ ] Add reusable HRA 5% (Basic + DA) formula and expose it in formula choices.
+- [ ] Replace CLI325 verified role rates, back up old values, and verify calculations/readback; clarify conflicting totals before changing them.
+
 ## CLI2098 Pradeep / Ekanath correction — 23 October
 - [x] Production verified 49748 already belongs to Pradip Raosaheb Rathod (inactive Security Guard at CLI2098), and 49653 to Ekanath Jaanrao Palaspagar; no identity merge needed. User confirmed 49748 is the same person called Pradeep Rathore.
 - [x] User confirmed 30 duties in 21 September–20 October, keep cap and joining date unchanged. Restored 49748 active/enabled; reopened approved attendance and submitted (unprocessed) payroll to draft; replaced existing 30 dated marks with Present input. Global rules returned exactly 26 Present + 4 Extra Duty; no dates added or lost. Production before/after backups retained privately.
