@@ -1,9 +1,11 @@
 # Mobile app UI re-review
 
 ## L&T October attendance — Maharashtra, Telangana and Karnataka
-- [ ] Inspect all three archives and read each source sheet, including its actual dates, client and employee identity.
-- [ ] Match verified rows to production; back up affected attendance; import only clear source marks, preserving processed periods and applying primary-unit/payroll-cap rules.
-- [ ] Read back saved attendance and provide a source-by-source exception report for unclear, conflicting, unmatched or blocked rows.
+- [x] Listed 120 files / 127 pages: Maharashtra 42 files, Telangana 26, Karnataka 52. Five independent visual reviews cover every source page; OCR alignment errors, missing IDs, unclear marks and differing totals retained as exceptions.
+- [x] User confirmed skip Gadag CLI4821 (`L&T Gadag  branch sep-26.pdf`, prints August); Nanded CLI4336 is 21 Sep–20 Oct; use handwritten Kalaburagi/Latur/Nilanga, not Solapur template identifiers.
+- [ ] Match production clients/employees/line identities, back up and import clear marks; blocked because only permitted database tools target the forbidden sandbox and the live attendance page redirects to sign-in. No production records changed. Do not bypass access rules or mint an unrelated sandbox session.
+- [x] Delivered LT_October_2026_Attendance_Review_and_Exceptions.xlsx: all 120 sources with honest not-marked status and 67 source-specific exceptions; workbook file counts verified.
+- [ ] Fresh production readback and live attendance verification after authorized import; blocked on production access. Preserve processed periods and primary-unit/payroll-cap rules.
 
 ## CLI1249 supplied Security Guard sheet — 24 October
 - [x] Backed up and updated CON14128 Guard rates using confirmed listed amounts; Leave with Wages ₹818.10 is 6% of Basic+DA despite the printed 5% label. Preserved dates, staffing, shift, ED, day bases, historical contracts and processed outputs. Removed old billing adjustment; linked derived lines to enabled masters.
