@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI336 supplied rate correction — 24 October
+- [x] Updated current CON15286 Security Guard rate configuration to the New Balance sheet: gross ₹24,368.48, net ₹22,264.07, CTC ₹27,453.01, billing ₹35,231.37. Fixed zero saved employee PF/ESI, disabled source-incompatible wage rounding and linked percentage lines to enabled formula masters.
+- [x] Private before/after backup and fresh production readback verify all rate fields; exact extracted contract-editor calculation matches every line. Historical resources, staffing, eight-hour shift, current May 2026–April 2027 validity, ED and day bases retained; no processed outputs changed.
+- [ ] Signed-in live contract screen review requires an authorized production session; production data and editor calculations independently verified.
+
 ## CLI322 supplied rate correction — 24 October
 - [x] User selected individual amounts, not printed rounded totals; exact gross ₹19,534.30, net ₹17,388.30, CTC ₹22,673.40, billing ₹24,940.40.
 - [x] Updated only CON16341 current 12-hour Guard rates; preserved staffing, shift, day bases and ED. Retained listed Gratuity ₹545, fixed PF/ESI/management amounts and linked four derived wages to enabled formula masters; no balancing charges or duplicate employer Uniform. Private before/after backup saved.
