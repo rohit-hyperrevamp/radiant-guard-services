@@ -1,4 +1,6 @@
 import { matchesSearch as matchesSearchText, buildSearchHay, compileSearch, type SearchHay } from "@/lib/search-match";
+import { patchEmployeeSlice } from "@/lib/employee-list-cache";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { EmployeePostingsDialog } from "@/components/EmployeePostingsDialog";
@@ -1452,9 +1454,19 @@ function InlinePicker({
   searchPlaceholder: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const indexed = useMemo(() => options.map((option) => ({
+    option, hay: buildSearchHay([option.label, option.hint, option.id]),
+  })), [options]);
+  const visibleOptions = useMemo(() => {
+    if (!open) return [];
+    const test = compileSearch(deferredQuery);
+    return indexed.filter(({ hay }) => !test || test(hay)).slice(0, 60).map(({ option }) => option);
+  }, [indexed, deferredQuery, open]);
   const current = value ? options.find((o) => o.id === value) : undefined;
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(""); }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -1466,8 +1478,8 @@ function InlinePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(268px,calc(100vw-1rem))] p-0">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
+        <Command shouldFilter={false}>
+          <CommandInput placeholder={searchPlaceholder} value={query} onValueChange={setQuery} className="h-9 text-xs" />
           <CommandList>
             <CommandEmpty>No match found.</CommandEmpty>
             <CommandGroup>
@@ -1481,7 +1493,7 @@ function InlinePicker({
               >
                 {placeholder}
               </CommandItem>
-              {options.map((o) => (
+              {visibleOptions.map((o) => (
                 <CommandItem
                   key={o.id}
                   value={`${o.label} ${o.hint ?? ""}`}
@@ -1507,47 +1519,39 @@ function InlinePicker({
   );
 }
 
-/** Fetch every row for one slice (working staff or inactive history) in parallel pages. */
+/** Read bounded batches without an exact-count waterfall or an unbounded request burst. */
 async function fetchCandidateSlice(inactive: boolean, signal: AbortSignal): Promise<CandidateListItem[]> {
   const pageSize = 1000;
-  const base = () => {
-    const q = supabase.from("candidates" as never).select("id", { count: "exact", head: true });
-    return inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
-  };
-  const { count, error: countError } = await base().abortSignal(signal);
-  if (countError) throw countError;
-  const pages = Math.max(1, Math.ceil((count ?? 0) / pageSize) + 1);
-  const results = await Promise.all(
-    Array.from({ length: pages }, (_, page) => {
-      let q = supabase.from("candidates" as never).select(CANDIDATE_LIST_COLUMNS);
-      q = inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
-      return q
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: true })
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-        .abortSignal(signal);
-    }),
-  );
   const rows: CandidateListItem[] = [];
   const seen = new Set<string>();
-  for (const result of results) {
-    if (result.error) throw result.error;
-    for (const row of (result.data ?? []) as unknown as CandidateListItem[]) {
-      if (seen.has(row.id)) continue;
-      seen.add(row.id);
-      rows.push(row);
+  for (let firstPage = 0; ; firstPage += 2) {
+    const results = await Promise.all([firstPage, firstPage + 1].map((page) => {
+      let q = supabase.from("candidates" as never).select(CANDIDATE_LIST_COLUMNS);
+      q = inactive ? q.eq("status", "inactive") : q.neq("status", "inactive");
+      return q.order("created_at", { ascending: false }).order("id", { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1).abortSignal(signal);
+    }));
+    for (const result of results) {
+      if (result.error) throw result.error;
+      for (const row of (result.data ?? []) as unknown as CandidateListItem[]) {
+        if (seen.has(row.id)) continue;
+        seen.add(row.id);
+        rows.push(row);
+      }
     }
+    if (results.some((result) => (result.data?.length ?? 0) < pageSize)) return rows;
   }
-  return rows;
 }
 
 /**
  * Working staff (~7k) load on open; the large inactive history (~22k) loads
- * only when the Inactive tab or a search needs it — it used to be fetched
+ * only when the Inactive tab or an offboarding filter needs it — it used to be fetched
  * and processed on every visit, which made the page slow.
  */
 function useCandidates(includeInactive: boolean) {
+  const hasSession = useHasSupabaseSession();
   const common = {
+    enabled: hasSession,
     retry: 2,
     retryDelay: (attempt: number) => Math.min(1_000 * 2 ** attempt, 4_000),
     refetchOnWindowFocus: false,
@@ -1561,7 +1565,7 @@ function useCandidates(includeInactive: boolean) {
   const inactive = useQuery({
     ...common,
     queryKey: QK_INACTIVE,
-    enabled: includeInactive,
+    enabled: hasSession && includeInactive,
     queryFn: () => runWithQueryTimeout("Inactive employees", (signal) => fetchCandidateSlice(true, signal), 90_000),
   });
   const inactiveCount = useQuery({
@@ -1578,8 +1582,8 @@ function useCandidates(includeInactive: boolean) {
   });
   const data = useMemo(() => {
     if (!working.data) return undefined;
-    return inactive.data ? [...working.data, ...inactive.data] : working.data;
-  }, [working.data, inactive.data]);
+    return includeInactive && inactive.data ? [...working.data, ...inactive.data] : working.data;
+  }, [working.data, inactive.data, includeInactive]);
   return {
     data,
     isLoading: working.isLoading,
@@ -2133,7 +2137,7 @@ function EmployeesPage() {
   const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
   const [filterOffboardReasonEarly, setFilterOffboardReasonEarly] = useState(false);
   const candidatesQuery = useCandidates(
-    empStatusTab === "inactive" || search.trim().length > 0 || filterOffboardReasonEarly,
+    empStatusTab === "inactive" || filterOffboardReasonEarly,
   );
   const unitsQuery = useUnits();
   const designationsQuery = useDesignations();
@@ -2152,6 +2156,10 @@ function EmployeesPage() {
   const isLoading = candidatesQuery.isLoading || (empStatusTab === "inactive" && candidatesQuery.inactiveLoading);
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
+  const showSavedEmployee = (record: CandidateListItem) => {
+    qc.setQueryData<CandidateListItem[]>(QK_WORKING, (rows) => patchEmployeeSlice(rows, record, false));
+    qc.setQueryData<CandidateListItem[]>(QK_INACTIVE, (rows) => patchEmployeeSlice(rows, record, true));
+  };
 
   // Self-heal: an approved/active person must carry an EMP-### employee ID.
   // Older records (or rows created before the DB trigger existed) sometimes
@@ -2780,8 +2788,9 @@ function EmployeesPage() {
     return customers.find((c) => c.id === u.customer_id)?.name ?? u.customer_name ?? "";
   };
   const desigName = (id: string | null | undefined) => (id && desigMap.get(id)?.name) || "";
+  const candidateById = useMemo(() => new Map(candidates.map((c) => [c.id, c])), [candidates]);
   const managerName = (id: string | null | undefined) =>
-    (id && candidates.find((c) => c.id === id)?.full_name) || "";
+    (id && candidateById.get(id)?.full_name) || "";
   const offboardReasonName = (id: string | null | undefined) =>
     (id && offboardReasons.find((r) => r.id === id)?.name) || "";
 
@@ -3031,9 +3040,10 @@ function EmployeesPage() {
       });
     },
     onSuccess: (_d, vars) => {
+      showSavedEmployee({ ...vars.candidate, role_key: vars.roleKey });
       const roleName = rolesList.find((r) => r.key === vars.roleKey)?.name ?? vars.roleKey;
       toast.success(`Role set to ${roleName}`);
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to assign role"),
   });
@@ -3073,8 +3083,11 @@ function EmployeesPage() {
       });
     },
     onSuccess: (_d, vars) => {
+      showSavedEmployee({ ...vars.candidate, is_enabled: vars.enabled, status: vars.enabled ? "active" : "inactive",
+        ...(vars.enabled ? { offboarding_reason_id: null, offboarded_at: null } : {}) });
       toast.success(vars.enabled ? "Employee activated" : "Employee deactivated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
+      void qc.invalidateQueries({ queryKey: [...QK, "inactive-count"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Toggle failed"),
   });
@@ -3495,9 +3508,10 @@ function EmployeesPage() {
         after: { reports_to: managerId },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
+      showSavedEmployee({ ...vars.candidate, reports_to: vars.managerId });
       toast.success("Reporting manager updated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set manager"),
   });
@@ -3538,9 +3552,10 @@ function EmployeesPage() {
         after: { designation_id: designationId },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
+      showSavedEmployee({ ...vars.candidate, designation_id: vars.designationId });
       toast.success("Designation updated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set designation"),
   });
@@ -3568,9 +3583,10 @@ function EmployeesPage() {
         after: { department_id: departmentId },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
+      showSavedEmployee({ ...vars.candidate, department_id: vars.departmentId });
       toast.success("Department updated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set department"),
   });
@@ -7593,34 +7609,21 @@ function CandidateWizard({
     if (cidForBranch && mode === "employee") await syncEmployeeWages(cidForBranch);
 
     toast.success(successMsg);
-    if (opts?.fast) {
-      // Draft saves must feel instant. Patch the cached list so the row shows
-      // up right away, then refresh in the background instead of blocking on a
-      // full re-read of every candidate.
-      const idForCache = editing?.id ?? createdCandidateId;
-      if (idForCache) {
-        qc.setQueryData(QK, (old: CandidateListItem[] | undefined) => {
-          if (!old) return old;
-          const patch = {
-            ...(payload as unknown as Record<string, unknown>),
-            id: idForCache,
-          } as unknown as CandidateListItem;
-          const idx = old.findIndex((r) => r.id === idForCache);
-          if (idx < 0) return [patch, ...old];
-          const next = [...old];
-          next[idx] = { ...next[idx], ...patch };
-          return next;
+    const idForCache = editing?.id ?? createdCandidateId;
+    if (idForCache) {
+      const patch = { ...(payload as unknown as Record<string, unknown>), id: idForCache };
+      for (const [key, inactive] of [[QK_WORKING, false], [QK_INACTIVE, true]] as const) {
+        qc.setQueryData<CandidateListItem[]>(key, (old) => {
+          const existing = old?.find((row) => row.id === idForCache);
+          // Never insert an incomplete new profile; the background read supplies it.
+          if (!existing) return old;
+          return patchEmployeeSlice(old, { ...existing, ...patch } as CandidateListItem, inactive);
         });
       }
-      void qc.invalidateQueries({ queryKey: QK });
-      void qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS });
-      return;
     }
-    // Await so the caller (Save/Send-to-Approval handlers) can close the
-    // wizard AFTER the list has refetched — prevents the "count went up
-    // but I don't see my row" flash.
-    await qc.invalidateQueries({ queryKey: QK, refetchType: "active" });
-    await qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS, refetchType: "active" });
+    // The save has succeeded; refresh both sources together without holding the form open.
+    void qc.invalidateQueries({ queryKey: QK, refetchType: "active" });
+    void qc.invalidateQueries({ queryKey: QK_CANDIDATE_UNITS, refetchType: "active" });
   };
 
   const saveDraft = async () => {
