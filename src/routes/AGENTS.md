@@ -1,1 +1,2 @@
-- Employees page loads working staff on open and the inactive history only for the Inactive tab, search or offboarding filter — the full 28k history made the page slow.
+- Employees page loads working staff on open and inactive history only for the Inactive tab or offboarding filter, never active-tab search; reads use bounded batches and inline pickers render only searched options while open to prevent directory-wide interaction stalls.
+- Successful employee saves patch the actual working/inactive query slices and refresh in the background; never hold the save dialog open waiting for full directory reads or insert incomplete new profiles into cache.
