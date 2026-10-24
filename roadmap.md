@@ -2,8 +2,9 @@
 
 ## CLI364 supplied Security Guard sheet — 24 October
 - [x] User corrected target from CLI346 to CLI364 (Turbo Energy); CLI346 untouched. Privately backed up current CON13969 and historical resources.
-- [ ] Update current Guard rates only to sheet: gross ₹23,056, net ₹20,904.08, CTC ₹28,264.52, billing ₹30,637.22; retain dates, staffing, shift, ED and historical rates.
-- [ ] Verify fresh production readback and contract-editor amounts; signed-in live screen requires an authorized production session.
+- [x] Updated only CON13969 Guard rates: gross ₹23,056, net ₹20,904.08, CTC ₹28,264.52, billing ₹30,637.22. Linked derived lines to enabled masters; Clothing excluded from ESI. Dates, staffing, eight-hour shift, ED and historical rates retained; processed outputs untouched.
+- [x] Fresh production readback verifies all changed and unchanged fields; extracted contract-editor calculations match every line.
+- [ ] Signed-in live contract screen review requires an authorized production session; saved rates and editor arithmetic independently verified.
 
 ## CLI338 and CLI3091 supplied Guard rates — 24 October
 - [x] Backed up and updated only current CON9292 (CLI338) and CON9293 (CLI3091) Security Guard resources; historical roles, dates, staffing, 12-hour shift, day bases and ED retained.
