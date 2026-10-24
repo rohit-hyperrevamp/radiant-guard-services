@@ -24,6 +24,18 @@ const pfLine: Parameters<typeof applyLineRule>[0] & { costComponentId: string; n
 };
 
 describe("Contract lines can be edited on the contract", () => {
+  it("Exgratia keeps independently customized wage amounts on each contract", async () => {
+    const exgratia = { name: "Exgratia", allowanceId: "m-epf", amount: 0 };
+    const resources = await hydrateFormulasFromMaster([
+      { components: [asContractManualAmount(exgratia, 1250)] },
+      { components: [asContractManualAmount(exgratia, 2800)] },
+    ]);
+    expect(resources[0].components[0].amount).toBe(1250);
+    expect(resources[1].components[0].amount).toBe(2800);
+    expect(resources[0].components[0]).toMatchObject({ formulaExpression: null, contractOverride: true });
+    expect(exgratia.amount).toBe(0);
+  });
+
   it("typing an amount into a formula line makes it the contract's own fixed amount", () => {
     const next = asContractManualAmount(pfLine, 1500);
     expect(next.amount).toBe(1500);
