@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## L&T October attendance — Maharashtra, Telangana and Karnataka
+- [ ] Inspect all three archives and read each source sheet, including its actual dates, client and employee identity.
+- [ ] Match verified rows to production; back up affected attendance; import only clear source marks, preserving processed periods and applying primary-unit/payroll-cap rules.
+- [ ] Read back saved attendance and provide a source-by-source exception report for unclear, conflicting, unmatched or blocked rows.
+
 ## CLI1249 supplied Security Guard sheet — 24 October
 - [x] Backed up and updated CON14128 Guard rates using confirmed listed amounts; Leave with Wages ₹818.10 is 6% of Basic+DA despite the printed 5% label. Preserved dates, staffing, shift, ED, day bases, historical contracts and processed outputs. Removed old billing adjustment; linked derived lines to enabled masters.
 - [x] Fresh production readback verifies every changed field and historical/non-rate preservation: gross ₹16,363.35, net ₹14,241.35, CTC including reliever ₹22,633.11, billing ₹24,896.42. All 17 extracted contract-editor lines match, 12 focused tests pass and automatic compilation is clean.
