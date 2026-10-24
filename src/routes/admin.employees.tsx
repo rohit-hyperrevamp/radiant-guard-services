@@ -1582,8 +1582,8 @@ function useCandidates(includeInactive: boolean) {
   });
   const data = useMemo(() => {
     if (!working.data) return undefined;
-    return inactive.data ? [...working.data, ...inactive.data] : working.data;
-  }, [working.data, inactive.data]);
+    return includeInactive && inactive.data ? [...working.data, ...inactive.data] : working.data;
+  }, [working.data, inactive.data, includeInactive]);
   return {
     data,
     isLoading: working.isLoading,
@@ -3043,7 +3043,7 @@ function EmployeesPage() {
       showSavedEmployee({ ...vars.candidate, role_key: vars.roleKey });
       const roleName = rolesList.find((r) => r.key === vars.roleKey)?.name ?? vars.roleKey;
       toast.success(`Role set to ${roleName}`);
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to assign role"),
   });
@@ -3086,7 +3086,8 @@ function EmployeesPage() {
       showSavedEmployee({ ...vars.candidate, is_enabled: vars.enabled, status: vars.enabled ? "active" : "inactive",
         ...(vars.enabled ? { offboarding_reason_id: null, offboarded_at: null } : {}) });
       toast.success(vars.enabled ? "Employee activated" : "Employee deactivated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
+      void qc.invalidateQueries({ queryKey: [...QK, "inactive-count"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Toggle failed"),
   });
@@ -3510,7 +3511,7 @@ function EmployeesPage() {
     onSuccess: (_d, vars) => {
       showSavedEmployee({ ...vars.candidate, reports_to: vars.managerId });
       toast.success("Reporting manager updated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set manager"),
   });
@@ -3554,7 +3555,7 @@ function EmployeesPage() {
     onSuccess: (_d, vars) => {
       showSavedEmployee({ ...vars.candidate, designation_id: vars.designationId });
       toast.success("Designation updated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set designation"),
   });
@@ -3585,7 +3586,7 @@ function EmployeesPage() {
     onSuccess: (_d, vars) => {
       showSavedEmployee({ ...vars.candidate, department_id: vars.departmentId });
       toast.success("Department updated");
-      qc.invalidateQueries({ queryKey: QK });
+      void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to set department"),
   });
