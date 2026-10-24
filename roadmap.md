@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI338 and CLI3091 supplied Guard rates — 24 October
+- [ ] Inspect and privately back up both current contracts; preserve other roles, dates, staffing, day bases and ED.
+- [ ] Apply supplied individual line rates with mathematically correct totals, enabled formula masters for derived lines and no balancing charges.
+- [ ] Verify fresh production readback and contract-editor arithmetic; add and run focused rate tests. Live signed-in review depends on an authorized production session.
+
 ## CLI336 supplied rate correction — 24 October
 - [x] Updated current CON15286 Security Guard rate configuration to the New Balance sheet: gross ₹24,368.48, net ₹22,264.07, CTC ₹27,453.01, billing ₹35,231.37. Fixed zero saved employee PF/ESI, disabled source-incompatible wage rounding and linked percentage lines to enabled formula masters.
 - [x] Private before/after backup and fresh production readback verify all rate fields; exact extracted contract-editor calculation matches every line. Historical resources, staffing, eight-hour shift, current May 2026–April 2027 validity, ED and day bases retained; no processed outputs changed.
