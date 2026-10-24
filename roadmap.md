@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## Employee search and interaction delays — 24 October
+- [ ] Diagnose production employee requests and search/filter/render work.
+- [ ] Remove avoidable blocking and repeated loading while preserving search, permissions and employee records.
+- [ ] Run targeted regressions and verify the live signed-in flow when a production session is available.
+
 ## L&T October attendance — Maharashtra, Telangana and Karnataka
 - [x] Listed 120 files / 127 pages: Maharashtra 42 files, Telangana 26, Karnataka 52. Five independent visual reviews cover every source page; OCR alignment errors, missing IDs, unclear marks and differing totals retained as exceptions.
 - [x] User confirmed skip Gadag CLI4821 (`L&T Gadag  branch sep-26.pdf`, prints August); Nanded CLI4336 is 21 Sep–20 Oct; use handwritten Kalaburagi/Latur/Nilanga, not Solapur template identifiers.
