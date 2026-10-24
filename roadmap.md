@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI310 Security Guard source correction — 24 October
+- [x] User confirmed use individual listed amounts rather than inconsistent printed totals; include Guard Board Levy ₹705. Gross ₹29,181, net ₹26,159, CTC ₹33,155.50, billing ₹41,648.50.
+- [ ] Replace only current CON16340 Security Guard rates, preserving Supervisor, staffing, shift, ED and billing basis; use linked formula masters for derived lines and retain listed Uniform ₹597.
+- [ ] Read back saved amounts/formulas, check calculations and run focused regression tests. Signed-in live screen verification requires an authorized production session.
+
 ## EE EPF Gross minus HRA formula — 23 October
 - [x] Added enabled employee deduction choice EE EPF 12% (Gross-HRA), expression `(gross - hra) * 0.12`, without an unrequested cap; existing formulas and contracts unchanged.
 - [x] Production readback verified; regression arithmetic test passed (₹20,000 gross − ₹2,000 HRA → ₹2,160); compilation clean. Signed-in live dropdown interaction unavailable.
