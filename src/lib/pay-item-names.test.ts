@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { mergePayItems, payItemKey, standardPayItemName } from "./pay-item-names";
 describe("pay item column names", () => {
+  it("keeps standalone Exgratia amounts separate from Bonus", () => {
+    expect(mergePayItems([{ name: "Exgratia", amount: 1250 }, { name: "Bonus", amount: 583 }]))
+      .toEqual([{ name: "Exgratia", amount: 1250 }, { name: "Bonus", amount: 583 }]);
+  });
   it("WA and Washing Allowance share a column", () => expect(payItemKey("WA")).toBe(payItemKey("Washing Allowance")));
   it("bonus variants share a column", () => expect(standardPayItemName("Bonus / Exgratia 8.33% (Basic+DA) Rounded")).toBe("Bonus"));
   it("leave with wages = leave pay", () => expect(payItemKey("Leave with Wages 5% (Basic+DA)")).toBe(payItemKey("Leave Pay")));
