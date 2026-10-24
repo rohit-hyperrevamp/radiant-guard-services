@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## CLI322 supplied rate correction — 24 October
+- [x] User selected individual amounts, not printed rounded totals; exact gross ₹19,534.30, net ₹17,388.30, CTC ₹22,673.40, billing ₹24,940.40.
+- [x] Updated only CON16341 current 12-hour Guard rates; preserved staffing, shift, day bases and ED. Retained listed Gratuity ₹545, fixed PF/ESI/management amounts and linked four derived wages to enabled formula masters; no balancing charges or duplicate employer Uniform. Private before/after backup saved.
+- [x] Fresh production readback verifies saved amounts and formulas; two focused regression tests pass, automatic compilation clean. Gross ₹19,534.30, net ₹17,388.30, CTC ₹22,673.40, billing ₹24,940.40. Processed payroll/invoice records untouched.
+- [ ] Signed-in live contract screen review requires an authorized production session; production data and calculations verified independently.
+
 ## CLI310 Security Guard source correction — 24 October
 - [x] User confirmed use individual listed amounts rather than inconsistent printed totals; include Guard Board Levy ₹705. Gross ₹29,181, net ₹26,159, CTC ₹33,155.50, billing ₹41,648.50.
 - [x] Replaced only current CON16340 Security Guard rates, preserving Supervisor, staffing, shift, ED and billing basis; six enabled linked formula masters verified, listed Uniform ₹597 retained. Private before/after backup saved.
