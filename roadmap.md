@@ -2,7 +2,7 @@
 
 ## CLI1249 supplied Security Guard sheet — 24 October
 - [x] Backed up and updated CON14128 Guard rates using confirmed listed amounts; Leave with Wages ₹818.10 is 6% of Basic+DA despite the printed 5% label. Preserved dates, staffing, shift, ED, day bases, historical contracts and processed outputs. Removed old billing adjustment; linked derived lines to enabled masters.
-- [x] Fresh production readback verifies every changed field and historical/non-rate preservation: gross ₹16,363.35, net ₹14,241.35, CTC including reliever ₹22,633.11, billing ₹24,896.42. Formula arithmetic verified; final focused tests/editor check pending.
+- [x] Fresh production readback verifies every changed field and historical/non-rate preservation: gross ₹16,363.35, net ₹14,241.35, CTC including reliever ₹22,633.11, billing ₹24,896.42. All 17 extracted contract-editor lines match, 12 focused tests pass and automatic compilation is clean.
 - [ ] Signed-in live contract review requires an authorized production session.
 
 ## CLI364 supplied Security Guard sheet — 24 October
