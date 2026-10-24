@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI1249 supplied Security Guard sheet — 24 October
+- [ ] Back up and update current Guard rates using confirmed listed amounts; Leave with Wages ₹818.10 is 6% of Basic+DA despite the printed 5% label. Preserve contract dates, other roles and processed outputs.
+- [ ] Verify production readback and contract-editor arithmetic: gross ₹16,363.35, net ₹14,241.35, CTC including reliever ₹22,633.11, billing ₹24,896.42.
+- [ ] Signed-in live contract review requires an authorized production session.
+
 ## CLI364 supplied Security Guard sheet — 24 October
 - [x] User corrected target from CLI346 to CLI364 (Turbo Energy); CLI346 untouched. Privately backed up current CON13969 and historical resources.
 - [x] Updated only CON13969 Guard rates: gross ₹23,056, net ₹20,904.08, CTC ₹28,264.52, billing ₹30,637.22. Linked derived lines to enabled masters; Clothing excluded from ESI. Dates, staffing, eight-hour shift, ED and historical rates retained; processed outputs untouched.
