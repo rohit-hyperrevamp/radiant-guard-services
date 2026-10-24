@@ -1,9 +1,10 @@
 # Mobile app UI re-review
 
 ## Employee search and interaction delays — 24 October
-- [ ] Diagnose production employee requests and search/filter/render work.
-- [ ] Remove avoidable blocking and repeated loading while preserving search, permissions and employee records.
-- [ ] Run targeted regressions and verify the live signed-in flow when a production session is available.
+- [x] Production confirms 21,747 inactive versus 6,893 working records; active search unnecessarily fetched all history, loaders burst all pages, and saves patched an unused cache key or waited for full reloads.
+- [x] Active search no longer downloads/merges inactive history; bounded two-page reads remove count waterfall; closed inline selectors do not prepare item trees and open selectors render at most 60 searchable matches. Successful simple edits patch working/inactive slices without full refetch; wizard refreshes run in background. Employee records and permissions unchanged.
+- [x] Eighteen employee-cache/search regressions pass; automatic compilation clean.
+- [ ] Signed-in live search/edit verification blocked: radiant.hyperrevamp.com/admin/employees redirects to login; frontend changes require publication.
 
 ## L&T October attendance — Maharashtra, Telangana and Karnataka
 - [x] Listed 120 files / 127 pages: Maharashtra 42 files, Telangana 26, Karnataka 52. Five independent visual reviews cover every source page; OCR alignment errors, missing IDs, unclear marks and differing totals retained as exceptions.
