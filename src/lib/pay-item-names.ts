@@ -77,3 +77,12 @@ export function mergePayItems(
   }
   return Array.from(grouped.values());
 }
+
+/**
+ * Client-specific formula masters (e.g. "Exgratia (Japan Tubular)") stay on
+ * the contracts that already use them but are hidden from the Add Allowance
+ * picker, so users only see the general choices such as plain "Exgratia".
+ */
+export function isHiddenAllowanceChoice(name: string): boolean {
+  return /\(\s*japan\s+tubular\s*\)/i.test(String(name ?? ""));
+}

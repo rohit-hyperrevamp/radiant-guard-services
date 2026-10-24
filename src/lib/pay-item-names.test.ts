@@ -29,3 +29,16 @@ describe("pay item column names", () => {
     expect(standardPayItemName("EE EPF 12% (Basic+DA)")).toBe("EE EPF 12% (Basic+DA)");
   });
 });
+
+describe("Add Allowance picker choices", () => {
+  it("shows plain Exgratia as Exgratia, not Bonus", async () => {
+    const { standardPayItemName, isHiddenAllowanceChoice } = await import("./pay-item-names");
+    expect(standardPayItemName("Exgratia")).toBe("Exgratia");
+    expect(isHiddenAllowanceChoice("Exgratia")).toBe(false);
+  });
+  it("hides Japan Tubular masters from the picker", async () => {
+    const { isHiddenAllowanceChoice } = await import("./pay-item-names");
+    expect(isHiddenAllowanceChoice("Exgratia (Japan Tubular)")).toBe(true);
+    expect(isHiddenAllowanceChoice("Bonus (Japan Tubular)")).toBe(true);
+  });
+});
