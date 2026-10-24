@@ -1,6 +1,6 @@
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
-import { mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
+import { isHiddenAllowanceChoice, mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { unknownFormulaVariables, normalizeOtEsi, type OtEsiSetting } from "@/lib/payroll-calc";
 import { Switch } from "@/components/ui/switch";
 import { Link as RouterLink } from "@tanstack/react-router";
@@ -5322,10 +5322,10 @@ export function ResourceFormDialog({
 
   const gross = components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
   const usedIds = new Set(components.map((c) => c.allowanceId));
-  const availableExtras = allowanceTypes.filter((a) => !usedIds.has(a.id));
+  const availableExtras = allowanceTypes.filter((a) => !usedIds.has(a.id) && !isHiddenAllowanceChoice(a.name));
   const designationOptions = useMemo(() => designations.map((d) => ({ ...d, value: d.code || d.id, label: d.name })), [designations]);
   const filteredDesignations = useDropdownSearch(designationOptions, designationQuery);
-  const extraOptions = useMemo(() => allowanceTypes.filter((a) => !components.some((c) => c.allowanceId === a.id))
+  const extraOptions = useMemo(() => allowanceTypes.filter((a) => !components.some((c) => c.allowanceId === a.id) && !isHiddenAllowanceChoice(a.name))
     .map((a) => ({ ...a, value: a.id, label: a.name, hint: `${a.shortName} ${a.displayName}` })), [allowanceTypes, components]);
   const filteredAvailableExtras = useDropdownSearch(extraOptions, allowanceQuery);
 
