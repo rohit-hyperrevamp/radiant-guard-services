@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI346 supplied Security Guard sheet — 24 October
+- [x] Read sheet and privately back up production CLI346: Roadway Solutions India Infra (Khanapur), only contract CON544 expired 31 July 2023; Guard and Head Guard resources present.
+- [ ] Confirm whether to replace the expired contract rates or renew with a new validity range before any rate write.
+- [ ] Apply confirmed Guard rates only and verify listed gross ₹23,056, net ₹20,904.08, CTC ₹28,264.52 and billing ₹30,637.22; Head Guard unchanged.
+
 ## CLI338 and CLI3091 supplied Guard rates — 24 October
 - [x] Backed up and updated only current CON9292 (CLI338) and CON9293 (CLI3091) Security Guard resources; historical roles, dates, staffing, 12-hour shift, day bases and ED retained.
 - [x] Applied listed rates and linked six derived lines to enabled masters; retained EE/ER ESI ₹113.23/₹491 as fixed contract amounts. Renamed old wage Bonus ₹500 to Additional 4 Hrs, retained wage Reliever ₹2,873 and removed obsolete invoice balancing adjustment. Gross ₹17,970.90, net ₹15,857.67, CTC ₹21,514.71, billing ₹23,705.71.
