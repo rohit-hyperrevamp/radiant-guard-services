@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## L&T Karnataka rates from CLI4309 — 25 October
+- [ ] Read CLI4309's updated current contract and identify all matching L&T Finance Karnataka roles.
+- [ ] Back up and copy reference rate fields only; preserve CLI4309, staffing, dates, unrelated roles and processed outputs.
+- [ ] Verify every updated role against CLI4309 and report any unmatched roles or access blocker.
+
 ## Employee search and interaction delays — 24 October
 - [x] Production confirms 21,747 inactive versus 6,893 working records; active search unnecessarily fetched all history, loaders burst all pages, and saves patched an unused cache key or waited for full reloads.
 - [x] Active search no longer downloads/merges inactive history; bounded two-page reads remove count waterfall; closed inline selectors do not prepare item trees and open selectors render at most 60 searchable matches. Successful simple edits patch working/inactive slices without full refetch; wizard refreshes run in background. Employee records and permissions unchanged.
