@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## BFL October attendance archive — 26 October
+- [x] Separate 362 attendance source files from 16 invoice PDFs; locate both 6,659-row employee workbooks. Invoice amounts are outside scope.
+- [ ] Verify dated source grids and match employee IDs/client codes; activate source employees where inactive and create missing employees from the provided masters only. Blocked on supported production-targeted database access or an authorized live session; sandbox tools must not be used.
+- [ ] Back up affected records, import verified source marks with primary-unit/payroll-cap rules, preserve processed periods, then verify saved date-level marks and live attendance. Same production-access blocker; no attendance or employee records changed in this task.
+
 ## Employee master synchronization — 26 October
 - [x] 07:01 UTC: checked all 184 newly added employees against production; 178 already active/enabled. Supplied all 184 source branch/client/designation mappings in a CSV; mappings not applied.
 - [x] User confirmed activating the six new IDs (49576, 49585, 49627, 49758, 49761, 49909) while retaining older active IDs. Activated all six; fresh production readback verifies all 184 new employees active/enabled and all six older IDs unchanged/active. Delivered updated source-mapping CSV v2; postings unchanged.
