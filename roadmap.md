@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Employee master synchronization — 26 October
+- [x] Inspected Employee_Master_Data-2.xlsx and EmployeeList-2.xlsx: each contains 6,659 employee rows; detailed master has 100 columns and list has 14 columns.
+- [ ] Compare source IDs, duplicates and overlapping fields; retain conflicting identities for review rather than guessing or merging people.
+- [ ] Match existing production employees, back up affected records, create missing employees with exact supplied IDs and update source-backed fields through existing approval rules. Blocked: live employee page redirects to /login; no supported production-targeted connector is available. Do not write to the unrelated sandbox or bypass shell database restrictions.
+- [ ] Verify every changed field through fresh production readback and the signed-in live employee page. Same access blocker; no employee records changed.
+
 ## L&T Karnataka rates from CLI4309 — 25 October
 - [x] Saved standing requirement: all L&T Finance Karnataka rates follow user-updated CLI4309; preserve the reference contract.
 - [ ] Read CLI4309's updated current contract and identify all matching L&T Finance Karnataka roles. Blocked: live Contracts redirects to /login; no authorized production session or production-targeted database connector is available.
