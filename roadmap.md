@@ -1,6 +1,7 @@
 # Mobile app UI re-review
 
 ## Employee master synchronization — 26 October
+- [ ] 07:01 UTC: check all 184 newly added employees, activate permitted records, and provide the unit/client/branch mappings from the source sheets without guessing or changing existing postings.
 - [x] Latest scope (26 October, 06:22 UTC): synchronize employee IDs, names, joining dates and all supplied employee details from both verified sheets; create missing employees. Prior instruction leaves unit/branch/client mappings to the user. Sensitive fields still follow the configured approval process.
 - [x] Inspected Employee_Master_Data-2.xlsx and EmployeeList-2.xlsx: each contains 6,659 employee rows; detailed master has 100 columns and list has 14 columns.
 - [x] Both sources have the same 6,659 unique, nonblank employee IDs; names, phones, emails, gender, DOB, DOJ, client, designation, active and verification status agree after formatting normalization. 420 branch values are missing in both sources (-- versus blank), not conflicting branches. Source active statuses: 6,179 yes and 480 no. No repeated supplied Aadhaar; 34 rows share 16 phone values and four rows share two bank accounts, so neither phone nor bank alone can establish identity. Delivered missing-branch CSV; no employee records changed.
