@@ -403,7 +403,7 @@ function MusterRollPage() {
       const { data: raw, error } = await supabase
         .from("units")
         .select(
-          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
+          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -457,6 +457,39 @@ function MusterRollPage() {
     [unit],
   );
   const [phEmpOpen, setPhEmpOpen] = useState(false);
+  // Single holiday dates the user switched PH off for, as "candidateId|YYYY-MM-DD".
+  const phDayOff = useMemo(
+    () => new Set(((unit as { ph_excluded_days?: string[] | null } | null | undefined)?.ph_excluded_days ?? []).map(String)),
+    [unit],
+  );
+  const phDayToggle = useMutation({
+    mutationFn: async ({ candidateId, date, off }: { candidateId: string; date: string; off: boolean }) => {
+      const key = `${candidateId}|${date}`;
+      const next = new Set(phDayOff);
+      if (off) next.add(key);
+      else next.delete(key);
+      const { error } = await supabase
+        .from("units")
+        .update({ ph_excluded_days: Array.from(next) } as never)
+        .eq("id", unitId);
+      if (error) throw error;
+      return { candidateId, date, off };
+    },
+    onSuccess: async ({ candidateId, date, off }) => {
+      await logActivity({
+        module: "Attendance",
+        action: "update",
+        entityType: "unit",
+        entityId: unitId,
+        entityLabel: (unit as { code?: string } | null)?.code ?? unitId,
+        before: { ph_employee: candidateId, date, ph: off ? "on" : "off" },
+        after: { ph_employee: candidateId, date, ph: off ? "off" : "on" },
+      });
+      await phQc.invalidateQueries({ queryKey: ["attendance-unit", unitId] });
+      toast.success(off ? `PH removed for ${date}` : `PH added back for ${date}`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not change PH for this date"),
+  });
   const phEmpToggle = useMutation({
     mutationFn: async ({ candidateId, exclude }: { candidateId: string; exclude: boolean }) => {
       const next = new Set(phExcluded);
@@ -3966,6 +3999,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
         !edOnlyLine &&
         e.code !== "PH" &&
         holidayByDate.has(cell.date) &&
+        !phDayOff.has(`${rk.split("|")[0]}|${cell.date}`) &&
         (!joiningDate || cell.date >= joiningDate)
       ) {
         unitPhDays += phMultiplier;
@@ -5927,13 +5961,15 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                             }
                           >
                             {(() => {
-                              const showPh =
+                              const phEligible =
                                 phEnabled &&
                                 mr.isPrimary &&
                                 !phExcluded.has(String(mr.emp.id)) &&
                                 holidayByDate.has(date) &&
                                 Boolean(entry) &&
                                 (!mr.emp.doj || date >= mr.emp.doj);
+                              const phOffHere = phDayOff.has(`${mr.emp.id}|${date}`);
+                              const showPh = phEligible;
                               return (
                                 <div className="flex h-full w-full flex-col items-center justify-center leading-none">
                                   {hrs > 0 && (
@@ -5942,9 +5978,23 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                                     </span>
                                   )}
                                   {showPh && (
-                                    <span className="pointer-events-none text-[8px] font-bold text-emerald-600">
+                                    <button
+                                      type="button"
+                                      disabled={!canMark || phDayToggle.isPending}
+                                      title={phOffHere ? "PH is off for this date — tap to add it back" : "Tap to remove PH for this date"}
+                                      onMouseDown={(ev) => ev.stopPropagation()}
+                                      onClick={(ev) => {
+                                        ev.stopPropagation();
+                                        ev.preventDefault();
+                                        phDayToggle.mutate({ candidateId: String(mr.emp.id), date, off: !phOffHere });
+                                      }}
+                                      className={cn(
+                                        "rounded px-0.5 text-[8px] font-bold",
+                                        phOffHere ? "text-muted-foreground line-through opacity-60" : "text-emerald-600",
+                                      )}
+                                    >
                                       {phMultiplier > 1 ? `PH×${phMultiplier}` : "PH"}
-                                    </span>
+                                    </button>
                                   )}
                                 </div>
                               );
