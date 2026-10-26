@@ -420,6 +420,27 @@ function MusterRollPage() {
   });
 
   const publicHolidays = usePublicHolidays();
+  const phQc = useQueryClient();
+  const phToggle = useMutation({
+    mutationFn: async (next: boolean) => {
+      const { error } = await supabase
+        .from("units")
+        .update({ ph_enabled: next } as never)
+        .eq("id", unitId);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: async (next) => {
+      await logActivity({
+        module: "Attendance",
+        action: "update",
+        description: `Public holiday credit turned ${next ? "on" : "off"} for ${(unit as { code?: string } | null)?.code ?? unitId}`,
+      } as never);
+      await phQc.invalidateQueries({ queryKey: ["attendance-unit", unitId] });
+      toast.success(`PH turned ${next ? "on" : "off"} for this client`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not change PH setting"),
+  });
   const phEnabled = Boolean(
     (unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled,
   );
@@ -4142,6 +4163,15 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             <span className="truncate">Upload Attendance</span>
           </Button>
           <AttendanceUploadsButton unitId={unitId} periodStart={periodStart} />
+          <Button
+            variant={phEnabled ? "default" : "outline"}
+            disabled={!canMark || phToggle.isPending}
+            title={phEnabled ? "Public holiday credit is ON for this client — tap to turn off" : "Public holiday credit is OFF for this client — tap to turn on"}
+            onClick={() => phToggle.mutate(!phEnabled)}
+            className="h-10 min-w-0 rounded-full px-3 text-sm shadow-sm"
+          >
+            <span className="truncate">PH: {phEnabled ? "On" : "Off"}</span>
+          </Button>
           <Button
             variant="outline"
             disabled={!editable}
