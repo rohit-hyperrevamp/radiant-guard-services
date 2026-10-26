@@ -1,6 +1,8 @@
 # Mobile app UI re-review
 
 ## Employee master synchronization — 26 October
+- [x] 07:01 UTC: checked all 184 newly added employees against production; 178 already active/enabled. Supplied all 184 source branch/client/designation mappings in a CSV; mappings not applied.
+- [ ] Six new IDs (49576, 49585, 49627, 49758, 49761, 49909) remain inactive because each Aadhaar already has an active older ID. Await user decision on keeping older IDs versus activating additional duplicate records; do not deactivate or merge historical IDs without confirmation.
 - [x] Latest scope (26 October, 06:22 UTC): synchronize employee IDs, names, joining dates and all supplied employee details from both verified sheets; create missing employees. Prior instruction leaves unit/branch/client mappings to the user. Sensitive fields still follow the configured approval process.
 - [x] Inspected Employee_Master_Data-2.xlsx and EmployeeList-2.xlsx: each contains 6,659 employee rows; detailed master has 100 columns and list has 14 columns.
 - [x] Both sources have the same 6,659 unique, nonblank employee IDs; names, phones, emails, gender, DOB, DOJ, client, designation, active and verification status agree after formatting normalization. 420 branch values are missing in both sources (-- versus blank), not conflicting branches. Source active statuses: 6,179 yes and 480 no. No repeated supplied Aadhaar; 34 rows share 16 phone values and four rows share two bank accounts, so neither phone nor bank alone can establish identity. Delivered missing-branch CSV; no employee records changed.
