@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages } from "@/lib/supabase-batch";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
 
 export type ScopeType = "state" | "customer" | "branch" | "unit" | "team";
 
@@ -27,32 +29,34 @@ export const QK_SCOPE_ASSIGNMENTS = ["admin", "employee_scope_assignments"] as c
 export const QK_EMPLOYEES_LITE = ["admin", "employees-lite"] as const;
 
 export function useScopeAssignments() {
+  const hasSession = useHasSupabaseSession();
   return useQuery({
     queryKey: QK_SCOPE_ASSIGNMENTS,
+    enabled: hasSession,
     staleTime: 30_000,
     queryFn: async (): Promise<ScopeAssignment[]> => {
-      const { data, error } = await supabase
+      return fetchAllPages<ScopeAssignment>((from, to) => supabase
         .from("employee_scope_assignments" as never)
         .select("id,candidate_id,scope_type,scope_id,scope_label")
-        .limit(5000);
-      if (error) throw error;
-      return ((data as unknown) as ScopeAssignment[]) ?? [];
+        .order("id")
+        .range(from, to));
     },
   });
 }
 
 export function useEmployeesLite() {
+  const hasSession = useHasSupabaseSession();
   return useQuery({
     queryKey: QK_EMPLOYEES_LITE,
+    enabled: hasSession,
     staleTime: 30_000,
     queryFn: async (): Promise<EmployeeLite[]> => {
-      const { data, error } = await supabase
+      return fetchAllPages<EmployeeLite>((from, to) => supabase
         .from("candidates" as never)
         .select("id,full_name,employee_code,photo_url,role_key,unit_id,reports_to,is_enabled,status")
         .in("status", ["approved", "active"])
-        .limit(2000);
-      if (error) throw error;
-      return ((data as unknown) as EmployeeLite[]) ?? [];
+        .order("id")
+        .range(from, to));
     },
   });
 }
@@ -61,16 +65,17 @@ export type CandidateUnit = { candidate_id: string; unit_id: string; is_primary:
 export const QK_CANDIDATE_UNITS = ["admin", "candidate_units"] as const;
 
 export function useCandidateUnits() {
+  const hasSession = useHasSupabaseSession();
   return useQuery({
     queryKey: QK_CANDIDATE_UNITS,
+    enabled: hasSession,
     staleTime: 30_000,
     queryFn: async (): Promise<CandidateUnit[]> => {
-      const { data, error } = await supabase
+      return fetchAllPages<CandidateUnit>((from, to) => supabase
         .from("candidate_units" as never)
         .select("candidate_id,unit_id,is_primary")
-        .limit(5000);
-      if (error) throw error;
-      return ((data as unknown) as CandidateUnit[]) ?? [];
+        .order("id")
+        .range(from, to));
     },
   });
 }
@@ -98,13 +103,13 @@ export function resolveFieldOfficersForUnit(
     else if (a.scope_type === "state" && unit.state_name && a.scope_id === unit.state_name) match = "state";
     if (!match) continue;
     if (!fmIndex.has(a.candidate_id)) fmIndex.set(a.candidate_id, new Set());
-    fmIndex.get(a.candidate_id)!.add(match);
+    fmIndex.get(a.candidate_id)?.add(match);
   }
   // Also treat direct candidate_units mappings as a "unit" scope source.
   for (const cu of candidateUnits) {
     if (cu.unit_id !== unit.id) continue;
     if (!fmIndex.has(cu.candidate_id)) fmIndex.set(cu.candidate_id, new Set());
-    fmIndex.get(cu.candidate_id)!.add("unit");
+    fmIndex.get(cu.candidate_id)?.add("unit");
   }
   const out: Array<{ fm: EmployeeLite; sources: ScopeType[] }> = [];
   for (const [cid, sources] of fmIndex) {
