@@ -1,4 +1,4 @@
-import { serverSearchWords } from "@/lib/search-match";
+import { employeePickerSearchFilters } from "@/lib/employee-picker-search";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, Search, X } from "lucide-react";
@@ -63,18 +63,12 @@ export function EmployeePicker({
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("candidates").select(sel).order("full_name", { ascending: true }).limit(40);
-      if (Array.isArray(roleKey) ? roleKey.length : roleKey) q = Array.isArray(roleKey) ? q.in("role_key", roleKey) : q.eq("role_key", roleKey!);
+      if (Array.isArray(roleKey)) {
+        if (roleKey.length) q = q.in("role_key", roleKey);
+      } else if (roleKey) q = q.eq("role_key", roleKey);
       if (departmentId) q = q.eq("department_id", departmentId);
       if (activeOnly) q = q.in("status", ["active", "approved"]);
-      const digits = term.replace(/\D/g, "");
-      if (digits.length >= 4 && /^[\d\s+()-]+$/.test(term)) {
-        q = q.ilike("mobile", `%${digits.length > 10 ? digits.slice(-10) : digits}%`);
-      } else {
-        // Each word must match name, code or phone — so "singh tarun" finds "Tarun Kumar Singh".
-        for (const w of serverSearchWords(term)) {
-          q = q.or(`full_name.ilike.%${w}%,employee_code.ilike.%${w}%,mobile.ilike.%${w}%`);
-        }
-      }
+      for (const filter of employeePickerSearchFilters(term)) q = q.or(filter);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as unknown as Emp[];
