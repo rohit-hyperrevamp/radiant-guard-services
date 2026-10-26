@@ -21,3 +21,4 @@
 - Invoice duty-rate exceptions use `invoice-duty-rates`; detail, print and exports price regular/ED quantities separately so totals reconcile without modifying payroll.
 - ESI on Extra Duty is opt-in per contract role (`contract_resources.ot_esi`: formulas copied from Cost Component Manager ESI lines); computeWages adds separate `edEsi` lines evaluated on each pay item's ED share, which statutory ESI placement skips — ED otherwise never carries PF/ESI/PT.
 - EmployeePicker uses employee-picker-search filters; numeric searches check employee_code and mobile together so employee IDs are never mistaken for phone-only queries.
+- Deployment directory reads are fully paged and session-gated; their employees-lite cache key has a deployment-specific suffix to prevent payroll pickers' smaller row shapes from hiding mapped guards.

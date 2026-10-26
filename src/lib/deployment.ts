@@ -26,7 +26,7 @@ export type EmployeeLite = {
 };
 
 export const QK_SCOPE_ASSIGNMENTS = ["admin", "employee_scope_assignments"] as const;
-export const QK_EMPLOYEES_LITE = ["admin", "employees-lite"] as const;
+export const QK_EMPLOYEES_LITE = ["admin", "employees-lite", "deployment-v2"] as const;
 
 export function useScopeAssignments() {
   const hasSession = useHasSupabaseSession();
