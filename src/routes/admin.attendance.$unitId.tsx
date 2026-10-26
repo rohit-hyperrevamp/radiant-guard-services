@@ -403,7 +403,7 @@ function MusterRollPage() {
       const { data: raw, error } = await supabase
         .from("units")
         .select(
-          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
+          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -448,6 +448,42 @@ function MusterRollPage() {
   const phEnabled = Boolean(
     (unit as { ph_enabled?: boolean | null } | null | undefined)?.ph_enabled,
   );
+  // Employees excluded from this unit's public-holiday credit (e.g. Head Guard).
+  const phExcluded = useMemo(
+    () =>
+      new Set(
+        ((unit as { ph_excluded_candidate_ids?: string[] | null } | null | undefined)?.ph_excluded_candidate_ids ?? []).map(String),
+      ),
+    [unit],
+  );
+  const [phEmpOpen, setPhEmpOpen] = useState(false);
+  const phEmpToggle = useMutation({
+    mutationFn: async ({ candidateId, exclude }: { candidateId: string; exclude: boolean }) => {
+      const next = new Set(phExcluded);
+      if (exclude) next.add(candidateId);
+      else next.delete(candidateId);
+      const { error } = await supabase
+        .from("units")
+        .update({ ph_excluded_candidate_ids: Array.from(next) } as never)
+        .eq("id", unitId);
+      if (error) throw error;
+      return { candidateId, exclude };
+    },
+    onSuccess: async ({ candidateId, exclude }) => {
+      await logActivity({
+        module: "Attendance",
+        action: "update",
+        entityType: "unit",
+        entityId: unitId,
+        entityLabel: (unit as { code?: string } | null)?.code ?? unitId,
+        before: { ph_for_employee: candidateId, ph: exclude ? "on" : "off" },
+        after: { ph_for_employee: candidateId, ph: exclude ? "off" : "on" },
+      });
+      await phQc.invalidateQueries({ queryKey: ["attendance-unit", unitId] });
+      toast.success(exclude ? "PH removed for this employee" : "PH restored for this employee");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not change PH for this employee"),
+  });
   const phMultiplier =
     Number((unit as { ph_multiplier?: number | null } | null | undefined)?.ph_multiplier ?? 1) || 1;
   // Per-unit duty value of one PH-marked day. NULL = use the PH code's day_value.
@@ -4178,6 +4214,45 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
           </Button>
           <Button
             variant="outline"
+            disabled={!canMark || !phEnabled}
+            title="Turn public holiday credit off or on for individual employees"
+            onClick={() => setPhEmpOpen(true)}
+            className="h-10 min-w-0 rounded-full px-3 text-sm shadow-sm"
+          >
+            <span className="truncate">PH by employee{phExcluded.size ? ` (${phExcluded.size} off)` : ""}</span>
+          </Button>
+          <Dialog open={phEmpOpen} onOpenChange={setPhEmpOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>PH by employee</DialogTitle>
+                <DialogDescription>Untick an employee to stop public holiday credit for them at this client.</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] space-y-1 overflow-y-auto">
+                {Array.from(
+                  new Map(musterRows.filter((r) => r.emp?.id).map((r) => [String(r.emp.id), r.emp])).values(),
+                ).map((emp) => {
+                  const id = String(emp.id);
+                  const on = !phExcluded.has(id);
+                  return (
+                    <label key={id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted">
+                      <Checkbox
+                        checked={on}
+                        disabled={phEmpToggle.isPending}
+                        onCheckedChange={(v) => phEmpToggle.mutate({ candidateId: id, exclude: !v })}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        {emp.employee_code ? `${emp.employee_code} · ` : ""}
+                        {emp.full_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{on ? "PH on" : "PH off"}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button
+            variant="outline"
             disabled={!editable}
             onClick={() => {
               setMapQuery("");
@@ -5167,7 +5242,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                     }
                     const totals = computeTotalsForRow(
                       mr.key,
-                      Boolean(mr.otOnly) || Boolean(mr.reliever),
+                      Boolean(mr.otOnly) || Boolean(mr.reliever) || phExcluded.has(String(mr.emp.id)),
                       mr.emp.doj || null,
                     );
                     const selected = mobileSelectedRows.has(mr.key);
@@ -5547,7 +5622,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                   const cellBase = "border border-slate-400 align-middle";
                   const totals = computeTotalsForRow(
                     mr.key,
-                    Boolean(mr.otOnly) || Boolean(mr.reliever),
+                    Boolean(mr.otOnly) || Boolean(mr.reliever) || phExcluded.has(String(mr.emp.id)),
                     mr.emp.doj || null,
                   );
                   return [
@@ -5855,6 +5930,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                               const showPh =
                                 phEnabled &&
                                 mr.isPrimary &&
+                                !phExcluded.has(String(mr.emp.id)) &&
                                 holidayByDate.has(date) &&
                                 Boolean(entry) &&
                                 (!mr.emp.doj || date >= mr.emp.doj);
@@ -5895,7 +5971,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                     (acc, mr) => {
                       const t = computeTotalsForRow(
                         mr.key,
-                        Boolean(mr.otOnly) || Boolean(mr.reliever),
+                        Boolean(mr.otOnly) || Boolean(mr.reliever) || phExcluded.has(String(mr.emp.id)),
                         mr.emp.doj || null,
                       );
                       acc.pDays += t.pDays;

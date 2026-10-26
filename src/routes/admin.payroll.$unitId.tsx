@@ -198,18 +198,20 @@ function PayrollUnitPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units")
-        .select("ph_enabled, ph_multiplier, ph_day_value" as never)
+        .select("ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids" as never)
         .eq("id", unitId)
         .maybeSingle();
       const row = (data ?? null) as {
         ph_enabled?: boolean | null;
         ph_multiplier?: number | null;
         ph_day_value?: number | string | null;
+        ph_excluded_candidate_ids?: string[] | null;
       } | null;
       const dv = row?.ph_day_value;
       return {
         enabled: Boolean(row?.ph_enabled),
         multiplier: Number(row?.ph_multiplier ?? 1) || 1,
+        excluded: (row?.ph_excluded_candidate_ids ?? []).map(String),
         // PH off for this client → PH marks count 0 days.
         dayValue: !row?.ph_enabled ? 0 : dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
       };
@@ -1002,7 +1004,7 @@ function PayrollUnitPage() {
           periodDates,
           lineEntries as AttendanceEntryLike[],
           (codes ?? []) as AttendanceCodeLike[],
-          isPrimaryLine ? phConfig : null,
+          isPrimaryLine && !(unitPh?.excluded ?? []).includes(String(c.id)) ? phConfig : null,
           (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
           unitPh?.dayValue ?? null,
           woAsPresent,
