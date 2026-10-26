@@ -434,8 +434,12 @@ function MusterRollPage() {
       await logActivity({
         module: "Attendance",
         action: "update",
-        description: `Public holiday credit turned ${next ? "on" : "off"} for ${(unit as { code?: string } | null)?.code ?? unitId}`,
-      } as never);
+        entityType: "unit",
+        entityId: unitId,
+        entityLabel: (unit as { code?: string } | null)?.code ?? unitId,
+        before: { ph_enabled: !next },
+        after: { ph_enabled: next },
+      });
       await phQc.invalidateQueries({ queryKey: ["attendance-unit", unitId] });
       toast.success(`PH turned ${next ? "on" : "off"} for this client`);
     },
