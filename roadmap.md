@@ -1,10 +1,10 @@
 # Mobile app UI re-review
 
 ## Employee master synchronization — 26 October
-- [x] Latest scope: synchronize exact employee IDs and names from both sheets only, create missing employees, and leave all unit/branch/client mappings to the user; do not change other employee details.
+- [x] Latest scope (26 October, 06:22 UTC): synchronize employee IDs, names, joining dates and all supplied employee details from both verified sheets; create missing employees. Prior instruction leaves unit/branch/client mappings to the user. Sensitive fields still follow the configured approval process.
 - [x] Inspected Employee_Master_Data-2.xlsx and EmployeeList-2.xlsx: each contains 6,659 employee rows; detailed master has 100 columns and list has 14 columns.
 - [x] Both sources have the same 6,659 unique, nonblank employee IDs; names, phones, emails, gender, DOB, DOJ, client, designation, active and verification status agree after formatting normalization. 420 branch values are missing in both sources (-- versus blank), not conflicting branches. Source active statuses: 6,179 yes and 480 no. No repeated supplied Aadhaar; 34 rows share 16 phone values and four rows share two bank accounts, so neither phone nor bank alone can establish identity. Delivered missing-branch CSV; no employee records changed.
-- [ ] Match existing production employees, back up affected records, create missing employees with exact supplied IDs and correct names/IDs through existing approval rules. Blocked: live employee page redirects to /login; no supported production-targeted connector is available (rechecked 26 October). Do not write to the unrelated sandbox or bypass shell database restrictions; preserve mappings and all unrelated fields.
+- [ ] Match existing production employees, back up affected records, create missing employees with exact supplied IDs and update all source-backed employee details through existing approval rules. Blocked: live employee page redirects to /login; no supported production-targeted connector is available (rechecked 26 October). Do not write to the unrelated sandbox or bypass shell database restrictions; preserve work-site mappings and resolve conflicting identities before changing IDs.
 - [ ] Verify every changed field through fresh production readback and the signed-in live employee page. Same access blocker; no employee records changed.
 
 ## L&T Karnataka rates from CLI4309 — 25 October
