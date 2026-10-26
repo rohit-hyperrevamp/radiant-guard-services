@@ -4241,8 +4241,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         onCheckedChange={(v) => phEmpToggle.mutate({ candidateId: id, exclude: !v })}
                       />
                       <span className="min-w-0 flex-1 truncate text-sm">
-                        {(emp as { code?: string }).code ? `${(emp as { code?: string }).code} · ` : ""}
-                        {(emp as { name?: string }).name}
+                        {emp.employee_code ? `${emp.employee_code} · ` : ""}
+                        {emp.full_name}
                       </span>
                       <span className="text-xs text-muted-foreground">{on ? "PH on" : "PH off"}</span>
                     </label>
@@ -5242,7 +5242,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                     }
                     const totals = computeTotalsForRow(
                       mr.key,
-                      Boolean(mr.otOnly) || Boolean(mr.reliever),
+                      Boolean(mr.otOnly) || Boolean(mr.reliever) || phExcluded.has(String(mr.emp.id)),
                       mr.emp.doj || null,
                     );
                     const selected = mobileSelectedRows.has(mr.key);
