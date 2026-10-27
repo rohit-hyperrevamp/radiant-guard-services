@@ -2,8 +2,9 @@
 
 ## BFL October attendance archive — 26 October
 - [x] Separate 362 attendance source files from 16 invoice PDFs; locate both 6,659-row employee workbooks. Invoice amounts are outside scope.
-- [ ] Verify dated source grids and match employee IDs/client codes; activate source employees where inactive and create missing employees from the provided masters only. Blocked on supported production-targeted database access or an authorized live session; sandbox tools must not be used.
-- [ ] Back up affected records, import verified source marks with primary-unit/payroll-cap rules, preserve processed periods, then verify saved date-level marks and live attendance. Same production-access blocker; no attendance or employee records changed in this task.
+- [x] Read 197 of 362 sheets (two independent readings, checked against written P-day totals); marked 362 employee-site rows (7,939 days, 165 sites, 324 employees) for 21 Sep–20 Oct; activated 4 inactive employees (backup table _bkp_bfl_oct26_candidates); added 37 site mappings; readback: every row's total duties equals the sheet.
+- [ ] Read and mark the remaining 165 sheets — blocked: the image-reading service (Lovable AI and the project Gemini key) ran out of credit mid-run.
+- [ ] Resolve ~19 listed issues and rows where the two readings disagreed (not marked) — see BFL_October_2026_Attendance_Marking_Report.xlsx.
 
 ## Employee master synchronization — 26 October
 - [x] 07:01 UTC: checked all 184 newly added employees against production; 178 already active/enabled. Supplied all 184 source branch/client/designation mappings in a CSV; mappings not applied.
