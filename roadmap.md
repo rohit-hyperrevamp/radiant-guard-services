@@ -1,8 +1,9 @@
 # Mobile app UI re-review
 
 ## Automatic reliever classification — 28 October
-- [ ] Synchronize non-primary attendance lines and site postings with the most-days rule; retain primary-site capped Extra Duty as regular.
-- [ ] Apply to production, correct employee 44806, and run rollback-only classification/switching regressions.
+- [x] Synchronize non-primary attendance lines and recent editable site postings with the most-days rule; retain primary-site capped Extra Duty as regular. Preserve duplicate posting lines during primary changes.
+- [x] Applied to production and recalculated 453 October multi-site employees. Fresh readback: zero non-primary regular or Present rows in editable October periods. Employee 44806: CLI2252 reliever/4 ED; CLI2394 regular/26 P + 2 capped ED. Rollback-only Present-save and majority-switch regressions pass; automatic compilation clean.
+- [ ] Signed-in live visual confirmation is unverified; production save/rule/readback verified, no frontend changes or publication required.
 
 ## BFL October attendance archive — 26 October
 - [x] Separate 362 attendance source files from 16 invoice PDFs; locate both 6,659-row employee workbooks. Invoice amounts are outside scope.
