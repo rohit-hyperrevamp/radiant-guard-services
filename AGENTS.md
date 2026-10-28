@@ -27,6 +27,7 @@
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`).
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
 - Never add high-volume tables (attendance_entries, punches) to realtime or page-wide invalidation — listen to status tables (attendance_sheets, payroll_runs) — per-row streams overloaded the database.
+- Regular/reliever classification is owned by the monthly database attendance rule, including saved line flags and recent editable postings; do not duplicate majority-site decisions in frontend code because labels must track payroll's decision.
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
