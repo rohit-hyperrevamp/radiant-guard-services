@@ -5287,10 +5287,10 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                           className={cn(
                             "sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-2 py-1.5 text-left shadow-sm",
                             selected && "ring-2 ring-inset ring-primary/30",
-                            !mr.otOnly && !mr.reliever && editable && "cursor-pointer",
+                            !mr.otOnly && editable && "cursor-pointer",
                           )}
                           onClick={() => {
-                            if (!editable || mr.otOnly || mr.reliever) return;
+                            if (!editable || mr.otOnly) return;
                             setMobileSelectedRows((current) => {
                               const next = new Set(current);
                               if (next.has(mr.key)) next.delete(mr.key);
