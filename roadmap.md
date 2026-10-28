@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## Automatic reliever classification — 28 October
+- [ ] Synchronize non-primary attendance lines and site postings with the most-days rule; retain primary-site capped Extra Duty as regular.
+- [ ] Apply to production, correct employee 44806, and run rollback-only classification/switching regressions.
+
 ## BFL October attendance archive — 26 October
 - [x] Separate 362 attendance source files from 16 invoice PDFs; locate both 6,659-row employee workbooks. Invoice amounts are outside scope.
 - [x] Read 197 of 362 sheets (two independent readings, checked against written P-day totals); marked 362 employee-site rows (7,939 days, 165 sites, 324 employees) for 21 Sep–20 Oct; activated 4 inactive employees (backup table _bkp_bfl_oct26_candidates); added 37 site mappings; readback: every row's total duties equals the sheet.
