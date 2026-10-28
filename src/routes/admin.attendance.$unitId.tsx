@@ -1911,7 +1911,7 @@ function MusterRollPage() {
           emp,
           isPrimary,
           reliever,
-          otOnly: reliever,
+          otOnly: false,
           shiftHours: shift,
           lineId,
           variant,
@@ -3684,8 +3684,7 @@ function MusterRollPage() {
     date > todayStr ||
     (typeof mr.emp.doj === "string" && date < mr.emp.doj) ||
     Boolean(mr.vacant) ||
-    Boolean(mr.otOnly) ||
-    Boolean(mr.reliever);
+    Boolean(mr.otOnly);
   const otCellBlocked = (mr: MusterRowT, date: string) =>
     date > todayStr || (typeof mr.emp.doj === "string" && date < mr.emp.doj) || Boolean(mr.vacant);
 
@@ -3851,7 +3850,7 @@ function MusterRollPage() {
         if (!row) continue;
         // Reliever / extra-designation lines are Extra Duty only — they can
         // never carry a regular attendance code.
-        if (row.otOnly || row.reliever) {
+        if (row.otOnly) {
           blocked += dates.length;
           continue;
         }
@@ -5147,7 +5146,6 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                   (row) =>
                     !row.vacant &&
                     !row.otOnly &&
-                    !row.reliever &&
                     (!row.emp.doj || mobileDate >= row.emp.doj),
                 );
                 setMobileSelectedRows((current) =>
@@ -5289,10 +5287,10 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                           className={cn(
                             "sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-2 py-1.5 text-left shadow-sm",
                             selected && "ring-2 ring-inset ring-primary/30",
-                            !mr.otOnly && !mr.reliever && editable && "cursor-pointer",
+                            !mr.otOnly && editable && "cursor-pointer",
                           )}
                           onClick={() => {
-                            if (!editable || mr.otOnly || mr.reliever) return;
+                            if (!editable || mr.otOnly) return;
                             setMobileSelectedRows((current) => {
                               const next = new Set(current);
                               if (next.has(mr.key)) next.delete(mr.key);
@@ -5302,7 +5300,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                           }}
                         >
                           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
-                            {!mr.otOnly && !mr.reliever ? (
+                            {!mr.otOnly ? (
                               <Checkbox
                                 checked={selected}
                                 aria-label={`Select ${mr.emp.full_name}`}
@@ -5332,7 +5330,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         {periodCells.map((cell) => {
                           const date = cell.date;
                           const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
-                          const edOnly = Boolean(mr.otOnly) || Boolean(mr.reliever);
+                          const edOnly = Boolean(mr.otOnly);
                           const blocked = !editable || date > todayStr || beforeDoj || edOnly;
                           const entry = entryMap.get(`${mr.key}|${date}`);
                           const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
@@ -5766,7 +5764,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         // Reliever / extra-designation lines are extra-duty only:
                         // never editable, never an implicit "A".
-                        const edOnlyLine = Boolean(mr.otOnly) || Boolean(mr.reliever);
+                        const edOnlyLine = Boolean(mr.otOnly);
                         const displayCode =
                           mr.vacant
                             ? ""
