@@ -5300,7 +5300,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                           }}
                         >
                           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
-                            {!mr.otOnly && !mr.reliever ? (
+                            {!mr.otOnly ? (
                               <Checkbox
                                 checked={selected}
                                 aria-label={`Select ${mr.emp.full_name}`}
