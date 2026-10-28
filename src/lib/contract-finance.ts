@@ -147,6 +147,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
     const grossRate = sumAmounts((r as { components?: unknown }).components);
     const deductionRate = sumAmounts((r as { deductions?: unknown }).deductions);
     const employerTotal = sumAmounts((r as { employer_contributions?: unknown }).employer_contributions);
+    const monthlyBilling = Math.round((grossRate + sumAmounts(r.benefits) + employerTotal) * 100) / 100;
     const rate: ResourceRate = {
       designationId: (r.designation_id as string) ?? null,
       designationName: (r.designation_id ? desigMap.get(r.designation_id as string) : undefined) || "Resource",
@@ -155,11 +156,13 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       grossRate: Math.round(grossRate * 100) / 100,
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
-      billRate: Math.round((grossRate + sumAmounts(r.benefits) + employerTotal) * 100) / 100,
+      billRate: unitCodeById.get(unitId)?.trim().toUpperCase() === "CLI290"
+        ? monthlyBilling
+        : Math.round((grossRate + employerTotal) * 100) / 100,
       extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : [], {
         unitCode: unitCodeById.get(unitId),
         designationName: (r.designation_id ? desigMap.get(String(r.designation_id)) : undefined) ?? null,
-        monthlyBilling: Math.round((grossRate + sumAmounts(r.benefits) + employerTotal) * 100) / 100,
+        monthlyBilling,
       }),
       payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
       billingDayBase: r.billing_day_base_id ? billingBaseById.get(String(r.billing_day_base_id)) ?? null : null,

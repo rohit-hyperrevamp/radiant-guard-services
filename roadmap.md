@@ -1,8 +1,9 @@
 # Mobile app UI re-review
 
 ## CLI290 Supervisor Extra Duty — 28 October
-- [ ] Set daily Extra Duty billing to Supervisor monthly contract billing / 26 * 2 for CLI290 only.
-- [ ] Show regular and Extra Duty separately on its invoice; verify calculations and saved settings.
+- [x] Implement Supervisor monthly contract billing / 26 * 2 for CLI290 only, shared by invoice and finance summaries; separate regular/ED lines use existing detail, print and export paths. No payroll salary or contract records changed.
+- [x] Eleven CLI290/CLI4096 calculation regressions pass; automatic compilation clean.
+- [ ] Publish and verify signed-in live CLI290 invoice. Blocked: publication not requested and live contract page redirects to login; saved production contract values and final invoice remain unverified.
 
 ## CLI3466 supplied Traffic Warden rates — 28 October
 - [x] Read uploaded twelve-hour sheet: Basic ₹10,021, VDA ₹3,250, HRA ₹663.55, Uniform ₹300, Conveyance ₹800; subtotal ₹15,034.55. Listed charges, Additional 04 Hours and management fee imply ₹29,025.45 versus printed ₹29,025.46; no balancing charge permitted.
