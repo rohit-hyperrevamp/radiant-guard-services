@@ -1911,7 +1911,7 @@ function MusterRollPage() {
           emp,
           isPrimary,
           reliever,
-          otOnly: reliever,
+          otOnly: false,
           shiftHours: shift,
           lineId,
           variant,
@@ -3684,8 +3684,7 @@ function MusterRollPage() {
     date > todayStr ||
     (typeof mr.emp.doj === "string" && date < mr.emp.doj) ||
     Boolean(mr.vacant) ||
-    Boolean(mr.otOnly) ||
-    Boolean(mr.reliever);
+    Boolean(mr.otOnly);
   const otCellBlocked = (mr: MusterRowT, date: string) =>
     date > todayStr || (typeof mr.emp.doj === "string" && date < mr.emp.doj) || Boolean(mr.vacant);
 
