@@ -2,8 +2,8 @@
 
 ## CLI3466 supplied Traffic Warden rates — 28 October
 - [x] Read uploaded twelve-hour sheet: Basic ₹10,021, VDA ₹3,250, HRA ₹663.55, Uniform ₹300, Conveyance ₹800; subtotal ₹15,034.55. Listed charges, Additional 04 Hours and management fee imply ₹29,025.45 versus printed ₹29,025.46; no balancing charge permitted.
-- [ ] Inspect, back up and update only CLI3466 current Traffic Warden contract with source-backed masters and rates; preserve other roles, dates, staffing and processed records. Production access verification in progress; built-in database tools target the unrelated sandbox and shell database inspection/writes are not permitted by current tool rules.
-- [ ] Read back saved rate fields and verify the live contract after authorized production update.
+- [ ] Inspect, back up and update only CLI3466 current Traffic Warden contract with source-backed masters and rates; preserve other roles, dates, staffing and processed records. Blocked: no accessible production connector; built-in database tools target the unrelated sandbox and shell database inspection/writes are not permitted by current tool rules. Live /admin/contracts returned HTTP 404; no contract records changed.
+- [ ] Read back saved rate fields and verify the live contract after authorized production update. Source arithmetic independently verified: listed amounts total ₹29,025.45 versus printed ₹29,025.46.
 
 ## CLI3629 AWL Nellore Plant 3 rates — 28 October
 - [x] Read both uploaded Guard and Supervisor sheets; independently verified gross/net/CTC and percentage bases. Guard gross ₹24,146.41, net ₹22,054.15, printed billing ₹32,024; Supervisor gross ₹26,913.06, net ₹24,520.80, billing ₹35,631. Guard printed Total D differs by ₹0.01 from rounded component sums; no balancing charge to be invented.
