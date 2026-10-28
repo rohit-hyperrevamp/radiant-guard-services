@@ -92,12 +92,12 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   if (!contractByUnit.size) return out;
 
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
-  const [resources, designations, payrollBases, billingBases, postingShifts] = await Promise.all([
+  const [resources, designations, payrollBases, billingBases, postingShifts, units] = await Promise.all([
     fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
       supabase
         .from("contract_resources")
         .select(
-          "contract_id, designation_id, quantity, shift_hours, components, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id",
+          "contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id",
         )
         .in("contract_id", chunk)
         .range(from, to),
@@ -110,8 +110,12 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       .from("billing_day_bases" as never)
       .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
     fetchPostingShifts(Array.from(contractByUnit.keys())),
+    fetchInChunks<{ id: string; code: string | null }>(ids, (chunk, from, to) =>
+      supabase.from("units").select("id, code").in("id", chunk).range(from, to),
+    ),
   ]);
   const desigMap = new Map(designations.map((d) => [d.id as string, d.name as string]));
+  const unitCodeById = new Map(units.map((u) => [u.id, u.code]));
 
   // The per-duty billing rate the invoice prints is the monthly value divided by
   // the resource's billing-days rule (falling back to its payroll-days rule).
@@ -151,8 +155,12 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       grossRate: Math.round(grossRate * 100) / 100,
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
-      billRate: Math.round((grossRate + employerTotal) * 100) / 100,
-      extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : []),
+      billRate: Math.round((grossRate + sumAmounts(r.benefits) + employerTotal) * 100) / 100,
+      extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : [], {
+        unitCode: unitCodeById.get(unitId),
+        designationName: (r.designation_id ? desigMap.get(String(r.designation_id)) : undefined) ?? null,
+        monthlyBilling: Math.round((grossRate + sumAmounts(r.benefits) + employerTotal) * 100) / 100,
+      }),
       payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
       billingDayBase: r.billing_day_base_id ? billingBaseById.get(String(r.billing_day_base_id)) ?? null : null,
     };
@@ -162,7 +170,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   }
 
   for (const [unitId, rates] of grouped) {
-    const contract = contractByUnit.get(unitId)!;
+    const contract = contractByUnit.get(unitId);
+    if (!contract) continue;
     const committed = rates.reduce((s, r) => s + r.quantity, 0);
     const monthlyContracted = rates.reduce((s, r) => s + r.quantity * r.billRate, 0);
     const monthlyPayroll = rates.reduce((s, r) => s + r.quantity * r.grossRate, 0);
