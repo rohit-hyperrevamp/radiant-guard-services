@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI3629 AWL Nellore Plant 3 rates — 28 October
+- [x] Read both uploaded Guard and Supervisor sheets; independently verified gross/net/CTC and percentage bases. Guard gross ₹24,146.41, net ₹22,054.15, printed billing ₹32,024; Supervisor gross ₹26,913.06, net ₹24,520.80, billing ₹35,631. Guard printed Total D differs by ₹0.01 from rounded component sums; no balancing charge to be invented.
+- [ ] Inspect, back up and update only CLI3629 current Guard/Supervisor rate fields using enabled formula masters; preserve dates, staffing, unrelated clients and processed outputs. Blocked: supported database tools target the unrelated sandbox, no production connector is available, and current shell-tool rules do not permit production database inspection or updates.
+- [ ] Read back saved fields and verify the live contract totals after authorized production access is available. No contract records changed.
+
 ## Automatic reliever classification — 28 October
 - [x] Synchronize non-primary attendance lines and recent editable site postings with the most-days rule; retain primary-site capped Extra Duty as regular. Preserve duplicate posting lines during primary changes.
 - [x] Applied to production and recalculated 453 October multi-site employees. Fresh readback: zero non-primary regular or Present rows in editable October periods. Employee 44806: CLI2252 reliever/4 ED; CLI2394 regular/26 P + 2 capped ED. Rollback-only Present-save and majority-switch regressions pass; automatic compilation clean.
