@@ -5,7 +5,14 @@ const r2 = (value: number) => Math.round(value * 100) / 100;
 export function invoiceExtraDutyRate(
   unitId: string,
   components: { name?: unknown; amount?: unknown }[],
+  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number },
 ): number | null {
+  if (contract?.unitCode?.trim().toUpperCase() === "CLI290" && /\bsupervisor\b/i.test(contract.designationName ?? "")) {
+    const monthly = contract.monthlyBilling;
+    return typeof monthly === "number" && Number.isFinite(monthly) && monthly > 0
+      ? r2(monthly / 26 * 2)
+      : null;
+  }
   if (unitId !== CLI4096_UNIT_ID) return null;
   const base = components.reduce((sum, component) => {
     const name = String(component.name ?? "").toLowerCase().replace(/[^a-z]/g, "");

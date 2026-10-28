@@ -1088,7 +1088,11 @@ function PayrollUnitPage() {
     const exactRate = billsHourly
       ? billingDays > 0 && shiftHours > 0 ? contracted / billingDays / shiftHours : 0
       : billingDays > 0 ? contracted / billingDays : 0;
-    const extraDutyRate = invoiceExtraDutyRate(unitId, r.resource?.components ?? []);
+    const extraDutyRate = invoiceExtraDutyRate(unitId, r.resource?.components ?? [], {
+      unitCode: unit?.code,
+      designationName: r.designation,
+      monthlyBilling: contracted,
+    });
     const dutySplit = extraDutyRate != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
       ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly })
       : null;
