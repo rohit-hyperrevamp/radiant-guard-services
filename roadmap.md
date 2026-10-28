@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## CLI4375 supplied four-role rates — 28 October
+- [x] Read supplied eight-hour sheet for Security Officer, Security Supervisor, Security Guard and Lady Guard; preserve each role's listed lines and Lady Guard's zero reliever charge.
+- [ ] Inspect and back up CLI4375's current contract, update only its rate fields using matching formula masters, and verify saved calculations; preserve other clients, dates and staffing.
+
 ## CLI290 Supervisor Extra Duty — 28 October
 - [x] Implement Supervisor monthly contract billing / 26 * 2 for CLI290 only, shared by invoice and finance summaries; separate regular/ED lines use existing detail, print and export paths. No payroll salary or contract records changed.
 - [x] Eleven CLI290/CLI4096 calculation regressions pass; automatic compilation clean.
