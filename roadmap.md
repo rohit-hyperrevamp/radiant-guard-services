@@ -2,9 +2,7 @@
 
 ## Fred India rates from CLI2759 — 29 October
 - [x] Saved standing requirement: all Fred India contracts follow user-updated CLI2759; preserve reference.
-- [ ] Identify CLI2759's current saved rate structure and all matching Fred India contracts. Blocked: no supported production-targeted database connector is available; managed tools target the unrelated sandbox.
-- [ ] Back up and copy matching role rate fields only; preserve reference, staffing, dates, unrelated roles and processed outputs. Blocked on supported live database access; shell writes are not permitted. No rates changed.
-- [ ] Verify all saved target rates against CLI2759. Same access blocker; do not use the unrelated sandbox database or unsupported shell writes.
+- [x] 29 Oct 17:36 UTC: copied CLI2759 (CON14217) Supervisor + Guard rate lines to active CLI303 CON14215, CLI3283 CON14669, CLI4384 CON16035, CLI4474 CON16170. Staffing, dates, sort order kept. Backup _bkp_fred_cli2759_20261029 (8 rows). Readback: all match (Supervisor ₹26,132.43, Guard ₹25,344.11 gross). No October payroll runs existed for these sites.
 
 ## Management Fee 10% of total gross — 29 October
 - [x] Added enabled production master Management Fee 10% (Total Gross), expression `gross * 0.10`; live readback confirms Management Fee selector eligibility. Calculation test passes: ₹20,000 gross → ₹2,000 regardless of deductions or CTC. Existing contracts unchanged; signed-in visual selector check unavailable.
