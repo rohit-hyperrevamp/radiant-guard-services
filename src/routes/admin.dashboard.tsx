@@ -697,21 +697,27 @@ function DashboardPage() {
               .from("attendance_sheets")
               .select("unit_id,status")
               .in("unit_id", ids)
-              .eq("period_start", monthStart)
-              .eq("period_end", monthEnd)
+              // Each site has its own pay cycle (e.g. 21 Sep–20 Oct); a cycle
+              // belongs to the month in which it ends.
+              .gte("period_end", monthStart)
+              .lte("period_end", monthEnd)
               .eq("status", "approved"),
             supabase
               .from("payroll_runs")
               .select("id,unit_id")
               .in("unit_id", ids)
-              .eq("period_start", monthStart)
-              .eq("period_end", monthEnd),
+              // Each site has its own pay cycle (e.g. 21 Sep–20 Oct); a cycle
+              // belongs to the month in which it ends.
+              .gte("period_end", monthStart)
+              .lte("period_end", monthEnd),
             supabase
               .from("final_invoice_units" as never)
               .select("unit_id,final_invoice_id")
               .in("unit_id", ids)
-              .eq("period_start", monthStart)
-              .eq("period_end", monthEnd),
+              // Each site has its own pay cycle (e.g. 21 Sep–20 Oct); a cycle
+              // belongs to the month in which it ends.
+              .gte("period_end", monthStart)
+              .lte("period_end", monthEnd),
           ]);
           for (const s of (sheets.data ?? []) as { unit_id: string }[])
             approvedUnits.add(s.unit_id);
