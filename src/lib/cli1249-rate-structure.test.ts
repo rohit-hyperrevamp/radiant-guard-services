@@ -43,3 +43,23 @@ describe("CLI1249 confirmed listed Guard rates", () => {
     expect(ctc + 3233.30 + 2263.31).toBeCloseTo(24896.42, 2);
   });
 });
+import { refreshBillingAddOns } from "./contract-billing-addons";
+
+describe("CLI1249 management fee includes reliever charges", () => {
+  it("refreshes management fee to 2263.31 and billing to 24896.42", () => {
+    const line = (name: string, amount: number, formulaExpression: string | null = null) =>
+      ({ name, amount, formulaMode: formulaExpression ? "advanced" : null, formulaExpression });
+    const refreshed = refreshBillingAddOns({
+      components: [line("Basic", 10021), line("DA", 3614), line("HRA 5% (Basic+DA)", 681.75), line("Paid Holiday", 136.35),
+        line("Uniform", 409.05), line("Bonus", 583.10), line("Leave with Wages", 818.10), line("Washing Allowance", 100)],
+      benefits: [],
+      employerContributions: [line("ER EPF", 1950), line("ER ESI", 528.56), line("Gratuity", 545.40), line("ER LWF - MH", 12.50),
+        line("Reliever Charges", 3233.30, "total_ctc / 6"),
+        line("Management Fee", 1939.98, "(total_ctc + reliever_charges) * 0.10")],
+    });
+    const fee = refreshed.employerContributions!.find((l) => l.name === "Management Fee")!;
+    expect(fee.amount).toBe(2263.31);
+    const total = [...refreshed.components!, ...refreshed.employerContributions!].reduce((s, l) => s + Number(l.amount), 0);
+    expect(Math.round(total * 100) / 100).toBe(24896.42);
+  });
+});
