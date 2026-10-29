@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## Fred India rates from CLI2759 — 29 October
+- [x] Saved standing requirement: all Fred India contracts follow user-updated CLI2759; preserve reference.
+- [ ] Identify CLI2759's current saved rate structure and all matching Fred India contracts. Blocked: no supported production-targeted database connector is available; managed tools target the unrelated sandbox.
+- [ ] Back up and copy matching role rate fields only; preserve reference, staffing, dates, unrelated roles and processed outputs. Blocked on supported live database access; shell writes are not permitted. No rates changed.
+- [ ] Verify all saved target rates against CLI2759. Same access blocker; do not use the unrelated sandbox database or unsupported shell writes.
+
 ## Management Fee 10% of total gross — 29 October
 - [x] Added enabled production master Management Fee 10% (Total Gross), expression `gross * 0.10`; live readback confirms Management Fee selector eligibility. Calculation test passes: ₹20,000 gross → ₹2,000 regardless of deductions or CTC. Existing contracts unchanged; signed-in visual selector check unavailable.
 
