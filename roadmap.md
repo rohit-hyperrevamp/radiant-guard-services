@@ -3,7 +3,7 @@
 ## CLI4375 supplied four-role rates — 28 October
 - [x] Read supplied eight-hour sheet for Security Officer, Security Supervisor, Security Guard and Lady Guard; preserve each role's listed lines and Lady Guard's zero reliever charge.
 - [x] Independently calculated supplied lines: Officer ₹43,846.59 and Supervisor ₹38,849.27 (printed ₹43,846.58/₹38,849.28); Guard ₹37,739.92 and Lady Guard ₹32,347.58 exact. No balancing charges invented.
-- [ ] Inspect, back up and update CLI4375 only, then verify saved rates. Blocked: live Client Contracts redirects to login, no production connection is available, and supported database tools target the unrelated sandbox. No contract records changed; preserve other clients, dates and staffing.
+- [x] Backed up and updated CLI4375 CON16021 in production on 29 October. Four eight-hour roles and 30/31-day bases saved; existing staffing and dates preserved, new Lady Guard quantity zero. Four formula tests pass; saved fields verified. Officer billing ₹43,846.59, Supervisor ₹38,849.27, Guard ₹37,739.92, Lady Guard ₹32,347.58; no balancing charges. Signed-in visual confirmation remains unavailable.
 
 ## CLI290 Supervisor Extra Duty — 28 October
 - [x] Implement Supervisor monthly contract billing / 26 * 2 for CLI290 only, shared by invoice and finance summaries; separate regular/ED lines use existing detail, print and export paths. No payroll salary or contract records changed.
