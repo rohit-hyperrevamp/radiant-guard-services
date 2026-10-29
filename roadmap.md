@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI310 latest Security Guard sheet — 29 October 22:16 UTC
+- [x] User corrected target to Security Guard, not Supervisor. Recorded image-107 July–December 2026 rates and ₹42,159 printed final billing; earlier Guard reference superseded, Supervisor unchanged.
+- [ ] Update only current CLI310 Guard resource and linked formula masters, preserving other roles and processed records. Blocked: available supported database write tools target the unrelated sandbox; shell database writes are forbidden by current tool rules. No production rate records changed.
+- [ ] Resolve printed gross ₹28,912.57 versus listed wage sum ₹28,913.57 before claiming exact agreement; preserve supplied amounts without an invented balancing line. Verify saved rates and live contract after supported production update access is available.
+
 ## CLI1249 daily billing display — 29 October
 - [x] Include every saved wage allowance in the contract monthly billing display and use the saved billing divisor rather than a hard-coded days-minus-four fallback; contract amounts unchanged.
 - [x] Verified ₹24,896.42 / 30 = ₹829.88; all 25 CLI1249/CLI4096/CLI290 tests pass and automatic compilation is clean.
