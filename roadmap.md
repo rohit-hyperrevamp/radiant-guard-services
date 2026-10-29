@@ -1,8 +1,8 @@
 # Mobile app UI re-review
 
-## CLI310 latest Security Guard sheet — 29 October 22:16 UTC
-- [x] User corrected target to Security Guard, not Supervisor. Recorded image-107 July–December 2026 rates and ₹42,159 printed final billing; earlier Guard reference superseded, Supervisor unchanged.
-- [ ] Update only current CLI310 Guard resource and linked formula masters, preserving other roles and processed records. Blocked: available supported database write tools target the unrelated sandbox; shell database writes are forbidden by current tool rules. No production rate records changed.
+## CLI310 both supplied role sheets — 29 October 22:21 UTC
+- [x] User explicitly authorized both changes: image-106 Supervisor ₹42,538 and image-107 Guard ₹42,159 printed final billing. Earlier Guard reference superseded.
+- [ ] Update current CLI310 Supervisor and Guard resources and linked formula masters, preserving other clients, staffing and processed records. Blocked: available supported database write tools target the unrelated sandbox; shell database writes are forbidden by current tool rules. Connector catalogue confirms no external production PostgreSQL connector applies here. No production rate records changed.
 - [ ] Resolve printed gross ₹28,912.57 versus listed wage sum ₹28,913.57 before claiming exact agreement; preserve supplied amounts without an invented balancing line. Verify saved rates and live contract after supported production update access is available.
 
 ## CLI1249 daily billing display — 29 October
