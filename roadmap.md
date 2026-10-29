@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI1249 daily billing display — 29 October
+- [x] Include every saved wage allowance in the contract monthly billing display and use the saved billing divisor rather than a hard-coded days-minus-four fallback; contract amounts unchanged.
+- [x] Verified ₹24,896.42 / 30 = ₹829.88; all 25 CLI1249/CLI4096/CLI290 tests pass and automatic compilation is clean.
+- [ ] Verify signed-in live CLI1249 after publication: live Contracts redirects to /login, so actual saved day-base configuration and live display remain unverified.
+
 ## Fred India rates from CLI2759 — 29 October
 - [x] Saved standing requirement: all Fred India contracts follow user-updated CLI2759; preserve reference.
 - [x] 29 Oct 17:36 UTC: copied CLI2759 (CON14217) Supervisor + Guard rate lines to active CLI303 CON14215, CLI3283 CON14669, CLI4384 CON16035, CLI4474 CON16170. Staffing, dates, sort order kept. Backup _bkp_fred_cli2759_20261029 (8 rows). Readback: all match (Supervisor ₹26,132.43, Guard ₹25,344.11 gross). No October payroll runs existed for these sites.

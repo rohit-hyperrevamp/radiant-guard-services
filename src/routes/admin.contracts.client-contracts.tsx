@@ -109,6 +109,8 @@ import {
 } from "@/components/ui/command";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
+import { contractMonthlyBilling, contractDailyBilling } from "@/lib/contract-rate-display";
+import { periodDateList } from "@/lib/mis-billing";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
@@ -4525,6 +4527,7 @@ function ResourcesSection({
   const canDeleteSavedResources = canExplicit("contracts", "delete_resources");
   const designations = useDesignations();
   const billingDayBases = useBillingDayBases();
+  const payrollDayBases = usePayrollDayBases();
   const serviceTypes = useServiceTypes();
   const rolesList = useRolesList();
   const dById = useMemo(
@@ -4556,18 +4559,11 @@ function ResourcesSection({
     },
   });
 
-  /** Monthly client billing (wages + employer cost lines) and the four
-   *  payroll-period billing rates: 31/30/29/28 days use 27/26/25/24 duties. */
+  /** Invoice-aligned monthly billing and contractual daily divisors. */
   const dayRates = useMemo(
     () =>
       resources.map((r) => {
-        const gross = r.components.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-        const employer = (r.employerContributions ?? []).reduce(
-          (s, c) => s + (Number((c as { amount?: unknown }).amount) || 0),
-          0,
-        );
-        const monthlyRaw = gross + employer;
-        const monthly = r.roundOffFinal ? Math.round(monthlyRaw) : monthlyRaw;
+        const monthly = contractMonthlyBilling(r);
         const bb = r.billingDayBaseId
           ? billingDayBases.find((b) => b.id === r.billingDayBaseId)
           : undefined;
@@ -4575,11 +4571,11 @@ function ResourcesSection({
           label: dById.get(r.designationId)?.name ?? "Resource",
           shiftHours: r.shiftHours,
           monthly,
-          billingMethod: (bb as { method?: string } | undefined)?.method ?? null,
-          billingFixedDays: Number((bb as { fixed_days?: unknown; fixedDays?: unknown } | undefined)?.fixed_days ?? (bb as { fixedDays?: unknown } | undefined)?.fixedDays) || 0,
+          billingDayBase: bb,
+          payrollDayBase: payrollDayBases.find((b) => b.id === r.payrollDayBaseId),
         };
       }),
-    [resources, dById, billingDayBases],
+    [resources, dById, billingDayBases, payrollDayBases],
   );
 
   const currentPayrollPeriod = useMemo(() => {
@@ -4599,10 +4595,10 @@ function ResourcesSection({
   const currentPayrollPeriodDays = currentPayrollPeriod.totalDays;
   const billingRateScenarios = useMemo(() => {
     const scenarios = [
-      { calendarDays: 31, billingDays: 27 },
-      { calendarDays: 30, billingDays: 26 },
-      { calendarDays: 29, billingDays: 25 },
-      { calendarDays: 28, billingDays: 24 },
+      { calendarDays: 31 },
+      { calendarDays: 30 },
+      { calendarDays: 29 },
+      { calendarDays: 28 },
     ];
     return scenarios.sort((a, b) => {
       if (a.calendarDays === currentPayrollPeriodDays) return -1;
@@ -4689,41 +4685,35 @@ function ResourcesSection({
                       Monthly {fmtRate(d.monthly)}
                     </span>
                   </div>
-                  {d.billingMethod === "actual_days" ? (
-                    // Actual days = days in the payroll period being billed
-                    // (21 Aug–20 Sep = 31), so show every period length.
-                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                      {[31, 30, 29, 28].map((n) => (
-                        <div key={n} className={cn("rounded-md border px-2 py-1.5", n === currentPayrollPeriodDays ? "border-accent bg-accent/10" : "border-border bg-background/60")}>
-                          <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
-                            <span>{n}-day payroll period</span>
-                            {n === currentPayrollPeriodDays ? <span className="font-medium text-accent">Current</span> : null}
-                          </div>
-                          <div className="mt-0.5 text-sm font-semibold text-foreground">{fmtRate(d.monthly / n)}</div>
-                          <div className="text-[10px] text-muted-foreground">÷ {n} days</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : d.billingMethod === "fixed_days" && d.billingFixedDays > 0 ? (
+                  {d.billingDayBase?.method === "fixed_days" && (d.billingDayBase.fixedDays ?? 0) > 0 ? (
                     <div className="rounded-md border border-accent bg-accent/10 px-2 py-1.5">
                       <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
                         <span>{currentPayrollPeriodDays}-day payroll period</span>
                         <span className="font-medium text-accent">Current</span>
                       </div>
                       <div className="mt-0.5 text-sm font-semibold text-foreground">
-                        {fmtRate(d.monthly / d.billingFixedDays)}
+                        {fmtRate(contractDailyBilling(d.monthly, d, periodDateList(currentPayrollPeriod.start, currentPayrollPeriod.end)).perDay)}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        ÷ {`${d.billingFixedDays} billing days`}
+                        ÷ {`${d.billingDayBase.fixedDays} billing days`}
                       </div>
                     </div>
                   ) : (
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                     {billingRateScenarios.map((scenario) => {
                       const isCurrent = scenario.calendarDays === currentPayrollPeriodDays;
+                      const dates = periodDateList(currentPayrollPeriod.start, currentPayrollPeriod.end);
+                      // Preserve the real weekdays for the current payroll window.
+                      const start = new Date(`${currentPayrollPeriod.start}T12:00:00`);
+                      while (dates.length < scenario.calendarDays) {
+                        const next = new Date(start);
+                        next.setDate(start.getDate() + dates.length);
+                        dates.push(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`);
+                      }
+                      const rate = contractDailyBilling(d.monthly, d, dates.slice(0, scenario.calendarDays));
                       return (
                         <div
-                          key={scenario.billingDays}
+                          key={scenario.calendarDays}
                           className={cn(
                             "rounded-md border px-2 py-1.5",
                             isCurrent
@@ -4736,10 +4726,10 @@ function ResourcesSection({
                             {isCurrent ? <span className="font-medium text-accent">Current</span> : null}
                           </div>
                           <div className="mt-0.5 text-sm font-semibold text-foreground">
-                            {fmtRate(d.monthly / scenario.billingDays)}
+                            {fmtRate(rate.perDay)}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
-                            ÷ {scenario.billingDays} billing days
+                            ÷ {rate.billingDays} billing days
                           </div>
                         </div>
                       );
