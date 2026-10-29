@@ -80,6 +80,11 @@ export function liveAddOnAmount(
     ...(resource.employerContributions ?? []).filter((b) => !isBillingAddOn(b)),
     ...extraEmployer.filter((b) => !isBillingAddOn(b)),
   ];
+  // Refreshed reliever lines handed in for the management-fee pass. They stay
+  // out of Total CTC but must be visible to formulas such as
+  // `(total_ctc + reliever_charges) * 0.10` and to `billing_rate`.
+  const relieverLines = isMgmtFeeLine(line) ? extraEmployer.filter(isRelieverLine) : [];
+  const relieverTotal = relieverLines.reduce((s, r) => s + num(r.amount), 0);
 
   const componentsTotal = components.reduce((s, c) => s + num(c.amount), 0);
   const benefitsTotal = benefits.reduce((s, b) => s + num(b.amount), 0);
@@ -96,8 +101,8 @@ export function liveAddOnAmount(
     earnedwages: componentsTotal,
     ctc: totalCtc,
     total_ctc: totalCtc,
-    billing_rate: totalCtc,
-    billingrate: totalCtc,
+    billing_rate: totalCtc + relieverTotal,
+    billingrate: totalCtc + relieverTotal,
     fixed_amount: num(line.amount),
     days_in_month: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
     working_days: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
@@ -106,6 +111,7 @@ export function liveAddOnAmount(
   for (const c of components) addAliases(ctx, num(c.amount), [c.name]);
   for (const b of benefits) addAliases(ctx, num(b.amount), [b.name]);
   for (const b of employer) addAliases(ctx, num(b.amount), [b.name]);
+  for (const r of relieverLines) addAliases(ctx, num(r.amount), [r.name, "reliever_charges", "reliever"]);
 
   const r = evaluateFormula(cfg, ctx);
   if (r.error) return num(line.amount);
