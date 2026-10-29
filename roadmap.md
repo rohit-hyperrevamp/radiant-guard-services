@@ -2,7 +2,7 @@
 
 ## CLI2109 supplied Security Guard rates — 29 October
 - [x] Read supplied sheet and check live Contracts; live page redirects to mobile OTP sign-in.
-- [ ] Resolve printed-amount versus percentage conflicts: Uniform ₹300 vs 4% of ₹16,880; ESIC ₹679 vs 3.25% of ₹16,880; management ₹2,737 vs 10% of ₹34,218. Listed final sums to ₹36,955 versus printed ₹36,956. Waiting for user choice; no balancing charge.
+- [x] User chose printed rupee amounts: Uniform ₹300, ESIC ₹679 and management ₹2,737 retained; listed final ₹36,955, no invented balancing charge.
 - [ ] Inspect, back up and update only CLI2109 Security Guard contract using formula masters; preserve other roles, clients, dates and staffing. Blocked on supported production update access: managed tools target unrelated sandbox and shell DB writes are not permitted.
 - [ ] Read back saved rates and verify live contract. No contract records changed.
 
