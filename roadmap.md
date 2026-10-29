@@ -1,7 +1,7 @@
 # Mobile app UI re-review
 
 ## Management Fee 10% of total gross — 29 October
-- [ ] Add enabled management fee master for 10% of total gross, verify formula-box eligibility and calculation; existing contracts unchanged.
+- [x] Added enabled production master Management Fee 10% (Total Gross), expression `gross * 0.10`; live readback confirms Management Fee selector eligibility. Calculation test passes: ₹20,000 gross → ₹2,000 regardless of deductions or CTC. Existing contracts unchanged; signed-in visual selector check unavailable.
 
 ## L&T employees missing from site lists — 29 October
 - [x] Read image-104.png and image-105.png: 49549 Sabavat Ramesh (Mehboobnagar, joined 21 Sep); 49488 Nunavath Ravi (CLI4514, joined 21 Sep); 49718 Rayarakula Raghupathi (CLI4509); 49730 Mahammad Shareef (CLI4513); 49589 Lakki Rajeswara Rao (CLI4529); 49688 Surajkar Shiva Kumar (CLI4522); 49486 Gajarla Ramesh (AS Rao Nagar); 49651 Syed Ali Muruthuja (Balaji Nagar); 49514 Gujja Ganesh (Keesara Bogaram); 49498 Devulapalli Srikanth (Malkajgiri); 49708 Mohammad Sharuk Pasha (Mulugu); 49671 Jilloju Venkatesh (Narsampet).
