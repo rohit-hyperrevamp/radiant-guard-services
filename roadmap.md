@@ -1,5 +1,8 @@
 # Mobile app UI re-review
 
+## Management Fee 10% of total gross — 29 October
+- [ ] Add enabled management fee master for 10% of total gross, verify formula-box eligibility and calculation; existing contracts unchanged.
+
 ## L&T employees missing from site lists — 29 October
 - [x] Read image-104.png and image-105.png: 49549 Sabavat Ramesh (Mehboobnagar, joined 21 Sep); 49488 Nunavath Ravi (CLI4514, joined 21 Sep); 49718 Rayarakula Raghupathi (CLI4509); 49730 Mahammad Shareef (CLI4513); 49589 Lakki Rajeswara Rao (CLI4529); 49688 Surajkar Shiva Kumar (CLI4522); 49486 Gajarla Ramesh (AS Rao Nagar); 49651 Syed Ali Muruthuja (Balaji Nagar); 49514 Gujja Ganesh (Keesara Bogaram); 49498 Devulapalli Srikanth (Malkajgiri); 49708 Mohammad Sharuk Pasha (Mulugu); 49671 Jilloju Venkatesh (Narsampet).
 - [x] 29 Oct 11:15 UTC: all 12 already existed (Malkajgiri ID is 49598, not 49498). Activated + enabled all 12, made pictured site regular (CLI4528, 4514, 4509, 4513, 4529, 4522, 4524, 4519, 4294, 4517, 4521, 4525), older postings kept as reliever; 49488 joining 21 Sep. Backups _bkp_map12_20261029_c/_cu. Attendance untouched. 49488 has 22 identical days at five sites — flagged to user.
