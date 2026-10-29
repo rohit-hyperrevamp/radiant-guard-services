@@ -2,7 +2,7 @@
 
 ## L&T employees missing from site lists — 29 October
 - [x] Read image-104.png and image-105.png: 49549 Sabavat Ramesh (Mehboobnagar, joined 21 Sep); 49488 Nunavath Ravi (CLI4514, joined 21 Sep); 49718 Rayarakula Raghupathi (CLI4509); 49730 Mahammad Shareef (CLI4513); 49589 Lakki Rajeswara Rao (CLI4529); 49688 Surajkar Shiva Kumar (CLI4522); 49486 Gajarla Ramesh (AS Rao Nagar); 49651 Syed Ali Muruthuja (Balaji Nagar); 49514 Gujja Ganesh (Keesara Bogaram); 49498 Devulapalli Srikanth (Malkajgiri); 49708 Mohammad Sharuk Pasha (Mulugu); 49671 Jilloju Venkatesh (Narsampet).
-- [ ] User explicitly requested implementing all 12 employees and site mappings at 11:09 UTC. Verify existing IDs first, create only missing employees using the supplied IDs, make source-backed employees visible and link each to its pictured site; preserve existing identities and attendance, do not invent daily marks. Confirm client codes for named sites from live records. Blocked: live mobile OTP sign-in has no authorized session; no production-targeted workspace connection or app MCP exists, managed database tools target unrelated sandbox, and shell database inspection/writes are not permitted. No employee records changed.
+- [x] 29 Oct 11:15 UTC: all 12 already existed (Malkajgiri ID is 49598, not 49498). Activated + enabled all 12, made pictured site regular (CLI4528, 4514, 4509, 4513, 4529, 4522, 4524, 4519, 4294, 4517, 4521, 4525), older postings kept as reliever; 49488 joining 21 Sep. Backups _bkp_map12_20261029_c/_cu. Attendance untouched. 49488 has 22 identical days at five sites — flagged to user.
 
 ## CLI2109 supplied Security Guard rates — 29 October
 - [x] Read supplied sheet and check live Contracts; live page redirects to mobile OTP sign-in.
