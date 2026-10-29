@@ -35,3 +35,4 @@
 - Public dependency tarballs use the canonical npm registry while keeping locked versions and integrity hashes unchanged, avoiding regional mirror rate limits.
 - Root restores cache and clears old identities before mounting pages (details in src/lib/AGENTS.md) — no cross-session data bleed.
 - Shared formula templates live in `src/lib/formula-templates.ts` and are selected through FormulaBuilder; allowance pickers fall back to the master name for blank display labels so imported masters remain visible.
+- Contract daily-rate displays use `contract-rate-display` to include saved wage allowances and resolve divisors through the invoice billing helper; never assume every contract uses days minus four.

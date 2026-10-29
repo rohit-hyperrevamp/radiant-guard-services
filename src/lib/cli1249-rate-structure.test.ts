@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { evaluateFormula } from "./formula-engine";
 import { unknownFormulaVariables } from "./payroll-calc";
+import { contractDailyBilling, contractMonthlyBilling } from "./contract-rate-display";
+import { periodDateList } from "./mis-billing";
 
 describe("CLI1249 confirmed listed Guard rates", () => {
+  it("includes allowances in the monthly billing total of 24896.42", () => {
+    expect(contractMonthlyBilling({
+      components: [{ amount: 10021 }, { amount: 3614 }],
+      benefits: [681.75, 136.35, 409.05, 583.10, 818.10, 100].map((amount) => ({ amount })),
+      employerContributions: [1950, 528.56, 545.40, 12.50, 3233.30, 2263.31].map((amount) => ({ amount })),
+    })).toBe(24896.42);
+  });
+  it("shows 829.88 per day for monthly billing 24896.42 over 30 days", () => {
+    expect(contractDailyBilling(24896.42, { billingDayBase: { method: "actual_days" } }, periodDateList("2026-09-01", "2026-09-30")))
+      .toEqual({ billingDays: 30, perDay: 829.88 });
+  });
   const context = { basic: 10021, da: 3614, gross: 16363.35, hra: 681.75, washing_allowance: 100, total_ctc: 19399.81, reliever_charges: 3233.30 };
   it.each([
     ["(basic + da) * 0.05", 681.75],
