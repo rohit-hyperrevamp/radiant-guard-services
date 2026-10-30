@@ -1,8 +1,9 @@
 # Mobile app UI re-review
 
 ## CLI2989 invoice duty split — 30 October
-- [ ] Inspect live caretaker quantity and Extra Duty supplement; remove supplement and separate P Days / Extra Duty without changing attendance.
-- [ ] Verify live saved invoice settings and duty quantities; test any changed billing rule.
+- [x] Verified September caretaker attendance: 27 P Days + 1.50 ED = combined 28.50. Disabled the ₹1,413.65 supplement and saved P Days / Extra Duty parts on CON15239 only; organization settings, attendance and payroll unchanged. No existing final invoices found for this site.
+- [x] Production readback confirms disabled supplement and site-only split; five invoice split tests pass and automatic compilation is clean.
+- [ ] Verify separate tabs on signed-in live invoice after publication; new contract-override display code is not yet published.
 
 ## September invoice workbook — 30 October
 - [x] Inspected all 756 uploaded PDF pages. Grouped 730 invoice records; 74 excluded for older/unclear months; 69 blank source invoices flagged. 542 identifiable September candidates in requested billing states, including 7 Telangana invoices embedded in Maharashtra PDF; separate Telangana PDF absent.
