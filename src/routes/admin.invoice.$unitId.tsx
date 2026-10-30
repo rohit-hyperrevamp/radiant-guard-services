@@ -34,7 +34,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { misBillingLine } from "@/lib/mis-billing";
-import { invoiceExtraDutyRate, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
+import { invoiceExtraDutyRate, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1092,10 +1092,12 @@ function PayrollUnitPage() {
       unitCode: unit?.code,
       designationName: r.designation,
       monthlyBilling: contracted,
+      billingDays,
       savedExtraDutyRate: r.wages?.perDutyOtAmount,
     });
+    const caretakerHourlyEd = isCli2989Caretaker(unit?.code, r.designation);
     const dutySplit = extraDutyRate != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
-      ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly })
+      ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly, extraDutyHourly: caretakerHourlyEd, exactExtraDutyRate: caretakerHourlyEd })
       : null;
     const actual = dutySplit?.actual ?? (
       !r.wages || !r.resource
@@ -1108,10 +1110,10 @@ function PayrollUnitPage() {
       dutySplit,
       billingLines: dutySplit
         ? [
-            { kind: "Regular duties", rate: dutySplit.regularRate, quantity: dutySplit.regularQuantity, amount: dutySplit.regularAmount },
-            { kind: "Extra Duty", rate: dutySplit.edRate, quantity: dutySplit.edQuantity, amount: dutySplit.edAmount },
+            { kind: "P Days", rate: dutySplit.regularRate, quantity: dutySplit.regularQuantity, amount: dutySplit.regularAmount, unitLabel },
+            { kind: "Extra Duty", rate: dutySplit.edRate, quantity: dutySplit.edQuantity, amount: dutySplit.edAmount, unitLabel: caretakerHourlyEd ? "hrs" : unitLabel },
           ].filter((item) => item.quantity > 0)
-        : [{ kind: "", rate: unitRate, quantity: unitQuantity, amount: actual }],
+        : [{ kind: "", rate: unitRate, quantity: unitQuantity, amount: actual, unitLabel }],
       contracted,
       payrollDays,
       billingDays,
@@ -1179,7 +1181,7 @@ function PayrollUnitPage() {
           perHour: item.rate, contracted: 0, actual: 0,
         };
         existing.headcount += 1;
-        const days = billingMode === "man_hours" ? item.quantity / m.shiftHours : item.quantity;
+        const days = item.unitLabel === "hrs" ? item.quantity / m.shiftHours : item.quantity;
         existing.billedDays = Math.round((existing.billedDays + days) * 100) / 100;
         existing.billedHours = Math.round((existing.billedHours + days * m.shiftHours) * 100) / 100;
         existing.contracted = Math.round((existing.contracted + (item.kind === "Extra Duty" ? 0 : m.contracted)) * 100) / 100;
@@ -1241,7 +1243,7 @@ function PayrollUnitPage() {
         const key = `${designation}|${item.rate}|${m.shiftHours}|${m.payrollDays}`;
         const g = groups.get(key) ?? {
           designation, monthly: m.contracted, payrollDays: m.payrollDays,
-          shiftHours: m.shiftHours, unitRate: item.rate, unitLabel: m.unitLabel,
+          shiftHours: m.shiftHours, unitRate: item.rate, unitLabel: item.unitLabel,
           quantity: 0, amount: 0,
         };
         g.quantity = r2(g.quantity + item.quantity);
@@ -1301,7 +1303,9 @@ function PayrollUnitPage() {
         ...list.map((g, i) => ({
           id: `${g.designation}-${i}`,
           description:
-            g.unitLabel === "hrs"
+            isCli2989Caretaker(unit?.code, g.designation) && g.designation.includes("· Extra Duty")
+              ? `Care Takers @ Rs. ${g.monthly.toFixed(2)} For 26/27 Days (Extra Duty HRS*2)`
+              : g.unitLabel === "hrs"
               ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`
               : g.designation.includes("· Extra Duty") || invoiceExtraDutyRate(unitId, []) != null
                 ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Duty`
