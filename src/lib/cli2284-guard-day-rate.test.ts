@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { periodDateList } from "./mis-billing";
 import { contractDailyBilling, contractMonthlyBilling } from "./contract-rate-display";
 
 // CLI2284 Security Guard: saved lines total ₹25,470.79, "round off final
@@ -9,6 +10,7 @@ const guard = {
   employerContributions: [1686.36, 555.43, 400, 3498, 991].map((amount) => ({ amount })),
   roundOffFinal: true,
 };
+const october = periodDateList("2026-09-21", "2026-10-20");
 const bases = { billingDayBase: { method: "fixed_days" as const, fixedDays: 30.4 } };
 
 describe("CLI2284 Security Guard day rate", () => {
@@ -17,10 +19,10 @@ describe("CLI2284 Security Guard day rate", () => {
   });
 
   it("gives ₹837.86 per day on both contract and invoice", () => {
-    expect(contractDailyBilling(contractMonthlyBilling(guard), bases, []).perDay).toBe(837.86);
+    expect(contractDailyBilling(contractMonthlyBilling(guard), bases, october).perDay).toBe(837.86);
   });
 
   it("without final round-off the rate would be ₹837.85", () => {
-    expect(contractDailyBilling(contractMonthlyBilling({ ...guard, roundOffFinal: false }), bases, []).perDay).toBe(837.85);
+    expect(contractDailyBilling(contractMonthlyBilling({ ...guard, roundOffFinal: false }), bases, october).perDay).toBe(837.85);
   });
 });
