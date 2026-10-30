@@ -1,3 +1,4 @@
+import { applyCtcPass } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { isHiddenAllowanceChoice, mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
@@ -1622,7 +1623,6 @@ export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
-import { applyCtcPass } from "@/lib/contract-billing-addons";
 const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
 const CUSTOM_RELIEVER_ID = "__custom_reliever_charges__";
 
