@@ -5511,13 +5511,9 @@ export function ResourceFormDialog({
           : b,
       );
       const ctcContributions = firstPass.filter((b) => !referencesCtc(b) && !isBillingAddOn(b));
-      const next = firstPass.map((b) =>
-        (b.calcType === "percentage" || hasConfiguredFormula(b)) && referencesCtc(b)
-          ? {
-              ...b,
-              amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcContributions),
-            }
-          : b,
+      const next = applyCtcPass(firstPass, ctcContributions, (b, base) =>
+        computeBenefitAmount(b, components, benefits, allowanceTypes, base),
+        (b) => (b.calcType === "percentage" || hasConfiguredFormula(b)) && referencesCtc(b),
       );
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
@@ -5651,10 +5647,9 @@ export function ResourceFormDialog({
         : b,
     );
     const ctcBase = first.filter((b) => !refsCtc(b) && !isBillingAddOn(b));
-    return first.map((b) =>
-      isComputedLine(b) && refsCtc(b)
-        ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcBase) }
-        : b,
+    return applyCtcPass(first, ctcBase, (b, base) =>
+      computeBenefitAmount(b, components, benefits, allowanceTypes, base),
+      (b) => isComputedLine(b) && refsCtc(b),
     );
   };
 
