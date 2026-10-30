@@ -1622,6 +1622,7 @@ export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
+import { applyCtcPass } from "@/lib/contract-billing-addons";
 const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
 const CUSTOM_RELIEVER_ID = "__custom_reliever_charges__";
 
@@ -5692,7 +5693,9 @@ export function ResourceFormDialog({
           const refsCtc =
             formulaReferencesCtc(b.formulaExpression) ||
             b.baseComponents.some((x) => /^(total\s+)?ctc$/i.test(x.label.trim()));
-          const ctcBase = refsCtc ? prev.filter((x) => x !== target && !isBillingAddOn(x)) : [];
+          const ctcBase = refsCtc
+            ? prev.filter((x) => x !== target && (!isBillingAddOn(x) || (isMgmtFeeLine(b) && isRelieverLine(x))))
+            : [];
           return { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes, ctcBase) };
         }),
       );
