@@ -1,7 +1,7 @@
 # Mobile app UI re-review
 
 ## CLI2989 invoice duty split — 30 October
-- [x] Invoice detail, print and its exports price caretaker ED using the saved wage computation: September Basic+DA ÷ 27 × 2 = ₹1,121.79; 1.50 ED = ₹1,682.69. Regular quantity stays 27; no supplement or attendance changes.
+- [x] Applied image-108 correction in invoice detail, print and exports: separate 12.00 ED hours at displayed ₹235.61, amount ₹2,827.29 from monthly invoice billing ₹25,445.63 ÷ 27 ÷ 8 × 2; retain 27 P Days and no supplement. Shared finance totals/MIS use the same billing base and unrounded ED multiplication. Twenty regressions pass; automatic compilation clean. Production inputs and arithmetic verified; signed-in output still requires publication and a live session.
 - [x] Verified September caretaker attendance: 27 P Days + 1.50 ED = combined 28.50. Disabled the ₹1,413.65 supplement and saved P Days / Extra Duty parts on CON15239 only; organization settings, attendance and payroll unchanged. No existing final invoices found for this site.
 - [x] Production readback confirms disabled supplement and site-only split; five invoice split tests pass and automatic compilation is clean.
 - [ ] Verify separate tabs on signed-in live invoice after publication; new contract-override display code is not yet published.

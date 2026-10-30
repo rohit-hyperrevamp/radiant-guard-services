@@ -1,15 +1,19 @@
 /** Explicit site-only invoice exception; payroll and attendance rules are separate. */
 export const CLI4096_UNIT_ID = "41887f48-31ea-48ef-9005-24c81a21fc93";
 const r2 = (value: number) => Math.round(value * 100) / 100;
+export const isCli2989Caretaker = (unitCode?: string | null, designationName?: string | null) =>
+  unitCode?.trim().toUpperCase() === "CLI2989" && /care\s*takers?/i.test(designationName ?? "");
 
 export function invoiceExtraDutyRate(
   unitId: string,
   components: { name?: unknown; amount?: unknown }[],
-  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number; savedExtraDutyRate?: number },
+  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number; billingDays?: number; savedExtraDutyRate?: number },
 ): number | null {
-  if (contract?.unitCode?.trim().toUpperCase() === "CLI2989" && /care\s*taker/i.test(contract.designationName ?? "")) {
-    const rate = contract.savedExtraDutyRate;
-    return typeof rate === "number" && Number.isFinite(rate) && rate >= 0 ? r2(rate) : null;
+  if (isCli2989Caretaker(contract?.unitCode, contract?.designationName)) {
+    const monthly = contract?.monthlyBilling;
+    const days = contract?.billingDays;
+    return typeof monthly === "number" && Number.isFinite(monthly) && monthly >= 0 && typeof days === "number" && days > 0
+      ? monthly / days * 2 : null;
   }
   if (contract?.unitCode?.trim().toUpperCase() === "CLI290" && /\bsupervisor\b/i.test(contract.designationName ?? "")) {
     const monthly = contract.monthlyBilling;
@@ -34,15 +38,19 @@ export function splitInvoiceDuties(args: {
   extraDutyRate: number;
   shiftHours?: number;
   hourly?: boolean;
+  extraDutyHourly?: boolean;
+  exactExtraDutyRate?: boolean;
 }) {
   const edDays = Math.min(Math.max(0, r2(args.otDays)), Math.max(0, r2(args.billedDays)));
   const regularDays = Math.max(0, r2(args.billedDays - edDays));
   const factor = args.hourly ? Math.max(1, args.shiftHours ?? 8) : 1;
-  const edRate = r2(args.extraDutyRate / factor);
+  const edFactor = args.extraDutyHourly ? Math.max(1, args.shiftHours ?? 8) : factor;
+  const exactEdRate = args.extraDutyRate / edFactor;
+  const edRate = r2(exactEdRate);
   const regularQuantity = r2(regularDays * factor);
-  const edQuantity = r2(edDays * factor);
+  const edQuantity = r2(edDays * edFactor);
   const regularAmount = r2(args.regularRate * regularQuantity);
-  const edAmount = r2(edRate * edQuantity);
+  const edAmount = r2((args.exactExtraDutyRate ? exactEdRate : edRate) * edQuantity);
   return {
     regularDays, edDays, regularQuantity, edQuantity,
     regularRate: args.regularRate, edRate, regularAmount, edAmount,
