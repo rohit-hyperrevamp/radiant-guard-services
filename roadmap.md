@@ -3,7 +3,7 @@
 ## September invoice workbook — 30 October
 - [ ] Read five supplied Drive sources; include September only for Maharashtra, Goa, Gujarat, Karnataka and Telangana.
 - [ ] Compare each source invoice against verified final system September invoices; separate regular and Extra Duty, tolerate ₹1–2 only, and leave unverified results Pending.
-- [ ] Deliver Excel with Summary and payroll-window tabs (21–20, 26–25, 1–30/31), client-level source/system amounts and reasons. Source access pending Google Drive connection.
+- [ ] Deliver Excel with Summary and payroll-window tabs (21–20, 26–25, 1–30/31), client-level source/system amounts and reasons. Blocked: Google Drive authorization was declined; await uploaded source files or authorized Drive access. No supplied invoices read or matches claimed.
 
 ## CLI310 both supplied role sheets — 29 October 22:21 UTC
 - [x] User explicitly authorized both changes: image-106 Supervisor ₹42,538 and image-107 Guard ₹42,159 printed final billing. Earlier Guard reference superseded.
