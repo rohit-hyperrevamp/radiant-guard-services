@@ -1,9 +1,9 @@
 # Mobile app UI re-review
 
 ## September invoice workbook — 30 October
-- [ ] Read five supplied Drive sources; include September only for Maharashtra, Goa, Gujarat, Karnataka and Telangana.
-- [ ] Compare each source invoice against verified final system September invoices; separate regular and Extra Duty, tolerate ₹1–2 only, and leave unverified results Pending.
-- [ ] Deliver Excel with Summary and payroll-window tabs (21–20, 26–25, 1–30/31), client-level source/system amounts and reasons. Blocked: Google Drive authorization was declined; await uploaded source files or authorized Drive access. No supplied invoices read or matches claimed.
+- [x] Inspected all 756 uploaded PDF pages. Grouped 730 invoice records; 74 excluded for older/unclear months; 69 blank source invoices flagged. 542 identifiable September candidates in requested billing states, including 7 Telangana invoices embedded in Maharashtra PDF; separate Telangana PDF absent.
+- [ ] Verify current finalized system September invoices/payrolls. Blocked: no verified production final-output export available; historical calculations cannot establish final matches. Exact windows unresolved for 325 service lines; missing/ambiguous clients left blank rather than guessed.
+- [x] Delivered partial September_2026_Invoice_Review.xlsx: Summary, three payroll windows, Window pending, invoice totals, blank source pages, other states and exclusions. 1,143 service lines; 168 historical amount matches, 128 historical differences, 847 historical Pending. All current final invoice/payroll results Pending. Formulas recalculated with zero errors; all tabs visually inspected. No database records changed.
 
 ## CLI310 both supplied role sheets — 29 October 22:21 UTC
 - [x] User explicitly authorized both changes: image-106 Supervisor ₹42,538 and image-107 Guard ₹42,159 printed final billing. Earlier Guard reference superseded.
