@@ -1,3 +1,4 @@
+import { applyCtcPass } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { isHiddenAllowanceChoice, mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
@@ -1618,9 +1619,11 @@ function syncResourceComponentMasterFields(
 export function formulaReferencesCtc(expr: string | null | undefined): boolean {
   return /(?:^|[^a-z0-9])(?:total_?)?ctc(?![a-z0-9])/i.test(String(expr ?? ""));
 }
-export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String(x?.name ?? ""));
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+// "Management Fee 10% (CTC + Reliever)" names its base, it is not a reliever.
+export const isRelieverLine = (x: { name?: unknown }) =>
+  /reliever/i.test(String(x?.name ?? "")) && !isMgmtFeeLine(x);
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
 const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
 const CUSTOM_RELIEVER_ID = "__custom_reliever_charges__";
@@ -5511,13 +5514,9 @@ export function ResourceFormDialog({
           : b,
       );
       const ctcContributions = firstPass.filter((b) => !referencesCtc(b) && !isBillingAddOn(b));
-      const next = firstPass.map((b) =>
-        (b.calcType === "percentage" || hasConfiguredFormula(b)) && referencesCtc(b)
-          ? {
-              ...b,
-              amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcContributions),
-            }
-          : b,
+      const next = applyCtcPass(firstPass, ctcContributions, (b, base) =>
+        computeBenefitAmount(b, components, benefits, allowanceTypes, base),
+        (b) => (b.calcType === "percentage" || hasConfiguredFormula(b)) && referencesCtc(b),
       );
       return next.some((b, i) => b !== prev[i]) ? next : prev;
     });
@@ -5651,10 +5650,9 @@ export function ResourceFormDialog({
         : b,
     );
     const ctcBase = first.filter((b) => !refsCtc(b) && !isBillingAddOn(b));
-    return first.map((b) =>
-      isComputedLine(b) && refsCtc(b)
-        ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcBase) }
-        : b,
+    return applyCtcPass(first, ctcBase, (b, base) =>
+      computeBenefitAmount(b, components, benefits, allowanceTypes, base),
+      (b) => isComputedLine(b) && refsCtc(b),
     );
   };
 
@@ -5697,7 +5695,9 @@ export function ResourceFormDialog({
           const refsCtc =
             formulaReferencesCtc(b.formulaExpression) ||
             b.baseComponents.some((x) => /^(total\s+)?ctc$/i.test(x.label.trim()));
-          const ctcBase = refsCtc ? prev.filter((x) => x !== target && !isBillingAddOn(x)) : [];
+          const ctcBase = refsCtc
+            ? prev.filter((x) => x !== target && (!isBillingAddOn(x) || (isMgmtFeeLine(b) && isRelieverLine(x) && !isMgmtFeeLine(x))))
+            : [];
           return { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes, ctcBase) };
         }),
       );

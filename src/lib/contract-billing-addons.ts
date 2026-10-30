@@ -39,10 +39,11 @@ export type AddOnResource = {
   [k: string]: unknown;
 };
 
-export const isRelieverLine = (x: { name?: unknown }) =>
-  /reliever/i.test(String(x?.name ?? ""));
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+// "Management Fee 10% (CTC + Reliever)" names its base, it is not a reliever.
+export const isRelieverLine = (x: { name?: unknown }) =>
+  /reliever/i.test(String(x?.name ?? "")) && !isMgmtFeeLine(x);
 export const isBillingAddOn = (x: { name?: unknown }) =>
   isRelieverLine(x) || isMgmtFeeLine(x);
 
@@ -178,3 +179,25 @@ export const isBillingMarkupLine = (x: { name?: unknown }) => {
 /** Employer cost excluding billing markup lines. */
 export const employerCostOnly = (items: { name?: unknown; amount?: unknown }[] | undefined) =>
   Math.round((items ?? []).reduce((s, i) => s + (isBillingMarkupLine(i) ? 0 : Number(i.amount) || 0), 0) * 100) / 100;
+
+/**
+ * Second (CTC-based) pass over a contract line's employer contributions, in
+ * rate-card order: CTC-based lines and reliever charges are computed on the
+ * core CTC base, then management fee is computed with the fresh reliever
+ * amounts added, so formulas like `(total_ctc + reliever_charges) * 0.10`
+ * store the same amount the editor shows.
+ */
+export function applyCtcPass<T extends { name?: unknown; amount?: unknown }>(
+  list: T[],
+  ctcBase: T[],
+  compute: (item: T, base: T[]) => number,
+  shouldCompute: (item: T) => boolean,
+): T[] {
+  const firstPass = list.map((b) =>
+    shouldCompute(b) && !isMgmtFeeLine(b) ? { ...b, amount: compute(b, ctcBase) } : b,
+  );
+  const relievers = firstPass.filter((b) => isRelieverLine(b) && !isMgmtFeeLine(b));
+  return firstPass.map((b) =>
+    shouldCompute(b) && isMgmtFeeLine(b) ? { ...b, amount: compute(b, [...ctcBase.filter((x) => !isMgmtFeeLine(x)), ...relievers]) } : b,
+  );
+}
