@@ -363,7 +363,8 @@ export function FinanceCharter({
       // leave are part of the wage but are never billed as duties.
       const billed = (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) * n + ot;
       if (rate) {
-        person.invoiceAmount += billPerDay * (billed - ot) + (rate.extraDutyBillRate ?? billPerDay) * ot;
+        const edRate = rate.extraDutyFromMonthlyBilling ? rate.billRate / divisor * 2 : rate.extraDutyBillRate ?? billPerDay;
+        person.invoiceAmount += billPerDay * (billed - ot) + edRate * ot;
         person.payrollAmount += (rate.grossRate / divisor) * payable;
         person.deductionAmount += (rate.deductionRate / divisor) * payable;
         person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
@@ -585,15 +586,18 @@ export function FinanceCharter({
       const ot = Number(entry.ot_hours) || 0;
       const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
       const period = allPeriodsByUnit.get(entryUnitId);
-      const perDay = rate.extraDutyBillRate != null && period
+      const hasEdRate = rate.extraDutyBillRate != null || rate.extraDutyFromMonthlyBilling;
+      const perDay = hasEdRate && period
         ? billingRatePerDay(rate.billRate, rate, periodDateList(period.start, period.end))
         : rate.billRate / periodDays;
-      const edRate = rate.extraDutyBillRate ?? perDay;
+      const edRate = rate.extraDutyFromMonthlyBilling && period
+        ? rate.billRate / resolveBillingDivisor(rate, periodDateList(period.start, period.end)) * 2
+        : rate.extraDutyBillRate ?? perDay;
       const desig = entry.designation_id ?? "—";
       const split = splitFor(entryUnitId);
       const route = (item: InvoiceItemKey) => (split && isSplit(split) ? split.assign[item] : "main");
       if ((entry as any).is_reliever) {
-        if (rate.extraDutyBillRate != null) {
+        if (hasEdRate) {
           add(entryUnitId, route("reliever"), desig, paid, perDay * paid, rate.billRate);
           add(entryUnitId, route("reliever"), `${desig}|ed`, ot, edRate * ot, rate.billRate);
         } else add(entryUnitId, route("reliever"), desig, paid + ot, perDay * (paid + ot), rate.billRate);
@@ -601,7 +605,7 @@ export function FinanceCharter({
       }
       const isPh = !!code && code.code.toUpperCase().startsWith("PH");
       add(entryUnitId, route(isPh ? "ph" : "regular"), desig, paid, perDay * paid, rate.billRate);
-      add(entryUnitId, route("ed"), rate.extraDutyBillRate != null ? `${desig}|ed` : desig, ot, edRate * ot, rate.billRate);
+      add(entryUnitId, route("ed"), hasEdRate ? `${desig}|ed` : desig, ot, edRate * ot, rate.billRate);
     }
     const partLabel = (unitId: string, part: string) =>
       splitFor(unitId)?.parts.find((p) => p.key === part)?.label ?? "Main invoice";
@@ -978,14 +982,16 @@ export function FinanceCharter({
           // in the cycle. Extra Duty bills at the same per-duty rate.
           const perDay = billingRatePerDay(rate.billRate, rate, periodDates);
           const billedDays = line.workingDays + line.otDays;
-          const dutySplit = rate.extraDutyBillRate != null
-            ? splitInvoiceDuties({ billedDays, otDays: line.otDays, regularRate: perDay, extraDutyRate: rate.extraDutyBillRate })
+          const extraDutyRate = rate.extraDutyFromMonthlyBilling
+            ? rate.billRate / resolveBillingDivisor(rate, periodDates) * 2 : rate.extraDutyBillRate;
+          const dutySplit = extraDutyRate != null
+            ? splitInvoiceDuties({ billedDays, otDays: line.otDays, regularRate: perDay, extraDutyRate, exactExtraDutyRate: rate.extraDutyFromMonthlyBilling })
             : null;
           const misLine = misBillingLine({
             perDay,
             billedDays,
             otDays: line.otDays,
-            extraDutyRate: rate.extraDutyBillRate,
+            extraDutyRate,
             total: dutySplit?.actual ?? (exactUnits.has(u.id)
               ? (resolveBillingDivisor(rate, periodDates) > 0 ? (rate.billRate / resolveBillingDivisor(rate, periodDates)) * billedDays : 0)
               : perDay * billedDays),
@@ -999,7 +1005,9 @@ export function FinanceCharter({
           const otHours = otDuties * (rate.shiftHours || 8);
           // OT rate is hourly: per-duty rate divided by the contractual shift
           // length (8h or 12h unit).
-          const otRate = rate.extraDutyBillRate != null ? misLine.otRate : misLine.otRate / (rate.shiftHours || 8);
+          const otRate = rate.extraDutyFromMonthlyBilling
+            ? Math.round((extraDutyRate ?? 0) / (rate.shiftHours || 8) * 100) / 100
+            : rate.extraDutyBillRate != null ? misLine.otRate : misLine.otRate / (rate.shiftHours || 8);
           const otAmount = misLine.otAmount;
           const regular = misLine.regularBilling;
           const otBilling = misLine.otBilling;

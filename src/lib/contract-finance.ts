@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
-import { invoiceExtraDutyRate } from "@/lib/invoice-duty-rates";
+import { invoiceExtraDutyRate, isCli2989Caretaker } from "@/lib/invoice-duty-rates";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -34,6 +34,7 @@ export type ResourceRate = {
   /** What the client is billed = gross + employer cost lines. */
   billRate: number;
   extraDutyBillRate?: number | null;
+  extraDutyFromMonthlyBilling?: boolean;
 };
 
 export type UnitFinance = {
@@ -156,7 +157,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       grossRate: Math.round(grossRate * 100) / 100,
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
-      billRate: unitCodeById.get(unitId)?.trim().toUpperCase() === "CLI290"
+      billRate: ["CLI290", "CLI2989"].includes(unitCodeById.get(unitId)?.trim().toUpperCase() ?? "")
         ? monthlyBilling
         : Math.round((grossRate + employerTotal) * 100) / 100,
       extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : [], {
@@ -164,6 +165,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
         designationName: (r.designation_id ? desigMap.get(String(r.designation_id)) : undefined) ?? null,
         monthlyBilling,
       }),
+      extraDutyFromMonthlyBilling: isCli2989Caretaker(unitCodeById.get(unitId), r.designation_id ? desigMap.get(String(r.designation_id)) : null),
       payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
       billingDayBase: r.billing_day_base_id ? billingBaseById.get(String(r.billing_day_base_id)) ?? null : null,
     };
@@ -205,6 +207,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
               : rates[0].netRate,
           billRate: committed > 0 ? monthlyContracted / committed : rates[0].billRate,
           extraDutyBillRate: rates[0].extraDutyBillRate,
+          extraDutyFromMonthlyBilling: rates[0].extraDutyFromMonthlyBilling,
           payrollDayBase: rates[0].payrollDayBase,
           billingDayBase: rates[0].billingDayBase,
         }
