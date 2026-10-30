@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
-import { totalsForPart, type InvoiceSplit } from "./invoice-split";
+import { DEFAULT_SPLIT, resolveInvoiceSplit, totalsForPart, type InvoiceSplit } from "./invoice-split";
 import { computeAttendanceTotals } from "./payroll-calc";
 
 const split: InvoiceSplit = {
@@ -11,6 +11,17 @@ const split: InvoiceSplit = {
 };
 
 describe("separate regular and Extra Duty invoices", () => {
+  it("keeps CLI2989 caretaker's 27 P Days and 1.50 Extra Duty separate", () => {
+    const totals = { pDays: 27, phDays: 0, otDays: 1.5, otHours: 1.5, tDays: 28.5 };
+    expect(totalsForPart(totals, true, split, "main").tDays).toBe(27);
+    expect(totalsForPart(totals, true, split, "ed").tDays).toBe(1.5);
+  });
+
+  it("uses a site's saved contract split without changing other company sites", () => {
+    expect(resolveInvoiceSplit(split, null).assign.ed).toBe("ed");
+    expect(resolveInvoiceSplit(null, null)).toEqual(DEFAULT_SPLIT);
+    expect(resolveInvoiceSplit(null, split)).toEqual(split);
+  });
   it("does not divide stored Extra Duty days by an eight-hour shift again", () => {
     const totals = computeAttendanceTotals(
       "employee",

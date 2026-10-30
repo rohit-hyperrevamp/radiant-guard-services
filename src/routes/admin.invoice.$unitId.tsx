@@ -996,9 +996,9 @@ function PayrollUnitPage() {
   const billingMode = data?.billingMode ?? "man_days";
   const contractId = data?.contractId ?? null;
   const { data: invoiceSplit = DEFAULT_SPLIT } = useQuery({
-    queryKey: ["org-invoice-split", unit?.customer_id ?? null],
-    enabled: !!unit?.customer_id,
-    queryFn: () => loadOrgInvoiceSplit(unit?.customer_id ?? null),
+    queryKey: ["org-invoice-split", unit?.customer_id ?? null, contractId],
+    enabled: !!unit?.customer_id && !!data,
+    queryFn: () => loadOrgInvoiceSplit(unit?.customer_id ?? null, contractId),
   });
   const splitActive = isSplit(invoiceSplit);
   useEffect(() => {

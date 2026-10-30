@@ -50,7 +50,21 @@ export function parseInvoiceSplit(raw: unknown): InvoiceSplit {
 export const isSplit = (s: InvoiceSplit) =>
   s.parts.length > 1 || Object.values(s.assign).some((v) => v === EXCLUDE);
 
-export async function loadOrgInvoiceSplit(customerId: string | null): Promise<InvoiceSplit> {
+export function resolveInvoiceSplit(contractRule: unknown, organizationRule: unknown): InvoiceSplit {
+  return parseInvoiceSplit(contractRule ?? organizationRule);
+}
+
+export async function loadOrgInvoiceSplit(customerId: string | null, contractId?: string | null): Promise<InvoiceSplit> {
+  if (contractId) {
+    const { data, error } = await supabase
+      .from("client_contracts")
+      .select("invoice_split" as never)
+      .eq("id", contractId)
+      .maybeSingle();
+    if (error) throw error;
+    const rule = (data as { invoice_split?: unknown } | null)?.invoice_split;
+    if (rule != null) return resolveInvoiceSplit(rule, null);
+  }
   if (!customerId) return DEFAULT_SPLIT;
   const { data } = await supabase
     .from("customers")
