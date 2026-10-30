@@ -1,5 +1,9 @@
 # Mobile app UI re-review
 
+## CLI2989 invoice duty split — 30 October
+- [ ] Inspect live caretaker quantity and Extra Duty supplement; remove supplement and separate P Days / Extra Duty without changing attendance.
+- [ ] Verify live saved invoice settings and duty quantities; test any changed billing rule.
+
 ## September invoice workbook — 30 October
 - [x] Inspected all 756 uploaded PDF pages. Grouped 730 invoice records; 74 excluded for older/unclear months; 69 blank source invoices flagged. 542 identifiable September candidates in requested billing states, including 7 Telangana invoices embedded in Maharashtra PDF; separate Telangana PDF absent.
 - [ ] Verify current finalized system September invoices/payrolls. Blocked: no verified production final-output export available; historical calculations cannot establish final matches. Exact windows unresolved for 325 service lines; missing/ambiguous clients left blank rather than guessed.
