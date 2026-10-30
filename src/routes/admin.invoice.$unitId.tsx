@@ -1092,6 +1092,7 @@ function PayrollUnitPage() {
       unitCode: unit?.code,
       designationName: r.designation,
       monthlyBilling: contracted,
+      savedExtraDutyRate: r.wages?.perDutyOtAmount,
     });
     const dutySplit = extraDutyRate != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
       ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly })
@@ -1302,7 +1303,7 @@ function PayrollUnitPage() {
           description:
             g.unitLabel === "hrs"
               ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`
-              : invoiceExtraDutyRate(unitId, []) != null
+              : g.designation.includes("· Extra Duty") || invoiceExtraDutyRate(unitId, []) != null
                 ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Duty`
                 : `${g.designation} @ Rs ${Math.round(g.monthly)}/-`,
           hsnSac: hsn,

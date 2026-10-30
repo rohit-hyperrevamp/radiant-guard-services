@@ -5,8 +5,12 @@ const r2 = (value: number) => Math.round(value * 100) / 100;
 export function invoiceExtraDutyRate(
   unitId: string,
   components: { name?: unknown; amount?: unknown }[],
-  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number },
+  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number; savedExtraDutyRate?: number },
 ): number | null {
+  if (contract?.unitCode?.trim().toUpperCase() === "CLI2989" && /care\s*taker/i.test(contract.designationName ?? "")) {
+    const rate = contract.savedExtraDutyRate;
+    return typeof rate === "number" && Number.isFinite(rate) && rate >= 0 ? r2(rate) : null;
+  }
   if (contract?.unitCode?.trim().toUpperCase() === "CLI290" && /\bsupervisor\b/i.test(contract.designationName ?? "")) {
     const monthly = contract.monthlyBilling;
     return typeof monthly === "number" && Number.isFinite(monthly) && monthly > 0
