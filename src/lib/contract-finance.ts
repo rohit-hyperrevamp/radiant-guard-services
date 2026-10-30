@@ -98,7 +98,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       supabase
         .from("contract_resources")
         .select(
-          "contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id",
+          "contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, round_off_final",
         )
         .in("contract_id", chunk)
         .range(from, to),
@@ -148,7 +148,9 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
     const grossRate = sumAmounts((r as { components?: unknown }).components);
     const deductionRate = sumAmounts((r as { deductions?: unknown }).deductions);
     const employerTotal = sumAmounts((r as { employer_contributions?: unknown }).employer_contributions);
-    const monthlyBilling = Math.round((grossRate + sumAmounts(r.benefits) + employerTotal) * 100) / 100;
+    const roundFinal = (r as { round_off_final?: unknown }).round_off_final === true;
+    const finalRound = (v: number) => (roundFinal ? Math.round(v) : Math.round(v * 100) / 100);
+    const monthlyBilling = finalRound(grossRate + sumAmounts(r.benefits) + employerTotal);
     const rate: ResourceRate = {
       designationId: (r.designation_id as string) ?? null,
       designationName: (r.designation_id ? desigMap.get(r.designation_id as string) : undefined) || "Resource",
@@ -159,7 +161,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
       billRate: ["CLI290", "CLI2989"].includes(unitCodeById.get(unitId)?.trim().toUpperCase() ?? "")
         ? monthlyBilling
-        : Math.round((grossRate + employerTotal) * 100) / 100,
+        : finalRound(grossRate + employerTotal),
       extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : [], {
         unitCode: unitCodeById.get(unitId),
         designationName: (r.designation_id ? desigMap.get(String(r.designation_id)) : undefined) ?? null,

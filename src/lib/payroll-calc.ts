@@ -243,6 +243,8 @@ const isEdEsiLine = (i: unknown) => (i as { edEsi?: boolean } | null)?.edEsi ===
 
 export type ContractResourceLike = {
   designationId: string;
+  /** Contract card "Round off final billing rate": bill the whole-rupee monthly value. */
+  roundOffFinal?: boolean;
   components: WageComponent[];
   benefits: BenefitLike[];
   deductions: BenefitLike[];

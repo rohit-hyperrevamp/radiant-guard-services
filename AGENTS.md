@@ -35,6 +35,6 @@
 - Public dependency tarballs use the canonical npm registry while keeping locked versions and integrity hashes unchanged, avoiding regional mirror rate limits.
 - Root restores cache and clears old identities before mounting pages (details in src/lib/AGENTS.md) — no cross-session data bleed.
 - Shared formula templates live in `src/lib/formula-templates.ts` and are selected through FormulaBuilder; allowance pickers fall back to the master name for blank display labels so imported masters remain visible.
-- Contract daily-rate displays use `contract-rate-display` to include saved wage allowances and resolve divisors through the invoice billing helper; never assume every contract uses days minus four.
+- Contract daily-rate displays use `contract-rate-display` to include saved wage allowances and resolve divisors through the invoice billing helper; never assume every contract uses days minus four. Invoices and finance totals honour `round_off_final` the same way, so contract and invoice day rates never drift by a paisa.
 - Invoice detail resolves the period contract's saved invoice split before the organization fallback, so site-only invoice separation never changes sibling sites.
 - Invoice duty exceptions resolve their invoice-only base in `invoice-duty-rates`, independently of payroll; per-line units and optional unrounded ED multiplication flow into detail, print and exports to preserve source precision.
