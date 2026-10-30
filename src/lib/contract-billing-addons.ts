@@ -39,10 +39,11 @@ export type AddOnResource = {
   [k: string]: unknown;
 };
 
-export const isRelieverLine = (x: { name?: unknown }) =>
-  /reliever/i.test(String(x?.name ?? ""));
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+// "Management Fee 10% (CTC + Reliever)" names its base, it is not a reliever.
+export const isRelieverLine = (x: { name?: unknown }) =>
+  /reliever/i.test(String(x?.name ?? "")) && !isMgmtFeeLine(x);
 export const isBillingAddOn = (x: { name?: unknown }) =>
   isRelieverLine(x) || isMgmtFeeLine(x);
 

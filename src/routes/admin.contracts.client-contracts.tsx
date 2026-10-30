@@ -1619,9 +1619,11 @@ function syncResourceComponentMasterFields(
 export function formulaReferencesCtc(expr: string | null | undefined): boolean {
   return /(?:^|[^a-z0-9])(?:total_?)?ctc(?![a-z0-9])/i.test(String(expr ?? ""));
 }
-export const isRelieverLine = (x: { name?: unknown }) => /reliever/i.test(String(x?.name ?? ""));
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
+// "Management Fee 10% (CTC + Reliever)" names its base, it is not a reliever.
+export const isRelieverLine = (x: { name?: unknown }) =>
+  /reliever/i.test(String(x?.name ?? "")) && !isMgmtFeeLine(x);
 const isBillingAddOn = (x: { name?: unknown }) => isRelieverLine(x) || isMgmtFeeLine(x);
 const CUSTOM_MANAGEMENT_FEE_ID = "__custom_management_fee__";
 const CUSTOM_RELIEVER_ID = "__custom_reliever_charges__";
