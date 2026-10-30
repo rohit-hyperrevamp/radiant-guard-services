@@ -195,8 +195,8 @@ export function applyCtcPass<T extends { name?: unknown; amount?: unknown }>(
   const firstPass = list.map((b) =>
     shouldCompute(b) && !isMgmtFeeLine(b) ? { ...b, amount: compute(b, ctcBase) } : b,
   );
-  const relievers = firstPass.filter(isRelieverLine);
+  const relievers = firstPass.filter((b) => isRelieverLine(b) && !isMgmtFeeLine(b));
   return firstPass.map((b) =>
-    shouldCompute(b) && isMgmtFeeLine(b) ? { ...b, amount: compute(b, [...ctcBase, ...relievers]) } : b,
+    shouldCompute(b) && isMgmtFeeLine(b) ? { ...b, amount: compute(b, [...ctcBase.filter((x) => !isMgmtFeeLine(x)), ...relievers]) } : b,
   );
 }

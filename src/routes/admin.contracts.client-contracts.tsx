@@ -5694,7 +5694,7 @@ export function ResourceFormDialog({
             formulaReferencesCtc(b.formulaExpression) ||
             b.baseComponents.some((x) => /^(total\s+)?ctc$/i.test(x.label.trim()));
           const ctcBase = refsCtc
-            ? prev.filter((x) => x !== target && (!isBillingAddOn(x) || (isMgmtFeeLine(b) && isRelieverLine(x))))
+            ? prev.filter((x) => x !== target && (!isBillingAddOn(x) || (isMgmtFeeLine(b) && isRelieverLine(x) && !isMgmtFeeLine(x))))
             : [];
           return { ...next, amount: computeBenefitAmount(next, components, benefits, allowanceTypes, ctcBase) };
         }),
