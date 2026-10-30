@@ -13,7 +13,7 @@ describe("CLI2989 caretaker separate Extra Duty invoice", () => {
           { name: "DA", amount: 2850.12, includeInOt: true },
           { name: "HRA", amount: 1514.42, includeInOt: false },
         ],
-        deductions: [], employerContributions: [], otBasis: "components", otMultiplier: 2,
+        designationId: "caretaker", benefits: [], deductions: [], employerContributions: [], otBasis: "components", otMultiplier: 2,
         payrollDayBase: { method: "actual_minus_days", fixedDays: 4, weeklyOffDay: null },
       },
       31,
