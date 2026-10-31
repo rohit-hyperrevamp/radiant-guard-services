@@ -1,6 +1,7 @@
 import { useUnitDesignations } from "@/lib/unit-designations";
 import { roundDutyDays } from "@/lib/duty-days";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+import { EmployeeSitesPopover } from "@/components/EmployeeSitesPopover";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5913,7 +5914,14 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                             </button>
                           ) : (
                             <span className="inline-flex items-center gap-1">
-                              <span>{mr.emp.full_name || "—"}</span>
+                              <EmployeeSitesPopover
+                                candidateId={mr.candidateId}
+                                unitId={unitId}
+                                month={pinMonth}
+                                fullName={mr.emp.full_name || "—"}
+                              >
+                                <span>{mr.emp.full_name || "—"}</span>
+                              </EmployeeSitesPopover>
                               {(unitHasBothShifts || desigHasBothShifts(mr.designationId)) &&
                                 (() => {
                                   const s = parseVariant(mr.variant ?? "0").shift;
