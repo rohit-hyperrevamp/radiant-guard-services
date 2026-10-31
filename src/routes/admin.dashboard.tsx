@@ -27,6 +27,8 @@ import {
   Sparkles,
   MapPin,
   Radio,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -253,8 +255,74 @@ type PnLRow = {
   attendance_approved: boolean;
 };
 
-/** Month/window selections the user has generated this session. */
-const generatedFinanceKeys = new Set<string>();
+// Last finance report per user + month + window, so revisits paint instantly.
+const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v1";
+const FINANCE_SNAPSHOT_KEEP = 4;
+
+type FinanceSnapshot = { at: number; data: unknown };
+
+function readFinanceSnapshot(key: string): FinanceSnapshot | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(`${FINANCE_SNAPSHOT}:${key}`);
+    return raw ? (JSON.parse(raw) as FinanceSnapshot) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeFinanceSnapshot(key: string, data: unknown, at: number) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = JSON.stringify({ at, data });
+    if (raw.length > 2_000_000) return;
+    const prefix = `${FINANCE_SNAPSHOT}:`;
+    const own = `${prefix}${key}`;
+    const others: { k: string; at: number }[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k || !k.startsWith(prefix) || k === own) continue;
+      try {
+        others.push({ k, at: (JSON.parse(window.localStorage.getItem(k) ?? "{}") as FinanceSnapshot).at ?? 0 });
+      } catch {
+        others.push({ k, at: 0 });
+      }
+    }
+    others
+      .sort((a, b) => b.at - a.at)
+      .slice(FINANCE_SNAPSHOT_KEEP - 1)
+      .forEach((o) => window.localStorage.removeItem(o.k));
+    window.localStorage.setItem(own, raw);
+  } catch {
+    // Snapshot is only a speed aid; a full or blocked store is harmless.
+  }
+}
+
+function useNearScreen(onNear: () => void) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const cb = React.useRef(onNear);
+  cb.current = onNear;
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      cb.current();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          cb.current();
+          io.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
 
 function FinanceReportBar({
   monthLabel,
@@ -264,14 +332,14 @@ function FinanceReportBar({
   windowOptions,
   windowKey,
   onWindowChange,
-  requested,
   ready,
   noSites,
   fetching,
   hasData,
   error,
   updatedAt,
-  onGenerate,
+  onNearScreen,
+  onRefresh,
 }: {
   monthLabel: string;
   windowLabel: string;
@@ -280,39 +348,51 @@ function FinanceReportBar({
   windowOptions: React.ComponentProps<typeof PayrollWindowPeriodPicker>["options"];
   windowKey: string;
   onWindowChange: (key: string) => void;
-  requested: boolean;
   ready: boolean;
   noSites: boolean;
   fetching: boolean;
   hasData: boolean;
   error: boolean;
   updatedAt: number;
-  onGenerate: () => void;
+  onNearScreen: () => void;
+  onRefresh: () => void;
 }) {
-  const generating = requested && fetching;
-  const showing = requested && hasData && !fetching;
+  const ref = useNearScreen(onNearScreen);
+  const firstLoad = fetching && !hasData;
   const updated =
-    showing && updatedAt
-      ? new Date(updatedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })
+    hasData && updatedAt
+      ? new Date(updatedAt).toLocaleString("en-IN", {
+          day: "numeric",
+          month: "short",
+          hour: "numeric",
+          minute: "2-digit",
+        })
       : null;
   return (
-    <div className="mb-4 rounded-2xl border border-border bg-card p-4" data-panel>
+    <div ref={ref} className="mb-4 rounded-2xl border border-border bg-card p-4" data-panel>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Finance report
+            Finance · {monthLabel} · {windowLabel}
           </div>
           <h2 className="text-base font-semibold">Payroll, invoice &amp; profit</h2>
-          <p className="text-xs text-muted-foreground">
-            {generating
-              ? `Preparing ${monthLabel} · ${windowLabel}…`
-              : showing
-                ? `Showing ${monthLabel} · ${windowLabel}${updated ? ` · prepared ${updated}` : ""}`
-                : error && requested
-                  ? "This report could not be prepared. Try again."
-                  : noSites
-                    ? `No sites fall in ${windowLabel} for ${monthLabel}.`
-                    : `Choose the month and payroll window, then press Generate.`}
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {noSites ? (
+              <span>No sites fall in this payroll window for {monthLabel}.</span>
+            ) : error && !hasData ? (
+              <span className="text-destructive">Figures could not load. Press Refresh to try again.</span>
+            ) : firstLoad || !ready ? (
+              <span>Calculating figures for {monthLabel}…</span>
+            ) : updated ? (
+              <span>Figures as of {updated}</span>
+            ) : (
+              <span>Figures load as you scroll here.</span>
+            )}
+            {fetching && hasData && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Updating
+              </span>
+            )}
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -322,15 +402,21 @@ function FinanceReportBar({
             onWindowChange={onWindowChange}
           />
           <MonthYearPicker value={monthValue} onChange={onMonthChange} />
-          <Button onClick={onGenerate} disabled={!ready || generating || noSites}>
-            {generating ? "Preparing…" : showing ? "Refresh" : "Generate"}
+          <Button
+            variant="outline"
+            onClick={onRefresh}
+            disabled={!ready || fetching || noSites}
+            aria-label="Refresh figures"
+          >
+            <RefreshCw className={cn("h-4 w-4", fetching && "animate-spin")} />
+            Refresh
           </Button>
         </div>
       </div>
-      {generating && (
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      {firstLoad && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-3" aria-hidden>
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
           ))}
         </div>
       )}
@@ -586,12 +672,12 @@ function DashboardPage() {
     },
   });
 
-  // The month P&L is heavy (every contract line × every duty). It only runs
-  // after the user picks a month/window and presses Generate; generated
-  // selections are remembered for the session so revisits show instantly.
+  // The month P&L is heavy (every contract line × every duty). It loads on
+  // its own: after the headline tiles have painted and once the section is
+  // near the screen. The last result per month/window paints instantly from a
+  // saved snapshot while fresh figures load quietly in the background.
   const financeKey = `${user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
-  const [, setFinanceTick] = useState(0);
-  const financeRequested = generatedFinanceKeys.has(financeKey);
+  const [financeInView, setFinanceInView] = useState(false);
   const financeAvailable =
     !showInventoryDashboard &&
     !showTransportDashboard &&
@@ -603,16 +689,18 @@ function DashboardPage() {
     authReady && !!user && !permsLoading &&
     !charterUnitsQ.isLoading && !periodSelection.isLoading &&
     periodSelection.unitIdsForWindow.size > 0;
+  const financeSnapshot = useMemo(() => readFinanceSnapshot(financeKey), [financeKey]);
   const pnlQuery = useQuery({
     queryKey: ["dashboard-pnl", user?.phone, year, month, periodSelection.selectedKey, [...periodSelection.unitIdsForWindow].sort().join(",")],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
-    enabled: financeAvailable && financeInputsReady && financeRequested,
-    staleTime: 10 * 60_000,
+    enabled: financeAvailable && financeInputsReady && financeInView,
+    initialData: financeSnapshot?.data as never,
+    initialDataUpdatedAt: financeSnapshot?.at,
+    staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
     retry: 1,
     queryFn: async () => {
       await supabaseSessionReady();
@@ -1105,7 +1193,9 @@ function DashboardPage() {
         { contract: 0, invoice: 0, payroll: 0, employer: 0 },
       );
 
-      return { pnlRows, pnlTotals };
+      const result = { pnlRows, pnlTotals };
+      writeFinanceSnapshot(financeKey, result, Date.now());
+      return result;
     },
   });
 
@@ -1829,7 +1919,6 @@ function DashboardPage() {
                           windowOptions={periodSelection.options}
                           windowKey={periodSelection.selectedKey}
                           onWindowChange={periodSelection.selectWindow}
-                          requested={financeRequested}
                           ready={financeInputsReady}
                           noSites={
                             !charterUnitsQ.isLoading &&
@@ -1840,23 +1929,17 @@ function DashboardPage() {
                           hasData={!!pnlQuery.data}
                           error={!!pnlQuery.error}
                           updatedAt={pnlQuery.dataUpdatedAt}
-                          onGenerate={() => {
-                            if (generatedFinanceKeys.has(financeKey)) {
-                              void pnlQuery.refetch();
-                            } else {
-                              generatedFinanceKeys.add(financeKey);
-                              setFinanceTick((t) => t + 1);
-                            }
-                          }}
+                          onNearScreen={() => setFinanceInView(true)}
+                          onRefresh={() => void pnlQuery.refetch()}
                         />
                       )}
-                    {financeRequested && pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
+                    {pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
                       <PayrollCoverageCard rows={financeRows} />
                     )}
-                    {financeRequested && pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
+                    {pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
                       <InvoiceCoverageCard rows={financeRows} />
                     )}
-                    {financeRequested && pnlQuery.data && can("invoice") && canWidget("profitability") && (
+                    {pnlQuery.data && can("invoice") && canWidget("profitability") && (
                       <ProfitabilityCard rows={financeRows} />
                     )}
                     {canWidget("org_tree") && departmentTree}
