@@ -501,25 +501,34 @@ function DashboardPage() {
     },
   });
 
+  // The month P&L is heavy (every contract line × every duty). It only runs
+  // after the user picks a month/window and presses Generate; generated
+  // selections are remembered for the session so revisits show instantly.
+  const financeKey = `${user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
+  const [, setFinanceTick] = useState(0);
+  const financeRequested = generatedFinanceKeys.has(financeKey);
+  const financeAvailable =
+    !showInventoryDashboard &&
+    !showTransportDashboard &&
+    !showPayrollDashboard &&
+    !opsFocus &&
+    !lightMode &&
+    (can("payroll") || can("invoice") || can("contracts"));
+  const financeInputsReady =
+    authReady && !!user && !permsLoading &&
+    !charterUnitsQ.isLoading && !periodSelection.isLoading &&
+    periodSelection.unitIdsForWindow.size > 0;
   const pnlQuery = useQuery({
     queryKey: ["dashboard-pnl", user?.phone, year, month, periodSelection.selectedKey, [...periodSelection.unitIdsForWindow].sort().join(",")],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
-    enabled:
-      authReady && !!user && !permsLoading &&
-      !showInventoryDashboard &&
-      !showTransportDashboard &&
-      !showPayrollDashboard &&
-      !opsFocus &&
-      !lightMode &&
-      !charterUnitsQ.isLoading && !periodSelection.isLoading &&
-      periodSelection.unitIdsForWindow.size > 0 &&
-      (can("payroll") || can("invoice") || can("contracts")),
-    staleTime: 60_000,
+    enabled: financeAvailable && financeInputsReady && financeRequested,
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: 1,
-    placeholderData: keepPreviousData,
     queryFn: async () => {
       await supabaseSessionReady();
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -1714,32 +1723,55 @@ function DashboardPage() {
                     {can("contracts") && canWidget("contract_portfolio") && (
                       <ClientContractPortfolioCard />
                     )}
-                    {(can("payroll") || can("invoice")) && pnlQuery.isLoading && (
-                      <div className="mb-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                        Loading payroll and invoice totals…
-                      </div>
-                    )}
-                    {pnlQuery.error && (
-                      <div className="mb-4 rounded-2xl border border-destructive/30 bg-card p-6">
-                        <p className="text-sm font-medium text-destructive">
-                          Payroll and invoice totals could not load.
-                        </p>
-                        <Button
-                          className="mt-3"
-                          variant="outline"
-                          onClick={() => void pnlQuery.refetch()}
-                        >
-                          Try again
-                        </Button>
-                      </div>
-                    )}
-                    {pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
+                    {financeAvailable &&
+                      ((can("payroll") && canWidget("payroll_coverage")) ||
+                        (can("invoice") &&
+                          (canWidget("invoice_coverage") || canWidget("profitability")))) && (
+                        <FinanceReportBar
+                          monthLabel={`${MONTH_NAMES[month]} ${year}`}
+                          windowLabel={
+                            periodSelection.options.find(
+                              (o) => o.key === periodSelection.selectedKey,
+                            )?.label ?? "All payroll windows"
+                          }
+                          monthValue={`${year}-${String(month + 1).padStart(2, "0")}`}
+                          onMonthChange={(ym) => {
+                            const [nextYear, nextMonth] = ym.split("-").map(Number);
+                            setYear(nextYear);
+                            setMonth(nextMonth - 1);
+                            periodSelection.setPeriod(nextYear, nextMonth - 1);
+                          }}
+                          windowOptions={periodSelection.options}
+                          windowKey={periodSelection.selectedKey}
+                          onWindowChange={periodSelection.selectWindow}
+                          requested={financeRequested}
+                          ready={financeInputsReady}
+                          noSites={
+                            !charterUnitsQ.isLoading &&
+                            !periodSelection.isLoading &&
+                            periodSelection.unitIdsForWindow.size === 0
+                          }
+                          fetching={pnlQuery.isFetching}
+                          hasData={!!pnlQuery.data}
+                          error={!!pnlQuery.error}
+                          updatedAt={pnlQuery.dataUpdatedAt}
+                          onGenerate={() => {
+                            if (generatedFinanceKeys.has(financeKey)) {
+                              void pnlQuery.refetch();
+                            } else {
+                              generatedFinanceKeys.add(financeKey);
+                              setFinanceTick((t) => t + 1);
+                            }
+                          }}
+                        />
+                      )}
+                    {financeRequested && pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
                       <PayrollCoverageCard rows={financeRows} />
                     )}
-                    {pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
+                    {financeRequested && pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
                       <InvoiceCoverageCard rows={financeRows} />
                     )}
-                    {pnlQuery.data && can("invoice") && canWidget("profitability") && (
+                    {financeRequested && pnlQuery.data && can("invoice") && canWidget("profitability") && (
                       <ProfitabilityCard rows={financeRows} />
                     )}
                     {canWidget("org_tree") && departmentTree}
