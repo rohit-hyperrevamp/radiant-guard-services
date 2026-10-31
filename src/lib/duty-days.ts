@@ -7,3 +7,9 @@ export function roundDutyDays(value: number): number {
   const n = Number(value) || 0;
   return Math.round(n * 10000) / 10000;
 }
+
+/** Printed duty quantity: at least 2 decimals, up to 4 when the value needs them (7.1875, 30.00). */
+export function formatDutyQty(value: number): string {
+  const n = roundDutyDays(value);
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4, useGrouping: false });
+}

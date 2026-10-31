@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { roundDutyDays } from "./duty-days";
 
 // ---------------------------------------------------------------------------
 // Organization-level invoice output rules. An organization can bill everything on one
@@ -81,7 +82,6 @@ type TotalsLike = { pDays: number; phDays: number; otDays: number; otHours: numb
  * wholly to the reliever part; primary lines split regular / PH / ED.
  */
 export function totalsForPart<T extends TotalsLike>(totals: T, isPrimary: boolean, split: InvoiceSplit, part: string): T {
-  const r2 = (n: number) => Math.round(n * 100) / 100;
   if (!isPrimary) {
     const on = split.assign.reliever === part;
     return on ? totals : { ...totals, pDays: 0, phDays: 0, otDays: 0, otHours: 0, tDays: 0 };
@@ -89,5 +89,5 @@ export function totalsForPart<T extends TotalsLike>(totals: T, isPrimary: boolea
   const pDays = split.assign.regular === part ? totals.pDays : 0;
   const phDays = split.assign.ph === part ? totals.phDays : 0;
   const otDays = split.assign.ed === part ? totals.otDays : 0;
-  return { ...totals, pDays, phDays, otDays, otHours: otDays, tDays: r2(pDays + phDays + otDays) };
+  return { ...totals, pDays, phDays, otDays, otHours: otDays, tDays: roundDutyDays(pDays + phDays + otDays) };
 }

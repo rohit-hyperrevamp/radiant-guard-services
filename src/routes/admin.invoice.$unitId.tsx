@@ -1,5 +1,5 @@
 import { mergePayItems } from "@/lib/pay-item-names";
-import { roundDutyDays } from "@/lib/duty-days";
+import { formatDutyQty, roundDutyDays } from "@/lib/duty-days";
 import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -1246,13 +1246,13 @@ function PayrollUnitPage() {
           shiftHours: m.shiftHours, unitRate: item.rate, unitLabel: item.unitLabel,
           quantity: 0, amount: 0,
         };
-        g.quantity = r2(g.quantity + item.quantity);
+        g.quantity = roundDutyDays(g.quantity + item.quantity);
         g.amount = r2(g.amount + item.amount);
         groups.set(key, g);
       }
     }
     const list = Array.from(groups.values());
-    const totalQuantity = r2(list.reduce((s, g) => s + g.quantity, 0));
+    const totalQuantity = roundDutyDays(list.reduce((s, g) => s + g.quantity, 0));
     const quantityUnit = list[0]?.unitLabel ?? "Duty";
     const monthIdx = Number(start.split("-")[1]) - 1;
     const monthAbbr = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][monthIdx] ?? "";
@@ -1311,7 +1311,7 @@ function PayrollUnitPage() {
                 ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Duty`
                 : `${g.designation} @ Rs ${Math.round(g.monthly)}/-`,
           hsnSac: hsn,
-          quantityLabel: g.unitLabel === "hrs" ? `${g.quantity.toFixed(2)} hrs` : g.quantity.toFixed(2),
+          quantityLabel: g.unitLabel === "hrs" ? `${formatDutyQty(g.quantity)} hrs` : formatDutyQty(g.quantity),
           rate: g.unitRate,
           per: g.unitLabel === "hrs" ? "hrs" : "Duty",
           amount: g.amount,
@@ -1329,8 +1329,8 @@ function PayrollUnitPage() {
       ],
       totalQuantityLabel:
         quantityUnit === "hrs"
-          ? `${r2(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0)).toFixed(2)} hrs`
-          : `${r2(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0)).toFixed(2)} Duty`,
+          ? `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0))} hrs`
+          : `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0))} Duty`,
       taxableValue,
       cgstRate: GST_RATE / 2,
       sgstRate: GST_RATE / 2,
@@ -1463,11 +1463,11 @@ function PayrollUnitPage() {
           service_charge_claimed: totalBilling,
           gst_18: line.gstTotal,
           invoice_value: r2(totalBilling + line.gstTotal),
-          total_duties: r2(workingDays + otDays),
+          total_duties: roundDutyDays(workingDays + otDays),
           total_ot_hours: otHours,
           remarks: "",
           sg_rate: r2(m.contracted),
-          worked_days: r2(workingDays + otDays),
+          worked_days: roundDutyDays(workingDays + otDays),
           service_start_date: dmy(start),
           service_end_date: dmy(end),
           basic_billing_claimed: totalBilling,
