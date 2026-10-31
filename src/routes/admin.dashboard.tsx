@@ -1899,7 +1899,6 @@ function DashboardPage() {
                           windowOptions={periodSelection.options}
                           windowKey={periodSelection.selectedKey}
                           onWindowChange={periodSelection.selectWindow}
-                          requested={financeRequested}
                           ready={financeInputsReady}
                           noSites={
                             !charterUnitsQ.isLoading &&
@@ -1910,23 +1909,17 @@ function DashboardPage() {
                           hasData={!!pnlQuery.data}
                           error={!!pnlQuery.error}
                           updatedAt={pnlQuery.dataUpdatedAt}
-                          onGenerate={() => {
-                            if (generatedFinanceKeys.has(financeKey)) {
-                              void pnlQuery.refetch();
-                            } else {
-                              generatedFinanceKeys.add(financeKey);
-                              setFinanceTick((t) => t + 1);
-                            }
-                          }}
+                          onNearScreen={() => setFinanceInView(true)}
+                          onRefresh={() => void pnlQuery.refetch()}
                         />
                       )}
-                    {financeRequested && pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
+                    {pnlQuery.data && can("payroll") && canWidget("payroll_coverage") && (
                       <PayrollCoverageCard rows={financeRows} />
                     )}
-                    {financeRequested && pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
+                    {pnlQuery.data && can("invoice") && canWidget("invoice_coverage") && (
                       <InvoiceCoverageCard rows={financeRows} />
                     )}
-                    {financeRequested && pnlQuery.data && can("invoice") && canWidget("profitability") && (
+                    {pnlQuery.data && can("invoice") && canWidget("profitability") && (
                       <ProfitabilityCard rows={financeRows} />
                     )}
                     {canWidget("org_tree") && departmentTree}
