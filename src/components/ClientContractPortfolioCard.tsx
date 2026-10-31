@@ -107,6 +107,10 @@ export function ClientContractPortfolioCard() {
   const { data: rows = [] } = useQuery({
     queryKey: ["admin", "contract-portfolio"],
     queryFn: fetchContractPortfolio,
+    // Portfolio counts change rarely; reuse them across dashboard visits.
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const counts = useMemo(() => {

@@ -253,6 +253,91 @@ type PnLRow = {
   attendance_approved: boolean;
 };
 
+/** Month/window selections the user has generated this session. */
+const generatedFinanceKeys = new Set<string>();
+
+function FinanceReportBar({
+  monthLabel,
+  windowLabel,
+  monthValue,
+  onMonthChange,
+  windowOptions,
+  windowKey,
+  onWindowChange,
+  requested,
+  ready,
+  noSites,
+  fetching,
+  hasData,
+  error,
+  updatedAt,
+  onGenerate,
+}: {
+  monthLabel: string;
+  windowLabel: string;
+  monthValue: string;
+  onMonthChange: (ym: string) => void;
+  windowOptions: React.ComponentProps<typeof PayrollWindowPeriodPicker>["options"];
+  windowKey: string;
+  onWindowChange: (key: string) => void;
+  requested: boolean;
+  ready: boolean;
+  noSites: boolean;
+  fetching: boolean;
+  hasData: boolean;
+  error: boolean;
+  updatedAt: number;
+  onGenerate: () => void;
+}) {
+  const generating = requested && fetching;
+  const showing = requested && hasData && !fetching;
+  const updated =
+    showing && updatedAt
+      ? new Date(updatedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })
+      : null;
+  return (
+    <div className="mb-4 rounded-2xl border border-border bg-card p-4" data-panel>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Finance report
+          </div>
+          <h2 className="text-base font-semibold">Payroll, invoice &amp; profit</h2>
+          <p className="text-xs text-muted-foreground">
+            {generating
+              ? `Preparing ${monthLabel} · ${windowLabel}…`
+              : showing
+                ? `Showing ${monthLabel} · ${windowLabel}${updated ? ` · prepared ${updated}` : ""}`
+                : error && requested
+                  ? "This report could not be prepared. Try again."
+                  : noSites
+                    ? `No sites fall in ${windowLabel} for ${monthLabel}.`
+                    : `Choose the month and payroll window, then press Generate.`}
+          </p>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <PayrollWindowPeriodPicker
+            options={windowOptions}
+            selectedKey={windowKey}
+            onWindowChange={onWindowChange}
+          />
+          <MonthYearPicker value={monthValue} onChange={onMonthChange} />
+          <Button onClick={onGenerate} disabled={!ready || generating || noSites}>
+            {generating ? "Preparing…" : showing ? "Refresh" : "Generate"}
+          </Button>
+        </div>
+      </div>
+      {generating && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DashboardPage() {
   const { user, isReady: authIsReady } = useAuth();
   const hasSession = useHasSupabaseSession();
