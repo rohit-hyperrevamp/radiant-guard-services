@@ -1,4 +1,5 @@
 import { mergePayItems } from "@/lib/pay-item-names";
+import { roundDutyDays } from "@/lib/duty-days";
 import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -1064,7 +1065,7 @@ function PayrollUnitPage() {
         { clampToPeriod: false },
       ) ?? payrollDays;
 
-    const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
+    const billedDays = roundDutyDays(r.totals.tDays ?? 0);
     // The billing UNIT comes from the contract's billing type — never assumed.
     //   man_days   → rate per duty  = contracted ÷ billing days (2 dp), × duties
     //   man_hours  → rate per hour  = contracted ÷ billing days ÷ shift hrs, × hrs
@@ -1181,7 +1182,7 @@ function PayrollUnitPage() {
         };
         existing.headcount += 1;
         const days = item.unitLabel === "hrs" ? item.quantity / m.shiftHours : item.quantity;
-        existing.billedDays = Math.round((existing.billedDays + days) * 100) / 100;
+        existing.billedDays = roundDutyDays(existing.billedDays + days);
         existing.billedHours = Math.round((existing.billedHours + days * m.shiftHours) * 100) / 100;
         existing.contracted = Math.round((existing.contracted + (item.kind === "Extra Duty" ? 0 : m.contracted)) * 100) / 100;
         existing.actual = Math.round((existing.actual + item.amount) * 100) / 100;
@@ -1841,7 +1842,7 @@ function PayrollUnitPage() {
                 <tr>
                   <td className="px-4 py-3">Totals</td>
                   <td className="px-4 py-3 text-right tabular-nums">{designationRows.reduce((s, g) => s + g.headcount, 0)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{Math.round(designationRows.reduce((s, g) => s + g.billedDays, 0) * 100) / 100}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{roundDutyDays(designationRows.reduce((s, g) => s + g.billedDays, 0))}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{Math.round(designationRows.reduce((s, g) => s + g.billedHours, 0) * 100) / 100} hrs</td>
                   <td className="px-4 py-3" />
                   <td className="px-4 py-3 text-right text-muted-foreground">{fmtINR(totals.projectedTotal)}</td>
