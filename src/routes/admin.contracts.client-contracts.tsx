@@ -6628,7 +6628,7 @@ export function ResourceFormDialog({
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 border-t border-border pt-3">
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className={cn("text-[11px] text-muted-foreground", otBasis === "hourly" && "hidden")}>
                     {otBasis === "earned_gross" ? "ED per duty = Earned Gross (this month) ÷ payroll days × multiplier · " : ""}
                     ED per duty = {otBasis === "components" ? "ED base" : "Gross"} ÷ payroll days
                     {otDivisorDays ? ` (${otDivisorDays})` : ""}
