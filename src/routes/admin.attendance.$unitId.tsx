@@ -1694,6 +1694,74 @@ function MusterRollPage() {
 
   const rosterIds = useMemo(() => new Set((employees ?? []).map((e) => e.id)), [employees]);
 
+  // ---- Super Admin: quick-create a minimal employee from the add box ----
+  const canQuickCreate = currentRole.isSuperAdmin;
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickCode, setQuickCode] = useState("");
+  const [quickName, setQuickName] = useState("");
+  const [quickStart, setQuickStart] = useState("");
+  const [quickEnd, setQuickEnd] = useState("");
+  const resetQuick = () => {
+    setQuickOpen(false);
+    setQuickCode("");
+    setQuickName("");
+    setQuickStart("");
+    setQuickEnd("");
+  };
+  const openQuickCreate = () => {
+    const q = mapQuery.trim();
+    const looksLikeId = /^[A-Za-z]*-?\d+$/.test(q);
+    setQuickCode(looksLikeId ? q : "");
+    setQuickName(looksLikeId ? "" : q);
+    setQuickStart(periodStart);
+    setQuickEnd("");
+    setQuickOpen(true);
+  };
+  const quickCreateEmployee = async () => {
+    const code = quickCode.trim();
+    const name = quickName.trim();
+    if (!code || !name || !quickStart) {
+      toast.error("Enter employee ID, name and start date");
+      return;
+    }
+    if (quickEnd && quickEnd < quickStart) {
+      toast.error("End date cannot be before start date");
+      return;
+    }
+    setMapSaving(true);
+    let newId: string | null = null;
+    try {
+      const designationId = mapDesig ?? mapSlot?.designationId ?? null;
+      const { data, error } = await supabase.rpc(
+        "quick_create_attendance_employee" as never,
+        {
+          _employee_code: code,
+          _full_name: name,
+          _start_date: quickStart,
+          _end_date: quickEnd || null,
+          _unit_id: unitId,
+          _designation_id: designationId,
+        } as never,
+      );
+      if (error) throw error;
+      newId = data as unknown as string;
+      logActivity({
+        module: "Attendance",
+        action: "create",
+        entityType: "employee",
+        entityId: newId,
+        entityLabel: `Quick-created employee ${code} ${name} from attendance @ ${unit?.name ?? unitId}`,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create employee");
+      setMapSaving(false);
+      return;
+    }
+    setMapSaving(false);
+    resetQuick();
+    await mapEmployeeToSlot({ id: newId!, full_name: name, designation_id: mapDesig ?? null });
+  };
+
   const mapEmployeeToSlot = async (cand: {
     id: string;
     full_name: string;
