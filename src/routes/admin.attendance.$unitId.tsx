@@ -5975,6 +5975,28 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                             (R)
                           </span>
                         )}
+                        {currentRole.isSuperAdmin && editable && !mr.vacant && mr.reliever && (
+                          <button
+                            type="button"
+                            disabled={pinBusy === mr.candidateId}
+                            onClick={() => void setRegularSite(mr.candidateId, mr.emp.full_name, true)}
+                            title="Super Admin: make this site the regular (primary) site for this month"
+                            className="ml-1 rounded-full border border-primary/40 px-1.5 py-px text-[10px] font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 print:hidden"
+                          >
+                            {pinBusy === mr.candidateId ? "…" : "Make regular"}
+                          </button>
+                        )}
+                        {currentRole.isSuperAdmin && !mr.vacant && !mr.reliever && pinnedHere?.has(mr.candidateId) && (
+                          <button
+                            type="button"
+                            disabled={!editable || pinBusy === mr.candidateId}
+                            onClick={() => void setRegularSite(mr.candidateId, mr.emp.full_name, false)}
+                            title="Regular here by Super Admin choice — click to go back to the automatic rule"
+                            className="ml-1 rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary hover:bg-primary/20 disabled:cursor-default print:hidden"
+                          >
+                            {pinBusy === mr.candidateId ? "…" : "Set regular ✕"}
+                          </button>
+                        )}
                       </td>
 
                       <td className={cn(cellBase, "p-1")} rowSpan={2}>
