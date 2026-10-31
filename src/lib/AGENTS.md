@@ -25,3 +25,4 @@
 - EmployeePicker uses employee-picker-search filters; numeric searches check employee_code and mobile together so employee IDs are never mistaken for phone-only queries.
 - Deployment directory reads are fully paged and session-gated; their employees-lite cache key has a deployment-specific suffix to prevent payroll pickers' smaller row shapes from hiding mapped guards.
 - Billing add-ons: a line is a reliever only if it is not a management fee (fee names like "CTC + Reliever" mention it); saved fees are computed after relievers via `applyCtcPass` so stored amounts equal the editor figure.
+- Extra Duty basis "hourly" (contract_resources.ot_hourly_rate / ot_hourly_esic): payroll pays rate × shift hours per ED duty via `edPerDutyFromHourly`; invoices bill (rate + ESIC) per hour via `hourlyEdBillingRate` — keep both helpers as the only source of hourly ED maths.
