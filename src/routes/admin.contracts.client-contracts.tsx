@@ -364,6 +364,9 @@ export type ContractResource = {
   otMultiplier?: number;
   otBasis?: "components" | "gross" | "earned_gross" | "formula" | "hourly";
   otFormula?: string;
+  /** otBasis "hourly": ED wage per hour and ESIC per hour billed on top. */
+  otHourlyRate?: number | null;
+  otHourlyEsic?: number | null;
   /** Optional ESI charged on the Extra Duty amount (client exception). */
   otEsi?: OtEsiSetting | null;
 };
@@ -401,6 +404,8 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     otMultiplier: Number(resource.otMultiplier) > 0 ? Number(resource.otMultiplier) : 1,
     otBasis: resource.otBasis ?? "components",
     otFormula: resource.otFormula ?? "",
+    otHourlyRate: resource.otBasis === "hourly" ? Number(resource.otHourlyRate) || 0 : null,
+    otHourlyEsic: resource.otBasis === "hourly" ? Number(resource.otHourlyEsic) || 0 : null,
     otEsi: resource.otEsi?.enabled ? { ...resource.otEsi } : null,
   };
 }
@@ -1245,7 +1250,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula,ot_esi",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula,ot_esi,ot_hourly_rate,ot_hourly_esic",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1270,6 +1275,8 @@ function useContractResources(contractId: string | null) {
         otMultiplier: Number(r.ot_multiplier ?? 1) || 1,
         otFormula: (r as { ot_formula?: string | null }).ot_formula ?? "",
         otEsi: normalizeOtEsi((r as { ot_esi?: unknown }).ot_esi),
+        otHourlyRate: (r as { ot_hourly_rate?: number | null }).ot_hourly_rate == null ? null : Number((r as { ot_hourly_rate?: number | null }).ot_hourly_rate),
+        otHourlyEsic: (r as { ot_hourly_esic?: number | null }).ot_hourly_esic == null ? null : Number((r as { ot_hourly_esic?: number | null }).ot_hourly_esic),
         otBasis: ((r as { ot_basis?: string }).ot_basis ?? "components") as "components" | "gross" | "earned_gross" | "formula" | "hourly",
       }));
     },
@@ -1951,6 +1958,8 @@ async function persistResources(contractId: string, resources: ContractResource[
     ot_basis: r.otBasis ?? "components",
     ot_formula: r.otBasis === "formula" ? (r.otFormula ?? "").trim() || null : null,
     ot_esi: r.otEsi?.enabled ? r.otEsi : null,
+    ot_hourly_rate: r.otBasis === "hourly" ? Number(r.otHourlyRate) || 0 : null,
+    ot_hourly_esic: r.otBasis === "hourly" ? Number(r.otHourlyEsic) || 0 : null,
   }));
   // Save first and delete stale rows only after every write succeeds. The old
   // delete-then-insert sequence could permanently empty a contract whenever
@@ -5193,6 +5202,8 @@ export function ResourceFormDialog({
   const [otFormula, setOtFormula] = useState<string>("earned_gross / payroll_days * 2");
   const [otBasis, setOtBasis] = useState<"components" | "gross" | "earned_gross" | "formula" | "hourly">("components");
   const [otEsi, setOtEsi] = useState<OtEsiSetting | null>(null);
+  const [otHourlyRate, setOtHourlyRate] = useState<string>("");
+  const [otHourlyEsic, setOtHourlyEsic] = useState<string>("");
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
   const [designationQuery, setDesignationQuery] = useState("");
@@ -5250,6 +5261,8 @@ export function ResourceFormDialog({
       setOtBasis(initial.otBasis ?? "components");
       setOtFormula(initial.otFormula || "earned_gross / payroll_days * 2");
       setOtEsi(initial.otEsi?.enabled ? { ...initial.otEsi } : null);
+      setOtHourlyRate(initial.otHourlyRate != null ? String(initial.otHourlyRate) : "");
+      setOtHourlyEsic(initial.otHourlyEsic != null ? String(initial.otHourlyEsic) : "");
       setResourceBaselineSnapshot(serializeContractResources([{ ...initial, otMultiplier: Number(initial.otMultiplier ?? 1) || 1, otBasis: initial.otBasis ?? "components", otFormula: initial.otFormula ?? "", otEsi: initial.otEsi?.enabled ? { ...initial.otEsi } : null, components: nextComponents, benefits: nextBenefits, deductions: nextDeductions, employerContributions: nextEmployerContributions, roundOffFinal: initial.roundOffFinal === true, roundOffTotals: { ...(initial.roundOffTotals ?? {}) } }]));
     } else {
       const nextComponents = allowanceTypes
@@ -5306,10 +5319,12 @@ export function ResourceFormDialog({
           otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
       otFormula: otBasis === "formula" ? otFormula : "",
+      otHourlyRate: otBasis === "hourly" ? Number(otHourlyRate) || 0 : null,
+      otHourlyEsic: otBasis === "hourly" ? Number(otHourlyEsic) || 0 : null,
       otEsi: otEsi?.enabled ? otEsi : null,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula, otEsi],
+    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula, otEsi, otHourlyRate, otHourlyEsic],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -6112,6 +6127,8 @@ export function ResourceFormDialog({
       otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
       otFormula: otBasis === "formula" ? otFormula : "",
+      otHourlyRate: otBasis === "hourly" ? Number(otHourlyRate) || 0 : null,
+      otHourlyEsic: otBasis === "hourly" ? Number(otHourlyEsic) || 0 : null,
       otEsi: otEsi?.enabled ? otEsi : null,
     });
   };
@@ -6140,6 +6157,8 @@ export function ResourceFormDialog({
       otMultiplier: Number(otMultiplier) > 0 ? Number(otMultiplier) : 1,
       otBasis,
       otFormula: otBasis === "formula" ? otFormula : "",
+      otHourlyRate: otBasis === "hourly" ? Number(otHourlyRate) || 0 : null,
+      otHourlyEsic: otBasis === "hourly" ? Number(otHourlyEsic) || 0 : null,
       otEsi: otEsi?.enabled ? otEsi : null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -6567,7 +6586,7 @@ export function ResourceFormDialog({
               <>
                 {otBasis !== "components" ? (
                   <div className="mb-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground">
-                    ED is set to <b>{otBasis === "gross" ? "Gross (full month)" : otBasis === "earned_gross" ? "Earned Gross" : "Custom formula"}</b>, so the ticks below are not used. Choose <b>Selected components</b> in "ED on" to pay ED only on the ticked items.
+                    ED is set to <b>{otBasis === "gross" ? "Gross (full month)" : otBasis === "earned_gross" ? "Earned Gross" : otBasis === "hourly" ? "Custom per-hour rate" : "Custom formula"}</b>, so the ticks below are not used. Choose <b>Selected components</b> in "ED on" to pay ED only on the ticked items.
                   </div>
                 ) : components.every((c) => c.includeInOt === false) ? (
                   <div className="mb-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
@@ -6625,6 +6644,7 @@ export function ResourceFormDialog({
                         <SelectItem value="gross">Gross (full month)</SelectItem>
                         <SelectItem value="earned_gross">Earned Gross</SelectItem>
                         <SelectItem value="formula">Custom formula</SelectItem>
+                        <SelectItem value="hourly">Custom per-hour rate</SelectItem>
                       </SelectContent>
                     </Select>
                   </label>
@@ -6665,7 +6685,49 @@ export function ResourceFormDialog({
                       </p>
                     </div>
                   ) : null}
-                  <label className={`${otBasis === "formula" ? "hidden" : "flex"} items-center gap-2 text-xs font-semibold text-muted-foreground`}>
+                  {otBasis === "hourly" ? (
+                    <div className="w-full space-y-2 rounded-lg border border-border bg-background p-2">
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+                          ED rate per hour (₹)
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="h-8"
+                            value={otHourlyRate}
+                            onChange={(e) => setOtHourlyRate(e.target.value)}
+                            placeholder="134"
+                          />
+                        </label>
+                        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+                          ESIC per hour (₹)
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="h-8"
+                            value={otHourlyEsic}
+                            onChange={(e) => setOtHourlyEsic(e.target.value)}
+                            placeholder="5"
+                          />
+                        </label>
+                        <div className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+                          Billing rate per hour
+                          <div className="flex h-8 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-semibold tabular-nums text-foreground">
+                            ₹{((Number(otHourlyRate) || 0) + (Number(otHourlyEsic) || 0)).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Payroll pays the ED rate per hour for each Extra Duty hour (
+                        {Number.parseInt(shiftHours, 10) === 12 ? 12 : 8} h duty = ₹
+                        {((Number(otHourlyRate) || 0) * (Number.parseInt(shiftHours, 10) === 12 ? 12 : 8)).toFixed(2)}
+                        ). The invoice bills ED rate + ESIC per hour.
+                      </p>
+                    </div>
+                  ) : null}
+                  <label className={`${otBasis === "formula" || otBasis === "hourly" ? "hidden" : "flex"} items-center gap-2 text-xs font-semibold text-muted-foreground`}>
                     Multiplier ×
                     <Input
                       type="number"
