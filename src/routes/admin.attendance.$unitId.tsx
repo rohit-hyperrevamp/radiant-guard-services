@@ -1694,6 +1694,74 @@ function MusterRollPage() {
 
   const rosterIds = useMemo(() => new Set((employees ?? []).map((e) => e.id)), [employees]);
 
+  // ---- Super Admin: quick-create a minimal employee from the add box ----
+  const canQuickCreate = currentRole.isSuperAdmin;
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickCode, setQuickCode] = useState("");
+  const [quickName, setQuickName] = useState("");
+  const [quickStart, setQuickStart] = useState("");
+  const [quickEnd, setQuickEnd] = useState("");
+  const resetQuick = () => {
+    setQuickOpen(false);
+    setQuickCode("");
+    setQuickName("");
+    setQuickStart("");
+    setQuickEnd("");
+  };
+  const openQuickCreate = () => {
+    const q = mapQuery.trim();
+    const looksLikeId = /^[A-Za-z]*-?\d+$/.test(q);
+    setQuickCode(looksLikeId ? q : "");
+    setQuickName(looksLikeId ? "" : q);
+    setQuickStart(periodStart);
+    setQuickEnd("");
+    setQuickOpen(true);
+  };
+  const quickCreateEmployee = async () => {
+    const code = quickCode.trim();
+    const name = quickName.trim();
+    if (!code || !name || !quickStart) {
+      toast.error("Enter employee ID, name and start date");
+      return;
+    }
+    if (quickEnd && quickEnd < quickStart) {
+      toast.error("End date cannot be before start date");
+      return;
+    }
+    setMapSaving(true);
+    let newId: string | null = null;
+    try {
+      const designationId = mapDesig ?? mapSlot?.designationId ?? null;
+      const { data, error } = await supabase.rpc(
+        "quick_create_attendance_employee" as never,
+        {
+          _employee_code: code,
+          _full_name: name,
+          _start_date: quickStart,
+          _end_date: quickEnd || null,
+          _unit_id: unitId,
+          _designation_id: designationId,
+        } as never,
+      );
+      if (error) throw error;
+      newId = data as unknown as string;
+      logActivity({
+        module: "Attendance",
+        action: "create",
+        entityType: "employee",
+        entityId: newId,
+        entityLabel: `Quick-created employee ${code} ${name} from attendance @ ${unit?.name ?? unitId}`,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create employee");
+      setMapSaving(false);
+      return;
+    }
+    setMapSaving(false);
+    resetQuick();
+    await mapEmployeeToSlot({ id: newId!, full_name: name, designation_id: mapDesig ?? null });
+  };
+
   const mapEmployeeToSlot = async (cand: {
     id: string;
     full_name: string;
@@ -6099,6 +6167,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             setMapSlot(null);
             setEditLine(null);
             setMapQuery("");
+            resetQuick();
           }
         }}
       >
@@ -6225,6 +6294,72 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
               })
             )}
           </div>
+          {canQuickCreate ? (
+            quickOpen ? (
+              <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                <div className="text-sm font-semibold">Create new employee</div>
+                <p className="text-[11px] text-muted-foreground">
+                  Super Admin only. Personal details can be filled in later from the Employees page.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Employee ID</span>
+                    <input
+                      value={quickCode}
+                      onChange={(e) => setQuickCode(e.target.value)}
+                      placeholder="e.g. 49960"
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Name</span>
+                    <input
+                      value={quickName}
+                      onChange={(e) => setQuickName(e.target.value)}
+                      placeholder="Full name"
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Start date</span>
+                    <input
+                      type="date"
+                      value={quickStart}
+                      onChange={(e) => setQuickStart(e.target.value)}
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">End date (optional)</span>
+                    <input
+                      type="date"
+                      value={quickEnd}
+                      min={quickStart || undefined}
+                      onChange={(e) => setQuickEnd(e.target.value)}
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="flex-1 rounded-full" onClick={resetQuick} disabled={mapSaving}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex-1 rounded-full"
+                    disabled={mapSaving || !quickCode.trim() || !quickName.trim() || !quickStart}
+                    onClick={quickCreateEmployee}
+                  >
+                    {mapSaving ? "Creating…" : `Create & add as ${mapAs === "regular" ? "regular" : "reliever"}`}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" className="w-full rounded-full" onClick={openQuickCreate}>
+                + Create new employee (ID and name only)
+              </Button>
+            )
+          ) : null}
           </>
           )}
         </DialogContent>
