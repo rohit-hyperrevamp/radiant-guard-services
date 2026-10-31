@@ -5,11 +5,25 @@ const r2 = (value: number) => Math.round(value * 100) / 100;
 export const isCli2989Caretaker = (unitCode?: string | null, designationName?: string | null) =>
   unitCode?.trim().toUpperCase() === "CLI2989" && /care\s*takers?/i.test(designationName ?? "");
 
+export type HourlyEdBilling = { rate?: number | null; esic?: number | null; shiftHours?: number | null };
+
+/** Invoice Extra Duty rate per hour for a custom hourly ED role: wage + ESIC per hour. */
+export function hourlyEdBillingRate(ed?: HourlyEdBilling | null): number | null {
+  if (!ed) return null;
+  const rate = Number(ed.rate);
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  const esic = Number(ed.esic);
+  return r2(rate + (Number.isFinite(esic) && esic > 0 ? esic : 0));
+}
+
 export function invoiceExtraDutyRate(
   unitId: string,
   components: { name?: unknown; amount?: unknown }[],
-  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number; billingDays?: number; savedExtraDutyRate?: number },
+  contract?: { unitCode?: string | null; designationName?: string | null; monthlyBilling?: number; billingDays?: number; savedExtraDutyRate?: number; hourlyEd?: HourlyEdBilling | null },
 ): number | null {
+  // Contract role set to "Custom per-hour rate": bill (ED wage + ESIC) per hour.
+  const hourly = hourlyEdBillingRate(contract?.hourlyEd);
+  if (hourly != null) return hourly * Math.max(1, contract?.hourlyEd?.shiftHours ?? 8);
   if (isCli2989Caretaker(contract?.unitCode, contract?.designationName)) {
     const monthly = contract?.monthlyBilling;
     const days = contract?.billingDays;

@@ -1097,8 +1097,13 @@ function PayrollUnitPage() {
       monthlyBilling: contracted,
       billingDays,
       savedExtraDutyRate: r.wages?.perDutyOtAmount,
+      hourlyEd: r.resource?.otBasis === "hourly"
+        ? { rate: r.resource.otHourlyRate, esic: r.resource.otHourlyEsic, shiftHours }
+        : null,
     });
-    const caretakerHourlyEd = isCli2989Caretaker(unit?.code, r.designation);
+    const caretakerHourlyEd =
+      isCli2989Caretaker(unit?.code, r.designation) ||
+      (r.resource?.otBasis === "hourly" && extraDutyRate != null);
     const dutySplit = extraDutyRate != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
       ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly, extraDutyHourly: caretakerHourlyEd, exactExtraDutyRate: caretakerHourlyEd })
       : null;
