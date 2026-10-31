@@ -9,6 +9,9 @@ type EdResource = {
   otBasis?: string | null;
   otMultiplier?: number | null;
   otFormula?: string | null;
+  otHourlyRate?: number | null;
+  otHourlyEsic?: number | null;
+  otShiftHours?: number | null;
 };
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -31,6 +34,9 @@ export function withContractEdRule<T extends EdResource>(
     otBasis: contract.otBasis ?? "components",
     otMultiplier: contract.otMultiplier ?? 1,
     otFormula: contract.otFormula ?? null,
+    otHourlyRate: contract.otHourlyRate ?? null,
+    otHourlyEsic: contract.otHourlyEsic ?? null,
+    otShiftHours: contract.otShiftHours ?? employee.otShiftHours ?? null,
     components: employee.components.map((c) => {
       const on = (c.allowanceId && byId.get(String(c.allowanceId))) ?? byName.get(norm(c.name));
       // Components the contract doesn't have are left out of ED.

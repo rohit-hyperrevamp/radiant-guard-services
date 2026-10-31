@@ -362,7 +362,7 @@ export type ContractResource = {
   roundOffTotals?: Record<string, boolean>;
   /** Extra Duty multiplier (Pages "2X"): ED per duty = ED base ÷ payroll days × this. */
   otMultiplier?: number;
-  otBasis?: "components" | "gross" | "earned_gross" | "formula";
+  otBasis?: "components" | "gross" | "earned_gross" | "formula" | "hourly";
   otFormula?: string;
   /** Optional ESI charged on the Extra Duty amount (client exception). */
   otEsi?: OtEsiSetting | null;
@@ -1270,7 +1270,7 @@ function useContractResources(contractId: string | null) {
         otMultiplier: Number(r.ot_multiplier ?? 1) || 1,
         otFormula: (r as { ot_formula?: string | null }).ot_formula ?? "",
         otEsi: normalizeOtEsi((r as { ot_esi?: unknown }).ot_esi),
-        otBasis: ((r as { ot_basis?: string }).ot_basis ?? "components") as "components" | "gross" | "earned_gross" | "formula",
+        otBasis: ((r as { ot_basis?: string }).ot_basis ?? "components") as "components" | "gross" | "earned_gross" | "formula" | "hourly",
       }));
     },
   });
@@ -5191,7 +5191,7 @@ export function ResourceFormDialog({
   const [roundTotals, setRoundTotals] = useState<Record<string, boolean>>({});
   const [otMultiplier, setOtMultiplier] = useState<string>("1");
   const [otFormula, setOtFormula] = useState<string>("earned_gross / payroll_days * 2");
-  const [otBasis, setOtBasis] = useState<"components" | "gross" | "earned_gross" | "formula">("components");
+  const [otBasis, setOtBasis] = useState<"components" | "gross" | "earned_gross" | "formula" | "hourly">("components");
   const [otEsi, setOtEsi] = useState<OtEsiSetting | null>(null);
   const [designationOpen, setDesignationOpen] = useState(false);
   const [allowancePickerOpen, setAllowancePickerOpen] = useState(false);
