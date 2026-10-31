@@ -25,3 +25,8 @@ export function contractDailyBilling(
     perDay: billingRatePerDay(monthly, bases, periodDates),
   };
 }
+/** Monthly rate printed in an invoice line ("@ Rs 30930.90/-"): exact contract value, paise kept unless whole. */
+export function invoiceMonthlyRateLabel(monthly: number): string {
+  const value = Math.round((Number(monthly) || 0) * 100) / 100;
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
