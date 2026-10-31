@@ -6167,6 +6167,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             setMapSlot(null);
             setEditLine(null);
             setMapQuery("");
+            resetQuick();
           }
         }}
       >
@@ -6293,6 +6294,72 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
               })
             )}
           </div>
+          {canQuickCreate ? (
+            quickOpen ? (
+              <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                <div className="text-sm font-semibold">Create new employee</div>
+                <p className="text-[11px] text-muted-foreground">
+                  Super Admin only. Personal details can be filled in later from the Employees page.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Employee ID</span>
+                    <input
+                      value={quickCode}
+                      onChange={(e) => setQuickCode(e.target.value)}
+                      placeholder="e.g. 49960"
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Name</span>
+                    <input
+                      value={quickName}
+                      onChange={(e) => setQuickName(e.target.value)}
+                      placeholder="Full name"
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Start date</span>
+                    <input
+                      type="date"
+                      value={quickStart}
+                      onChange={(e) => setQuickStart(e.target.value)}
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">End date (optional)</span>
+                    <input
+                      type="date"
+                      value={quickEnd}
+                      min={quickStart || undefined}
+                      onChange={(e) => setQuickEnd(e.target.value)}
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="flex-1 rounded-full" onClick={resetQuick} disabled={mapSaving}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex-1 rounded-full"
+                    disabled={mapSaving || !quickCode.trim() || !quickName.trim() || !quickStart}
+                    onClick={quickCreateEmployee}
+                  >
+                    {mapSaving ? "Creating…" : `Create & add as ${mapAs === "regular" ? "regular" : "reliever"}`}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" className="w-full rounded-full" onClick={openQuickCreate}>
+                + Create new employee (ID and name only)
+              </Button>
+            )
+          ) : null}
           </>
           )}
         </DialogContent>
