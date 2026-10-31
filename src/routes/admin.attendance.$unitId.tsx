@@ -1694,6 +1694,65 @@ function MusterRollPage() {
 
   const rosterIds = useMemo(() => new Set((employees ?? []).map((e) => e.id)), [employees]);
 
+  // ---- Super Admin: pin this site as the person's regular (primary) site for the month ----
+  const pinMonth = `${periodEnd.slice(0, 7)}-01`;
+  const pinsQK = ["attendance-primary-pins", unitId, pinMonth];
+  const { data: pinnedHere } = useQuery({
+    queryKey: pinsQK,
+    enabled: currentRole.isSuperAdmin,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance_primary_pins" as never)
+        .select("candidate_id")
+        .eq("unit_id", unitId)
+        .eq("month", pinMonth);
+      if (error) throw error;
+      return new Set(((data ?? []) as Array<{ candidate_id: string }>).map((r) => r.candidate_id));
+    },
+  });
+  const [pinBusy, setPinBusy] = useState<string | null>(null);
+  const setRegularSite = async (candidateId: string, fullName: string, makeRegular: boolean) => {
+    const ok = await confirm({
+      title: makeRegular ? `Make ${fullName} regular at this site?` : `Back to automatic for ${fullName}?`,
+      description: makeRegular
+        ? "For this month, this site becomes the regular site even if more days were worked elsewhere. Other sites become reliever (Extra Duty only). It stays this way when attendance is edited later."
+        : "The system will again choose the site with the most worked days as regular for this month.",
+      confirmText: makeRegular ? "Make regular" : "Use automatic",
+    });
+    if (!ok) return;
+    setPinBusy(candidateId);
+    try {
+      const { error } = await supabase.rpc("set_attendance_primary_unit" as never, {
+        _candidate_id: candidateId,
+        _unit_id: makeRegular ? unitId : null,
+        _period_end: periodEnd,
+      } as never);
+      if (error) throw error;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: pinsQK }),
+        queryClient.invalidateQueries({ queryKey: entriesQK }),
+        queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] }),
+      ]);
+      logActivity({
+        module: "Attendance",
+        action: "update",
+        entityType: "primary_site_pin",
+        entityId: candidateId,
+        entityLabel: `${fullName} — ${makeRegular ? "made regular" : "back to automatic"} @ ${unit?.name ?? unitId} (${pinMonth.slice(0, 7)})`,
+      });
+      toast.success(
+        makeRegular
+          ? `${fullName} is now regular at this site for this month`
+          : `${fullName} is back to the automatic rule`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not change the regular site");
+    } finally {
+      setPinBusy(null);
+    }
+  };
+
   // ---- Super Admin: quick-create a minimal employee from the add box ----
   const canQuickCreate = currentRole.isSuperAdmin;
   const [quickOpen, setQuickOpen] = useState(false);
