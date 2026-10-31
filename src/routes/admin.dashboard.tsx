@@ -1173,7 +1173,9 @@ function DashboardPage() {
         { contract: 0, invoice: 0, payroll: 0, employer: 0 },
       );
 
-      return { pnlRows, pnlTotals };
+      const result = { pnlRows, pnlTotals };
+      writeFinanceSnapshot(financeKey, result, Date.now());
+      return result;
     },
   });
 
