@@ -676,7 +676,7 @@ function DashboardPage() {
   // its own: after the headline tiles have painted and once the section is
   // near the screen. The last result per month/window paints instantly from a
   // saved snapshot while fresh figures load quietly in the background.
-  const financeKey = `${user?.id ?? user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
+  const financeKey = `${user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
   const [financeInView, setFinanceInView] = useState(false);
   const financeAvailable =
     !showInventoryDashboard &&
