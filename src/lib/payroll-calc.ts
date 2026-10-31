@@ -13,6 +13,7 @@
 // REPLACES the legacy proration for that line. Statutory ESI/EPF/PT still
 // run as a final post-pass unless the line opts out of statutory via its
 // own formula.
+import { roundDutyDays } from "./duty-days";
 import { evaluateExpression, evaluateFormula, looseVarKey, parseFormulaConfig, slugifyVar, type FormulaContext } from "./formula-engine";
 
 export type AttendanceEntryLike = {
@@ -153,12 +154,12 @@ export function computeAttendanceTotals(
 
   const phDays = round2(phCount + unitPhDays);
 
-  const otDays = Math.round(otDaysSum * 100) / 100;
+  const otDays = roundDutyDays(otDaysSum);
   const otHours = otDays;
   // Total PAID days = present + paid holiday (double) + extra duty ONLY.
   // Other "paid" attendance codes (leave etc.) are tracked but do NOT add
   // payable days and must never inflate earnings or contributions.
-  const tDays = round2(pDays) + phDays + otDays;
+  const tDays = roundDutyDays(round2(pDays) + phDays + otDays);
   return { pDays: round2(pDays), otHours, otDays, phDays, otherPaidDays: round2(otherPaidDays), tDays };
 }
 

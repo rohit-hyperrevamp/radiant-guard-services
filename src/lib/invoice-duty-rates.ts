@@ -1,3 +1,4 @@
+import { roundDutyDays } from "./duty-days";
 /** Explicit site-only invoice exception; payroll and attendance rules are separate. */
 export const CLI4096_UNIT_ID = "41887f48-31ea-48ef-9005-24c81a21fc93";
 const r2 = (value: number) => Math.round(value * 100) / 100;
@@ -41,14 +42,15 @@ export function splitInvoiceDuties(args: {
   extraDutyHourly?: boolean;
   exactExtraDutyRate?: boolean;
 }) {
-  const edDays = Math.min(Math.max(0, r2(args.otDays)), Math.max(0, r2(args.billedDays)));
-  const regularDays = Math.max(0, r2(args.billedDays - edDays));
+  // Day quantities keep 4 decimals (57.5 h ÷ 8 = 7.1875 days, never 7.19).
+  const edDays = Math.min(Math.max(0, roundDutyDays(args.otDays)), Math.max(0, roundDutyDays(args.billedDays)));
+  const regularDays = Math.max(0, roundDutyDays(args.billedDays - edDays));
   const factor = args.hourly ? Math.max(1, args.shiftHours ?? 8) : 1;
   const edFactor = args.extraDutyHourly ? Math.max(1, args.shiftHours ?? 8) : factor;
   const exactEdRate = args.extraDutyRate / edFactor;
   const edRate = r2(exactEdRate);
-  const regularQuantity = r2(regularDays * factor);
-  const edQuantity = r2(edDays * edFactor);
+  const regularQuantity = roundDutyDays(regularDays * factor);
+  const edQuantity = roundDutyDays(edDays * edFactor);
   const regularAmount = r2(args.regularRate * regularQuantity);
   const edAmount = r2((args.exactExtraDutyRate ? exactEdRate : edRate) * edQuantity);
   return {

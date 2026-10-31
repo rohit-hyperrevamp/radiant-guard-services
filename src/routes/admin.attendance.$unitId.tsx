@@ -1,4 +1,5 @@
 import { useUnitDesignations } from "@/lib/unit-designations";
+import { roundDutyDays } from "@/lib/duty-days";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -4026,10 +4027,10 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
       else if (c.is_paid) otherPaidDays += dayValue;
     }
     const phDays = Math.round((phCount + unitPhDays) * 100) / 100;
-    const otDays = Math.round(otDaysSum * 100) / 100;
+    const otDays = roundDutyDays(otDaysSum);
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
-    const tDays = Math.round((pDays + (woAsPresent ? woDays : 0) + phDays + otDays) * 100) / 100;
+    const tDays = roundDutyDays(pDays + (woAsPresent ? woDays : 0) + phDays + otDays);
     return { pDays, woDays, otHours, otDays, phDays, tDays };
   };
 
@@ -6039,9 +6040,9 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                       </td>
                       <td className="border border-slate-400 p-1">{r2(grand.pDays)}</td>
                       <td className={cn("border border-slate-400 p-1", !woAsPresent && "opacity-50")}>{r2(grand.woDays)}</td>
-                      <td className="border border-slate-400 p-1">{r2(grand.otHours)}</td>
+                      <td className="border border-slate-400 p-1">{roundDutyDays(grand.otHours)}</td>
                       <td className="border border-slate-400 p-1">{r2(grand.phDays)}</td>
-                      <td className="border border-slate-400 p-1">{r2(grand.tDays)}</td>
+                      <td className="border border-slate-400 p-1">{roundDutyDays(grand.tDays)}</td>
                     </tr>
                   );
                 })()}

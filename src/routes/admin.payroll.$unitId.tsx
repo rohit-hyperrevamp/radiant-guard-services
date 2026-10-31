@@ -1,4 +1,5 @@
 import { withContractEdRule } from "@/lib/ed-rule";
+import { roundDutyDays } from "@/lib/duty-days";
 import { matchesSearch } from "@/lib/search-match";
 import { usePlatformFlag, PLATFORM_SETTING_KEYS, platformFlagQueryKey } from "@/lib/platform-settings";
 import { Switch } from "@/components/ui/switch";
@@ -1684,7 +1685,7 @@ function PayrollUnitPage() {
     phDays: acc.phDays + r.totals.phDays,
     tDays: acc.tDays + r.totals.tDays,
   }), { pDays: 0, otDays: 0, phDays: 0, tDays: 0 });
-  const formatDutyDays = (days: number) => Number(days.toFixed(2));
+  const formatDutyDays = (days: number) => roundDutyDays(days);
   // expander + emp id + name + designation + P days + total paid days
   // + earnings + earned gross + deductions + total deductions + net pay
   // + employer groups (+ employer cost when shown)
@@ -1855,7 +1856,7 @@ function PayrollUnitPage() {
         round2(r.totals.phDays),
         round2(r.totals.otherPaidDays),
         round2(r.totals.otHours),
-        round2(r.totals.otDays),
+        roundDutyDays(r.totals.otDays),
         round2(r.totals.tDays),
         ...earnedComponentCols.map((c) => round2(lookup(earnedComponents, c))),
         ...additionCols.map((c) => round2(lookup(earnedAdditions, c))),
