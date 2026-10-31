@@ -23,3 +23,22 @@ describe("custom per-hour Extra Duty (Poonawalla Gujarat Security Guard)", () =>
     expect(split.edAmount).toBe(1668);
   });
 });
+
+import { computeWages } from "./payroll-calc";
+describe("payroll Extra Duty on custom per-hour rate", () => {
+  it("1.5 ED days on an 8-hour shift at ₹134/hour pays ₹1,608", () => {
+    const w = computeWages(
+      { pDays: 26, otHours: 1.5, otDays: 1.5, phDays: 0, otherPaidDays: 0, tDays: 27.5 },
+      {
+        designationId: "g",
+        components: [{ name: "Basic", amount: 15000, calcType: "fixed" }],
+        benefits: [], deductions: [], employerContributions: [],
+        otBasis: "hourly", otHourlyRate: 134, otHourlyEsic: 5, otShiftHours: 8,
+        payrollDayBase: { method: "fixed_days", fixedDays: 26, weeklyOffDay: null },
+      } as never,
+      30,
+    );
+    const ed = w.components.find((c) => c.name === "Extra Duty");
+    expect(ed?.amount).toBe(1608);
+  });
+});
