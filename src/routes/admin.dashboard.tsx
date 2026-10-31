@@ -253,8 +253,74 @@ type PnLRow = {
   attendance_approved: boolean;
 };
 
-/** Month/window selections the user has generated this session. */
-const generatedFinanceKeys = new Set<string>();
+// Last finance report per user + month + window, so revisits paint instantly.
+const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v1";
+const FINANCE_SNAPSHOT_KEEP = 4;
+
+type FinanceSnapshot = { at: number; data: unknown };
+
+function readFinanceSnapshot(key: string): FinanceSnapshot | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(`${FINANCE_SNAPSHOT}:${key}`);
+    return raw ? (JSON.parse(raw) as FinanceSnapshot) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeFinanceSnapshot(key: string, data: unknown, at: number) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = JSON.stringify({ at, data });
+    if (raw.length > 2_000_000) return;
+    const prefix = `${FINANCE_SNAPSHOT}:`;
+    const own = `${prefix}${key}`;
+    const others: { k: string; at: number }[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k || !k.startsWith(prefix) || k === own) continue;
+      try {
+        others.push({ k, at: (JSON.parse(window.localStorage.getItem(k) ?? "{}") as FinanceSnapshot).at ?? 0 });
+      } catch {
+        others.push({ k, at: 0 });
+      }
+    }
+    others
+      .sort((a, b) => b.at - a.at)
+      .slice(FINANCE_SNAPSHOT_KEEP - 1)
+      .forEach((o) => window.localStorage.removeItem(o.k));
+    window.localStorage.setItem(own, raw);
+  } catch {
+    // Snapshot is only a speed aid; a full or blocked store is harmless.
+  }
+}
+
+function useNearScreen(onNear: () => void) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const cb = React.useRef(onNear);
+  cb.current = onNear;
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      cb.current();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          cb.current();
+          io.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
 
 function FinanceReportBar({
   monthLabel,
@@ -586,12 +652,12 @@ function DashboardPage() {
     },
   });
 
-  // The month P&L is heavy (every contract line × every duty). It only runs
-  // after the user picks a month/window and presses Generate; generated
-  // selections are remembered for the session so revisits show instantly.
-  const financeKey = `${user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
-  const [, setFinanceTick] = useState(0);
-  const financeRequested = generatedFinanceKeys.has(financeKey);
+  // The month P&L is heavy (every contract line × every duty). It loads on
+  // its own: after the headline tiles have painted and once the section is
+  // near the screen. The last result per month/window paints instantly from a
+  // saved snapshot while fresh figures load quietly in the background.
+  const financeKey = `${user?.id ?? user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
+  const [financeInView, setFinanceInView] = useState(false);
   const financeAvailable =
     !showInventoryDashboard &&
     !showTransportDashboard &&
@@ -603,16 +669,18 @@ function DashboardPage() {
     authReady && !!user && !permsLoading &&
     !charterUnitsQ.isLoading && !periodSelection.isLoading &&
     periodSelection.unitIdsForWindow.size > 0;
+  const financeSnapshot = useMemo(() => readFinanceSnapshot(financeKey), [financeKey]);
   const pnlQuery = useQuery({
     queryKey: ["dashboard-pnl", user?.phone, year, month, periodSelection.selectedKey, [...periodSelection.unitIdsForWindow].sort().join(",")],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
-    enabled: financeAvailable && financeInputsReady && financeRequested,
-    staleTime: 10 * 60_000,
+    enabled: financeAvailable && financeInputsReady && financeInView,
+    initialData: financeSnapshot?.data as never,
+    initialDataUpdatedAt: financeSnapshot?.at,
+    staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
     retry: 1,
     queryFn: async () => {
       await supabaseSessionReady();
