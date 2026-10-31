@@ -53,7 +53,7 @@ import { PERIOD_STATUS_QK } from "@/lib/period-status";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
 import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
-import { contractMonthlyBilling } from "@/lib/contract-rate-display";
+import { contractMonthlyBilling, invoiceMonthlyRateLabel } from "@/lib/contract-rate-display";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -1309,7 +1309,7 @@ function PayrollUnitPage() {
               ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`
               : g.designation.includes("· Extra Duty") || invoiceExtraDutyRate(unitId, []) != null
                 ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Duty`
-                : `${g.designation} @ Rs ${Math.round(g.monthly)}/-`,
+                : `${g.designation} @ Rs ${invoiceMonthlyRateLabel(g.monthly)}/-`,
           hsnSac: hsn,
           quantityLabel: g.unitLabel === "hrs" ? `${formatDutyQty(g.quantity)} hrs` : formatDutyQty(g.quantity),
           rate: g.unitRate,
