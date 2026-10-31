@@ -1701,12 +1701,98 @@ function MusterRollPage() {
   const [quickName, setQuickName] = useState("");
   const [quickStart, setQuickStart] = useState("");
   const [quickEnd, setQuickEnd] = useState("");
+  type QuickMatch = {
+    id: string;
+    employee_code: string | null;
+    full_name: string | null;
+    status: string | null;
+    is_enabled: boolean | null;
+    offboarded_at: string | null;
+    preferred_joining_date: string | null;
+    designation_id: string | null;
+    unit_name: string | null;
+    match_kind: "id" | "name";
+  };
+  const [quickMatches, setQuickMatches] = useState<QuickMatch[]>([]);
+  const [quickLookupBusy, setQuickLookupBusy] = useState(false);
+  useEffect(() => {
+    if (!quickOpen) {
+      setQuickMatches([]);
+      return;
+    }
+    const code = quickCode.trim();
+    const name = quickName.trim();
+    if (!code && name.replace(/\s+/g, "").length < 3) {
+      setQuickMatches([]);
+      return;
+    }
+    let cancelled = false;
+    setQuickLookupBusy(true);
+    const t = window.setTimeout(async () => {
+      const { data, error } = await supabase.rpc(
+        "quick_lookup_attendance_employee" as never,
+        { _employee_code: code, _full_name: name } as never,
+      );
+      if (cancelled) return;
+      setQuickLookupBusy(false);
+      setQuickMatches(error ? [] : ((data ?? []) as unknown as QuickMatch[]));
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [quickOpen, quickCode, quickName]);
+  const quickIdTaken = quickMatches.some((m) => m.match_kind === "id");
+  const isActiveMatch = (m: QuickMatch) => m.status === "active" && !!m.is_enabled;
   const resetQuick = () => {
     setQuickOpen(false);
     setQuickCode("");
     setQuickName("");
     setQuickStart("");
     setQuickEnd("");
+    setQuickMatches([]);
+  };
+  const quickReactivateEmployee = async (m: QuickMatch) => {
+    const startYear = Number(quickStart.slice(0, 4));
+    if (!quickStart || !(startYear >= 2000 && startYear <= 2100)) {
+      toast.error("Enter a valid start date first");
+      return;
+    }
+    if (quickEnd && quickEnd < quickStart) {
+      toast.error("End date cannot be before start date");
+      return;
+    }
+    setMapSaving(true);
+    try {
+      const { error } = await supabase.rpc(
+        "quick_reactivate_attendance_employee" as never,
+        { _candidate_id: m.id, _start_date: quickStart, _end_date: quickEnd || null } as never,
+      );
+      if (error) throw error;
+      logActivity({
+        module: "Attendance",
+        action: "enable",
+        entityType: "employee",
+        entityId: m.id,
+        entityLabel: `Reactivated employee ${m.employee_code ?? ""} ${m.full_name ?? ""} from attendance @ ${unit?.name ?? unitId}`,
+      });
+      toast.success(`${m.full_name ?? "Employee"} is active again`);
+    } catch (e) {
+      const msg =
+        e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Could not reactivate employee";
+      toast.error(msg);
+      setMapSaving(false);
+      return;
+    }
+    setMapSaving(false);
+    resetQuick();
+    await mapEmployeeToSlot({ id: m.id, full_name: m.full_name ?? "", designation_id: m.designation_id ?? null });
+  };
+  const quickAddExisting = async (m: QuickMatch) => {
+    resetQuick();
+    await mapEmployeeToSlot({ id: m.id, full_name: m.full_name ?? "", designation_id: m.designation_id ?? null });
   };
   const openQuickCreate = () => {
     const q = mapQuery.trim();
@@ -6349,6 +6435,51 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                     />
                   </label>
                 </div>
+                {quickLookupBusy && quickMatches.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground">Checking existing employees…</p>
+                ) : null}
+                {quickMatches.length > 0 ? (
+                  <div className="space-y-1.5 rounded-md border border-destructive/40 bg-destructive/5 p-2">
+                    <div className="text-xs font-semibold">
+                      {quickIdTaken ? "This employee ID already exists in the system" : "Similar names already exist in the system"}
+                    </div>
+                    {quickMatches.map((m) => {
+                      const active = isActiveMatch(m);
+                      return (
+                        <div key={m.id} data-panel className="flex items-center gap-2 rounded-md bg-background px-2 py-1.5">
+                          <div className="min-w-0 flex-1 text-xs">
+                            <div className="truncate font-medium">
+                              {m.employee_code ?? "—"} · {m.full_name ?? "—"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              <span className={active ? "font-semibold text-primary" : "font-semibold text-destructive"}>
+                                {active ? "Active" : "Inactive"}
+                              </span>
+                              {!active && m.offboarded_at
+                                ? ` · left ${new Date(m.offboarded_at).toLocaleDateString("en-IN")}`
+                                : ""}
+                              {m.unit_name ? ` · ${m.unit_name}` : ""}
+                            </div>
+                          </div>
+                          <div data-col="actions" className="shrink-0">
+                            {active ? (
+                              <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={mapSaving} onClick={() => quickAddExisting(m)}>
+                                Add to sheet
+                              </Button>
+                            ) : (
+                              <Button type="button" size="sm" className="rounded-full" disabled={mapSaving || !quickStart} onClick={() => quickReactivateEmployee(m)}>
+                                Make active & add
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-[11px] text-muted-foreground">
+                      "Make active & add" uses the start and end dates above as the new joining and leaving dates.
+                    </p>
+                  </div>
+                ) : null}
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" className="flex-1 rounded-full" onClick={resetQuick} disabled={mapSaving}>
                     Cancel
@@ -6356,10 +6487,10 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                   <Button
                     type="button"
                     className="flex-1 rounded-full"
-                    disabled={mapSaving || !quickCode.trim() || !quickName.trim() || !quickStart}
+                    disabled={mapSaving || quickIdTaken || !quickCode.trim() || !quickName.trim() || !quickStart}
                     onClick={quickCreateEmployee}
                   >
-                    {mapSaving ? "Creating…" : `Create & add as ${mapAs === "regular" ? "regular" : "reliever"}`}
+                    {mapSaving ? "Saving…" : quickIdTaken ? "ID already used" : `Create & add as ${mapAs === "regular" ? "regular" : "reliever"}`}
                   </Button>
                 </div>
               </div>
