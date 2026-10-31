@@ -1724,6 +1724,11 @@ function MusterRollPage() {
       toast.error("Enter employee ID, name and start date");
       return;
     }
+    const startYear = Number(quickStart.slice(0, 4));
+    if (!(startYear >= 2000 && startYear <= 2100)) {
+      toast.error(`Start date year ${startYear} looks wrong — please check the year`);
+      return;
+    }
     if (quickEnd && quickEnd < quickStart) {
       toast.error("End date cannot be before start date");
       return;
@@ -1753,7 +1758,11 @@ function MusterRollPage() {
         entityLabel: `Quick-created employee ${code} ${name} from attendance @ ${unit?.name ?? unitId}`,
       });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not create employee");
+      const msg =
+        e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Could not create employee";
+      toast.error(msg || "Could not create employee");
       setMapSaving(false);
       return;
     }
