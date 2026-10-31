@@ -10,6 +10,7 @@
  * Both MIS exports (per-invoice and the combined charter export) build their
  * numbers here so the sheet always reconciles with the invoice.
  */
+import { roundDutyDays } from "./duty-days";
 
 import { taxSplit } from "@/lib/gst-billing";
 import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
@@ -110,11 +111,11 @@ export function misBillingLine({
   /** Explicit invoice exception; other sites retain the regular duty rate. */
   extraDutyRate?: number | null;
 }): MisBillingLine {
-  let ot = Math.max(0, r2(otDays));
-  let workingDays = Math.max(0, r2(billedDays - ot));
-  const cap = maxWorkingDays == null ? null : Math.max(0, r2(maxWorkingDays));
+  let ot = Math.max(0, roundDutyDays(otDays));
+  let workingDays = Math.max(0, roundDutyDays(billedDays - ot));
+  const cap = maxWorkingDays == null ? null : Math.max(0, roundDutyDays(maxWorkingDays));
   if (cap != null && cap > 0 && workingDays > cap) {
-    ot = r2(ot + (workingDays - cap));
+    ot = roundDutyDays(ot + (workingDays - cap));
     workingDays = cap;
   }
   const otRate = extraDutyRate ?? perDay;

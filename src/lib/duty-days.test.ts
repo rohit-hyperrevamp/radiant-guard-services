@@ -27,3 +27,16 @@ describe("Extra Duty days are not rounded to 2 decimals (CLI290 35760)", () => {
     expect(s.regularQuantity).toBe(30);
   });
 });
+
+describe("printed invoice duty quantity", () => {
+  it("prints 7.1875, not 7.19", async () => {
+    const { formatDutyQty } = await import("./duty-days");
+    expect(formatDutyQty(7.1875)).toBe("7.1875");
+    expect(formatDutyQty(30)).toBe("30.00");
+  });
+  it("invoice annexure keeps 7.1875 Extra Duty days", async () => {
+    const { misBillingLine } = await import("./mis-billing");
+    const line = misBillingLine({ perDay: 1000, billedDays: 37.1875, otDays: 7.1875, total: 37187.5, intraState: true } as never);
+    expect(line.otDays).toBe(7.1875);
+  });
+});
