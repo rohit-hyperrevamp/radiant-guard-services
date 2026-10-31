@@ -6439,7 +6439,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                   <p className="text-[11px] text-muted-foreground">Checking existing employees…</p>
                 ) : null}
                 {quickMatches.length > 0 ? (
-                  <div className="space-y-1.5 rounded-md border border-warning/50 bg-warning/10 p-2">
+                  <div className="space-y-1.5 rounded-md border border-destructive/40 bg-destructive/5 p-2">
                     <div className="text-xs font-semibold">
                       {quickIdTaken ? "This employee ID already exists in the system" : "Similar names already exist in the system"}
                     </div>
@@ -6452,7 +6452,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                               {m.employee_code ?? "—"} · {m.full_name ?? "—"}
                             </div>
                             <div className="text-[11px] text-muted-foreground">
-                              <span className={active ? "font-semibold text-success" : "font-semibold text-destructive"}>
+                              <span className={active ? "font-semibold text-primary" : "font-semibold text-destructive"}>
                                 {active ? "Active" : "Inactive"}
                               </span>
                               {!active && m.offboarded_at
