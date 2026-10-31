@@ -1,3 +1,4 @@
+import { INVOICE_ED_MODES, normalizeInvoiceEdMode, type InvoiceEdMode } from "@/lib/invoice-split";
 import { applyCtcPass } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
@@ -205,6 +206,8 @@ type ClientContract = {
   serviceTypeId: string | null;
   payrollWindowId: string | null;
   billingTypeId: string | null;
+  /** How Extra Duty shows on the invoice (null = combined). */
+  invoiceEdMode?: InvoiceEdMode | null;
   woAsPresent?: boolean;
   gstOption: GstOption;
   status: ContractStatus;
@@ -548,7 +551,7 @@ function rowToContract(r: Record<string, unknown>): ClientContract {
     serviceTypeId: r.service_type_id ? String(r.service_type_id) : null,
     payrollWindowId: r.payroll_window_id ? String(r.payroll_window_id) : null,
     billingTypeId: r.billing_type_id ? String(r.billing_type_id) : null,
-    
+    invoiceEdMode: normalizeInvoiceEdMode(r.invoice_ed_mode),
     gstOption: (r.gst_option as GstOption) ?? "csgst",
     woAsPresent: Boolean(r.wo_as_present),
     status: (r.status as ContractStatus) ?? "inactive",
@@ -675,7 +678,7 @@ function useContracts() {
           fetchAllPages<Record<string, unknown>>((from, to) =>
             supabase
               .from("client_contracts" as never)
-              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,gst_option,wo_as_present,status,approval_status,rejection_reason,created_by,created_at")
+              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,invoice_ed_mode,gst_option,wo_as_present,status,approval_status,rejection_reason,created_by,created_at")
               .order("created_at", { ascending: false })
               .range(from, to)
               .abortSignal(controller.signal),
@@ -749,6 +752,7 @@ function useContracts() {
       service_type_id: p.serviceTypeId,
       payroll_window_id: p.payrollWindowId,
       billing_type_id: p.billingTypeId,
+      invoice_ed_mode: p.invoiceEdMode && p.invoiceEdMode !== "combined" ? p.invoiceEdMode : null,
       gst_option: p.gstOption,
       wo_as_present: Boolean(p.woAsPresent),
     };
@@ -3640,6 +3644,7 @@ function ContractFormDialog({
   const [serviceTypeId, setServiceTypeId] = useState<string>("");
   const [payrollWindowId, setPayrollWindowId] = useState<string>("");
   const [billingTypeId, setBillingTypeId] = useState<string>("");
+  const [invoiceEdMode, setInvoiceEdMode] = useState<InvoiceEdMode>("combined");
   
   const [gstOption, setGstOption] = useState<GstOption>("csgst");
   const [woAsPresent, setWoAsPresent] = useState(false);
@@ -3712,6 +3717,7 @@ function ContractFormDialog({
       setServiceTypeId(editing.serviceTypeId ?? "");
       setPayrollWindowId(editing.payrollWindowId ?? "");
       setBillingTypeId(editing.billingTypeId ?? "");
+      setInvoiceEdMode(editing.invoiceEdMode ?? "combined");
       
       setGstOption(editing.gstOption);
       setWoAsPresent(Boolean(editing.woAsPresent));
@@ -3729,7 +3735,7 @@ function ContractFormDialog({
       setDescription("");
       setServiceTypeId("");
       setPayrollWindowId("");
-      setBillingTypeId("");
+      setBillingTypeId(""); setInvoiceEdMode("combined");
       
       setGstOption("csgst"); setWoAsPresent(false);
       setApprovalValue(null);
@@ -3873,7 +3879,7 @@ function ContractFormDialog({
       startDate: submittedStartDate, endDate: submittedEndDate,
       expiryDate: submittedExpiryDate, originalStartDate: originalStartDate || submittedStartDate, renewalCount, description,
       serviceTypeId: serviceTypeId || null, payrollWindowId: payrollWindowId || null,
-      billingTypeId: billingTypeId || null, gstOption, woAsPresent, status: editing?.status ?? "inactive",
+      billingTypeId: billingTypeId || null, invoiceEdMode, gstOption, woAsPresent, status: editing?.status ?? "inactive",
       approvalStatus: editing?.approvalStatus ?? "pending", prospectStage: editing?.prospectStage ?? "new",
       rejectionReason: editing?.rejectionReason ?? "", createdBy: editing?.createdBy ?? null,
       promotedAt: editing?.promotedAt ?? null,
@@ -4260,6 +4266,35 @@ function ContractFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                </Field>
+              </div>
+              <div className="sm:col-span-3">
+                <Field label="Extra Duty on invoice">
+                  <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Extra Duty on invoice">
+                    {INVOICE_ED_MODES.map((m) => {
+                      const on = invoiceEdMode === m.value;
+                      return (
+                        <button
+                          key={m.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          data-panel
+                          onClick={() => setInvoiceEdMode(m.value)}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-left transition-colors",
+                            on ? "border-primary/50 bg-primary/10" : "border-border bg-card hover:bg-muted/50",
+                          )}
+                        >
+                          <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                            {on ? <Check className="h-3.5 w-3.5 text-primary" /> : <span className="h-3.5 w-3.5" />}
+                            {m.label}
+                          </span>
+                          <span className="mt-0.5 block pl-5 text-[11px] text-muted-foreground">{m.hint}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </Field>
               </div>
             </div>
