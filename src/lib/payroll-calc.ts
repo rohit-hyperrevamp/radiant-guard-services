@@ -242,6 +242,14 @@ export function normalizeOtEsi(raw: unknown): OtEsiSetting | null {
 /** Lines produced by ESI-on-Extra-Duty; statutory ESI placement leaves them alone. */
 const isEdEsiLine = (i: unknown) => (i as { edEsi?: boolean } | null)?.edEsi === true;
 
+/** Hourly Extra Duty wage × shift hours = ED pay per duty (8 h shift by default). */
+export function edPerDutyFromHourly(rate: number | null | undefined, shiftHours: number | null | undefined): number {
+  const r = Number(rate);
+  if (!Number.isFinite(r) || r <= 0) return 0;
+  const h = Number(shiftHours) > 0 ? Number(shiftHours) : 8;
+  return Math.round(r * h * 100) / 100;
+}
+
 export type ContractResourceLike = {
   designationId: string;
   /** Contract card "Round off final billing rate": bill the whole-rupee monthly value. */
@@ -253,9 +261,15 @@ export type ContractResourceLike = {
   /** Extra Duty multiplier (Pages "2X"); default 1. */
   otMultiplier?: number | null;
   /** ED base: selected components (default), full-month gross, or this month's earned gross. */
-  otBasis?: "components" | "gross" | "earned_gross" | "formula" | null;
+  otBasis?: "components" | "gross" | "earned_gross" | "formula" | "hourly" | null;
   /** Custom ED per-duty formula, e.g. "earned_gross / payroll_days * 2". */
   otFormula?: string | null;
+  /** otBasis "hourly": Extra Duty wage per hour (₹). */
+  otHourlyRate?: number | null;
+  /** otBasis "hourly": ESIC per ED hour billed on top of the wage (₹, invoice only). */
+  otHourlyEsic?: number | null;
+  /** Shift length of the contract line, used to turn an hourly ED rate into a per-duty rate. */
+  otShiftHours?: number | null;
   /** ESI charged on the Extra Duty amount, only when switched on for the role. */
   otEsi?: OtEsiSetting | null;
   payrollDayBase: {
@@ -1132,6 +1146,11 @@ export function computeWages(
     } catch {
       perDutyOt = 0;
     }
+  }
+  if (resource.otBasis === "hourly") {
+    // Custom per-hour ED rate: the guard is paid the hourly wage for every ED
+    // hour; ESIC per hour is billed on the invoice only.
+    perDutyOt = edPerDutyFromHourly(resource.otHourlyRate, resource.otShiftHours);
   }
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
