@@ -3735,7 +3735,7 @@ function ContractFormDialog({
       setDescription("");
       setServiceTypeId("");
       setPayrollWindowId("");
-      setBillingTypeId("");
+      setBillingTypeId(""); setInvoiceEdMode("combined");
       
       setGstOption("csgst"); setWoAsPresent(false);
       setApprovalValue(null);
