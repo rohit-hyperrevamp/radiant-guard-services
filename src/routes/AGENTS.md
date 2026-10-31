@@ -1,3 +1,4 @@
 - Employees page loads working staff on open and inactive history only for the Inactive tab or offboarding filter, never active-tab search; reads use bounded batches and inline pickers render only searched options while open to prevent directory-wide interaction stalls.
 - Successful employee saves patch the actual working/inactive query slices and refresh in the background; never hold the save dialog open waiting for full directory reads or insert incomplete new profiles into cache.
 - Per-employee PH opt-out lives in `units.ph_excluded_candidate_ids` (whole employee) and `units.ph_excluded_days` ("candidateId|date"); attendance, payroll and invoice all skip unit PH credit for those employees — keep the three in step.
+- Dashboard payroll/invoice/profit report is on-demand: the heavy month P&L query runs only after Generate for the chosen month/window (remembered per session), so opening the dashboard never triggers the full computation.
