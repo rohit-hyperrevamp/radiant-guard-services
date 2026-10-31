@@ -206,7 +206,7 @@ BEGIN
     ON CONFLICT (candidate_id, month) DO UPDATE SET unit_id = EXCLUDED.unit_id,
       pinned_by = EXCLUDED.pinned_by, created_at = now();
   END IF;
-  v := public.apply_guard_attendance_rules(_candidate_id, (m - 45)::date, (m + 62)::date);
+  v := public.apply_guard_attendance_rules(_candidate_id, m, m);
   RETURN coalesce(v, 0);
 END $$;
 REVOKE ALL ON FUNCTION public.set_attendance_primary_unit(uuid, uuid, date) FROM PUBLIC, anon;
