@@ -5,6 +5,11 @@ const r2 = (value: number) => Math.round(value * 100) / 100;
 export const isCli2989Caretaker = (unitCode?: string | null, designationName?: string | null) =>
   unitCode?.trim().toUpperCase() === "CLI2989" && /care\s*takers?/i.test(designationName ?? "");
 
+/** Unrounded contract duty rate (monthly billing ÷ billing days). */
+export function exactDayRateFor(monthly: number, billingDays: number): number | null {
+  return Number.isFinite(monthly) && monthly > 0 && billingDays > 0 ? monthly / billingDays : null;
+}
+
 export type HourlyEdBilling = { rate?: number | null; esic?: number | null; shiftHours?: number | null };
 
 /** Invoice Extra Duty rate per hour for a custom hourly ED role: wage + ESIC per hour. */

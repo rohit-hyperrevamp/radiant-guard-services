@@ -35,7 +35,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { misBillingLine } from "@/lib/mis-billing";
-import { invoiceExtraDutyRate, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
+import { exactDayRateFor, invoiceExtraDutyRate, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1101,11 +1101,17 @@ function PayrollUnitPage() {
         ? { rate: r.resource.otHourlyRate, esic: r.resource.otHourlyEsic, shiftHours }
         : null,
     });
+    // Contract "Extra Duty on invoice" = separate lines / separate invoice:
+    // without a role-specific ED billing rate, ED bills at the contract's own
+    // duty rate, shown as hours (6 ED hours × hourly rate).
+    const contractEdLines = invoiceSplit.edLines === true && extraDutyRate == null && (r.totals.otDays ?? 0) > 0;
+    const edRateForSplit = extraDutyRate ?? (contractEdLines ? exactDayRateFor(contracted, billingDays) : null);
     const caretakerHourlyEd =
       isCli2989Caretaker(unit?.code, r.designation) ||
-      (r.resource?.otBasis === "hourly" && extraDutyRate != null);
-    const dutySplit = extraDutyRate != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
-      ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate, shiftHours, hourly: billsHourly, extraDutyHourly: caretakerHourlyEd, exactExtraDutyRate: caretakerHourlyEd })
+      (r.resource?.otBasis === "hourly" && extraDutyRate != null) ||
+      contractEdLines;
+    const dutySplit = edRateForSplit != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
+      ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate: edRateForSplit, shiftHours, hourly: billsHourly, extraDutyHourly: caretakerHourlyEd, exactExtraDutyRate: caretakerHourlyEd })
       : null;
     const actual = dutySplit?.actual ?? (
       !r.wages || !r.resource
@@ -1313,6 +1319,8 @@ function PayrollUnitPage() {
           description:
             isCli2989Caretaker(unit?.code, g.designation) && g.designation.includes("· Extra Duty")
               ? `Care Takers @ Rs. ${g.monthly.toFixed(2)} For 26/27 Days (Extra Duty HRS*2)`
+              : g.designation.includes("· Extra Duty") && g.unitLabel === "hrs"
+              ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour`
               : g.unitLabel === "hrs"
               ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour for ${g.payrollDays} Days For ${String(g.shiftHours).padStart(2, "0")} Hrs Duty`
               : g.designation.includes("· Extra Duty") || invoiceExtraDutyRate(unitId, []) != null

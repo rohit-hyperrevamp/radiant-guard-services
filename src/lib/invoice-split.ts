@@ -13,7 +13,36 @@ export type InvoiceSplit = {
   parts: InvoicePart[];
   /** Item → part key, or "exclude" to leave it off every invoice. */
   assign: Record<InvoiceItemKey, string>;
+  /** Contract choice: ED as its own invoice lines (P Days line + Extra Duty hours line). */
+  edLines?: boolean;
 };
+
+/** Contract setting for how Extra Duty appears on the invoice. */
+export type InvoiceEdMode = "combined" | "separate_lines" | "separate_invoice";
+export const INVOICE_ED_MODES: { value: InvoiceEdMode; label: string; hint: string }[] = [
+  { value: "combined", label: "Combined (P + ED as one total)", hint: "e.g. 27 P Days + 6 ED = 33 duties on one line" },
+  { value: "separate_lines", label: "Separate lines, same invoice", hint: "P Days line and an Extra Duty hours line with the ED rate" },
+  { value: "separate_invoice", label: "Separate Extra Duty invoice", hint: "P Days on the main invoice, Extra Duty on its own invoice" },
+];
+
+export function normalizeInvoiceEdMode(raw: unknown): InvoiceEdMode | null {
+  return raw === "combined" || raw === "separate_lines" || raw === "separate_invoice" ? raw : null;
+}
+
+/** Apply the contract's Extra Duty choice on top of the saved split rule. */
+export function applyInvoiceEdMode(base: InvoiceSplit, mode: InvoiceEdMode | null): InvoiceSplit {
+  if (!mode) return base;
+  const regularPart = base.assign.regular === EXCLUDE ? (base.parts[0]?.key ?? MAIN_PART) : base.assign.regular;
+  if (mode === "separate_invoice") {
+    if (base.assign.ed !== EXCLUDE && base.assign.ed !== regularPart) return { ...base, edLines: true };
+    const parts = base.parts.some((p) => p.key === "ed") ? base.parts : [...base.parts, { key: "ed", label: "Extra Duty" }];
+    return { parts, assign: { ...base.assign, ed: "ed" }, edLines: true };
+  }
+  const assign = { ...base.assign, ed: base.assign.ed === EXCLUDE ? EXCLUDE : regularPart };
+  const used = new Set(Object.values(assign));
+  const parts = base.parts.filter((p) => used.has(p.key));
+  return { parts: parts.length ? parts : base.parts.slice(0, 1), assign, edLines: mode === "separate_lines" };
+}
 
 export const EXCLUDE = "exclude";
 export const MAIN_PART = "main";
@@ -56,23 +85,25 @@ export function resolveInvoiceSplit(contractRule: unknown, organizationRule: unk
 }
 
 export async function loadOrgInvoiceSplit(customerId: string | null, contractId?: string | null): Promise<InvoiceSplit> {
+  let edMode: InvoiceEdMode | null = null;
   if (contractId) {
     const { data, error } = await supabase
       .from("client_contracts")
-      .select("invoice_split" as never)
+      .select("invoice_split, invoice_ed_mode" as never)
       .eq("id", contractId)
       .maybeSingle();
     if (error) throw error;
-    const rule = (data as { invoice_split?: unknown } | null)?.invoice_split;
-    if (rule != null) return resolveInvoiceSplit(rule, null);
+    const row = data as { invoice_split?: unknown; invoice_ed_mode?: unknown } | null;
+    edMode = normalizeInvoiceEdMode(row?.invoice_ed_mode);
+    if (row?.invoice_split != null) return applyInvoiceEdMode(resolveInvoiceSplit(row.invoice_split, null), edMode);
   }
-  if (!customerId) return DEFAULT_SPLIT;
+  if (!customerId) return applyInvoiceEdMode(DEFAULT_SPLIT, edMode);
   const { data } = await supabase
     .from("customers")
     .select("invoice_split" as never)
     .eq("id", customerId)
     .maybeSingle();
-  return parseInvoiceSplit((data as { invoice_split?: unknown } | null)?.invoice_split);
+  return applyInvoiceEdMode(parseInvoiceSplit((data as { invoice_split?: unknown } | null)?.invoice_split), edMode);
 }
 
 type TotalsLike = { pDays: number; phDays: number; otDays: number; otHours: number; tDays: number };
