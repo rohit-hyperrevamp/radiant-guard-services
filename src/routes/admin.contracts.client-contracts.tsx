@@ -191,6 +191,18 @@ function deriveStatus(c: {
   return "inactive";
 }
 
+/** List order: active on top, expired at the bottom. */
+const STATUS_SORT_RANK: Record<UnifiedStatus, number> = {
+  active: 0,
+  pending_approval: 1,
+  inactive: 2,
+  lost: 3,
+  expired: 4,
+};
+function contractStatusRank(s: UnifiedStatus): number {
+  return STATUS_SORT_RANK[s] ?? 2;
+}
+
 type ClientContract = {
   id: string;
   contractCode: string;
@@ -2689,7 +2701,7 @@ function ClientContractsPage() {
     const q = query.trim().toLowerCase();
     const stateSet = new Set(stateFilter.map((s) => s.toLowerCase()));
     const citySet = new Set(cityFilter.map((s) => s.toLowerCase()));
-    return enriched.filter((c) => {
+    const rows = enriched.filter((c) => {
       if (c.recordType !== tab) return false;
       if (renewalOnly && !isUpForRenewal(c)) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(deriveStatus(c))) return false;
@@ -2701,6 +2713,11 @@ function ClientContractsPage() {
       if (!q) return true;
       return matchesSearch(q, [c.contractCode, c.prospectCode, c.unitName, c.unitCode, c.orgName, c.stateLabel, c.cityLabel, c.description]);
     });
+    // Active contracts first, expired last; original order kept within each group (stable sort).
+    return rows
+      .map((c, i) => ({ c, i, r: contractStatusRank(deriveStatus(c)) }))
+      .sort((a, b) => a.r - b.r || a.i - b.i)
+      .map((x) => x.c);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enriched, query, statusFilter, orgFilter, unitFilter, stateFilter, cityFilter, windowFilter, tab, renewalOnly, renewalWindow]);
 
