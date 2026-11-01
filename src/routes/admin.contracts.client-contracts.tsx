@@ -191,6 +191,18 @@ function deriveStatus(c: {
   return "inactive";
 }
 
+/** List order: active on top, expired at the bottom. */
+const STATUS_SORT_RANK: Record<UnifiedStatus, number> = {
+  active: 0,
+  pending_approval: 1,
+  inactive: 2,
+  lost: 3,
+  expired: 4,
+};
+function contractStatusRank(s: UnifiedStatus): number {
+  return STATUS_SORT_RANK[s] ?? 2;
+}
+
 type ClientContract = {
   id: string;
   contractCode: string;
