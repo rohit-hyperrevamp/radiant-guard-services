@@ -40,7 +40,7 @@ import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { normShift, shiftKey } from "@/lib/shift-resources";
-import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
+import { applyRateRevisionsForPeriod, rateSegmentsForPeriod } from "@/lib/rate-revisions";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
@@ -492,6 +492,7 @@ function PayrollUnitPage() {
       }
 
       let resources: Record<string, unknown>[] = [];
+      let rawSegments = new Map<string, { from: string; to: string; values: Record<string, unknown> }[]>();
       if (contractId) {
         const { data: r } = await supabase
           .from("contract_resources" as never)
@@ -500,6 +501,7 @@ function PayrollUnitPage() {
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
+        rawSegments = await rateSegmentsForPeriod(resources, start, end);
         resources = await applyRateRevisionsForPeriod(resources as Record<string, unknown>[], start, end);
       }
 
@@ -698,20 +700,7 @@ function PayrollUnitPage() {
       }));
 
 
-      const resourceByDesignation = new Map<string, ContractResourceLike>();
-      // Same designation may exist as an 8h and a 12h line; keep both.
-      const resourceByShiftKey = new Map<string, ContractResourceLike>();
-      const shiftKeysOrdered: string[] = [];
-      const shiftsByDesignation = new Map<string, Set<number>>();
-      for (const r of resources) {
-        const did = String(r.designation_id ?? "");
-        if (!did) continue;
-        const sk = shiftKey(did, r.shift_hours);
-        const set = shiftsByDesignation.get(did) ?? new Set<number>();
-        set.add(normShift(r.shift_hours));
-        shiftsByDesignation.set(did, set);
-        shiftKeysOrdered.push(sk);
-        resourceByShiftKey.set(sk, {
+      const toResourceLike = (r: Record<string, unknown>, did: string): ContractResourceLike => ({
           designationId: did,
           components: Array.isArray(r.components)
             ? (r.components as {
@@ -750,6 +739,20 @@ function PayrollUnitPage() {
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
             : null,
         });
+      const resourceByDesignation = new Map<string, ContractResourceLike>();
+      // Same designation may exist as an 8h and a 12h line; keep both.
+      const resourceByShiftKey = new Map<string, ContractResourceLike>();
+      const shiftKeysOrdered: string[] = [];
+      const shiftsByDesignation = new Map<string, Set<number>>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        if (!did) continue;
+        const sk = shiftKey(did, r.shift_hours);
+        const set = shiftsByDesignation.get(did) ?? new Set<number>();
+        set.add(normShift(r.shift_hours));
+        shiftsByDesignation.set(did, set);
+        shiftKeysOrdered.push(sk);
+        resourceByShiftKey.set(sk, toResourceLike(r, did));
         if (!resourceByDesignation.has(did)) resourceByDesignation.set(did, resourceByShiftKey.get(sk)!);
       }
 
@@ -765,6 +768,16 @@ function PayrollUnitPage() {
         resourceByShiftKey.set(uniqueShiftKeys[i], r);
         if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, r);
       });
+      // Rate revised inside the period: each date window bills at its own rate.
+      type RateWindow = { from: string; to: string; resource: ContractResourceLike };
+      const rateWindowsByShiftKey = new Map<string, RateWindow[]>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        const segs = rawSegments.get(String(r.id));
+        if (!did || !segs) continue;
+        const likes = (await hydrateFormulasFromMaster(segs.map((sg) => toResourceLike(sg.values, did)))).map(refreshBillingAddOns);
+        rateWindowsByShiftKey.set(shiftKey(did, r.shift_hours), segs.map((sg, i) => ({ from: sg.from, to: sg.to, resource: likes[i] })));
+      }
       const shiftForDesignationDefault = new Map<string, number>();
       for (const r of resources) {
         const did = String(r.designation_id ?? "");
