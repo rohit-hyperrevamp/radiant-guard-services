@@ -853,9 +853,22 @@ function PayrollUnitPage() {
         if (!cur || score(k, p) > score(cur, pairs.get(cur)!)) mainLineByCandidate.set(p.candidateId, k);
       }
 
-      const rows = Array.from(pairs.entries()).map(([pk, p]) => {
+      const rows = Array.from(pairs.entries()).flatMap(([pk, p]) => {
+        const c0 = rosterById.get(p.candidateId)!;
+        const did0 = p.designationId ? String(p.designationId) : "";
+        const line0 = lineFor(c0.id, did0, p.shift);
+        const windows = rateWindowsByShiftKey.get(shiftKey(did0, line0.shift));
+        if (!windows) return [buildRow(pk, p, null)];
+        return windows.map((w, i) => buildRow(pk, p, { ...w, last: i === windows.length - 1 }));
+      });
+      function buildRow(
+        pk: string,
+        p: { candidateId: string; designationId: string | null; shift: number; reliever: boolean },
+        rateWindow: { from: string; to: string; resource: ContractResourceLike; last: boolean } | null,
+      ) {
         const c = rosterById.get(p.candidateId)!;
         const did = p.designationId ? String(p.designationId) : "";
+        const inWindow = (d: string) => !rateWindow || (d >= rateWindow.from && d <= rateWindow.to);
         const designationName = (p.designationId && desigMap.get(p.designationId)) || "—";
         // Filter entries to just this line so totals reflect only that line.
         const lineEntries = entries.filter(
@@ -863,26 +876,29 @@ function PayrollUnitPage() {
             e.candidate_id === p.candidateId &&
             (e.designation_id ?? null) === p.designationId &&
             entryShift(e) === p.shift &&
-            entryReliever(e) === p.reliever,
+            entryReliever(e) === p.reliever &&
+            inWindow(String(e.entry_date).slice(0, 10)),
         );
         const isPrimary = !p.reliever && mainLineByCandidate.get(p.candidateId) === pk;
+        // Day adjustments, PH cash and additions are applied once — on the last rate window.
+        const carriesAdjustments = isPrimary && (!rateWindow || rateWindow.last);
         const isRegular = !p.reliever;
         // PH credit belongs to the employee's primary line only — reliever
         // lines must not earn a second credit for the same holiday.
         const totals = computeAttendanceTotals(
           c.id,
-          periodDates,
+          rateWindow ? periodDates.filter(inWindow) : periodDates,
           lineEntries as AttendanceEntryLike[],
           (codes ?? []) as AttendanceCodeLike[],
           isPrimary && !(unitPh?.excluded ?? []).includes(String(c.id)) && phConfig
-            ? { ...phConfig, dates: Array.from(phConfig.dates).filter((d) => !(unitPh?.excludedDays ?? []).includes(`${c.id}|${d}`)) }
+            ? { ...phConfig, dates: Array.from(phConfig.dates).filter((d) => inWindow(String(d).slice(0, 10)) && !(unitPh?.excludedDays ?? []).includes(`${c.id}|${d}`)) }
             : null,
           (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
           unitPh?.dayValue ?? null,
           woAsPresent,
         );
         // Apply per-employee day adjustments — primary designation line only.
-        if (isPrimary) {
+        if (carriesAdjustments) {
           const adj = dayAdjustmentByCandidate.get(c.id);
           if (adj) {
             totals.pDays = Math.max(0, totals.pDays + adj.pDays);
@@ -895,8 +911,8 @@ function PayrollUnitPage() {
           if (phDisplay) totals.phDays = totals.phDays + phDisplay;
         }
         const line = lineFor(c.id, did, p.shift);
-        const resource = line.resource;
-        const phOverride = isPrimary ? phCashByCandidate.get(c.id) : undefined;
+        const resource = rateWindow?.resource ?? line.resource;
+        const phOverride = carriesAdjustments ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
           ? computeWages(totals, resource, periodDates.length, {
               phOverrideAmount: phOverride,
@@ -907,7 +923,7 @@ function PayrollUnitPage() {
           : null;
         const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
         const candidateIsDisabled = Boolean((c as unknown as { is_disabled?: boolean | null }).is_disabled);
-        if (wages && isPrimary) {
+        if (wages && carriesAdjustments) {
           const extraAdds = additionsByCandidate.get(c.id) ?? [];
           const extraDeds = deductionsByCandidate.get(c.id) ?? [];
           if (extraDeds.length > 0) {
@@ -968,7 +984,10 @@ function PayrollUnitPage() {
         }
         return {
           id: c.id,
-          rowKey: pk,
+          rowKey: rateWindow ? `${pk}|${rateWindow.from}` : pk,
+          rateWindowLabel: rateWindow
+            ? `${rateWindow.from.split("-").reverse().join("-")} To ${rateWindow.to.split("-").reverse().join("-")}`
+            : null,
           employeeCode: c.employee_code || "",
           joiningDate:
             ((c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null) as string | null,
@@ -984,7 +1003,7 @@ function PayrollUnitPage() {
           resource: mergedResource ?? resource ?? null,
           hasContract: !!resource,
         };
-      });
+      }
 
       rows.sort((a, b) => {
         const an = (a.employeeCode || a.name).localeCompare(b.employeeCode || b.name);
@@ -1200,10 +1219,10 @@ function PayrollUnitPage() {
       if (billingMode !== "lumpsum" && billingMode !== "man_months" && (r.totals.tDays ?? 0) <= 0) continue;
       const m = invoiceMathFor(r);
       for (const item of m.billingLines) {
-        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${item.rate}|${item.kind}`;
+        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${item.rate}|${item.kind}|${r.rateWindowLabel ?? ""}`;
         const existing = map.get(key) ?? {
           key,
-          designation: item.kind ? `${r.designation} · ${item.kind}` : r.designation,
+          designation: `${item.kind ? `${r.designation} · ${item.kind}` : r.designation}${r.rateWindowLabel ? ` (${r.rateWindowLabel})` : ""}`,
           headcount: 0, billedDays: 0, billedHours: 0,
           perHour: item.rate, contracted: 0, actual: 0,
         };
@@ -1254,6 +1273,7 @@ function PayrollUnitPage() {
     const hsn = orgSettings?.default_hsn_sac ?? "";
     type Group = {
       designation: string;
+      rateWindowLabel: string | null;
       monthly: number;
       payrollDays: number;
       shiftHours: number;
@@ -1267,9 +1287,9 @@ function PayrollUnitPage() {
       const m = invoiceMathFor(r);
       for (const item of m.billingLines) {
         const designation = item.kind ? `${r.designation} · ${item.kind}` : r.designation;
-        const key = `${designation}|${item.rate}|${m.shiftHours}|${m.payrollDays}`;
+        const key = `${designation}|${item.rate}|${m.shiftHours}|${m.payrollDays}|${r.rateWindowLabel ?? ""}`;
         const g = groups.get(key) ?? {
-          designation, monthly: m.contracted, payrollDays: m.payrollDays,
+          designation, rateWindowLabel: r.rateWindowLabel ?? null, monthly: m.contracted, payrollDays: m.payrollDays,
           shiftHours: m.shiftHours, unitRate: item.rate, unitLabel: item.unitLabel,
           quantity: 0, amount: 0,
         };
@@ -1330,7 +1350,11 @@ function PayrollUnitPage() {
         ...list.map((g, i) => ({
           id: `${g.designation}-${i}`,
           description:
-            isCli2989Caretaker(unit?.code, g.designation) && g.designation.includes("· Extra Duty")
+            g.rateWindowLabel && !g.designation.includes("· Extra Duty") && g.unitLabel !== "hrs"
+              ? `${g.designation} @ Rs. ${g.monthly.toFixed(2)} Rate ${g.payrollDays} Days (${g.rateWindowLabel})`
+              : g.rateWindowLabel
+              ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per ${g.unitLabel === "hrs" ? "Hour" : "Duty"} (${g.rateWindowLabel})`
+              : isCli2989Caretaker(unit?.code, g.designation) && g.designation.includes("· Extra Duty")
               ? `Care Takers @ Rs. ${g.monthly.toFixed(2)} For 26/27 Days (Extra Duty HRS*2)`
               : g.designation.includes("· Extra Duty") && g.unitLabel === "hrs"
               ? `${g.designation} @ Rs. ${g.unitRate.toFixed(2)} Per Hour`
