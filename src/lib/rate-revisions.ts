@@ -115,3 +115,64 @@ export async function applyRateRevisionsForPeriod<T extends Row>(
     return out as T;
   });
 }
+
+export type RateSegment<T> = { from: string; to: string; values: T };
+
+/**
+ * For invoices: resources whose rate changes inside the period, split into
+ * date windows each carrying that window's own (unblended) rate card.
+ * Resources with a single applicable rate are omitted.
+ */
+export async function rateSegmentsForPeriod<T extends Row>(
+  resources: T[],
+  start: string,
+  end: string,
+): Promise<Map<string, RateSegment<T>[]>> {
+  const out = new Map<string, RateSegment<T>[]>();
+  const ids = resources.map((r) => r.id).filter(Boolean).map(String);
+  if (!ids.length || !start || !end) return out;
+  const { data, error } = await supabase
+    .from("contract_rate_revisions" as never)
+    .select("*")
+    .in("resource_id", ids)
+    .in("status", ["approved", "expired"]);
+  if (error || !data) return out;
+  const byRes = new Map<string, Rev[]>();
+  for (const r of data as unknown as Rev[]) {
+    const list = byRes.get(r.resource_id) ?? [];
+    list.push(r);
+    byRes.set(r.resource_id, list);
+  }
+  for (const res of resources) {
+    const revs = byRes.get(String(res.id));
+    if (!revs?.length) continue;
+    const segs = splitSegments(res, revs, start, end);
+    if (segs.length > 1) out.set(String(res.id), segs);
+  }
+  return out;
+}
+
+function splitSegments<T extends Row>(res: T, revs: Rev[], start: string, end: string): RateSegment<T>[] {
+  const boundaries = new Set<string>([start]);
+  for (const r of revs) {
+    if (r.effective_from && r.effective_from > start && r.effective_from <= end) boundaries.add(r.effective_from);
+    if (r.effective_to && r.effective_to >= start && r.effective_to < end) boundaries.add(addDays(r.effective_to, 1));
+  }
+  const starts = Array.from(boundaries).sort();
+  const segs: RateSegment<T>[] = [];
+  for (let i = 0; i < starts.length; i++) {
+    const from = starts[i];
+    const to = i + 1 < starts.length ? addDays(starts[i + 1], -1) : end;
+    const v = (revFor(revs, from) ?? res) as Row;
+    const values: Row = { ...res };
+    for (const f of RATE_FIELDS) if (f in res && f in v) values[f] = v[f];
+    const prev = segs[segs.length - 1];
+    // Merge adjacent windows that carry an identical rate card.
+    if (prev && RATE_FIELDS.every((f) => JSON.stringify(prev.values[f]) === JSON.stringify(values[f]))) {
+      prev.to = to;
+      continue;
+    }
+    segs.push({ from, to, values: values as T });
+  }
+  return segs;
+}
