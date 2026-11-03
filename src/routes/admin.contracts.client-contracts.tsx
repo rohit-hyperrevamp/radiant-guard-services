@@ -1,5 +1,5 @@
 import { INVOICE_ED_MODES, normalizeInvoiceEdMode, type InvoiceEdMode } from "@/lib/invoice-split";
-import { applyCtcPass, refreshBillingAddOns } from "@/lib/contract-billing-addons";
+import { applyCtcPass, refreshBillingAddOns, formulaReferencesBillingBase } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { isHiddenAllowanceChoice, mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
@@ -398,7 +398,7 @@ function cloneBenefitItem(item: BenefitItem): BenefitItem {
 }
 
 function cloneContractResource(resource: ContractResource): ContractResource {
-  return {
+  return refreshBillingAddOns({
     id: resource.id,
     designationId: resource.designationId,
     roleKey: resource.roleKey ?? null,
@@ -422,7 +422,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     otHourlyRate: resource.otBasis === "hourly" ? Number(resource.otHourlyRate) || 0 : null,
     otHourlyEsic: resource.otBasis === "hourly" ? Number(resource.otHourlyEsic) || 0 : null,
     otEsi: resource.otEsi?.enabled ? { ...resource.otEsi } : null,
-  };
+  });
 }
 
 function serializeContractResources(resources: ContractResource[]): string {
@@ -1641,7 +1641,7 @@ function syncResourceComponentMasterFields(
  * employer lines existed, so Total CTC collapsed to Gross.
  */
 export function formulaReferencesCtc(expr: string | null | undefined): boolean {
-  return /(?:^|[^a-z0-9])(?:total_?)?ctc(?![a-z0-9])/i.test(String(expr ?? ""));
+  return formulaReferencesBillingBase(expr);
 }
 export const isMgmtFeeLine = (x: { name?: unknown }) =>
   /management\s*fee|\bmgmt\s*fee\b/i.test(String(x?.name ?? ""));
@@ -1942,7 +1942,7 @@ function computeBenefitAmountExact(
 async function persistResources(contractId: string, resources: ContractResource[]) {
   // Store reliever / management fee exactly as the editor shows them (CTC -> reliever -> fee),
   // so the saved list, invoices and payroll never drift from the editor total.
-  const normalizedResources = resources.map(cloneContractResource).map((r) => refreshBillingAddOns(r as never) as typeof r);
+  const normalizedResources = resources.map(cloneContractResource);
   const prev = await supabase
     .from("contract_resources" as never)
     .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
@@ -5477,17 +5477,15 @@ export function ResourceFormDialog({
           const l = x.label.trim().toLowerCase();
           return l === "ctc" || l === "total ctc";
         });
-      const isMgmtFee = (b: BenefitItem) => /management\s*fee/i.test(b.name);
       const firstPass = prev.map((b) =>
         (b.calcType === "percentage" || hasFormula(b)) && !refsCtc(b)
           ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes) }
           : b,
       );
-      const ctcBase = firstPass.filter((b) => !refsCtc(b) && !isMgmtFee(b));
-      return firstPass.map((b) =>
-        (b.calcType === "percentage" || hasFormula(b)) && refsCtc(b)
-          ? { ...b, amount: computeBenefitAmount(b, components, benefits, allowanceTypes, ctcBase) }
-          : b,
+      const ctcBase = firstPass.filter((b) => !refsCtc(b) && !isBillingAddOn(b));
+      return applyCtcPass(firstPass, ctcBase, (b, base) =>
+        computeBenefitAmount(b, components, benefits, allowanceTypes, base),
+        (b) => (b.calcType === "percentage" || hasFormula(b)) && refsCtc(b),
       );
     });
   }, [components, benefits, allowanceTypes]);
