@@ -46,7 +46,7 @@ BEGIN
     JOIN public.units u ON u.id = cc.unit_id
     JOIN public.customers cu ON cu.id = u.customer_id AND cu.name ILIKE '%icici%'
    WHERE r.payroll_day_base_id = '1bffe4e2-dce4-4f34-be14-9038afcd6e58'
-     AND r.billing_day_base_id = '1bffe4e2-dce4-4f34-be14-9038afcd6e58';
+     AND r.billing_day_base_id = 'da912811-7b87-4517-aba9-42636592b921';
 
   IF verify_count <> 111 THEN
     RAISE EXCEPTION 'Verification failed: % of 111 rows on Days Minus Four', verify_count;
