@@ -5,6 +5,6 @@ INSERT INTO public.cost_components (name, calc_type, percentage, base_components
   deduction_calc_type, fixed_calc_method, fixed_duty_components, code, formula, day_driver, formula_mode,
   formula_expression, formula_version, party)
 SELECT 'Management Fee 7% (Billing Rate)', 'percentage', 7, '[]'::jsonb, 'N/A', '', true, 0,
-  'earned_salary', 'flat', '[]'::jsonb, 'MGMT_BILLING_RATE_7', '{}'::jsonb, 'ratio', 'advanced',
+  'earned_salary', 'flat', '{}'::text[], 'MGMT_BILLING_RATE_7', '{}'::jsonb, 'ratio', 'advanced',
   'billing_rate * 0.07', 1, 'employer'
 WHERE NOT EXISTS (SELECT 1 FROM public.cost_components WHERE name = 'Management Fee 7% (Billing Rate)');
