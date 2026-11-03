@@ -6,7 +6,7 @@ BEGIN
   SELECT to_jsonb(u) INTO STRICT r FROM public.units u WHERE code='CLI4825';
   r := r || jsonb_build_object('id',gen_random_uuid(),'code','CLI3645',
     'name','POONAWALLA FINCORP LIMITED-GANNOR (TEMP)','billing_name','POONAWALLA FINCORP LIMITED-GANNOR (TEMP)',
-    'billing_address','Gannaur, Sonipat, Haryana','billing_pincode',null,'billing_city','Gannaur','billing_district','Sonipat',
+    'billing_address1','Gannaur','billing_address2',null,'billing_pincode',null,'billing_city','Gannaur','billing_district','Sonipat',
     'onboarding_date','2026-11-03','created_at',now(),'updated_at',now());
   INSERT INTO public.units SELECT * FROM jsonb_populate_record(null::public.units, r);
 END $$;
