@@ -109,7 +109,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { fetchAllPages } from "@/lib/supabase-batch";
+import { fetchAllPages, uniqueRowsById } from "@/lib/supabase-batch";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { contractMonthlyBilling, contractDailyBilling } from "@/lib/contract-rate-display";
 import { periodDateList } from "@/lib/mis-billing";
@@ -692,6 +692,7 @@ function useContracts() {
               .from("client_contracts" as never)
               .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,invoice_ed_mode,gst_option,wo_as_present,status,approval_status,rejection_reason,created_by,created_at")
               .order("created_at", { ascending: false })
+              .order("id", { ascending: false })
               .range(from, to)
               .abortSignal(controller.signal),
           ),
@@ -705,7 +706,7 @@ function useContracts() {
           ? directoryResult.data
           : []) as Record<string, unknown>[];
         const unitsById = new Map(directoryRows.map((row) => [String(row.unit_id), row]));
-        return contractRows.map((row) => {
+        return uniqueRowsById(contractRows.map((row) => {
           const unit = unitsById.get(String(row.unit_id ?? ""));
           return rowToContract({
             ...row,
@@ -719,7 +720,7 @@ function useContracts() {
               customers: unit.customer_id ? { id: unit.customer_id, name: unit.customer_name } : null,
             } : null,
           });
-        });
+        }));
       } catch (error) {
         if (controller.signal.aborted) {
           throw new Error("Contracts took too long to load. Please try again.");
@@ -2621,7 +2622,7 @@ function ClientContractsPage() {
 
 
   const enriched = useMemo(() => {
-    return items.map((c) => {
+    return uniqueRowsById(items).map((c) => {
       const unit = unitById.get(c.unitId);
       const org = unit?.customerId ? customerById.get(unit.customerId) : undefined;
       return {

@@ -18,6 +18,16 @@ const CONCURRENCY = 8;
 
 type QueryResult = { data: unknown; error: { message: string } | null };
 
+/** Keep a single renderable row per primary key, including previously cached pages. */
+export function uniqueRowsById<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (seen.has(row.id)) return false;
+    seen.add(row.id);
+    return true;
+  });
+}
+
 /** Page through a query until a short page comes back. */
 export async function fetchAllPages<T>(
   build: (from: number, to: number) => PromiseLike<QueryResult>,

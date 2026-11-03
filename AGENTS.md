@@ -31,6 +31,7 @@
 - Non-billable staff may hold billable secondary postings (non-reliever `candidate_units` row, billable designation) → on that unit's attendance/payroll/invoice; FO-designation lines hidden at client units; access = union via `current_user_effective_permissions`.
 - Data queries wait for a real session (`useHasSupabaseSession`/`supabaseSessionReady`); root refetches all on `onSessionRecovered` — gap queries return zeros.
 - List/picker search uses `matchesSearch` / `serverSearchWords` from `src/lib/search-match.ts` (any word order, case-insensitive, phone digits) with `useDeferredValue` on large lists — one consistent search behaviour.
+- Contract register pagination orders by created_at then unique id and deduplicates row IDs before rendering (including cached rows), because imported contracts share timestamps and overlapping pages otherwise leave stale React table rows after filtering.
 - Subdirectories (`src/lib/`, `src/routes/`, `src/components/`) have their own `AGENTS.md` — read before changing files there.
 - Public dependency tarballs use the canonical npm registry while keeping locked versions and integrity hashes unchanged, avoiding regional mirror rate limits.
 - Root restores cache and clears old identities before mounting pages (details in src/lib/AGENTS.md) — no cross-session data bleed.
