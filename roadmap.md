@@ -1,8 +1,9 @@
 # Mobile app UI re-review
 
 ## Requested live record updates — 3 November
-- [ ] Rename CLI3520 from Sector 7 Karnal to Assandh; replace Praveen's September 2026 attendance with employee 47556 Sangam Kumar, preserving verified dates, 26 Present days and 10.50 Extra Duty hours; leave approval to the user. Blocked: supported live data access has not been established.
-- [ ] Copy CLI2225's verified matching role rates to CLI535, CLI530, CLI540, CLI633, CLI635, CLI580, CLI581, CLI2015, CLI1239, CLI632, CLI1971, CLI579, CLI2107 and CLI531, preserving unrelated terms and processed records. Blocked: supported live data access has not been established.
+- [x] Renamed CLI3520 to "Poonawalla Fincorp - Assandh, Assandh (PUID424)"; backup backup_cli3520_name_20261103.
+- [ ] Replace Parveen (47228) with Sangam Kumar (47556) at CLI3520: 26 P + 8 h + 2.5 h ED. Blocked on user: Sangam already has 26 P in Sept at CLI3639 (already named Asshand); CLI3520 Sept sheet approved, payroll submitted; month unconfirmed.
+- [x] CLI2225 rates vs 14 CLIs: active (Apr 2026–Mar 2027) and Apr–Sep 2026 contracts already identical (Security Guard gross ₹27,518.40, all components equal); no change needed.
 
 ## CLI2989 invoice duty split — 30 October
 - [x] Applied image-108 correction in invoice detail, print and exports: separate 12.00 ED hours at displayed ₹235.61, amount ₹2,827.29 from monthly invoice billing ₹25,445.63 ÷ 27 ÷ 8 × 2; retain 27 P Days and no supplement. Shared finance totals/MIS use the same billing base and unrounded ED multiplication. Twenty regressions pass; automatic compilation clean. Production inputs and arithmetic verified; signed-in output still requires publication and a live session.
