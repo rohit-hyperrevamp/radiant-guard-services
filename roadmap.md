@@ -1,5 +1,8 @@
 # Mobile app UI re-review
 
+## CLI4825 Haryana rate structure — 3 November
+- [x] Created active approved CON16726 for CLI4825 from recorded onboarding 1 August 2026, using CLI4008 Haryana Security Guard structure. Production readback confirms exact resource match: gross ₹17,620, billing ₹26,655.79, payroll/billing Days Minus Four, ED ₹161/hour + ₹6/hour invoice ESIC, separate ED lines. Attendance preserved by full before/after assertion across affected employees. New-resource rebalance hook paused only inside locked transaction and restored; audit/permission hooks retained. Live portal visual check not performed.
+
 ## CLI2093 ESIC calculation — 3 November
 - [x] Identified Gross-labelled master 3f158afc-49e2-451d-baff-793c477f0290 subtracting Washing + Conveyance. Corrected that unused master only to round(gross * 0.0325); production readback ₹20,616.88 → ₹670. Previous formula yields ₹611.5486, not exactly ₹611. Existing CLI2093 role formulas, all other masters and contracts untouched; 9 calculation/override regressions pass.
 - [ ] Verify corrected selection inside live CLI2093 resource editor. Live Contracts repeatedly timed out; saved browser session subsequently returned to login, so visual selection remains unverified.
