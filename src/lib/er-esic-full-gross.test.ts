@@ -12,9 +12,9 @@ describe('CLI2093 employer ESIC full-gross choice', () => {
     })).toBe(670);
   });
 
-  it('keeps the separately selected allowance-exclusion formula at ₹611 on the same wages', () => {
-    expect(Math.ceil(evaluateExpression('(gross - conveyance_allowance - washing_allowance) * 0.0325', {
+  it('keeps the separately selected allowance-exclusion formula distinct on the same wages', () => {
+    expect(evaluateExpression('(gross - conveyance_allowance - washing_allowance) * 0.0325', {
       gross: 20616.88, conveyance_allowance: 1500, washing_allowance: 300,
-    }))).toBe(611);
+    })).toBeCloseTo(611.5486, 4);
   });
 });
