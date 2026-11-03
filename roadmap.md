@@ -1,5 +1,8 @@
 # Mobile app UI re-review
 
+## CLI2093 ESIC calculation — 3 November
+- [ ] Reproduce employer ESIC 3.25% Gross showing ₹611 rather than ₹670; fix confirmed formula/label or calculation issue, preserve distinct exclusion formulas and unrelated rates, add regression and verify live.
+
 ## Requested live record updates — 3 November
 - [x] Reviewed all 93 Pages Payroll Haryana Poonawalla source clients. Corrected 84 existing units.name fields keyed by immutable ID and CLI code; 8 already matched. All 92 existing source IDs/names now match exactly, with all other client fields preserved by transaction checks and complete live readback. Signed in as Super Admin and visually verified CLI3520 ASSANDH, CLI3639 BHIWANI and CLI4426 KARNAL under All statuses. Source short_name fields are not separate destination CLI IDs; destination codes remained unchanged. Audit trigger recorded changes; prior raw snapshots saved in /tmp/browser/haryana-review/live-poonawalla.json.
 - [ ] CLI4825 POONAWALLA FINCORP LIMITED-JIND ROHTAK ROAD (PUID250) exists in Pages but not in production units. Creating a new client is outside the authorized ID/name correction scope; no record fabricated. Attendance, payroll and contract rates untouched.
