@@ -2,6 +2,9 @@
 -- New-site start is its recorded onboarding date, not CLI4008's start date.
 -- Run in a transaction. Snapshot existing attendance before running; assertions
 -- below roll back if the contract trigger changes any saved attendance.
+-- The attendance rebalance hook also runs on a brand-new resource. Hold an
+-- exclusive resource-table lock and pause only that non-security hook for the
+-- single insert; restore it immediately. Audit and permission hooks stay on.
 DO $$
 DECLARE
   source_contract public.client_contracts%ROWTYPE;
@@ -61,7 +64,9 @@ BEGIN
   new_resource.contract_id := new_contract.id;
   new_resource.created_at := now();
   new_resource.updated_at := now();
+  EXECUTE 'ALTER TABLE public.contract_resources DISABLE TRIGGER zz_contract_resources_rebalance_attendance';
   INSERT INTO public.contract_resources SELECT (new_resource).*;
+  EXECUTE 'ALTER TABLE public.contract_resources ENABLE TRIGGER zz_contract_resources_rebalance_attendance';
 
   IF NOT EXISTS (SELECT 1 FROM public.contract_resources r WHERE r.id = new_resource.id
     AND (to_jsonb(r) - ARRAY['id','contract_id','created_at','updated_at']) =
