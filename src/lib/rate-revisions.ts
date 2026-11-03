@@ -163,16 +163,20 @@ function splitSegments<T extends Row>(res: T, revs: Rev[], start: string, end: s
   for (let i = 0; i < starts.length; i++) {
     const from = starts[i];
     const to = i + 1 < starts.length ? addDays(starts[i + 1], -1) : end;
-    const v = (revFor(revs, from) ?? res) as Row;
+    const rev = revFor(revs, from);
+    const v = (rev ?? res) as Row;
+    const revKey = rev ? String((rev as unknown as Row).id ?? "") : "";
     const values: Row = { ...res };
     for (const f of RATE_FIELDS) if (f in res && f in v) values[f] = v[f];
-    const prev = segs[segs.length - 1];
-    // Merge adjacent windows that carry an identical rate card.
-    if (prev && RATE_FIELDS.every((f) => JSON.stringify(prev.values[f]) === JSON.stringify(values[f]))) {
+    const prev = segs[segs.length - 1] as (RateSegment<T> & { _rev?: string }) | undefined;
+    // Merge only windows resolved from the same revision; distinct revisions
+    // (e.g. 1–16 and 17+ windows) always print as separate invoice lines,
+    // even when their amounts happen to be equal.
+    if (prev && prev._rev === revKey) {
       prev.to = to;
       continue;
     }
-    segs.push({ from, to, values: values as T });
+    segs.push({ from, to, values: values as T, _rev: revKey } as RateSegment<T>);
   }
   return segs;
 }
