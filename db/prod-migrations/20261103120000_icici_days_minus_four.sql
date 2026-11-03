@@ -26,7 +26,7 @@ BEGIN
 
   UPDATE public.contract_resources r
      SET payroll_day_base_id = '1bffe4e2-dce4-4f34-be14-9038afcd6e58',
-         billing_day_base_id = '1bffe4e2-dce4-4f34-be14-9038afcd6e58',
+         billing_day_base_id = 'da912811-7b87-4517-aba9-42636592b921',
          updated_at = now()
     FROM public.client_contracts cc, public.units u, public.customers cu
    WHERE cc.id = r.contract_id
