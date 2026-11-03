@@ -1,8 +1,8 @@
 # Mobile app UI re-review
 
 ## Requested live record updates — 3 November
-- [x] Renamed CLI3520 to "Poonawalla Fincorp - Assandh, Assandh (PUID424)"; backup backup_cli3520_name_20261103.
-- [ ] Replace Parveen (47228) with Sangam Kumar (47556) at CLI3520: 26 P + 8 h + 2.5 h ED. Blocked on user: Sangam already has 26 P in Sept at CLI3639 (already named Asshand); CLI3520 Sept sheet approved, payroll submitted; month unconfirmed.
+- [x] CLI3520 renamed "Poonawalla Fincorp - Ashand (Karnal), Ashand (PUID424)"; CLI3639 renamed "Poonawalla Fincorp Limited - Bhiwani (P000100)"; Sangam (47556) regular site moved to CLI3520. Backups backup_cli3639_3520_20261103, backup_sangam_*_20261103.
+- [ ] Sangam attendance at CLI3520 (26 P + 8 h + 2.5 h ED) replacing Parveen (47228). Blocked on user: which month; what to do with Sangam's existing 26 Sept P at CLI3639; CLI3520 Sept sheet approved, payroll submitted.
 - [x] CLI2225 rates vs 14 CLIs: active (Apr 2026–Mar 2027) and Apr–Sep 2026 contracts already identical (Security Guard gross ₹27,518.40, all components equal); no change needed.
 
 ## CLI2989 invoice duty split — 30 October
