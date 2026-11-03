@@ -1,5 +1,5 @@
 import { INVOICE_ED_MODES, normalizeInvoiceEdMode, type InvoiceEdMode } from "@/lib/invoice-split";
-import { applyCtcPass } from "@/lib/contract-billing-addons";
+import { applyCtcPass, refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
 import { isHiddenAllowanceChoice, mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
@@ -1939,7 +1939,9 @@ function computeBenefitAmountExact(
 }
 
 async function persistResources(contractId: string, resources: ContractResource[]) {
-  const normalizedResources = resources.map(cloneContractResource);
+  // Store reliever / management fee exactly as the editor shows them (CTC -> reliever -> fee),
+  // so the saved list, invoices and payroll never drift from the editor total.
+  const normalizedResources = resources.map(cloneContractResource).map((r) => refreshBillingAddOns(r as never) as typeof r);
   const prev = await supabase
     .from("contract_resources" as never)
     .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
