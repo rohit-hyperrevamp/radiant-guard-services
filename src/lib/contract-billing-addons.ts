@@ -47,6 +47,11 @@ export const isRelieverLine = (x: { name?: unknown }) =>
 export const isBillingAddOn = (x: { name?: unknown }) =>
   isRelieverLine(x) || isMgmtFeeLine(x);
 
+/** Billing-rate formulas need the same late pass as CTC formulas. */
+export function formulaReferencesBillingBase(expr: string | null | undefined): boolean {
+  return /(?:^|[^a-z0-9])(?:(?:total_?)?ctc|billing_?rate)(?![a-z0-9])/i.test(String(expr ?? ""));
+}
+
 const num = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
