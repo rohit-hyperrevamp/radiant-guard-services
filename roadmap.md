@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI3925 Traffic Officer revised sheet — 5 November
+- [x] Read full revised source: 1 January 2026–31 March 2027, 8 hours/26 days; monthly ₹44,214.05 and daily ₹1,700.54.
+- [ ] Update only Traffic Officer rates and applicable dated rates, preserving other roles and processed records. Blocked pending an authorized production update pathway; managed write tools target unrelated sandbox and shell database writes are forbidden.
+- [ ] Read back saved rates and verify the live contract; do not claim completion before verification.
+
 ## Contract GST option — 4 November
 - [x] Added an explicit per-contract GST switch using the existing gst_option, preserving current settings and enabled-contract tax splitting.
 - [x] Invoice detail, print, MIS/Tally exports and final issuance respect the period contract's opt-out; focused calculation regressions cover zero tax, defaults, historical resolution and mixed-site issuance. Live records and existing issued invoices were not altered.
