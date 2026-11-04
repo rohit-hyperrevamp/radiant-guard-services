@@ -4046,7 +4046,7 @@ function MusterRollPage() {
   // it comes from the unit's active contract resource line.
   const rowShiftHours = (k: string | null) => {
     const row = findRow(k);
-    if ([8, 10, 12].includes(Number(row?.shiftHours))) return row.shiftHours;
+    if ([8, 10, 12].includes(Number(row?.shiftHours))) return Number(row?.shiftHours);
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null, row?.candidateId || null);
   };
 
