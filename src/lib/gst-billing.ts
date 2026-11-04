@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { OrgSettings } from "@/lib/org-settings";
+export { taxSplit } from "./gst-tax";
 
 export type GstBillingBranch = {
   id: string;
@@ -72,12 +73,4 @@ export function resolveGstBillingBranch(
     stateCode: fallback.company_state_code ?? "27",
     isDefault: true,
   };
-}
-
-export function taxSplit(taxableValue: number, intraState: boolean) {
-  const round = (value: number) => Math.round(value * 100) / 100;
-  const cgst = intraState ? round(taxableValue * 0.09) : 0;
-  const sgst = intraState ? round(taxableValue * 0.09) : 0;
-  const igst = intraState ? 0 : round(taxableValue * 0.18);
-  return { cgst, sgst, igst, total: round(cgst + sgst + igst) };
 }

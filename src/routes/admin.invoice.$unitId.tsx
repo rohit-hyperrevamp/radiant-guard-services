@@ -475,7 +475,7 @@ function PayrollUnitPage() {
         .eq("enabled", true);
 
       // 3. Contract resources for this unit's active contract.
-      const periodContract = await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, billing_type_id");
+      const periodContract = await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, billing_type_id, gst_option");
       const contracts = periodContract ? [periodContract as any] : [];
       const contractId = contracts?.[0]?.id;
       const billingTypeId = contracts?.[0]?.billing_type_id ?? null;
@@ -1022,7 +1022,7 @@ function PayrollUnitPage() {
         );
       }
 
-      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation, contractId: contractId ?? null };
+      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation, contractId: contractId ?? null, gstOption: typeof periodContract?.gst_option === "string" ? periodContract.gst_option : null };
     },
   });
 
@@ -1030,6 +1030,8 @@ function PayrollUnitPage() {
 
   const billingMode = data?.billingMode ?? "man_days";
   const contractId = data?.contractId ?? null;
+  const gstOption = data?.gstOption;
+  const gstEnabled = gstOption !== "none";
   const { data: invoiceSplit = DEFAULT_SPLIT } = useQuery({
     queryKey: ["org-invoice-split", unit?.customer_id ?? null, contractId],
     enabled: !!unit?.customer_id && !!data,
@@ -1240,7 +1242,7 @@ function PayrollUnitPage() {
   }, [rows, billingMode]);
 
 
-  const GST_RATE = 18;
+  const GST_RATE = gstEnabled ? 18 : 0;
   const r2 = (v: number) => Math.round(v * 100) / 100;
   // Configured extra charges for this unit + period (e.g. Technical Allowance).
   const { data: extraCharges = [] } = useInvoiceExtraCharges(unitId, start, end);
@@ -1250,7 +1252,7 @@ function PayrollUnitPage() {
   const extrasTotal = configuredExtrasTotal;
   const billedTotal = r2(totals.actualTotal);
   const taxableValue = r2(billedTotal + extrasTotal);
-  const tax = taxSplit(taxableValue, isIntraState);
+  const tax = taxSplit(taxableValue, isIntraState, gstOption);
   const cgstAmount = tax.cgst;
   const sgstAmount = tax.sgst;
   const igstAmount = tax.igst;
@@ -1385,6 +1387,7 @@ function PayrollUnitPage() {
           ? `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0))} hrs`
           : `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0))} Duty`,
       taxableValue,
+      gstEnabled,
       cgstRate: GST_RATE / 2,
       sgstRate: GST_RATE / 2,
       cgst: cgstAmount,
@@ -1395,7 +1398,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
+  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, gstEnabled, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
 
 
   /**
@@ -1447,6 +1450,7 @@ function PayrollUnitPage() {
         otDays: r.totals.otDays ?? 0,
         total: m.actual,
         intraState: isIntraState,
+        gstOption,
         maxWorkingDays: m.dutySplit ? null : m.billingDays,
         extraDutyRate: m.extraDutyRate,
       });
@@ -1585,6 +1589,7 @@ function PayrollUnitPage() {
         periodEnd: end,
         serviceTypeName,
         lines,
+        gstOption,
       }),
     );
   };
@@ -1821,7 +1826,7 @@ function PayrollUnitPage() {
             className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
             title={`Company state: ${COMPANY_STATE} · Client state: ${unitState ?? "—"}`}
           >
-            {isIntraState ? "CGST 9% + SGST 9%" : "IGST 18%"}
+            {!gstEnabled ? "No GST" : isIntraState ? "CGST 9% + SGST 9%" : "IGST 18%"}
           </span>
           {(supplierBranch?.gstin ?? orgSettings?.company_gstin) && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 font-mono font-semibold tracking-wider text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
@@ -1848,11 +1853,11 @@ function PayrollUnitPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {isIntraState ? <>
+          {gstEnabled && (isIntraState ? <>
             <Stat label={`CGST @ ${GST_RATE / 2}%`} value={fmtINR(cgstAmount)} />
             <Stat label={`SGST @ ${GST_RATE / 2}%`} value={fmtINR(sgstAmount)} />
-          </> : <Stat label={`IGST @ ${GST_RATE}%`} value={fmtINR(igstAmount)} />}
-          <Stat label={`Total GST @ ${GST_RATE}%`} value={fmtINR(gstAmount)} />
+          </> : <Stat label={`IGST @ ${GST_RATE}%`} value={fmtINR(igstAmount)} />)}
+          {gstEnabled && <Stat label={`Total GST @ ${GST_RATE}%`} value={fmtINR(gstAmount)} />}
           <Stat label="Invoice grand total" value={fmtINR(grandTotal)} tone="emerald" />
         </div>
       </div>

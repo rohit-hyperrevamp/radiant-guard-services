@@ -50,6 +50,7 @@ export type TaxInvoiceData = {
   lines: TaxInvoiceLine[];
   totalQuantityLabel: string;
   taxableValue: number;
+  gstEnabled?: boolean;
   cgstRate: number;
   sgstRate: number;
   cgst: number;
@@ -97,6 +98,7 @@ export function inrWords(value: number, withPaise = false): string {
 
 export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const gstEnabled = data.gstEnabled ?? true;
 
   const print = () => {
     const html = sheetRef.current?.innerHTML;
@@ -165,7 +167,7 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                     <div className="font-semibold">{data.periodLabel}</div>
                   </div>
                   <div className="mt-2 text-center text-[13px] font-bold uppercase tracking-[0.14em]">
-                    Tax Invoice
+                    {gstEnabled ? "Tax Invoice" : "Invoice"}
                   </div>
                 </td>
               </tr>
@@ -210,7 +212,7 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(l.amount)}</td>
                 </tr>
               ))}
-              {data.igst > 0 ? (
+              {gstEnabled && (data.igst > 0 ? (
                 <tr>
                   <td className="border border-border px-2 py-1" />
                   <td className="border border-border px-2 py-1">IGST @ {data.igstRate}%</td>
@@ -230,7 +232,7 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                   <td className="border border-border px-2 py-1" colSpan={4} />
                   <td className="border border-border px-2 py-1 text-right tabular-nums">{n2(data.sgst)}</td>
                 </tr>
-              </>}
+              </>)}
               {Math.abs(data.roundingOff) >= 0.005 && (
                 <tr>
                   <td className="border border-border px-2 py-1" />
@@ -257,7 +259,7 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
           </div>
 
           {/* HSN summary */}
-          <table className="mt-2 w-full border border-border">
+          {gstEnabled && <table className="mt-2 w-full border border-border">
             <thead>
               <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider">
                 <th className="border border-border px-2 py-1 text-left">HSN/SAC</th>
@@ -293,13 +295,13 @@ export function TaxInvoiceSheet({ data }: { data: TaxInvoiceData }) {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table>}
 
 
-          <div className="mt-2 border border-border p-2">
+          {gstEnabled && <div className="mt-2 border border-border p-2">
             <span className="text-muted-foreground">Tax Amount (in words) : </span>
             <span className="font-semibold">{inrWords(data.cgst + data.sgst + data.igst, true)}</span>
-          </div>
+          </div>}
 
           {/* Footer */}
           <table className="mt-2 w-full border border-border">

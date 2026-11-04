@@ -12,7 +12,7 @@
  */
 import { roundDutyDays } from "./duty-days";
 
-import { taxSplit } from "@/lib/gst-billing";
+import { taxSplit } from "./gst-tax";
 import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -94,6 +94,7 @@ export function misBillingLine({
   otDays,
   total,
   intraState,
+  gstOption,
   maxWorkingDays,
   extraDutyRate,
 }: {
@@ -102,6 +103,7 @@ export function misBillingLine({
   otDays: number;
   total: number;
   intraState: boolean;
+  gstOption?: string | null;
   /**
    * Billing divisor for the period (e.g. 27). A month can never bill more
    * regular duties than the contract's divisor — anything beyond it is Extra
@@ -122,7 +124,7 @@ export function misBillingLine({
   const otBilling = r2(otRate * ot);
   const totalBilling = r2(total);
   const regularBilling = r2(totalBilling - otBilling);
-  const tax = taxSplit(totalBilling, intraState);
+  const tax = taxSplit(totalBilling, intraState, gstOption);
 
   return {
     perDay: r2(perDay),
