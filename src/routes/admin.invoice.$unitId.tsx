@@ -56,6 +56,13 @@ import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalI
 import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 import { contractMonthlyBilling, invoiceMonthlyRateLabel } from "@/lib/contract-rate-display";
 
+/** Dated rates store wages only; Extra Duty settings always come from the contract line. */
+function contractOtFields(r: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of ["ot_basis", "ot_formula", "ot_multiplier", "ot_hourly_rate", "ot_hourly_esic", "ot_esi"]) if (k in r) out[k] = r[k];
+  return out;
+}
+
 const searchSchema = z.object({
   start: z.string(),
   end: z.string(),
@@ -776,7 +783,7 @@ function PayrollUnitPage() {
         const did = String(r.designation_id ?? "");
         const segs = rawSegments.get(String(r.id));
         if (!did || !segs) continue;
-        const likes = (await hydrateFormulasFromMaster(segs.map((sg) => toResourceLike(sg.values, did)))).map(refreshBillingAddOns);
+        const likes = (await hydrateFormulasFromMaster(segs.map((sg) => toResourceLike({ ...r, ...sg.values, ...contractOtFields(r) }, did)))).map(refreshBillingAddOns);
         rateWindowsByShiftKey.set(shiftKey(did, r.shift_hours), segs.map((sg, i) => ({ from: sg.from, to: sg.to, resource: likes[i] })));
       }
       const shiftForDesignationDefault = new Map<string, number>();
