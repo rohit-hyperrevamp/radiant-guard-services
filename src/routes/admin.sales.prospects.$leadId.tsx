@@ -232,7 +232,7 @@ function Requirements({ leadId }: { leadId: string }) {
         <Input value={n.quantity} inputMode="numeric" aria-label="Quantity" onChange={(e) => setN({ ...n, quantity: e.target.value })} />
         <Select value={n.shift_hours} onValueChange={(v) => setN({ ...n, shift_hours: v })}>
           <SelectTrigger aria-label="Shift hours"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="8">8h</SelectItem><SelectItem value="12">12h</SelectItem></SelectContent>
+          <SelectContent><SelectItem value="8">8h</SelectItem><SelectItem value="10">10h</SelectItem><SelectItem value="12">12h</SelectItem></SelectContent>
         </Select>
         <Button onClick={() => add.mutate()} disabled={!n.designation_id || add.isPending}><Plus className="h-4 w-4" /></Button>
       </div>

@@ -5370,7 +5370,7 @@ export function ResourceFormDialog({
           roleKey: roleKey || null,
           serviceTypeId,
           quantity: Number.parseInt(quantity, 10) || 1,
-          shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+          shiftHours: ([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8),
           components,
           payrollDayBaseId: payrollDayBaseId || null,
           billingDayBaseId: billingDayBaseId || null,
@@ -6176,7 +6176,7 @@ export function ResourceFormDialog({
       roleKey: roleKey || null,
       serviceTypeId,
       quantity: q,
-      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+      shiftHours: ([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8),
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       billingDayBaseId: billingDayBaseId || null,
@@ -6206,7 +6206,7 @@ export function ResourceFormDialog({
       roleKey: roleKey || null,
       serviceTypeId,
       quantity: isWages ? 1 : parseInt(quantity, 10) || 1,
-      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+      shiftHours: ([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8),
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       billingDayBaseId: billingDayBaseId || null,
@@ -6426,7 +6426,7 @@ export function ResourceFormDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="8">8 hours</SelectItem>
-                  <SelectItem value="12">12 hours</SelectItem>
+                  <SelectItem value="10">10 hours</SelectItem>                  <SelectItem value="12">12 hours</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -6782,7 +6782,7 @@ export function ResourceFormDialog({
                       </div>
                       <p className="text-[11px] text-muted-foreground">
                         Payroll pays the ED rate per hour for each Extra Duty hour (
-                        {Number.parseInt(shiftHours, 10) === 12 ? 12 : 8} h duty = ₹
+                        {([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8)} h duty = ₹
                         {((([8,10,12].includes(Number(Number(otHourlyRate) || 0) * (Number.parseInt(shiftHours, 10))) ? (Number(Number(otHourlyRate) || 0) * (Number.parseInt(shiftHours, 10)) as 8 | 10 | 12) : 8))).toFixed(2)}
                         ). The invoice bills ED rate + ESIC per hour.
                       </p>

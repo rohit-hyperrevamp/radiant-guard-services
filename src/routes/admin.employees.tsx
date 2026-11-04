@@ -569,7 +569,7 @@ function InlineWageEditor({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="8">8 hours</SelectItem>
-              <SelectItem value="12">12 hours</SelectItem>
+              <SelectItem value="10">10 hours</SelectItem>              <SelectItem value="12">12 hours</SelectItem>
             </SelectContent>
           </Select>
         </div>
