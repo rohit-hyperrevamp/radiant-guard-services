@@ -1163,7 +1163,9 @@ function PayrollUnitPage() {
             { kind: "P Days", rate: dutySplit.regularRate, quantity: dutySplit.regularQuantity, amount: dutySplit.regularAmount, unitLabel },
             { kind: "Extra Duty", rate: dutySplit.edRate, quantity: dutySplit.edQuantity, amount: dutySplit.edAmount, unitLabel: caretakerHourlyEd ? "hrs" : unitLabel },
           ].filter((item) => item.quantity > 0)
-        : [{ kind: "", rate: unitRate, quantity: unitQuantity, amount: actual, unitLabel }],
+        // Guards without ED share the "P Days" label when the contract prints
+        // ED on separate lines, so one role's Present days stay on one row.
+        : [{ kind: invoiceSplit.edLines === true && (billingMode === "man_days" || billsHourly) ? "P Days" : "", rate: unitRate, quantity: unitQuantity, amount: actual, unitLabel }],
       contracted,
       payrollDays,
       billingDays,
