@@ -1,9 +1,9 @@
 # Mobile app UI re-review
 
 ## Contract GST option — 4 November
-- [ ] Add a per-contract GST enable/disable control, preserving existing tax defaults.
-- [ ] Ensure generated invoices, print/export and totals omit GST when disabled; add focused calculation tests.
-- [ ] Verify saved setting and generated output where production access permits; report deployment/check limitations honestly.
+- [x] Added an explicit per-contract GST switch using the existing gst_option, preserving current settings and enabled-contract tax splitting.
+- [x] Invoice detail, print, MIS/Tally exports and final issuance respect the period contract's opt-out; focused calculation regressions cover zero tax, defaults, historical resolution and mixed-site issuance. Live records and existing issued invoices were not altered.
+- [ ] Verify saving the switch and generating an invoice on production after GitHub/Vercel deployment. Live contract page redirects to login; no production session available, and managed injected session targets the forbidden sandbox.
 
 ## CLI4825 Haryana rate structure — 3 November
 - [x] Created active approved CON16726 for CLI4825 from recorded onboarding 1 August 2026, using CLI4008 Haryana Security Guard structure. Production readback confirms exact resource match: gross ₹17,620, billing ₹26,655.79, payroll/billing Days Minus Four, ED ₹161/hour + ₹6/hour invoice ESIC, separate ED lines. Attendance preserved by full before/after assertion across affected employees. New-resource rebalance hook paused only inside locked transaction and restored; audit/permission hooks retained. Live portal visual check not performed.

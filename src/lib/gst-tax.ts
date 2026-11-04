@@ -7,3 +7,7 @@ export function taxSplit(taxableValue: number, intraState: boolean, gstOption?: 
   const igst = enabled && !intraState ? round(taxableValue * 0.18) : 0;
   return { cgst, sgst, igst, total: round(cgst + sgst + igst) };
 }
+
+export function finalInvoiceTax(lines: { taxableValue: number; gstOption?: string | null }[], intraState: boolean) {
+  return Math.round(lines.reduce((sum, line) => sum + taxSplit(line.taxableValue, intraState, line.gstOption).total, 0) * 100) / 100;
+}

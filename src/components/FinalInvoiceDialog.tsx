@@ -25,7 +25,7 @@ import { FINAL_INVOICE_QK, generateFinalInvoice } from "@/lib/final-invoice";
 import { fmtMoney } from "@/lib/contract-finance";
 import { logActivity } from "@/lib/activity-log";
 import { loadPeriodGstOptions } from "@/lib/contract-gst";
-import { taxSplit } from "@/lib/gst-tax";
+import { finalInvoiceTax } from "@/lib/gst-tax";
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 
 // ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@ export function FinalInvoiceDialog({
         const taxable = Math.round(g.taxableValue * 100) / 100;
         const supplier = resolveGstBillingBranch(gstBranches, g.billingState);
         const intraState = normalizeState(g.billingState) === normalizeState(supplier?.stateName ?? "Maharashtra");
-        const tax = Math.round(g.targets.reduce((sum, t) => sum + taxSplit(t.taxableValue, intraState, gstOptions.get(t.unitId)).total, 0) * 100) / 100;
+        const tax = finalInvoiceTax(g.targets.map((t) => ({ taxableValue: t.taxableValue, gstOption: gstOptions.get(t.unitId) })), intraState);
         const result = await generateFinalInvoice({
           unitIds: g.targets.map((t) => t.unitId),
           periodStart: g.periodStart,

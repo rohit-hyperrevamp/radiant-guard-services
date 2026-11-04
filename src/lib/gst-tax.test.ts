@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { taxSplit } from "./gst-tax";
+import { finalInvoiceTax, taxSplit } from "./gst-tax";
 import { misBillingLine } from "./mis-billing";
 import { buildTallyVoucherRows } from "./tally-billing";
 import { periodGstOption } from "./contract-gst";
@@ -14,6 +14,10 @@ describe("contract GST opt-out", () => {
   it("preserves GST for enabled and legacy contracts", () => {
     expect(taxSplit(10000, true, "csgst")).toEqual({ cgst: 900, sgst: 900, igst: 0, total: 1800 });
     expect(taxSplit(10000, false)).toEqual({ cgst: 0, sgst: 0, igst: 1800, total: 1800 });
+  });
+  it("issues a GST-disabled invoice with zero tax and excludes disabled sites from mixed totals", () => {
+    expect(finalInvoiceTax([{ taxableValue: 10000, gstOption: "none" }], true)).toBe(0);
+    expect(finalInvoiceTax([{ taxableValue: 10000, gstOption: "none" }, { taxableValue: 10000, gstOption: "csgst" }], true)).toBe(1800);
   });
   it("exports MIS without tax or an inflated grand total", () => {
     const line = misBillingLine({ perDay: 1000, billedDays: 10, otDays: 0, total: 10000, intraState: true, gstOption: "none" });
