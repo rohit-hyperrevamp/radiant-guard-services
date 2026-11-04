@@ -1,3 +1,4 @@
+import { resolveContractDesignation } from "@/lib/designation-match";
 import { mergePayItems } from "@/lib/pay-item-names";
 import { formatDutyQty, roundDutyDays } from "@/lib/duty-days";
 import { fetchPeriodContract } from "@/lib/period-contract";
@@ -795,7 +796,8 @@ function PayrollUnitPage() {
         if (did && base) billingBaseByShiftKey.set(shiftKey(did, r.shift_hours), base);
       }
       /** Pick the contract line for this guard: posting shift first, else the designation default. */
-      const lineFor = (cid: string, did: string, lineShift?: number) => {
+      const lineFor = (cid: string, rawDid: string, lineShift?: number) => {
+        const did = resolveContractDesignation(rawDid, resourceByDesignation.keys(), (id) => desigMap.get(id));
         const offered = shiftsByDesignation.get(did);
         const wanted = lineShift === 8 || lineShift === 12 ? lineShift : postingShift.get(cid);
         const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);

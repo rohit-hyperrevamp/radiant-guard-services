@@ -27,3 +27,4 @@
 - Billing add-ons: a line is a reliever only if it is not a management fee (fee names like "CTC + Reliever" mention it); saved fees are computed after relievers via `applyCtcPass` so stored amounts equal the editor figure.
 - Extra Duty basis "hourly" (contract_resources.ot_hourly_rate / ot_hourly_esic): payroll pays rate × shift hours per ED duty via `edPerDutyFromHourly`; invoices bill (rate + ESIC) per hour via `hourlyEdBillingRate` — keep both helpers as the only source of hourly ED maths.
 - Contract `invoice_ed_mode` (combined / separate_lines / separate_invoice) is applied over the saved invoice split by `applyInvoiceEdMode`; separate modes print ED as an hours line, at the role ED billing rate when one exists, else the contract duty rate.
+- Invoice lines bill attendance designation variants (e.g. Lady Guard) against the matching contract role via `resolveContractDesignation` — naming differences must never drop billable days.
