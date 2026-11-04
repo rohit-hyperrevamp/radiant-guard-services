@@ -120,7 +120,7 @@ export const Route = createFileRoute("/api/public/hooks/sohcm-sync")({
             if (ex?.length) { stats.skipped++; continue; }
             const rel = !!p.is_reliever;
             const ed = rel ? Math.max(hrs, 8) / 8 : Math.max(0, hrs - 8) / 8;
-            const sh = [8, 12].includes(Number(p.shift_hours)) ? Number(p.shift_hours) : 0;
+            const sh = [8, 10, 12].includes(Number(p.shift_hours)) ? Number(p.shift_hours) : 0;
             const { error } = await db.from("attendance_entries").insert({
               unit_id: p.unit_id, candidate_id: p.candidate_id, entry_date: date, code: rel ? "" : "P",
               ot_hours: Math.round(ed * 10000) / 10000, designation_id: p.designation_id, shift_hours: sh, is_reliever: rel,

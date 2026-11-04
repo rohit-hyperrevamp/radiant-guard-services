@@ -51,7 +51,7 @@ export type UnitFinance = {
   /** `${designationId}|8|12` -> rate, for contracts with both duty lengths. */
   byDesignationShift: Map<string, ResourceRate>;
   /** candidate_id -> duty length set on their posting at this unit. */
-  postingShift: Map<string, 8 | 12>;
+  postingShift: Map<string, 8 | 10 | 12>;
   /** Weighted average rate, used when an employee's designation is not on the contract. */
   fallback: ResourceRate | null;
 };
@@ -155,7 +155,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       designationId: (r.designation_id as string) ?? null,
       designationName: (r.designation_id ? desigMap.get(r.designation_id as string) : undefined) || "Resource",
       quantity: Number(r.quantity) || 0,
-      shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
+      shiftHours: ([8,10,12].includes(Number(Number(r.shift_hours))) ? (Number(Number(r.shift_hours)) as 8 | 10 | 12) : 8),
       grossRate: Math.round(grossRate * 100) / 100,
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
@@ -190,7 +190,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       if (!byDesignation.has(r.designationId)) byDesignation.set(r.designationId, r);
       byDesignationShift.set(shiftKey(r.designationId, r.shiftHours), r);
     }
-    const postingShift = new Map<string, 8 | 12>();
+    const postingShift = new Map<string, 8 | 10 | 12>();
     for (const [k, v] of postingShifts) {
       const [u, cid] = k.split("|");
       if (u === unitId) postingShift.set(cid, v);

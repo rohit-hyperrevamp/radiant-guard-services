@@ -6,13 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
  * decides which line applies. When a posting has no duty length set, the
  * designation's default line is used (unchanged behaviour).
  */
-export const normShift = (h: unknown): 8 | 12 => (Number(h) === 12 ? 12 : 8);
+export const normShift = (h: unknown): 8 | 10 | 12 => (([8,10,12].includes(Number(Number(h))) ? (Number(Number(h)) as 8 | 10 | 12) : 8));
 export const shiftKey = (designationId: string | null | undefined, hours: unknown) =>
   `${designationId ?? ""}|${normShift(hours)}`;
 
-/** candidate_id -> 8 | 12 for postings on the given unit(s) (key `${unit}|${candidate}`). */
-export async function fetchPostingShifts(unitIds: string[]): Promise<Map<string, 8 | 12>> {
-  const out = new Map<string, 8 | 12>();
+/** candidate_id -> 8 | 10 | 12 for postings on the given unit(s) (key `${unit}|${candidate}`). */
+export async function fetchPostingShifts(unitIds: string[]): Promise<Map<string, 8 | 10 | 12>> {
+  const out = new Map<string, 8 | 10 | 12>();
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
   if (!ids.length) return out;
   for (let i = 0; i < ids.length; i += 200) {

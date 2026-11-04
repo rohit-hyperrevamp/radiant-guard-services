@@ -7054,7 +7054,7 @@ function CandidateWizard({
           roleKey: null,
           serviceTypeId: "",
           quantity: 1,
-          shiftHours: Number(row.shift_hours) === 12 ? 12 : 8,
+          shiftHours: ([8,10,12].includes(Number(Number(row.shift_hours))) ? (Number(Number(row.shift_hours)) as 8 | 10 | 12) : 8),
           payrollDayBaseId: (row.payroll_day_base_id as string) ?? null,
           components: (row.components as ContractResource["components"]) ?? [],
           benefits: (row.benefits as ContractResource["benefits"]) ?? [],

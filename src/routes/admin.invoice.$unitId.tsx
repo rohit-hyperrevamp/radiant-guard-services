@@ -733,7 +733,7 @@ function PayrollUnitPage() {
           otFormula: (r as { ot_formula?: string | null }).ot_formula ?? null,
           otHourlyRate: (r as { ot_hourly_rate?: number | null }).ot_hourly_rate ?? null,
           otHourlyEsic: (r as { ot_hourly_esic?: number | null }).ot_hourly_esic ?? null,
-          otShiftHours: Number((r as { shift_hours?: number | null }).shift_hours) === 12 ? 12 : 8,
+          otShiftHours: ([8,10,12].includes(Number(Number((r as { shift_hours?: number | null }).shift_hours))) ? (Number(Number((r as { shift_hours?: number | null }).shift_hours)) as 8 | 10 | 12) : 8),
           otEsi: normalizeOtEsi((r as { ot_esi?: unknown }).ot_esi),
           roundOffFinal: (r as { round_off_final?: unknown }).round_off_final === true,
           payrollDayBase: r.payroll_day_base_id
@@ -799,7 +799,7 @@ function PayrollUnitPage() {
       const lineFor = (cid: string, rawDid: string, lineShift?: number) => {
         const did = resolveContractDesignation(rawDid, resourceByDesignation.keys(), (id) => desigMap.get(id));
         const offered = shiftsByDesignation.get(did);
-        const wanted = lineShift === 8 || lineShift === 12 ? lineShift : postingShift.get(cid);
+        const wanted = [8, 10, 12].includes(Number(lineShift)) ? lineShift : postingShift.get(cid);
         const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);
         const sk = shiftKey(did, shift);
         return {

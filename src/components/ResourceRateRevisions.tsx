@@ -66,7 +66,7 @@ function revToResource(base: ContractResource, r: Rev): ContractResource {
     employerContributions: r.employer_contributions ?? [],
     payrollDayBaseId: r.payroll_day_base_id,
     billingDayBaseId: r.billing_day_base_id,
-    shiftHours: r.shift_hours === 12 ? 12 : 8,
+    shiftHours: ([8,10,12].includes(Number(r.shift_hours)) ? (Number(r.shift_hours) as 8 | 10 | 12) : 8),
   };
 }
 
