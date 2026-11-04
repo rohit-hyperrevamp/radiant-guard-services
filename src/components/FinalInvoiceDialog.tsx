@@ -24,6 +24,9 @@ import {
 import { FINAL_INVOICE_QK, generateFinalInvoice } from "@/lib/final-invoice";
 import { fmtMoney } from "@/lib/contract-finance";
 import { logActivity } from "@/lib/activity-log";
+import { loadPeriodGstOptions } from "@/lib/contract-gst";
+import { taxSplit } from "@/lib/gst-tax";
+import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
 
 // ---------------------------------------------------------------------------
 // Generate final invoice — the only place an invoice number is consumed.
@@ -132,11 +135,14 @@ export function FinalInvoiceDialog({
     const issued: string[] = [];
     try {
       if (mixedStates) throw new Error("Invoices cannot span multiple states. Select sites from one state only.");
+      const [gstOptions, gstBranches] = await Promise.all([loadPeriodGstOptions(targets), loadGstBillingBranches()]);
       for (const g of groups) {
         const series = resolveSeries(g.billingState);
         if (!series) throw new Error(`No invoice number series set up for ${g.billingState ?? "this state"}`);
         const taxable = Math.round(g.taxableValue * 100) / 100;
-        const tax = Math.round(taxable * 0.18 * 100) / 100;
+        const supplier = resolveGstBillingBranch(gstBranches, g.billingState);
+        const intraState = normalizeState(g.billingState) === normalizeState(supplier?.stateName ?? "Maharashtra");
+        const tax = Math.round(g.targets.reduce((sum, t) => sum + taxSplit(t.taxableValue, intraState, gstOptions.get(t.unitId)).total, 0) * 100) / 100;
         const result = await generateFinalInvoice({
           unitIds: g.targets.map((t) => t.unitId),
           periodStart: g.periodStart,

@@ -35,6 +35,7 @@ import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
 import { EXCLUDE, isSplit, loadOrgInvoiceSplit, type InvoiceItemKey, type InvoiceSplit } from "@/lib/invoice-split";
 import { Checkbox } from "@/components/ui/checkbox";
+import { loadPeriodGstOptions } from "@/lib/contract-gst";
 
 
 // ---------------------------------------------------------------------------
@@ -661,6 +662,10 @@ export function FinanceCharter({
         return chunks;
       };
       const ids = targets.map((unit) => unit.id);
+      const gstOptions = await loadPeriodGstOptions(targets.map((u) => {
+        const p = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
+        return { unitId: u.id, periodStart: p.start, periodEnd: p.end };
+      }));
       const [{ data: org }, gstBranches, partData] = await Promise.all([supabase
         .from("org_settings")
         .select("*")
@@ -766,6 +771,7 @@ export function FinanceCharter({
           periodEnd: period.end,
           serviceTypeName: (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard",
           lines: voucherLines,
+          gstOption: gstOptions.get(unit.id),
         }));
         book.count += 1;
         }
@@ -933,6 +939,10 @@ export function FinanceCharter({
         new Set(unitRows.map((u) => String(u.customer_id ?? "")).filter(Boolean)),
       );
       const { template, unitValues } = await loadSharedMisTemplate(customerIds, ids);
+      const gstOptions = await loadPeriodGstOptions(targets.map((u) => {
+        const p = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
+        return { unitId: u.id, periodStart: p.start, periodEnd: p.end };
+      }));
       // Contracts flagged exact_day_rate bill monthly ÷ billing days × duties, rounded once.
       const exactUnits = new Set<string>();
       for (let i = 0; i < ids.length; i += 100) {
@@ -996,6 +1006,7 @@ export function FinanceCharter({
               ? (resolveBillingDivisor(rate, periodDates) > 0 ? (rate.billRate / resolveBillingDivisor(rate, periodDates)) * billedDays : 0)
               : perDay * billedDays),
             intraState,
+            gstOption: gstOptions.get(u.id),
             // Regular duties can never exceed the contract's billing days; the
             // surplus is Extra Duty at the same rate.
             maxWorkingDays: dutySplit ? null : resolveBillingDivisor(rate, periodDates),
