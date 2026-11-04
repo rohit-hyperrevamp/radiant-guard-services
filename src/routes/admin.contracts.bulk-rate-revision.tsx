@@ -167,7 +167,7 @@ function BulkRateRevisionPage() {
             roleKey: r.role_key ? String(r.role_key) : null,
             serviceTypeId: r.service_type_id ? String(r.service_type_id) : "",
             quantity: Number(r.quantity ?? 1),
-            shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
+            shiftHours: ([8,10,12].includes(Number(Number(r.shift_hours ?? 8))) ? (Number(Number(r.shift_hours ?? 8)) as 8 | 10 | 12) : 8),
             components: Array.isArray(r.components) ? (r.components as ResourceComponent[]) : [],
             payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
             billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,

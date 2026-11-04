@@ -346,7 +346,7 @@ const NULL_DESIG = "__none__"; // sentinel row-key segment when an employee has 
 
 /** Line variant: duty length (0 = default) + reliever flag, e.g. "0", "8", "12r". */
 const lineVariant = (shift: unknown, reliever: unknown) =>
-  `${Number(shift) === 8 || Number(shift) === 12 ? Number(shift) : 0}${reliever ? "r" : ""}`;
+  `${[8, 10, 12].includes(Number(Number(shift))) ? Number(shift) : 0}${reliever ? "r" : ""}`;
 const parseVariant = (v: string | undefined) => ({
   shift: Number.parseInt(v ?? "0", 10) || 0,
   reliever: (v ?? "").endsWith("r"),
@@ -1594,7 +1594,7 @@ function MusterRollPage() {
   const [mapQuery, setMapQuery] = useState("");
   const [mapSaving, setMapSaving] = useState(false);
   const [mapAs, setMapAs] = useState<"regular" | "reliever">("regular");
-  const [mapShift, setMapShift] = useState<8 | 12>(8);
+  const [mapShift, setMapShift] = useState<8 | 10 | 12>(8);
   const [mapDesig, setMapDesig] = useState<string | null>(null);
   /** Set when the Add Employee box is editing an existing line. */
   const [editLine, setEditLine] = useState<{
@@ -2144,7 +2144,7 @@ function MusterRollPage() {
       if (lines.length) {
         for (const l of lines) {
           const lineDesig = l.designation_id ?? emp.designation_id;
-          const shiftNum = Number(l.shift_hours) === 8 || Number(l.shift_hours) === 12 ? Number(l.shift_hours) : 0;
+          const shiftNum = [8, 10, 12].includes(Number(Number(l.shift_hours))) ? Number(l.shift_hours) : 0;
           // Saved attendance is authoritative for regular vs reliever. When the
           // posting flag disagrees with the saved rows for the same designation
           // and duty length, show ONE line (the saved one) instead of a
@@ -2153,7 +2153,7 @@ function MusterRollPage() {
           // stamped with the unit's default 8h/12h belong to it, not to a
           // second row for the same person.
           const savedShift = (e: { shift_hours?: number | null }) =>
-            Number(e.shift_hours) === 8 || Number(e.shift_hours) === 12 ? Number(e.shift_hours) : 0;
+            [8, 10, 12].includes(Number(Number(e.shift_hours))) ? Number(e.shift_hours) : 0;
           const sameShape = savedLines.filter(
             (e) =>
               (e.designation_id ?? null) === (lineDesig ?? null) &&
@@ -4046,7 +4046,7 @@ function MusterRollPage() {
   // it comes from the unit's active contract resource line.
   const rowShiftHours = (k: string | null) => {
     const row = findRow(k);
-    if (row?.shiftHours === 8 || row?.shiftHours === 12) return row.shiftHours;
+    if ([8, 10, 12].includes(Number(row?.shiftHours))) return Number(row?.shiftHours);
     return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null, row?.candidateId || null);
   };
 
@@ -5951,7 +5951,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                                   });
                                   setMapDesig(mr.designationId);
                                   setMapAs(v.reliever ? "reliever" : "regular");
-                                  setMapShift(v.shift === 12 ? 12 : 8);
+                                  setMapShift(([8,10,12].includes(Number(v.shift)) ? (Number(v.shift) as 8 | 10 | 12) : 8));
                                   setMapSlot({
                                     designationId: mr.designationId,
                                     designationName: mr.designationName,
@@ -6400,7 +6400,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             <div className="space-y-1">
               <div className="text-xs font-medium text-muted-foreground">Duty length (sets the billing rate)</div>
               <div className="grid grid-cols-2 gap-2">
-                {([8, 12] as const).map((h) => (
+                {([8, 10, 12] as const).map((h) => (
                   <button
                     key={h}
                     type="button"

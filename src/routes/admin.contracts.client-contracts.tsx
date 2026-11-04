@@ -404,7 +404,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     roleKey: resource.roleKey ?? null,
     serviceTypeId: resource.serviceTypeId,
     quantity: Number(resource.quantity) || 1,
-    shiftHours: Number(resource.shiftHours) === 12 ? 12 : 8,
+    shiftHours: ([8,10,12].includes(Number(Number(resource.shiftHours))) ? (Number(Number(resource.shiftHours)) as 8 | 10 | 12) : 8),
     components: (resource.components ?? []).map((c) => ({
       ...c,
       amount: Number(c.amount) || 0,
@@ -1279,7 +1279,7 @@ function useContractResources(contractId: string | null) {
         roleKey: r.role_key ? String(r.role_key) : null,
         serviceTypeId: r.service_type_id ? String(r.service_type_id) : "",
         quantity: Number(r.quantity ?? 1),
-        shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
+        shiftHours: ([8,10,12].includes(Number(Number(r.shift_hours ?? 8))) ? (Number(Number(r.shift_hours ?? 8)) as 8 | 10 | 12) : 8),
         components: Array.isArray(r.components)
           ? (r.components as ResourceComponent[])
           : [],
@@ -1963,7 +1963,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     role_key: r.roleKey || null,
     service_type_id: r.serviceTypeId || null,
     quantity: r.quantity,
-    shift_hours: r.shiftHours === 12 ? 12 : 8,
+    shift_hours: ([8,10,12].includes(Number(r.shiftHours)) ? (Number(r.shiftHours) as 8 | 10 | 12) : 8),
     components: r.components,
     gross: r.components.reduce((s, c) => s + (Number(c.amount) || 0), 0),
     sort_order: idx,
@@ -2286,7 +2286,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
     designation_id: r.designation_id ? String(r.designation_id) : "",
     service_type_id: r.service_type_id ? String(r.service_type_id) : "",
     quantity: Number(r.quantity ?? 1),
-    shift_hours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
+    shift_hours: ([8,10,12].includes(Number(Number(r.shift_hours ?? 8))) ? (Number(Number(r.shift_hours ?? 8)) as 8 | 10 | 12) : 8),
     payroll_day_base_id: r.payroll_day_base_id ? String(r.payroll_day_base_id) : "",
     components_json: JSON.stringify(r.components ?? []),
     benefits_json: JSON.stringify(r.benefits ?? []),
@@ -2510,7 +2510,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     designationId: String(r.designation_id ?? ""),
     serviceTypeId: String(r.service_type_id ?? ""),
     quantity: Number(r.quantity ?? 1) || 1,
-    shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
+    shiftHours: ([8,10,12].includes(Number(Number(r.shift_hours ?? 8))) ? (Number(Number(r.shift_hours ?? 8)) as 8 | 10 | 12) : 8),
     payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
     billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
     components: safeJsonArray(r.components_json) as ResourceComponent[],
@@ -5370,7 +5370,7 @@ export function ResourceFormDialog({
           roleKey: roleKey || null,
           serviceTypeId,
           quantity: Number.parseInt(quantity, 10) || 1,
-          shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+          shiftHours: ([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8),
           components,
           payrollDayBaseId: payrollDayBaseId || null,
           billingDayBaseId: billingDayBaseId || null,
@@ -6176,7 +6176,7 @@ export function ResourceFormDialog({
       roleKey: roleKey || null,
       serviceTypeId,
       quantity: q,
-      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+      shiftHours: ([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8),
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       billingDayBaseId: billingDayBaseId || null,
@@ -6206,7 +6206,7 @@ export function ResourceFormDialog({
       roleKey: roleKey || null,
       serviceTypeId,
       quantity: isWages ? 1 : parseInt(quantity, 10) || 1,
-      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
+      shiftHours: ([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8),
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       billingDayBaseId: billingDayBaseId || null,
@@ -6426,7 +6426,7 @@ export function ResourceFormDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="8">8 hours</SelectItem>
-                  <SelectItem value="12">12 hours</SelectItem>
+                  <SelectItem value="10">10 hours</SelectItem>                  <SelectItem value="12">12 hours</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -6782,8 +6782,8 @@ export function ResourceFormDialog({
                       </div>
                       <p className="text-[11px] text-muted-foreground">
                         Payroll pays the ED rate per hour for each Extra Duty hour (
-                        {Number.parseInt(shiftHours, 10) === 12 ? 12 : 8} h duty = ₹
-                        {((Number(otHourlyRate) || 0) * (Number.parseInt(shiftHours, 10) === 12 ? 12 : 8)).toFixed(2)}
+                        {([8, 10, 12].includes(Number.parseInt(shiftHours, 10)) ? (Number.parseInt(shiftHours, 10) as 8 | 10 | 12) : 8)} h duty = ₹
+                        {((([8,10,12].includes(Number(Number(otHourlyRate) || 0) * (Number.parseInt(shiftHours, 10))) ? (Number(Number(otHourlyRate) || 0) * (Number.parseInt(shiftHours, 10)) as 8 | 10 | 12) : 8))).toFixed(2)}
                         ). The invoice bills ED rate + ESIC per hour.
                       </p>
                     </div>

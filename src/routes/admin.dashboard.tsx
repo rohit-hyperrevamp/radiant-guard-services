@@ -836,7 +836,7 @@ function DashboardPage() {
       // else the role's first contract line.
       const lineShiftKey = (contractId: string, designationId: string, shift?: number | null) => {
         const base = `${contractId}|${designationId}`;
-        const wanted = shift === 8 || shift === 12 ? `${base}|${shift}` : null;
+        const wanted = [8, 10, 12].includes(Number(shift)) ? `${base}|${shift}` : null;
         return wanted && hydratedByContractDesignation.has(wanted) ? wanted : base;
       };
       const isNonBillableInvoiceItem = (item: { name?: string }) =>

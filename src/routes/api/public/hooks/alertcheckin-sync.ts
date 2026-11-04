@@ -129,7 +129,7 @@ export const Route = createFileRoute("/api/public/hooks/alertcheckin-sync")({
             const hrs = r[4] && r[5] ? Number(r[5]) || 0 : 0;
             if (!best || bs < 0.5) { unmatched.push({ sync_date: date, ac_site_name: r[2], staff_name: r[0], unit_id: unit, reason: "No matching guard posted at this site", hours: hrs }); continue; }
             const kk = `${unit}|${best.candidate_id}`;
-            const a = agg.get(kk) ?? { unit_id: unit, candidate_id: best.candidate_id, designation_id: best.designation_id, rel: !!best.is_reliever, hrs: 0, shift: [8, 12].includes(Number(best.shift_hours)) ? Number(best.shift_hours) : 0 };
+            const a = agg.get(kk) ?? { unit_id: unit, candidate_id: best.candidate_id, designation_id: best.designation_id, rel: !!best.is_reliever, hrs: 0, shift: [8, 10, 12].includes(Number(best.shift_hours)) ? Number(best.shift_hours) : 0 };
             a.hrs += hrs; agg.set(kk, a);
           }
           for (const a of agg.values()) {

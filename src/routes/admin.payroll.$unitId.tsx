@@ -866,7 +866,7 @@ function PayrollUnitPage() {
           otFormula: (r as { ot_formula?: string | null }).ot_formula ?? null,
           otHourlyRate: (r as { ot_hourly_rate?: number | null }).ot_hourly_rate ?? null,
           otHourlyEsic: (r as { ot_hourly_esic?: number | null }).ot_hourly_esic ?? null,
-          otShiftHours: Number((r as { shift_hours?: number | null }).shift_hours) === 12 ? 12 : 8,
+          otShiftHours: ([8,10,12].includes(Number(Number((r as { shift_hours?: number | null }).shift_hours))) ? (Number(Number((r as { shift_hours?: number | null }).shift_hours)) as 8 | 10 | 12) : 8),
           otEsi: normalizeOtEsi((r as { ot_esi?: unknown }).ot_esi),
           payrollDayBase: r.payroll_day_base_id
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
@@ -895,7 +895,7 @@ function PayrollUnitPage() {
       }
       const resourceForLine = (cid: string, did: string, lineShift?: number) => {
         const offered = shiftsByDesignation.get(did);
-        const wanted = lineShift === 8 || lineShift === 12 ? lineShift : postingShift.get(cid);
+        const wanted = [8, 10, 12].includes(Number(lineShift)) ? lineShift : postingShift.get(cid);
         const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);
         return resourceByShiftKey.get(shiftKey(did, shift)) ?? resourceByDesignation.get(did);
       };
