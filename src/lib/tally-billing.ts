@@ -71,6 +71,7 @@ export function buildTallyVoucherRows(args: {
   periodEnd: string;
   serviceTypeName: string;
   lines: TallyBillingLine[];
+  gstOption?: string | null;
 }): Record<string, unknown>[] {
   const { unit, companyState, periodStart, periodEnd, serviceTypeName, lines } = args;
   const COMPANY_STATE = companyState;
@@ -78,11 +79,14 @@ export function buildTallyVoucherRows(args: {
 
   const billingState = unit.billing_state || unit.customer?.billing_state || "";
   const isIntraState = billingState.trim().toLowerCase() === COMPANY_STATE.toLowerCase();
-  const gstRate = 18;
-  const cgstRate = isIntraState ? 9 : 0;
-  const sgstRate = isIntraState ? 9 : 0;
-  const igstRate = isIntraState ? 0 : gstRate;
-  const salesLedger = isIntraState
+  const gstEnabled = args.gstOption !== "none";
+  const gstRate = gstEnabled ? 18 : 0;
+  const cgstRate = gstEnabled && isIntraState ? 9 : 0;
+  const sgstRate = gstEnabled && isIntraState ? 9 : 0;
+  const igstRate = gstEnabled && !isIntraState ? gstRate : 0;
+  const salesLedger = !gstEnabled
+    ? `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} No GST`
+    : isIntraState
     ? `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} SGST/CGST ${gstRate}%`
     : `Sale ${serviceTypeName} Charges ${COMPANY_STATE_SHORT} IGST ${gstRate}%`;
 
@@ -153,12 +157,12 @@ export function buildTallyVoucherRows(args: {
       "Amt": amt,
       "Additional Ledger": "",
       "Amount": "",
-      "CGST Ledger": isIntraState ? `${COMPANY_STATE} CGST` : "",
-      "CGST Amt": isIntraState ? cgstAmt : "",
-      "SGST Ledger": isIntraState ? `${COMPANY_STATE} SGST` : "",
-      "SGST Amt": isIntraState ? sgstAmt : "",
-      "IGST Ledger": !isIntraState ? `${COMPANY_STATE} IGST` : "",
-      "IGST Amt": !isIntraState ? igstAmt : "",
+      "CGST Ledger": gstEnabled && isIntraState ? `${COMPANY_STATE} CGST` : "",
+      "CGST Amt": gstEnabled && isIntraState ? cgstAmt : "",
+      "SGST Ledger": gstEnabled && isIntraState ? `${COMPANY_STATE} SGST` : "",
+      "SGST Amt": gstEnabled && isIntraState ? sgstAmt : "",
+      "IGST Ledger": gstEnabled && !isIntraState ? `${COMPANY_STATE} IGST` : "",
+      "IGST Amt": gstEnabled && !isIntraState ? igstAmt : "",
       "CESS Ledger": "",
       "CESS Amt": "",
       "Total": total,

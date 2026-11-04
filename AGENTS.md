@@ -41,3 +41,4 @@
 - Invoice detail resolves the period contract's saved invoice split before the organization fallback, so site-only invoice separation never changes sibling sites.
 - Invoice duty exceptions resolve their invoice-only base in `invoice-duty-rates`, independently of payroll; per-line units and optional unrounded ED multiplication flow into detail, print and exports to preserve source precision.
 - Duty-day quantities (P/ED/total days) round only through `roundDutyDays` in `src/lib/duty-days.ts` (4 decimals) — hour-entered Extra Duty must convert exactly, never to 2 dp.
+- Invoice GST opt-out uses the period contract's existing `gst_option='none'`; shared tax maths, print and exports honour it while enabled contracts retain their state-based tax split.

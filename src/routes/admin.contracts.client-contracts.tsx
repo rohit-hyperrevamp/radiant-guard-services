@@ -737,6 +737,7 @@ function useContracts() {
     qc.invalidateQueries({ queryKey: QK });
     qc.invalidateQueries({ queryKey: ["admin", "units"] });
     qc.invalidateQueries({ queryKey: QK_CONTRACT_DIRECTORY });
+    void qc.invalidateQueries({ queryKey: ["invoice-compute"] });
   };
 
   const syncUnitDates = async (unitId: string, startDate: string, endDate: string) => {
@@ -4351,12 +4352,19 @@ function ContractFormDialog({
                 Select a unit to view its GST information.
               </div>
             )}
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="mb-4 flex items-center justify-between gap-4 border-b border-border pb-4">
+              <Label htmlFor="contract-gst-enabled">Include GST in invoices</Label>
+              <Switch
+                id="contract-gst-enabled"
+                checked={gstOption !== "none"}
+                onCheckedChange={(enabled) => setGstOption(enabled ? "csgst" : "none")}
+              />
+            </div>
+            {gstOption !== "none" && <div className="grid gap-3 sm:grid-cols-2">
               {(
                 [
                   { value: "csgst", label: "CGST + SGST" },
                   { value: "igst", label: "IGST" },
-                  { value: "none", label: "No GST" },
                 ] as { value: GstOption; label: string }[]
               ).map((opt) => (
                 <label
@@ -4379,7 +4387,7 @@ function ContractFormDialog({
                   {opt.label}
                 </label>
               ))}
-            </div>
+            </div>}
             <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
               <input
                 type="checkbox"
