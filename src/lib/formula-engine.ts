@@ -388,8 +388,13 @@ export function parseFormulaConfig(mode: string | null | undefined, raw: string 
   if (mode === "advanced") return { mode: "advanced", expression: String(raw ?? "") };
   if (mode === "preset") {
     if (!raw) return { mode: "preset", preset: DEFAULT_PRESET };
-    try { return { mode: "preset", preset: JSON.parse(raw) as PresetFormula }; }
-    catch { return { mode: "preset", preset: DEFAULT_PRESET }; }
+    // A plain expression saved under "preset" mode (e.g. "(basic + da) * 0.005")
+    // must be evaluated as written — never silently replaced by the default
+    // preset, which produced wildly wrong amounts (EDLI 0.5% → ₹2,38,668).
+    const text = String(raw).trim();
+    if (!text.startsWith("{")) return { mode: "advanced", expression: text };
+    try { return { mode: "preset", preset: JSON.parse(text) as PresetFormula }; }
+    catch { return { mode: "advanced", expression: text }; }
   }
   return null;
 }
