@@ -1,5 +1,10 @@
 # Mobile app UI re-review
 
+## CLI3089 supplied rate structure — 5 November
+- [x] Read all three labeled roles in image-122: effective 1 April 2026; gratuity zero; printed monthly Guard/Lady Guard/Supervisor ₹25,080.43/₹23,546.84/₹29,628.51.
+- [ ] Apply through an authorized production update pathway, preserving staffing, unrelated terms and processed outputs; managed tools target unrelated sandbox and shell database writes are forbidden.
+- [ ] Read back saved role rates and verify the live contract. Source totals have paise-level differences; do not add balancing charges.
+
 ## CLI3925 Traffic Officer revised sheet — 5 November
 - [x] Read full revised source: 1 January 2026–31 March 2027, 8 hours/26 days; monthly ₹44,214.05 and daily ₹1,700.54.
 - [ ] Update only Traffic Officer rates and applicable dated rates, preserving other roles and processed records. Blocked pending an authorized production update pathway; managed write tools target unrelated sandbox and shell database writes are forbidden.
