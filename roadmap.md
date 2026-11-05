@@ -1,6 +1,5 @@
 # Mobile app UI re-review
 
-## CLI3089 supplied rate structure — 5 November
 - [x] Read all three labeled roles in image-122: effective 1 April 2026; gratuity zero; printed monthly Guard/Lady Guard/Supervisor ₹25,080.43/₹23,546.84/₹29,628.51.
 - [ ] Apply through an authorized production update pathway, preserving staffing, unrelated terms and processed outputs; managed tools target unrelated sandbox and shell database writes are forbidden.
 - [ ] Read back saved role rates and verify the live contract. Source totals have paise-level differences; do not add balancing charges.
