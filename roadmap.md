@@ -1,3 +1,7 @@
+## CLI1408 uploaded September attendance — 7 November
+- [ ] Compare the uploaded 21 Aug–20 Sep sheet (170 duties including PH, 40 Extra Duty hours) with saved dated entries and primary-site classifications.
+- [ ] Correct only verified missing source-backed marks/hours, preserving reliever rules and processed records; verify live attendance readback.
+
 ## Pune Mantri 5th Floor Cafeteria — 6 November
 - [x] Created active CLI9938 "Pune - Mantri 5th Floor Cafeteria" from user-selected CLI4149 using authorized live Super Admin sign-in; contract CON16729 copies the single eight-hour resource and quantity 1, full saved rates, terms and 21st–20th payroll window. No source dated revisions existed; employees and attendance were not copied.
 - [x] Exact resource equality and unchanged source unit/contract/resources verified through authenticated live reads; new client and contract rows visually verified in production, and Clients creation audit confirmed.
