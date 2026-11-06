@@ -13,6 +13,41 @@ const resource = {
 };
 
 describe("Selectable CTC billing add-ons", () => {
+  const cli3082 = {
+    components: [{ name: "Gross", amount: 21479.69 }],
+    benefits: [],
+    employerContributions: [
+      { name: "Employer costs", amount: 2414.93 },
+      { name: "Reliever Charges", amount: 3983.23 },
+      { name: "Management Fee", amount: 1964.47 },
+    ],
+    roundOffTotals: { ctc: true },
+    roundOffFinal: true,
+  };
+
+  it("keeps CLI3082 at the editor's 29843 after rounded CTC flows into billing", () => {
+    expect(contractMonthlyBilling(cli3082)).toBe(29843);
+    expect(contractMonthlyBilling({ ...cli3082, roundOffFinal: false })).toBe(29842.70);
+    const normalized = refreshBillingAddOns(cli3082);
+    expect(normalized.employerContributions[1]?.amount).toBe(3983.23);
+    expect(normalized.employerContributions[2]?.amount).toBe(1964.47);
+    expect(contractMonthlyBilling(normalized)).toBe(29843);
+  });
+
+  it("does not apply intermediate rounding when disabled", () => {
+    expect(contractMonthlyBilling({ ...cli3082, roundOffTotals: {} })).toBe(29842);
+    expect(contractMonthlyBilling({ ...cli3082, roundOffTotals: {}, roundOffFinal: false })).toBe(29842.32);
+  });
+
+  it("carries gross, employer and billing rounding forward without rounding fees", () => {
+    expect(contractMonthlyBilling({
+      components: [{ name: "Basic", amount: 100.6 }],
+      benefits: [{ name: "Allowance", amount: 0.1 }, { name: "Reliever Charges", amount: 3.6 }],
+      employerContributions: [{ name: "ER EPF", amount: 10.6 }, { name: "Management Fee", amount: 2.25 }],
+      roundOffTotals: { gross: true, employer: true, billing: true },
+    })).toBe(118.25);
+  });
+
   it("evaluates billing-rate management fees after employer costs and relievers", () => {
     expect(formulaReferencesBillingBase("billing_rate * 0.07")).toBe(true);
     expect(formulaReferencesBillingBase("billingrate * 0.07")).toBe(true);

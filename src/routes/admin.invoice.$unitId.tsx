@@ -175,6 +175,7 @@ function contractBillableMonthly(resource: {
   deductions?: RateCardItem[];
   employerContributions?: RateCardItem[];
   roundOffFinal?: boolean;
+  roundOffTotals?: Record<string, boolean>;
 }): number {
   // Same helper as the contract card, so "Round off final billing rate"
   // gives the identical monthly value (and per-day rate) on the invoice.
@@ -505,7 +506,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources" as never)
           .select(
-            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final, round_off_totals",
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
@@ -743,6 +744,7 @@ function PayrollUnitPage() {
           otShiftHours: ([8,10,12].includes(Number(Number((r as { shift_hours?: number | null }).shift_hours))) ? (Number(Number((r as { shift_hours?: number | null }).shift_hours)) as 8 | 10 | 12) : 8),
           otEsi: normalizeOtEsi((r as { ot_esi?: unknown }).ot_esi),
           roundOffFinal: (r as { round_off_final?: unknown }).round_off_final === true,
+          roundOffTotals: (r.round_off_totals ?? {}) as Record<string, boolean>,
           payrollDayBase: r.payroll_day_base_id
             ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
             : null,
