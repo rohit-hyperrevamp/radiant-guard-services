@@ -1,3 +1,7 @@
+## Pune Mantri 5th Floor Cafeteria — 6 November
+- [ ] Find the existing Pune Mantri source and create "Pune - Mantri 5th Floor Cafeteria" with matching contract rates, resource roles/quantities and payroll window; preserve the original site and do not copy employees or attendance. Blocked: live client page redirects to OTP login, available managed credentials belong to a different database, and no production connector is available.
+- [ ] Verify the new client code and exact copied contract/resource/window values through authorized live access before reporting creation.
+
 ## CLI3082 contract/invoice rounding — 6 November
 - [x] Confirm screenshots: rounded CTC ₹23,895 plus saved reliever ₹3,983.23 and fee ₹1,964.47 gives ₹29,842.70, finally ₹29,843; direct raw sum incorrectly gave ₹29,842.
 - [x] Carry saved intermediate rounding flags into shared contract/invoice/finance billing without changing rates, attendance or fee formulas.
