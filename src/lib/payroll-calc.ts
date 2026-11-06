@@ -254,6 +254,8 @@ export type ContractResourceLike = {
   designationId: string;
   /** Contract card "Round off final billing rate": bill the whole-rupee monthly value. */
   roundOffFinal?: boolean;
+  /** Intermediate contract summary rounding carried into invoice billing. */
+  roundOffTotals?: Record<string, boolean>;
   components: WageComponent[];
   benefits: BenefitLike[];
   deductions: BenefitLike[];

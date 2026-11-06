@@ -1,5 +1,11 @@
 # Mobile app UI re-review
 
+## CLI3082 contract/invoice rounding — 6 November
+- [x] Confirm screenshots: rounded CTC ₹23,895 plus saved reliever ₹3,983.23 and fee ₹1,964.47 gives ₹29,842.70, finally ₹29,843; direct raw sum incorrectly gave ₹29,842.
+- [x] Carry saved intermediate rounding flags into shared contract/invoice/finance billing without changing rates, attendance or fee formulas.
+- [ ] Run focused rounding regressions and check automatic compilation.
+- [ ] Verify live invoice after GitHub/Vercel deployment; no authorized live session available in this turn.
+
 - [x] Read all three labeled roles in image-122: effective 1 April 2026; gratuity zero; printed monthly Guard/Lady Guard/Supervisor ₹25,080.43/₹23,546.84/₹29,628.51.
 - [ ] Apply through an authorized production update pathway, preserving staffing, unrelated terms and processed outputs; managed tools target unrelated sandbox and shell database writes are forbidden.
 - [ ] Read back saved role rates and verify the live contract. Source totals have paise-level differences; do not add balancing charges.
