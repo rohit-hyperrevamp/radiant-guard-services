@@ -1,6 +1,6 @@
 ## Pune Mantri 5th Floor Cafeteria — 6 November
-- [ ] Find the existing Pune Mantri source and create "Pune - Mantri 5th Floor Cafeteria" with matching contract rates, resource roles/quantities and payroll window; preserve the original site and do not copy employees or attendance. Blocked: live client page redirects to OTP login, available managed credentials belong to a different database, and no production connector is available.
-- [ ] Verify the new client code and exact copied contract/resource/window values through authorized live access before reporting creation.
+- [x] Created active CLI9938 "Pune - Mantri 5th Floor Cafeteria" from user-selected CLI4149 using authorized live Super Admin sign-in; contract CON16729 copies the single eight-hour resource and quantity 1, full saved rates, terms and 21st–20th payroll window. No source dated revisions existed; employees and attendance were not copied.
+- [x] Exact resource equality and unchanged source unit/contract/resources verified through authenticated live reads; new client and contract rows visually verified in production, and Clients creation audit confirmed.
 
 ## CLI3082 contract/invoice rounding — 6 November
 - [x] Confirm screenshots: rounded CTC ₹23,895 plus saved reliever ₹3,983.23 and fee ₹1,964.47 gives ₹29,842.70, finally ₹29,843; direct raw sum incorrectly gave ₹29,842.
