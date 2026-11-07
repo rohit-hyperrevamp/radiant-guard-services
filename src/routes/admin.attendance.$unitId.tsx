@@ -1,5 +1,6 @@
 import { useUnitDesignations } from "@/lib/unit-designations";
 import { roundDutyDays } from "@/lib/duty-days";
+import { mergeAttendanceHourRows } from "@/lib/attendance-excel-rows";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { EmployeeSitesPopover } from "@/components/EmployeeSitesPopover";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -3575,15 +3576,15 @@ function MusterRollPage() {
           if (raw == null || String(raw).trim() === "") continue;
           // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
           const cell = String(raw).trim().toUpperCase();
-          const m = cell.match(/^([A-Z]+)(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
+          const m = cell.match(/^([A-Z]+|(?=,))(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
           if (!m) continue;
           // FPL muster shorthand: "D" / "ED" mean Duty / Extra-Duty — both are a
           // PRESENT day, with the trailing number being OT days for that date.
           // Re-map to canonical "P" so payroll counts them as present.
           let codeKey = m[1];
           if (codeKey === "D" || codeKey === "ED") codeKey = "P";
-          const canonical = codeSet.get(codeKey);
-          if (!canonical) continue;
+          const canonical = codeKey ? codeSet.get(codeKey) : "";
+          if (canonical == null) continue;
           const ot = m[2] ? Number(m[2]) : 0;
           out.push({
             entry_date: h.date,
@@ -3594,6 +3595,14 @@ function MusterRollPage() {
         return out;
       };
 
+      aoa = mergeAttendanceHourRows(aoa, headerRowIdx, headerDates, (row) => {
+        const mr = row.slice(0, 4).map((v) => norm(String(v ?? "")))
+          .map((key) => byCode.get(key) ?? byName.get(key)).find((match) => match != null);
+        const designation = designationCol >= 0
+          ? fuzzyDesigMatch(norm(String(row[designationCol] ?? "")), String(row[designationCol] ?? ""))
+          : undefined;
+        return shiftHoursFor(shiftMap, unitId, designation?.designationId ?? mr?.designationId ?? null, mr?.candidateId ?? null);
+      });
 
       for (let r = headerRowIdx + 1; r < aoa.length; r++) {
         const row = aoa[r] || [];
@@ -3779,6 +3788,10 @@ function MusterRollPage() {
             if (person.label) unmatchedNames.push(person.label);
           }
         }
+      }
+
+      if (filled === 0 || (byPair.size === 0 && autoPairs.length === 0)) {
+        throw new Error("No valid employee attendance rows were read. Existing attendance was not replaced.");
       }
 
       // Sheet-authoritative: wipe every prior entry in this period for any
