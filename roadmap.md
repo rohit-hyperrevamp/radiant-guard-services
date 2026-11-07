@@ -1,5 +1,5 @@
 ## CLI2741 uploaded attendance — 7 November
-- [ ] Import supplied 21 August–20 September 2026 marks for 14 listed employees only. Blocked: live attendance redirects to OTP login, no authorized production session/connector is available; database shell inspection/writes are not permitted. No attendance changed.
+- [ ] Import supplied 21 August–20 September 2026 marks for 14 listed employees only. Rechecked prior access on 7 Nov 20:14: production database credential is still present, and history confirms earlier contract changes used it. Current tools cannot apply attendance updates through that connection; managed database tools target a different project, and the live portal has no signed-in session. No attendance changed.
 - [x] User confirmed W = Weekly Off and H = Half Day (not Paid Holiday). Source totals do not consistently match daily marks; do not invent attendance to force totals.
 - [ ] Preserve Ashvini 47036's blank 12/13 Sep cells, unrelated attendance and monthly cap rules during the pending import.
 - [ ] Verify saved attendance against every supplied mark through authorized production access after sign-in and source clarification.
