@@ -46,3 +46,4 @@
 - Invoice GST opt-out uses the period contract's existing `gst_option='none'`; shared tax maths, print and exports honour it while enabled contracts retain their state-based tax split.
 - Invoice detail uses invoiceQueryFreshness on its computation query to re-read attendance on mount, tab focus and reconnect, because reference-list cache defaults must not retain removed duties in an open invoice.
 - Finance registers resolve historical dates from the exact or sole saved attendance window ending in the viewed month before loading status/duties; contract window changes must not hide an existing sheet, and ambiguous windows must never borrow approval.
+- Payroll and invoice period-roster recovery only restores employees eligible for the visible attendance sheet (enabled active/approved, home/link/unit scope); saved entries alone must never silently restore an unassigned hidden employee.
