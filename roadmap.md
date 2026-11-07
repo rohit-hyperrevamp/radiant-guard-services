@@ -1,7 +1,12 @@
+## CLI2967 attendance/invoice duty mismatch — 7 November
+- [x] Production 21 Aug–20 Sep: 25 Present (45087) + 18 reliever ED (20999:1, 29436:6, 43280:1, 46470:10) = 43 duties. All active/enabled, saved designation Security Guard matches the 8h contract; no PH, split or duty-changing adjustments. Actual invoice calculator against saved rows returns exactly 25 P + 18 ED = 43. No attendance changed.
+- [ ] Verify the different displayed figures with a current attendance/invoice screenshot or live authorized session; current production browser is signed out. Cannot identify a further defect from matching saved counts alone.
+
 ## CLI4444 September attendance status — 7 November
 - [x] Production confirms September sheet approved for 1–30 Sep (30 saved entries). Its dates changed on 11 Oct from 21 Aug–20 Sep, but the contract still uses 21–20, so invoice checked a nonexistent sheet. No attendance or approval data changed.
 - [x] Finance registers now use exact or sole saved September window before reading duties/status; ambiguous windows cannot borrow approval. Invoice approval refreshes on mount/focus/reconnect and loading/errors no longer claim attendance is open. Attendance link retains exact dates. Seven regressions pass; automatic build OK.
-- [ ] Verify signed-in production invoice after GitHub/Vercel deployment; live check redirects to login, and deployment is unverified.
+- [x] Rechecked Vercel assets at 10:30 UTC: live FinanceCharter includes saved-window selection and live invoice includes approval-loading correction; GitHub/Vercel delivery has completed without direct Vercel credentials.
+- [ ] Verify signed-in production invoice; live check redirects to login.
 
 ## CLI2779 September invoice after attendance removal — 7 November
 - [x] Found open-tab refresh gap: invoice computation inherited disabled focus/reconnect refresh; attendance deletion refreshed only attendance queries. Added invoice-only focus/reconnect refresh without polling or altering attendance. Seven focused refresh/split tests pass; automatic build OK.
