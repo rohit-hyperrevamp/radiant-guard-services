@@ -1,3 +1,7 @@
+## CLI3815 and CLI4252 contract rates — 7 November
+- [ ] Update CLI3815 Patient Guide only from image-126, preserving unrelated roles/terms; verify sheet-derived formulas and saved totals.
+- [ ] Copy CLI4249 Security Guard rate structure exactly to CLI4252, preserving source, staffing and unrelated terms; verify live readback.
+
 ## CLI2967 attendance/invoice duty mismatch — 7 November
 - [x] User confirmed visible 25 P + 1 ED. Found 17 hidden ED for unassigned 20999 (1), 29436 (6), 46470 (10); invoice/payroll restored them from saved entries despite absence from attendance roster.
 - [x] Backed up and removed exactly those 17 entries through production migration; kept 45087's 25 P and 43280's 1 ED untouched. Production readback and actual invoice calculator both give 26 duties. Backup backup_cli2967_hidden_att_20261107; approval/rates unchanged.
