@@ -1,5 +1,5 @@
 ## CLI3815 and CLI4252 contract rates — 7 November
-- [ ] Update CLI3815 Patient Guide only from image-126, preserving unrelated roles/terms; verify sheet-derived formulas and saved totals. User requested retry at 18:27 UTC; live editor still redirects to OTP login, and available connection/app connector lists are empty. Blocked: no authorized production session or supported production write tool available. No rate records changed.
+- [x] Updated CLI3815 Patient Guide in production (backup `backup_cli3815_res_20261107`): removed duplicate Uniform/LWF lines, fee now new master "Management Fee 7.5% (Total CTC)", ESI 629/146, EE LWF 4.17. Readback gross 19,339 + employer 4,558.79 = billing 23,897.79; deductions 2,150.17, net 17,188.83. Supervisor/Driver untouched. Payroll/invoices already generated need regeneration.
 - [ ] Copy CLI4249 Security Guard rate structure exactly to CLI4252, preserving source, staffing and unrelated terms; verify live readback. Blocked by the same production access limitation; source/target live rates not yet read and no records changed.
 
 ## CLI2967 attendance/invoice duty mismatch — 7 November
