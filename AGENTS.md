@@ -44,3 +44,4 @@
 - Duty-day quantities (P/ED/total days) round only through `roundDutyDays` in `src/lib/duty-days.ts` (4 decimals) — hour-entered Extra Duty must convert exactly, never to 2 dp.
 - Attendance XLSX imports fold explicit Att/OT continuation rows through `mergeAttendanceHourRows` before replacement, converting clock hours by the resolved shift and rejecting orphan/invalid OT to prevent silent loss.
 - Invoice GST opt-out uses the period contract's existing `gst_option='none'`; shared tax maths, print and exports honour it while enabled contracts retain their state-based tax split.
+- Invoice detail uses invoiceQueryFreshness on its computation query to re-read attendance on mount, tab focus and reconnect, because reference-list cache defaults must not retain removed duties in an open invoice.

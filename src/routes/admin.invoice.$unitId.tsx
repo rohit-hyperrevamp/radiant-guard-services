@@ -55,6 +55,7 @@ import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
 import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 import { contractMonthlyBilling, invoiceMonthlyRateLabel } from "@/lib/contract-rate-display";
+import { invoiceQueryFreshness } from "@/lib/invoice-query-freshness";
 
 /** Dated rates store wages only; Extra Duty settings always come from the contract line. */
 function contractOtFields(r: Record<string, unknown>): Record<string, unknown> {
@@ -409,9 +410,8 @@ function PayrollUnitPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
-    // Always recompute from the live contract when the page opens.
-    staleTime: 0,
-    refetchOnMount: "always",
+    // Re-read saved attendance on opening, returning from another tab, or reconnecting.
+    ...invoiceQueryFreshness,
     // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
     // first render is wrong/zero until a manual refresh.
     enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
