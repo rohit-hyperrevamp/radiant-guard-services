@@ -1,6 +1,7 @@
 ## CLI2741 uploaded attendance — 7 November
-- [ ] Import supplied 21 August–20 September 2026 day marks for listed employees only, preserving unrelated attendance and monthly cap rules; resolve source blanks without inventing marks.
-- [ ] Verify saved attendance against every supplied mark through authorized production access.
+- [ ] Import supplied 21 August–20 September 2026 marks for 14 listed employees only. Blocked: live attendance redirects to OTP login, no authorized production session/connector is available; database shell inspection/writes are not permitted. No attendance changed.
+- [ ] Confirm source W/H meanings before importing; source totals do not consistently match visible day marks. Ashvini 47036 has blank 12/13 Sep cells; preserve them without inventing marks. Keep unrelated attendance and monthly cap rules.
+- [ ] Verify saved attendance against every supplied mark through authorized production access after sign-in and source clarification.
 
 ## CLI4267 Security Guard rates — 7 November
 - [x] Copied CLI4249 CON15885 Security Guard rates to CLI4267 active CON16243; backup `backup_cli4267_rates_20261107`. Fresh production readback verifies all 14 rate fields and both day bases exactly match; source, expired CON15900, staffing and non-rate fields unchanged. Audit confirmed; processed payroll/invoices unchanged and signed-in screen not visually checked.
