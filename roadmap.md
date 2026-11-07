@@ -1,5 +1,6 @@
 ## CLI2779 September invoice after attendance removal — 7 November
-- [ ] Check why the 21 Aug–20 Sep invoice still shows 173 Guard + 27 Officer = 200 duties after attendance removal; preserve saved attendance and verify before changing anything.
+- [x] Found open-tab refresh gap: invoice computation inherited disabled focus/reconnect refresh; attendance deletion refreshed only attendance queries. Added invoice-only focus/reconnect refresh without polling or altering attendance. Seven focused refresh/split tests pass; automatic build OK.
+- [ ] Verify exact saved duties and corrected 21 Aug–20 Sep live invoice (screenshot 173 Guard + 27 Officer = 200). Live invoice redirects to login; no authorized production session available. Actual cause of this particular count remains unverified; existing live data and issued invoices untouched. Code delivery depends on GitHub/Vercel deployment.
 
 ## L&T Telangana Security Guard billing adjustments — 7 November
 - [x] Production check (7 Nov): all 56 L&T Telangana contract roles (29 sites) already have no Billing Rate Adjustment; the old ₹0.01 "Billing Rate Adjustment (L&T MIS)" lines (backup_contract_resources_lt_tg_20261020) were gone since late October. No dated revisions exist. Nothing changed.
