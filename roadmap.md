@@ -1,6 +1,7 @@
 ## CLI1408 uploaded September attendance — 7 November
-- [ ] Compare the uploaded 21 Aug–20 Sep sheet (170 duties including PH, 40 Extra Duty hours) with saved dated entries and primary-site classifications.
-- [ ] Correct only verified missing source-backed marks/hours, preserving reliever rules and processed records; verify live attendance readback.
+- [x] Verified live September attendance: 155 Present + 12 reliever ED days; all 40 source ED hours absent. Three PH marks excluded because holiday pay is disabled. User chose to count these three dates as Present; monthly reliever/cap rules must remain enabled.
+- [x] Fixed XLSX Att/OT continuation parsing with per-shift hour conversion and rejection of orphan/invalid hour rows before replacement; eight focused tests passed and compilation clean.
+- [ ] Restore the 40 source ED hours and change the three PH dates to Present, then verify source-backed dates and live totals. Blocked: the clarification pause reset temporary files and erased the authorized production browser session; no live data was changed. Requires fresh live sign-in. Payroll currently submitted, not processed; attendance draft.
 
 ## Pune Mantri 5th Floor Cafeteria — 6 November
 - [x] Created active CLI9938 "Pune - Mantri 5th Floor Cafeteria" from user-selected CLI4149 using authorized live Super Admin sign-in; contract CON16729 copies the single eight-hour resource and quantity 1, full saved rates, terms and 21st–20th payroll window. No source dated revisions existed; employees and attendance were not copied.

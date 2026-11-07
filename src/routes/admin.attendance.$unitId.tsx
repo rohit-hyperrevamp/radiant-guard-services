@@ -3576,7 +3576,7 @@ function MusterRollPage() {
           if (raw == null || String(raw).trim() === "") continue;
           // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
           const cell = String(raw).trim().toUpperCase();
-          const m = cell.match(/^([A-Z]*)(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
+          const m = cell.match(/^([A-Z]+|(?=,))(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
           if (!m) continue;
           // FPL muster shorthand: "D" / "ED" mean Duty / Extra-Duty — both are a
           // PRESENT day, with the trailing number being OT days for that date.
@@ -3788,6 +3788,10 @@ function MusterRollPage() {
             if (person.label) unmatchedNames.push(person.label);
           }
         }
+      }
+
+      if (filled === 0 || (byPair.size === 0 && autoPairs.length === 0)) {
+        throw new Error("No valid employee attendance rows were read. Existing attendance was not replaced.");
       }
 
       // Sheet-authoritative: wipe every prior entry in this period for any
