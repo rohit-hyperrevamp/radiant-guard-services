@@ -1,5 +1,5 @@
 ## CLI3815 and CLI4252 contract rates — 7 November
-- [ ] Update CLI3815 Patient Guide only from image-126, preserving unrelated roles/terms; verify sheet-derived formulas and saved totals. Blocked: live contract editor redirects to OTP login; no authorized production session or supported production write tool available. No rate records changed.
+- [ ] Update CLI3815 Patient Guide only from image-126, preserving unrelated roles/terms; verify sheet-derived formulas and saved totals. User requested retry at 18:27 UTC; live editor still redirects to OTP login, and available connection/app connector lists are empty. Blocked: no authorized production session or supported production write tool available. No rate records changed.
 - [ ] Copy CLI4249 Security Guard rate structure exactly to CLI4252, preserving source, staffing and unrelated terms; verify live readback. Blocked by the same production access limitation; source/target live rates not yet read and no records changed.
 
 ## CLI2967 attendance/invoice duty mismatch — 7 November
