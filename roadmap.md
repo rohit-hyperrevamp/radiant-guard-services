@@ -1,3 +1,6 @@
+## CLI4267 Security Guard rates — 7 November
+- [ ] Copy CLI4249 CON15885 rates to CLI4267 active CON16243; back up and verify exact equality, preserving source, expired CON15900, staffing, day bases and unrelated terms.
+
 ## CLI4260 Security Guard rates — 7 November
 - [x] Applied CLI4249 CON15885 Security Guard rates to CLI4260 active CON16242; backup `backup_cli4260_rates_20261107`. Fresh production readback verifies exact equality of all 14 rate fields and both day bases; source, expired CON15896, staffing and non-rate fields unchanged. Audit update confirmed; processed outputs unchanged and signed-in screen not visually checked.
 
