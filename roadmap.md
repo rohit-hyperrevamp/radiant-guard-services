@@ -1,6 +1,6 @@
 ## CLI4333 September Present duties — 7 November
 - [x] Production read (21 Aug–20 Sep, approved 08:01 UTC 7 Nov): Ganpat 47299 = 26 P + 1 ED (21 Aug) + Absent 16 Sep (edited 08:00 today); Rajendra 49043 = 7 reliever ED (primary CLI4307); Aslam 49332 = 20 ED-only days 1–20 Sep (his CLI4333 regular mapping deleted 07:56 today). No day-adjusting additions/deductions; invoice P count = saved P = 26.
-- [ ] Waiting on user: which employee/day makes 27 Present, and whether Aslam's 1–20 Sep should be Present instead of Extra Duty.
+- [x] User chose: Ganpat 16 Sep Present. Saved with backup `backup_cli4333_att_20261107`; readback Ganpat 27 P (no cap move), site 27 P. Aslam left as-is per user.
 - [ ] Correct the cause, add a focused regression, and verify saved attendance and the live invoice agree; preserve processed records and monthly attendance rules. Requires fresh authorized live sign-in; no attendance, rates or invoices changed.
 
 ## CLI1408 uploaded September attendance — 7 November
