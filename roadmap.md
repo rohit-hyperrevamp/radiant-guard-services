@@ -1,3 +1,6 @@
+## CLI4444 September attendance status — 7 November
+- [ ] Diagnose why the invoice says attendance is open when the attendance sheet is closed; fix the status check without changing duties or approval history, and verify the result.
+
 ## CLI2779 September invoice after attendance removal — 7 November
 - [x] Found open-tab refresh gap: invoice computation inherited disabled focus/reconnect refresh; attendance deletion refreshed only attendance queries. Added invoice-only focus/reconnect refresh without polling or altering attendance. Seven focused refresh/split tests pass; automatic build OK.
 - [x] Production check (7 Nov 09:55 UTC): saved 21 Aug–20 Sep = Guard 157 P + 16 reliever ED (Umesh Chandra 31845 15 ED 21 Aug–4 Sep, same days P at home CLI520; Vijay Shinde 40905 1 ED 21 Aug, also P at CLI519) + Officer 27 P = 200. No attendance deletions logged today (only reopen/submit/approve/send-to-payroll). Invoice 200 matches saved data.
