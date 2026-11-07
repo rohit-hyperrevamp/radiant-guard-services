@@ -1,3 +1,6 @@
+## CLI2779 September invoice after attendance removal — 7 November
+- [ ] Check why the 21 Aug–20 Sep invoice still shows 173 Guard + 27 Officer = 200 duties after attendance removal; preserve saved attendance and verify before changing anything.
+
 ## L&T Telangana Security Guard billing adjustments — 7 November
 - [x] Production check (7 Nov): all 56 L&T Telangana contract roles (29 sites) already have no Billing Rate Adjustment; the old ₹0.01 "Billing Rate Adjustment (L&T MIS)" lines (backup_contract_resources_lt_tg_20261020) were gone since late October. No dated revisions exist. Nothing changed.
 - [ ] Awaiting user: whether "Billing-only EE PF/ESI/PT per L&T Rate (Fixed)" ₹2,101.12 is what they mean; not removed without instruction.
