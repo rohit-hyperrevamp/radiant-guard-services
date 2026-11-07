@@ -1,7 +1,7 @@
 ## CLI2779 September invoice after attendance removal — 7 November
 - [x] Found open-tab refresh gap: invoice computation inherited disabled focus/reconnect refresh; attendance deletion refreshed only attendance queries. Added invoice-only focus/reconnect refresh without polling or altering attendance. Seven focused refresh/split tests pass; automatic build OK.
 - [x] Production check (7 Nov 09:55 UTC): saved 21 Aug–20 Sep = Guard 157 P + 16 reliever ED (Umesh Chandra 31845 15 ED 21 Aug–4 Sep, same days P at home CLI520; Vijay Shinde 40905 1 ED 21 Aug, also P at CLI519) + Officer 27 P = 200. No attendance deletions logged today (only reopen/submit/approve/send-to-payroll). Invoice 200 matches saved data.
-- [ ] Awaiting user: whether to remove the 16 reliever ED entries (Umesh 15, Vijay 1) from CLI2779.
+- [x] User confirmed attendance page's 120 is correct. Removed 80 hidden days of unmapped employees 40118, 41098 (CLI2619) and 49004 (CLI2751), backup `backup_cli2779_att_20261107`. Saved now 104 P + 16 ED = 120. Payroll (submitted) needs regeneration.
 
 ## L&T Telangana Security Guard billing adjustments — 7 November
 - [x] Production check (7 Nov): all 56 L&T Telangana contract roles (29 sites) already have no Billing Rate Adjustment; the old ₹0.01 "Billing Rate Adjustment (L&T MIS)" lines (backup_contract_resources_lt_tg_20261020) were gone since late October. No dated revisions exist. Nothing changed.
