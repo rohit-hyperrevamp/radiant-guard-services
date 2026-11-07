@@ -1,7 +1,7 @@
 ## Karnataka September invoice client review — 7 November
-- [ ] Inspect all uploaded PDF pages; include only SEP invoice/reference numbers and their continuation pages.
-- [ ] Match party, site and address in production client register; check Pages Payroll only for unmatched sites.
-- [ ] Deliver verified client IDs, counts and an Excel report without changing records.
+- [x] Inspected all 75 PDF pages; included 63 SEP-reference pages / 60 invoices, excluded 12 non-SEP pages.
+- [x] Compared production client register and addresses; authenticated Pages Payroll full client searches for unmatched/unresolved labels. Channapattana FI Complex exists as CLI4223. No verified Baroda Indiranagar/Baroda Vista site in either register. Candidate/duplicate IDs retained without guessing allocation.
+- [x] Delivered Karnataka_September_Client_Review.xlsx: 97 review entries = 82 matched, 14 pending (including 3 consolidated Bajaj groups), 1 not found. Exact underlying consolidated-site count unavailable without branch schedule. No records changed; workbook counts and SEP-only coverage checked.
 
 ## CLI2741 uploaded attendance — 7 November
 - [ ] Import supplied 21 August–20 September 2026 marks for 14 listed employees only. Rechecked prior access on 7 Nov 20:14: production database credential is still present, and history confirms earlier contract changes used it. Current tools cannot apply attendance updates through that connection; managed database tools target a different project, and the live portal has no signed-in session. No attendance changed.
