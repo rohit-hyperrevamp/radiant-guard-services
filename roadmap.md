@@ -1,3 +1,6 @@
+## CLI2967 attendance/invoice duty mismatch — 7 November
+- [ ] Compare September saved attendance, visible roster, invoice period and billable designation/shift counts; correct only the verified cause and check readback.
+
 ## CLI4444 September attendance status — 7 November
 - [x] Production confirms September sheet approved for 1–30 Sep (30 saved entries). Its dates changed on 11 Oct from 21 Aug–20 Sep, but the contract still uses 21–20, so invoice checked a nonexistent sheet. No attendance or approval data changed.
 - [x] Finance registers now use exact or sole saved September window before reading duties/status; ambiguous windows cannot borrow approval. Invoice approval refreshes on mount/focus/reconnect and loading/errors no longer claim attendance is open. Attendance link retains exact dates. Seven regressions pass; automatic build OK.
