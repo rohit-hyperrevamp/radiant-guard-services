@@ -1,3 +1,7 @@
+## CLI4333 September Present duties — 7 November
+- [ ] Reproduce attendance 27 Present versus invoice 26 through authorized production reads; identify the excluded day without changing attendance or rates to force a match.
+- [ ] Correct the cause, add a focused regression, and verify saved attendance and the live invoice agree; preserve processed records and monthly attendance rules.
+
 ## CLI1408 uploaded September attendance — 7 November
 - [x] Verified live September attendance: 155 Present + 12 reliever ED days; all 40 source ED hours absent. Three PH marks excluded because holiday pay is disabled. User chose to count these three dates as Present; monthly reliever/cap rules must remain enabled.
 - [x] Fixed XLSX Att/OT continuation parsing with per-shift hour conversion and rejection of orphan/invalid hour rows before replacement; eight focused tests passed and compilation clean.
