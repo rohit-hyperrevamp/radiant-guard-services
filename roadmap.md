@@ -1,3 +1,7 @@
+## CLI2741 uploaded attendance — 7 November
+- [ ] Import supplied 21 August–20 September 2026 day marks for listed employees only, preserving unrelated attendance and monthly cap rules; resolve source blanks without inventing marks.
+- [ ] Verify saved attendance against every supplied mark through authorized production access.
+
 ## CLI4267 Security Guard rates — 7 November
 - [x] Copied CLI4249 CON15885 Security Guard rates to CLI4267 active CON16243; backup `backup_cli4267_rates_20261107`. Fresh production readback verifies all 14 rate fields and both day bases exactly match; source, expired CON15900, staffing and non-rate fields unchanged. Audit confirmed; processed payroll/invoices unchanged and signed-in screen not visually checked.
 
