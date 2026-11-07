@@ -1,6 +1,6 @@
 ## L&T Telangana Security Guard billing adjustments — 7 November
-- [ ] Identify all matching production Security Guard resources and dated structures; remove only Billing Rate Adjustment with backup.
-- [ ] Verify adjustments absent and unrelated roles, charges and day settings preserved.
+- [ ] Remove only Billing Rate Adjustment from matching production Security Guard resources and dated structures with backup. Blocked: live contract page checked and redirects to login; supported database tools target the unrelated sandbox, and current shell rules prohibit database inspection/writes through psql.
+- [ ] Verify adjustments absent and unrelated roles, charges and day settings preserved. No production records changed; do not remove the distinct Billing-only EE PF/ESI/PT charge without user instruction.
 
 ## CLI4333 September Present duties — 7 November
 - [x] Production read (21 Aug–20 Sep, approved 08:01 UTC 7 Nov): Ganpat 47299 = 26 P + 1 ED (21 Aug) + Absent 16 Sep (edited 08:00 today); Rajendra 49043 = 7 reliever ED (primary CLI4307); Aslam 49332 = 20 ED-only days 1–20 Sep (his CLI4333 regular mapping deleted 07:56 today). No day-adjusting additions/deductions; invoice P count = saved P = 26.
