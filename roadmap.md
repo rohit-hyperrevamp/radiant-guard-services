@@ -1,5 +1,5 @@
 ## CLI4260 Security Guard rates — 7 November
-- [ ] Apply CLI4249 CON15885 rates to CLI4260 active CON16242, preserving source, expired CON15896, staffing, day bases and unrelated terms; back up and verify production readback.
+- [x] Applied CLI4249 CON15885 Security Guard rates to CLI4260 active CON16242; backup `backup_cli4260_rates_20261107`. Fresh production readback verifies exact equality of all 14 rate fields and both day bases; source, expired CON15896, staffing and non-rate fields unchanged. Audit update confirmed; processed outputs unchanged and signed-in screen not visually checked.
 
 ## CLI3815 and CLI4252 contract rates — 7 November
 - [x] Updated CLI3815 Patient Guide in production (backup `backup_cli3815_res_20261107`): removed duplicate Uniform/LWF lines, fee now new master "Management Fee 7.5% (Total CTC)", ESI 629/146, EE LWF 4.17. Readback gross 19,339 + employer 4,558.79 = billing 23,897.79; deductions 2,150.17, net 17,188.83. Supervisor/Driver untouched. Payroll/invoices already generated need regeneration.
