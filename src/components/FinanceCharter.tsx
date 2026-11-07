@@ -36,6 +36,10 @@ import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalI
 import { EXCLUDE, isSplit, loadOrgInvoiceSplit, type InvoiceItemKey, type InvoiceSplit } from "@/lib/invoice-split";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadPeriodGstOptions } from "@/lib/contract-gst";
+import { fetchInChunks } from "@/lib/supabase-batch";
+import { supabaseSessionReady } from "@/lib/supabase-ready";
+import { resolveSavedAttendancePeriod, type SavedAttendancePeriod } from "@/lib/saved-attendance-period";
+import { invoiceQueryFreshness } from "@/lib/invoice-query-freshness";
 
 
 // ---------------------------------------------------------------------------
@@ -216,18 +220,45 @@ export function FinanceCharter({
     },
   });
 
+  const selectedMonth = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
+  const savedPeriodsQ = useQuery({
+    queryKey: ["attendance-saved-periods", allUnitIds.join(","), selectedMonth],
+    enabled: allUnitIds.length > 0,
+    ...invoiceQueryFreshness,
+    queryFn: async () => {
+      await supabaseSessionReady();
+      const monthEnd = payrollPeriodForMonth(year, monthIdx).end;
+      return fetchInChunks<SavedAttendancePeriod>(allUnitIds, (ids, from, to) =>
+        supabase.from("attendance_sheets" as never)
+          .select("unit_id, period_start, period_end")
+          .in("unit_id", ids)
+          .gte("period_end", `${selectedMonth}-01`)
+          .lte("period_end", monthEnd)
+          .order("id")
+          .range(from, to),
+      );
+    },
+  });
   const allPeriodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    for (const unitId of allUnitIds) {
+      const expected = payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId));
+      const resolved = resolveSavedAttendancePeriod(unitId, expected, selectedMonth, savedPeriodsQ.data ?? []);
+      const dates = periodDateList(resolved.start, resolved.end);
+      const today = new Date();
+      const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const elapsedDays = dates.filter((d) => d <= todayIso).length;
+      out.set(unitId, { ...resolved, totalDays: dates.length, elapsedDays, mtdEnd: dates[Math.max(0, elapsedDays - 1)] ?? resolved.start });
+    }
     return out;
-  }, [allUnitIds, year, monthIdx, windowsByUnit]);
+  }, [allUnitIds, year, monthIdx, windowsByUnit, selectedMonth, savedPeriodsQ.data]);
   const allPeriodKey = useMemo(
     () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [allPeriodsByUnit],
   );
   const allStatusQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
-    enabled: allUnitIds.length > 0,
+    enabled: allUnitIds.length > 0 && savedPeriodsQ.isSuccess,
     staleTime: 0,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
   });
@@ -253,9 +284,12 @@ export function FinanceCharter({
 
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    for (const unitId of unitIds) {
+      const period = allPeriodsByUnit.get(unitId);
+      if (period) out.set(unitId, period);
+    }
     return out;
-  }, [unitIds, year, monthIdx, windowsByUnit]);
+  }, [unitIds, allPeriodsByUnit]);
   const periodKey = useMemo(
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
@@ -269,7 +303,7 @@ export function FinanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
-    enabled: mode === "invoice" && unitIds.length > 0,
+    enabled: mode === "invoice" && unitIds.length > 0 && savedPeriodsQ.isSuccess,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();

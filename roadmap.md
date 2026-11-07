@@ -1,3 +1,8 @@
+## CLI4444 September attendance status — 7 November
+- [x] Production confirms September sheet approved for 1–30 Sep (30 saved entries). Its dates changed on 11 Oct from 21 Aug–20 Sep, but the contract still uses 21–20, so invoice checked a nonexistent sheet. No attendance or approval data changed.
+- [x] Finance registers now use exact or sole saved September window before reading duties/status; ambiguous windows cannot borrow approval. Invoice approval refreshes on mount/focus/reconnect and loading/errors no longer claim attendance is open. Attendance link retains exact dates. Seven regressions pass; automatic build OK.
+- [ ] Verify signed-in production invoice after GitHub/Vercel deployment; live check redirects to login, and deployment is unverified.
+
 ## CLI2779 September invoice after attendance removal — 7 November
 - [x] Found open-tab refresh gap: invoice computation inherited disabled focus/reconnect refresh; attendance deletion refreshed only attendance queries. Added invoice-only focus/reconnect refresh without polling or altering attendance. Seven focused refresh/split tests pass; automatic build OK.
 - [x] Production check (7 Nov 09:55 UTC): saved 21 Aug–20 Sep = Guard 157 P + 16 reliever ED (Umesh Chandra 31845 15 ED 21 Aug–4 Sep, same days P at home CLI520; Vijay Shinde 40905 1 ED 21 Aug, also P at CLI519) + Officer 27 P = 200. No attendance deletions logged today (only reopen/submit/approve/send-to-payroll). Invoice 200 matches saved data.

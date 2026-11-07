@@ -344,17 +344,19 @@ function PayrollUnitPage() {
   });
   const misApplicable = !misDisabledCustomers?.has(String(unit?.customer_id ?? ""));
 
-  const { data: sheet } = useQuery({
+  const { data: sheet, isPending: sheetPending, error: sheetError } = useQuery({
     queryKey: ["payroll-sheet", unitId, start, end],
+    ...invoiceQueryFreshness,
     queryFn: async () => {
       await supabaseSessionReady();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("attendance_sheets" as never)
         .select("id, status, approved_at, tally_invoice_path, tally_invoice_name, tally_invoice_uploaded_at")
         .eq("unit_id", unitId)
         .eq("period_start", start)
         .eq("period_end", end)
         .maybeSingle();
+      if (error) throw error;
       return data as unknown as {
         id: string;
         status: string;
@@ -1691,6 +1693,18 @@ function PayrollUnitPage() {
     else window.location.href = signed.signedUrl;
   };
 
+  if (sheetPending || sheetError) {
+    return (
+      <div className="space-y-4 p-4 sm:p-6" role="status">
+        <Link to="/admin/invoice" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" /> Back to invoice units
+        </Link>
+        <p className="text-sm text-muted-foreground">
+          {sheetError ? "Attendance status could not be checked. Please try again." : "Checking attendance approval…"}
+        </p>
+      </div>
+    );
+  }
   const invoiceUnlocked = sheet?.status === "approved";
   if (!invoiceUnlocked) {
     const attStatus = sheet?.status ?? null;
@@ -1709,7 +1723,7 @@ function PayrollUnitPage() {
             {attStatus ? ` "${attStatus}"` : " not yet submitted"}. Invoices only run against <strong>approved</strong> attendance.
           </p>
           <div className="mt-4">
-            <Link to="/admin/attendance/$unitId" params={{ unitId }} search={{ month: new Date(start).getMonth(), year: new Date(start).getFullYear() }}>
+            <Link to="/admin/attendance/$unitId" params={{ unitId }} search={{ month: Number(end.slice(5, 7)) - 1, year: Number(end.slice(0, 4)), start, end }}>
               <Button size="sm">Open attendance sheet</Button>
             </Link>
           </div>
