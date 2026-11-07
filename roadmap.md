@@ -1,6 +1,7 @@
 ## CLI2741 uploaded attendance — 7 November
 - [ ] Import supplied 21 August–20 September 2026 marks for 14 listed employees only. Blocked: live attendance redirects to OTP login, no authorized production session/connector is available; database shell inspection/writes are not permitted. No attendance changed.
-- [ ] Confirm source W/H meanings before importing; source totals do not consistently match visible day marks. Ashvini 47036 has blank 12/13 Sep cells; preserve them without inventing marks. Keep unrelated attendance and monthly cap rules.
+- [x] User confirmed W = Weekly Off and H = Half Day (not Paid Holiday). Source totals do not consistently match daily marks; do not invent attendance to force totals.
+- [ ] Preserve Ashvini 47036's blank 12/13 Sep cells, unrelated attendance and monthly cap rules during the pending import.
 - [ ] Verify saved attendance against every supplied mark through authorized production access after sign-in and source clarification.
 
 ## CLI4267 Security Guard rates — 7 November
