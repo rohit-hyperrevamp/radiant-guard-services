@@ -1,3 +1,6 @@
+## CLI2989 attendance/invoice 28.5 versus 27 — 8 November
+- [ ] Verify current saved attendance and separate invoice parts; correct any missing Extra Duty without changing attendance or authorized rates.
+
 ## Remove unauthorized Extra Duty supplements — 8 November
 - [x] Disabled all 15 active unauthorized supplement charges in production; CLI2535 was a ₹398.53 lump sum. CLI2989's previously disabled charge stays disabled; zero enabled supplements remain. Backup backup_ed_supplements_20261108.
 - [x] Transaction assertions preserve all affected contracts, 21 resource rows, 430 attendance entries and unrelated extras. Fresh production assertions pass; charge filtering removes amounts from invoice/print/dashboard. No finalized invoices for affected exact periods. Regression tests updated to omit unauthorized supplements; signed-in live invoice not visually checked (production session signed out).
