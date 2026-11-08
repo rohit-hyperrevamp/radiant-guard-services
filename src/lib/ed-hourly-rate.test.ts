@@ -42,3 +42,16 @@ describe("payroll Extra Duty on custom per-hour rate", () => {
     expect(ed?.amount).toBe(1608);
   });
 });
+
+import { showsHourlyEdAsDays as _days } from "./invoice-duty-rates";
+import { splitInvoiceDuties as _split } from "./invoice-duty-rates";
+describe("Bajaj Financial Securities ED in days", () => {
+  it("shows 57.5 ED hours as 7.1875 days at ₹1,594.16 with the same amount", () => {
+    expect(_days("Bajaj Financial Securities Limited")).toBe(true);
+    expect(_days("Poonawalla Fincorp")).toBe(false);
+    const s = _split({ billedDays: 20, otDays: 7.1875, regularRate: 900, extraDutyRate: 199.27 * 8, shiftHours: 8 });
+    expect(s.edQuantity).toBe(7.1875);
+    expect(s.edRate).toBe(1594.16);
+    expect(s.edAmount).toBe(11458.03);
+  });
+});

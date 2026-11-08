@@ -10,6 +10,10 @@ export function exactDayRateFor(monthly: number, billingDays: number): number | 
   return Number.isFinite(monthly) && monthly > 0 && billingDays > 0 ? monthly / billingDays : null;
 }
 
+/** Bajaj Financial Securities: hourly ED rate is shown on invoices as days (rate × shift hours). */
+export const showsHourlyEdAsDays = (customerName?: string | null) =>
+  /bajaj\s+financial\s+securities/i.test(customerName ?? "");
+
 export type HourlyEdBilling = { rate?: number | null; esic?: number | null; shiftHours?: number | null };
 
 /** Invoice Extra Duty rate per hour for a custom hourly ED role: wage + ESIC per hour. */

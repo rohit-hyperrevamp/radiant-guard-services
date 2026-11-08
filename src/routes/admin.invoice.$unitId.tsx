@@ -36,7 +36,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { misBillingLine } from "@/lib/mis-billing";
-import { exactDayRateFor, invoiceExtraDutyRate, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
+import { exactDayRateFor, invoiceExtraDutyRate, showsHourlyEdAsDays, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1155,7 +1155,7 @@ function PayrollUnitPage() {
     const edRateForSplit = extraDutyRate ?? (contractEdLines ? exactDayRateFor(contracted, billingDays) : null);
     const caretakerHourlyEd =
       isCli2989Caretaker(unit?.code, r.designation) ||
-      (r.resource?.otBasis === "hourly" && extraDutyRate != null) ||
+      (r.resource?.otBasis === "hourly" && extraDutyRate != null && !showsHourlyEdAsDays(unit?.customer_name)) ||
       contractEdLines;
     const dutySplit = edRateForSplit != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
       ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate: edRateForSplit, shiftHours, hourly: billsHourly, extraDutyHourly: caretakerHourlyEd, exactExtraDutyRate: caretakerHourlyEd })
