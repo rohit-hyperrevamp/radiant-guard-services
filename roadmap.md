@@ -1,3 +1,7 @@
+## CLI4189 invoice units — 8 November
+- [ ] Change CON15192 from Man Hours to Man Days; preserve attendance, rates and unrelated terms.
+- [ ] Verify saved units and full before/after preservation.
+
 ## CLI3940 invoice units — 8 November
 - [x] Found CON14079 configured as Man Hours; changed only billing_type_id to Man Days. Backup backup_cli3940_invoice_units_20261108. No finalized invoices existed.
 - [x] Fresh production regression verifies Man Days, all resource/rate/day-base fields and all 565 attendance entries unchanged. Invoice calculation/print/Tally inherit this saved billing type. Signed-in live output unavailable: live invoice redirects to login.
