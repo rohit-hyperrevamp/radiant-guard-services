@@ -1,3 +1,7 @@
+## CLI2989 attendance/invoice 28.5 versus 27 — 8 November
+- [x] Fresh production readback: September 21 Aug–20 Sep has exactly 27 P + 1.5 ED = 28.5; CON15239 deliberately routes P Days to main and ED to its own invoice. Nine invoice split/pricing regressions pass, including 12 hours at ₹235.61 / ₹2,827.29. No missing attendance or unauthorized active supplement; no data or billing-rule change warranted.
+- [ ] Verify the Extra Duty tab in signed-in production UI; live invoice redirects to login, so its visible output remains unverified.
+
 ## Remove unauthorized Extra Duty supplements — 8 November
 - [x] Disabled all 15 active unauthorized supplement charges in production; CLI2535 was a ₹398.53 lump sum. CLI2989's previously disabled charge stays disabled; zero enabled supplements remain. Backup backup_ed_supplements_20261108.
 - [x] Transaction assertions preserve all affected contracts, 21 resource rows, 430 attendance entries and unrelated extras. Fresh production assertions pass; charge filtering removes amounts from invoice/print/dashboard. No finalized invoices for affected exact periods. Regression tests updated to omit unauthorized supplements; signed-in live invoice not visually checked (production session signed out).
