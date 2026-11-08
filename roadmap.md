@@ -1,3 +1,7 @@
+## All Bajaj Financial Securities unwanted MIS increment charges — 8 November
+- [x] Inspected all 54 Bajaj Financial Securities sites across all saved invoice periods: six remaining active MIS increments (CLI1421, CLI1979, CLI2023, CLI2065, CLI2737, CLI2922); CLI2991 and supplements already disabled. No finalized invoices exist for this customer.
+- [x] Backed up and disabled exactly six remaining charges in production; fresh regression confirms zero active extras across all 54 sites. Transaction preserved 314 contracts, 337 resources, 1,486 attendance entries and unrelated extras; six correction audits saved. Backup backup_bfsl_mis_increment_20261108. Live invoice redirects to login, so signed-in display remains unverified; reopen invoices to refresh saved extras.
+
 ## CLI2991 unwanted Increment / OT invoice charge — 8 November
 - [x] Backed up and disabled CLI2991's unauthorized ₹439.01 September “Increment / OT as per BFSL MIS” charge only; transaction assertions preserve 31 attendance entries, two contract resources, contract terms and all unrelated extras. Backup backup_cli2991_mis_increment_20261108; correction audit saved.
 - [x] Fresh production regression passes: charge disabled and zero active extras for 21 Aug–20 Sep. No overlapping finalized invoice exists. Source confirms enabled-only filtering removes the line from invoice totals and print; automatic build OK. Signed-in live display not visually verified.
