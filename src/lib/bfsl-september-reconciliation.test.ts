@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 import { computeAttendanceTotals } from "./payroll-calc";
+import { splitInvoiceDuties } from "./invoice-duty-rates";
 
 const r2 = (value: number) => Math.round(value * 100) / 100;
 const cases = [
@@ -11,18 +12,20 @@ const cases = [
   { code: "CLI2537", monthly: 23627.44, present: 27, ed: 1, supplement: 875.1, taxable: 25377.62, tax: 4567.97, grand: 29946 },
 ];
 
-describe("September BFSL issued invoices: double-rate Extra Duty supplement", () => {
+describe("BFSL invoice duties exclude unauthorized supplement charges", () => {
   for (const row of cases) {
-    it(`${row.code} reconciles taxable, GST and final amount without counting ED twice`, () => {
+    it(`${row.code} bills only Present and Extra Duty quantities at the rate, without a third charge`, () => {
       const dates = Array.from({ length: row.present }, (_, index) => `2026-09-${String(index + 1).padStart(2, "0")}`);
       const entries = dates.map((entry_date, index) => ({ candidate_id: "employee", entry_date, code: "P", ot_hours: index === 0 ? row.ed : 0 }));
       const totals = computeAttendanceTotals("employee", dates, entries, [{ code: "P", counts_as_present: true, is_paid: true, day_value: 1 }]);
-      const taxable = r2(r2(r2(row.monthly / 27) * r2(totals.tDays)) + row.supplement);
+      const rate = r2(row.monthly / 27);
+      const billed = splitInvoiceDuties({ billedDays: totals.tDays, otDays: totals.otDays, regularRate: rate, extraDutyRate: rate });
       expect(totals.pDays).toBe(row.present);
-      expect(totals.otDays).toBe(r2(row.ed));
-      expect(taxable).toBe(row.taxable);
-      expect(r2(taxable * 0.18)).toBe(row.tax);
-      expect(Math.round(r2(taxable + r2(taxable * 0.18)))).toBe(row.grand);
+      expect(totals.otDays).toBe(row.ed);
+      expect(billed.regularQuantity).toBe(row.present);
+      expect(billed.edQuantity).toBe(row.ed);
+      expect(billed.actual).toBe(r2(r2(row.present * rate) + r2(row.ed * rate)));
+      expect(billed.actual).not.toBe(r2(billed.regularAmount + billed.edAmount + row.supplement));
     });
   }
 });
