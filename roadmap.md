@@ -1,6 +1,6 @@
 ## CLI4189 invoice units — 8 November
-- [ ] Change CON15192 from Man Hours to Man Days; preserve attendance, rates and unrelated terms.
-- [ ] Verify saved units and full before/after preservation.
+- [x] Changed CON15192 from Man Hours to Man Days in production; backup backup_cli4189_invoice_units_20261108. No finalized invoices existed.
+- [x] Fresh production assertions confirm Man Days, all four resources/rates/day bases, all 5,645 attendance entries and unrelated terms unchanged; audit confirmed. Signed-in invoice not visually checked.
 
 ## CLI3940 invoice units — 8 November
 - [x] Found CON14079 configured as Man Hours; changed only billing_type_id to Man Days. Backup backup_cli3940_invoice_units_20261108. No finalized invoices existed.
