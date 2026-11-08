@@ -1,3 +1,7 @@
+## CLI3940 invoice units — 8 November
+- [x] Found CON14079 configured as Man Hours; changed only billing_type_id to Man Days. Backup backup_cli3940_invoice_units_20261108. No finalized invoices existed.
+- [x] Fresh production regression verifies Man Days, all resource/rate/day-base fields and all 565 attendance entries unchanged. Invoice calculation/print/Tally inherit this saved billing type. Signed-in live output unavailable: live invoice redirects to login.
+
 ## Karnataka September invoice client review — 7 November
 - [x] Inspected all 75 PDF pages; included 63 SEP-reference pages / 60 invoices, excluded 12 non-SEP pages.
 - [x] Compared production client register and addresses; authenticated Pages Payroll full client searches for unmatched/unresolved labels. Channapattana FI Complex exists as CLI4223. No verified Baroda Indiranagar/Baroda Vista site in either register. Candidate/duplicate IDs retained without guessing allocation.
