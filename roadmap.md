@@ -1,3 +1,7 @@
+## CLI3940 invoice units — 8 November
+- [ ] Diagnose production invoice hours selection; correct to days without changing attendance or rate amounts.
+- [ ] Verify saved settings and invoice calculation units; check live output if authorized session is available.
+
 ## Karnataka September invoice client review — 7 November
 - [x] Inspected all 75 PDF pages; included 63 SEP-reference pages / 60 invoices, excluded 12 non-SEP pages.
 - [x] Compared production client register and addresses; authenticated Pages Payroll full client searches for unmatched/unresolved labels. Channapattana FI Complex exists as CLI4223. No verified Baroda Indiranagar/Baroda Vista site in either register. Candidate/duplicate IDs retained without guessing allocation.
