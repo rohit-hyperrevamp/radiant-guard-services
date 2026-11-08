@@ -1,3 +1,7 @@
+## Remove unauthorized Extra Duty supplements — 8 November
+- [ ] Inspect CLI2535 and all saved Extra Duty supplement charges; remove the unwanted third line without changing agreed rates or attendance.
+- [ ] Verify production readback and all affected invoice charge paths.
+
 ## CLI4189 invoice units — 8 November
 - [x] Changed CON15192 from Man Hours to Man Days in production; backup backup_cli4189_invoice_units_20261108. No finalized invoices existed.
 - [x] Fresh production assertions confirm Man Days, all four resources/rates/day bases, all 5,645 attendance entries and unrelated terms unchanged; audit confirmed. Signed-in invoice not visually checked.
