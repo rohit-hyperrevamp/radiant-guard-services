@@ -1,6 +1,7 @@
 ## Contract-strength invoice allowance — 9 November
-- [ ] Multiply each opted-in role/duty-length billing divisor by its saved contract strength, pooled across replacement employees; use the same allowance in invoice detail, exports, finance and dashboard. Preserve payroll, attendance, rates and existing opt-ins.
-- [ ] Test two Guards × 26 = 52 Present, separate two-Supervisor allowance, 27-day periods, duplicate resource quantities and shortfalls; verify delivery/live access separately.
+- [x] Multiply each opted-in role/duty-length billing divisor by summed saved contract strength, pooled across replacement employees; invoice detail, exports (through shared finance rates), finance and dashboard use the same allowance. No payroll, attendance, rates, strengths or opt-in records changed.
+- [x] All 45 focused tests pass: two Guards × 26 = 52 Present + overflow ED across five workers, separate two-Supervisor allowance, 27-day month = 54, duplicate quantities, zero strength, shortfalls and payroll preservation; automatic build OK.
+- [ ] Signed-in live verification waits on GitHub-to-Vercel delivery and authorized production session: the live contract page redirects to /login. This change does not enable the pending Poonawalla bulk rollout.
 
 ## All Poonawalla invoice-only allowance rollout — 9 November
 - [ ] Enable the invoice-only pooled allowance on Poonawalla contracts only, preserving billing divisors, payroll, attendance, rates, statuses and issued invoices. Blocked: permitted managed database tools target the unrelated sandbox; latest access instructions prohibit production inspection/updates through psql, no production connector or authorized live session is available. No bulk setting changes made.
