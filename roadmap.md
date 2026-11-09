@@ -1,6 +1,7 @@
 ## Invoice Extra Duty output choices — 9 November
-- [ ] Fix saving and applying combined duties, separate P/Extra Duty tabs, and separate rows on one invoice; preserve attendance and rates.
-- [ ] Run focused regressions and verify production delivery where authenticated access permits.
+- [x] Explicit Combined now persists instead of inheriting old splits; contract saves/focus refresh format queries. All three modes route reliever ED consistently; output and print honor the selected layout while keeping agreed regular/ED amounts, using an effective rate only for combined lines. No production records changed.
+- [x] All 26 focused invoice mode/split/freshness/hourly pricing regressions pass; automatic compilation OK.
+- [ ] Signed-in end-to-end verification awaits GitHub-to-Vercel delivery and an authorized production session; live invoice redirects to login. Existing null choices cannot safely be backfilled; re-save the intended choice after release.
 
 ## CLI4331 Chandrappa explicit reliever — 9 November
 - [x] Converted Chandrappa (28654) eight saved 21–28 August duties within September's 21 Aug–20 Sep sheet from eight Present to eight Extra Duty days; saved September reliever choice. Production readback and twice-recalculated rolled-back regression pass. Other attendance, site mappings and contracts exactly unchanged; backups /tmp/cli4331-chandrappa.
