@@ -4,6 +4,9 @@ import type { PayrollDayBaseLike } from "./payroll-days";
 
 export type InvoiceCapRule = {
   invoicePresentCap?: boolean;
+  /** Total saved contract strength in this role/duty-length pool. */
+  invoiceCapQuantity?: number;
+  quantity?: number;
   designationId?: string | null;
   shiftHours?: number;
   billingDayBase?: PayrollDayBaseLike | null;
@@ -18,11 +21,26 @@ export type InvoiceCapInput = {
   cap: number | null;
 };
 
-/** One divisor per role/duty-length pool, not per employee or staffing quantity. */
+/** Billing divisor × contracted strength, never the number of attending employees. */
 export function invoicePresentLimit(rule: InvoiceCapRule | null | undefined, dates: string[]): number | null {
   return rule?.invoicePresentCap === true && rule.billingDayBase
-    ? resolveBillingDivisor(rule, dates)
+    ? roundDutyDays(resolveBillingDivisor(rule, dates) * invoiceStrength(rule.invoiceCapQuantity ?? rule.quantity ?? 1))
     : null;
+}
+
+function invoiceStrength(quantity: number): number {
+  if (!Number.isFinite(quantity) || quantity < 0) throw new Error("Invalid contracted invoice strength");
+  return quantity;
+}
+
+/** Sum resource lines once, not once per employee, entry or rate segment. */
+export function invoicePoolStrength(rules: readonly InvoiceCapRule[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const rule of rules) {
+    const key = invoiceCapPool("", rule);
+    totals.set(key, (totals.get(key) ?? 0) + invoiceStrength(rule.quantity ?? 0));
+  }
+  return totals;
 }
 
 export function invoiceCapPool(unitId: string, rule: InvoiceCapRule): string {
@@ -38,7 +56,7 @@ export function allocateInvoicePresent(inputs: readonly InvoiceCapInput[]) {
   const remaining = new Map<string, number>();
   for (const input of inputs) {
     if (input.cap == null) continue;
-    if (!Number.isFinite(input.cap) || input.cap <= 0) throw new Error("Invalid invoice Present limit");
+    if (!Number.isFinite(input.cap) || input.cap < 0) throw new Error("Invalid invoice Present limit");
     const previous = remaining.get(input.pool);
     if (previous != null && previous !== roundDutyDays(input.cap)) {
       throw new Error("Conflicting Billing Days in the same invoice role");

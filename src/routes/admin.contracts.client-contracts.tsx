@@ -6517,9 +6517,9 @@ export function ResourceFormDialog({
             />
           </Field>
 
-          {!isWages && <Field label="Invoice Present limit — shared per role">
+          {!isWages && <Field label="Invoice Present limit — Billing Days × strength">
             <Switch
-              aria-label="Limit invoice Present duties by Billing Days"
+              aria-label="Limit invoice Present duties by Billing Days times contract strength"
               checked={invoicePresentCap}
               disabled={!billingDayBaseId || readOnly}
               onCheckedChange={setInvoicePresentCap}
