@@ -1,3 +1,8 @@
+## CLI4331 reliever Extra Duty saving — 9 November
+- [ ] Diagnose why Extra Duty becomes NP after selecting reliever.
+- [ ] Fix regular/reliever selection and add focused regression tests without inventing attendance.
+- [ ] Verify production saved rules and signed-in live flow if an authorized session is available.
+
 ## CLI3246 combined invoice day duties — 9 November
 - [x] Changed only current CON14701 invoice_ed_mode from separate_lines to combined; fresh production readback confirms Man Days, unchanged rates/resources, all 162 attendance entries, historical contracts and active client status. Fifteen focused invoice tests pass; automatic build OK. Backups under /tmp/browser/cli3246.
 - [ ] Signed-in live invoice display remains unverified: production invoice redirects to login; reopen the invoice with a valid live session.
