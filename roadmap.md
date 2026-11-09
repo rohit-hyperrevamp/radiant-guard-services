@@ -1,3 +1,6 @@
+## CLI3246 combined invoice day duties — 9 November
+- [ ] Set only current CON14701 invoice_ed_mode to combined, preserving rates, attendance, historical contracts and client status; verify production readback and combined-duty tests.
+
 ## CLI4683 Lady Guard from CLI3098 — 9 November
 - [x] Added one 8-hour Lady Security Guard to CLI4683 active contract from CLI3098 current active contract; fresh readback confirms every non-identity/order field matches exactly, gross ₹26,208 and saved monthly billing ₹30,341.74. Source and existing Security/Armed Guard roles, all contract terms/dates and client statuses unchanged; 106 attendance values unchanged (automatic attendance-rule trigger refreshed timestamps only). Creation audit verified; three exact-copy tests pass. Backups in /tmp/browser/lady-guard-copy; signed-in live display unverified.
 
