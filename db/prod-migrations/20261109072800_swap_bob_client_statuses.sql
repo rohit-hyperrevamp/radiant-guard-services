@@ -12,7 +12,7 @@ SELECT
 DO $$
 BEGIN
   IF (SELECT count(*) FROM swap_before) <> 4 THEN RAISE EXCEPTION 'Expected exactly four clients'; END IF;
-  UPDATE public.units SET status=CASE WHEN code IN ('CLI4473','CLI3098') THEN 'inactive' ELSE 'active' END
+  UPDATE public.units SET status=(CASE WHEN code IN ('CLI4473','CLI3098') THEN 'inactive' ELSE 'active' END)::public.customer_status
   WHERE code IN ('CLI4473','CLI3098','CLI4660','CLI4683');
   IF EXISTS (SELECT 1 FROM swap_before s JOIN public.units u ON u.id=(s.row_before->>'id')::uuid
     WHERE (to_jsonb(u)-ARRAY['status','updated_at']) IS DISTINCT FROM (s.row_before-ARRAY['status','updated_at'])) THEN
