@@ -1064,6 +1064,6 @@
 - [ ] Recompute through the live invoice/payroll calculation and report exact matches — unresolved multi-site identities, proposed-versus-issued rate conflicts, employee/day evidence and authenticated live invoice verification remain blockers; production database access is available. CLI318 supervisor remains ₹0.52 below invoice monthly billing; no balancing adjustment invented.
 
 ## Bank of Baroda CLI4810 and CLI182 — 9 November
-- [ ] Confirm intended IDs with user: authenticated Pages register identifies CLI4810 as L&T Finance–Indiranagar (D401), not Bank of Baroda, and no CLI182 option exists. Bank of Baroda CLI4681/CLI4682 appear, but do not assume these are intended.
-- [ ] Populate verified profiles and copy the applicable existing Bank of Baroda rate structure — blocked on intended client identity.
+- [x] User reconfirmed CLI4810. Authenticated full Pages register verifies CLI4810 is L&T Finance–Indiranagar (D401), ORG259, Hanamkonda, Telangana, BR27; source row screenshot inspected. No CLI182 option exists; do not assume CLI4681/CLI4682.
+- [ ] Populate verified profile and rate structure — blocked on conflicting instruction: source CLI4810 is L&T Finance, while requested organization/rates are Bank of Baroda. Need corrected Bank of Baroda branch identity or explicit instruction to import the actual L&T client with applicable L&T rates.
 - [ ] Retrieve September 2026 employee/date attendance, import only source-supported records, and verify readback — blocked on intended client identity; no production records changed.
