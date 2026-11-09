@@ -1061,4 +1061,9 @@
 - [x] Deliver September_All_State_Source_Review.xlsx covering all 736 parsed invoices, 120 explicitly comparable rate lines, source inventory and unresolved cases; claim no full-invoice matches.
 - [ ] Review current Drive invoice, rate and attendance contents, including multi-site invoices — folder access restored; document-level reconciliation remains incomplete.
 - [ ] Validate client identity, applicable rate version, billing divisor and employee-level attendance before applying supported corrections — document-level review remains incomplete; do not infer salary CTC from invoice totals or invent duty records.
-- [ ] Recompute through the live invoice/payroll calculation and report exact matches — unresolved multi-site identities, proposed-versus-issued rate conflicts, employee/day evidence and authenticated live invoice verification remain blockers; production database access is available. CLI318 supervisor remains ₹0.52 below invoice monthly billing; no balancing adjustment invented.
+ - [ ] Recompute through the live invoice/payroll calculation and report exact matches — unresolved multi-site identities, proposed-versus-issued rate conflicts, employee/day evidence and authenticated live invoice verification remain blockers; production database access is available. CLI318 supervisor remains ₹0.52 below invoice monthly billing; no balancing adjustment invented.
+
+## Bank of Baroda CLI4810 and CLI182 — 9 November
+- [ ] Verify source identities in Pages Payroll and check for existing production clients without duplicating records.
+- [ ] Populate verified profiles and copy the applicable existing Bank of Baroda rate structure.
+- [ ] Retrieve September 2026 employee/date attendance, import only source-supported records, and verify readback.
