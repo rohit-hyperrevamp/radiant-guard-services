@@ -8,6 +8,35 @@ import { applyInvoiceEdMode, DEFAULT_SPLIT, totalsForPart } from "./invoice-spli
 
 const rows = (cap: number | null) => [24, 2, 6].map((present, i) => ({ pool: "guard", order: String(i), present, extraDuty: 0, cap }));
 describe("optional invoice-only shared Present limit", () => {
+  it("fills CLI3542's 26 invoice duties from 24 P and 4.25 ED without changing payroll", () => {
+    const source = [
+      { pool: "guard", order: "43299", present: 24, extraDuty: 1.25, cap: 26 },
+      ...["31599", "47216", "35595"].map(order => ({ pool: "guard", order, present: 0, extraDuty: 1, cap: 26 })),
+    ];
+    const before = structuredClone(source);
+    const result = allocateInvoicePresent(source);
+    expect(result.reduce((s, r) => s + r.present, 0)).toBe(26);
+    expect(result.reduce((s, r) => s + r.extraDuty, 0)).toBe(2.25);
+    expect(source).toEqual(before);
+    const split = applyInvoiceEdMode(DEFAULT_SPLIT, "separate_invoice");
+    const main = result.map(r => totalsForPart({ pDays: r.present, otDays: r.extraDuty, otHours: r.extraDuty, phDays: 0, tDays: r.present + r.extraDuty }, true, split, "main"));
+    expect(main.reduce((s, r) => s + r.tDays, 0)).toBe(26);
+  });
+  it("fills the first 27 duties when the billing divisor is 27", () => {
+    const result = allocateInvoicePresent([{ pool: "guard", order: "1", present: 24, extraDuty: 8, cap: 27 }]);
+    expect(result).toEqual([{ present: 27, extraDuty: 5, moved: -3 }]);
+  });
+  it("does not invent duties when the total is below the limit", () => {
+    expect(allocateInvoicePresent([{ pool: "guard", order: "1", present: 20, extraDuty: 2, cap: 26 }])).toEqual([{ present: 22, extraDuty: 0, moved: -2 }]);
+  });
+  it("fills raw-entry reliever duties consistently regardless of paging", () => {
+    const dates = periodDateList("2026-09-01", "2026-09-30");
+    const entries = [{ unit_id: "unit", candidate_id: "a", entry_date: dates[0], code: "P", days: 24, ot_hours: 1.25 }, { unit_id: "unit", candidate_id: "b", entry_date: dates[0], code: "", days: 0, ot_hours: 3 }];
+    const rule = { invoicePresentCap: true, billingDayBase: { method: "fixed_days" as const, fixedDays: 26 } };
+    const allocate = (values: typeof entries) => allocateInvoiceEntries(values, () => rule, () => dates, e => e.days);
+    expect(allocate(entries).map(r => [r.present, r.extraDuty])).toEqual([[25.25, 0], [.75, 2.25]]);
+    expect(allocate([...entries].reverse()).reverse()).toEqual(allocate(entries));
+  });
   it("pools 24 + 2 + 6 as 26 Present and 6 Extra Duty", () => {
     expect(allocateInvoicePresent(rows(26))).toEqual([
       { present: 24, extraDuty: 0, moved: 0 }, { present: 2, extraDuty: 0, moved: 0 }, { present: 0, extraDuty: 6, moved: 6 },

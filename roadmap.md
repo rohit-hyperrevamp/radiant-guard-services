@@ -1,3 +1,7 @@
+## CLI3542 invoice allowance completion — 9 November
+- [ ] Fill the first billing-divisor duties from pooled Present and Extra Duty, including replacement guards; excess stays Extra Duty only on invoices. Preserve attendance, payroll and saved rates.
+- [ ] Check real CLI3542 September inputs, 26/27-day regressions, separate tabs/MIS and live delivery; authenticated live verification requires an authorized production session.
+
 ## Optional invoice-only pooled Present cap — 9 November
 - [x] Added disabled-by-default resource switch using Billing Days, pooled across employees per role/duty length. Overflow changes invoice quantities only; unchanged payroll/designation fields are omitted from resource updates to avoid attendance rebalance on invoice-only saves.
 - [x] Shared allocation before invoice tabs flows through detail, print, Tally/MIS, finance summaries and dashboard invoice amounts. All 47 focused tests pass, including 24 + 2 + 6 = 26 P + 6 ED, variable divisors, separate roles/tabs, fractions and payroll preservation; automatic build OK.

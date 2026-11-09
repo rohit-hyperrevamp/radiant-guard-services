@@ -31,7 +31,8 @@ export function invoiceCapPool(unitId: string, rule: InvoiceCapRule): string {
 
 /** Pure invoice allocation. Original attendance and payroll totals are never mutated.
  * Stable employee identity then date/window order makes paging and invoice tabs irrelevant.
- * Holidays and existing ED do not consume the Present allowance.
+ * Fill the allowance from Present first, then existing ED (including relievers).
+ * Holidays do not consume the allowance; moved is signed (P to ED is positive).
  */
 export function allocateInvoicePresent(inputs: readonly InvoiceCapInput[]) {
   const remaining = new Map<string, number>();
@@ -55,6 +56,20 @@ export function allocateInvoicePresent(inputs: readonly InvoiceCapInput[]) {
     const moved = roundDutyDays(present - retained);
     remaining.set(input.pool, roundDutyDays(left - retained));
     output[index] = { present: retained, extraDuty: roundDutyDays(input.extraDuty + moved), moved };
+  }
+  // Invoice duty classification is independent of payroll: replacement guards
+  // and payroll cap ED can complete the unit's regular billing allowance.
+  for (const { input, index } of ordered) {
+    if (input.cap == null) continue;
+    const left = remaining.get(input.pool) ?? 0;
+    const promoted = Math.min(Math.max(0, output[index].extraDuty), left);
+    if (promoted <= 0) continue;
+    remaining.set(input.pool, roundDutyDays(left - promoted));
+    output[index] = {
+      present: roundDutyDays(output[index].present + promoted),
+      extraDuty: roundDutyDays(output[index].extraDuty - promoted),
+      moved: roundDutyDays(output[index].moved - promoted),
+    };
   }
   return output;
 }

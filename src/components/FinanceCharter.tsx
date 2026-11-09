@@ -636,7 +636,7 @@ export function FinanceCharter({
       const desig = entry.designation_id ?? "—";
       const split = splitFor(entryUnitId);
       const route = (item: InvoiceItemKey) => (split && isSplit(split) ? split.assign[item] : "main");
-      if ((entry as any).is_reliever) {
+      if ((entry as any).is_reliever && !rate.invoicePresentCap) {
         if (hasEdRate) {
           add(entryUnitId, route("reliever"), desig, paid, perDay * paid, rate.billRate);
           add(entryUnitId, route("reliever"), `${desig}|ed`, ot, edRate * ot, rate.billRate);
@@ -956,7 +956,7 @@ export function FinanceCharter({
         if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
         const bucket = linesByUnit.get(unitId)!;
         const eShift = Number((e as any).shift_hours) || null;
-        const eRel = (e as any).is_reliever === true;
+        const eRel = (e as any).is_reliever === true && !rate.invoicePresentCap;
         const key = `${e.candidate_id}|${e.designation_id ?? ""}|${eShift ?? ""}|${eRel ? "r" : ""}`;
         const line = bucket.get(key) ?? {
           candidateId: e.candidate_id,

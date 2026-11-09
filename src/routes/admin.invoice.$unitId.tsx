@@ -1077,7 +1077,7 @@ function PayrollUnitPage() {
     if (!splitActive) return all;
     const fixedValue = billingMode === "lumpsum" || billingMode === "man_months";
     return all
-      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.isRegular, invoiceSplit, activePart) }))
+      .map((r) => ({ ...r, totals: totalsForPart(r.totals, r.invoicePresentCap || r.isRegular, invoiceSplit, activePart) }))
       .filter((r) => {
         if (fixedValue) return r.isRegular ? invoiceSplit.assign.regular === activePart : invoiceSplit.assign.reliever === activePart;
         return r.totals.tDays > 0;
