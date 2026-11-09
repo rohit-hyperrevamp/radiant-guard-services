@@ -1,3 +1,7 @@
+## Poonawalla strength one per existing role — 9 November
+- [ ] Set strength to one for each existing role on all Poonawalla clients only; do not create missing roles or change other customers. Use the existing selected billing divisor and invoice-only allowance. Blocked pending an authorized production write path; managed database tools target a different database and current access instructions prohibit production updates through shell commands.
+- [ ] Verify saved strengths and invoice-only limits, unchanged rates/payroll/attendance/other customers, and live invoice readback.
+
 ## Contract-strength invoice allowance — 9 November
 - [x] Multiply each opted-in role/duty-length billing divisor by summed saved contract strength, pooled across replacement employees; invoice detail, exports (through shared finance rates), finance and dashboard use the same allowance. No payroll, attendance, rates, strengths or opt-in records changed.
 - [x] All 45 focused tests pass: two Guards × 26 = 52 Present + overflow ED across five workers, separate two-Supervisor allowance, 27-day month = 54, duplicate quantities, zero strength, shortfalls and payroll preservation; automatic build OK.
