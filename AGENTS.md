@@ -25,6 +25,7 @@
 <!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`).
+- Monthly cap grouping resolves zero imported shifts against the contract and missing designations only for single-role contracts, without rewriting stored line keys; otherwise imports can bypass the cap with a second group.
 - Case Desk: `legal_*` tables + private `legal-docs` gated by `current_user_module_access('legal_cases',…)`; sub-features are `legal_cases::<key>` switches via `canSwitch` (row wins, else View) — access stays configurable.
 - Never add high-volume tables (attendance_entries, punches) to realtime or page-wide invalidation — listen to status tables (attendance_sheets, payroll_runs) — per-row streams overloaded the database.
 - Regular/reliever classification is owned by the monthly database attendance rule, including saved line flags and recent editable postings; do not duplicate majority-site decisions in frontend code because labels must track payroll's decision.
