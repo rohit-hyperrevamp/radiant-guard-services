@@ -83,7 +83,6 @@ BEGIN
 
     -- Super Admin pin: a chosen regular site for this month wins over "most days",
     -- as long as the person actually has attendance there this month.
-    SELECT p.unit_id INTO v_pin FROM attendance_primary_pins p WHERE p.candidate_id = _cand AND p.month = m;
     SELECT rc.unit_id INTO v_pin FROM attendance_role_choices rc
       WHERE rc.candidate_id = _cand AND rc.month = m AND NOT rc.is_reliever
       UNION ALL SELECT p.unit_id FROM attendance_primary_pins p
@@ -208,7 +207,7 @@ CREATE OR REPLACE FUNCTION public.save_attendance_role_line(
 ) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE v_month date; v_line uuid; v_prev text; v_sheet attendance_sheets%ROWTYPE;
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.current_user_can_manage_attendance_unit(_unit_id) THEN
+  IF auth.uid() IS NULL OR NOT coalesce(public.current_user_can_manage_attendance_unit(_unit_id),false) THEN
     RAISE EXCEPTION 'Not authorized to edit this attendance';
   END IF;
   IF _candidate_id IS NULL OR _unit_id IS NULL OR _period_start IS NULL OR _period_end IS NULL
@@ -220,13 +219,17 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Employee not found'; END IF;
   SELECT * INTO v_sheet FROM attendance_sheets WHERE unit_id = _unit_id
     AND period_start = _period_start AND period_end = _period_end FOR UPDATE;
-  IF NOT (
+  IF NOT coalesce((
     (coalesce(v_sheet.status,'draft') IN ('draft','rejected') OR v_sheet.amendment_status='open')
       AND coalesce(public.current_user_action_allowed('attendance','mark','edit'),false)
     OR (v_sheet.status='submitted' OR v_sheet.amendment_status='submitted')
       AND coalesce(public.current_user_action_allowed('attendance','approve','approve'),false)
-  ) THEN RAISE EXCEPTION 'Attendance is closed or editing is not permitted'; END IF;
+  ),false) THEN RAISE EXCEPTION 'Attendance is closed or editing is not permitted'; END IF;
   v_month := date_trunc('month',_period_end)::date;
+  IF EXISTS (SELECT 1 FROM payroll_runs WHERE unit_id=_unit_id AND payroll_status='processed'
+    AND period_start<=_period_end AND period_end>=_period_start) THEN
+    RAISE EXCEPTION 'Payroll for this period is already processed';
+  END IF;
   -- A role change can reclassify other sites, so lock all processed periods for this person.
   IF EXISTS (SELECT 1 FROM attendance_entries ae JOIN payroll_runs pr ON pr.unit_id=ae.unit_id
     AND ae.entry_date BETWEEN pr.period_start AND pr.period_end
