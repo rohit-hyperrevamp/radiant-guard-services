@@ -33,8 +33,24 @@ export type InvoiceExtraCharge = {
   perLabel: string;
   enabled: boolean;
   sortOrder: number;
+  /** "amount" = quantity × rate; "percent" = percent of the designation lines (before GST). */
+  calcMode: "amount" | "percent";
+  percent: number;
+  /** Custom base for percent lines; null = designation lines subtotal. */
+  baseOverride: number | null;
   amount: number;
 };
+
+const r2 = (v: number) => Math.round(v * 100) / 100;
+
+/** Resolve percentage lines against the invoice's pre-GST designation subtotal. */
+export function resolveExtraCharges(charges: InvoiceExtraCharge[], designationSubtotal: number): InvoiceExtraCharge[] {
+  return charges.map((c) => {
+    if (c.calcMode !== "percent") return c;
+    const base = c.baseOverride ?? designationSubtotal;
+    return { ...c, rate: r2(base), quantity: c.percent, amount: r2((base * c.percent) / 100) };
+  });
+}
 
 export const INVOICE_EXTRAS_QK = "invoice-extra-charges";
 
@@ -56,6 +72,9 @@ function mapRow(r: Row): InvoiceExtraCharge {
     perLabel: String(r.per_label ?? "Duty"),
     enabled: r.enabled !== false,
     sortOrder: Number(r.sort_order) || 0,
+    calcMode: r.calc_mode === "percent" ? "percent" : "amount",
+    percent: Number(r.percent) || 0,
+    baseOverride: r.base_override == null || r.base_override === "" ? null : Number(r.base_override),
     amount: Math.round(quantity * rate * 100) / 100,
   };
 }
@@ -84,21 +103,34 @@ export function InvoiceExtraChargesCard({
   contractId,
   start,
   end,
-  charges,
+  charges: rawCharges,
+  designationSubtotal,
 }: {
   unitId: string;
   contractId: string | null;
   start: string;
   end: string;
   charges: InvoiceExtraCharge[];
+  /** Pre-GST total of the designation lines, used as the base for % charges. */
+  designationSubtotal: number;
 }) {
   const qc = useQueryClient();
-  const [draft, setDraft] = useState({ description: "", hsnSac: "998525", quantity: "1", rate: "0", perLabel: "Duty" });
+  const charges = resolveExtraCharges(rawCharges, designationSubtotal);
+  const emptyDraft = { description: "", hsnSac: "998525", quantity: "1", rate: "0", perLabel: "Duty", mode: "amount" as "amount" | "percent", percent: "7", base: "" };
+  const [draft, setDraft] = useState(emptyDraft);
+  const percentValues = (percent: number, baseOverride: number | null) => {
+    const base = baseOverride ?? designationSubtotal;
+    // Mirror quantity/rate so summaries that read quantity × rate stay close.
+    return { percent, base_override: baseOverride, quantity: percent / 100, rate: r2(base) };
+  };
 
   const refresh = () => qc.invalidateQueries({ queryKey: [INVOICE_EXTRAS_QK] });
 
   const add = useMutation({
     mutationFn: async () => {
+      const isPct = draft.mode === "percent";
+      const pct = Number(draft.percent) || 0;
+      const baseOverride = draft.base.trim() === "" ? null : Number(draft.base) || 0;
       const payload = {
         unit_id: unitId,
         contract_id: contractId,
@@ -110,6 +142,8 @@ export function InvoiceExtraChargesCard({
         rate: Number(draft.rate) || 0,
         per_label: draft.perLabel.trim() || "Duty",
         sort_order: (charges.at(-1)?.sortOrder ?? 0) + 10,
+        calc_mode: draft.mode,
+        ...(isPct ? { ...percentValues(pct, baseOverride), per_label: "%" } : {}),
       };
       if (!payload.description) throw new Error("Description is required");
       const { error } = await supabase.from("invoice_extra_charges" as never).insert(payload as never);
@@ -118,11 +152,11 @@ export function InvoiceExtraChargesCard({
         module: "Invoice Extra Charges",
         action: "create",
         entityType: "invoice_extra_charge",
-        entityLabel: `${payload.description} (${payload.quantity} × ${payload.rate})`,
+        entityLabel: isPct ? `${payload.description} (${pct}%)` : `${payload.description} (${payload.quantity} × ${payload.rate})`,
       }).catch(() => {});
     },
     onSuccess: () => {
-      setDraft({ description: "", hsnSac: "998525", quantity: "1", rate: "0", perLabel: "Duty" });
+      setDraft(emptyDraft);
       refresh();
       toast.success("Charge added");
     },
@@ -180,23 +214,51 @@ export function InvoiceExtraChargesCard({
               placeholder="HSN/SAC"
               onBlur={(e) => e.target.value !== c.hsnSac && patch.mutate({ id: c.id, values: { hsn_sac: e.target.value } })}
             />
-            <Input
-              className="md:col-span-1 text-right"
-              defaultValue={String(c.quantity)}
-              inputMode="decimal"
-              onBlur={(e) => Number(e.target.value) !== c.quantity && patch.mutate({ id: c.id, values: { quantity: Number(e.target.value) || 0 } })}
-            />
-            <Input
-              className="md:col-span-1"
-              defaultValue={c.perLabel}
-              onBlur={(e) => e.target.value !== c.perLabel && patch.mutate({ id: c.id, values: { per_label: e.target.value } })}
-            />
-            <Input
-              className="md:col-span-2 text-right"
-              defaultValue={String(c.rate)}
-              inputMode="decimal"
-              onBlur={(e) => Number(e.target.value) !== c.rate && patch.mutate({ id: c.id, values: { rate: Number(e.target.value) || 0 } })}
-            />
+            {c.calcMode === "percent" ? (
+              <>
+                <div className="relative md:col-span-1">
+                  <Input
+                    className="pr-6 text-right"
+                    defaultValue={String(c.percent)}
+                    inputMode="decimal"
+                    title="Percentage"
+                    onBlur={(e) => Number(e.target.value) !== c.percent && patch.mutate({ id: c.id, values: percentValues(Number(e.target.value) || 0, c.baseOverride) })}
+                  />
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+                <Input
+                  className="md:col-span-3 text-right"
+                  defaultValue={c.baseOverride == null ? "" : String(c.baseOverride)}
+                  placeholder={`of ${fmtINR(designationSubtotal)} (designation lines)`}
+                  title="Leave blank to use the designation lines total before GST, or type a custom amount"
+                  inputMode="decimal"
+                  onBlur={(e) => {
+                    const v = e.target.value.trim() === "" ? null : Number(e.target.value) || 0;
+                    if (v !== c.baseOverride) patch.mutate({ id: c.id, values: percentValues(c.percent, v) });
+                  }}
+                />
+              </>
+            ) : (
+              <>
+              <Input
+                className="md:col-span-1 text-right"
+                defaultValue={String(c.quantity)}
+                inputMode="decimal"
+                onBlur={(e) => Number(e.target.value) !== c.quantity && patch.mutate({ id: c.id, values: { quantity: Number(e.target.value) || 0 } })}
+              />
+              <Input
+                className="md:col-span-1"
+                defaultValue={c.perLabel}
+                onBlur={(e) => e.target.value !== c.perLabel && patch.mutate({ id: c.id, values: { per_label: e.target.value } })}
+              />
+              <Input
+                className="md:col-span-2 text-right"
+                defaultValue={String(c.rate)}
+                inputMode="decimal"
+                onBlur={(e) => Number(e.target.value) !== c.rate && patch.mutate({ id: c.id, values: { rate: Number(e.target.value) || 0 } })}
+              />
+              </>
+            )}
             <div className="flex items-center justify-end gap-3 md:col-span-2">
               <span className="text-sm font-semibold tabular-nums">{fmtINR(c.amount)}</span>
               <Switch checked={c.enabled} onCheckedChange={(v) => patch.mutate({ id: c.id, values: { enabled: v } })} />
@@ -211,7 +273,21 @@ export function InvoiceExtraChargesCard({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border/60 pt-4 md:grid-cols-12">
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
+        <span className="text-xs text-muted-foreground">New charge type:</span>
+        <Button size="sm" variant={draft.mode === "amount" ? "default" : "outline"} onClick={() => setDraft({ ...draft, mode: "amount" })}>
+          Qty × Rate
+        </Button>
+        <Button size="sm" variant={draft.mode === "percent" ? "default" : "outline"} onClick={() => setDraft({ ...draft, mode: "percent" })}>
+          Percentage
+        </Button>
+        {draft.mode === "percent" && (
+          <span className="text-xs text-muted-foreground">
+            Calculated on the designation lines total before GST ({fmtINR(designationSubtotal)}), or on a custom amount you enter.
+          </span>
+        )}
+      </div>
+      <div className="mt-2 grid grid-cols-1 items-center gap-2 md:grid-cols-12">
         <Input
           className="md:col-span-4"
           placeholder="Description (e.g. Technical Allowance)"
@@ -219,10 +295,32 @@ export function InvoiceExtraChargesCard({
           onChange={(e) => setDraft({ ...draft, description: e.target.value })}
         />
         <Input className="md:col-span-2" placeholder="HSN/SAC" value={draft.hsnSac} onChange={(e) => setDraft({ ...draft, hsnSac: e.target.value })} />
-        <Input className="md:col-span-1 text-right" placeholder="Qty" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} />
-        <Input className="md:col-span-1" placeholder="Per" value={draft.perLabel} onChange={(e) => setDraft({ ...draft, perLabel: e.target.value })} />
-        <Input className="md:col-span-2 text-right" placeholder="Rate" value={draft.rate} onChange={(e) => setDraft({ ...draft, rate: e.target.value })} />
-        <div className="md:col-span-2 flex justify-end">
+        {draft.mode === "percent" ? (
+          <>
+            <div className="relative md:col-span-1">
+              <Input className="pr-6 text-right" placeholder="%" value={draft.percent} onChange={(e) => setDraft({ ...draft, percent: e.target.value })} />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+            <Input
+              className="md:col-span-3 text-right"
+              placeholder={`of ${fmtINR(designationSubtotal)} (or custom amount)`}
+              value={draft.base}
+              onChange={(e) => setDraft({ ...draft, base: e.target.value })}
+            />
+          </>
+        ) : (
+          <>
+            <Input className="md:col-span-1 text-right" placeholder="Qty" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} />
+            <Input className="md:col-span-1" placeholder="Per" value={draft.perLabel} onChange={(e) => setDraft({ ...draft, perLabel: e.target.value })} />
+            <Input className="md:col-span-2 text-right" placeholder="Rate" value={draft.rate} onChange={(e) => setDraft({ ...draft, rate: e.target.value })} />
+          </>
+        )}
+        <div className="md:col-span-2 flex items-center justify-end gap-2">
+          {draft.mode === "percent" && (
+            <span className="text-sm font-semibold tabular-nums">
+              {fmtINR(r2((((draft.base.trim() === "" ? designationSubtotal : Number(draft.base) || 0)) * (Number(draft.percent) || 0)) / 100))}
+            </span>
+          )}
           <Button size="sm" onClick={() => add.mutate()} disabled={add.isPending}>
             <Plus className="mr-1.5 h-4 w-4" /> Add charge
           </Button>
