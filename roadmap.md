@@ -1,6 +1,6 @@
 ## CLI4331 Chandrappa explicit reliever — 9 November
-- [ ] Convert Chandrappa (28654) existing CLI4331 regular duties to Extra Duty and persist the monthly reliever choice, preserving other employees/sites.
-- [ ] Verify exact duty conservation and production readback; live editor still awaits release.
+- [x] Converted Chandrappa (28654) eight saved 21–28 August duties within September's 21 Aug–20 Sep sheet from eight Present to eight Extra Duty days; saved September reliever choice. Production readback and twice-recalculated rolled-back regression pass. Other attendance, site mappings and contracts exactly unchanged; backups /tmp/cli4331-chandrappa.
+- [ ] Signed-in live editor verification still blocked by unavailable live session and pending GitHub-to-Vercel editor release; the specific saved attendance correction is already applied in production.
 
 ## CLI4331 reliever Extra Duty saving — 9 November
 - [x] Reproduced automatic promotion of a chosen CLI4331 reliever: one ED day became P and its reliever flag disappeared. NP itself was not present in saved entries.
