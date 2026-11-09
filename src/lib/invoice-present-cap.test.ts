@@ -42,7 +42,7 @@ describe("optional invoice-only shared Present limit", () => {
   });
   it("keeps payroll calculations and original attendance unchanged", () => {
     const totals: AttendanceTotals = { pDays: 28, otDays: 1.5, otHours: 1.5, phDays: 1, otherPaidDays: 0, tDays: 30.5 };
-    const resource = { designationId: "guard", components: [{ name: "Basic", amount: 26000 }], payrollDayBase: { method: "fixed_days" as const, fixedDays: 26 } };
+    const resource = { designationId: "guard", components: [{ name: "Basic", amount: 26000 }], benefits: [], deductions: [], employerContributions: [], payrollDayBase: { method: "fixed_days" as const, fixedDays: 26 } };
     const before = computeWages(totals, resource, 30);
     const allocation = allocateInvoicePresent([{ pool: "guard", order: "a", present: totals.pDays, extraDuty: totals.otDays, cap: 26 }])[0];
     const invoice = splitInvoiceDuties({ billedDays: totals.tDays, otDays: allocation.extraDuty, regularRate: 1000, extraDutyRate: 1500 });

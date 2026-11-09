@@ -58,3 +58,21 @@ export function allocateInvoicePresent(inputs: readonly InvoiceCapInput[]) {
   }
   return output;
 }
+
+/** Shared adapter for raw attendance and charter aggregate rows. */
+export function allocateInvoiceEntries<T extends { unit_id?: string; candidate_id: string; entry_date: string; code: string; ot_hours: number | string | null; days?: number }>(
+  entries: readonly T[],
+  ruleFor: (entry: T) => InvoiceCapRule | null | undefined,
+  datesFor: (entry: T) => string[],
+  presentFor: (entry: T) => number,
+) {
+  return allocateInvoicePresent(entries.map(entry => {
+    const rule = ruleFor(entry);
+    return {
+      pool: invoiceCapPool(entry.unit_id ?? "", rule ?? {}),
+      order: `${entry.candidate_id}|${entry.entry_date}|${entry.code}`,
+      present: presentFor(entry), extraDuty: Number(entry.ot_hours) || 0,
+      cap: invoicePresentLimit(rule, datesFor(entry)),
+    };
+  }));
+}
