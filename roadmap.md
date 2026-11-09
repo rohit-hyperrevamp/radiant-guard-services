@@ -1,3 +1,6 @@
+## Deactivate CLI4660 and CLI4683 — 9 November
+- [ ] Mark only these two client sites inactive; preserve all other details and history, verify production readback and existing inactive category.
+
 ## Restore three recently changed contract end dates — 9 November
 - [x] Restored only the end_date from the audited 06:02–06:04 UTC changes: CLI2866 CON11347 → 30 April 2026; CLI2733 CON8316 → 31 August 2024; CLI3194 CON15858 → 20 August 2026. Live API readback and correction audits verified; all other contract fields (except automatic updated_at), historical contracts and resource rates unchanged. Before/after snapshots kept under /tmp/browser/contract-date-restore; focused preservation regression passes. Signed-in portal display not checked.
 
