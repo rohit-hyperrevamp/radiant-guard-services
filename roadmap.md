@@ -1,3 +1,8 @@
+## CLI3542 invoice allowance completion — 9 November
+- [x] Fill the first billing-divisor duties from pooled Present then existing Extra Duty, including replacement guards; excess stays Extra Duty only on invoices. Separate-tab routing and MIS treat opted-in reliever duties by allocated invoice classification. No production writes or attendance/payroll/rate changes.
+- [x] Real production CLI3542 September entries calculate 26 P + 2.25 ED from saved 24 P + 4.25 ED. Forty focused tests pass, including 26/27 limits, below-limit totals, raw-entry paging, payroll preservation and separate tabs; automatic build OK.
+- [ ] Signed-in live invoice confirmation awaits GitHub-to-Vercel delivery and an authorized production session; live invoice redirects to login. Existing deployed invoice includes the previous cap version; this correction's delivery is not yet verified.
+
 ## Optional invoice-only pooled Present cap — 9 November
 - [x] Added disabled-by-default resource switch using Billing Days, pooled across employees per role/duty length. Overflow changes invoice quantities only; unchanged payroll/designation fields are omitted from resource updates to avoid attendance rebalance on invoice-only saves.
 - [x] Shared allocation before invoice tabs flows through detail, print, Tally/MIS, finance summaries and dashboard invoice amounts. All 47 focused tests pass, including 24 + 2 + 6 = 26 P + 6 ED, variable divisors, separate roles/tabs, fractions and payroll preservation; automatic build OK.
