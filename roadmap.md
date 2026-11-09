@@ -1,3 +1,7 @@
+## CLI4331 Chandrappa explicit reliever — 9 November
+- [ ] Convert Chandrappa (28654) existing CLI4331 regular duties to Extra Duty and persist the monthly reliever choice, preserving other employees/sites.
+- [ ] Verify exact duty conservation and production readback; live editor still awaits release.
+
 ## CLI4331 reliever Extra Duty saving — 9 November
 - [x] Reproduced automatic promotion of a chosen CLI4331 reliever: one ED day became P and its reliever flag disappeared. NP itself was not present in saved entries.
 - [x] Applied monthly role choices consumed by the production attendance rule; replaced non-atomic line deletion/reinsert with authorized transactional role saving. Full/partial ED and regular selection checks pass with all test changes rolled back; CLI4331's 61 attendance entries and contracts unchanged. Fourteen focused frontend tests pass; automatic build OK. Older CLI2252 regression fixture fails identically with the original function (pre-existing fixture drift).
