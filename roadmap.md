@@ -1,3 +1,6 @@
+## Deactivate CLI4660 and CLI4683 — 9 November
+- [x] Marked CLI4660 (Bank of Baroda – Malleshwaram Branch) and CLI4683 (Bank of Baroda – Trinity Circle-Malleshwaram) inactive through production API with optimistic concurrency. Fresh inactive-filter readback returns both; all other client details and both contracts unchanged. Three safety tests pass; Clients already has Active/Inactive/All statuses dropdown, so no interface change needed. Before/after snapshots under /tmp/browser/client-inactive. Signed-in portal display not checked.
+
 ## Restore three recently changed contract end dates — 9 November
 - [x] Restored only the end_date from the audited 06:02–06:04 UTC changes: CLI2866 CON11347 → 30 April 2026; CLI2733 CON8316 → 31 August 2024; CLI3194 CON15858 → 20 August 2026. Live API readback and correction audits verified; all other contract fields (except automatic updated_at), historical contracts and resource rates unchanged. Before/after snapshots kept under /tmp/browser/contract-date-restore; focused preservation regression passes. Signed-in portal display not checked.
 
