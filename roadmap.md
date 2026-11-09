@@ -1,3 +1,7 @@
+## All Poonawalla invoice-only allowance rollout — 9 November
+- [ ] Enable the invoice-only pooled allowance on Poonawalla contracts only, preserving billing divisors, payroll, attendance, rates, statuses and issued invoices. Blocked: permitted managed database tools target the unrelated sandbox; latest access instructions prohibit production inspection/updates through psql, no production connector or authorized live session is available. No bulk setting changes made.
+- [ ] Verify the exact affected CLI list and unchanged non-Poonawalla records through an authorized production update path; then confirm live invoice quantities after delivery.
+
 ## CLI3542 invoice allowance completion — 9 November
 - [x] Fill the first billing-divisor duties from pooled Present then existing Extra Duty, including replacement guards; excess stays Extra Duty only on invoices. Separate-tab routing and MIS treat opted-in reliever duties by allocated invoice classification. No production writes or attendance/payroll/rate changes.
 - [x] Real production CLI3542 September entries calculate 26 P + 2.25 ED from saved 24 P + 4.25 ED. Forty focused tests pass, including 26/27 limits, below-limit totals, raw-entry paging, payroll preservation and separate tabs; automatic build OK.
