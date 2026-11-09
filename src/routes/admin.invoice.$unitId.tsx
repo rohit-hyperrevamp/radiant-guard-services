@@ -1414,7 +1414,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, gstEnabled, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
+  }, [rows, invoiceSplit, billingMode, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, gstEnabled, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
 
 
   /**
