@@ -160,8 +160,8 @@ function EmployeeAttendanceLookupPage() {
       if (unitIds.length) {
         const { data, error } = await supabase
           .from("units")
-          .eq("status", "active")
           .select("id, code, name")
+          .eq("status", "active")
           .in("id", unitIds);
         if (error) throw error;
         units = (data ?? []) as unknown as UnitLite[];

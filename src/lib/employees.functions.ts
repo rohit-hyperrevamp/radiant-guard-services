@@ -37,7 +37,7 @@ export const getEmployeesPageData = createServerFn({ method: "GET" })
           .select("id,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,status,created_at")
           .order("created_at", { ascending: false })
           .limit(250),
-        supabase.from("units" as never).select("id,code,name,customer_id").order("name", { ascending: true }).limit(2000),
+        supabase.from("units" as never).select("id,code,name,customer_id").eq("status", "active").order("name", { ascending: true }).limit(2000),
         supabase
           .from("designations" as never)
           .select("id,name,code,enabled")

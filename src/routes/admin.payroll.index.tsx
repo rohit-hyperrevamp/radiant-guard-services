@@ -21,6 +21,14 @@ import type { MoneyStatus } from "@/lib/period-status";
 const searchSchema = z.object({ window: z.string().optional(), month: z.coerce.number().min(0).max(11).optional(), year: z.coerce.number().min(2000).max(2100).optional(), status: z.enum(["open", "ready", "approved", "processed"]).optional() });
 
 export const Route = createFileRoute("/admin/payroll/")({
+  head: () => ({ meta: [
+    { title: "Payroll Register | Radiant Guard Services" },
+    { name: "description", content: "Review active Radiant clients and their period payroll." },
+    { property: "og:title", content: "Payroll Register | Radiant Guard Services" },
+    { property: "og:description", content: "Review active Radiant clients and their period payroll." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (search) => searchSchema.parse(search),
   component: PayrollUnitsPage,
 });
@@ -35,6 +43,9 @@ function PayrollUnitsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: CHARTER_UNITS_QK,
     queryFn: fetchCharterUnits,
+    staleTime: 60_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const foScope = useOperationalUnitScope();
