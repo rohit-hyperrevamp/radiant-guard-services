@@ -30,7 +30,9 @@ const db = supabase as unknown as { from: (t: string) => any };
 async function fetchAll<T>(table: string, cols: string): Promise<T[]> {
   const out: T[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db.from(table).select(cols).order("name").range(from, from + 999);
+    const query = db.from(table).select(cols);
+    if (table === "units") query.eq("status", "active");
+    const { data, error } = await query.order("name").range(from, from + 999);
     if (error) throw new Error(error.message);
     out.push(...((data ?? []) as T[]));
     if ((data ?? []).length < 1000) break;

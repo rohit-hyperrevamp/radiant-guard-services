@@ -69,7 +69,7 @@ export function FieldSenseLeaderboards() {
           .gte("track_date", resolved.start)
           .lte("track_date", resolved.end)
           .order("recorded_at", { ascending: true }),
-        supabase.from("units" as never).select("id, name, customer_id, latitude, longitude"),
+        supabase.from("units" as never).select("id, name, customer_id, latitude, longitude").eq("status", "active"),
         supabase.from("customers" as never).select("id, name"),
         supabase
           .from("self_attendance_punches" as never)

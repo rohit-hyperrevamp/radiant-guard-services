@@ -104,6 +104,7 @@ export function EmployeePostingsDialog({ candidateId, open, onOpenChange }: Prop
       const { data, error } = await supabase
         .from("units" as never)
         .select("id,code,name,is_billable")
+        .eq("status", "active")
         .or(`code.ilike.%${q}%,name.ilike.%${q}%`)
         .neq("is_billable", false)
         .order("code")

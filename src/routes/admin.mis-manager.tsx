@@ -76,6 +76,7 @@ function useCustomers() {
       const { data, error } = await supabase
         .from("customers")
         .select("id, code, name")
+        .eq("status", "active")
         .order("name");
       if (error) throw error;
       return (data ?? []) as Array<{ id: string; code: string | null; name: string }>;

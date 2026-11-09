@@ -133,6 +133,7 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
         const { data, error } = await supabase
           .from("units" as never)
           .select("id,branch_id,customer_id,is_billable")
+          .eq("status", "active")
           .in("id", [...directUnitIds]);
         if (error) throw error;
         for (const unit of ((data as unknown) as ScopedUnit[]) ?? []) byId.set(unit.id, unit);
@@ -146,6 +147,7 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
           const { data, error } = await supabase
             .from("units" as never)
             .select("id,branch_id,customer_id,is_billable")
+            .eq("status", "active")
             .in("customer_id", customerIds)
             .order("id", { ascending: true })
             .range(from, from + pageSize - 1);

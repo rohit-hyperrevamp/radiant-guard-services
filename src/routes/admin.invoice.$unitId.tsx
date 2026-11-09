@@ -56,6 +56,7 @@ import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalI
 import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, totalsForPart } from "@/lib/invoice-split";
 import { contractMonthlyBilling, invoiceMonthlyRateLabel } from "@/lib/contract-rate-display";
 import { invoiceQueryFreshness } from "@/lib/invoice-query-freshness";
+import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
 
 /** Dated rates store wages only; Extra Duty settings always come from the contract line. */
 function contractOtFields(r: Record<string, unknown>): Record<string, unknown> {
@@ -80,8 +81,13 @@ export const Route = createFileRoute("/admin/invoice/$unitId")({
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ] }),
-  component: PayrollUnitPage,
+  component: ActiveInvoicePage,
 });
+
+function ActiveInvoicePage() {
+  const { unitId } = Route.useParams();
+  return <ActiveClientBoundary unitId={unitId}><PayrollUnitPage /></ActiveClientBoundary>;
+}
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",

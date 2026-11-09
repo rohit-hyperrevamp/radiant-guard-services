@@ -221,6 +221,7 @@ function MyAttendancePage() {
       const { data: units } = await supabase
         .from("units")
         .select("id,name,latitude,longitude")
+        .eq("status", "active")
         .in("id", ids);
       return ((units ?? []) as Array<{ id: string; name: string; latitude: number | null; longitude: number | null }>).map((u) => ({
         id: u.id,

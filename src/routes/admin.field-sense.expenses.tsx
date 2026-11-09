@@ -156,7 +156,7 @@ function ExpenseManagerPage() {
           .gte("track_date", resolved.start)
           .lte("track_date", resolved.end)
           .order("recorded_at", { ascending: true }),
-        supabase.from("units" as never).select("id, name, latitude, longitude"),
+        supabase.from("units" as never).select("id, name, latitude, longitude").eq("status", "active"),
       ]);
 
       const fos = (foRes.data ?? []) as unknown as FoRow[];

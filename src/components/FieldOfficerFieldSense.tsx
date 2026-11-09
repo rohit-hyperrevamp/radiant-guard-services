@@ -199,7 +199,9 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
       rows = ((fresh.data ?? []) as unknown) as ScopeRow[];
     }
   }
-  const units = toFoUnits(rows);
+  const { fetchActiveClientIds } = await import("@/lib/active-clients");
+  const activeIds = await fetchActiveClientIds();
+  const units = toFoUnits(rows).filter((unit) => activeIds.has(unit.unit_id));
   writeUnitsSnapshot(candidateId, units);
   return units;
 }
@@ -246,9 +248,8 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
 
   // Data — paints from the last known units instantly, refreshes silently.
   const unitsQ = useQuery({
-    queryKey: ["fo-fs-units", candidateId],
+    queryKey: ["fo-fs-units-active", candidateId],
     queryFn: () => loadFoUnits(candidateId),
-    initialData: () => readUnitsSnapshot(candidateId),
     staleTime: 60_000,
     refetchOnMount: "always",
     placeholderData: (prev) => prev,

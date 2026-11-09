@@ -100,6 +100,7 @@ function ReportsPage() {
       const { data, error } = await supabase
         .from("units" as never)
         .select("id, name, code, customer_id")
+        .eq("status", "active")
         .eq("customer_id", customerId)
         .order("name");
       if (error) throw error;

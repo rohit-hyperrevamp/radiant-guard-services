@@ -272,6 +272,7 @@ function FieldOfficerDashboard() {
         const { data: orgUnits } = await supabase
           .from("units")
           .select("id")
+          .eq("status", "active")
           .in("customer_id", scopeCustomerIds)
           .eq("is_billable", true);
         for (const r of (orgUnits ?? []) as Array<{ id: string }>) unitIdSet.add(r.id);
@@ -283,6 +284,7 @@ function FieldOfficerDashboard() {
       const { data: unitRowsRaw } = await supabase
         .from("units")
         .select("id,code,name,customer_id,branch_id,is_billable")
+        .eq("status", "active")
         .in("id", Array.from(unitIdSet));
       const unitRows = (
         (unitRowsRaw ?? []) as Array<{
@@ -997,6 +999,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         const { data: orgUnits } = await supabase
           .from("units")
           .select("id")
+          .eq("status", "active")
           .in("customer_id", custScopeIds)
           .eq("is_billable", true);
         for (const r of (orgUnits ?? []) as Array<{ id: string }>) ids.add(r.id);
@@ -1007,6 +1010,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         const { data: unitRows } = await supabase
           .from("units")
           .select("id,name,customer_id")
+          .eq("status", "active")
           .in("id", Array.from(ids));
         const rows = (unitRows ?? []) as Array<{
           id: string;

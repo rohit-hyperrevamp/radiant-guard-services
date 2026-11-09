@@ -32,6 +32,7 @@ async function fetchMyClients() {
     const { data, error } = await (supabase as any)
       .from("units")
       .select("id,code,name,status,client_type,mapping_payroll_window_id,mapping_pay_day,dividing_factor,salary_slip_required,payroll_manager_id,customers:customer_id(name,code)")
+      .eq("status", "active")
       .eq("hr_executive_id", me as string).order("code").range(from, from + 999);
     if (error) throw error;
     rows.push(...((data ?? []) as unknown as Row[]));

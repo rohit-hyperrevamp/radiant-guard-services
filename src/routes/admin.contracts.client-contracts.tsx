@@ -110,6 +110,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { fetchAllPages, uniqueRowsById } from "@/lib/supabase-batch";
+import { fetchActiveClientIds } from "@/lib/active-clients";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { contractMonthlyBilling, contractDailyBilling } from "@/lib/contract-rate-display";
 import { periodDateList } from "@/lib/mis-billing";
@@ -506,6 +507,7 @@ function useContractDirectory(enabled = true) {
           supabase
             .from("units" as never)
             .select("id,code,name,customer_id,contract_start_date,contract_end_date,pan_number,gst_payable,gst_type,gst_number")
+            .eq("status", "active")
             .order("code", { ascending: true })
             .range(from, to),
         ),
@@ -686,7 +688,7 @@ function useContracts() {
         // in PostgREST, leaving every organisation/client cell blank even
         // though the contract rows had arrived. A flat register read plus the
         // narrow directory RPC is deterministic and avoids full unit records.
-        const [contractRows, directoryResult] = await Promise.all([
+        const [contractRows, directoryResult, activeIds] = await Promise.all([
           fetchAllPages<Record<string, unknown>>((from, to) =>
             supabase
               .from("client_contracts" as never)
@@ -700,13 +702,14 @@ function useContracts() {
           // 1,000-row cap never truncates it (more than 1,000 sites have contracts).
           (supabase.rpc("contract_register_directory" as never) as any)
             .abortSignal(controller.signal),
+          fetchActiveClientIds(),
         ]);
         if (directoryResult.error) throw directoryResult.error;
         const directoryRows = (Array.isArray(directoryResult.data)
           ? directoryResult.data
           : []) as Record<string, unknown>[];
         const unitsById = new Map(directoryRows.map((row) => [String(row.unit_id), row]));
-        return uniqueRowsById(contractRows.map((row) => {
+        return uniqueRowsById(contractRows.filter((row) => !row.unit_id || activeIds.has(String(row.unit_id))).map((row) => {
           const unit = unitsById.get(String(row.unit_id ?? ""));
           return rowToContract({
             ...row,
