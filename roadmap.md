@@ -1083,7 +1083,7 @@
 - [ ] Recompute through the live invoice/payroll calculation and report exact matches — unresolved multi-site identities, proposed-versus-issued rate conflicts, employee/day evidence and authenticated live invoice verification remain blockers; production database access is available. CLI318 supervisor remains ₹0.52 below invoice monthly billing; no balancing adjustment invented.
 
 ## Bank of Baroda CLI4810 and CLI182 — 9 November
-- [ ] CLI4304: add separate eight-hour Guard and Supervisor from supplied Koramangala sheets; verify existing twelve-hour entries, reference, terms and attendance unchanged.
+- [x] CLI4304: added separate eight-hour Guard (₹28,314.20) and Supervisor (₹28,271.46) from supplied Koramangala sheets; two rate tests pass and production read-back confirms six existing resources, both contracts and 716 attendance values unchanged (recalculation timestamps only). Contract screen not verified.
 - [x] User reconfirmed CLI4810. Authenticated full Pages register verifies CLI4810 is L&T Finance–Indiranagar (D401), ORG259, Hanamkonda, Telangana, BR27; source row screenshot inspected. No CLI182 option exists; do not assume CLI4681/CLI4682.
 - [x] Cancelled profile/rate import at user's request: CLI4810 is L&T, not the intended Bank of Baroda client. Nothing was imported or changed in production; no removal needed.
 - [x] Cancelled September attendance import at user's request; no attendance was imported or changed.
