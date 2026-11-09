@@ -370,6 +370,7 @@ export type ContractResource = {
   components: ResourceComponent[];
   payrollDayBaseId: string | null;
   billingDayBaseId: string | null;
+  invoicePresentCap?: boolean;
   benefits: BenefitItem[];
   deductions: BenefitItem[];
   employerContributions: BenefitItem[];
@@ -412,6 +413,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     })),
     payrollDayBaseId: resource.payrollDayBaseId ?? null,
     billingDayBaseId: resource.billingDayBaseId ?? null,
+    invoicePresentCap: resource.invoicePresentCap === true,
     benefits: (resource.benefits ?? []).map(cloneBenefitItem),
     deductions: (resource.deductions ?? []).map(cloneBenefitItem),
     employerContributions: (resource.employerContributions ?? []).map(cloneBenefitItem),
@@ -1277,7 +1279,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula,ot_esi,ot_hourly_rate,ot_hourly_esic",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,billing_day_base_id,invoice_present_cap,benefits,deductions,employer_contributions,round_off_final,round_off_totals,ot_multiplier,ot_basis,ot_formula,ot_esi,ot_hourly_rate,ot_hourly_esic",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1294,6 +1296,7 @@ function useContractResources(contractId: string | null) {
           : [],
         payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
         billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
+        invoicePresentCap: r.invoice_present_cap === true,
         benefits: Array.isArray(r.benefits) ? (r.benefits as BenefitItem[]) : [],
         deductions: Array.isArray(r.deductions) ? (r.deductions as BenefitItem[]) : [],
         employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
@@ -1954,9 +1957,20 @@ async function persistResources(contractId: string, resources: ContractResource[
   // Store reliever / management fee exactly as the editor shows them (CTC -> reliever -> fee),
   // so the saved list, invoices and payroll never drift from the editor total.
   const normalizedResources = resources.map(cloneContractResource);
+  const capPools = new Map<string, ContractResource>();
+  for (const resource of normalizedResources) {
+    if (resource.invoicePresentCap && !resource.billingDayBaseId) throw new Error("Select Billing Days for the invoice Present limit.");
+    const key = `${resource.designationId}|${resource.shiftHours}`;
+    const prior = capPools.get(key);
+    if (prior && (prior.invoicePresentCap || resource.invoicePresentCap) &&
+      (prior.invoicePresentCap !== resource.invoicePresentCap || prior.billingDayBaseId !== resource.billingDayBaseId)) {
+      throw new Error("Use the same invoice Present limit and Billing Days for duplicate lines of one role and duty length.");
+    }
+    capPools.set(key, resource);
+  }
   const prev = await supabase
     .from("contract_resources" as never)
-    .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
+    .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,invoice_present_cap,sort_order")
     .eq("contract_id", contractId)
     .order("sort_order");
   if (prev.error) throw prev.error;
@@ -1979,6 +1993,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     sort_order: idx,
     payroll_day_base_id: r.payrollDayBaseId || null,
     billing_day_base_id: r.billingDayBaseId || null,
+    invoice_present_cap: r.invoicePresentCap === true,
     benefits: r.benefits,
     deductions: r.deductions,
     employer_contributions: r.employerContributions,
@@ -1998,18 +2013,22 @@ async function persistResources(contractId: string, resources: ContractResource[
   for (let idx = 0; idx < rows.length; idx += 1) {
     const resource = normalizedResources[idx];
     const row = rows[idx];
+    const previous = beforeRows.find((saved) => String(saved.id) === resource.id);
+    const updateRow: Record<string, unknown> = { ...row };
+    if (previous && previous.payroll_day_base_id === row.payroll_day_base_id) delete updateRow.payroll_day_base_id;
+    if (previous && previous.designation_id === row.designation_id) delete updateRow.designation_id;
     const write = resource.id
       ? await supabase
           .from("contract_resources" as never)
-          .update(row as never)
+          .update(updateRow as never)
           .eq("id", resource.id)
           .eq("contract_id", contractId)
-          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
+          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,invoice_present_cap,sort_order")
           .single()
       : await supabase
           .from("contract_resources" as never)
           .insert(row as never)
-          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,sort_order")
+          .select("id,designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,billing_day_base_id,invoice_present_cap,sort_order")
           .single();
     if (write.error) throw write.error;
     savedRows.push(write.data as unknown as Record<string, unknown>);
@@ -2523,6 +2542,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     shiftHours: ([8,10,12].includes(Number(Number(r.shift_hours ?? 8))) ? (Number(Number(r.shift_hours ?? 8)) as 8 | 10 | 12) : 8),
     payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
     billingDayBaseId: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
+        invoicePresentCap: r.invoice_present_cap === true,
     components: safeJsonArray(r.components_json) as ResourceComponent[],
     benefits: safeJsonArray(r.benefits_json) as BenefitItem[],
     deductions: safeJsonArray(r.deductions_json) as BenefitItem[],
@@ -5266,6 +5286,7 @@ export function ResourceFormDialog({
   const [components, setComponents] = useState<ResourceComponent[]>([]);
   const [payrollDayBaseId, setPayrollDayBaseId] = useState<string>("");
   const [billingDayBaseId, setBillingDayBaseId] = useState<string>("");
+  const [invoicePresentCap, setInvoicePresentCap] = useState(false);
   const [benefits, setBenefits] = useState<BenefitItem[]>([]);
   const [deductions, setDeductions] = useState<BenefitItem[]>([]);
   const [employerContributions, setEmployerContributions] = useState<BenefitItem[]>([]);
@@ -5325,6 +5346,7 @@ export function ResourceFormDialog({
       setComponents(nextComponents);
       setPayrollDayBaseId(initial.payrollDayBaseId ?? "");
       setBillingDayBaseId(initial.billingDayBaseId ?? "");
+      setInvoicePresentCap(initial.invoicePresentCap === true);
       setBenefits(nextBenefits);
       setDeductions(nextDeductions);
       setEmployerContributions(nextEmployerContributions);
@@ -5361,6 +5383,7 @@ export function ResourceFormDialog({
       setComponents(nextComponents);
       setPayrollDayBaseId("");
       setBillingDayBaseId("");
+      setInvoicePresentCap(false);
       setBenefits([]);
       setDeductions([]);
       setEmployerContributions([]);
@@ -5384,6 +5407,7 @@ export function ResourceFormDialog({
           components,
           payrollDayBaseId: payrollDayBaseId || null,
           billingDayBaseId: billingDayBaseId || null,
+      invoicePresentCap,
           benefits,
           deductions,
           employerContributions,
@@ -5397,7 +5421,7 @@ export function ResourceFormDialog({
       otEsi: otEsi?.enabled ? otEsi : null,
         },
       ]),
-    [benefits, billingDayBaseId, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula, otEsi, otHourlyRate, otHourlyEsic],
+    [benefits, billingDayBaseId, invoicePresentCap, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId, roundOffFinal, roundTotals, otMultiplier, otBasis, otFormula, otEsi, otHourlyRate, otHourlyEsic],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -6191,6 +6215,7 @@ export function ResourceFormDialog({
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       billingDayBaseId: billingDayBaseId || null,
+      invoicePresentCap,
       benefits,
       deductions,
       employerContributions,
@@ -6221,6 +6246,7 @@ export function ResourceFormDialog({
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       billingDayBaseId: billingDayBaseId || null,
+      invoicePresentCap,
       benefits,
       deductions,
       employerContributions,
@@ -6486,10 +6512,19 @@ export function ResourceFormDialog({
             />
           </Field>
 
+          {!isWages && <Field label="Invoice Present limit — shared per role">
+            <Switch
+              aria-label="Limit invoice Present duties by Billing Days"
+              checked={invoicePresentCap}
+              disabled={!billingDayBaseId || readOnly}
+              onCheckedChange={setInvoicePresentCap}
+            />
+          </Field>}
+
           <Field label="Billing Days">
             <SearchSelect
               value={billingDayBaseId}
-              onChange={setBillingDayBaseId}
+              onChange={(value) => { setBillingDayBaseId(value); if (!value) setInvoicePresentCap(false); }}
               options={billingDayBases.map((p) => ({
                 value: p.id,
                 label: p.name,
