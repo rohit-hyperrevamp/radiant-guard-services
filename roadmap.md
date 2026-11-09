@@ -1,3 +1,7 @@
+## Invoice Extra Duty output choices — 9 November
+- [ ] Fix saving and applying combined duties, separate P/Extra Duty tabs, and separate rows on one invoice; preserve attendance and rates.
+- [ ] Run focused regressions and verify production delivery where authenticated access permits.
+
 ## CLI4331 Chandrappa explicit reliever — 9 November
 - [x] Converted Chandrappa (28654) eight saved 21–28 August duties within September's 21 Aug–20 Sep sheet from eight Present to eight Extra Duty days; saved September reliever choice. Production readback and twice-recalculated rolled-back regression pass. Other attendance, site mappings and contracts exactly unchanged; backups /tmp/cli4331-chandrappa.
 - [ ] Signed-in live editor verification still blocked by unavailable live session and pending GitHub-to-Vercel editor release; the specific saved attendance correction is already applied in production.
