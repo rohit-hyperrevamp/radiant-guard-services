@@ -1,3 +1,6 @@
+## CLI4683 Lady Guard from CLI3098 — 9 November
+- [ ] Add CLI3098 current contract's Lady Security Guard structure exactly to CLI4683's active contract; preserve existing Security/Armed Guard roles, source, dates and client statuses; verify saved readback.
+
 ## Review Poonawalla clients unexpectedly inactive — 9 November
 - [x] Reviewed production Poonawalla customer/site statuses and 602 audit records: all 76 Maharashtra Poonawalla sites are active; no recent bulk deactivation is recorded. Older inactive Poonawalla records exist in other/blank states; latest recorded status update reactivated CLI3431. No statuses, contracts, rates or attendance changed during review.
 - [x] User clarified all Poonawalla clients: reactivated 271 inactive sites across five Poonawalla organizations; fresh production readback verifies all 376 now active. Preservation checks passed for all unrelated clients, 723 contracts, 723 resource/rate rows and 18,906 attendance entries; four focused tests pass. Before/after backups and changed CLI list in /tmp/browser/poonawalla-status. Signed-in live display remains unavailable; no contract dates, rates or attendance reverted.
