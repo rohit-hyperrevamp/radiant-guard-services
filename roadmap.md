@@ -1,6 +1,6 @@
 ## Review Poonawalla clients unexpectedly inactive — 9 November
 - [x] Reviewed production Poonawalla customer/site statuses and 602 audit records: all 76 Maharashtra Poonawalla sites are active; no recent bulk deactivation is recorded. Older inactive Poonawalla records exist in other/blank states; latest recorded status update reactivated CLI3431. No statuses, contracts, rates or attendance changed during review.
-- [ ] User clarified all Poonawalla clients: reactivate inactive sites across all Poonawalla organizations only; preserve contracts/rates/attendance and verify fresh readback.
+- [x] User clarified all Poonawalla clients: reactivated 271 inactive sites across five Poonawalla organizations; fresh production readback verifies all 376 now active. Preservation checks passed for all unrelated clients, 723 contracts, 723 resource/rate rows and 18,906 attendance entries; four focused tests pass. Before/after backups and changed CLI list in /tmp/browser/poonawalla-status. Signed-in live display remains unavailable; no contract dates, rates or attendance reverted.
 
 ## CLI3431 active status — 9 November
 - [x] Reactivated only CLI3431 in production and verified fresh readback: active, CON13223 Man Days. Transaction assertions preserve all client fields except status/updated_at, contracts, rates and attendance. Previous invoice correction did not change its pre-existing inactive status. Backup /tmp/cli3431_reactivation_before_20261109.jsonl; live signed-in display remains unverified.
