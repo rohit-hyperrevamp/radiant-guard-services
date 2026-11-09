@@ -1,7 +1,7 @@
 """User-requested client deactivation checks, reusable against live readback."""
 import unittest
 
-EXPECTED_CODES = {"CLI4660", "CLI4683"}
+EXPECTED_CODES = {"CLI4473", "CLI3098"}
 
 
 def assert_inactive(before, after):
@@ -15,15 +15,15 @@ def assert_inactive(before, after):
 
 
 class InactiveAssertionsTest(unittest.TestCase):
-    def test_cli4660_must_be_inactive(self):
+    def test_cli4473_must_be_inactive(self):
         before = [{"code": code, "status": "active"} for code in EXPECTED_CODES]
-        after = [{"code": code, "status": "active" if code == "CLI4660" else "inactive"} for code in EXPECTED_CODES]
+        after = [{"code": code, "status": "active" if code == "CLI4473" else "inactive"} for code in EXPECTED_CODES]
         with self.assertRaises(AssertionError):
             assert_inactive(before, after)
 
-    def test_cli4683_must_be_inactive(self):
+    def test_cli3098_must_be_inactive(self):
         before = [{"code": code, "status": "active"} for code in EXPECTED_CODES]
-        after = [{"code": code, "status": "active" if code == "CLI4683" else "inactive"} for code in EXPECTED_CODES]
+        after = [{"code": code, "status": "active" if code == "CLI3098" else "inactive"} for code in EXPECTED_CODES]
         with self.assertRaises(AssertionError):
             assert_inactive(before, after)
 

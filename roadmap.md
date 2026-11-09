@@ -1,3 +1,6 @@
+## Swap four Bank of Baroda client statuses — 9 November
+- [x] Production status swap committed and fresh assertions passed: CLI4473/CLI3098 inactive; CLI4660/CLI4683 active. Exact-ID update preserves unrelated client fields, all other clients, these contracts and attendance. Before-state backup in /tmp/bob_client_status_swap_20261109.jsonl; three focused tests pass. Live signed-in display not checked.
+
 ## CLI3431 main invoice duty units — 9 November
 - [x] Production confirms both contracts already use Man Days; CON13223 custom ED remains ₹134 + ₹5 ESIC/hour at 8 hours. No production data changed. Fixed misleading invoice table that always displayed converted hours: quantity/rate now follow each priced line's own unit, main duties stay days and intentional hourly ED stays hourly. Fourteen focused regressions pass; automatic build OK.
 - [ ] Confirm signed-in live display after GitHub-to-Vercel release; live invoice redirects to login. CLI3431 is already inactive; status unchanged.
