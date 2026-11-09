@@ -1,3 +1,6 @@
+## CLI3431 main invoice duty units — 9 November
+- [ ] Check saved billing type, correct main duties to days, and verify unchanged attendance/rates.
+
 ## Hide inactive clients throughout operations — 9 November
 - [x] Added fresh active-status intersection to shared invoice/attendance/payroll/dashboard rosters (including fallback cache), versioned roster cache, and blocked direct inactive-client register URLs before their queries/actions mount. Added active filters to contracts, employee/onboarding/posting/rehire/MIS/additions/case/field/team pickers and dashboards. Client status changes invalidate operational caches; Clients management keeps inactive category. Historical records and calculation metadata are not deleted or altered.
 - [x] Twenty-four visibility/cache/attendance/billing regressions pass; automatic build OK. Production verifies CLI4660 and CLI4683 inactive and absent from active filter.
