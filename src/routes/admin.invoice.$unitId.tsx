@@ -36,7 +36,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { misBillingLine } from "@/lib/mis-billing";
-import { exactDayRateFor, invoiceExtraDutyRate, showsHourlyEdAsDays, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
+import { exactDayRateFor, invoiceExtraDutyRate, invoiceDutyBillingLines, showsHourlyEdAsDays, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
@@ -1053,7 +1053,8 @@ function PayrollUnitPage() {
   const gstEnabled = gstOption !== "none";
   const { data: invoiceSplit = DEFAULT_SPLIT } = useQuery({
     queryKey: ["org-invoice-split", unit?.customer_id ?? null, contractId],
-    enabled: !!unit?.customer_id && !!data,
+    ...invoiceQueryFreshness,
+    enabled: !!data && (!!contractId || !!unit?.customer_id),
     queryFn: () => loadOrgInvoiceSplit(unit?.customer_id ?? null, contractId),
   });
   const splitActive = isSplit(invoiceSplit);
@@ -1175,14 +1176,7 @@ function PayrollUnitPage() {
     return {
       extraDutyRate,
       dutySplit,
-      billingLines: dutySplit
-        ? [
-            { kind: "P Days", rate: dutySplit.regularRate, quantity: dutySplit.regularQuantity, amount: dutySplit.regularAmount, unitLabel },
-            { kind: "Extra Duty", rate: dutySplit.edRate, quantity: dutySplit.edQuantity, amount: dutySplit.edAmount, unitLabel: caretakerHourlyEd ? "hrs" : unitLabel },
-          ].filter((item) => item.quantity > 0)
-        // Guards without ED share the "P Days" label when the contract prints
-        // ED on separate lines, so one role's Present days stay on one row.
-        : [{ kind: invoiceSplit.edLines === true && (billingMode === "man_days" || billsHourly) ? "P Days" : "", rate: unitRate, quantity: unitQuantity, amount: actual, unitLabel }],
+      billingLines: invoiceDutyBillingLines({ dutySplit, edLines: invoiceSplit.edLines, unitRate, unitQuantity, actual, unitLabel, extraDutyUnitLabel: caretakerHourlyEd ? "hrs" : unitLabel }),
       contracted,
       payrollDays,
       billingDays,
@@ -1219,7 +1213,7 @@ function PayrollUnitPage() {
       { projectedTotal: 0, actualTotal: 0, tDays: 0, payrollDays: 0, otHours: 0 },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, billingMode]);
+  }, [rows, billingMode, invoiceSplit]);
 
   /** One row per designation and billing unit, preserving each priced line's quantity. */
   const designationRows = useMemo(() => {
@@ -1261,7 +1255,7 @@ function PayrollUnitPage() {
     }
     return Array.from(map.values()).sort((a, b) => a.designation.localeCompare(b.designation));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, billingMode]);
+  }, [rows, billingMode, invoiceSplit]);
 
 
   const GST_RATE = gstEnabled ? 18 : 0;

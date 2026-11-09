@@ -1,4 +1,4 @@
-import { INVOICE_ED_MODES, normalizeInvoiceEdMode, type InvoiceEdMode } from "@/lib/invoice-split";
+import { INVOICE_ED_MODES, invoiceEdModeForSave, normalizeInvoiceEdMode, type InvoiceEdMode } from "@/lib/invoice-split";
 import { applyCtcPass, refreshBillingAddOns, formulaReferencesBillingBase } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
 import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
@@ -741,6 +741,7 @@ function useContracts() {
     qc.invalidateQueries({ queryKey: ["admin", "units"] });
     qc.invalidateQueries({ queryKey: QK_CONTRACT_DIRECTORY });
     void qc.invalidateQueries({ queryKey: ["invoice-compute"] });
+    void qc.invalidateQueries({ queryKey: ["org-invoice-split"] });
   };
 
   const syncUnitDates = async (unitId: string, startDate: string, endDate: string) => {
@@ -769,7 +770,7 @@ function useContracts() {
       service_type_id: p.serviceTypeId,
       payroll_window_id: p.payrollWindowId,
       billing_type_id: p.billingTypeId,
-      invoice_ed_mode: p.invoiceEdMode && p.invoiceEdMode !== "combined" ? p.invoiceEdMode : null,
+      invoice_ed_mode: invoiceEdModeForSave(p.invoiceEdMode),
       gst_option: p.gstOption,
       wo_as_present: Boolean(p.woAsPresent),
     };
