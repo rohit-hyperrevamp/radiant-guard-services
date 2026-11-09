@@ -4,7 +4,7 @@ import { evaluateFormula } from "./formula-engine";
 describe("CLI4304 supplied eight-hour roles", () => {
   it.each([
     ["Security Guard", 15742.26, 2245.41, 1582.42, 2469.57, 617.39, 913.74, 1089.01, 22824.49, 28314.20],
-    ["Security Supervisor", 16058.30, 2282.76, 1608.75, 2510.65, 627.66, 928.94, 600, 23004.21, 28271.46],
+    ["Security Supervisor", 16058.30, 2282.76, 1608.75, 2510.65, 627.66, 928.94, 600, 23204.21, 28271.46],
   ])("keeps %s on the eight-hour sheet without additional four-hour wages", (_role, basic, leave, bonus, epf, esi, gratuity, service, gross, billing) => {
     const context = { basic, da: 3254.40 };
     const amount = (expression: string) => evaluateFormula({ mode: "advanced", expression }, context).amount;
