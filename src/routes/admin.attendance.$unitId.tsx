@@ -4,6 +4,7 @@ import { mergeAttendanceHourRows } from "@/lib/attendance-excel-rows";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { EmployeeSitesPopover } from "@/components/EmployeeSitesPopover";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
@@ -153,8 +154,13 @@ export const Route = createFileRoute("/admin/attendance/$unitId")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: MusterRollPage,
+  component: ActiveAttendancePage,
 });
+
+function ActiveAttendancePage() {
+  const { unitId } = Route.useParams();
+  return <ActiveClientBoundary unitId={unitId}><MusterRollPage /></ActiveClientBoundary>;
+}
 
 type AttendanceCode = {
   id: string;

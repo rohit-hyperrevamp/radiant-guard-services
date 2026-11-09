@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { useAuth } from "@/lib/auth";
+import { invalidateDashboardBase } from "@/lib/dashboard-base";
 
 /**
  * Cloud-backed admin data store.
@@ -978,7 +979,11 @@ export function useUnits() {
 
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK_UNITS });
+  const invalidate = () => {
+    invalidateDashboardBase();
+    // Status affects every operational list and open register, not just Clients.
+    return qc.invalidateQueries();
+  };
 
   const addMut = useMutation({
     mutationFn: async (data: Omit<Unit, "id">): Promise<string> => {

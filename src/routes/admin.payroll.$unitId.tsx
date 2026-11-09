@@ -71,6 +71,7 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
+import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -90,8 +91,13 @@ export const Route = createFileRoute("/admin/payroll/$unitId")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: PayrollUnitPage,
+  component: ActivePayrollPage,
 });
+
+function ActivePayrollPage() {
+  const { unitId } = Route.useParams();
+  return <ActiveClientBoundary unitId={unitId}><PayrollUnitPage /></ActiveClientBoundary>;
+}
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",

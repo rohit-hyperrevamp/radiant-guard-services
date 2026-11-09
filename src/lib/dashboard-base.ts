@@ -55,7 +55,7 @@ async function load(): Promise<DashboardBase> {
         .range(from, to),
     ),
     fetchAllPages<BaseRow>((from, to) =>
-      supabase.from("units" as never).select("id,name,customer_id").order("id", { ascending: true }).range(from, to),
+      supabase.from("units" as never).select("id,name,customer_id").eq("status", "active").order("id", { ascending: true }).range(from, to),
     ),
     fetchAllPages<BaseRow>((from, to) =>
       supabase.from("customers" as never).select("id,name").order("id", { ascending: true }).range(from, to),
@@ -97,16 +97,18 @@ async function load(): Promise<DashboardBase> {
     ),
   ]);
 
-  const activeContractIds = new Set(contracts.map((c) => String(c.id)));
+  const activeUnitIds = new Set(units.map((u) => String(u.id)));
+  const visibleContracts = contracts.filter((c) => activeUnitIds.has(String(c.unit_id)));
+  const activeContractIds = new Set(visibleContracts.map((c) => String(c.id)));
   const resources = allResources.filter((r) => activeContractIds.has(String(r.contract_id)));
 
   return {
-    contracts,
+    contracts: visibleContracts,
     units,
     customers,
     designations,
     candidates,
-    candidateUnits,
+    candidateUnits: candidateUnits.filter((row) => activeUnitIds.has(String(row.unit_id))),
     resources,
     attendanceCodes,
   };

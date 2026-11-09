@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchActiveClientIds } from "@/lib/active-clients";
+import { visibleClientRows } from "@/lib/client-visibility";
 
 /**
  * Shared unit roster used by the Attendance / Invoice / Payroll charters.
@@ -53,7 +55,7 @@ export type CharterPageData = {
   summary: { organizations: number; units: number; activeEmployees: number };
 };
 
-export const CHARTER_UNITS_QK = ["charter-units-v2"] as const;
+export const CHARTER_UNITS_QK = ["charter-units-v3-active"] as const;
 
 const SNAPSHOT_KEY = "radiant:charter-units:v2";
 
@@ -80,7 +82,8 @@ function writeSnapshot(rows: CharterUnitRow[]) {
 }
 
 export function readCharterUnitsSnapshot(): CharterPageData | null {
-  return readSnapshot();
+  // Browser snapshots cannot establish the current client status.
+  return null;
 }
 
 function buildPageData(rows: CharterUnitRow[]): CharterPageData {
@@ -139,14 +142,15 @@ function buildPageData(rows: CharterUnitRow[]): CharterPageData {
 }
 
 export async function fetchCharterUnits(): Promise<CharterPageData> {
+  const activeIds = await fetchActiveClientIds();
   const { data, error } = await supabase.rpc("get_attendance_charter_units" as never);
   if (error) {
     const cached = readSnapshot();
-    if (cached) return cached;
+    if (cached) return buildPageData(visibleClientRows(cached.units, activeIds));
     throw error;
   }
   const payload = (data ?? {}) as { units?: CharterUnitRow[] };
-  const rows = payload.units ?? [];
+  const rows = visibleClientRows(payload.units ?? [], activeIds);
   writeSnapshot(rows);
   return buildPageData(rows);
 }
