@@ -1237,7 +1237,8 @@ function PayrollUnitPage() {
       if (billingMode !== "lumpsum" && billingMode !== "man_months" && (r.totals.tDays ?? 0) <= 0) continue;
       const m = invoiceMathFor(r);
       for (const item of m.billingLines) {
-        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${item.rate}|${item.unitLabel}|${item.kind}|${r.rateWindowLabel ?? ""}`;
+        const groupingRate = invoiceSplit.edLines === false ? m.unitRate : item.rate;
+        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${groupingRate}|${item.unitLabel}|${item.kind}|${r.rateWindowLabel ?? ""}`;
         const existing = map.get(key) ?? {
           key,
           designation: `${item.kind ? `${r.designation} · ${item.kind}` : r.designation}${r.rateWindowLabel ? ` (${r.rateWindowLabel})` : ""}`,
@@ -1250,6 +1251,10 @@ function PayrollUnitPage() {
         existing.billedHours = Math.round((existing.billedHours + days * m.shiftHours) * 100) / 100;
         existing.contracted = Math.round((existing.contracted + (item.kind === "Extra Duty" ? 0 : m.contracted)) * 100) / 100;
         existing.actual = Math.round((existing.actual + item.amount) * 100) / 100;
+        if (invoiceSplit.edLines === false) {
+          const quantity = item.unitLabel === "hrs" ? existing.billedHours : existing.billedDays;
+          if (quantity > 0) existing.perHour = existing.actual / quantity;
+        }
         map.set(key, existing);
       }
     }
@@ -1305,7 +1310,8 @@ function PayrollUnitPage() {
       const m = invoiceMathFor(r);
       for (const item of m.billingLines) {
         const designation = item.kind ? `${r.designation} · ${item.kind}` : r.designation;
-        const key = `${designation}|${item.rate}|${m.shiftHours}|${m.payrollDays}|${r.rateWindowLabel ?? ""}`;
+        const groupingRate = invoiceSplit.edLines === false ? m.unitRate : item.rate;
+        const key = `${designation}|${groupingRate}|${item.unitLabel}|${m.shiftHours}|${m.payrollDays}|${r.rateWindowLabel ?? ""}`;
         const g = groups.get(key) ?? {
           designation, rateWindowLabel: r.rateWindowLabel ?? null, monthly: m.contracted, payrollDays: m.payrollDays,
           shiftHours: m.shiftHours, unitRate: item.rate, unitLabel: item.unitLabel,
@@ -1313,6 +1319,7 @@ function PayrollUnitPage() {
         };
         g.quantity = roundDutyDays(g.quantity + item.quantity);
         g.amount = r2(g.amount + item.amount);
+        if (invoiceSplit.edLines === false && g.quantity > 0) g.unitRate = g.amount / g.quantity;
         groups.set(key, g);
       }
     }
