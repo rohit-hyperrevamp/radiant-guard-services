@@ -1065,5 +1065,5 @@
 
 ## Bank of Baroda CLI4810 and CLI182 — 9 November
 - [x] User reconfirmed CLI4810. Authenticated full Pages register verifies CLI4810 is L&T Finance–Indiranagar (D401), ORG259, Hanamkonda, Telangana, BR27; source row screenshot inspected. No CLI182 option exists; do not assume CLI4681/CLI4682.
-- [ ] Populate verified profile and rate structure — blocked on conflicting instruction: source CLI4810 is L&T Finance, while requested organization/rates are Bank of Baroda. Need corrected Bank of Baroda branch identity or explicit instruction to import the actual L&T client with applicable L&T rates.
-- [ ] Retrieve September 2026 employee/date attendance, import only source-supported records, and verify readback — blocked on intended client identity; no production records changed.
+- [x] Cancelled profile/rate import at user's request: CLI4810 is L&T, not the intended Bank of Baroda client. Nothing was imported or changed in production; no removal needed.
+- [x] Cancelled September attendance import at user's request; no attendance was imported or changed.
