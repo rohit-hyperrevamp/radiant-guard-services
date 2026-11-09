@@ -1266,6 +1266,11 @@ function useContractResources(contractId: string | null) {
   const { data = [] } = useQuery({
     queryKey: ["admin", "contract-resources", contractId ?? "none"],
     enabled: !!contractId,
+    // Rates must always be read fresh when a contract opens: a cached copy
+    // shows outdated rates and, if saved, writes them back over new ones.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<ContractResource[]> => {
       if (!contractId) return [];
       const { data, error } = await supabase
