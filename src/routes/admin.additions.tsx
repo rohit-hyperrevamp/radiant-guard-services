@@ -454,7 +454,7 @@ function AdditionForm() {
     queryFn: async () => {
       const out: { id: string; code: string | null; name: string | null }[] = [];
       for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase.from("units").select("id, code, name").order("code").range(from, from + 999);
+        const { data, error } = await supabase.from("units").select("id, code, name").eq("status", "active").order("code").range(from, from + 999);
         if (error) throw error;
         out.push(...((data ?? []) as typeof out));
         if ((data ?? []).length < 1000) break;

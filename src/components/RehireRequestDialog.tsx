@@ -73,6 +73,7 @@ export function RehireRequestDialog({
       const { data, error } = await supabase
         .from("units" as never)
         .select("id,name,code")
+        .eq("status", "active")
         .order("name");
       if (error) throw error;
       return ((data as unknown) as Array<{ id: string; name: string; code: string | null }>) ?? [];

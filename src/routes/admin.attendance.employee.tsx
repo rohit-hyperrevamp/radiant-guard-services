@@ -160,6 +160,7 @@ function EmployeeAttendanceLookupPage() {
       if (unitIds.length) {
         const { data, error } = await supabase
           .from("units")
+          .eq("status", "active")
           .select("id, code, name")
           .in("id", unitIds);
         if (error) throw error;

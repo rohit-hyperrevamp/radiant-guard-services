@@ -75,7 +75,7 @@ export function TeamClientsCard() {
       const unitName = new Map<string, string>();
       if (mateIds.length) {
         const [managed, mapped] = await Promise.all([
-          supabase.from("units").select("id,name,account_manager_id,operations_manager_id,hr_executive_id").or(`account_manager_id.in.(${mateIds.join(",")}),operations_manager_id.in.(${mateIds.join(",")}),hr_executive_id.in.(${mateIds.join(",")})`).limit(5000),
+          supabase.from("units").select("id,name,account_manager_id,operations_manager_id,hr_executive_id").eq("status", "active").or(`account_manager_id.in.(${mateIds.join(",")}),operations_manager_id.in.(${mateIds.join(",")}),hr_executive_id.in.(${mateIds.join(",")})`).limit(5000),
           supabase.from("candidate_units").select("candidate_id,unit_id").in("candidate_id", mateIds).limit(5000),
         ]);
         if (managed.error) throw managed.error;
@@ -91,11 +91,12 @@ export function TeamClientsCard() {
         }
         const extraIds = [...new Set(((mapped.data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id).filter((id) => !unitName.has(id)))];
         if (extraIds.length) {
-          const { data: extra, error: extraErr } = await supabase.from("units").select("id,name").in("id", extraIds);
+          const { data: extra, error: extraErr } = await supabase.from("units").select("id,name").eq("status", "active").in("id", extraIds);
           if (extraErr) throw extraErr;
           for (const u of (extra ?? []) as Array<{ id: string; name: string | null }>) unitName.set(u.id, u.name ?? u.id);
         }
         for (const r of (mapped.data ?? []) as Array<{ candidate_id: string; unit_id: string }>) {
+          if (!unitName.has(r.unit_id)) continue;
           if (!siteMap.has(r.candidate_id)) siteMap.set(r.candidate_id, new Set());
           siteMap.get(r.candidate_id)!.add(r.unit_id);
         }
@@ -119,7 +120,7 @@ export function TeamClientsCard() {
       const sheet = new Map<string, { s: string; p: string }>();
       for (const part of chunks(unitIds)) {
         const [u, c, p, s] = await Promise.all([
-          supabase.from("units").select("id,code,name,customer_id").in("id", part),
+          supabase.from("units").select("id,code,name,customer_id").eq("status", "active").in("id", part),
           supabase.from("client_contracts").select("unit_id").in("unit_id", part).eq("status", "active").limit(5000),
           supabase.from("candidates").select("unit_id").in("unit_id", part).in("status", ["active", "approved"]).limit(20000),
           supabase.from("attendance_sheets").select("unit_id,status,period_end").in("unit_id", part).order("period_end", { ascending: false }).limit(5000),

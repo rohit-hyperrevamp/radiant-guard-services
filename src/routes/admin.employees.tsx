@@ -1650,6 +1650,7 @@ function useUnits() {
               .select(
                 "id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount,is_billable",
               )
+              .eq("status", "active")
               .order("name", { ascending: true })
               .order("id", { ascending: true })
               .range(page * PAGE, page * PAGE + PAGE - 1)
@@ -1744,6 +1745,7 @@ function useHomeUnits() {
           await supabase
             .from("units" as never)
             .select("id,code,name,customer_id,branch_id,is_billable")
+            .eq("status", "active")
             .eq("is_billable", false)
             .order("name", { ascending: true })
             .limit(200)
@@ -1823,6 +1825,7 @@ function OperationalMappingPicker({
         supabase
           .from("units" as never)
           .select("id,code,name,customer_id,branch_id,is_billable")
+          .eq("status", "active")
           .in("customer_id", ids)
           .order("name", { ascending: true })
           .order("id", { ascending: true })

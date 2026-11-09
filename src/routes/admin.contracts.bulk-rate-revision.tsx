@@ -127,6 +127,7 @@ function BulkRateRevisionPage() {
       const { data: units, error: ue } = await supabase
         .from("units" as never)
         .select("id,name,code,client_state,billing_state")
+        .eq("status", "active")
         .eq("customer_id", orgId)
         .limit(2000);
       if (ue) throw ue;

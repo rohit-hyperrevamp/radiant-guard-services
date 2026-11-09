@@ -154,6 +154,7 @@ function useLookups() {
             const { data } = await db
               .from("units")
               .select("id,name,code,client_state,billing_state,customer_id")
+              .eq("status", "active")
               .order("name")
               .range(from, from + 999);
             out.push(

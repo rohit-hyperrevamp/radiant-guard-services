@@ -114,7 +114,7 @@ function MyTeamPage() {
           .select("candidate_id, lat, lng, recorded_at")
           .eq("track_date", selectedDate)
           .order("recorded_at", { ascending: true }),
-        supabase.from("units" as never).select("id, name, client_state"),
+        supabase.from("units" as never).select("id, name, client_state").eq("status", "active"),
         supabase
           .from("candidate_units" as never)
           .select("candidate_id, unit_id"),

@@ -48,7 +48,7 @@ async function loadFoDirectory(): Promise<{ fos: FoRow[]; unitsByFo: Map<string,
     supabase.from("employee_scope_assignments" as never).select("candidate_id, scope_type, scope_id"),
     supabase
       .from("units" as never)
-      .select("id, name, code, customer_id, branch_id, latitude, longitude, billing_city, billing_state"),
+      .select("id, name, code, customer_id, branch_id, latitude, longitude, billing_city, billing_state").eq("status", "active"),
     supabase.from("customers" as never).select("id, name"),
     supabase.from("branches" as never).select("id, name"),
   ]);
