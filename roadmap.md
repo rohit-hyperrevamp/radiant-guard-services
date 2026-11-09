@@ -1,3 +1,6 @@
+## CLI3431 active status — 9 November
+- [x] Reactivated only CLI3431 in production and verified fresh readback: active, CON13223 Man Days. Transaction assertions preserve all client fields except status/updated_at, contracts, rates and attendance. Previous invoice correction did not change its pre-existing inactive status. Backup /tmp/cli3431_reactivation_before_20261109.jsonl; live signed-in display remains unverified.
+
 ## Swap four Bank of Baroda client statuses — 9 November
 - [x] Production status swap committed and fresh assertions passed: CLI4473/CLI3098 inactive; CLI4660/CLI4683 active. Exact-ID update preserves unrelated client fields, all other clients, these contracts and attendance. Before-state backup in /tmp/bob_client_status_swap_20261109.jsonl; three focused tests pass. Live signed-in display not checked.
 
