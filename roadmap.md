@@ -1,5 +1,6 @@
 ## CLI3431 main invoice duty units — 9 November
-- [ ] Check saved billing type, correct main duties to days, and verify unchanged attendance/rates.
+- [x] Production confirms both contracts already use Man Days; CON13223 custom ED remains ₹134 + ₹5 ESIC/hour at 8 hours. No production data changed. Fixed misleading invoice table that always displayed converted hours: quantity/rate now follow each priced line's own unit, main duties stay days and intentional hourly ED stays hourly. Fourteen focused regressions pass; automatic build OK.
+- [ ] Confirm signed-in live display after GitHub-to-Vercel release; live invoice redirects to login. CLI3431 is already inactive; status unchanged.
 
 ## Hide inactive clients throughout operations — 9 November
 - [x] Added fresh active-status intersection to shared invoice/attendance/payroll/dashboard rosters (including fallback cache), versioned roster cache, and blocked direct inactive-client register URLs before their queries/actions mount. Added active filters to contracts, employee/onboarding/posting/rehire/MIS/additions/case/field/team pickers and dashboards. Client status changes invalidate operational caches; Clients management keeps inactive category. Historical records and calculation metadata are not deleted or altered.
