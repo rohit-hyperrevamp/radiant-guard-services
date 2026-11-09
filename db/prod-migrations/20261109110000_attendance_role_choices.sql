@@ -194,7 +194,7 @@ BEGIN
 
   PERFORM set_config('app.attendance_rules_running', v_prev, true);
   RETURN v_changed;
-END $function$
+END $function$;
 
 
 -- One request saves the monthly choice, posting and existing attendance line.
