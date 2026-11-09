@@ -3,6 +3,10 @@
 - [x] All 45 focused tests pass: two Guards × 26 = 52 Present + overflow ED across five workers, separate two-Supervisor allowance, 27-day month = 54, duplicate quantities, zero strength, shortfalls and payroll preservation; automatic build OK.
 - [ ] Signed-in live verification waits on GitHub-to-Vercel delivery and authorized production session: the live contract page redirects to /login. This change does not enable the pending Poonawalla bulk rollout.
 
+## CLI3901 invoice still shows 28 Present — 9 November
+- [x] Screenshot identifies Poonawalla Pipli CLI3901, September 1–30: 28 Present and 0.50 ED hours. Fetched live invoice asset includes invoice_present_cap and invoiceCapQuantity, confirming deployed strength-based logic; no additional calculation patch justified without saved settings.
+- [ ] Verify CLI3901's saved invoice-limit opt-in, Billing Days and strength, then correct only authorized settings and check invoice readback. Live invoice redirects to /login and permitted managed tools target the unrelated database; no production settings changed. Poonawalla bulk opt-in remains unapplied.
+
 ## All Poonawalla invoice-only allowance rollout — 9 November
 - [ ] Enable the invoice-only pooled allowance on Poonawalla contracts only, preserving billing divisors, payroll, attendance, rates, statuses and issued invoices. Blocked: permitted managed database tools target the unrelated sandbox; latest access instructions prohibit production inspection/updates through psql, no production connector or authorized live session is available. No bulk setting changes made.
 - [ ] Verify the exact affected CLI list and unchanged non-Poonawalla records through an authorized production update path; then confirm live invoice quantities after delivery.
