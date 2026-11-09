@@ -192,6 +192,7 @@ function EmployeeDashboard() {
           ? supabase
               .from("units")
               .select("id,name,code,branch_id,customer_id,is_billable,location,latitude,longitude")
+              .eq("status", "active")
               .eq("id", me.unit_id)
               .maybeSingle()
           : Promise.resolve({ data: null }),

@@ -2552,12 +2552,14 @@ function EmployeesPage() {
           ? supabase
               .from("units" as never)
               .select(cols)
+              .eq("status", "active")
               .in("id", myScope.unitIds)
           : Promise.resolve({ data: [], error: null }),
         myScope.customerIds.length
           ? supabase
               .from("units" as never)
               .select(cols)
+              .eq("status", "active")
               .in("customer_id", myScope.customerIds)
               .limit(500)
           : Promise.resolve({ data: [], error: null }),

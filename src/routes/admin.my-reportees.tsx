@@ -85,7 +85,7 @@ function MyReporteesPage() {
           .eq("is_enabled", true)
           .in("status", ["active", "approved"]),
         unitIds.length
-          ? supabase.from("units").select("id,name,code").in("id", unitIds)
+          ? supabase.from("units").select("id,name,code").eq("status", "active").in("id", unitIds)
           : Promise.resolve({ data: [] as Array<{ id: string; name: string; code: string }> }),
         supabase.from("designations").select("id,name"),
       ]);
