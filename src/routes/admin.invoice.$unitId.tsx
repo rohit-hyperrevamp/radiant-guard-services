@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { TaxInvoiceSheet, type TaxInvoiceData } from "@/components/TaxInvoiceSheet";
-import { InvoiceExtraChargesCard, useInvoiceExtraCharges } from "@/components/InvoiceExtraCharges";
+import { InvoiceExtraChargesCard, resolveExtraCharges, useInvoiceExtraCharges } from "@/components/InvoiceExtraCharges";
 
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
@@ -1267,11 +1267,11 @@ function PayrollUnitPage() {
   const r2 = (v: number) => Math.round(v * 100) / 100;
   // Configured extra charges for this unit + period (e.g. Technical Allowance).
   const { data: extraCharges = [] } = useInvoiceExtraCharges(unitId, start, end);
-  const configuredExtras = extraCharges.filter((c) => c.enabled && (!splitActive || invoiceSplit.assign.extras === activePart));
+  const billedTotal = r2(totals.actualTotal);
+  const configuredExtras = resolveExtraCharges(extraCharges, billedTotal).filter((c) => c.enabled && (!splitActive || invoiceSplit.assign.extras === activePart));
   const configuredExtrasTotal = r2(configuredExtras.reduce((s, c) => s + c.amount, 0));
   const activeExtras = configuredExtras;
   const extrasTotal = configuredExtrasTotal;
-  const billedTotal = r2(totals.actualTotal);
   const taxableValue = r2(billedTotal + extrasTotal);
   const tax = taxSplit(taxableValue, isIntraState, gstOption);
   const cgstAmount = tax.cgst;
@@ -1399,16 +1399,16 @@ function PayrollUnitPage() {
           id: c.id,
           description: c.description,
           hsnSac: c.hsnSac || hsn,
-          quantityLabel: `${c.quantity}`,
+          quantityLabel: c.calcMode === "percent" ? `${c.percent}%` : `${c.quantity}`,
           rate: c.rate,
-          per: c.perLabel,
+          per: c.calcMode === "percent" ? "%" : c.perLabel,
           amount: c.amount,
         })),
       ],
       totalQuantityLabel:
         quantityUnit === "hrs"
-          ? `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0))} hrs`
-          : `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + c.quantity, 0))} Duty`,
+          ? `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + (c.calcMode === "percent" ? 0 : c.quantity), 0))} hrs`
+          : `${formatDutyQty(totalQuantity + activeExtras.reduce((n, c) => n + (c.calcMode === "percent" ? 0 : c.quantity), 0))} Duty`,
       taxableValue,
       gstEnabled,
       cgstRate: GST_RATE / 2,
@@ -1954,6 +1954,7 @@ function PayrollUnitPage() {
         start={start}
         end={end}
         charges={extraCharges}
+        designationSubtotal={r2(totals.actualTotal)}
       />
 
       {invoiceSheetData && <TaxInvoiceSheet data={invoiceSheetData} />}
