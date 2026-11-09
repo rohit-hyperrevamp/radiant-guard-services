@@ -1,4 +1,4 @@
-import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit } from "@/lib/invoice-present-cap";
+import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit, invoicePoolStrength } from "@/lib/invoice-present-cap";
 import { invoiceExtraDutyRate, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
@@ -965,6 +965,7 @@ function DashboardPage() {
       // admin.invoice.$unitId uses to compute the taxable value.
       const contractIds = Array.from(new Set(unitRows.map((u) => u.contract_id).filter(Boolean)));
       const billingMeta = new Map<string, { bdb: string | null; shift: number; invoicePresentCap: boolean }>();
+      const invoiceStrengthByContract = new Map<string, Map<string, number>>();
       const billingTypeByContract = new Map<string, string>();
       const extrasByUnit = new Map<string, number>();
       const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
@@ -999,11 +1000,15 @@ function DashboardPage() {
             const [{ data: crs }, { data: ccs }] = await Promise.all([
               supabase
                 .from("contract_resources" as never)
-                .select("contract_id, designation_id, billing_day_base_id, shift_hours, invoice_present_cap")
+                .select("contract_id, designation_id, quantity, billing_day_base_id, shift_hours, invoice_present_cap")
                 .in("contract_id", ids),
               supabase.from("client_contracts").select("id, billing_type_id").in("id", ids),
             ]);
-            for (const r of (crs ?? []) as Record<string, unknown>[]) {
+            const capResources = (crs ?? []) as Record<string, unknown>[];
+            for (const contractId of ids) {
+              invoiceStrengthByContract.set(contractId, invoicePoolStrength(capResources.filter(r => r.contract_id === contractId).map(r => ({ designationId: String(r.designation_id ?? ""), shiftHours: normShift(r.shift_hours), quantity: Number(r.quantity ?? 0) }))));
+            }
+            for (const r of capResources) {
               const h = Number(r.shift_hours);
               const mk = `${r.contract_id}|${r.designation_id ?? ""}`;
               if (!billingMeta.has(mk))
@@ -1088,7 +1093,8 @@ function DashboardPage() {
         const pairs = pairsByUnit.get(u.unit_id) ?? [];
         const allocations = allocateInvoicePresent(pairs.map(p => {
           const meta = billingMeta.get(lineShiftKey(u.contract_id, p.designation_id, p.shift)) ?? billingMeta.get(`${u.contract_id}|${p.designation_id}`);
-          const rule = { invoicePresentCap: meta?.invoicePresentCap, designationId: p.designation_id, shiftHours: meta?.shift, billingDayBase: meta?.bdb ? bdbMap.get(meta.bdb) : null };
+          const poolRule = { designationId: p.designation_id, shiftHours: meta?.shift };
+          const rule = { ...poolRule, invoicePresentCap: meta?.invoicePresentCap, invoiceCapQuantity: invoiceStrengthByContract.get(u.contract_id)?.get(invoiceCapPool("", poolRule)) ?? 0, billingDayBase: meta?.bdb ? bdbMap.get(meta.bdb) : null };
           const mode = billingTypeByContract.get(u.contract_id) ?? "man_days";
           return { pool: invoiceCapPool(u.unit_id, rule), order: p.candidate_id, present: Number(p.p_days) || 0, extraDuty: Number(p.ot_days) || 0, cap: mode === "man_days" || mode === "man_hours" ? invoicePresentLimit(rule, periodDates) : null };
         }));

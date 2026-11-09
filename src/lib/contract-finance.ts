@@ -4,6 +4,7 @@ import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
 import { invoiceExtraDutyRate, isCli2989Caretaker } from "@/lib/invoice-duty-rates";
 import { contractMonthlyBilling } from "@/lib/contract-rate-display";
+import { invoiceCapPool, invoicePoolStrength } from "@/lib/invoice-present-cap";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -35,6 +36,7 @@ export type ResourceRate = {
   /** What the client is billed = gross + employer cost lines. */
   billRate: number;
   invoicePresentCap?: boolean;
+  invoiceCapQuantity?: number;
   extraDutyBillRate?: number | null;
   extraDutyFromMonthlyBilling?: boolean;
 };
@@ -185,6 +187,8 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   for (const [unitId, rates] of grouped) {
     const contract = contractByUnit.get(unitId);
     if (!contract) continue;
+    const strengths = invoicePoolStrength(rates);
+    for (const rate of rates) rate.invoiceCapQuantity = strengths.get(invoiceCapPool("", rate)) ?? 0;
     const committed = rates.reduce((s, r) => s + r.quantity, 0);
     const monthlyContracted = rates.reduce((s, r) => s + r.quantity * r.billRate, 0);
     const monthlyPayroll = rates.reduce((s, r) => s + r.quantity * r.grossRate, 0);

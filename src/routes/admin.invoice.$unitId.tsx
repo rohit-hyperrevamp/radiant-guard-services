@@ -1,4 +1,4 @@
-import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit } from "@/lib/invoice-present-cap";
+import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit, invoicePoolStrength } from "@/lib/invoice-present-cap";
 import { resolveContractDesignation } from "@/lib/designation-match";
 import { mergePayItems } from "@/lib/pay-item-names";
 import { formatDutyQty, roundDutyDays } from "@/lib/duty-days";
@@ -515,7 +515,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources" as never)
           .select(
-            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final, round_off_totals",
+            "id, designation_id, quantity, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final, round_off_totals",
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
@@ -1046,8 +1046,10 @@ function PayrollUnitPage() {
         );
       }
 
+      const strengths = invoicePoolStrength(resources.map(r => ({ designationId: String(r.designation_id ?? ""), shiftHours: normShift(r.shift_hours), quantity: Number(r.quantity ?? 0) })));
       const allocations = allocateInvoicePresent(rows.map((row) => {
-        const rule = { invoicePresentCap: row.invoicePresentCap, designationId: row.contractDesignationId, shiftHours: row.shiftHours, billingDayBase: row.billingDayBase };
+        const poolRule = { designationId: row.contractDesignationId, shiftHours: row.shiftHours };
+        const rule = { ...poolRule, invoicePresentCap: row.invoicePresentCap, invoiceCapQuantity: strengths.get(invoiceCapPool("", poolRule)) ?? 0, billingDayBase: row.billingDayBase };
         return { pool: invoiceCapPool(unitId, rule), order: `${row.id}|${row.rowKey}`, present: row.totals.pDays, extraDuty: row.totals.otDays, cap: billingMode === "man_days" || billingMode === "man_hours" ? invoicePresentLimit(rule, periodDates) : null };
       }));
       const invoiceRows = rows.map((row, index) => ({ ...row, payrollTotals: row.totals, totals: { ...row.totals, pDays: allocations[index].present, otDays: allocations[index].extraDuty, otHours: allocations[index].extraDuty } }));
