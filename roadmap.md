@@ -1,5 +1,5 @@
 ## Restore three recently changed contract end dates — 9 November
-- [ ] Identify original end dates for CLI2866, CLI2733 and CLI3194 from recent change history; restore only those end dates and verify preservation of other terms.
+- [x] Restored only the end_date from the audited 06:02–06:04 UTC changes: CLI2866 CON11347 → 30 April 2026; CLI2733 CON8316 → 31 August 2024; CLI3194 CON15858 → 20 August 2026. Live API readback and correction audits verified; all other contract fields (except automatic updated_at), historical contracts and resource rates unchanged. Before/after snapshots kept under /tmp/browser/contract-date-restore; focused preservation regression passes. Signed-in portal display not checked.
 
 ## All Bajaj Financial Securities unwanted MIS increment charges — 8 November
 - [x] Inspected all 54 Bajaj Financial Securities sites across all saved invoice periods: six remaining active MIS increments (CLI1421, CLI1979, CLI2023, CLI2065, CLI2737, CLI2922); CLI2991 and supplements already disabled. No finalized invoices exist for this customer.
