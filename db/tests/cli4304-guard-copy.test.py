@@ -6,7 +6,7 @@ from pathlib import Path
 
 SOURCE = '5e1fb464-99f5-43d9-bd77-07cf0de85664'
 TARGETS = {'e90fcc54-61f0-4bb8-9cd6-bed56ce566eb', 'ad853fdd-0393-4a24-9ed1-a471851c0731'}
-META = {'id', 'contract_id', 'designation_id', 'service_type_id', 'quantity', 'sort_order', 'created_at', 'updated_at', 'role_key'}
+META = {'id', 'contract_id', 'designation_id', 'service_type_id', 'quantity', 'sort_order', 'created_at', 'updated_at', 'role_key', 'payroll_day_base_id'}
 
 def verify(before, after):
     src = next(r for r in before if r['id'] == SOURCE)
