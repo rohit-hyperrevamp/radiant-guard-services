@@ -2070,6 +2070,9 @@ async function persistResources(contractId: string, resources: ContractResource[
   };
   rows.forEach((row, idx) => {
     const saved = savedRows[idx];
+    if (row.invoice_present_cap !== saved?.invoice_present_cap) {
+      throw new Error("Invoice Present limit was not saved correctly. Please try again.");
+    }
     if (normalizeForCompare(row.deductions) !== normalizeForCompare(saved?.deductions)) {
       throw new Error("Resource deductions were not saved correctly. Please try again.");
     }
@@ -3358,6 +3361,8 @@ function ClientContractsPage() {
             // Payroll / invoice pages recompute from the edited contract.
             void qc.invalidateQueries({ queryKey: ["payroll-register-compute"] });
             void qc.invalidateQueries({ queryKey: ["invoice-compute"] });
+            void qc.invalidateQueries({ queryKey: ["finance-charter-contracts"] });
+            void qc.invalidateQueries({ queryKey: ["dashboard-pnl"] });
             // Attendance reads the Payroll Days limit from the contract, and the
             // database re-shapes stored attendance when that limit changes.
             void qc.invalidateQueries({ queryKey: ["attendance-contract"] });
