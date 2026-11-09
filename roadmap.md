@@ -1,3 +1,7 @@
+## CLI4331 Chandrappa explicit reliever — 9 November
+- [x] Converted Chandrappa (28654) eight saved 21–28 August duties within September's 21 Aug–20 Sep sheet from eight Present to eight Extra Duty days; saved September reliever choice. Production readback and twice-recalculated rolled-back regression pass. Other attendance, site mappings and contracts exactly unchanged; backups /tmp/cli4331-chandrappa.
+- [ ] Signed-in live editor verification still blocked by unavailable live session and pending GitHub-to-Vercel editor release; the specific saved attendance correction is already applied in production.
+
 ## CLI4331 reliever Extra Duty saving — 9 November
 - [x] Reproduced automatic promotion of a chosen CLI4331 reliever: one ED day became P and its reliever flag disappeared. NP itself was not present in saved entries.
 - [x] Applied monthly role choices consumed by the production attendance rule; replaced non-atomic line deletion/reinsert with authorized transactional role saving. Full/partial ED and regular selection checks pass with all test changes rolled back; CLI4331's 61 attendance entries and contracts unchanged. Fourteen focused frontend tests pass; automatic build OK. Older CLI2252 regression fixture fails identically with the original function (pre-existing fixture drift).
