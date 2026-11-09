@@ -82,3 +82,29 @@ export function splitInvoiceDuties(args: {
     actual: r2(regularAmount + edAmount),
   };
 }
+
+/** Output layout must not change the agreed regular/ED pricing. */
+export function invoiceDutyBillingLines(args: {
+  dutySplit: ReturnType<typeof splitInvoiceDuties> | null;
+  edLines?: boolean;
+  unitRate: number;
+  unitQuantity: number;
+  actual: number;
+  unitLabel: string;
+  extraDutyUnitLabel: string;
+}) {
+  const split = args.dutySplit;
+  if (split && args.edLines !== false) {
+    return [
+      { kind: "P Days", rate: split.regularRate, quantity: split.regularQuantity, amount: split.regularAmount, unitLabel: args.unitLabel },
+      { kind: "Extra Duty", rate: split.edRate, quantity: split.edQuantity, amount: split.edAmount, unitLabel: args.extraDutyUnitLabel },
+    ].filter((line) => line.quantity > 0);
+  }
+  return [{
+    kind: args.edLines === true ? "P Days" : "",
+    rate: split && args.unitQuantity > 0 ? args.actual / args.unitQuantity : args.unitRate,
+    quantity: args.unitQuantity,
+    amount: args.actual,
+    unitLabel: args.unitLabel,
+  }];
+}

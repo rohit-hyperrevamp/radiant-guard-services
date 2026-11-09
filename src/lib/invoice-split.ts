@@ -29,16 +29,19 @@ export function normalizeInvoiceEdMode(raw: unknown): InvoiceEdMode | null {
   return raw === "combined" || raw === "separate_lines" || raw === "separate_invoice" ? raw : null;
 }
 
+/** Null is inheritance, not the explicit Combined selection. */
+export const invoiceEdModeForSave = (mode: InvoiceEdMode | null | undefined) => normalizeInvoiceEdMode(mode);
+
 /** Apply the contract's Extra Duty choice on top of the saved split rule. */
 export function applyInvoiceEdMode(base: InvoiceSplit, mode: InvoiceEdMode | null): InvoiceSplit {
   if (!mode) return base;
   const regularPart = base.assign.regular === EXCLUDE ? (base.parts[0]?.key ?? MAIN_PART) : base.assign.regular;
   if (mode === "separate_invoice") {
-    if (base.assign.ed !== EXCLUDE && base.assign.ed !== regularPart) return { ...base, edLines: true };
+    if (base.assign.ed !== EXCLUDE && base.assign.ed !== regularPart) return { ...base, assign: { ...base.assign, reliever: base.assign.ed }, edLines: true };
     const parts = base.parts.some((p) => p.key === "ed") ? base.parts : [...base.parts, { key: "ed", label: "Extra Duty" }];
-    return { parts, assign: { ...base.assign, ed: "ed" }, edLines: true };
+    return { parts, assign: { ...base.assign, ed: "ed", reliever: "ed" }, edLines: true };
   }
-  const assign = { ...base.assign, ed: base.assign.ed === EXCLUDE ? EXCLUDE : regularPart };
+  const assign = { ...base.assign, ed: regularPart, reliever: regularPart };
   const used = new Set(Object.values(assign));
   const parts = base.parts.filter((p) => used.has(p.key));
   return { parts: parts.length ? parts : base.parts.slice(0, 1), assign, edLines: mode === "separate_lines" };
@@ -98,11 +101,12 @@ export async function loadOrgInvoiceSplit(customerId: string | null, contractId?
     if (row?.invoice_split != null) return applyInvoiceEdMode(resolveInvoiceSplit(row.invoice_split, null), edMode);
   }
   if (!customerId) return applyInvoiceEdMode(DEFAULT_SPLIT, edMode);
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("customers")
     .select("invoice_split" as never)
     .eq("id", customerId)
     .maybeSingle();
+  if (error) throw error;
   return applyInvoiceEdMode(parseInvoiceSplit((data as { invoice_split?: unknown } | null)?.invoice_split), edMode);
 }
 

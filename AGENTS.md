@@ -41,6 +41,7 @@
 - Contract, invoice and finance billing totals use `contractMonthlyBilling` with saved intermediate rounding flags; rounded gross/employer/CTC/billing totals flow forward without changing saved add-on formula amounts.
 - Contract resource staging and saving refresh billing add-ons identically; billing_rate formulas run in the late CTC/reliever pass, never against gross-only context, so closing the editor cannot change its displayed rate.
 - Invoice detail resolves the period contract's saved invoice split before the organization fallback, so site-only invoice separation never changes sibling sites.
+- Persist explicit invoice duty modes (including combined) separately from null inheritance; refresh split queries on save/focus and derive all output lines from invoiceDutyBillingLines so layout choices preserve agreed pricing.
 - Invoice duty exceptions resolve their invoice-only base in `invoice-duty-rates`, independently of payroll; per-line units and optional unrounded ED multiplication flow into detail, print and exports to preserve source precision.
 - Invoice detail quantity/rate labels follow each priced line's billing unit, not converted shift hours; day-based main duties and deliberately hourly Extra Duty must not be mislabelled.
 - Duty-day quantities (P/ED/total days) round only through `roundDutyDays` in `src/lib/duty-days.ts` (4 decimals) — hour-entered Extra Duty must convert exactly, never to 2 dp.

@@ -8,6 +8,25 @@ afterEach(() => {
 });
 
 describe("open invoice freshness", () => {
+  it("reads a changed invoice mode on focus instead of retaining the previous layout", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: 300000, refetchOnWindowFocus: false, retry: false } } });
+    client.mount();
+    let savedMode = "combined";
+    const observer = new QueryObserver(client, { queryKey: ["org-invoice-split", "customer", "contract"], queryFn: async () => savedMode, ...invoiceQueryFreshness });
+    const unsubscribe = observer.subscribe(() => {});
+    try {
+      await vi.waitFor(() => expect(observer.getCurrentResult().data).toBe("combined"));
+      focusManager.setFocused(false);
+      savedMode = "separate_lines";
+      focusManager.setFocused(true);
+      await vi.waitFor(() => expect(observer.getCurrentResult().data).toBe("separate_lines"));
+    } finally {
+      unsubscribe();
+      client.unmount();
+      client.clear();
+    }
+  });
+
   it("reads saved duties again after attendance removal in another tab", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false } } });
     client.mount();
