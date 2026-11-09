@@ -5,6 +5,17 @@ import { exactDayRateFor, invoiceDutyBillingLines, splitInvoiceDuties } from "./
 const totals = { pDays: 27, phDays: 0, otDays: 0.75, otHours: 0.75, tDays: 27.75 };
 
 describe("contract Extra Duty on invoice", () => {
+  it("CLI4349 overrides L&T Main / OT+Reliever tabs with one combined invoice", () => {
+    const s = applyInvoiceEdMode({
+      parts: [{ key: "main", label: "Main invoice" }, { key: "part2", label: "OT+Reliever" }],
+      assign: { regular: "main", ph: "main", ed: "part2", reliever: "part2", extras: "main" },
+    }, "combined");
+    expect(s.parts.map((part) => part.key)).toEqual(["main"]);
+    expect(s.edLines).toBe(false);
+    expect(s.assign.ed).toBe("main");
+    expect(s.assign.reliever).toBe("main");
+  });
+
   const companySplit: InvoiceSplit = {
     parts: [{ key: "main", label: "Present" }, { key: "ed", label: "Extra Duty" }],
     assign: { regular: "main", ph: "main", ed: "ed", reliever: "ed", extras: "main" },
