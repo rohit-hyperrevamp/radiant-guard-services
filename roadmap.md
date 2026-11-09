@@ -1,3 +1,6 @@
+## Review Poonawalla clients unexpectedly inactive — 9 November
+- [ ] Review production client statuses and audit changes; restore only incorrectly deactivated clients while preserving rates, attendance and unrelated clients.
+
 ## CLI3431 active status — 9 November
 - [x] Reactivated only CLI3431 in production and verified fresh readback: active, CON13223 Man Days. Transaction assertions preserve all client fields except status/updated_at, contracts, rates and attendance. Previous invoice correction did not change its pre-existing inactive status. Backup /tmp/cli3431_reactivation_before_20261109.jsonl; live signed-in display remains unverified.
 
