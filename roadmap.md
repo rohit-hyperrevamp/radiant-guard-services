@@ -1,3 +1,9 @@
+## Optional invoice-only pooled Present cap — 9 November
+- [x] Added disabled-by-default resource switch using Billing Days, pooled across employees per role/duty length. Overflow changes invoice quantities only; unchanged payroll/designation fields are omitted from resource updates to avoid attendance rebalance on invoice-only saves.
+- [x] Shared allocation before invoice tabs flows through detail, print, Tally/MIS, finance summaries and dashboard invoice amounts. All 47 focused tests pass, including 24 + 2 + 6 = 26 P + 6 ED, variable divisors, separate roles/tabs, fractions and payroll preservation; automatic build OK.
+- [x] Production additive schema applied: all 24,053 resources remain disabled. Full attendance/resource preservation checks and rollback-only setting-save assertions pass; no client opted in.
+- [ ] Signed-in live switch/save/invoice verification awaits GitHub-to-Vercel delivery and authorized production access; live contract page redirects to login. No live completion claimed.
+
 ## Poonawalla Fixed 26 Present limit — 9 November
 - [x] Production review: 158 active contracts used Days Minus Four; 117 already used Fixed 26. All 275 active contract resources now use Fixed 26. Historical contracts unchanged; prior inherited billing divisors made explicit to preserve invoice rates.
 - [x] Closed zero-imported-shift grouping loophole in monthly database rule without changing stored line keys. CLI3780 October corrected 27 P + 5.3567 ED to 26 P + 6.3567 ED. Production 28-P save regression passes with rollback; no reviewed payroll-window total exceeds 26. All 18,907 Poonawalla attendance rows and total worked duties preserved; processed attendance, rates, contract terms and client statuses asserted unchanged. Backup /tmp/poonawalla-before.json.

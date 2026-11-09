@@ -34,6 +34,7 @@ export type ResourceRate = {
   netRate: number;
   /** What the client is billed = gross + employer cost lines. */
   billRate: number;
+  invoicePresentCap?: boolean;
   extraDutyBillRate?: number | null;
   extraDutyFromMonthlyBilling?: boolean;
 };
@@ -99,7 +100,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       supabase
         .from("contract_resources")
         .select(
-          "contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, round_off_final, round_off_totals",
+          "contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, round_off_final, round_off_totals",
         )
         .in("contract_id", chunk)
         .range(from, to),
@@ -166,6 +167,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       deductionRate: Math.round(deductionRate * 100) / 100,
       netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
       billRate: monthlyBilling,
+      invoicePresentCap: r.invoice_present_cap === true,
       extraDutyBillRate: invoiceExtraDutyRate(unitId, Array.isArray(r.components) ? r.components : [], {
         unitCode: unitCodeById.get(unitId),
         designationName: (r.designation_id ? desigMap.get(String(r.designation_id)) : undefined) ?? null,

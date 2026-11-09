@@ -1,3 +1,5 @@
+import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit } from "@/lib/invoice-present-cap";
+import { invoiceExtraDutyRate, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
@@ -962,7 +964,7 @@ function DashboardPage() {
       // billing type and configured extra charges — exactly what
       // admin.invoice.$unitId uses to compute the taxable value.
       const contractIds = Array.from(new Set(unitRows.map((u) => u.contract_id).filter(Boolean)));
-      const billingMeta = new Map<string, { bdb: string | null; shift: number }>();
+      const billingMeta = new Map<string, { bdb: string | null; shift: number; invoicePresentCap: boolean }>();
       const billingTypeByContract = new Map<string, string>();
       const extrasByUnit = new Map<string, number>();
       const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
@@ -997,7 +999,7 @@ function DashboardPage() {
             const [{ data: crs }, { data: ccs }] = await Promise.all([
               supabase
                 .from("contract_resources" as never)
-                .select("contract_id, designation_id, billing_day_base_id, shift_hours")
+                .select("contract_id, designation_id, billing_day_base_id, shift_hours, invoice_present_cap")
                 .in("contract_id", ids),
               supabase.from("client_contracts").select("id, billing_type_id").in("id", ids),
             ]);
@@ -1007,10 +1009,12 @@ function DashboardPage() {
               if (!billingMeta.has(mk))
                 billingMeta.set(mk, {
                   bdb: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
+                  invoicePresentCap: r.invoice_present_cap === true,
                   shift: Number.isFinite(h) && h > 0 ? h : 8,
                 });
               billingMeta.set(`${mk}|${normShift(r.shift_hours)}`, {
                 bdb: r.billing_day_base_id ? String(r.billing_day_base_id) : null,
+                invoicePresentCap: r.invoice_present_cap === true,
                 shift: Number.isFinite(h) && h > 0 ? h : 8,
               });
             }
@@ -1081,7 +1085,14 @@ function DashboardPage() {
         let invoiceAmount = 0;
         let payrollCost = 0;
         let employerContribution = 0;
-        for (const p of pairsByUnit.get(u.unit_id) ?? []) {
+        const pairs = pairsByUnit.get(u.unit_id) ?? [];
+        const allocations = allocateInvoicePresent(pairs.map(p => {
+          const meta = billingMeta.get(lineShiftKey(u.contract_id, p.designation_id, p.shift)) ?? billingMeta.get(`${u.contract_id}|${p.designation_id}`);
+          const rule = { invoicePresentCap: meta?.invoicePresentCap, designationId: p.designation_id, shiftHours: meta?.shift, billingDayBase: meta?.bdb ? bdbMap.get(meta.bdb) : null };
+          const mode = billingTypeByContract.get(u.contract_id) ?? "man_days";
+          return { pool: invoiceCapPool(u.unit_id, rule), order: p.candidate_id, present: Number(p.p_days) || 0, extraDuty: Number(p.ot_days) || 0, cap: mode === "man_days" || mode === "man_hours" ? invoicePresentLimit(rule, periodDates) : null };
+        }));
+        for (const [pairIndex, p] of pairs.entries()) {
           const resRow = resMap.get(p.designation_id);
           if (!resRow) continue;
           const pDays = round2(Number(p.p_days) || 0);
@@ -1146,6 +1157,11 @@ function DashboardPage() {
             const perDay =
               billingDays > 0 ? Math.round((contractedInvoice / billingDays) * 100) / 100 : 0;
             earnedInvoice = Math.round(perDay * billedDays * 100) / 100;
+          }
+          if (meta?.invoicePresentCap && (mode === "man_days" || mode === "man_hours")) {
+            const regularRate = billingDays > 0 ? Math.round(contractedInvoice / billingDays / (mode === "man_hours" ? shiftHours : 1) * 100) / 100 : 0;
+            const edRate = invoiceExtraDutyRate(u.unit_id, resource.components, { unitCode: u.unit_code, monthlyBilling: contractedInvoice, billingDays, hourlyEd: resource.otBasis === "hourly" ? { rate: resource.otHourlyRate, esic: resource.otHourlyEsic, shiftHours } : null }) ?? (billingDays > 0 ? contractedInvoice / billingDays : 0);
+            earnedInvoice = splitInvoiceDuties({ billedDays: totals.tDays, otDays: allocations[pairIndex].extraDuty, regularRate, extraDutyRate: edRate, shiftHours, hourly: mode === "man_hours" }).actual;
           }
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += wages.earnedGross;

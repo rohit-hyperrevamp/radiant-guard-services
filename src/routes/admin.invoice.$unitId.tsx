@@ -1,3 +1,4 @@
+import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit } from "@/lib/invoice-present-cap";
 import { resolveContractDesignation } from "@/lib/designation-match";
 import { mergePayItems } from "@/lib/pay-item-names";
 import { formatDutyQty, roundDutyDays } from "@/lib/duty-days";
@@ -514,7 +515,7 @@ function PayrollUnitPage() {
         const { data: r } = await supabase
           .from("contract_resources" as never)
           .select(
-            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final, round_off_totals",
+            "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final, round_off_totals",
           )
           .eq("contract_id", contractId);
         resources = (r ?? []) as unknown as Record<string, unknown>[];
@@ -823,6 +824,8 @@ function PayrollUnitPage() {
           shift,
           resource: resourceByShiftKey.get(sk) ?? resourceByDesignation.get(did),
           billingBase: billingBaseByShiftKey.get(sk) ?? null,
+          invoicePresentCap: resources.find((r) => shiftKey(String(r.designation_id ?? ""), r.shift_hours) === sk)?.invoice_present_cap === true,
+          contractDesignationId: did,
         };
       };
 
@@ -1017,6 +1020,8 @@ function PayrollUnitPage() {
           isRegular,
           shiftHours: line.shift,
           billingDayBase: line.billingBase,
+          invoicePresentCap: line.invoicePresentCap,
+          contractDesignationId: line.contractDesignationId,
           totals,
           wages,
           resource: mergedResource ?? resource ?? null,
@@ -1041,7 +1046,12 @@ function PayrollUnitPage() {
         );
       }
 
-      return { rows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation, contractId: contractId ?? null, gstOption: typeof periodContract?.gst_option === "string" ? periodContract.gst_option : null };
+      const allocations = allocateInvoicePresent(rows.map((row) => {
+        const rule = { invoicePresentCap: row.invoicePresentCap, designationId: row.contractDesignationId, shiftHours: row.shiftHours, billingDayBase: row.billingDayBase };
+        return { pool: invoiceCapPool(unitId, rule), order: `${row.id}|${row.rowKey}`, present: row.totals.pDays, extraDuty: row.totals.otDays, cap: billingMode === "man_days" || billingMode === "man_hours" ? invoicePresentLimit(rule, periodDates) : null };
+      }));
+      const invoiceRows = rows.map((row, index) => ({ ...row, payrollTotals: row.totals, totals: { ...row.totals, pDays: allocations[index].present, otDays: allocations[index].extraDuty, otHours: allocations[index].extraDuty } }));
+      return { rows: invoiceRows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation, contractId: contractId ?? null, gstOption: typeof periodContract?.gst_option === "string" ? periodContract.gst_option : null };
     },
   });
 
@@ -1158,12 +1168,12 @@ function PayrollUnitPage() {
     // Contract "Extra Duty on invoice" = separate lines / separate invoice:
     // without a role-specific ED billing rate, ED bills at the contract's own
     // duty rate, shown as hours (6 ED hours × hourly rate).
-    const contractEdLines = invoiceSplit.edLines === true && extraDutyRate == null && (r.totals.otDays ?? 0) > 0;
+    const contractEdLines = (invoiceSplit.edLines === true || r.invoicePresentCap) && extraDutyRate == null && (r.totals.otDays ?? 0) > 0;
     const edRateForSplit = extraDutyRate ?? (contractEdLines ? exactDayRateFor(contracted, billingDays) : null);
     const caretakerHourlyEd =
       isCli2989Caretaker(unit?.code, r.designation) ||
       (r.resource?.otBasis === "hourly" && extraDutyRate != null && !showsHourlyEdAsDays(unit?.customer_name)) ||
-      contractEdLines;
+      (contractEdLines && !r.invoicePresentCap);
     const dutySplit = edRateForSplit != null && r.wages && r.resource && (billingMode === "man_days" || billsHourly)
       ? splitInvoiceDuties({ billedDays, otDays: r.totals.otDays ?? 0, regularRate: unitRate, extraDutyRate: edRateForSplit, shiftHours, hourly: billsHourly, extraDutyHourly: caretakerHourlyEd, exactExtraDutyRate: caretakerHourlyEd })
       : null;
@@ -1474,7 +1484,7 @@ function PayrollUnitPage() {
         total: m.actual,
         intraState: isIntraState,
         gstOption,
-        maxWorkingDays: m.dutySplit ? null : m.billingDays,
+        maxWorkingDays: r.invoicePresentCap || m.dutySplit ? null : m.billingDays,
         extraDutyRate: m.extraDutyRate,
       });
 

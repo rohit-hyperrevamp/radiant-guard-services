@@ -1,3 +1,4 @@
+import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -353,7 +354,9 @@ export function FinanceCharter({
 
   const statsByUnit = useMemo(() => {
     const out = new Map<string, Map<string, PersonMoney>>();
-    for (const e of entriesQ.data ?? []) {
+    const source = entriesQ.data ?? [];
+    const allocated = allocateInvoiceEntries(source, e => rateFor(financeQ.data?.get(e.unit_id ?? ""), e.designation_id, e.candidate_id, e.shift_hours), e => { const p = periodsByUnit.get(e.unit_id ?? ""); return p ? periodDateList(p.start, p.end) : []; }, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? (Number(code.day_value ?? 1) || 0) * (e.days ?? 1) : 0; });
+    for (const [index, e] of source.entries()) {
       const unitId = e.unit_id ?? "";
       if (!unitId) continue;
       const finance = financeQ.data?.get(unitId);
@@ -399,7 +402,7 @@ export function FinanceCharter({
       const billed = (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) * n + ot;
       if (rate) {
         const edRate = rate.extraDutyFromMonthlyBilling ? rate.billRate / divisor * 2 : rate.extraDutyBillRate ?? billPerDay;
-        person.invoiceAmount += billPerDay * (billed - ot) + edRate * ot;
+        person.invoiceAmount += billPerDay * (billed - ot - allocated[index].moved) + edRate * allocated[index].extraDuty;
         person.payrollAmount += (rate.grossRate / divisor) * payable;
         person.deductionAmount += (rate.deductionRate / divisor) * payable;
         person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
@@ -611,19 +614,20 @@ export function FinanceCharter({
       byPart.set(part, lines);
       linesByUnit.set(unitId, byPart);
     };
-    for (const entry of entries) {
+    const allocated = allocateInvoiceEntries(entries, e => rateFor(financeMap.get(e.unit_id ?? ""), e.designation_id, e.candidate_id, e.shift_hours), e => { const p = allPeriodsByUnit.get(e.unit_id ?? ""); return p ? periodDateList(p.start, p.end) : []; }, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? Number(code.day_value ?? 1) || 0 : 0; });
+    for (const [index, entry] of entries.entries()) {
       const entryUnitId = entry.unit_id ?? "";
       const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id, (entry as any).shift_hours);
       if (!entryUnitId || !rate) continue;
       const code = codeMap.get(entry.code);
       const rawDayValue = code?.day_value;
       const dayValue = rawDayValue == null || Number.isNaN(Number(rawDayValue)) ? 1 : Math.max(0, Number(rawDayValue));
-      const paid = code && (code.counts_as_present || code.is_paid) ? dayValue : 0;
-      const ot = Number(entry.ot_hours) || 0;
+      const paid = Math.max(0, (code && (code.counts_as_present || code.is_paid) ? dayValue : 0) - allocated[index].moved);
+      const ot = allocated[index].extraDuty;
       const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
       const period = allPeriodsByUnit.get(entryUnitId);
       const hasEdRate = rate.extraDutyBillRate != null || rate.extraDutyFromMonthlyBilling;
-      const perDay = hasEdRate && period
+      const perDay = (hasEdRate || rate.invoicePresentCap) && period
         ? billingRatePerDay(rate.billRate, rate, periodDateList(period.start, period.end))
         : rate.billRate / periodDays;
       const edRate = rate.extraDutyFromMonthlyBilling && period
@@ -931,7 +935,8 @@ export function FinanceCharter({
 
       type MisBucket = { candidateId: string; designationId: string | null; shift: number | null; reliever: boolean; workingDays: number; otDays: number; otHours: number };
       const linesByUnit = new Map<string, Map<string, MisBucket>>();
-      for (const e of entries) {
+      const allocated = allocateInvoiceEntries(entries, e => rateFor(financeMap.get(e.unit_id ?? ""), e.designation_id, e.candidate_id, e.shift_hours), e => { const p = allPeriodsByUnit.get(e.unit_id ?? ""); return p ? periodDateList(p.start, p.end) : []; }, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? Number(code.day_value ?? 1) || 0 : 0; });
+      for (const [index, e] of entries.entries()) {
         const unitId = e.unit_id ?? "";
         if (!unitId) continue;
         const finance = financeMap.get(unitId);
@@ -944,8 +949,8 @@ export function FinanceCharter({
         // as present (P, HD) plus paid holidays. Paid weekly offs and paid leave
         // are part of the monthly wage and are never billed as duties, so they
         // must never inflate the MIS working days.
-        const counted = !code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0;
-        const otDays = Number(e.ot_hours) || 0;
+        const counted = Math.max(0, (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) - allocated[index].moved);
+        const otDays = allocated[index].extraDuty;
         if (counted + otDays <= 0) continue;
 
         if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
@@ -1045,7 +1050,7 @@ export function FinanceCharter({
             gstOption: gstOptions.get(u.id),
             // Regular duties can never exceed the contract's billing days; the
             // surplus is Extra Duty at the same rate.
-            maxWorkingDays: dutySplit ? null : resolveBillingDivisor(rate, periodDates),
+            maxWorkingDays: rate.invoicePresentCap || dutySplit ? null : resolveBillingDivisor(rate, periodDates),
           });
           const workingDays = misLine.workingDays;
           const otDuties = misLine.otDays;
