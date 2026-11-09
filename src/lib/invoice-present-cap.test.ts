@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allocateInvoicePresent, invoicePresentLimit, invoiceCapPool } from "./invoice-present-cap";
+import { allocateInvoicePresent, invoicePresentLimit, invoiceCapPool, invoicePoolStrength } from "./invoice-present-cap";
 import { periodDateList } from "./mis-billing";
 import { computeWages, type AttendanceTotals } from "./payroll-calc";
 import { splitInvoiceDuties } from "./invoice-duty-rates";
@@ -8,6 +8,45 @@ import { applyInvoiceEdMode, DEFAULT_SPLIT, totalsForPart } from "./invoice-spli
 
 const rows = (cap: number | null) => [24, 2, 6].map((present, i) => ({ pool: "guard", order: String(i), present, extraDuty: 0, cap }));
 describe("optional invoice-only shared Present limit", () => {
+  it("uses two contracted Guards to bill 52 Present across five replacement employees, with overflow as ED", () => {
+    const dates = periodDateList("2026-09-01", "2026-09-30");
+    const cap = invoicePresentLimit({ invoicePresentCap: true, quantity: 2, billingDayBase: { method: "actual_minus_days", fixedDays: 4 } }, dates);
+    expect(cap).toBe(52);
+    const source = [24, 2, 6, 20, 8].map((present, i) => ({ pool: "guard", order: String(i), present, extraDuty: 0, cap }));
+    const before = structuredClone(source);
+    const result = allocateInvoicePresent(source);
+    expect(result.reduce((s, r) => s + r.present, 0)).toBe(52);
+    expect(result.reduce((s, r) => s + r.extraDuty, 0)).toBe(8);
+    expect(source).toEqual(before);
+  });
+  it("keeps two Guards and two Supervisors at independent 52-day allowances", () => {
+    const rules = ["guard", "supervisor"].map(designationId => ({ designationId, shiftHours: 8, quantity: 2, invoicePresentCap: true, billingDayBase: { method: "fixed_days" as const, fixedDays: 26 } }));
+    const strengths = invoicePoolStrength(rules);
+    const result = allocateInvoicePresent(rules.map(rule => ({ pool: invoiceCapPool("unit", rule), order: rule.designationId, present: 60, extraDuty: 0, cap: invoicePresentLimit({ ...rule, invoiceCapQuantity: strengths.get(invoiceCapPool("", rule)) }, []) })));
+    expect(result.map(r => [r.present, r.extraDuty])).toEqual([[52, 8], [52, 8]]);
+  });
+  it("uses 54 Present for two contracted heads in a 27-day billing month", () => {
+    expect(invoicePresentLimit({ invoicePresentCap: true, quantity: 2, billingDayBase: { method: "actual_minus_days", fixedDays: 4 } }, periodDateList("2026-10-01", "2026-10-31"))).toBe(54);
+  });
+  it("sums duplicate resource strength once and shares it across raw export entries", () => {
+    const rule = { designationId: "guard", shiftHours: 8, quantity: 1, invoicePresentCap: true, billingDayBase: { method: "fixed_days" as const, fixedDays: 26 } };
+    const strengths = invoicePoolStrength([rule, rule, { ...rule, shiftHours: 12, quantity: 3 }]);
+    expect(strengths.get(invoiceCapPool("", rule))).toBe(2);
+    expect(strengths.get(invoiceCapPool("", { ...rule, shiftHours: 12 }))).toBe(3);
+    const entries = [24, 2, 6, 20, 8].map((days, i) => ({ unit_id: "unit", candidate_id: String(i), entry_date: "2026-09-01", code: "P", days, ot_hours: 0 }));
+    const result = allocateInvoiceEntries(entries, () => ({ ...rule, invoiceCapQuantity: strengths.get(invoiceCapPool("", rule)) }), () => [], e => e.days);
+    expect(result.reduce((s, r) => s + r.present, 0)).toBe(52);
+    expect(result.reduce((s, r) => s + r.extraDuty, 0)).toBe(8);
+  });
+  it("fills a strength-based allowance from ED without inventing missing worked days", () => {
+    const cap = invoicePresentLimit({ invoicePresentCap: true, quantity: 2, billingDayBase: { method: "fixed_days", fixedDays: 26 } }, []);
+    expect(allocateInvoicePresent([{ pool: "guard", order: "a", present: 24, extraDuty: 8, cap }])).toEqual([{ present: 32, extraDuty: 0, moved: -8 }]);
+  });
+  it("zero contracted strength bills worked duties as ED and rejects invalid strength", () => {
+    const rule = { invoicePresentCap: true, quantity: 0, billingDayBase: { method: "fixed_days" as const, fixedDays: 26 } };
+    expect(allocateInvoicePresent([{ pool: "guard", order: "a", present: 4, extraDuty: 1, cap: invoicePresentLimit(rule, []) }])).toEqual([{ present: 0, extraDuty: 5, moved: 4 }]);
+    expect(() => invoicePresentLimit({ ...rule, quantity: -2 }, [])).toThrow("Invalid contracted invoice strength");
+  });
   it("fills CLI3542's 26 invoice duties from 24 P and 4.25 ED without changing payroll", () => {
     const source = [
       { pool: "guard", order: "43299", present: 24, extraDuty: 1.25, cap: 26 },
