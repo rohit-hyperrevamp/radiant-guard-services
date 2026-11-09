@@ -50,4 +50,27 @@ BEGIN
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Unauthenticated role selection permitted'; END IF;
 END $$;
+-- Exercise the authorized transactional request, still entirely rolled back.
+DO $$
+DECLARE f record; uid uuid;
+BEGIN
+  SELECT * INTO f FROM role_fixture;
+  SELECT u.id INTO uid FROM auth.users u JOIN candidates c ON u.email='phone-'||c.mobile||'@radiantguard.local'
+    WHERE c.role_key='super_admin' AND c.status IN ('active','approved') LIMIT 1;
+  IF uid IS NULL THEN RAISE EXCEPTION 'Missing authorized regression user'; END IF;
+  PERFORM set_config('request.jwt.claim.sub',uid::text,true);
+  PERFORM set_config('request.jwt.claims',json_build_object('sub',uid,'role','authenticated')::text,true);
+  UPDATE attendance_sheets SET status='draft',amendment_status='none'
+    WHERE unit_id=f.unit_id AND period_start='2026-08-21' AND period_end='2026-09-20';
+  PERFORM save_attendance_role_line(f.candidate_id,f.unit_id,f.designation_id,f.shift_hours,true,
+    '2026-08-21','2026-09-20',true,null,f.designation_id,f.shift_hours,false);
+  UPDATE attendance_entries SET code='',ot_hours=1 WHERE candidate_id=f.candidate_id AND entry_date='2026-09-01';
+  IF NOT EXISTS(SELECT 1 FROM attendance_entries WHERE candidate_id=f.candidate_id AND unit_id=f.unit_id
+    AND entry_date='2026-09-01' AND is_reliever AND ot_hours=1 AND code='') THEN
+    RAISE EXCEPTION 'Transactional reliever Extra Duty did not persist'; END IF;
+  PERFORM save_attendance_role_line(f.candidate_id,f.unit_id,f.designation_id,f.shift_hours,false,
+    '2026-08-21','2026-09-20',true,null,f.designation_id,f.shift_hours,true);
+  IF NOT EXISTS(SELECT 1 FROM attendance_role_choices WHERE candidate_id=f.candidate_id AND unit_id=f.unit_id
+    AND month='2026-09-01' AND NOT is_reliever) THEN RAISE EXCEPTION 'Transactional regular selection failed'; END IF;
+END $$;
 ROLLBACK;

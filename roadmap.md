@@ -1,7 +1,7 @@
 ## CLI4331 reliever Extra Duty saving — 9 November
-- [ ] Diagnose why Extra Duty becomes NP after selecting reliever.
-- [ ] Fix regular/reliever selection and add focused regression tests without inventing attendance.
-- [ ] Verify production saved rules and signed-in live flow if an authorized session is available.
+- [x] Reproduced automatic promotion of a chosen CLI4331 reliever: one ED day became P and its reliever flag disappeared. NP itself was not present in saved entries.
+- [x] Applied monthly role choices consumed by the production attendance rule; replaced non-atomic line deletion/reinsert with authorized transactional role saving. Full/partial ED and regular selection checks pass with all test changes rolled back; CLI4331's 61 attendance entries and contracts unchanged. Fourteen focused frontend tests pass; automatic build OK. Older CLI2252 regression fixture fails identically with the original function (pre-existing fixture drift).
+- [ ] Release the attendance editor through GitHub-to-Vercel and verify signed-in CLI4331 selection/ED entry. Live page redirects to login; no authorized live browser session available.
 
 ## CLI3246 combined invoice day duties — 9 November
 - [x] Changed only current CON14701 invoice_ed_mode from separate_lines to combined; fresh production readback confirms Man Days, unchanged rates/resources, all 162 attendance entries, historical contracts and active client status. Fifteen focused invoice tests pass; automatic build OK. Backups under /tmp/browser/cli3246.
