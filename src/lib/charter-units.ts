@@ -57,7 +57,7 @@ export type CharterPageData = {
 
 export const CHARTER_UNITS_QK = ["charter-units-v3-active"] as const;
 
-const SNAPSHOT_KEY = "radiant:charter-units:v2";
+const SNAPSHOT_KEY = "radiant:charter-units:v3-active";
 
 function readSnapshot(): CharterPageData | null {
   if (typeof window === "undefined") return null;

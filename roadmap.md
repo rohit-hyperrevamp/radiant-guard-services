@@ -1,6 +1,7 @@
 ## Hide inactive clients throughout operations — 9 November
-- [ ] Apply status-based hiding to shared charters, operational client lists/pickers and attendance/payroll/invoice direct pages; keep Clients management inactive category and history intact.
-- [ ] Run focused visibility regressions and check production deployment/visible state; do not claim live completion without verification.
+- [x] Added fresh active-status intersection to shared invoice/attendance/payroll/dashboard rosters (including fallback cache), versioned roster cache, and blocked direct inactive-client register URLs before their queries/actions mount. Added active filters to contracts, employee/onboarding/posting/rehire/MIS/additions/case/field/team pickers and dashboards. Client status changes invalidate operational caches; Clients management keeps inactive category. Historical records and calculation metadata are not deleted or altered.
+- [x] Twenty-four visibility/cache/attendance/billing regressions pass; automatic build OK. Production verifies CLI4660 and CLI4683 inactive and absent from active filter.
+- [ ] Verify deployment and signed-in production views: live invoice redirects to /login; fetched live entry assets do not establish deployment of this change. GitHub-to-Vercel release and authorized live session required; no claim of live UI completion.
 
 ## Deactivate CLI4660 and CLI4683 — 9 November
 - [x] Marked CLI4660 (Bank of Baroda – Malleshwaram Branch) and CLI4683 (Bank of Baroda – Trinity Circle-Malleshwaram) inactive through production API with optimistic concurrency. Fresh inactive-filter readback returns both; all other client details and both contracts unchanged. Three safety tests pass; Clients already has Active/Inactive/All statuses dropdown, so no interface change needed. Before/after snapshots under /tmp/browser/client-inactive. Signed-in portal display not checked.
