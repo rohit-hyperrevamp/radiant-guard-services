@@ -4,7 +4,7 @@ import { contractDailyBilling, contractMonthlyBilling } from "./contract-rate-di
 import { periodDateList } from "./mis-billing";
 
 describe("CLI4304 and CLI4349 supplied Bangalore rates", () => {
-  const billingDayBase = { method: "fixed_days", fixed_days: 26 };
+  const billingDayBase = { method: "fixed_days" as const, fixedDays: 26 };
   it.each([
     ["Guard", 8, 15742.26, 1089.01, 28314.20, 1089.01],
     ["Guard", 12, 15742.26, 600, 37323.52, 1435.52],
