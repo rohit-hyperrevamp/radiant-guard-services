@@ -1,3 +1,6 @@
+## CLI3431 active status — 9 November
+- [ ] Reactivate CLI3431 only; verify rates, attendance and day-based billing unchanged.
+
 ## Swap four Bank of Baroda client statuses — 9 November
 - [x] Production status swap committed and fresh assertions passed: CLI4473/CLI3098 inactive; CLI4660/CLI4683 active. Exact-ID update preserves unrelated client fields, all other clients, these contracts and attendance. Before-state backup in /tmp/bob_client_status_swap_20261109.jsonl; three focused tests pass. Live signed-in display not checked.
 
