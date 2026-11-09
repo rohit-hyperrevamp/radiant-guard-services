@@ -1048,7 +1048,7 @@ function PayrollUnitPage() {
 
       const allocations = allocateInvoicePresent(rows.map((row) => {
         const rule = { invoicePresentCap: row.invoicePresentCap, designationId: row.contractDesignationId, shiftHours: row.shiftHours, billingDayBase: row.billingDayBase };
-        return { pool: invoiceCapPool(unitId, rule), order: `${row.employeeCode || row.id}|${row.rowKey}`, present: row.totals.pDays, extraDuty: row.totals.otDays, cap: billingMode === "man_days" || billingMode === "man_hours" ? invoicePresentLimit(rule, periodDates) : null };
+        return { pool: invoiceCapPool(unitId, rule), order: `${row.id}|${row.rowKey}`, present: row.totals.pDays, extraDuty: row.totals.otDays, cap: billingMode === "man_days" || billingMode === "man_hours" ? invoicePresentLimit(rule, periodDates) : null };
       }));
       const invoiceRows = rows.map((row, index) => ({ ...row, payrollTotals: row.totals, totals: { ...row.totals, pDays: allocations[index].present, otDays: allocations[index].extraDuty, otHours: allocations[index].extraDuty } }));
       return { rows: invoiceRows, billingMode, shiftHoursByDesignation, billingDayBaseByDesignation, contractId: contractId ?? null, gstOption: typeof periodContract?.gst_option === "string" ? periodContract.gst_option : null };

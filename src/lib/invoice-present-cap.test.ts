@@ -3,6 +3,8 @@ import { allocateInvoicePresent, invoicePresentLimit, invoiceCapPool } from "./i
 import { periodDateList } from "./mis-billing";
 import { computeWages, type AttendanceTotals } from "./payroll-calc";
 import { splitInvoiceDuties } from "./invoice-duty-rates";
+import { allocateInvoiceEntries } from "./invoice-present-cap";
+import { applyInvoiceEdMode, DEFAULT_SPLIT, totalsForPart } from "./invoice-split";
 
 const rows = (cap: number | null) => [24, 2, 6].map((present, i) => ({ pool: "guard", order: String(i), present, extraDuty: 0, cap }));
 describe("optional invoice-only shared Present limit", () => {
@@ -42,7 +44,7 @@ describe("optional invoice-only shared Present limit", () => {
   });
   it("keeps payroll calculations and original attendance unchanged", () => {
     const totals: AttendanceTotals = { pDays: 28, otDays: 1.5, otHours: 1.5, phDays: 1, otherPaidDays: 0, tDays: 30.5 };
-    const resource = { designationId: "guard", components: [{ name: "Basic", amount: 26000 }], benefits: [], deductions: [], employerContributions: [], payrollDayBase: { method: "fixed_days" as const, fixedDays: 26 } };
+    const resource = { designationId: "guard", components: [{ name: "Basic", amount: 26000 }], benefits: [], deductions: [], employerContributions: [], payrollDayBase: { method: "fixed_days" as const, fixedDays: 26, weeklyOffDay: null } };
     const before = computeWages(totals, resource, 30);
     const allocation = allocateInvoicePresent([{ pool: "guard", order: "a", present: totals.pDays, extraDuty: totals.otDays, cap: 26 }])[0];
     const invoice = splitInvoiceDuties({ billedDays: totals.tDays, otDays: allocation.extraDuty, regularRate: 1000, extraDutyRate: 1500 });
@@ -52,5 +54,23 @@ describe("optional invoice-only shared Present limit", () => {
     expect(computeWages(totals, resource, 30)).toEqual(before);
     expect(totals.pDays).toBe(28);
     expect(totals.otDays).toBe(1.5);
+  });
+  it("matches raw-entry exports to the invoice allocation and preserves holidays", () => {
+    const dates = periodDateList("2026-09-01", "2026-09-30");
+    const entries = [24, 2, 6].map((days, index) => ({ unit_id: "unit", candidate_id: String(index), entry_date: dates[0], code: "P", days, ot_hours: 0 }));
+    const result = allocateInvoiceEntries(entries, () => ({ designationId: "guard", shiftHours: 8, invoicePresentCap: true, billingDayBase: { method: "fixed_days", fixedDays: 26 } }), () => dates, e => e.days);
+    expect(result).toEqual(allocateInvoicePresent(rows(26)));
+  });
+  it("allocates before separate invoice tabs and preserves the complete duty count", () => {
+    const allocated = allocateInvoicePresent([{ pool: "guard", order: "1", present: 28, extraDuty: 1.5, cap: 26 }])[0];
+    const totals = { pDays: allocated.present, phDays: 0, otDays: allocated.extraDuty, otHours: allocated.extraDuty, tDays: 29.5 };
+    const split = applyInvoiceEdMode(DEFAULT_SPLIT, "separate_invoice");
+    const parts = split.parts.map(part => totalsForPart(totals, true, split, part.key));
+    expect(parts.reduce((sum, p) => sum + p.pDays, 0)).toBe(26);
+    expect(parts.reduce((sum, p) => sum + p.otDays, 0)).toBe(3.5);
+    expect(parts.reduce((sum, p) => sum + p.tDays, 0)).toBe(29.5);
+  });
+  it("refuses conflicting role divisors instead of silently guessing", () => {
+    expect(() => allocateInvoicePresent([{ ...rows(26)[0] }, { ...rows(27)[1] }])).toThrow("Conflicting Billing Days");
   });
 });
