@@ -22,7 +22,7 @@ describe("optional invoice-only shared Present limit", () => {
   it("keeps two Guards and two Supervisors at independent 52-day allowances", () => {
     const rules = ["guard", "supervisor"].map(designationId => ({ designationId, shiftHours: 8, quantity: 2, invoicePresentCap: true, billingDayBase: { method: "fixed_days" as const, fixedDays: 26 } }));
     const strengths = invoicePoolStrength(rules);
-    const result = allocateInvoicePresent(rules.map(rule => ({ pool: invoiceCapPool("unit", rule), order: rule.designationId, present: 60, extraDuty: 0, cap: invoicePresentLimit({ ...rule, invoiceCapQuantity: strengths.get(invoiceCapPool("", rule)) }, []) })));
+    const result = allocateInvoicePresent(rules.map(rule => ({ pool: invoiceCapPool("unit", rule), order: rule.designationId, present: 60, extraDuty: 0, cap: invoicePresentLimit({ ...rule, invoiceCapQuantity: strengths.get(invoiceCapPool("", rule)) }, periodDateList("2026-09-01", "2026-09-30")) })));
     expect(result.map(r => [r.present, r.extraDuty])).toEqual([[52, 8], [52, 8]]);
   });
   it("uses 54 Present for two contracted heads in a 27-day billing month", () => {
@@ -34,7 +34,7 @@ describe("optional invoice-only shared Present limit", () => {
     expect(strengths.get(invoiceCapPool("", rule))).toBe(2);
     expect(strengths.get(invoiceCapPool("", { ...rule, shiftHours: 12 }))).toBe(3);
     const entries = [24, 2, 6, 20, 8].map((days, i) => ({ unit_id: "unit", candidate_id: String(i), entry_date: "2026-09-01", code: "P", days, ot_hours: 0 }));
-    const result = allocateInvoiceEntries(entries, () => ({ ...rule, invoiceCapQuantity: strengths.get(invoiceCapPool("", rule)) }), () => [], e => e.days);
+    const result = allocateInvoiceEntries(entries, () => ({ ...rule, invoiceCapQuantity: strengths.get(invoiceCapPool("", rule)) }), () => periodDateList("2026-09-01", "2026-09-30"), e => e.days);
     expect(result.reduce((s, r) => s + r.present, 0)).toBe(52);
     expect(result.reduce((s, r) => s + r.extraDuty, 0)).toBe(8);
   });
