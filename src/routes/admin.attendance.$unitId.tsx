@@ -1976,58 +1976,27 @@ function MusterRollPage() {
         } as never);
         if (!ok) return;
       }
-      // First regular line at this unit makes it the guard's main unit; more
-      // regular lines here (e.g. 8h + 12h) stay regular without moving it.
-      const primaryHere = here.some((l) => l.is_primary && l.id !== editLine?.lineId);
-      const payload = {
-        candidate_id: cand.id,
-        unit_id: unitId,
-        designation_id: designationId,
-        shift_hours: shiftHours,
-        is_reliever: asReliever,
-        is_primary: !asReliever && !primaryHere,
-      };
-      if (editLine?.lineId) {
-        const { error } = await supabase.from("candidate_units").update(payload as never).eq("id", editLine.lineId);
-        if (error) throw error;
-      } else if (!lineExists) {
-        const { error } = await supabase.from("candidate_units").insert(payload as never);
-        if (error) throw error;
-      }
+      // Monthly intent, posting and attendance move together; a failed save
+      // must never leave the old attendance deleted or lose the role choice.
+      const old = editLine ? parseVariant(editLine.variant) : null;
+      const { error: roleError } = await supabase.rpc("save_attendance_role_line" as never, {
+        _candidate_id: cand.id,
+        _unit_id: unitId,
+        _designation_id: designationId,
+        _shift_hours: shiftHours ?? 0,
+        _is_reliever: asReliever,
+        _period_start: periodStart,
+        _period_end: periodEnd,
+        _edit: Boolean(editLine),
+        _old_line_id: editLine?.lineId ?? null,
+        _old_designation_id: editLine?.designationId ?? null,
+        _old_shift_hours: old?.shift ?? 0,
+        _old_is_reliever: old?.reliever ?? false,
+      } as never);
+      if (roleError) throw roleError;
       const newVariant = selectedVariant;
       // Editing a line moves its saved days onto the new line.
       if (editLine) {
-        const old = parseVariant(editLine.variant);
-        let q = supabase
-          .from("attendance_entries")
-          .select("entry_date, code, ot_hours")
-          .eq("unit_id", unitId)
-          .eq("candidate_id", cand.id)
-          .eq("shift_hours" as never, old.shift as never)
-          .eq("is_reliever" as never, old.reliever as never)
-          .gte("entry_date", periodStart)
-          .lte("entry_date", periodEnd);
-        q = editLine.designationId ? q.eq("designation_id", editLine.designationId) : q.is("designation_id", null);
-        const { data: oldRows, error: oldErr } = await q;
-        if (oldErr) throw oldErr;
-        const rows = (oldRows ?? []) as Array<{ entry_date: string; code: string; ot_hours: number }>;
-        if (rows.length) {
-          let d = supabase
-            .from("attendance_entries")
-            .delete()
-            .eq("unit_id", unitId)
-            .eq("candidate_id", cand.id)
-            .eq("shift_hours" as never, old.shift as never)
-            .eq("is_reliever" as never, old.reliever as never)
-            .gte("entry_date", periodStart)
-            .lte("entry_date", periodEnd);
-          d = editLine.designationId ? d.eq("designation_id", editLine.designationId) : d.is("designation_id", null);
-          const { error: delErr } = await d;
-          if (delErr) throw delErr;
-          await upsertEntries(cand.id, designationId, rowsForAttendanceRole(rows, asReliever), {
-            variant: newVariant,
-          });
-        }
         setExtraRows((prev) => {
           const next = new Set(prev);
           next.delete(editLine.key);
@@ -4194,8 +4163,8 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
       for (const [rowKey, dates] of grouped) {
         const row = findRow(rowKey);
         if (!row) continue;
-        const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null, row.candidateId || null);
-        const otDays = Math.round((hours / shift) * 10000) / 10000;
+        const shift = rowShiftHours(row.key);
+        const otDays = roundDutyDays(hours / shift);
 
         const rows = dates.map((d) => ({
           entry_date: d,
