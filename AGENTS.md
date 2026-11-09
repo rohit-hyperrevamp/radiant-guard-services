@@ -41,6 +41,7 @@
 - Contract resource staging and saving refresh billing add-ons identically; billing_rate formulas run in the late CTC/reliever pass, never against gross-only context, so closing the editor cannot change its displayed rate.
 - Invoice detail resolves the period contract's saved invoice split before the organization fallback, so site-only invoice separation never changes sibling sites.
 - Invoice duty exceptions resolve their invoice-only base in `invoice-duty-rates`, independently of payroll; per-line units and optional unrounded ED multiplication flow into detail, print and exports to preserve source precision.
+- Invoice detail quantity/rate labels follow each priced line's billing unit, not converted shift hours; day-based main duties and deliberately hourly Extra Duty must not be mislabelled.
 - Duty-day quantities (P/ED/total days) round only through `roundDutyDays` in `src/lib/duty-days.ts` (4 decimals) — hour-entered Extra Duty must convert exactly, never to 2 dp.
 - Attendance XLSX imports fold explicit Att/OT continuation rows through `mergeAttendanceHourRows` before replacement, converting clock hours by the resolved shift and rejecting orphan/invalid OT to prevent silent loss.
 - Invoice GST opt-out uses the period contract's existing `gst_option='none'`; shared tax maths, print and exports honour it while enabled contracts retain their state-based tax split.

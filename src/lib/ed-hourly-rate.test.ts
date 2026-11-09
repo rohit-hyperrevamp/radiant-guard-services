@@ -3,6 +3,19 @@ import { edPerDutyFromHourly } from "./payroll-calc";
 import { hourlyEdBillingRate, invoiceExtraDutyRate, splitInvoiceDuties } from "./invoice-duty-rates";
 
 describe("custom per-hour Extra Duty (Poonawalla Gujarat Security Guard)", () => {
+  it("CLI3431 main duties remain days while its custom Extra Duty retains hourly pricing", () => {
+    const rate = invoiceExtraDutyRate("3e252135-eab1-4cf6-8fec-8b616a12e859", [], {
+      unitCode: "CLI3431", hourlyEd: { rate: 134, esic: 5, shiftHours: 8 },
+    });
+    if (rate == null) throw new Error("Missing saved Extra Duty rate");
+    const split = splitInvoiceDuties({ billedDays: 27.5, otDays: 1.5, regularRate: 900,
+      extraDutyRate: rate, shiftHours: 8, hourly: false, extraDutyHourly: true });
+    expect(split.regularQuantity).toBe(26);
+    expect(split.regularAmount).toBe(23400);
+    expect(split.edQuantity).toBe(12);
+    expect(split.edAmount).toBe(1668);
+  });
+
   it("pays ₹134 per ED hour: one 8-hour ED duty = ₹1,072", () => {
     expect(edPerDutyFromHourly(134, 8)).toBe(1072);
   });
