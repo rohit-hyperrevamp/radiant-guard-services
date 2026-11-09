@@ -1,3 +1,7 @@
+## Poonawalla Fixed 26 Present limit — 9 November
+- [ ] Review all Poonawalla contract payroll day settings and saved Present totals.
+- [ ] Set Fixed 26 payroll days, preserve billing/Extra Duty rates and processed periods, and verify automatic excess-to-Extra-Duty conversion.
+
 ## Invoice Extra Duty output choices — 9 November
 - [x] Saved CLI4349 CON15944's explicitly confirmed Combined choice in production; readback confirms combined. Transaction preservation checks passed for all three resources, 464 attendance entries and other contract terms; backup /tmp/cli4349-combined/before.json. All 27 focused regressions pass; compilation OK. Signed-in live display still awaits authorized access and release verification.
 - [x] Explicit Combined now persists instead of inheriting old splits; contract saves/focus refresh format queries. All three modes route reliever ED consistently; output and print honor the selected layout while keeping agreed regular/ED amounts, using an effective rate only for combined lines. No production records changed.
