@@ -1,3 +1,8 @@
+## Optional invoice-only pooled Present cap — 9 November
+- [ ] Add a disabled-by-default resource option using Billing Days, pooled across employees separately per role; overflow becomes invoice Extra Duty without editing payroll or attendance.
+- [ ] Share allocation across invoice output, tabs, print, MIS and finance; test 24 + 2 + 6 against 26, variable month divisors and unchanged payroll.
+- [ ] Verify production schema defaults and preservation; signed-in live verification requires delivery and authorized production access.
+
 ## Poonawalla Fixed 26 Present limit — 9 November
 - [x] Production review: 158 active contracts used Days Minus Four; 117 already used Fixed 26. All 275 active contract resources now use Fixed 26. Historical contracts unchanged; prior inherited billing divisors made explicit to preserve invoice rates.
 - [x] Closed zero-imported-shift grouping loophole in monthly database rule without changing stored line keys. CLI3780 October corrected 27 P + 5.3567 ED to 26 P + 6.3567 ED. Production 28-P save regression passes with rollback; no reviewed payroll-window total exceeds 26. All 18,907 Poonawalla attendance rows and total worked duties preserved; processed attendance, rates, contract terms and client statuses asserted unchanged. Backup /tmp/poonawalla-before.json.
