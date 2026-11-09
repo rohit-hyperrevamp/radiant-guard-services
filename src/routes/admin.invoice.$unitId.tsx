@@ -1221,7 +1221,7 @@ function PayrollUnitPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, billingMode]);
 
-  /** One row per designation: headcount, billed hours, per-hour rate and money. */
+  /** One row per designation and billing unit, preserving each priced line's quantity. */
   const designationRows = useMemo(() => {
     const map = new Map<
       string,
@@ -1231,6 +1231,7 @@ function PayrollUnitPage() {
         headcount: number;
         billedDays: number;
         billedHours: number;
+        unitLabel: string;
         perHour: number;
         contracted: number;
         actual: number;
@@ -1242,12 +1243,12 @@ function PayrollUnitPage() {
       if (billingMode !== "lumpsum" && billingMode !== "man_months" && (r.totals.tDays ?? 0) <= 0) continue;
       const m = invoiceMathFor(r);
       for (const item of m.billingLines) {
-        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${item.rate}|${item.kind}|${r.rateWindowLabel ?? ""}`;
+        const key = `${r.designationId ?? "__none__"}|${m.shiftHours}|${item.rate}|${item.unitLabel}|${item.kind}|${r.rateWindowLabel ?? ""}`;
         const existing = map.get(key) ?? {
           key,
           designation: `${item.kind ? `${r.designation} · ${item.kind}` : r.designation}${r.rateWindowLabel ? ` (${r.rateWindowLabel})` : ""}`,
           headcount: 0, billedDays: 0, billedHours: 0,
-          perHour: item.rate, contracted: 0, actual: 0,
+          unitLabel: item.unitLabel, perHour: item.rate, contracted: 0, actual: 0,
         };
         existing.headcount += 1;
         const days = item.unitLabel === "hrs" ? item.quantity / m.shiftHours : item.quantity;
@@ -1903,10 +1904,10 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 text-right font-medium" title="Number of resources billed under this designation">Count</th>
                 <th className="px-4 py-3 text-right font-medium" title="Total days billed across all resources of this designation">Days billed</th>
-                <th className="px-4 py-3 text-right font-medium" title="Days billed × contracted shift hours">Hours billed</th>
-                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ billing days (÷ shift hours when the contract bills man hours)">{billingMode === "man_hours" ? "Per hour" : "Per duty"}</th>
+                <th className="px-4 py-3 text-right font-medium" title="Quantity in the unit used to price this invoice line">Billing quantity</th>
+                <th className="px-4 py-3 text-right font-medium" title="Saved contract rate per billing unit">Billing rate</th>
                 <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
-                <th className="px-4 py-3 text-right font-medium" title="Per hour × hours billed">Actual invoice</th>
+                <th className="px-4 py-3 text-right font-medium" title="Billing rate × billing quantity">Actual invoice</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -1921,8 +1922,8 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 font-medium">{g.designation}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{g.headcount}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{g.billedDays}</td>
-                  <td className="px-4 py-3 text-right text-xs tabular-nums">{g.billedHours} hrs</td>
-                  <td className="px-4 py-3 text-right text-xs tabular-nums">₹{g.perHour.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">{formatDutyQty(g.unitLabel === "hrs" ? g.billedHours : g.billedDays)} {g.unitLabel === "hrs" ? "hrs" : "days"}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">₹{g.perHour.toFixed(2)} / {g.unitLabel === "hrs" ? "hour" : "day"}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmtINR(g.contracted)}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{fmtINR(g.actual)}</td>
                 </tr>
@@ -1934,7 +1935,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3">Totals</td>
                   <td className="px-4 py-3 text-right tabular-nums">{designationRows.reduce((s, g) => s + g.headcount, 0)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{roundDutyDays(designationRows.reduce((s, g) => s + g.billedDays, 0))}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{Math.round(designationRows.reduce((s, g) => s + g.billedHours, 0) * 100) / 100} hrs</td>
+                  <td className="px-4 py-3" />
                   <td className="px-4 py-3" />
                   <td className="px-4 py-3 text-right text-muted-foreground">{fmtINR(totals.projectedTotal)}</td>
                   <td className="px-4 py-3 text-right text-emerald-700">{fmtINR(totals.actualTotal)}</td>
