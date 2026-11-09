@@ -458,9 +458,10 @@ export function FinanceCharter({
 
   // Sites picked for finalisation — only those with approved attendance and no
   // number issued yet for the open period.
+  // Selection spans every page: picks on page 1 stay selected on page 2.
   const selectableRows = useMemo(
-    () => rows.filter((r) => !r.finalInvoice && r.status.attendance === "approved"),
-    [rows],
+    () => allRows.filter((r) => !r.finalInvoice && r.status.attendance === "approved"),
+    [allRows],
   );
   // Invoice numbers are state-driven, so one final invoice can never span two
   // states: the first pick locks the state for the rest of the selection.
@@ -847,7 +848,8 @@ export function FinanceCharter({
     return rows.some((u) => !disabled.has(String(u.customer_id ?? "")));
   }, [misDisabledCustomers, matchedUnits, units]);
   const exportMisCombined = async () => {
-    let targets = matchedUnits;
+    const pickedIds = Object.keys(selected).filter((id) => selected[id]);
+    let targets = pickedIds.length > 0 ? matchedUnits.filter((u) => selected[u.id]) : matchedUnits;
     // Units with "Separate MIS" are exported one by one, never in a combined sheet.
     if (targets.length > 1) {
       const sep = new Set<string>();
@@ -1126,7 +1128,7 @@ export function FinanceCharter({
         rows: sheet.rows,
         columns: sheet.columns,
       });
-      toast.success(`MIS export ready — ${sourceRows.length} billable employee rows in one file.`);
+      toast.success(`MIS export ready — ${targets.length} site${targets.length === 1 ? "" : "s"} added, ${sourceRows.length} billable employee rows.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "MIS export failed");
     } finally {
@@ -1328,7 +1330,7 @@ export function FinanceCharter({
             disabled={misBusy}
             onClick={() => void exportMisCombined()}
           >
-            <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : "MIS Format"}
+            <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : selectedTargets.length > 0 ? `MIS Format (${selectedTargets.length})` : "MIS Format"}
           </Button>
         )}
         <Button variant="outline" className="h-9 shrink-0 rounded-lg sm:rounded-xl" onClick={exportCsv}>
