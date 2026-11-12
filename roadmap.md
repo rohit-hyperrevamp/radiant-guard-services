@@ -1149,3 +1149,10 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] Read back every imported value against Pages and prove excluded/protected records unchanged.
 - [ ] Deliver an Excel list of populated clients and unresolved issues; give completion confirmation only after verified population.
 Access clarification: a production-targeted read-only connection succeeded during the root-cause investigation. This does not establish an authorized production write path. Current database-access instructions prohibit shell inspection and mutations; managed database tools address a different database. Check available production connectors or an authorized live-portal session before replacement. Pages Payroll login was previously verified. Earlier import rollback backup is not recovered, but the latest request permits direct reconciliation rather than blanket rollback. No replacement or completion claimed.
+
+## Selected security findings — live portal only
+- [x] Load the requested scan: 86 selected findings (one password-protection setting, 62 permissive table-policy findings, 23 storage-policy findings); scan dated 12 September 2026 and marked out of date.
+- [x] User confirmed on 12 November that fixes must target the live portal only; no permission to modify the separate managed database.
+- [ ] Inspect current production policies and preserve configurable Access Control, workflow approvers, employee/site scope and authorized shared-document access. Blocked: available managed schema/read tools target the separate database; current tool instructions prohibit production inspection through shell.
+- [ ] Apply and test only the selected production access-policy fixes and enable leaked-password protection. Blocked: no production-targeted migration/auth-settings connection is available; shell schema changes are prohibited.
+- [ ] Verify the applied fixes and mark only verified selected findings fixed through manage_security_finding. All 86 remain unresolved; no findings fixed or ignored and no security rules changed.
