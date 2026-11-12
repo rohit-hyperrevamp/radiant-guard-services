@@ -1,3 +1,9 @@
+## October Pages follow-up — 12 November
+- [x] CLI4097 employee 48413: 22 October saved as exactly 0.45 Extra Duty on its resolved 12-hour line. Site total 125 P + 15.45 ED = Pages 140.45; sheet submitted, not approved. Transaction asserted all 166 existing affected-employee entries and 2,712 closed sheets unchanged.
+- [x] Fresh Pages muster review separates 33 sites into 9 actual period differences, 10 unconfigured system windows, 9 without October source attendance, 4 Pages access refusals, and 1 matching period with source. No periods or attendance changed at these sites.
+- [x] All seven new employee IDs freshly verified in Pages; current profile titles refreshed (50056 Security Guard, 50104 Facility Attendant). October mappings and attendance preserved; current Pages deployment differences documented; older IDs not deactivated.
+- [x] Revised Excel report reopened and all 11 sheet previews inspected. Corrected earlier exact-match claim: 641 exact totals, three accumulated employee-rounding differences. Carried-forward 324 no-source and 8 missing-ID lists explicitly labelled not freshly verified.
+
 ## Poonawalla strength one per existing role — 9 November
 - [ ] Set strength to one for each existing role on all Poonawalla clients only; do not create missing roles or change other customers. Use the existing selected billing divisor and invoice-only allowance. Blocked pending an authorized production write path; managed database tools target a different database and current access instructions prohibit production updates through shell commands.
 - [ ] Verify saved strengths and invoice-only limits, unchanged rates/payroll/attendance/other customers, and live invoice readback.
