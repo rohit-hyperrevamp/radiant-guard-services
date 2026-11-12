@@ -1129,3 +1129,11 @@
 - [x] Back up affected October attendance and import verified rows without altering unrelated data.
 - [x] Recheck imported totals against the workbook and production attendance rules.
 - [x] Deliver one Excel report listing missing employees and all other issues by client.
+
+## October attendance follow-up — multi-site roles, shifts and PH
+- [x] Audit previous verified import: 196 employees have duties at multiple sites; 142 dated PH cells were staged; 280 source rows contain PH-related notes, including zero values and worked-holiday credits.
+- [ ] Verify and apply monthly regular/reliever classification using the existing database rule; preserve saved explicit role choices and processed payroll. Blocked: current database tools target a different backend, while the available production credential is only a database connection URL; direct database inspection and data correction through shell are disallowed by current tool instructions.
+- [ ] Resolve shifts only from unambiguous source or live records; leave genuinely unresolved shifts for review (user confirmed). One previously unresolved source row explicitly says 8HR: CLI4452 employee 49886; requires fresh production verification before saving.
+- [ ] Import verified duties even before the saved joining date and flag them in the issues report; do not change joining dates (user confirmed). Verify missing client mappings and add only necessary duty postings, without changing employee home units or identities.
+- [ ] Include source-backed additional PH credits without replacing worked Present duties or double counting dated PH; recheck source notes and current saved credits before writing.
+- [ ] After a safe production read/write path is available, back up, apply and verify corrections, then deliver a revised single-sheet issues workbook. No live data changed in this follow-up.
