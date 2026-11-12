@@ -1161,3 +1161,12 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] Inspect current production policies and preserve configurable Access Control, workflow approvers, employee/site scope and authorized shared-document access. Blocked: available managed schema/read tools target the separate database; current tool instructions prohibit production inspection through shell.
 - [ ] Apply and test only the selected production access-policy fixes and enable leaked-password protection. Blocked: no production-targeted migration/auth-settings connection is available; shell schema changes are prohibited.
 - [ ] Verify the applied fixes and mark only verified selected findings fixed through manage_security_finding. All 86 remain unresolved; no findings fixed or ignored and no security rules changed.
+
+## October 2026 Pages follow-up (13 Nov 2026)
+- [x] Created 58 missing employees from Pages profiles (Pages IDs; older Aadhaar-matched IDs recorded) and saved 1,007 October days; 772 paid duties match Pages.
+- [x] Set job titles and October days for 4 Pune office staff (+1 new); added CLI341 0.5 Extra Duty (Manual Duty Alias).
+- [x] Corrected Extra Duty for 58 employees at 18 sites to Pages figures (12-hour Extra Duty had been stored as 1.5 days).
+- [x] 643 of 644 imported sites match Pages; those 643 sheets submitted (none approved). Report: /mnt/documents/October_2026_Pages_Final_Report.xlsx
+- [ ] CLI4097: 0.45 partial duty (48413, 22 Oct) — needs user decision; sheet not submitted.
+- [ ] 33 sites whose Pages period differs from ours — needs user decision on window.
+- [ ] 7 new employees also active under an older ID — user to decide whether to deactivate older records.
