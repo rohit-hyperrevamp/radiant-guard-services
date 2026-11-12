@@ -1140,6 +1140,7 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] After a safe production read/write path is available, back up, apply and verify corrections, then deliver a revised single-sheet issues workbook. No live data changed in this follow-up.
 
 ## October attendance replacement from Pages Payroll — 12 November
+- [ ] Latest request: reconcile October attendance for workbook client IDs directly to Pages Payroll; change only eligible pending sheets, preserve submitted/approved sheets and previously excluded bank/Alpha Level clients. Direct source-backed replacement does not require a blanket rollback of the earlier Excel import.
 - [x] Verify current Pages Payroll access: successfully signed in and visually confirmed the real dashboard on 12 November; no source records changed.
 - [ ] Retrieve authoritative October attendance after the protected destination scope can be verified.
 - [ ] Identify eligible pending October periods in production; exclude every bank, Canara, SBI, Cosmos and Alpha Level, and preserve all September and submitted/approved attendance.
@@ -1147,4 +1148,4 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] Back up and populate verified employee/date attendance from Pages only; preserve protected periods even when monthly reclassification runs.
 - [ ] Read back every imported value against Pages and prove excluded/protected records unchanged.
 - [ ] Deliver an Excel list of populated clients and unresolved issues; give completion confirmation only after verified population.
-Blocker: no available production-targeted database tool; managed tools address a different database and shell database reads/writes are disallowed. Pages Payroll login is verified and is not the blocker. Earlier import rollback backup is not yet recovered (temporary import workspace is absent). No attendance reverted or changed for this request, and no completion report or thumbs-up claimed.
+Access clarification: a production-targeted read-only connection succeeded during the root-cause investigation. This does not establish an authorized production write path. Current database-access instructions prohibit shell inspection and mutations; managed database tools address a different database. Check available production connectors or an authorized live-portal session before replacement. Pages Payroll login was previously verified. Earlier import rollback backup is not recovered, but the latest request permits direct reconciliation rather than blanket rollback. No replacement or completion claimed.
