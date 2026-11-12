@@ -1148,6 +1148,13 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [x] Delivered /mnt/documents/October_2026_Pages_Attendance_Import.xlsx (populated clients, issues, untouched clients).
 - [ ] Open: 67 employees missing in our system, 33 clients whose Pages period differs from our window, 324 clients with no Pages October attendance (6 still hold earlier Excel rows), 8 client IDs absent in Pages, 4 unmatched job titles — awaiting user decisions.
 
+## October Pages follow-up — missing employees and submission
+- [x] Audit the previous report: 67 missing employee/site entries represent 58 unique employee IDs; do not create 67 duplicate profiles.
+- [ ] Fetch fresh Pages profiles for those 58 unique employee IDs; check existing identities and create source-backed employees/postings only in production. Blocker: no supported production-targeted query connection available in this session.
+- [ ] Reconcile imported October totals under existing monthly caps and regular/reliever rules, preserving banks, Alfa Laval and previously submitted/approved periods.
+- [ ] Submit only fully verified eligible October sheets; do not approve any sheet.
+- [x] Prepare October_2026_Pages_Followup_v2.xlsx from the prior report, listing 58 unique employee IDs / 67 site entries, three Radiant clients, all 324 no-source clients, eight absent Pages IDs and other unresolved issues. Clearly labels no fresh source fetch, no live changes and no submissions in this follow-up.
+
 ## Selected security findings — live portal only
 - [x] Load the requested scan: 86 selected findings (one password-protection setting, 62 permissive table-policy findings, 23 storage-policy findings); scan dated 12 September 2026 and marked out of date.
 - [x] User confirmed on 12 November that fixes must target the live portal only; no permission to modify the separate managed database.
