@@ -1140,15 +1140,13 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] After a safe production read/write path is available, back up, apply and verify corrections, then deliver a revised single-sheet issues workbook. No live data changed in this follow-up.
 
 ## October attendance replacement from Pages Payroll — 12 November
-- [ ] Latest request: reconcile October attendance for workbook client IDs directly to Pages Payroll; change only eligible pending sheets, preserve submitted/approved sheets and previously excluded bank/Alpha Level clients. Direct source-backed replacement does not require a blanket rollback of the earlier Excel import.
-- [x] Verify current Pages Payroll access: successfully signed in and visually confirmed the real dashboard on 12 November; no source records changed.
-- [ ] Retrieve authoritative October attendance after the protected destination scope can be verified.
-- [ ] Identify eligible pending October periods in production; exclude every bank, Canara, SBI, Cosmos and Alpha Level, and preserve all September and submitted/approved attendance.
-- [ ] Recover the previous workbook-import backup and audit trail; revert only that import's eligible changes, never later submissions, approvals or edits.
-- [ ] Back up and populate verified employee/date attendance from Pages only; preserve protected periods even when monthly reclassification runs.
-- [ ] Read back every imported value against Pages and prove excluded/protected records unchanged.
-- [ ] Deliver an Excel list of populated clients and unresolved issues; give completion confirmation only after verified population.
-Access clarification: a production-targeted read-only connection succeeded during the root-cause investigation. This does not establish an authorized production write path. Current database-access instructions prohibit shell inspection and mutations; managed database tools address a different database. Check available production connectors or an authorized live-portal session before replacement. Pages Payroll login was previously verified. Earlier import rollback backup is not recovered, but the latest request permits direct reconciliation rather than blanket rollback. No replacement or completion claimed.
+- [x] Fetched October day-wise attendance from Pages Payroll (all clients) plus manual Extra Duty minutes per employee.
+- [x] Scope: active clients excluding every bank organization and Alfa Laval; skipped clients whose October sheet is submitted/approved (360). 644 clients replaced from Pages (87,552 rows); earlier Excel rows in those ranges replaced.
+- [x] Extra Duty saved in days (ot_hours stores days): ED/D marks = 1 day; manual minutes / Pages duty scale; monthly Pages ED lumps on last working day.
+- [x] Backups: backup_oct_pages_att_20261112, backup_oct_pages_cu_20261112, backup_oct_pages_home_moves_20261112, backup_oct_pages_stage_hours_20261112; staged source in _oct_stage/_oct_ranges.
+- [x] Verified: every row traces to Pages; per-client total paid days equal Pages for all 642 clients with marks; all attendance, postings and home sites outside the import restored and verified unchanged.
+- [x] Delivered /mnt/documents/October_2026_Pages_Attendance_Import.xlsx (populated clients, issues, untouched clients).
+- [ ] Open: 67 employees missing in our system, 33 clients whose Pages period differs from our window, 324 clients with no Pages October attendance (6 still hold earlier Excel rows), 8 client IDs absent in Pages, 4 unmatched job titles — awaiting user decisions.
 
 ## Selected security findings — live portal only
 - [x] Load the requested scan: 86 selected findings (one password-protection setting, 62 permissive table-policy findings, 23 storage-policy findings); scan dated 12 September 2026 and marked out of date.
