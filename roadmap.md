@@ -1190,3 +1190,6 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] Verify corrected authenticated screens and XLS/PDF outputs after GitHub-to-Vercel deployment; deployment confirmed by live assets during follow-up, signed-in readback still pending. No credentials/OTP retained in project files.
 - [ ] Government-ready EPFO/ESIC/state return templates and filing validation require a separate implementation and official registration/template inputs; current outputs are management registers, not verified government returns.
 - [x] All-or-nothing payroll posting code and isolated failure tests completed; production installation and signed-in readback remain blocked as listed above. No payroll was processed/reprocessed.
+
+- [x] Atomic payroll saving installed in production DB (13 Nov 2026).
+- [ ] 847 of 848 approved September payrolls are not processed, so they post nothing to Compliance (only CLI1651 processed; it reconciles exactly). Waiting on user choice: process them or show approved-unprocessed as Pending.
