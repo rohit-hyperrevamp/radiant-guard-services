@@ -1,3 +1,8 @@
+## ESIC and EPF original-format forms — 13 November
+- [x] Reused all four supplied original templates; added employee selection, verified autofill, editable missing/event details and PDF preview/download in Compliance. Employee View/Export gates apply; source data is read-only and drafts stay in memory.
+- [x] Five mapping/PDF tests pass, all 132 field boxes validate, compilation OK. Shared exporter generated a five-page sample from real production employee 1; inspected every page, corrected EPF contact/employer alignment, verified saved UAN/ESIC/Aadhaar/bank identifiers in output. Missing accident facts, nominees, dates, declarations and signatures remain blank and explicitly draft-labelled.
+- [ ] Signed-in live availability awaits GitHub-to-Vercel delivery and a live user session: production /admin/compliance redirects to /login. No preview used and no live UI completion claimed.
+
 ## October Pages follow-up — 12 November
 - [x] CLI4097 employee 48413: 22 October saved as exactly 0.45 Extra Duty on its resolved 12-hour line. Site total 125 P + 15.45 ED = Pages 140.45; sheet submitted, not approved. Transaction asserted all 166 existing affected-employee entries and 2,712 closed sheets unchanged.
 - [x] Fresh Pages muster review separates 33 sites into 9 actual period differences, 10 unconfigured system windows, 9 without October source attendance, 4 Pages access refusals, and 1 matching period with source. No periods or attendance changed at these sites.
