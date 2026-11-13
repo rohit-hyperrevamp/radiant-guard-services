@@ -2691,3 +2691,15 @@ html body [data-slot="button"][data-size="icon"]:not([role="switch"]):not([role=
 }
 html body :is(td, .list-row, [data-col="actions"], .directory-actions, [data-smart-list]) :is(button, a)[data-icon-only="true"]:hover,
 html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-action, var(--action-view)) !important; filter: brightness(0.9); }
+
+/* Digital statutory forms: paper replicas, so ink and paper colours are intentionally fixed. */
+.stat-sheet { position: relative; flex: none; overflow: hidden; background: #fff; color: #000; box-shadow: 0 1px 6px rgb(0 0 0 / 0.18); }
+.stat-sheet input.stat-field, .stat-sheet textarea.stat-field { display: inline-block; margin: 0; padding: 0 1pt; border: 0; border-radius: 0; outline: none; color: #000; background: rgb(37 99 235 / 0.08); font-size: inherit; resize: none; overflow: hidden; }
+.stat-sheet .stat-field:hover { background: rgb(37 99 235 / 0.14); }
+.stat-sheet .stat-field:focus { background: rgb(37 99 235 / 0.16); box-shadow: inset 0 0 0 1px rgb(37 99 235 / 0.7); }
+.stat-sheet .stat-field:disabled { background: transparent; }
+.stat-sheet .stat-tick, .stat-sheet .stat-choice { margin: 0; padding: 0; background: transparent; color: #000; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+.stat-sheet .stat-tick:hover, .stat-sheet .stat-choice:hover { background: rgb(37 99 235 / 0.14); }
+.stat-print .stat-field, .stat-print .stat-tick, .stat-print .stat-choice { background: transparent !important; box-shadow: none !important; }
+.stat-print .stat-sheet { box-shadow: none; break-after: page; }
+@media print { .stat-sheet .stat-field, .stat-sheet .stat-tick, .stat-sheet .stat-choice { background: transparent !important; box-shadow: none !important; } }
