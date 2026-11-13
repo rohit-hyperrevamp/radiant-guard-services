@@ -1178,6 +1178,8 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] 7 new employees also active under an older ID — user to decide whether to deactivate older records.
 
 ## Compliance reliability — 13 November
+- [x] Implemented ordinary payroll and amendment atomic RPC, including completion and holds; seven isolated PostgreSQL rollback/approval/retry/site tests and four client-path tests pass. Existing 45 compliance/PT tests pass; automatic build OK. No real payroll processed.
+- [ ] Install production-only migration 20261113061500_atomic_payroll_posting.sql and verify authorized live save/readback. Available migration tools target the unrelated managed database; current access rules forbid production schema writes through exec. Until installed, the new save fails safely without changing payroll rather than falling back to partial writes.
 - [x] Follow-up September review: 85 tests pass across 15 suites covering Compliance, PT, ESI, Extra Duty and rounding. Production assets now include Posted/Pending/All controls, paged LWF and the EPF ledger. No production data changed.
 - [ ] Repeat September signed-in totals and export reconciliation: live browser redirects to login and the available managed session is for a different backend; never restore it into production. Prior 30-snapshot reconciliation remains previous-check evidence, not a fresh full-month verification.
 - [x] Signed into production with the supplied one-time code; inspected September overview, PT/LWF/ESIC registers and downloaded XLS outputs. Live LWF detail/export had 14 EE + 12.50 ER while the overview had 969 EE + 12.50 ER, confirming truncation.
@@ -1187,4 +1189,4 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [x] All 48 focused tests pass and automatic build reports OK. Live monetary fixtures give posted September PT 3,800, EPF 75,784.61, ESIC 13,272, LWF 16.50 and levy 9,954; pending PT 186,375 stays separate.
 - [ ] Verify corrected authenticated screens and XLS/PDF outputs after GitHub-to-Vercel deployment; deployment confirmed by live assets during follow-up, signed-in readback still pending. No credentials/OTP retained in project files.
 - [ ] Government-ready EPFO/ESIC/state return templates and filing validation require a separate implementation and official registration/template inputs; current outputs are management registers, not verified government returns.
-- [ ] All-or-nothing payroll posting remains a separate server transaction change; no payroll was processed/reprocessed during this read-only production check.
+- [x] All-or-nothing payroll posting code and isolated failure tests completed; production installation and signed-in readback remain blocked as listed above. No payroll was processed/reprocessed.

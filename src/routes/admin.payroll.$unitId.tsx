@@ -65,7 +65,7 @@ import {
 
   type AmendmentDelta,
 } from "@/lib/payroll-process";
-import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
+import { fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
@@ -1524,7 +1524,6 @@ function PayrollUnitPage() {
         rows: buildPayloadRows(),
         heldCandidateIds: Array.from(holdDraft),
       });
-      if (sheet?.id) await setAmendmentStatus(sheet.id, "processed");
       void logActivity({
         module: "Payroll",
         action: "process",
@@ -1539,6 +1538,7 @@ function PayrollUnitPage() {
       queryClient.invalidateQueries({ queryKey: runQK });
       queryClient.invalidateQueries({ queryKey: sheetQK });
       queryClient.invalidateQueries({ queryKey: snapshotsQK });
+      queryClient.invalidateQueries({ queryKey: ["compliance-month-ledger"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
@@ -1597,6 +1597,7 @@ function PayrollUnitPage() {
       queryClient.invalidateQueries({ queryKey: runQK });
       queryClient.invalidateQueries({ queryKey: holdsQK });
       queryClient.invalidateQueries({ queryKey: snapshotsQK });
+      queryClient.invalidateQueries({ queryKey: ["compliance-month-ledger"] });
 
       queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });

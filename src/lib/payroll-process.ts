@@ -14,6 +14,7 @@
 
 import { statutoryHead } from "@/lib/statutory-heads";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages } from "@/lib/supabase-batch";
 
 export type ProcessLine = { name: string; amount: number };
 
@@ -98,7 +99,7 @@ export function asError(e: unknown, context: string): Error {
 }
 
 /** Persist the exact figures paid for a run version so amendments can diff against them. */
-async function writeSnapshots(args: {
+function buildSnapshots(args: {
   runId: string;
   unitId: string;
   version: number;
@@ -106,12 +107,6 @@ async function writeSnapshots(args: {
   heldIds: Set<string>;
   uid: string | null;
 }) {
-  await supabase
-    .from("payroll_run_snapshots" as never)
-    .delete()
-    .eq("payroll_run_id", args.runId)
-    .eq("version", args.version);
-
   // An employee can appear on several register rows (one per unit designation).
   // The snapshot is per candidate, so those rows are AGGREGATED — never dropped,
   // otherwise the paid figure is understated and a later amendment diff invents
@@ -163,13 +158,16 @@ async function writeSnapshots(args: {
     posted_by: args.uid,
   }));
 
-  if (!payload.length) return;
-  for (let i = 0; i < payload.length; i += 300) {
-    const { error } = await supabase
-      .from("payroll_run_snapshots" as never)
-      .insert(payload.slice(i, i + 300) as never);
-    if (error) throw asError(error, "Could not save pay sheet snapshot");
-  }
+  return payload;
+}
+
+/** One database transaction; never fall back to separate ledger writes. */
+async function savePosting(payload: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.rpc(
+    "save_payroll_posting_atomic" as never,
+    { _payload: payload } as never,
+  );
+  if (error) throw asError(error, "Payroll was not saved. No partial-save fallback was attempted");
 }
 
 export async function processPayrollRun(args: {
@@ -188,12 +186,14 @@ export async function processPayrollRun(args: {
   const payable = rows.filter((r) => !held.has(r.candidateId));
 
   const { data: auth } = await supabase.auth.getUser();
-  const uid = auth?.user?.id ?? null;
+  const uid = auth?.user?.id;
+  if (!uid) throw new Error("Sign in before saving payroll");
 
-  const [{ data: dTypes }, { data: aTypes }] = await Promise.all([
+  const [{ data: dTypes, error: dError }, { data: aTypes, error: aError }] = await Promise.all([
     supabase.from("deduction_types").select("id, code, name"),
     supabase.from("addition_types").select("id, code, name"),
   ]);
+  if (dError || aError) throw asError(dError || aError, "Could not load payroll types");
   const deductionTypes = (dTypes ?? []) as { id: string; code: string; name: string }[];
   const additionTypes = (aTypes ?? []) as { id: string; code: string; name: string }[];
   if (deductionTypes.length === 0) throw new Error("No deduction types configured");
@@ -201,26 +201,6 @@ export async function processPayrollRun(args: {
 
   const ref = `payroll_run:${runId}`;
   const periodLabel = `${unitLabel} · ${periodStart} → ${periodEnd}`;
-
-  // Idempotent re-run: clear anything posted earlier for this run.
-  const cleanup = await Promise.all([
-    supabase.from("deductions").delete().eq("source_kind", "payroll_run").eq("source_ref", ref),
-    supabase
-      .from("additions" as never)
-      .delete()
-      .eq("source_kind", "payroll_run")
-      .eq("source_ref", ref),
-    supabase
-      .from("employer_contributions" as never)
-      .delete()
-      .eq("payroll_run_id", runId),
-    supabase
-      .from("payroll_processing_holds" as never)
-      .delete()
-      .eq("payroll_run_id", runId),
-  ]);
-  for (const c of cleanup)
-    if (c.error) throw asError(c.error, "Could not clear previously posted payroll lines");
 
   const deductionRows: Record<string, unknown>[] = [];
   const additionRows: Record<string, unknown>[] = [];
@@ -285,7 +265,7 @@ export async function processPayrollRun(args: {
     }
   }
 
-  const holdRows = rows
+  const holdRows = Array.from(new Map(rows.map((r) => [r.candidateId, r])).values())
     .filter((r) => held.has(r.candidateId))
     .map((r) => ({
       payroll_run_id: runId,
@@ -296,42 +276,35 @@ export async function processPayrollRun(args: {
       created_by: uid,
     }));
 
-  const chunk = <T>(arr: T[], size = 400) => {
-    const out: T[][] = [];
-    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-    return out;
+  const result = {
+    processed: payable.length,
+    held: holdRows.length,
+    deductionRows: deductionRows.length,
+    employerRows: employerRows.length,
+    additionRows: additionRows.length,
+    netTotal: Math.round(payable.reduce((s, r) => s + (Number(r.netPay) || 0), 0) * 100) / 100,
   };
-
-  for (const part of chunk(deductionRows)) {
-    const { error } = await supabase.from("deductions").insert(part as never);
-    if (error) throw asError(error, "Could not post deductions");
-  }
-  for (const part of chunk(additionRows)) {
-    const { error } = await supabase.from("additions" as never).insert(part as never);
-    if (error) throw asError(error, "Could not post additions");
-  }
-  for (const part of chunk(employerRows)) {
-    const { error } = await supabase.from("employer_contributions" as never).insert(part as never);
-    if (error) throw asError(error, "Could not post employer contributions");
-  }
-  if (holdRows.length) {
-    const { error } = await supabase
-      .from("payroll_processing_holds" as never)
-      .insert(holdRows as never);
-    if (error) throw asError(error, "Could not save on-hold employees");
-  }
-
-  await writeSnapshots({ runId, unitId, version: args.version ?? 1, rows, heldIds: held, uid });
-
-  const { error: runErr } = await supabase
-    .from("payroll_runs" as never)
-    .update({
-      payroll_status: "processed",
-      payroll_processed_at: new Date().toISOString(),
-      payroll_processed_by: uid,
-    } as never)
-    .eq("id", runId);
-  if (runErr) throw asError(runErr, "Could not mark the run processed");
+  await savePosting({
+    mode: "regular",
+    runId,
+    unitId,
+    periodStart,
+    periodEnd,
+    version: args.version ?? 1,
+    deductions: deductionRows,
+    additions: additionRows,
+    contributions: employerRows,
+    holds: holdRows,
+    snapshots: buildSnapshots({
+      runId,
+      unitId,
+      version: args.version ?? 1,
+      rows,
+      heldIds: held,
+      uid,
+    }),
+    result,
+  });
 
   return {
     processed: payable.length,
@@ -454,35 +427,18 @@ export async function processPayrollAmendment(args: {
     });
 
   const { data: auth } = await supabase.auth.getUser();
-  const uid = auth?.user?.id ?? null;
+  const uid = auth?.user?.id;
+  if (!uid) throw new Error("Sign in before saving payroll");
 
-  const [{ data: dTypes }, { data: aTypes }] = await Promise.all([
+  const [{ data: dTypes, error: dError }, { data: aTypes, error: aError }] = await Promise.all([
     supabase.from("deduction_types").select("id, code, name"),
     supabase.from("addition_types").select("id, code, name"),
   ]);
+  if (dError || aError) throw asError(dError || aError, "Could not load payroll types");
   const deductionTypes = (dTypes ?? []) as { id: string; code: string; name: string }[];
   const additionTypes = (aTypes ?? []) as { id: string; code: string; name: string }[];
   if (!deductionTypes.length || !additionTypes.length)
     throw new Error("Deduction/addition types not configured");
-
-  // Idempotent: wipe anything this amendment version posted before.
-  await Promise.all([
-    supabase
-      .from("deductions")
-      .delete()
-      .eq("source_kind", "payroll_amendment")
-      .eq("source_ref", ref),
-    supabase
-      .from("additions" as never)
-      .delete()
-      .eq("source_kind", "payroll_amendment")
-      .eq("source_ref", ref),
-    supabase
-      .from("employer_contributions" as never)
-      .delete()
-      .eq("payroll_run_id", runId)
-      .eq("source_ref", ref),
-  ]);
 
   const additionRows: Record<string, unknown>[] = [];
   const deductionRows: Record<string, unknown>[] = [];
@@ -651,32 +607,29 @@ export async function processPayrollAmendment(args: {
     }
   }
 
-  if (additionRows.length) {
-    const { error } = await supabase.from("additions" as never).insert(additionRows as never);
-    if (error) throw asError(error, "Could not post arrears");
-  }
-  if (deductionRows.length) {
-    const { error } = await supabase.from("deductions").insert(deductionRows as never);
-    if (error) throw asError(error, "Could not post recoveries");
-  }
-  if (employerRows.length) {
-    const { error } = await supabase
-      .from("employer_contributions" as never)
-      .insert(employerRows as never);
-    if (error) throw asError(error, "Could not post employer adjustments");
-  }
-
-  await writeSnapshots({ runId, unitId, version, rows: args.rows, heldIds: held, uid });
-
-  const { error: runErr } = await supabase
-    .from("payroll_runs" as never)
-    .update({
-      payroll_status: "processed",
-      payroll_processed_at: new Date().toISOString(),
-      payroll_processed_by: uid,
-    } as never)
-    .eq("id", runId);
-  if (runErr) throw asError(runErr, "Could not mark the run processed");
+  const result = {
+    version,
+    affected: new Set([...additionRows, ...deductionRows].map((r) => String(r.candidate_id ?? "")))
+      .size,
+    arrears: Math.round(arrears * 100) / 100,
+    recoveries: Math.round(recoveries * 100) / 100,
+    netImpact: Math.round((arrears - recoveries) * 100) / 100,
+    employerImpact: Math.round(employerImpact * 100) / 100,
+  };
+  await savePosting({
+    mode: "amendment",
+    runId,
+    unitId,
+    periodStart,
+    periodEnd,
+    version,
+    deductions: deductionRows,
+    additions: additionRows,
+    contributions: employerRows,
+    holds: [],
+    snapshots: buildSnapshots({ runId, unitId, version, rows: args.rows, heldIds: held, uid }),
+    result,
+  });
 
   return {
     version,
@@ -694,14 +647,17 @@ export async function processPayrollAmendment(args: {
 }
 
 export async function fetchRunSnapshots(runId: string) {
-  const { data, error } = await supabase
-    .from("payroll_run_snapshots" as never)
-    .select(
-      "candidate_id, version, employee_code, full_name, paid_days, ed_days, gross, total_deductions, total_employer, net_pay, earnings, deductions, employer_contributions, additions, on_hold, posted_at",
-    )
-    .eq("payroll_run_id", runId)
-    .order("version", { ascending: true });
-  if (error) throw error;
+  const data = await fetchAllPages((from, to) =>
+    supabase
+      .from("payroll_run_snapshots" as never)
+      .select(
+        "candidate_id, version, employee_code, full_name, paid_days, ed_days, gross, total_deductions, total_employer, net_pay, earnings, deductions, employer_contributions, additions, on_hold, posted_at",
+      )
+      .eq("payroll_run_id", runId)
+      .order("version", { ascending: true })
+      .order("id")
+      .range(from, to),
+  );
   return (data ?? []) as unknown as Array<{
     candidate_id: string;
     version: number;
