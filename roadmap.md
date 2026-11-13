@@ -1,6 +1,7 @@
 ## ESIC and EPF original-format forms — 13 November
 - [x] Reused all four supplied original templates; added employee selection, verified autofill, editable missing/event details and PDF preview/download in Compliance. Employee View/Export gates apply; source data is read-only and drafts stay in memory.
 - [x] Five mapping/PDF tests pass, all 132 field boxes validate, compilation OK. Shared exporter generated a five-page sample from real production employee 1; inspected every page, corrected EPF contact/employer alignment, verified saved UAN/ESIC/Aadhaar/bank identifiers in output. Missing accident facts, nominees, dates, declarations and signatures remain blank and explicitly draft-labelled.
+- [x] Rebuilt all four forms as real digital forms (typed text, ruled tables, tick boxes; no page images) matched line-by-line against the originals; editable on screen and exported through Print → Save as PDF. Not yet checked signed-in on the live portal.
 - [ ] Signed-in live availability awaits GitHub-to-Vercel delivery and a live user session: production /admin/compliance redirects to /login. No preview used and no live UI completion claimed.
 
 ## October Pages follow-up — 12 November

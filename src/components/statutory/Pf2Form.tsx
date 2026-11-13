@@ -1,8 +1,8 @@
 import { Blank, Box, FONT, HLine, Sheet, T, VLine } from "./form-kit";
 
-const F = FONT.times, S = 8.3;
+const F = FONT.times, S = 8.05;
 const BORDER: [number, number, number, number] = [24, 24, 587.5, 767.5];
-const t = (x: number, y: number, c: React.ReactNode, o: Partial<React.ComponentProps<typeof T>> = {}) => <T x={x} y={y - 0.6} s={S} {...o}>{c}</T>;
+const t = (x: number, y: number, c: React.ReactNode, o: Partial<React.ComponentProps<typeof T>> = {}) => <T x={x} y={y - 1.9} s={S} {...o}>{c}</T>;
 const centre = (y: number, c: React.ReactNode, o: Partial<React.ComponentProps<typeof T>> = {}) => t(90, y, c, { w: 432, align: "center", ...o });
 const justify = (y: number, c: React.ReactNode, x = 90, w = 432) => t(x, y, c, { w, align: "justify" });
 /** A fill-in sitting on a printed underline (x..x+w, rule at y). */
@@ -30,12 +30,12 @@ export function Pf2Form() {
       {centre(86.5, "Declaration and Nomination Form under the Employees Provident Funds and Employees Pension Schemes")}
       {centre(100.3, "(Paragraph 33 and 61 (1) of the Employees Provident Fund Scheme 1952 and Paragraph 18 of the Employees")}
       {centre(109.6, "Pension Scheme 1995)")}
-      {t(90, 127.9, "1. Name (IN BLOCK LETTERS) :")}
+      {t(90, 127.9, <>1. Name <span style={{ fontSize: "7.1pt" }}>(IN BLOCK LETTERS) :</span></>)}
       <HLine x1={200} x2={522} y={133.5} t={0.5} />
       {UL("blockName", "Name (block letters)", 202, 104, 133.5, true)}{UL("blockFather", "Father’s / Husband’s name", 309, 128, 133.5, true)}{UL("surname", "Surname", 440, 82, 133.5, true)}
       {t(212.2, 137.2, "Name")}{t(306, 137.2, "Father’s / Husband’s Name")}{t(485.9, 137.2, "Surname")}
-      {t(90, 155.5, "2. Date of Birth :")}{UL("dob", "Date of birth", 149, 78, 161.5)}{t(232, 155.5, "3. Account No.")}{UL("pf", "Account number", 286, 77, 161.5)}
-      {t(90, 174, "4. *Sex : MALE/FEMALE:")}{UL("gender", "Sex", 182, 83, 180)}{t(268, 174, "5. Marital Status")}{UL("marital", "Marital status", 328, 163, 180)}
+      {t(90, 155.5, "2. Date of Birth :")}{UL("dob", "Date of birth", 149, 78, 161.5)}{t(232, 156.3, "3. Account No.", { s: 7.1 })}{UL("pf", "Account number", 286, 77, 161.5)}
+      {t(90, 174, "4. *Sex : MALE/FEMALE:")}{UL("gender", "Sex", 182, 83, 180)}{t(268, 174.8, "5. Marital Status", { s: 7.1 })}{UL("marital", "Marital status", 328, 163, 180)}
       {t(90, 192.4, "6. Address Permanent / Temporary :")}
       <HLine x1={209} x2={522} y={198} t={0.5} /><HLine x1={198} x2={522} y={212} t={0.5} />
       <Box k="address" label="Address" multi x={209} y={187.5} w={313} h={27} s={8.6} lh={14} font={FONT.arial} />

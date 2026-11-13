@@ -28,7 +28,7 @@ export function AccidentBookForm() {
     {cols.map((x, i) => <VLine key={x} x={x} y1={i > 8 && i < 13 ? 186.5 : 162} y2={728} t={0.6} />)}
     <T x={cols[8]} y={170.4} w={cols[13] - cols[8]} s={10.2} font={FONT.times} align="center">Details of Injury</T>
     {head.map(([c, lines]) => lines.map(([y, t]) => <T key={`${c}-${y}`} x={cols[c]} y={y - 1} w={cols[c + 1] - cols[c]} s={9.3} font={FONT.times} align="center">{t}</T>))}
-    {keys.map(([k, label], i) => <Box key={k} k={k} label={label} multi x={cols[i] + 2} y={rows[1] + 2} w={cols[i + 1] - cols[i] - 4} h={rows[2] - rows[1] - 4} s={8} font={F} />)}
+    {keys.map(([k, label], i) => <Box key={k} k={k} label={label} multi x={cols[i] + 2} y={rows[1] + 2} w={cols[i + 1] - cols[i] - 4} h={rows[2] - rows[1] - 4} s={9} font={F} />)}
     <T x={376.6} y={809.5} s={9.6} style={{ color: "#7f7f7f" }}>All Forms Available at : <span style={{ textDecoration: "underline" }}>www.patelconsultancy.in</span></T>
     <T x={697.7} y={809.5} s={9.6} style={{ color: "#7f7f7f" }}>SURAT ☎ (0261) 653136</T>
   </Sheet>;

@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const FORM_VIEWS = { esic37: Esic37Form, accident11: AccidentBookForm, epf11: Epf11Form, pf2: Pf2Form } as const;
 import { useQuery } from "@tanstack/react-query";
-import { Download, Eye, FileText, Plus, Trash2 } from "lucide-react";
+import { FileText, Plus, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmployeePicker } from "@/components/EmployeePicker";
-import { StatutoryFormCanvas } from "@/components/StatutoryFormCanvas";
+import { FORM_FONTS_HREF, FormProvider } from "@/components/statutory/form-kit";
+import { Esic37Form } from "@/components/statutory/Esic37Form";
+import { AccidentBookForm } from "@/components/statutory/AccidentBookForm";
+import { Epf11Form } from "@/components/statutory/Epf11Form";
+import { Pf2Form } from "@/components/statutory/Pf2Form";
+import { printStatutorySheets } from "@/components/statutory/print-forms";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
@@ -21,7 +28,7 @@ export function StatutoryForms() {
   const [values, setValues] = useState<DraftValues>({});
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState("");
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [nomineeCount, setNomineeCount] = useState(1);
   const [familyCount, setFamilyCount] = useState(1);
   const allowed = !permissions.isLoading && session && permissions.can("employees", "view");
@@ -46,46 +53,46 @@ export function StatutoryForms() {
     setValues(filled); setVerified(false);
     setNomineeCount(Math.max(1, ...Array.from({length: 6}, (_, i) => filled[`nomName${i}`] ? i + 1 : 1)));
   }, [formId, data.data]);
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  // Fonts used by the original forms, loaded only when this section is shown.
+  useEffect(() => {
+    if (document.querySelector(`link[href="${FORM_FONTS_HREF}"]`)) return;
+    const link = document.createElement("link"); link.rel = "stylesheet"; link.href = FORM_FONTS_HREF; document.head.appendChild(link);
+  }, []);
   const definition = statutoryForms.find(f => f.id === formId);
   const missing = formId ? missingStatutoryFields(formId, values) : [];
-  const update = (key: string, value: string) => { setValues(v => ({...v, [key]: value})); setVerified(false); setPreview(""); };
-  async function generate(download: boolean) {
-    if (!formId || !exportAllowed || !data.data || data.isFetching) return;
+  const update = (key: string, value: string) => { setValues(v => ({...v, [key]: value})); setVerified(false); };
+  async function exportPdf() {
+    if (!formId || !exportAllowed || !data.data || data.isFetching || !sheetRef.current) return;
     setBusy(true);
-    try {
-      const { buildStatutoryPdf } = await import("@/lib/statutory-form-pdf");
-      const bytes = await buildStatutoryPdf(formId, values, !verified || missing.length > 0);
-      const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], {type: "application/pdf"}));
-      if (download) {
-        const a = document.createElement("a"); a.href = url;
-        a.download = `${formId}-${String(data.data.employee.employee_code ?? "employee")}${!verified || missing.length ? "-draft" : ""}.pdf`;
-        a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-      } else setPreview(url);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Unable to export this form"); }
+    try { await printStatutorySheets(sheetRef.current, `${definition?.title ?? formId} - ${String(data.data.employee.employee_code ?? "employee")}`, !verified || missing.length > 0); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Unable to export this form"); }
     finally { setBusy(false); }
   }
+  const View = formId ? FORM_VIEWS[formId] : null;
+  const hidden = (k: string) => {
+    const nominee = /^nom\w+(\d)$/.exec(k), family = /^family\w+(\d)$/.exec(k);
+    return (!!nominee && Number(nominee[1]) >= nomineeCount) || (!!family && Number(family[1]) >= familyCount);
+  };
   if (!allowed) return null;
   return <section className="my-6 border-y border-border py-5">
     <h2 className="mb-3 text-base font-semibold">ESIC & EPF forms</h2>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {statutoryForms.map(f => <Button key={f.id} data-panel="true" variant="outline" className="h-auto min-h-20 justify-start gap-3 whitespace-normal p-4 text-left" onClick={() => { setFormId(f.id); setEmployeeId(""); setValues({}); setPreview(""); setVerified(false); setNomineeCount(1); setFamilyCount(1); }}>
+      {statutoryForms.map(f => <Button key={f.id} data-panel="true" variant="outline" className="h-auto min-h-20 justify-start gap-3 whitespace-normal p-4 text-left" onClick={() => { setFormId(f.id); setEmployeeId(""); setValues({}); setVerified(false); setNomineeCount(1); setFamilyCount(1); }}>
         <FileText className="h-5 w-5 shrink-0 text-primary"/><span>{f.title}</span>
       </Button>)}
     </div>
-    <Dialog open={!!formId} onOpenChange={open => { if (!open) {setFormId(null); setEmployeeId(""); setValues({}); setPreview("");} }}>
+    <Dialog open={!!formId} onOpenChange={open => { if (!open) {setFormId(null); setEmployeeId(""); setValues({});} }}>
       <DialogContent className="max-h-[95dvh] overflow-y-auto sm:max-w-6xl">
         <DialogHeader><DialogTitle>{definition?.title}</DialogTitle><DialogDescription>Employee particulars and statutory declarations</DialogDescription></DialogHeader>
-        <EmployeePicker value={employeeId} onChange={id => { setEmployeeId(id); setValues({}); setVerified(false); setPreview(""); }} />
+        <EmployeePicker value={employeeId} onChange={id => { setEmployeeId(id); setValues({}); setVerified(false); }} />
         {data.isFetching && employeeId && <p role="status" className="text-sm text-muted-foreground">Loading employee information…</p>}
         {data.isError && <p role="alert" className="text-sm text-destructive">Employee information could not be loaded. <Button variant="link" onClick={() => void data.refetch()}>Retry</Button></p>}
         {data.data && employeeId && !data.isFetching && <>
-          <p className="text-xs text-muted-foreground">Type directly into the shaded boxes on the form. Click a box or Yes/No option to tick it.</p>
-          {definition && <div className="max-h-[70dvh] overflow-auto rounded-md border border-border bg-muted p-3">
-            <StatutoryFormCanvas definition={definition} values={values} onChange={update} visible={f => {
-              const nominee = /^nom\w+(\d)$/.exec(f.key), family = /^family\w+(\d)$/.exec(f.key);
-              return (!nominee || Number(nominee[1]) < nomineeCount) && (!family || Number(family[1]) < familyCount);
-            }} />
+          <p className="text-xs text-muted-foreground">Type directly into the shaded boxes on the form. Click a tick box or Yes / No to mark it.</p>
+          {View && <div className="max-h-[72dvh] overflow-auto rounded-md border border-border bg-muted p-4">
+            <FormProvider value={{ values, set: update, hidden }}>
+              <div ref={sheetRef} className="flex w-max flex-col items-center gap-6 mx-auto"><View /></div>
+            </FormProvider>
           </div>}
           {formId === "pf2" && <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={nomineeCount === 6} onClick={() => setNomineeCount(n => n + 1)}><Plus/>EPF nominee</Button>
@@ -97,9 +104,8 @@ export function StatutoryForms() {
             <p className="text-muted-foreground">Signatures, medical acceptance, attachments and statutory declarations require verification before submission.</p>
             <label className="flex items-start gap-2"><Checkbox checked={verified} disabled={missing.length > 0} onCheckedChange={v => setVerified(v === true)}/><span>I verified all particulars, applicable declarations and required signatures / attachments outside this export.</span></label>
           </div>
-          <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={!exportAllowed || busy} onClick={() => void generate(false)}><Eye/>Preview</Button><Button disabled={!exportAllowed || busy} onClick={() => void generate(true)}><Download/>{verified && !missing.length ? "Export PDF" : "Export draft PDF"}</Button></div>
+          <div className="flex flex-wrap items-center justify-end gap-3"><span className="text-xs text-muted-foreground">Choose “Save as PDF” in the print window.</span><Button disabled={!exportAllowed || busy} onClick={() => void exportPdf()}><Printer/>{verified && !missing.length ? "Export PDF" : "Export draft PDF"}</Button></div>
           {!exportAllowed && <p className="text-sm text-destructive">Employee export permission is required.</p>}
-          {preview && <><object data={preview} type="application/pdf" className="h-[65dvh] w-full border border-border"><p>PDF preview unavailable on this device. Download the PDF below.</p></object><a href={preview} target="_blank" rel="noreferrer" className="text-sm text-primary underline">Open PDF</a></>}
         </>}
       </DialogContent>
     </Dialog>

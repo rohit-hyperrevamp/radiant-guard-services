@@ -45,7 +45,7 @@ export function Epf11Form() {
     <YesNo k="previousEpf" x={403.5} y={224.5} s={7.9} />
     <YesNo k="previousEps" x={403.5} y={246} s={7.9} />
     <YesNo k="international" x={403.5} y={361} s={7.9} />
-    {cells.map(([k, t, b, label]) => <Box key={k} k={k} label={label} x={X2 + 3} y={t + (b - t - 12) / 2} w={X3 - X2 - 6} h={12} s={8.6} font={A} />)}
+    {cells.map(([k, t, b, label]) => <Box key={k} k={k} label={label} x={X2 + 3} y={t + (b - t - 12) / 2} w={X3 - X2 - 6} h={12} s={8.2} font={A} />)}
 
     <T x={0} y={496} w={639} s={11.2} b align="center" style={{ textDecoration: "underline" }}>U<small style={{ fontSize: "8.6pt" }}>NDERTAKING</small></T>
     {([[510, "1)", "Certified that the particulars are true to the best of my knowledge."], [521, "2)", "I authorize EPFO to use my Aadhar for verification/authentication/eKYC purpose for service delivery."], [532, "3)", "Kindly transfer the funds and service details, if applicable, from the previous PF account as declared above to the present P.F. Account."], [543, "", "(The transfer would be possible only if the identified KYC detail approved by previous employer has been verified by present employer"], [554, "", "using his Digital Signature Certificate)"], [565.5, "4)", "In case of changes in above details, the same will be intimated to employer at the earliest."]] as const).map(([y, n, t]) => <span key={y}>{n && <T x={45.5} y={y + 0.5} s={7.6}>{n}</T>}<T x={60} y={y} s={8.7}>{t}</T></span>)}

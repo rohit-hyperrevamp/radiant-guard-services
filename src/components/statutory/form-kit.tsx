@@ -14,7 +14,7 @@ export const FONT = {
   times: "Tinos, 'Times New Roman', Times, serif",
   cambria: "Caladea, Cambria, Tinos, serif",
 };
-export const FORM_FONTS_HREF = "https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=Caladea:ital,wght@0,400;0,700;1,700&family=Carlito:ital,wght@0,400;0,700;1,700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Tinos:wght@400;700&display=swap";
+export const FORM_FONTS_HREF = "https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=Caladea:ital,wght@0,400;0,700;1,400;1,700&family=Carlito:ital,wght@0,400;0,700;1,700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Tinos:wght@400;700&display=swap";
 
 export function Sheet({ w, h, font, children, border }: { w: number; h: number; font: string; children: ReactNode; border?: [number, number, number, number] }) {
   return <div className="stat-sheet" data-size={`${w}pt ${h}pt`} style={{ width: `${w}pt`, height: `${h}pt`, fontFamily: font }}>
@@ -26,16 +26,23 @@ export function Sheet({ w, h, font, children, border }: { w: number; h: number; 
 type TProps = { x: number; y: number; w?: number; s: number; children?: ReactNode; align?: "left" | "center" | "right" | "justify"; b?: boolean; i?: boolean; font?: string; style?: CSSProperties; lh?: number };
 /** Absolutely positioned text line/block. y = top of the printed text in points. */
 export function T({ x, y, w, s, children, align = "left", b, i, font, style, lh }: TProps) {
-  return <div style={{ position: "absolute", left: `${x}pt`, top: `${y}pt`, width: w ? `${w}pt` : undefined, fontSize: `${s}pt`, lineHeight: lh ?? 1.12, fontWeight: b ? 700 : 400, fontStyle: i ? "italic" : undefined, fontFamily: font, textAlign: align, whiteSpace: lh ? "normal" : "nowrap", display: w && !lh && align !== "justify" ? "flex" : "block", alignItems: "baseline", justifyContent: align === "center" ? "center" : align === "right" ? "flex-end" : undefined, textAlignLast: align === "justify" ? "justify" : undefined, ...style }}>{children}</div>;
+  return <div style={{ position: "absolute", left: `${x}pt`, top: `${y}pt`, width: w ? `${w}pt` : undefined, fontSize: `${s}pt`, lineHeight: lh ?? 1.12, fontWeight: b ? 700 : 400, fontStyle: i ? "italic" : undefined, fontFamily: font, textAlign: align, whiteSpace: lh ? "normal" : "pre", display: w && !lh && align !== "justify" ? "flex" : "block", alignItems: "baseline", justifyContent: align === "center" ? "center" : align === "right" ? "flex-end" : undefined, textAlignLast: align === "justify" ? "justify" : undefined, ...style }}>{children}</div>;
 }
 
 /** Shrinks the text until it fits its fixed box, like a filled form would. */
 function useFit(ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>, value: string, base: number, multi: boolean) {
   useLayoutEffect(() => {
     const el = ref.current; if (!el) return;
-    let s = base; el.style.fontSize = `${s}pt`;
-    const over = () => multi ? el.scrollHeight > el.clientHeight + 1 : el.scrollWidth > el.clientWidth + 1;
-    while (over() && s > base * 0.45) { s -= 0.25; el.style.fontSize = `${s}pt`; }
+    const fit = () => {
+      let s = base; el.style.fontSize = `${s}pt`;
+      const over = () => multi ? el.scrollHeight > el.clientHeight + 1 : el.scrollWidth > el.clientWidth + 1;
+      while (over() && s > base * 0.45) { s -= 0.25; el.style.fontSize = `${s}pt`; }
+    };
+    fit();
+    // Re-measure once the form's own fonts finish loading.
+    let live = true;
+    void document.fonts?.ready.then(() => { if (live) fit(); });
+    return () => { live = false; };
   }, [ref, value, base, multi]);
 }
 
