@@ -3,23 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, Eye, FileText, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmployeePicker } from "@/components/EmployeePicker";
+import { StatutoryFormCanvas } from "@/components/StatutoryFormCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { statutoryForms, type FormId } from "@/lib/statutory-form-schema";
 import { prefillStatutoryForm, missingStatutoryFields, type DraftValues, type EmployeeFormSource } from "@/lib/statutory-form-data";
 
-const choiceOptions: Record<string, string[]> = {
-  choice: ["Yes", "No"], parent: ["Father", "Spouse"],
-  kyc: ["Not uploaded", "Uploaded, not approved", "Approved with DSC"],
-  transfer: ["Digital transfer approved", "Physical transfer claim informed"],
-};
 export function StatutoryForms() {
   const permissions = useCurrentPermissions();
   const session = useHasSupabaseSession();
@@ -81,23 +74,19 @@ export function StatutoryForms() {
       </Button>)}
     </div>
     <Dialog open={!!formId} onOpenChange={open => { if (!open) {setFormId(null); setEmployeeId(""); setValues({}); setPreview("");} }}>
-      <DialogContent className="sm:max-w-5xl">
+      <DialogContent className="max-h-[95dvh] overflow-y-auto sm:max-w-6xl">
         <DialogHeader><DialogTitle>{definition?.title}</DialogTitle><DialogDescription>Employee particulars and statutory declarations</DialogDescription></DialogHeader>
         <EmployeePicker value={employeeId} onChange={id => { setEmployeeId(id); setValues({}); setVerified(false); setPreview(""); }} />
         {data.isFetching && employeeId && <p role="status" className="text-sm text-muted-foreground">Loading employee information…</p>}
         {data.isError && <p role="alert" className="text-sm text-destructive">Employee information could not be loaded. <Button variant="link" onClick={() => void data.refetch()}>Retry</Button></p>}
         {data.data && employeeId && !data.isFetching && <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {definition?.fields.filter(f => {
+          <p className="text-xs text-muted-foreground">Type directly into the shaded boxes on the form. Click a box or Yes/No option to tick it.</p>
+          {definition && <div className="max-h-[70dvh] overflow-auto rounded-md border border-border bg-muted p-3">
+            <StatutoryFormCanvas definition={definition} values={values} onChange={update} visible={f => {
               const nominee = /^nom\w+(\d)$/.exec(f.key), family = /^family\w+(\d)$/.exec(f.key);
               return (!nominee || Number(nominee[1]) < nomineeCount) && (!family || Number(family[1]) < familyCount);
-            }).map(f => <label key={f.key} className="space-y-1 text-xs font-medium" htmlFor={`statutory-${f.key}`}>
-              <span>{f.label}{f.required ? " *" : ""}</span>
-              {choiceOptions[f.kind] ? <Select value={values[f.key] || "unconfirmed"} onValueChange={v => update(f.key, v === "unconfirmed" ? "" : v)}><SelectTrigger id={`statutory-${f.key}`}><SelectValue/></SelectTrigger><SelectContent><SelectItem value="unconfirmed">Not confirmed</SelectItem>{choiceOptions[f.kind].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select>
-                : f.kind === "textarea" || f.height > 30 ? <Textarea id={`statutory-${f.key}`} value={values[f.key] ?? ""} onChange={e => update(f.key, e.target.value)} />
-                : <Input id={`statutory-${f.key}`} value={values[f.key] ?? ""} onChange={e => update(f.key, e.target.value)} />}
-            </label>)}
-          </div>
+            }} />
+          </div>}
           {formId === "pf2" && <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={nomineeCount === 6} onClick={() => setNomineeCount(n => n + 1)}><Plus/>EPF nominee</Button>
             <Button variant="outline" disabled={familyCount === 6} onClick={() => setFamilyCount(n => n + 1)}><Plus/>EPS family member</Button>
