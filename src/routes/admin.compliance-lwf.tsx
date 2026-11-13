@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { complianceMonthQuery, complianceDirectory } from "@/lib/compliance-month";
+import { fetchAllPages } from "@/lib/supabase-batch";
+import {
+  statutoryHead,
+  ledgerAmount,
+  ledgerStage,
+  complianceMoney,
+  type LedgerScope,
+} from "@/lib/statutory-heads";
+import { ComplianceLedgerScope } from "@/components/ComplianceLedgerScope";
+import { useCurrentPermissions } from "@/lib/rbac";
 import { ArrowLeft, ChevronRight, Download, Landmark, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -30,8 +41,9 @@ function LwfRegisterPageGated() {
 
 export const Route = createFileRoute("/admin/compliance-lwf")({
   component: LwfRegisterPageGated,
-  validateSearch: (search: Record<string, unknown>): { ym?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { ym?: string; scope?: LedgerScope } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
+    scope: search.scope === "pending" || search.scope === "all" ? search.scope : "posted",
   }),
   head: () => ({
     meta: [
@@ -52,11 +64,13 @@ export const Route = createFileRoute("/admin/compliance-lwf")({
   }),
 });
 
-const inr = (n: number) =>
-  "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+const inr = complianceMoney;
 
 const norm = (s: string | null | undefined) =>
-  (s ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+  (s ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "");
 
 const isLwfName = (name: string | null | undefined) => {
   const n = (name ?? "").toLowerCase();
@@ -97,89 +111,57 @@ const FREQ_TONE: Record<string, string> = {
   Yearly: "bg-amber-500/10 text-amber-600 ring-amber-500/20",
 };
 
-function useLwfData(ym: string) {
+function useLwfData(ym: string, scope: LedgerScope) {
   return useQuery({
-    queryKey: ["lwf-register", ym],
+    queryKey: ["lwf-register", ym, scope],
     staleTime: 60_000,
+    refetchOnMount: "always",
     queryFn: async (): Promise<{ rows: LwfPersonRow[]; masters: LwfMaster[] }> => {
-      const { from, to } = monthRange(ym);
-      const [{ data: deds }, { data: contribs }, { data: masterRows }] = await Promise.all([
-        supabase
-          .from("deductions")
-          .select("candidate_id, amount, computed_amount, deduction_name")
-          .gte("deduction_date", from)
-          .lte("deduction_date", to),
-        supabase
-          .from("employer_contributions")
-          .select("candidate_id, amount, contribution_name")
-          .gte("contribution_date", from)
-          .lte("contribution_date", to),
-        supabase.from("labour_welfare_funds").select("*").order("state"),
+      const [ledger, masterRows] = await Promise.all([
+        complianceMonthQuery(ym, scope).queryFn(),
+        fetchAllPages<LwfMaster>((a, b) =>
+          supabase.from("labour_welfare_funds").select("*").order("id").range(a, b),
+        ),
       ]);
-
-      const masters = ((masterRows ?? []) as LwfMaster[]).filter((m) => m.enabled !== false);
-
-      const ee = new Map<string, number>();
-      const er = new Map<string, number>();
-      for (const d of deds ?? []) {
-        if (!isLwfName(d.deduction_name) || !d.candidate_id) continue;
-        ee.set(
-          d.candidate_id,
-          (ee.get(d.candidate_id) ?? 0) + Number(d.computed_amount ?? d.amount ?? 0),
-        );
-      }
-      for (const c of contribs ?? []) {
-        if (!isLwfName(c.contribution_name) || !c.candidate_id) continue;
-        er.set(c.candidate_id, (er.get(c.candidate_id) ?? 0) + Number(c.amount ?? 0));
-      }
-
-      const ids = Array.from(new Set([...ee.keys(), ...er.keys()]));
-      if (ids.length === 0) return { rows: [], masters };
-
-      const { data: cands } = await supabase
-        .from("candidates")
-        .select("id, full_name, employee_code, candidate_code, permanent_state, unit_id")
-        .in("id", ids);
-
-      const unitIds = Array.from(
-        new Set((cands ?? []).map((c) => c.unit_id).filter(Boolean) as string[]),
-      );
-      const { data: units } = unitIds.length
-        ? await supabase
-            .from("units")
-            .select("id, name, billing_state, shipping_state, pt_state" as never)
-            .in("id", unitIds)
-        : {
-            data: [] as Array<{
-              id: string;
-              name: string;
-              billing_state: string | null;
-              shipping_state: string | null;
-              pt_state?: string | null;
-            }>,
+      const deds = ledger.deds.filter((r) => statutoryHead(r.deduction_name) === "lwf");
+      const contribs = ledger.contribs.filter((r) => statutoryHead(r.contribution_name) === "lwf");
+      const directory = await complianceDirectory([...deds, ...contribs]);
+      const grouped = new Map<string, LwfPersonRow>();
+      const add = (
+        r: { id: string; candidate_id: string | null; unit_id: string | null },
+        amount: number,
+        side: "employee" | "employer",
+      ) => {
+        const key = `${r.candidate_id ?? r.id}|${r.unit_id ?? "unknown"}`;
+        let row = grouped.get(key);
+        if (!row) {
+          const c = r.candidate_id ? directory.people.get(r.candidate_id) : undefined;
+          const u = r.unit_id ? directory.units.get(r.unit_id) : undefined;
+          row = {
+            candidateId: r.candidate_id ?? r.id,
+            name: c?.full_name ?? "Unknown employee",
+            code: c?.employee_code ?? c?.candidate_code ?? "—",
+            state: (
+              u?.pt_state ||
+              u?.billing_state ||
+              u?.shipping_state ||
+              "Unknown original state"
+            ).trim(),
+            unitId: r.unit_id ?? "unknown",
+            unit: u?.name ?? "Unknown original site",
+            employee: 0,
+            employer: 0,
           };
-
-      type LwfUnit = { id: string; name: string; billing_state: string | null; shipping_state: string | null; pt_state?: string | null };
-      const unitMap = new Map(((units ?? []) as unknown as LwfUnit[]).map((u) => [u.id, u]));
-      const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
-
-      const rows: LwfPersonRow[] = ids.map((id) => {
-        const c = candMap.get(id);
-        const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
-        const state = (u?.pt_state || u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
-        return {
-          candidateId: id,
-          name: c?.full_name ?? "—",
-          code: c?.employee_code ?? c?.candidate_code ?? "—",
-          state: state || "Unknown",
-          unitId: c?.unit_id ?? "—",
-          unit: u?.name ?? "—",
-          employee: Math.round((ee.get(id) ?? 0) * 100) / 100,
-          employer: Math.round((er.get(id) ?? 0) * 100) / 100,
-        };
-      });
-
-      return { rows, masters };
+          grouped.set(key, row);
+        }
+        row[side] += amount;
+      };
+      deds.forEach((r) => add(r, ledgerAmount(r), "employee"));
+      contribs.forEach((r) => add(r, ledgerAmount(r), "employer"));
+      return {
+        rows: [...grouped.values()],
+        masters: masterRows.filter((m) => m.enabled !== false),
+      };
     },
   });
 }
@@ -198,16 +180,18 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 function LwfRegisterPage() {
   const now = new Date();
-  const { ym: ymParam } = Route.useSearch();
+  const { ym: ymParam, scope: scopeParam } = Route.useSearch();
+  const scope = scopeParam ?? "posted";
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const navigate = useNavigate({ from: "/admin/compliance-lwf" });
-  const setYm = (next: string) => navigate({ search: { ym: next } });
+  const setYm = (next: string) => navigate({ search: { ym: next, scope } });
   const [state, setState] = useState("all");
   const [freq, setFreq] = useState("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const { data, isLoading } = useLwfData(ym);
+  const { canExport, isLoading: permissionsLoading } = useCurrentPermissions();
+  const { data, isLoading, isError, refetch } = useLwfData(ym, scope);
   const all = data?.rows ?? [];
   const masters = data?.masters ?? [];
 
@@ -294,7 +278,10 @@ function LwfRegisterPage() {
         eyebrow="Governance"
         title="Labour Welfare Fund Register"
         description="State-wise LWF for the month — frequency, employee share, employer share and total, drillable to client and employee."
-        crumbs={[{ label: "Compliance", to: "/admin/compliance" }, { label: "Labour Welfare Fund" }]}
+        crumbs={[
+          { label: "Compliance", to: "/admin/compliance" },
+          { label: "Labour Welfare Fund" },
+        ]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <MonthYearPicker value={ym} onChange={setYm} />
@@ -306,7 +293,12 @@ function LwfRegisterPage() {
             <Button
               variant="outline"
               size="sm"
+              disabled={isLoading || isError || permissionsLoading || !canExport("compliance")}
               onClick={() =>
+                !isLoading &&
+                !isError &&
+                !permissionsLoading &&
+                canExport("compliance") &&
                 downloadCsv(
                   `lwf-register-${ym}`,
                   rows.map((r) => ({
@@ -338,6 +330,12 @@ function LwfRegisterPage() {
         }
       />
 
+      <div className="mb-3">
+        <ComplianceLedgerScope
+          value={scope}
+          onChange={(next) => void navigate({ search: { ym, scope: next } })}
+        />
+      </div>
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Select value={state} onValueChange={setState}>
@@ -389,11 +387,20 @@ function LwfRegisterPage() {
         <StatCard
           label="Employees covered"
           value={String(rows.length)}
-          sub={rows.length ? `Avg ${inr((totalEe + totalEr) / rows.length)} per employee` : undefined}
+          sub={
+            rows.length ? `Avg ${inr((totalEe + totalEr) / rows.length)} per employee` : undefined
+          }
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div role="alert" className="border border-destructive p-4 text-destructive">
+          Records could not be loaded.{" "}
+          <Button variant="outline" onClick={() => void refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="rounded-2xl border border-border/60 bg-card p-10 text-center text-xs text-muted-foreground">
           Loading labour welfare fund contributions…
         </div>
@@ -478,7 +485,7 @@ function LwfRegisterPage() {
                               <ul className="divide-y divide-border/50">
                                 {u.members.map((r) => (
                                   <li
-                                    key={r.candidateId}
+                                    key={`${r.candidateId}|${r.unitId}`}
                                     className="flex items-center justify-between gap-3 py-1.5"
                                   >
                                     <span className="min-w-0">

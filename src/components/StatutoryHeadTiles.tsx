@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Landmark, PiggyBank, ReceiptText, ShieldHalf } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { statutoryHead, complianceMoney, type LedgerScope } from "@/lib/statutory-heads";
 import { complianceMonthQuery } from "@/lib/compliance-month";
 import { cn } from "@/lib/utils";
 import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
 
-const inr = (n: number) =>
-  "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+const inr = complianceMoney;
 
 type HeadKey = "pt" | "epf" | "lwf" | "levy";
 
@@ -36,7 +35,7 @@ const HEADS: Array<{
     full: "Provident Fund",
     accent: "emerald",
     icon: PiggyBank,
-    to: "/admin/deductions",
+    to: "/admin/compliance-ledger",
     match: ["epf", "provident"],
   },
   {
@@ -54,7 +53,7 @@ const HEADS: Array<{
     full: "Security Guards Board levy",
     accent: "amber",
     icon: ShieldHalf,
-    to: "/admin/deductions",
+    to: "/admin/compliance-ledger",
     match: ["guard board", "sgb", "levy"],
   },
 ];
@@ -65,12 +64,10 @@ function monthRange(ym: string) {
   return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 0))) };
 }
 
-function useStatutoryTotals(ym: string) {
+function useStatutoryTotals(ym: string, scope: LedgerScope) {
   return useQuery({
-    ...complianceMonthQuery(ym),
+    ...complianceMonthQuery(ym, scope),
     select: ({ deds, contribs }) => {
-
-
       const totals: Record<HeadKey, { employee: number; employer: number; people: Set<string> }> = {
         pt: { employee: 0, employer: 0, people: new Set() },
         epf: { employee: 0, employer: 0, people: new Set() },
@@ -78,9 +75,9 @@ function useStatutoryTotals(ym: string) {
         levy: { employee: 0, employer: 0, people: new Set() },
       };
 
-      const bucket = (name: string) => {
-        const n = (name ?? "").toLowerCase();
-        return HEADS.find((h) => h.match.some((m) => n.includes(m)))?.key ?? null;
+      const bucket = (name: string): HeadKey | null => {
+        const key = statutoryHead(name);
+        return key === "pt" || key === "epf" || key === "lwf" || key === "levy" ? key : null;
       };
 
       for (const d of deds ?? []) {
@@ -106,8 +103,8 @@ function useStatutoryTotals(ym: string) {
   });
 }
 
-export function StatutoryHeadTiles({ ym }: { ym: string }) {
-  const { data, isLoading } = useStatutoryTotals(ym);
+export function StatutoryHeadTiles({ ym, scope = "posted" }: { ym: string; scope?: LedgerScope }) {
+  const { data, isLoading, isError } = useStatutoryTotals(ym, scope);
   const monthLabel = new Date(ym + "-01T00:00:00").toLocaleDateString("en-IN", {
     month: "long",
     year: "numeric",
@@ -128,7 +125,9 @@ export function StatutoryHeadTiles({ ym }: { ym: string }) {
             <Link
               key={h.key}
               to={h.to}
-              search={h.key === "pt" || h.key === "lwf" ? { ym } : undefined}
+              search={
+                h.key === "pt" || h.key === "lwf" ? { ym, scope } : { ym, scope, head: h.key }
+              }
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-[22px] border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-4",
                 ACCENT_TILE_BG[h.accent],
@@ -152,16 +151,18 @@ export function StatutoryHeadTiles({ ym }: { ym: string }) {
               </div>
 
               <div className="mt-4 font-display text-[22px] font-bold leading-none tracking-tight whitespace-nowrap tabular-nums text-foreground sm:text-[26px]">
-                {isLoading ? "—" : inr(total)}
+                {isError ? "Unavailable" : isLoading ? "—" : inr(total)}
               </div>
 
               <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                 <span className="truncate">
-                  {t && t.people > 0
-                    ? t.employer > 0
-                      ? `${t.people} employees · EE ${inr(t.employee)} + ER ${inr(t.employer)}`
-                      : `${t.people} employees`
-                    : "No records this month"}
+                  {isError
+                    ? "Records could not be loaded"
+                    : t && t.people > 0
+                      ? t.employer > 0
+                        ? `${t.people} employees · EE ${inr(t.employee)} + ER ${inr(t.employer)}`
+                        : `${t.people} employees`
+                      : "No records this month"}
                 </span>
                 <ArrowUpRight className="h-3 w-3 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
               </div>

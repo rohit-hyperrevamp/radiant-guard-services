@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { complianceMonthQuery, complianceDirectory } from "@/lib/compliance-month";
+import { fetchAllPages } from "@/lib/supabase-batch";
+import {
+  statutoryHead,
+  ledgerAmount,
+  ledgerStage,
+  complianceMoney,
+  type LedgerScope,
+} from "@/lib/statutory-heads";
+import { ComplianceLedgerScope } from "@/components/ComplianceLedgerScope";
+import { useCurrentPermissions } from "@/lib/rbac";
 import { ArrowLeft, ChevronRight, Download, ReceiptText, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -29,8 +40,9 @@ function PtRegisterPageGated() {
 
 export const Route = createFileRoute("/admin/compliance-pt")({
   component: PtRegisterPageGated,
-  validateSearch: (search: Record<string, unknown>): { ym?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { ym?: string; scope?: LedgerScope } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
+    scope: search.scope === "pending" || search.scope === "all" ? search.scope : "posted",
   }),
   head: () => ({
     meta: [
@@ -51,8 +63,7 @@ export const Route = createFileRoute("/admin/compliance-pt")({
   }),
 });
 
-const inr = (n: number) =>
-  "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+const inr = complianceMoney;
 
 type Slab = {
   id: string;
@@ -76,6 +87,8 @@ type PtRow = {
   band: string;
   bandOrder: number;
   date: string;
+  stage: string;
+  sourceName: string;
 };
 
 function monthRange(ym: string) {
@@ -98,89 +111,59 @@ function bandLabel(min: number, max: number | null) {
   return `${inr(min)} – ${inr(max)}`;
 }
 
-function usePtData(ym: string) {
+function usePtData(ym: string, scope: LedgerScope) {
   return useQuery({
-    queryKey: ["pt-register", ym],
+    queryKey: ["pt-register", ym, scope],
     staleTime: 60_000,
+    refetchOnMount: "always",
     queryFn: async (): Promise<{ rows: PtRow[]; slabs: Slab[] }> => {
-      const { from, to } = monthRange(ym);
-      const [{ data: deds, error }, { data: slabData }] = await Promise.all([
-        supabase
-          .from("deductions")
-          .select("id, candidate_id, amount, computed_amount, deduction_name, deduction_date, status")
-          .gte("deduction_date", from)
-          .lte("deduction_date", to)
-          .ilike("deduction_name", "%profession%"),
-        supabase
-          .from("professional_tax_slabs")
-          .select("id, state, salary_min, salary_max, tax_per_month, gender")
-          .order("salary_min"),
+      const [ledger, slabData] = await Promise.all([
+        complianceMonthQuery(ym, scope).queryFn(),
+        fetchAllPages<Slab>((a, b) =>
+          supabase
+            .from("professional_tax_slabs")
+            .select("id,state,salary_min,salary_max,tax_per_month,gender")
+            .order("id")
+            .range(a, b),
+        ),
       ]);
-      if (error) throw error;
-      const slabs = ((slabData ?? []) as Slab[]).map((s) => ({
+      const slabs = slabData.map((s) => ({
         ...s,
         salary_min: Number(s.salary_min),
         salary_max: s.salary_max === null ? null : Number(s.salary_max),
         tax_per_month: Number(s.tax_per_month),
       }));
-      const rows = deds ?? [];
-      if (rows.length === 0) return { rows: [], slabs };
-
-      const ids = Array.from(new Set(rows.map((r) => r.candidate_id).filter(Boolean))) as string[];
-      // Chunked: one `.in()` over ~1000 ids overflows the request URL and stalls the page.
-      const cands = await fetchInChunks<{
-        id: string; full_name: string | null; employee_code: string | null; candidate_code: string | null;
-        gender: string | null; permanent_state: string | null; unit_id: string | null;
-      }>(ids, (chunk, a, b) =>
-        supabase
-          .from("candidates")
-          .select("id, full_name, employee_code, candidate_code, gender, permanent_state, unit_id")
-          .in("id", chunk)
-          .range(a, b),
-      );
-
-      const unitIds = Array.from(new Set(cands.map((c) => c.unit_id).filter(Boolean) as string[]));
-      const units = await fetchInChunks<{ id: string; name: string; billing_state: string | null; shipping_state: string | null; pt_state?: string | null }>(
-        unitIds,
-        (chunk, a, b) =>
-          supabase.from("units").select("id, name, billing_state, shipping_state, pt_state" as never).in("id", chunk).range(a, b),
-      );
-
-      const unitMap = new Map(units.map((u) => [u.id, u]));
-      const candMap = new Map(cands.map((c) => [c.id, c]));
-
-      const mapped: PtRow[] = rows.map((r) => {
-        const c = candMap.get(r.candidate_id);
-        const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
-        const state =
-          (u?.pt_state || u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
+      const deds = ledger.deds.filter((r) => statutoryHead(r.deduction_name) === "pt");
+      const directory = await complianceDirectory(deds);
+      const rows = deds.map((r) => {
+        const c = r.candidate_id ? directory.people.get(r.candidate_id) : undefined;
+        const u = r.unit_id ? directory.units.get(r.unit_id) : undefined;
+        const state = (
+          u?.pt_state ||
+          u?.billing_state ||
+          u?.shipping_state ||
+          "Unknown original state"
+        ).trim();
         const gender = normGender(c?.gender);
-        const amount = Number(r.computed_amount ?? r.amount ?? 0);
-        const stateSlabs = slabs.filter(
-          (s) => (s.state ?? "").trim().toLowerCase() === state.toLowerCase(),
-        );
-        const hit =
-          stateSlabs.find(
-            (s) =>
-              Number(s.tax_per_month) === Math.round(amount) &&
-              (normGender(s.gender) === gender || normGender(s.gender) === "Unspecified"),
-          ) ?? stateSlabs.find((s) => Number(s.tax_per_month) === Math.round(amount));
+        const amount = ledgerAmount(r);
         return {
           id: r.id,
-          candidateId: r.candidate_id,
-          name: c?.full_name ?? "—",
+          candidateId: r.candidate_id ?? r.id,
+          name: c?.full_name ?? "Unknown employee",
           code: c?.employee_code ?? c?.candidate_code ?? "—",
           gender,
-          state: state || "Unknown",
-          unit: u?.name ?? "—",
+          state,
+          unit: u?.name ?? "Unknown original site",
           amount,
-          slabId: hit?.id ?? null,
-          band: hit ? bandLabel(hit.salary_min, hit.salary_max) : `${inr(amount)}/month slab`,
-          bandOrder: hit ? hit.salary_min : 9_999_999,
+          slabId: null,
+          band: "Posted amount — slab not recorded",
+          bandOrder: 9_999_999,
           date: r.deduction_date,
+          stage: ledgerStage(r),
+          sourceName: r.deduction_name ?? "",
         };
       });
-      return { rows: mapped, slabs };
+      return { rows, slabs };
     },
   });
 }
@@ -188,7 +171,9 @@ function usePtData(ym: string) {
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card/70 p-3 backdrop-blur">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 text-xl font-semibold whitespace-nowrap tabular-nums">{value}</p>
       {sub ? <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p> : null}
     </div>
@@ -197,24 +182,23 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 function PtRegisterPage() {
   const now = new Date();
-  const { ym: ymParam } = Route.useSearch();
+  const { ym: ymParam, scope: scopeParam } = Route.useSearch();
+  const scope = scopeParam ?? "posted";
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const navigate = useNavigate({ from: "/admin/compliance-pt" });
-  const setYm = (next: string) => navigate({ search: { ym: next } });
+  const setYm = (next: string) => navigate({ search: { ym: next, scope } });
   const [state, setState] = useState<string>("all");
   const [gender, setGender] = useState<string>("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const { data, isLoading } = usePtData(ym);
+  const { canExport, isLoading: permissionsLoading } = useCurrentPermissions();
+  const { data, isLoading, isError, refetch } = usePtData(ym, scope);
   const all = data?.rows ?? [];
   const slabs = data?.slabs ?? [];
 
   // Only states that actually appear in this month's records.
-  const states = useMemo(
-    () => Array.from(new Set(all.map((r) => r.state))).sort(),
-    [all],
-  );
+  const states = useMemo(() => Array.from(new Set(all.map((r) => r.state))).sort(), [all]);
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -234,7 +218,12 @@ function PtRegisterPage() {
     return activeStates.map((st) => {
       const stateSlabs = slabs
         .filter((s) => s.state.trim().toLowerCase() === st.toLowerCase())
-        .filter((s) => gender === "all" || normGender(s.gender) === gender || normGender(s.gender) === "Unspecified")
+        .filter(
+          (s) =>
+            gender === "all" ||
+            normGender(s.gender) === gender ||
+            normGender(s.gender) === "Unspecified",
+        )
         .sort((a, b) => a.salary_min - b.salary_min);
       const stateRows = rows.filter((r) => r.state === st);
       const bands = stateSlabs.map((s) => {
@@ -249,11 +238,13 @@ function PtRegisterPage() {
         };
       });
       // Rows that couldn't be mapped to any slab in the schedule
-      const unmatched = stateRows.filter((r) => !r.slabId || !stateSlabs.some((s) => s.id === r.slabId));
+      const unmatched = stateRows.filter(
+        (r) => !r.slabId || !stateSlabs.some((s) => s.id === r.slabId),
+      );
       if (unmatched.length) {
         bands.push({
           key: `${st}-unmatched`,
-          label: "Outside published schedule",
+          label: "Recorded PT — salary slab not recorded",
           gender: "—",
           rate: 0,
           members: unmatched,
@@ -293,7 +284,12 @@ function PtRegisterPage() {
             <Button
               variant="outline"
               size="sm"
+              disabled={isLoading || isError || permissionsLoading || !canExport("compliance")}
               onClick={() =>
+                !isLoading &&
+                !isError &&
+                !permissionsLoading &&
+                canExport("compliance") &&
                 downloadCsv(
                   `pt-register-${ym}`,
                   rows.map((r) => ({
@@ -305,6 +301,8 @@ function PtRegisterPage() {
                     band: r.band,
                     amount: r.amount,
                     date: r.date,
+                    stage: r.stage,
+                    sourceName: r.sourceName,
                   })),
                   [
                     { key: "code", header: "Employee code" },
@@ -315,6 +313,8 @@ function PtRegisterPage() {
                     { key: "band", header: "Slab band" },
                     { key: "amount", header: "PT deducted" },
                     { key: "date", header: "Deduction date" },
+                    { key: "stage", header: "Posting status" },
+                    { key: "sourceName", header: "Original deduction name" },
                   ],
                 )
               }
@@ -325,6 +325,12 @@ function PtRegisterPage() {
         }
       />
 
+      <div className="mb-3">
+        <ComplianceLedgerScope
+          value={scope}
+          onChange={(next) => void navigate({ search: { ym, scope: next } })}
+        />
+      </div>
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Select value={state} onValueChange={setState}>
@@ -364,7 +370,11 @@ function PtRegisterPage() {
 
       {/* Totals */}
       <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatCard label={`PT deducted · ${monthLabel}`} value={inr(total)} sub={`${rows.length} employees`} />
+        <StatCard
+          label={`PT deducted · ${monthLabel}`}
+          value={inr(total)}
+          sub={`${rows.length} employees`}
+        />
         <StatCard label="States" value={String(groups.length)} />
         <StatCard
           label="Slabs in schedule"
@@ -372,11 +382,20 @@ function PtRegisterPage() {
         />
         <StatCard
           label="Slabs with deductions"
-          value={String(groups.reduce((s, g) => s + g.bands.filter((b) => b.members.length).length, 0))}
+          value={String(
+            groups.reduce((s, g) => s + g.bands.filter((b) => b.members.length).length, 0),
+          )}
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div role="alert" className="border border-destructive p-4 text-destructive">
+          Records could not be loaded.{" "}
+          <Button variant="outline" onClick={() => void refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="rounded-2xl border border-border/60 bg-card p-10 text-center text-xs text-muted-foreground">
           Loading professional tax deductions…
         </div>
@@ -419,9 +438,7 @@ function PtRegisterPage() {
                     return (
                       <Fragment key={key}>
                         <tr
-                          onClick={() =>
-                            !empty && setOpen((s) => ({ ...s, [key]: !s[key] }))
-                          }
+                          onClick={() => !empty && setOpen((s) => ({ ...s, [key]: !s[key] }))}
                           className={cn(
                             "transition-colors",
                             empty ? "text-muted-foreground" : "cursor-pointer hover:bg-muted/30",

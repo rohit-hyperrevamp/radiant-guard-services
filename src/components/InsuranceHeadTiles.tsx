@@ -1,13 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, HeartHandshake, HeartPulse, ShieldPlus, type LucideIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  ArrowUpRight,
+  HeartHandshake,
+  HeartPulse,
+  ShieldPlus,
+  type LucideIcon,
+} from "lucide-react";
+import { statutoryHead, complianceMoney, type LedgerScope } from "@/lib/statutory-heads";
 import { complianceMonthQuery } from "@/lib/compliance-month";
 import { cn } from "@/lib/utils";
 import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
 
-const inr = (n: number) =>
-  "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+const inr = complianceMoney;
 
 export type InsuranceHeadKey = "gpaip" | "esic" | "wc";
 
@@ -57,17 +62,13 @@ export function monthRange(ym: string) {
   return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 0))) };
 }
 
-export const matchesHead = (name: string | null | undefined, head: InsuranceHeadKey) => {
-  const n = (name ?? "").toLowerCase();
-  return INSURANCE_HEADS.find((h) => h.key === head)!.match.some((m) => n.includes(m));
-};
+export const matchesHead = (name: string | null | undefined, head: InsuranceHeadKey) =>
+  statutoryHead(name) === head;
 
-function useInsuranceTotals(ym: string) {
+function useInsuranceTotals(ym: string, scope: LedgerScope) {
   return useQuery({
-    ...complianceMonthQuery(ym),
+    ...complianceMonthQuery(ym, scope),
     select: ({ deds, contribs }) => {
-
-
       const out: Record<InsuranceHeadKey, { amount: number; people: Set<string> }> = {
         gpaip: { amount: 0, people: new Set() },
         esic: { amount: 0, people: new Set() },
@@ -98,8 +99,8 @@ function useInsuranceTotals(ym: string) {
   });
 }
 
-export function InsuranceHeadTiles({ ym }: { ym: string }) {
-  const { data, isLoading } = useInsuranceTotals(ym);
+export function InsuranceHeadTiles({ ym, scope = "posted" }: { ym: string; scope?: LedgerScope }) {
+  const { data, isLoading, isError } = useInsuranceTotals(ym, scope);
   const monthLabel = new Date(ym + "-01T00:00:00").toLocaleDateString("en-IN", {
     month: "long",
     year: "numeric",
@@ -119,7 +120,7 @@ export function InsuranceHeadTiles({ ym }: { ym: string }) {
             <Link
               key={h.key}
               to="/admin/compliance-insurance"
-              search={{ ym, head: h.key }}
+              search={{ ym, scope, head: h.key }}
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-[22px] border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-4",
                 ACCENT_TILE_BG[h.accent],
@@ -143,12 +144,16 @@ export function InsuranceHeadTiles({ ym }: { ym: string }) {
               </div>
 
               <div className="mt-4 font-display text-[22px] font-bold leading-none tracking-tight whitespace-nowrap tabular-nums text-foreground sm:text-[26px]">
-                {isLoading ? "—" : inr(t?.amount ?? 0)}
+                {isError ? "Unavailable" : isLoading ? "—" : inr(t?.amount ?? 0)}
               </div>
 
               <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                 <span className="truncate">
-                  {t && t.people > 0 ? `${t.people} employees` : "No records this month"}
+                  {isError
+                    ? "Records could not be loaded"
+                    : t && t.people > 0
+                      ? `${t.people} employees`
+                      : "No records this month"}
                 </span>
                 <ArrowUpRight className="h-3 w-3 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
               </div>

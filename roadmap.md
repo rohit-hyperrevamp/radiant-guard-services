@@ -1176,3 +1176,13 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] CLI4097: 0.45 partial duty (48413, 22 Oct) — needs user decision; sheet not submitted.
 - [ ] 33 sites whose Pages period differs from ours — needs user decision on window.
 - [ ] 7 new employees also active under an older ID — user to decide whether to deactivate older records.
+
+## Compliance reliability — 13 November
+- [x] Signed into production with the supplied one-time code; inspected September overview, PT/LWF/ESIC registers and downloaded XLS outputs. Live LWF detail/export had 14 EE + 12.50 ER while the overview had 969 EE + 12.50 ER, confirming truncation.
+- [x] Live saved payroll reconciliation: 30 snapshots across two runs; zero employee deduction or employer contribution mismatches. October has no saved payroll snapshots; attendance alone does not post liabilities.
+- [x] Unified PT/PF/EPF/ESI/ESIC/LWF/Guard Board aliases; fully paged ledgers/registers; historical sites resolved from stored unit or validated payroll reference. New deductions save unit provenance. Rates and payroll amounts unchanged.
+- [x] Separated posted/completed from pending/imported records; visible read errors, two-decimal amounts and incomplete-export protection; added matching EPF/levy monthly views.
+- [x] All 48 focused tests pass and automatic build reports OK. Live monetary fixtures give posted September PT 3,800, EPF 75,784.61, ESIC 13,272, LWF 16.50 and levy 9,954; pending PT 186,375 stays separate.
+- [ ] Verify corrected authenticated screens and XLS/PDF outputs after GitHub-to-Vercel deployment; new code is not live during this turn. No credentials/OTP retained in project files.
+- [ ] Government-ready EPFO/ESIC/state return templates and filing validation require a separate implementation and official registration/template inputs; current outputs are management registers, not verified government returns.
+- [ ] All-or-nothing payroll posting remains a separate server transaction change; no payroll was processed/reprocessed during this read-only production check.

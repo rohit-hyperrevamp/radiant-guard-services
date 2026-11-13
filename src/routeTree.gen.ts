@@ -31,6 +31,7 @@ import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.compan
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
 import { Route as AdminComplianceGpaipRegisterRouteImport } from './routes/admin.compliance-gpaip-register'
 import { Route as AdminComplianceInsuranceRouteImport } from './routes/admin.compliance-insurance'
+import { Route as AdminComplianceLedgerRouteImport } from './routes/admin.compliance-ledger'
 import { Route as AdminComplianceLwfRouteImport } from './routes/admin.compliance-lwf'
 import { Route as AdminCompliancePtRouteImport } from './routes/admin.compliance-pt'
 import { Route as AdminContractExpiryAlertsRouteImport } from './routes/admin.contract-expiry-alerts'
@@ -267,6 +268,11 @@ const AdminComplianceInsuranceRoute =
     path: '/compliance-insurance',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminComplianceLedgerRoute = AdminComplianceLedgerRouteImport.update({
+  id: '/compliance-ledger',
+  path: '/compliance-ledger',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminComplianceLwfRoute = AdminComplianceLwfRouteImport.update({
   id: '/compliance-lwf',
   path: '/compliance-lwf',
@@ -931,6 +937,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
+  '/admin/compliance-ledger': typeof AdminComplianceLedgerRoute
   '/admin/compliance-lwf': typeof AdminComplianceLwfRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/contract-expiry-alerts': typeof AdminContractExpiryAlertsRoute
@@ -1075,6 +1082,7 @@ export interface FileRoutesByTo {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
+  '/admin/compliance-ledger': typeof AdminComplianceLedgerRoute
   '/admin/compliance-lwf': typeof AdminComplianceLwfRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/contract-expiry-alerts': typeof AdminContractExpiryAlertsRoute
@@ -1217,6 +1225,7 @@ export interface FileRoutesById {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
+  '/admin/compliance-ledger': typeof AdminComplianceLedgerRoute
   '/admin/compliance-lwf': typeof AdminComplianceLwfRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/contract-expiry-alerts': typeof AdminContractExpiryAlertsRoute
@@ -1364,6 +1373,7 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/compliance-gpaip-register'
     | '/admin/compliance-insurance'
+    | '/admin/compliance-ledger'
     | '/admin/compliance-lwf'
     | '/admin/compliance-pt'
     | '/admin/contract-expiry-alerts'
@@ -1508,6 +1518,7 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/compliance-gpaip-register'
     | '/admin/compliance-insurance'
+    | '/admin/compliance-ledger'
     | '/admin/compliance-lwf'
     | '/admin/compliance-pt'
     | '/admin/contract-expiry-alerts'
@@ -1649,6 +1660,7 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/compliance-gpaip-register'
     | '/admin/compliance-insurance'
+    | '/admin/compliance-ledger'
     | '/admin/compliance-lwf'
     | '/admin/compliance-pt'
     | '/admin/contract-expiry-alerts'
@@ -1945,6 +1957,13 @@ declare module '@tanstack/react-router' {
       path: '/compliance-insurance'
       fullPath: '/admin/compliance-insurance'
       preLoaderRoute: typeof AdminComplianceInsuranceRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/compliance-ledger': {
+      id: '/admin/compliance-ledger'
+      path: '/compliance-ledger'
+      fullPath: '/admin/compliance-ledger'
+      preLoaderRoute: typeof AdminComplianceLedgerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/compliance-lwf': {
@@ -3002,6 +3021,7 @@ interface AdminRouteChildren {
   AdminComplianceRoute: typeof AdminComplianceRoute
   AdminComplianceGpaipRegisterRoute: typeof AdminComplianceGpaipRegisterRoute
   AdminComplianceInsuranceRoute: typeof AdminComplianceInsuranceRoute
+  AdminComplianceLedgerRoute: typeof AdminComplianceLedgerRoute
   AdminComplianceLwfRoute: typeof AdminComplianceLwfRoute
   AdminCompliancePtRoute: typeof AdminCompliancePtRoute
   AdminContractExpiryAlertsRoute: typeof AdminContractExpiryAlertsRoute
@@ -3083,6 +3103,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminComplianceRoute: AdminComplianceRoute,
   AdminComplianceGpaipRegisterRoute: AdminComplianceGpaipRegisterRoute,
   AdminComplianceInsuranceRoute: AdminComplianceInsuranceRoute,
+  AdminComplianceLedgerRoute: AdminComplianceLedgerRoute,
   AdminComplianceLwfRoute: AdminComplianceLwfRoute,
   AdminCompliancePtRoute: AdminCompliancePtRoute,
   AdminContractExpiryAlertsRoute: AdminContractExpiryAlertsRoute,
