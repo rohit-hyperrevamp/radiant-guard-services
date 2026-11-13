@@ -1192,4 +1192,5 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [x] All-or-nothing payroll posting code and isolated failure tests completed; production installation and signed-in readback remain blocked as listed above. No payroll was processed/reprocessed.
 
 - [x] Atomic payroll saving installed in production DB (13 Nov 2026).
-- [ ] 847 of 848 approved September payrolls are not processed, so they post nothing to Compliance (only CLI1651 processed; it reconciles exactly). Waiting on user choice: process them or show approved-unprocessed as Pending.
+- [x] Test: CLI4222 Sep payroll processed live via atomic save; ledgers ₹3,555 / ₹12,511.67 match and Compliance (Posted) rose by exactly those heads.
+- [ ] 846 of 848 approved September payrolls are not processed, so they post nothing to Compliance (only CLI1651 processed; it reconciles exactly). Waiting on user choice: process them or show approved-unprocessed as Pending.
