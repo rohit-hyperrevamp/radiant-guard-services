@@ -1,3 +1,9 @@
+## Employee workspace cleanup — 16 November
+- [x] Simplified employee rows to essential fields and shared View/Edit/More actions; opted out of width-driven column changes and retained secondary controls in the menu/profile.
+- [x] Bounded the editor and profile with persistent navigation and actions; letters open directly, and exit documents appear only during pending offboarding or after a recorded exit, not an old exit on an active rehire.
+- [x] Twelve focused visibility, letter-export and employee-cache tests passed; compilation OK. No employee data or approval/permission rules changed.
+- [ ] Signed-in production layout and letter interaction checks await GitHub-to-Vercel delivery and a live session; both desktop and phone live checks redirect to login.
+
 ## Department training library — 16 November
 - [x] Reviewed and imported 42 original PDFs into private training storage, verified their bytes and preserved all 20 existing guide records exactly.
 - [x] Added shared department cards, category-only guide lists, search and in-page PDF reading; existing read and management permissions unchanged.

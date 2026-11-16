@@ -1,4 +1,6 @@
 import { matchesSearch as matchesSearchText, buildSearchHay, compileSearch, type SearchHay } from "@/lib/search-match";
+import { EmployeeRowActions } from "@/components/EmployeeRowActions";
+import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { patchEmployeeSlice } from "@/lib/employee-list-cache";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
@@ -2406,15 +2408,14 @@ function EmployeesPage() {
     email: false,
     unit: true,
     designation: true,
-    department: true,
-    reportsTo: true,
-    role: true,
+    department: false,
+    reportsTo: false,
+    role: false,
     dob: false,
     doj: false,
-    active: true,
+    active: false,
   };
-  // v2 key: drops stale saved prefs so new default columns (designation, department, reporting manager) always appear
-  const COLUMN_PREFS_KEY = "employees.columnPrefs.v2";
+  const COLUMN_PREFS_KEY = "employees.columnPrefs.v3";
   const [columnsVisible, setColumnsVisible] = useState<typeof DEFAULT_COLUMNS_VIS>(() => {
     if (typeof window === "undefined") return DEFAULT_COLUMNS_VIS;
     try {
@@ -4028,6 +4029,25 @@ function EmployeesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSearch.edit]);
 
+  const employeeActions = (c: CandidateListItem) => <EmployeeRowActions
+    id={c.id} canEdit={!isHrExecutive}
+    editLocked={c.status === "inactive" && !canEditInactiveProfile}
+    opening={openingCandidateId === c.id} hasExit={hasEmployeeOffboarding(c)}
+    onEdit={() => void openEditor(c.id)}
+    onSites={siteCountOf(c.id) > 1 ? () => { setSiteMapSearch(""); setSiteMapTarget(c); } : undefined}
+    onEnableRehire={rehireByCandidate.get(c.id)?.isFinal && rehireByCandidate.get(c.id)?.canAct ? () => { const request = rehireByCandidate.get(c.id)?.request; if (request) setEnableRehireTarget(request); } : undefined}
+    onPostings={() => setPostingsFor(c.id)}
+    onSign={docType => setSignTarget({ id: c.id, docType })}
+    statusLabel={c.is_enabled && c.status !== "inactive" ? "Start offboarding" : "Reactivate employee"}
+    statusDisabled={!c.is_enabled && c.no_hire}
+    onStatus={() => {
+      if (c.is_enabled && c.status !== "inactive") { setOffboardTarget(c); setOffboardReasonId(""); return; }
+      if (c.no_hire) { toast.error("This employee is flagged Do not re-hire."); return; }
+      if (c.offboarding_reason_id || c.offboarded_at) { setReactivateTarget(c); return; }
+      void confirmAction({ title: "Activate employee?", description: `${c.full_name || c.employee_code} will be marked active again.`, confirmText: "Activate" }).then(ok => { if (ok) toggleEnabledMut.mutate({ candidate: c, enabled: true }); });
+    }}
+  />;
+
   const renderRows = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
     const empCols = 4 + Object.values(columnsVisible).filter(Boolean).length;
     const candCols = 8;
@@ -4232,19 +4252,7 @@ function EmployeesPage() {
           )}
           {(mode === "candidate" || columnsVisible.designation) && (
             <td className="hidden px-2.5 py-2.5 md:table-cell">
-              {mode === "employee" ? (
-                <InlinePicker
-                  value={c.designation_id}
-                  placeholder="No designation"
-                  searchPlaceholder="Search designation…"
-                  options={designations.map((d) => ({ id: d.id, label: d.name }))}
-                  onChange={(id) =>
-                    assignDesignationMut.mutate({ candidate: c, designationId: id })
-                  }
-                />
-              ) : (
-                <ScrollingText text={desig?.name} className="max-w-[130px] text-sm text-muted-foreground" />
-              )}
+              <ScrollingText text={desig?.name || "No designation"} className="text-sm text-muted-foreground" />
             </td>
           )}
           {(mode === "candidate" || columnsVisible.department) && (
@@ -4437,9 +4445,10 @@ function EmployeesPage() {
           </td>
 
           <td
-            className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-2.5 align-middle"
+            className="w-[128px] min-w-[128px] whitespace-nowrap px-3 py-2.5 align-middle"
             data-col="employee-actions"
           >
+            {mode === "employee" ? employeeActions(c) : (
             <div className="flex flex-wrap items-center justify-end gap-1.5">
               {mode === "candidate" && rehire?.canAct && (
                 <Button
@@ -4451,16 +4460,7 @@ function EmployeesPage() {
                   {rehire.isFinal ? "Enable" : "Review"}
                 </Button>
               )}
-              {mode === "employee" && rehire?.isFinal && rehire.canAct && (
-                <Button
-                  size="sm"
-                  onClick={() => setEnableRehireTarget(rehire.request)}
-                  className="h-8 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
-                  title="Enable this rehire and issue a new employee ID"
-                >
-                  Enable
-                </Button>
-              )}
+
               {showSiteMap && (
                 <Button
                   variant="outline"
@@ -4505,32 +4505,7 @@ function EmployeesPage() {
                   </Button>
                 </>
               )}
-              {mode === "employee" && !isHrExecutive && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    data-variant="warn"
-                    onClick={() => setSignTarget({ id: c.id, docType: "nda" })}
-                    className="h-8 w-8 rounded-full border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
-                    title="Sign NDA"
-                    aria-label="Sign NDA"
-                  >
-                    <FileSignature className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    data-variant="warn"
-                    onClick={() => setSignTarget({ id: c.id, docType: "appointment_letter" })}
-                    className="h-8 w-8 rounded-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800 dark:border-sky-500/40 dark:bg-transparent dark:text-sky-300 dark:hover:bg-sky-500/10 dark:hover:text-sky-300"
-                    title="Sign Appointment Letter"
-                    aria-label="Sign Appointment Letter"
-                  >
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
+
               <div className="flex flex-nowrap items-center gap-1">
                 {(() => {
                   const editLocked = c.status === "inactive" && !canEditInactiveProfile;
@@ -4581,7 +4556,6 @@ function EmployeesPage() {
                           <Edit2 className="h-4 w-4" />
                         )}
                       </Button>}
-{!isHrExecutive && mode === "employee" && (<Button variant="ghost" size="icon" onClick={() => setPostingsFor(c.id)} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Billing type & postings" aria-label="Billing type & postings"><Network className="h-4 w-4" /></Button>)}
                     </>
                   );
                 })()}
@@ -4599,6 +4573,7 @@ function EmployeesPage() {
                 )}
               </div>
             </div>
+            )}
           </td>
         </tr>
       );
@@ -4885,6 +4860,7 @@ function EmployeesPage() {
                 </div>
               )}
 
+              {mode === "employee" ? <div className="mt-2 border-t border-border pt-2">{employeeActions(c)}</div> : (
               <div className="mt-1.5 flex items-center justify-end gap-1 border-t border-border/50 pt-1.5">
                 {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
                   <>
@@ -4915,32 +4891,7 @@ function EmployeesPage() {
                     </Button>
                   </>
                 )}
-                {mode === "employee" && !isHrExecutive && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      data-variant="warn"
-                      onClick={() => setSignTarget({ id: c.id, docType: "nda" })}
-                      className="h-8 w-8 rounded-full border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      title="Sign NDA"
-                      aria-label="Sign NDA"
-                    >
-                      <FileSignature className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      data-variant="warn"
-                      onClick={() => setSignTarget({ id: c.id, docType: "appointment_letter" })}
-                      className="h-8 w-8 rounded-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                      title="Sign Appointment Letter"
-                      aria-label="Sign Appointment Letter"
-                    >
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
+
                 <Button
                   asChild
                   variant="ghost"
@@ -4983,7 +4934,6 @@ function EmployeesPage() {
                     <Edit2 className="h-4 w-4" />
                   )}
                 </Button>}
-{!isHrExecutive && mode === "employee" && (<Button variant="ghost" size="icon" onClick={() => setPostingsFor(c.id)} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Billing type & postings" aria-label="Billing type & postings"><Network className="h-4 w-4" /></Button>)}
                 {mode === "candidate" && (
                   <Button
                     variant="ghost"
@@ -4997,6 +4947,7 @@ function EmployeesPage() {
                   </Button>
                 )}
               </div>
+              )}
             </article>
           );
         })}
@@ -5009,7 +4960,7 @@ function EmployeesPage() {
     mode: "employee" | "candidate",
     pg: ReturnType<typeof usePagination<CandidateListItem>>,
   ) => (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20 sm:rounded-3xl">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border bg-accent/10 px-3 py-2 text-xs font-medium text-foreground sm:px-5 sm:py-2.5">
         <span className="inline-flex items-center gap-2">
           <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
@@ -5022,13 +4973,13 @@ function EmployeesPage() {
       </div>
       <div className="p-2.5 md:hidden">{renderMobileCards(pg.pageRows, mode)}</div>
       <div className="hidden w-full overflow-x-auto md:block">
-        <table className="ios-table w-full table-auto text-sm min-w-[1180px] 2xl:min-w-[1480px]">
+        <table data-stable-directory className="ios-table w-full table-fixed text-sm">
           <thead className="border-b border-border/60 bg-secondary/40">
             <tr>
               <th className="w-[112px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 {mode === "employee" ? "Emp ID" : "Code"}
               </th>
-              <th className="w-[240px] min-w-[220px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <th className="w-[24%] min-w-0 px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 {mode === "employee" ? "Employee" : "Candidate"}
               </th>
               {(mode === "candidate" || columnsVisible.mobile) && (
@@ -5089,7 +5040,7 @@ function EmployeesPage() {
                 Status
               </th>
               <th
-                className="w-[220px] min-w-[220px] whitespace-nowrap px-3 py-3 !text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground"
+                className="w-[128px] min-w-[128px] whitespace-nowrap px-3 py-3 !text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground"
                 data-col="employee-actions"
               >
                 Actions
@@ -8066,7 +8017,7 @@ function CandidateWizard({
       >
         <DialogContent
           ref={wizardScrollRef}
-          className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[94dvh] sm:w-[96vw] sm:max-w-6xl sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl"
+          className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[86dvh] sm:max-h-[900px] sm:w-[94vw] sm:max-w-6xl sm:rounded-xl sm:border sm:border-border/60 sm:shadow-xl"
         >
           <DialogHeader className="shrink-0 border-b border-border/60 bg-card px-3 pb-2 pt-[max(0.625rem,env(safe-area-inset-top))] pr-14 sm:px-6 sm:py-4 sm:pr-16 lg:hidden">
             <div className="min-w-0">
@@ -8300,8 +8251,8 @@ function CandidateWizard({
             )}
           </div>
 
-          <div className="flex min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-            <aside className="hidden min-h-0 flex-col overflow-hidden border-r border-border/60 bg-card px-7 py-8 lg:flex">
+          <div className="flex min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[13rem_minmax(0,1fr)]">
+            <aside className="hidden min-h-0 flex-col overflow-hidden border-r border-border/60 bg-card px-4 py-4 lg:flex">
               <div className="flex min-h-0 flex-1 flex-col">
                 <div className="mb-6 shrink-0">
                   <p className="text-xs font-semibold text-muted-foreground">Candidate</p>
@@ -8329,7 +8280,7 @@ function CandidateWizard({
                         onClick={() => requestStep(s.key)}
                         aria-current={active ? "step" : undefined}
                         className={cn(
-                          "h-auto w-full justify-start gap-3 rounded-lg px-2.5 py-2.5 text-left shadow-none",
+                          "h-10 w-full justify-start gap-2 rounded-lg px-2.5 py-1.5 text-left shadow-none",
                           active &&
                             "bg-accent/10 text-accent ring-1 ring-accent/20 hover:bg-accent/10 hover:text-accent",
                           !active &&
@@ -8395,9 +8346,9 @@ function CandidateWizard({
             <div
               ref={wizardBodyRef}
               data-candidate-form-scroll
-              className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-3 pb-24 sm:px-7 sm:py-7 lg:px-10 lg:py-9"
+              className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-card px-3 py-3 sm:px-6 sm:py-5"
             >
-              <div className="mx-auto mb-7 hidden max-w-4xl lg:block">
+              <div className="mx-auto mb-4 hidden max-w-4xl lg:block">
                 <p className="text-xs font-medium text-accent">
                   Step {stepIndex + 1} of {steps.length}
                 </p>
@@ -9891,7 +9842,7 @@ function CandidateWizard({
             </div>
           </div>
 
-          <div className="max-h-64 shrink-0 overflow-y-auto px-3 sm:px-6"><DocumentChecklist id={editing?.id} employee={form} /></div>
+          {(at("uploads") || at("review")) && <details className="max-h-40 shrink-0 overflow-y-auto border-t border-border px-3 py-2 sm:px-6"><summary className="cursor-pointer text-sm font-medium">Pending documents</summary><DocumentChecklist id={editing?.id} employee={form} /></details>}
           <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/60 bg-card/95 px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-3 sm:pb-3">
             {saveError && (
               <div

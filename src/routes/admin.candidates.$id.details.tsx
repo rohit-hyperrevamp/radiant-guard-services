@@ -64,6 +64,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
 import { EmploymentLetters } from "@/components/EmploymentLetters";
+import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
 import { CandidateEsicCard } from "@/components/CandidateEsicCard";
 import { ensureFormViiForCandidate, ensureIdCardForCandidate } from "@/lib/company-documents";
@@ -170,7 +171,7 @@ function CandidateDetailsPage() {
   const selectSection = (section: SectionId) => {
     setActive(section);
     void navigate({ to: "/admin/candidates/$id/details", params: { id }, search: { section }, replace: true });
-    requestAnimationFrame(() => document.getElementById("candidate-detail-content")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() => document.getElementById("candidate-detail-content")?.scrollTo({ top: 0 }));
   };
 
   const { data, isLoading } = useQuery({
@@ -219,6 +220,11 @@ function CandidateDetailsPage() {
     if (!form || !baselinePayload) return false;
     return JSON.stringify(buildCandidatePayload(form)) !== baselinePayload;
   }, [form, baselinePayload]);
+
+  const hasExit = hasEmployeeOffboarding(form);
+  useEffect(() => {
+    if (form && active === "offboarding" && !hasExit) setActive("basic");
+  }, [form, active, hasExit]);
 
   const { roleKey, isSuperAdmin } = useCurrentPermissions();
   const isHrHead = useIsHrHead();
@@ -323,7 +329,7 @@ function CandidateDetailsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-[calc(100dvh-8rem)] min-h-[360px] flex-col gap-4 overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -411,13 +417,12 @@ function CandidateDetailsPage() {
         </div>
       )}
 
-      <div className="space-y-4">
-        {/* Section tabs (horizontal) */}
-        <nav aria-label="Candidate sections" className="mobile-glass-surface scrollbar-hide sticky top-[52px] z-10 flex max-w-full gap-1 overflow-x-auto rounded-xl border bg-card/85 p-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:grid lg:grid-cols-[210px_minmax(0,1fr)]">
+        <nav aria-label="Candidate sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-border pb-2 lg:flex-col lg:overflow-y-auto lg:border-b-0 lg:border-r lg:pr-3">
           {SECTIONS.filter(
             (s) =>
-              s.id !== "esic_card" ||
-              ["approved", "active"].includes(String(form.status ?? "").toLowerCase()),
+              (s.id !== "offboarding" || hasExit) && (s.id !== "esic_card" ||
+              ["approved", "active"].includes(String(form.status ?? "").toLowerCase())),
           ).map((s) => {
             const Icon = s.icon;
             const isActive = active === s.id;
@@ -428,7 +433,8 @@ function CandidateDetailsPage() {
                 size="sm"
                 key={s.id}
                 onClick={() => selectSection(s.id)}
-                className={`h-10 shrink-0 gap-2 rounded-lg px-3 text-sm ${
+                aria-current={isActive ? "page" : undefined}
+                className={`h-9 shrink-0 justify-start gap-2 px-3 text-sm ${
                   isActive
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-muted"
@@ -442,7 +448,7 @@ function CandidateDetailsPage() {
         </nav>
 
         {/* Content */}
-        <section id="candidate-detail-content" className="scroll-mt-20 rounded-xl border bg-card p-3 sm:p-6">
+        <section id="candidate-detail-content" className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-4">
           {active === "basic" && <BasicSection form={form} />}
           {active === "units" && <UnitMappingSection candidateId={id} candidateName={form.full_name ?? ""} primaryUnitId={form.unit_id ?? null} />}
           {active === "physical" && (
@@ -493,9 +499,9 @@ function CandidateDetailsPage() {
                 employeeCode={form.employee_code || form.candidate_code || ""}
               />
             )}
-          {active === "hiring_letters" && <><DocumentChecklist id={id} employee={form} /><EmploymentLetters candidateId={id} group="hiring" /></>}
-          {active === "confirmation_letter" && <EmploymentLetters candidateId={id} group="confirmation" />}
-          {active === "offboarding" && <div className="space-y-6"><DocumentChecklist id={id} purpose="offboarding" employee={form} start={form.offboarding_details?.date_of_offboarding ?? form.offboarded_at ?? null} /><EmploymentLetters candidateId={id} group="exit" /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
+          {active === "hiring_letters" && <><EmploymentLetters key="hiring" candidateId={id} group="hiring" initialOpen /><DocumentChecklist id={id} employee={form} /></>}
+          {active === "confirmation_letter" && <EmploymentLetters key="confirmation" candidateId={id} group="confirmation" initialOpen />}
+          {active === "offboarding" && hasExit && <div className="space-y-6"><EmploymentLetters key="exit" candidateId={id} group="exit" initialOpen /><DocumentChecklist id={id} purpose="offboarding" employee={form} start={form.offboarding_details?.date_of_offboarding ?? form.offboarded_at ?? null} /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
         </section>
       </div>
 

@@ -31,7 +31,7 @@ export function SmartListLayout() {
       tables.forEach((table) => {
         // Registers, calendars and editable calculation matrices are tools,
         // not directory lists. Never collapse their cells.
-        if (excluded.test(window.location.pathname) || table.closest('[role="dialog"], form') || table.hasAttribute("data-payroll-register")) return;
+        if (excluded.test(window.location.pathname) || table.closest('[role="dialog"], form') || table.hasAttribute("data-payroll-register") || table.hasAttribute("data-stable-directory")) return;
         const header = table.tHead?.rows[0];
         const body = table.tBodies[0];
         if (!header || !body || header.cells.length < 4 || table.querySelector('input:not([type="checkbox"]), textarea, select')) return;

@@ -60,3 +60,4 @@
 - Recruitment document summaries/lists come from `document_followup_summary`/`document_followup_list` (DB-computed, paged); dashboards show the compact panel, full lists live on the documents route — never download every employee to the browser.
 - Document follow-up date ranges filter inclusive joining/rehire/exit action dates in both count and list RPCs; retain old RPC signatures for rolling delivery compatibility.
 - Training pages share department grouping in training-library; role_key remains the storage grouping and existing RLS is unchanged, so category navigation cannot grant access or lose older guides.
+- Employee rows share EmployeeRowActions and opt out of width-driven SmartList disclosure; exit-document visibility uses hasEmployeeOffboarding so active rehired profiles do not expose historical exit actions.
