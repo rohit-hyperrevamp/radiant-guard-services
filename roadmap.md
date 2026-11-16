@@ -1,7 +1,7 @@
 ## Employee document navigation duplicates — 16 November
 - [x] Removed duplicate document destination cards from Employee Profile → Documents → Document Overview; retained one top navigation option per destination and the required-document checklist. No employee records, documents or permissions changed.
 - [x] All 24 existing employee visibility, letter and document-follow-up tests pass; compilation and diff checks pass. The duplicate card loop is removed and the existing section navigation/checklist are unchanged.
-- [ ] Signed-in live profile navigation remains unverified pending a live session and GitHub-to-Vercel delivery; existing live checks redirect to sign-in.
+- [ ] Reopened the exact CAN-50442 profile from the supplied screenshot with section=documents at desktop/phone widths and both themes: all four visits redirect to login, so document navigation and the next destination cannot be exercised. Signed-in live verification remains blocked by the absence of a live session; code delivery also remains unverified. No employee data changed during verification.
 
 ## Website control spacing — 16 November
 - [x] Added shared 8px label spacing and 12px minimum control-row spacing across forms, filters and toolbars, with wrapping for wide directory toolbars; excluded official paper layouts, tables and compact navigation. No data or workflow changes.
