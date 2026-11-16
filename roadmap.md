@@ -1,3 +1,9 @@
+## Employee offboarding switch and profile organization — 16 November
+- [x] Exposed employee status switches in shared list actions; confirmation opens the existing full offboarding form with bounded scrolling and persistent actions. Saved status remains unchanged until completion; pending collection cannot be restarted.
+- [x] Replaced the long profile sidebar with Personal, Employment, Compliance and Documents navigation; centralized document checklist and links, with no automatic letter popups or changes to files/exit visibility.
+- [x] Fifteen focused confirmation, employee visibility/cache and letter tests pass; compilation OK and diff checks pass. No employee records changed.
+- [ ] Signed-in live interaction/layout verification awaits GitHub-to-Vercel delivery and a live session; production employee page redirects to login.
+
 ## Dashboard/register synchronization — 16 November
 - [x] Attendance/payroll/invoice tiles now reuse the same active charter roster, operational scope, historical saved dates and lifecycle reducer as their pages; Open means none/draft/rejected and Submitted stays separate.
 - [x] Main tiles carry month/year/window; dashboard arrivals clear unrelated remembered filters, and window choices wait for actual window data.

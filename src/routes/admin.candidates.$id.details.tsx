@@ -88,7 +88,7 @@ const SECTIONS = [
   { id: "identification", label: "Identification Proofs", icon: FileBadge },
   { id: "criminal", label: "Criminal History", icon: Gavel },
   { id: "nominee", label: "Nominee", icon: UserCheck },
-  
+  { id: "documents", label: "Document Overview", icon: FileText },
   { id: "company_docs", label: "Company Documents", icon: FileSignature },
   { id: "hiring_letters", label: "Hiring Letters", icon: FileText },
   { id: "confirmation_letter", label: "Confirmation Letter", icon: UserCheck },
@@ -97,6 +97,13 @@ const SECTIONS = [
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
+
+const SECTION_GROUPS: { id: string; label: string; icon: typeof Activity; sections: SectionId[] }[] = [
+  { id: "profile", label: "Personal", icon: Activity, sections: ["basic", "contacts", "physical", "nominee"] },
+  { id: "employment", label: "Employment", icon: Briefcase, sections: ["units", "knowledge"] },
+  { id: "compliance", label: "Compliance", icon: ShieldCheck, sections: ["compliance", "criminal"] },
+  { id: "documents", label: "Documents", icon: FileText, sections: ["documents", "identification", "company_docs", "hiring_letters", "confirmation_letter", "esic_card", "offboarding"] },
+];
 
 function normalizeCandidate(data: any) {
   return {
@@ -222,6 +229,12 @@ function CandidateDetailsPage() {
   }, [form, baselinePayload]);
 
   const hasExit = hasEmployeeOffboarding(form);
+  const visibleSections = SECTIONS.filter(s =>
+    (s.id !== "offboarding" || hasExit) &&
+    (s.id !== "esic_card" || ["approved", "active"].includes(String(form?.status ?? "").toLowerCase())),
+  );
+  const activeGroup = SECTION_GROUPS.find(group => group.sections.includes(active)) ?? SECTION_GROUPS[0];
+  const currentSection = SECTIONS.find(section => section.id === active);
   useEffect(() => {
     if (form && active === "offboarding" && !hasExit) setActive("basic");
   }, [form, active, hasExit]);
@@ -339,7 +352,6 @@ function CandidateDetailsPage() {
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2">
               <h1 className="truncate text-xl font-semibold">{form.full_name || "Candidate"}</h1>
-              <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Edit candidate" />
               {form.candidate_code && (
                 <Badge variant="outline" className="font-mono text-xs">
                   {form.candidate_code}
@@ -417,13 +429,15 @@ function CandidateDetailsPage() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:grid lg:grid-cols-[210px_minmax(0,1fr)]">
-        <nav aria-label="Candidate sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-border pb-2 lg:flex-col lg:overflow-y-auto lg:border-b-0 lg:border-r lg:pr-3">
-          {SECTIONS.filter(
-            (s) =>
-              (s.id !== "offboarding" || hasExit) && (s.id !== "esic_card" ||
-              ["approved", "active"].includes(String(form.status ?? "").toLowerCase())),
-          ).map((s) => {
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <nav aria-label="Employee workspace" className="grid shrink-0 grid-cols-4 gap-2">
+          {SECTION_GROUPS.map(group => {
+            const Icon = group.icon;
+            return <Button key={group.id} variant={activeGroup.id === group.id ? "secondary" : "ghost"} className="h-auto min-h-12 flex-col gap-1 px-2 py-2 sm:flex-row sm:gap-2" aria-current={activeGroup.id === group.id ? "page" : undefined} onClick={() => selectSection(group.sections[0])}><Icon className="h-4 w-4 shrink-0" /><span className="text-xs sm:text-sm">{group.label}</span></Button>;
+          })}
+        </nav>
+        <nav aria-label={`${activeGroup.label} sections`} className="flex shrink-0 flex-wrap gap-1">
+          {visibleSections.filter(s => activeGroup.sections.includes(s.id)).map((s) => {
             const Icon = s.icon;
             const isActive = active === s.id;
             return (
@@ -434,7 +448,7 @@ function CandidateDetailsPage() {
                 key={s.id}
                 onClick={() => selectSection(s.id)}
                 aria-current={isActive ? "page" : undefined}
-                className={`h-9 shrink-0 justify-start gap-2 px-3 text-sm ${
+                className={`h-8 shrink-0 justify-start gap-2 px-3 text-xs ${
                   isActive
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-muted"
@@ -448,7 +462,20 @@ function CandidateDetailsPage() {
         </nav>
 
         {/* Content */}
-        <section id="candidate-detail-content" className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-4">
+        <section id="candidate-detail-content" className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-6 sm:px-4">
+          <div className="mb-5 flex items-center gap-3 pt-2">
+            {currentSection && <currentSection.icon className="h-5 w-5 text-primary" />}
+            <h2 className="text-lg font-semibold">{currentSection?.label}</h2>
+          </div>
+          {active === "documents" && <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleSections.filter(s => activeGroup.sections.includes(s.id) && s.id !== "documents").map(s => {
+                const Icon = s.icon;
+                return <Button key={s.id} variant="secondary" className="h-auto min-h-14 justify-start gap-3 whitespace-normal px-4 py-3 text-left" onClick={() => selectSection(s.id)}><Icon className="h-5 w-5 shrink-0 text-primary" /><span>{s.label}</span></Button>;
+              })}
+            </div>
+            <DocumentChecklist id={id} employee={form} />
+          </div>}
           {active === "basic" && <BasicSection form={form} />}
           {active === "units" && <UnitMappingSection candidateId={id} candidateName={form.full_name ?? ""} primaryUnitId={form.unit_id ?? null} />}
           {active === "physical" && (
@@ -499,9 +526,9 @@ function CandidateDetailsPage() {
                 employeeCode={form.employee_code || form.candidate_code || ""}
               />
             )}
-          {active === "hiring_letters" && <><EmploymentLetters key="hiring" candidateId={id} group="hiring" initialOpen /><DocumentChecklist id={id} employee={form} /></>}
-          {active === "confirmation_letter" && <EmploymentLetters key="confirmation" candidateId={id} group="confirmation" initialOpen />}
-          {active === "offboarding" && hasExit && <div className="space-y-6"><EmploymentLetters key="exit" candidateId={id} group="exit" initialOpen /><DocumentChecklist id={id} purpose="offboarding" employee={form} start={form.offboarding_details?.date_of_offboarding ?? form.offboarded_at ?? null} /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
+          {active === "hiring_letters" && <EmploymentLetters key="hiring" candidateId={id} group="hiring" />}
+          {active === "confirmation_letter" && <EmploymentLetters key="confirmation" candidateId={id} group="confirmation" />}
+          {active === "offboarding" && hasExit && <div className="space-y-6"><EmploymentLetters key="exit" candidateId={id} group="exit" /><DocumentChecklist id={id} purpose="offboarding" employee={form} start={form.offboarding_details?.date_of_offboarding ?? form.offboarded_at ?? null} /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
         </section>
       </div>
 

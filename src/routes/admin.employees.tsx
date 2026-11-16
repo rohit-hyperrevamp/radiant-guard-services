@@ -1,5 +1,6 @@
 import { matchesSearch as matchesSearchText, buildSearchHay, compileSearch, type SearchHay } from "@/lib/search-match";
 import { EmployeeRowActions } from "@/components/EmployeeRowActions";
+import { requestEmployeeStatusAction } from "@/lib/employee-status-action";
 import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { patchEmployeeSlice } from "@/lib/employee-list-cache";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
@@ -4039,12 +4040,19 @@ function EmployeesPage() {
     onPostings={() => setPostingsFor(c.id)}
     onSign={docType => setSignTarget({ id: c.id, docType })}
     statusLabel={c.is_enabled && c.status !== "inactive" ? "Start offboarding" : "Reactivate employee"}
-    statusDisabled={!c.is_enabled && c.no_hire}
+    statusActive={c.is_enabled && c.status !== "inactive"}
+    statusDisabled={(!c.is_enabled && c.no_hire) || c.offboarding_details?.collection_status === "pending" || offboardMut.isPending || toggleEnabledMut.isPending}
     onStatus={() => {
-      if (c.is_enabled && c.status !== "inactive") { setOffboardTarget(c); setOffboardReasonId(""); return; }
+      void requestEmployeeStatusAction({
+        active: c.is_enabled && c.status !== "inactive",
+        confirmOffboarding: () => confirmAction({ title: "Are you sure you want to off-board this employee?", description: `${c.full_name || c.employee_code}: continue to fill in the offboarding details. Their status will not change until the offboarding process is completed.`, confirmText: "Yes, continue" }),
+        startOffboarding: () => { setOffboardTarget(c); setOffboardReasonId(""); },
+        reactivate: () => {
       if (c.no_hire) { toast.error("This employee is flagged Do not re-hire."); return; }
       if (c.offboarding_reason_id || c.offboarded_at) { setReactivateTarget(c); return; }
       void confirmAction({ title: "Activate employee?", description: `${c.full_name || c.employee_code} will be marked active again.`, confirmText: "Activate" }).then(ok => { if (ok) toggleEnabledMut.mutate({ candidate: c, enabled: true }); });
+        },
+      });
     }}
   />;
 
@@ -10770,7 +10778,7 @@ function OffboardingDialog({
         if (!o) onClose();
       }}
     >
-      <DialogContent className="max-h-[92vh] w-[96vw] max-w-3xl overflow-y-auto">
+      <DialogContent size="document" className="flex max-h-[92dvh] flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Offboard employee</DialogTitle>
           <DialogDescription>
@@ -10783,7 +10791,7 @@ function OffboardingDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pr-2">
           {/* Section: Reason + Dates */}
           <section className="space-y-3">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
