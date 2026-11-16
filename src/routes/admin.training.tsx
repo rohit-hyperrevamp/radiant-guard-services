@@ -11,6 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
+import { TrainingCategories } from "@/components/TrainingCategories";
+import { TrainingPreview } from "@/components/TrainingPreview";
+import { TRAINING_CATEGORIES, categoryDocuments } from "@/lib/training-library";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
 
 export const Route = createFileRoute("/admin/training")({
   component: TrainingPage,
@@ -45,10 +49,12 @@ function fmtSize(n: number | null) {
 
 function TrainingPage() {
   const { isSuperAdmin } = useCurrentPermissions();
+  const hasSession = useHasSupabaseSession();
   const [roleKey, setRoleKey] = useState<string | null>(null);
 
   const rolesQ = useQuery({
     queryKey: ["training-roles"],
+    enabled: hasSession && isSuperAdmin,
     queryFn: async () => {
       const { data, error } = await db.from("roles").select("key,name").order("name");
       if (error) throw error;
@@ -57,6 +63,7 @@ function TrainingPage() {
   });
   const modulesQ = useQuery({
     queryKey: ["training-modules"],
+    enabled: hasSession && isSuperAdmin,
     queryFn: async () => {
       const { data, error } = await db.from("training_modules").select("*").order("sort_order").order("created_at");
       if (error) throw error;
@@ -70,40 +77,21 @@ function TrainingPage() {
 
   const roles = rolesQ.data ?? [];
   const modules = modulesQ.data ?? [];
-  const role = roles.find((r) => r.key === roleKey);
+  const category = TRAINING_CATEGORIES.find((r) => r.key === roleKey);
+  const role = category ? { key: category.key, name: category.name } : null;
 
   if (role) {
-    return <RoleModules role={role} modules={modules.filter((m) => m.role_key === role.key)} onBack={() => setRoleKey(null)} />;
+    return <RoleModules role={role} modules={categoryDocuments(modules, role.key)} onBack={() => setRoleKey(null)} />;
   }
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Training"
-        description="Pick a role to see and manage its training documents."
+        description={`${modules.length} training guides · Department library`}
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Training" }]}
       />
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-3">
-        {roles.map((r) => {
-          const list = modules.filter((m) => m.role_key === r.key);
-          const active = list.filter((m) => m.is_active).length;
-          return (
-            <button
-              key={r.key}
-              onClick={() => setRoleKey(r.key)}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-accent/40 hover:bg-accent/5 sm:p-4"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
-                <GraduationCap className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate font-display text-sm font-medium sm:text-base">{r.key === "guard" ? "Security Guard" : r.name}</div>
-                <div className="text-xs text-muted-foreground">{list.length} document{list.length === 1 ? "" : "s"} · {active} active</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      {modulesQ.isLoading ? <p className="text-muted-foreground">Loading guides…</p> : modulesQ.isError ? <Button onClick={() => void modulesQ.refetch()}>Retry loading guides</Button> : <TrainingCategories documents={modules} onSelect={setRoleKey} includeEmpty />}
     </div>
   );
 }
@@ -114,6 +102,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<TrainingModule | null>(null);
   const sorted = useMemo(() => [...modules].sort((a, b) => a.sort_order - b.sort_order), [modules]);
   const pg = usePagination(sorted, 20);
   const refresh = () => qc.invalidateQueries({ queryKey: ["training-modules"] });
@@ -164,7 +153,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
   const open = async (m: TrainingModule) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(m.file_path, 600);
     if (error || !data) return toast.error(error?.message ?? "Could not open file");
-    window.open(data.signedUrl, "_blank", "noopener");
+    setPreview(m);
   };
 
   return (
@@ -174,7 +163,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
         description="Documents this role must go through."
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Training" }, { label: roleLabel }]}
       />
-      <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft className="mr-1 h-4 w-4" />All roles</Button>
+      <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft className="mr-1 h-4 w-4" />All categories</Button>
 
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-center">
         <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -217,6 +206,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
         </table>
       </div>
       <DataPagination {...pg} />
+      <TrainingPreview document={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }

@@ -59,3 +59,4 @@
 - Recruitment document follow-up uses employee_document_policies and private receipts with one shared evidence/deadline classifier; uploaded files count, typed identity data does not, and lifecycle approvals remain unchanged.
 - Recruitment document summaries/lists come from `document_followup_summary`/`document_followup_list` (DB-computed, paged); dashboards show the compact panel, full lists live on the documents route — never download every employee to the browser.
 - Document follow-up date ranges filter inclusive joining/rehire/exit action dates in both count and list RPCs; retain old RPC signatures for rolling delivery compatibility.
+- Training pages share department grouping in training-library; role_key remains the storage grouping and existing RLS is unchanged, so category navigation cannot grant access or lose older guides.

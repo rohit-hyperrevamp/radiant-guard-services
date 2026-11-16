@@ -1,3 +1,8 @@
+## Department training library — 16 November
+- [ ] Review and import all uploaded department guides into private training storage; retain and categorise existing guides.
+- [ ] Add category-first browsing, clear guide titles and in-page PDF reading to training pages; preserve management and read access.
+- [ ] Verify private files, category filtering and focused tests; check production delivery availability.
+
 ## Employee document time filter — 16 November
 - [x] Added last six months, one year, two years, all dates and custom inclusive joining/action-date ranges; counts and paged lists filter together without changing employee records.
 - [x] All 15 focused tests pass; compilation OK. All five production ranges verified with Sanskruti's existing access, count/list agreement and backward compatibility; no employee data changed.

@@ -6,6 +6,12 @@ import { BookOpen, ChevronLeft, FileText, Loader2, RefreshCw } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { TrainingCategories } from "@/components/TrainingCategories";
+import { ScrollingText } from "@/components/ScrollingText";
+import { TRAINING_CATEGORIES, categoryDocuments } from "@/lib/training-library";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
+import { Input } from "@/components/ui/input";
+import { matchesSearch } from "@/lib/search-match";
 
 const BUCKET = "training";
 
@@ -23,6 +29,14 @@ type TrainingModule = {
 export const Route = createFileRoute("/admin/my-training")({
   ssr: false,
   component: MyTrainingPage,
+  head: () => ({ meta: [
+    { title: "Department Training Library | Radiant Guard Services" },
+    { name: "description", content: "Read Radiant training guides by department, including HR, payroll, finance, transport and field operations." },
+    { property: "og:title", content: "Department Training Library | Radiant Guard Services" },
+    { property: "og:description", content: "Department-wise training guides for Radiant teams." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function formatSize(bytes: number) {
@@ -32,6 +46,9 @@ function formatSize(bytes: number) {
 }
 
 function MyTrainingPage() {
+  const hasSession = useHasSupabaseSession();
+  const [categoryKey, setCategoryKey] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
@@ -39,6 +56,7 @@ function MyTrainingPage() {
 
   const modulesQ = useQuery({
     queryKey: ["my-training-modules"],
+    enabled: hasSession,
     queryFn: async () => {
       const db = supabase as any;
       const { data, error } = await db
@@ -53,25 +71,29 @@ function MyTrainingPage() {
   });
 
   const modules = useMemo(() => modulesQ.data ?? [], [modulesQ.data]);
+  const category = TRAINING_CATEGORIES.find((c) => c.key === categoryKey);
+  const visibleModules = useMemo(() => categoryDocuments(modules, categoryKey ?? "").filter((m) => matchesSearch(search, m.title, m.description ?? "")), [modules, categoryKey, search]);
   const selected = modules.find((m) => m.id === selectedId) ?? null;
 
-  const loadSignedUrl = async (m: TrainingModule) => {
+  const loadSignedUrl = async (m: TrainingModule, valid: () => boolean = () => true) => {
     setViewerLoading(true);
     setViewerError(null);
     try {
       const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(m.file_path, 600);
       if (error) throw error;
-      setSignedUrl(data.signedUrl);
+      if (valid()) setSignedUrl(data.signedUrl);
     } catch (e) {
-      setViewerError(e instanceof Error ? e.message : "Could not open the document.");
+      if (valid()) setViewerError(e instanceof Error ? e.message : "Could not open the document.");
     } finally {
-      setViewerLoading(false);
+      if (valid()) setViewerLoading(false);
     }
   };
 
   useEffect(() => {
+    let active = true;
     setSignedUrl(null);
-    if (selected) void loadSignedUrl(selected);
+    if (selected) void loadSignedUrl(selected, () => active);
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
@@ -85,11 +107,12 @@ function MyTrainingPage() {
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-black">Training</h1>
-          <p className="truncate text-xs text-muted-foreground sm:text-sm">Documents and guides for your role</p>
+          <p className="text-xs text-muted-foreground sm:text-sm">{category?.name ?? "Department library"} · {modules.length} guides</p>
         </div>
       </div>
 
-      {modulesQ.isLoading ? (
+      {category && <div className="flex flex-wrap items-center gap-3"><Button variant="outline" size="sm" onClick={() => { setCategoryKey(null); setSelectedId(null); setSearch(""); }}><ChevronLeft className="mr-1 h-4 w-4" />All categories</Button><Input aria-label="Search training guides" placeholder="Search guides" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" /></div>}
+      {modulesQ.isError ? <div><p>Could not load training guides.</p><Button onClick={() => void modulesQ.refetch()}>Try again</Button></div> : !hasSession || modulesQ.isLoading ? (
         <div className="flex-1 rounded-2xl border bg-card">
           <ListSkeleton rows={6} />
         </div>
@@ -103,7 +126,7 @@ function MyTrainingPage() {
             </p>
           </div>
         </div>
-      ) : (
+      ) : !category ? <div className="min-h-0 flex-1 overflow-y-auto"><TrainingCategories documents={modules} onSelect={setCategoryKey} /></div> : (
         <div className="grid min-h-0 flex-1 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-4">
           {/* Document list */}
           <div
@@ -114,9 +137,10 @@ function MyTrainingPage() {
           >
             <div className="mb-2 flex items-center justify-between border-b px-1 pb-3 lg:hidden">
               <p className="text-sm font-semibold">Your documents</p>
-              <p className="text-xs text-muted-foreground">{modules.length} available</p>
+              <p className="text-xs text-muted-foreground">{visibleModules.length} available</p>
             </div>
-            {modules.map((m, i) => {
+            {visibleModules.length === 0 && <p className="p-3 text-sm text-muted-foreground">No guides match your search.</p>}
+            {visibleModules.map((m, i) => {
               const active = m.id === selectedId;
               return (
                 <Button
@@ -138,10 +162,10 @@ function MyTrainingPage() {
                   >
                     {i + 1}
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold leading-5">{m.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <ScrollingText text={m.title} className="block text-sm font-semibold leading-5" />
                     {m.description ? (
-                      <p className="mt-0.5 line-clamp-2 whitespace-normal text-xs font-normal text-muted-foreground">{m.description}</p>
+                      <ScrollingText text={m.description} className="mt-0.5 block text-xs font-normal text-muted-foreground" />
                     ) : null}
                     <p className="mt-1 text-[11px] font-normal text-muted-foreground">
                       PDF{formatSize(m.size_bytes) ? ` · ${formatSize(m.size_bytes)}` : ""}
@@ -172,7 +196,7 @@ function MyTrainingPage() {
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{selected.title}</p>
+                    <ScrollingText text={selected.title} className="block text-sm font-semibold" />
                     <p className="text-[11px] text-muted-foreground lg:hidden">
                       Document {selectedIndex + 1} of {modules.length}
                     </p>
