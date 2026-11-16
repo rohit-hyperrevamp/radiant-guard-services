@@ -4,10 +4,22 @@ export const DOCUMENT_TYPES: Record<string, string> = {
   photo: "Photograph", aadhaar_front: "Aadhaar front", aadhaar_back: "Aadhaar back", pan: "PAN card", signature: "Employee signature",
   tenth: "10th certificate", twelfth: "12th certificate", graduation: "Graduation certificate", professional: "Professional certificate", birth: "Date-of-birth proof", residence: "Residence proof", bank: "Bank proof", salary_slip: "Previous salary slips", resignation: "Resignation letter", relieving: "Previous relieving letter", experience: "Experience letter", id_card: "Returned ID card copy",
 };
-export type DocumentPolicy = { purpose: DocumentPurpose; required_keys: string[]; deadline_days: number; owner_candidate_id: string | null };
+export const DETAIL_TYPES: Record<string, string> = {
+  aadhaar_number: "Aadhaar number", pan_number: "PAN number", bank_account: "Bank account number", bank_ifsc: "Bank IFSC", bank_name: "Bank name", date_of_birth: "Date of birth", mobile: "Mobile number", present_address: "Present address", permanent_address: "Permanent address", emergency_contact: "Emergency contact", last_working_date: "Last working date", exit_reason: "Exit reason",
+};
+export type DocumentStatusFilter = "active" | "inactive" | "all";
+/** Plain message HR can send to the employee listing everything still needed. */
+export function followupRequestText(name: string, missing: string[], details: string[], due: string | null): string {
+  const lines = [`Dear ${name},`, "", "Please share the following pending items with HR:"];
+  for (const k of details) lines.push(`- ${DETAIL_TYPES[k] ?? k}`);
+  for (const k of missing) lines.push(`- ${DOCUMENT_TYPES[k] ?? k} (copy)`);
+  if (due) lines.push("", `Please submit by ${due}.`);
+  return lines.join("\n");
+}
+export type DocumentPolicy = { purpose: DocumentPurpose; required_keys: string[]; required_details?: string[]; deadline_days: number; owner_candidate_id: string | null };
 export type DocumentPerson = {
   id: string; recId?: string; name: string; code: string; purpose: DocumentPurpose; start: string | null;
-  received: string[]; missing: string[]; due: string | null; overdue: boolean;
+  received: string[]; missing: string[]; missingDetails?: string[]; active?: boolean; due: string | null; overdue: boolean;
 };
 export function documentEvidence(employee: Record<string, any>): string[] {
   const keys = new Set<string>();

@@ -9,27 +9,27 @@ export async function fetchDocumentPolicies(): Promise<DocumentPolicy[]> {
   if (error) throw error;
   return data ?? [];
 }
-export type DocumentSummary = { people: number; overdue: number; types: Record<string, number> };
+export type DocumentSummary = { people: number; overdue: number; types: Record<string, number>; details: Record<string, number> };
 /** Dashboard overview: counts only, computed in the database (document_followup_summary). */
-export async function fetchDocumentSummary(): Promise<DocumentSummary> {
+export async function fetchDocumentSummary(status: string = "active"): Promise<DocumentSummary> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
-  const { data, error } = await (recDb as any).rpc("document_followup_summary");
+  const { data, error } = await (recDb as any).rpc("document_followup_summary", { p_status: status });
   if (error) throw error;
-  return { people: Number(data?.people ?? 0), overdue: Number(data?.overdue ?? 0), types: data?.types ?? {} };
+  return { people: Number(data?.people ?? 0), overdue: Number(data?.overdue ?? 0), types: data?.types ?? {}, details: data?.details ?? {} };
 }
-export type DocumentListFilters = { type: string; purpose: string; overdue: boolean; words: string[]; page: number };
+export type DocumentListFilters = { type: string; purpose: string; overdue: boolean; words: string[]; page: number; status: string };
 export const DOCUMENT_PAGE_SIZE = 15;
 /** One filtered page of people with missing files, filtered and paged in the database (document_followup_list). */
 export async function fetchDocumentList(f: DocumentListFilters): Promise<{ total: number; rows: DocumentPerson[] }> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
   const { data, error } = await (recDb as any).rpc("document_followup_list", {
     p_type: f.type === "all" ? null : f.type, p_purpose: f.purpose === "all" ? null : f.purpose, p_overdue: f.overdue,
-    p_words: f.words, p_offset: f.page * DOCUMENT_PAGE_SIZE, p_limit: DOCUMENT_PAGE_SIZE,
+    p_words: f.words, p_offset: f.page * DOCUMENT_PAGE_SIZE, p_limit: DOCUMENT_PAGE_SIZE, p_status: f.status,
   });
   if (error) throw error;
   const rows: DocumentPerson[] = (data?.rows ?? []).map((r: any) => ({
     id: r.id, recId: r.rec_id ?? undefined, name: r.full_name ?? "", code: r.code ?? "", purpose: r.purpose as DocumentPurpose,
-    start: r.start_date ?? null, received: [], missing: r.missing ?? [], due: r.due ?? null, overdue: !!r.overdue,
+    start: r.start_date ?? null, received: [], missing: r.missing ?? [], missingDetails: r.missing_details ?? [], active: r.active !== false, due: r.due ?? null, overdue: !!r.overdue,
   }));
   return { total: Number(data?.total ?? 0), rows };
 }
