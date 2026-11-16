@@ -72,7 +72,7 @@ function MyTrainingPage() {
 
   const modules = useMemo(() => modulesQ.data ?? [], [modulesQ.data]);
   const category = TRAINING_CATEGORIES.find((c) => c.key === categoryKey);
-  const visibleModules = useMemo(() => categoryDocuments(modules, categoryKey ?? "").filter((m) => matchesSearch(search, m.title, m.description ?? "")), [modules, categoryKey, search]);
+  const visibleModules = useMemo(() => categoryDocuments(modules, categoryKey ?? "").filter((m) => matchesSearch(search, [m.title, m.description])), [modules, categoryKey, search]);
   const selected = modules.find((m) => m.id === selectedId) ?? null;
 
   const loadSignedUrl = async (m: TrainingModule, valid: () => boolean = () => true) => {

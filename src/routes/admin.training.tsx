@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, FileText, GraduationCap, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -15,15 +15,16 @@ import { TrainingCategories } from "@/components/TrainingCategories";
 import { TrainingPreview } from "@/components/TrainingPreview";
 import { TRAINING_CATEGORIES, categoryDocuments } from "@/lib/training-library";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
+import { ScrollingText } from "@/components/ScrollingText";
 
 export const Route = createFileRoute("/admin/training")({
   component: TrainingPage,
   head: () => ({
     meta: [
       { title: "Training | Radiant Guard Services" },
-      { name: "description", content: "Role-wise training documents and modules for Radiant staff." },
+      { name: "description", content: "Manage Radiant department training guides and PDF documents." },
       { property: "og:title", content: "Training | Radiant Guard Services" },
-      { property: "og:description", content: "Role-wise training documents and modules." },
+      { property: "og:description", content: "Manage department training guides and PDF documents." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -52,15 +53,6 @@ function TrainingPage() {
   const hasSession = useHasSupabaseSession();
   const [roleKey, setRoleKey] = useState<string | null>(null);
 
-  const rolesQ = useQuery({
-    queryKey: ["training-roles"],
-    enabled: hasSession && isSuperAdmin,
-    queryFn: async () => {
-      const { data, error } = await db.from("roles").select("key,name").order("name");
-      if (error) throw error;
-      return (data ?? []) as Role[];
-    },
-  });
   const modulesQ = useQuery({
     queryKey: ["training-modules"],
     enabled: hasSession && isSuperAdmin,
@@ -75,7 +67,6 @@ function TrainingPage() {
     return <div className="p-6 text-sm text-muted-foreground">Only Super Admin can manage training.</div>;
   }
 
-  const roles = rolesQ.data ?? [];
   const modules = modulesQ.data ?? [];
   const category = TRAINING_CATEGORIES.find((r) => r.key === roleKey);
   const role = category ? { key: category.key, name: category.name } : null;
@@ -105,7 +96,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
   const [preview, setPreview] = useState<TrainingModule | null>(null);
   const sorted = useMemo(() => [...modules].sort((a, b) => a.sort_order - b.sort_order), [modules]);
   const pg = usePagination(sorted, 20);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["training-modules"] });
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ["training-modules"] }), qc.invalidateQueries({ queryKey: ["my-training-modules"] })]);
 
   const upload = useMutation({
     mutationFn: async () => {
@@ -150,17 +141,13 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const open = async (m: TrainingModule) => {
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(m.file_path, 600);
-    if (error || !data) return toast.error(error?.message ?? "Could not open file");
-    setPreview(m);
-  };
+  const open = (m: TrainingModule) => setPreview(m);
 
   return (
     <div className="space-y-4">
       <PageHeader
         title={`Training — ${roleLabel}`}
-        description="Documents this role must go through."
+        description={`${modules.length} department guides`}
         crumbs={[{ label: "Control Center", to: "/admin/control-center" }, { label: "Training" }, { label: roleLabel }]}
       />
       <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft className="mr-1 h-4 w-4" />All categories</Button>
@@ -187,7 +174,7 @@ function RoleModules({ role, modules, onBack }: { role: Role; modules: TrainingM
               <tr key={m.id} className="border-t border-border">
                 <td className="p-2">{m.sort_order}</td>
                 <td className="p-2">
-                  <div className="flex items-center gap-2 font-medium"><FileText className="h-4 w-4 text-accent" />{m.title}</div>
+                  <div className="flex items-center gap-2 font-medium"><FileText className="h-4 w-4 shrink-0 text-accent" /><ScrollingText text={m.title} className="max-w-sm" /></div>
                   {m.description && <div className="text-xs text-muted-foreground">{m.description}</div>}
                   <div className="text-xs text-muted-foreground">{m.file_name}</div>
                 </td>

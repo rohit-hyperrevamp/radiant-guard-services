@@ -1,7 +1,8 @@
 ## Department training library — 16 November
-- [ ] Review and import all uploaded department guides into private training storage; retain and categorise existing guides.
-- [ ] Add category-first browsing, clear guide titles and in-page PDF reading to training pages; preserve management and read access.
-- [ ] Verify private files, category filtering and focused tests; check production delivery availability.
+- [x] Reviewed and imported 42 original PDFs into private training storage, verified their bytes and preserved all 20 existing guide records exactly.
+- [x] Added shared department cards, category-only guide lists, search and in-page PDF reading; existing read and management permissions unchanged.
+- [x] Four category tests pass and compilation OK; 62 records verified in production, private bucket unchanged.
+- [ ] Signed-in live navigation and PDF preview remain unverified: production redirects to login; new page layout awaits GitHub-to-Vercel delivery.
 
 ## Employee document time filter — 16 November
 - [x] Added last six months, one year, two years, all dates and custom inclusive joining/action-date ranges; counts and paged lists filter together without changing employee records.
