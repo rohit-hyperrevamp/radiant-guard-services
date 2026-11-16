@@ -630,7 +630,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           r.attendance_open || r.actual_invoice <= 0
             ? "##"
             : `${(((r.actual_invoice - r.actual_payroll - r.actual_employer_contribution) / r.actual_invoice) * 100).toFixed(1)}%`,
-        Status: r.attendance_open ? "Attendance open" : "Ready",
+        Status: r.attendance_open ? "Awaiting approval – not in totals" : "Included",
       })),
     );
 
@@ -644,7 +644,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           <h2 className="text-base font-semibold">Client Profitability</h2>
           <p className="text-xs text-muted-foreground">
             Live unit-level invoice, earned gross and employer contribution for the selected payroll
-            window. Sites with attendance still open show ##.
+            window. Sites whose attendance is not yet approved show ## and are left out of the totals.
           </p>
         </div>
         <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
@@ -765,7 +765,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">##</td>
                     <td colSpan={2} className="px-3 py-2 text-right">
                       <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-600">
-                        Attendance open
+                        Awaiting approval · not in totals
                       </span>
                     </td>
                   </tr>

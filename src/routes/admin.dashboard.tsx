@@ -842,8 +842,6 @@ function DashboardPage() {
         const wanted = [8, 10, 12].includes(Number(shift)) ? `${base}|${shift}` : null;
         return wanted && hydratedByContractDesignation.has(wanted) ? wanted : base;
       };
-      const isNonBillableInvoiceItem = (item: { name?: string }) =>
-        /\besi(c)?\b|\bprofessional\s*tax\b|\bpt\b/i.test(String(item.name ?? ""));
 
       // Period dates.
       const periodDates: string[] = [];
@@ -1077,12 +1075,17 @@ function DashboardPage() {
             (sum, item) => sum + (Number(item.amount) || 0),
             0,
           );
+          // Same contracted monthly billing as the actual-invoice estimate
+          // (components + benefits + all employer lines) so both sides compare like-for-like.
+          const sumLines = (items: { amount?: unknown }[] | undefined) =>
+            (items ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
           const invoicePerHead =
-            payrollPerHead +
-            resource.employerContributions.reduce(
-              (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
-              0,
-            );
+            Math.round(
+              (sumLines(resource.components) +
+                sumLines(resource.benefits) +
+                sumLines(resource.employerContributions)) *
+                100,
+            ) / 100;
           committedPayroll += qty * payrollPerHead;
           if (!isInternal) contractValue += qty * invoicePerHead;
         }
