@@ -1,3 +1,8 @@
+## Recruitment dashboard cleanup — 16 November
+- [x] Replace large tiles and duplicate stage/funnel displays with a compact summary strip and hiring-stage rows; retain interview actions, document links and optional breakdowns without changing data or permissions.
+- [x] Compilation OK, all 11 focused document/letter tests passed, and diff checks passed; no recruitment data or access rules changed.
+- [ ] Authenticated production layout verification remains pending Vercel delivery and a live session.
+
 ## Direct dashboard document card — 16 November
 - [x] Add the Employee documents card alongside the main dashboard cards, including Leadership and HR, linking directly to the dedicated page without opening the Recruitment tab; reuse current counts and access rules.
 - [x] All 11 document/letter tests passed; compilation OK. Card sits directly in the main tile grid and HR dashboard, preserving existing access and document data.
