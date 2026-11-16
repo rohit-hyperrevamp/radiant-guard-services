@@ -1,3 +1,7 @@
+## Non-billable team visibility — 16 November
+- [ ] Add configurable non-billable Access Control view grants for organizations, clients, contracts and all-unit attendance; preserve separately authorized edit actions and billable-user scope.
+- [ ] Verify production read access and rejected unauthorized writes across departments; preserve operational inactive-client filtering.
+
 ## ESIC and EPF original-format forms — 13 November
 - [x] Reused all four supplied original templates; added employee selection, verified autofill, editable missing/event details and PDF preview/download in Compliance. Employee View/Export gates apply; source data is read-only and drafts stay in memory.
 - [x] Five mapping/PDF tests pass, all 132 field boxes validate, compilation OK. Shared exporter generated a five-page sample from real production employee 1; inspected every page, corrected EPF contact/employer alignment, verified saved UAN/ESIC/Aadhaar/bank identifiers in output. Missing accident facts, nominees, dates, declarations and signatures remain blank and explicitly draft-labelled.
