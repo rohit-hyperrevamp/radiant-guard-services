@@ -96,11 +96,15 @@ END $$;
 CREATE TRIGGER prepare_absence_policy BEFORE INSERT OR UPDATE ON public.guard_absence_policy
  FOR EACH ROW EXECUTE FUNCTION public.prepare_guard_absence_policy();
 
--- Presence, Extra Duty, half-day or a real punch at ANY site breaks absence.
--- Recorded leave/weekly off/paid holiday also breaks it. Unknown codes are not presumed absent.
-CREATE FUNCTION public.guard_absence_streak(_candidate uuid, _from date, _through date)
+-- Mobile-app guards: a day with no punch and no attendance counts as absent.
+-- Guards who have never punched in the app: only an explicit Absent (A) entry counts.
+-- Presence, Extra Duty, half-day, punch, leave, weekly off or paid holiday at ANY site breaks the streak.
+CREATE OR REPLACE FUNCTION public.guard_absence_streak(_candidate uuid, _from date, _through date)
 RETURNS TABLE(streak_start date, absent_days integer) LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- WITH days AS (
+ WITH app AS (
+   SELECT min(p.punch_date) first_punch FROM public.self_attendance_punches p
+   WHERE p.candidate_id=_candidate AND p.check_in_at IS NOT NULL
+ ), days AS (
    SELECT d::date dt FROM generate_series(_from::timestamp,_through::timestamp,interval '1 day') d
  ), classified AS (
    SELECT dt,
@@ -112,9 +116,11 @@ RETURNS TABLE(streak_start date, absent_days integer) LANGUAGE sql STABLE SECURI
      WHERE a.candidate_id=_candidate AND a.entry_date=dt AND
      (coalesce(a.ot_hours,0)>0 OR coalesce(ac.counts_as_present,false) OR coalesce(ac.is_leave,false)
       OR a.code IN ('W','WO','PH','PH_1.5') OR coalesce(a.code,'') NOT IN ('','A')))
-    OR EXISTS (SELECT 1 FROM public.self_attendance_punches p WHERE p.candidate_id=_candidate AND p.punch_date=dt AND p.check_in_at IS NOT NULL) safe
+    OR EXISTS (SELECT 1 FROM public.self_attendance_punches p WHERE p.candidate_id=_candidate AND p.punch_date=dt AND p.check_in_at IS NOT NULL) safe,
+    EXISTS (SELECT 1 FROM public.attendance_entries a WHERE a.candidate_id=_candidate AND a.entry_date=dt AND a.code='A') marked_absent,
+    (SELECT first_punch FROM app) IS NOT NULL AND dt>=(SELECT first_punch FROM app) uses_app
    FROM days
- ), last_break AS (SELECT max(dt) dt FROM classified WHERE safe OR NOT assigned)
+ ), last_break AS (SELECT max(dt) dt FROM classified WHERE safe OR NOT assigned OR NOT (marked_absent OR uses_app))
  SELECT min(c.dt),count(*)::integer FROM classified c CROSS JOIN last_break b
  WHERE c.dt>coalesce(b.dt,_from-1);
 $$;
