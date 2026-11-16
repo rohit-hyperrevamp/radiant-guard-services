@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, UserPlus } from "lucide-react";
+import { ArrowRight, Percent, UserCheck, UserPlus, UserX, Users } from "lucide-react";
+import { CharterTile } from "@/components/CharterTiles";
+import { ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
+
+const STAGE_ACCENTS: Accent[] = ["sky", "cyan", "violet", "indigo", "amber", "emerald"];
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,23 +84,25 @@ function RecruitmentDashboard() {
         icon={UserPlus}
         actions={<Button asChild size="sm"><Link to="/admin/hr/recruitment/candidates">Candidates<ArrowRight className="ml-2 h-4 w-4"/></Link></Button>}
       />
-      <section aria-label="Recruitment summary" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        {[
-          {label:"Open candidates",value:s.open,stage:"open",tone:"text-primary"},
-          {label:"In pipeline",value:s.pipeline,stage:"pipeline",tone:"text-foreground"},
-          {label:"Joined this month",value:s.closures,stage:"onboarded",tone:"text-primary"},
-          {label:"Lost this month",value:s.lost,stage:"lost",tone:"text-destructive"},
-        ].map(item=><button key={item.stage} type="button" onClick={()=>go(item.stage)} className="rounded-xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-primary/40 hover:shadow-md"><p className="text-xs font-medium text-muted-foreground">{item.label}</p><p className={`mt-1 text-2xl font-semibold tabular-nums ${item.tone}`}>{cq.isLoading||cq.error?"—":item.value.toLocaleString("en-IN")}</p></button>)}
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm"><p className="text-xs font-medium text-muted-foreground">Closure rate</p><p className="mt-1 text-2xl font-semibold tabular-nums text-primary">{cq.isLoading||cq.error?"—":`${s.pct}%`}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${s.pct}%`}}/></div></div>
+      <section aria-label="Recruitment summary" className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5">
+        {([
+          {label:"Open candidates",sub:"New & screening",value:s.open,stage:"open",accent:"sky",icon:UserPlus},
+          {label:"In pipeline",sub:"All active stages",value:s.pipeline,stage:"pipeline",accent:"violet",icon:Users},
+          {label:"Joined this month",sub:"Onboarded",value:s.closures,stage:"onboarded",accent:"emerald",icon:UserCheck},
+          {label:"Lost this month",sub:"Rejected or withdrawn",value:s.lost,stage:"lost",accent:"rose",icon:UserX},
+        ] as const).map(item=><button key={item.stage} type="button" onClick={()=>go(item.stage)} className="min-w-0 rounded-[26px] text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <CharterTile label={item.label} sub={item.sub} countTo={cq.isLoading||cq.error?undefined:item.value} value="—" icon={item.icon} accent={item.accent} />
+        </button>)}
+        <CharterTile label="Closure rate" sub="Joined ÷ (joined + lost)" value={cq.isLoading||cq.error?"—":`${s.pct}%`} icon={Percent} accent="amber" />
       </section>
-      <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold">Hiring stages</h2>
-        {cq.error?<p className="text-sm text-destructive">Candidate summary unavailable.</p>:<div className="flex flex-wrap gap-2">
-          {STAGES.map(st=>{const n=s.byStage.get(st.key)??0;return <button key={st.key} type="button" onClick={()=>go(st.key)} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition hover:border-primary/50 ${n>0?"border-primary/30 bg-primary/10 text-foreground":"border-border text-muted-foreground"}`}><span>{st.label}</span><span className={`min-w-5 rounded-full px-1.5 text-center font-semibold tabular-nums ${n>0?"bg-primary text-primary-foreground":"bg-muted"}`}>{cq.isLoading?"—":n}</span></button>;})}
+      <section className="rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
+        <div className="mb-3 flex items-center justify-between gap-2"><h2 className="font-display text-[15px] font-medium">Hiring stages</h2><span className="text-xs text-muted-foreground">Click a stage to open its candidates</span></div>
+        {cq.error?<p className="text-sm text-destructive">Candidate summary unavailable.</p>:<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {STAGES.map((st,idx)=>{const n=s.byStage.get(st.key)??0;const acc=STAGE_ACCENTS[idx%STAGE_ACCENTS.length];return <button key={st.key} type="button" onClick={()=>go(st.key)} className={`flex min-w-0 flex-col items-start gap-1 rounded-2xl border border-border/40 p-3 text-left transition-transform hover:-translate-y-0.5 ${n>0?ACCENT_TILE_BG[acc]:"bg-muted/40"}`}><span className="w-full truncate text-xs text-muted-foreground">{st.label}</span><span className={`font-display text-2xl font-medium tabular-nums ${n>0?"text-foreground":"text-muted-foreground"}`}>{cq.isLoading?"—":n}</span></button>;})}
         </div>}
       </section>
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <section className="min-w-0 rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">Interviews · next 7 days</h2><Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/admin/hr/recruitment/interviews">View all<ArrowRight className="ml-1 h-3 w-3"/></Link></Button></div>
           {iq.isLoading?<p className="text-sm text-muted-foreground">Loading interviews…</p>:iq.error?<p className="text-sm text-destructive">Interviews unavailable.</p>:s.upcoming.length === 0 ? <p className="rounded-lg bg-muted/50 py-6 text-center text-sm text-muted-foreground">No interviews scheduled.</p> : (
             <ul className="divide-y divide-border">
@@ -112,7 +118,7 @@ function RecruitmentDashboard() {
           )}
           {s.overdue.length > 0 && <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">Feedback overdue for {s.overdue.length} interview{s.overdue.length>1?"s":""}</p>}
         </section>
-        <section className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <section className="min-w-0 rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
           <DocumentFollowupPanel compact />
         </section>
       </div>
@@ -129,7 +135,7 @@ function Breakdown({ title, data }: { title: string; data: Map<string, number> }
   const rows = Array.from(data.entries()).sort((a, b) => b[1] - a[1]);
   const max = rows[0]?.[1] ?? 1;
   return (
-    <section className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-sm">
+    <section className="min-w-0 rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
       <h2 className="mb-3 text-sm font-semibold">{title}</h2>
       {rows.length === 0 ? <p className="text-sm text-muted-foreground">No active candidates.</p> : (
         <ul className="space-y-2 text-sm">
