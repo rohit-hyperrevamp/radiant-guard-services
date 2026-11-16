@@ -223,6 +223,9 @@ export function useAttendanceMoneyRealtime() {
             if (typeof key !== "string") return false;
             return (
               key === PERIOD_STATUS_QK ||
+              key.startsWith("dashboard-counts") ||
+              key.startsWith("dashboard-pnl") ||
+              key.startsWith("dashboard-counts-masters") ||
               key.startsWith("attendance") ||
               key.startsWith("finance-charter") ||
               key.startsWith("payroll") ||

@@ -1,3 +1,5 @@
+import { useRegisterPeriods } from "@/lib/use-register-periods";
+import { summarizeRegisterStatuses } from "@/lib/register-summary";
 import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -37,9 +39,7 @@ import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalI
 import { EXCLUDE, isSplit, loadOrgInvoiceSplit, type InvoiceItemKey, type InvoiceSplit } from "@/lib/invoice-split";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadPeriodGstOptions } from "@/lib/contract-gst";
-import { fetchInChunks } from "@/lib/supabase-batch";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
-import { resolveSavedAttendancePeriod, type SavedAttendancePeriod } from "@/lib/saved-attendance-period";
 import { invoiceQueryFreshness } from "@/lib/invoice-query-freshness";
 
 
@@ -221,48 +221,10 @@ export function FinanceCharter({
     },
   });
 
-  const selectedMonth = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
-  const savedPeriodsQ = useQuery({
-    queryKey: ["attendance-saved-periods", allUnitIds.join(","), selectedMonth],
-    enabled: allUnitIds.length > 0,
-    ...invoiceQueryFreshness,
-    queryFn: async () => {
-      await supabaseSessionReady();
-      const monthEnd = payrollPeriodForMonth(year, monthIdx).end;
-      return fetchInChunks<SavedAttendancePeriod>(allUnitIds, (ids, from, to) =>
-        supabase.from("attendance_sheets" as never)
-          .select("unit_id, period_start, period_end")
-          .in("unit_id", ids)
-          .gte("period_end", `${selectedMonth}-01`)
-          .lte("period_end", monthEnd)
-          .order("id")
-          .range(from, to),
-      );
-    },
-  });
-  const allPeriodsByUnit = useMemo(() => {
-    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of allUnitIds) {
-      const expected = payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId));
-      const resolved = resolveSavedAttendancePeriod(unitId, expected, selectedMonth, savedPeriodsQ.data ?? []);
-      const dates = periodDateList(resolved.start, resolved.end);
-      const today = new Date();
-      const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      const elapsedDays = dates.filter((d) => d <= todayIso).length;
-      out.set(unitId, { ...resolved, totalDays: dates.length, elapsedDays, mtdEnd: dates[Math.max(0, elapsedDays - 1)] ?? resolved.start });
-    }
-    return out;
-  }, [allUnitIds, year, monthIdx, windowsByUnit, selectedMonth, savedPeriodsQ.data]);
-  const allPeriodKey = useMemo(
-    () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
-    [allPeriodsByUnit],
-  );
-  const allStatusQ = useQuery({
-    queryKey: [PERIOD_STATUS_QK, "charter-all", allPeriodKey],
-    enabled: allUnitIds.length > 0 && savedPeriodsQ.isSuccess,
-    staleTime: 0,
-    queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
-  });
+  const registerPeriods = useRegisterPeriods(allUnitIds, year, monthIdx, windowsByUnit);
+  const allPeriodsByUnit = registerPeriods.periods;
+  const allPeriodKey = registerPeriods.periodKey;
+  const allStatusQ = registerPeriods.statusesQ;
 
   const matchedUnits = useMemo(() => {
     if (statusFilter === "all") return searchedUnits;
@@ -304,7 +266,7 @@ export function FinanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
-    enabled: mode === "invoice" && unitIds.length > 0 && savedPeriodsQ.isSuccess,
+    enabled: mode === "invoice" && unitIds.length > 0 && allStatusQ.isSuccess,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -517,22 +479,10 @@ export function FinanceCharter({
   // Register counts for the selected payroll period across the WHOLE charter (not just
   // the visible page): where every unit sits in the open → ready → processed
   // lifecycle.
-  const registers = useMemo(() => {
-    let open = 0;
-    let ready = 0;
-    let processed = 0;
-    let approved = 0;
-    for (const u of searchedUnits) {
-      const status = allStatusQ.data?.get(u.id);
-      const st = mode === "invoice" ? status?.invoice : status?.payroll;
-      if (st === "processed") processed += 1;
-      else if (st === "approved") approved += 1;
-      else if (st === "ready") ready += 1;
-      else open += 1;
-    }
-    return { total: searchedUnits.length, open, ready, approved, processed };
-  }, [searchedUnits, allStatusQ.data, mode]);
-
+  const registers = useMemo(() => ({
+    total: searchedUnits.length,
+    ...summarizeRegisterStatuses(allUnitIds, allStatusQ.data ?? new Map())[mode],
+  }), [searchedUnits.length, allUnitIds, allStatusQ.data, mode]);
 
   const exportCsv = () => {
     const rowsForCsv = allRows.map((r) => {
@@ -1142,11 +1092,13 @@ export function FinanceCharter({
   };
 
   const loading = mode === "invoice"
-    ? entriesQ.isLoading || financeQ.isLoading || allStatusQ.isLoading
-    : allStatusQ.isLoading;
+    ? registerPeriods.isLoading || entriesQ.isLoading || financeQ.isLoading || allStatusQ.isLoading
+    : registerPeriods.isLoading || allStatusQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
   const recordsRef = useRef<HTMLDivElement>(null);
+
+  if (registerPeriods.error) return <div className="py-6 text-sm text-destructive">Register statuses could not load. Please try again.</div>;
 
   return (
     <div className="space-y-3 sm:space-y-4">

@@ -39,7 +39,7 @@ export function usePayrollWindowSelection(
   }, [initial?.window, initial?.month, initial?.year]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!options.length || selectedKey === "all" || options.some((option) => option.key === selectedKey)) return;
+    if (!windowsQ.isSuccess || !options.length || selectedKey === "all" || options.some((option) => option.key === selectedKey)) return;
     const today = new Date();
     const containing = options
       .map((option) => {
@@ -55,7 +55,7 @@ export function usePayrollWindowSelection(
     };
     setSelectedKey(chosen.option.key);
     if (initial?.month == null || initial?.year == null) setAnchor(chosen.anchor);
-  }, [initial?.month, initial?.year, options, selectedKey]);
+  }, [initial?.month, initial?.year, options, selectedKey, windowsQ.isSuccess]);
 
   const selectWindow = (key: string) => {
     setSelectedKey(key);

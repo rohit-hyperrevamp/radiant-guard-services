@@ -1,3 +1,10 @@
+## Dashboard/register synchronization — 16 November
+- [x] Attendance/payroll/invoice tiles now reuse the same active charter roster, operational scope, historical saved dates and lifecycle reducer as their pages; Open means none/draft/rejected and Submitted stays separate.
+- [x] Main tiles carry month/year/window; dashboard arrivals clear unrelated remembered filters, and window choices wait for actual window data.
+- [x] Reviewed master tiles: current active clients/organizations, non-expired active contracts, deduplicated enabled employees excluding pending rehires replace broader totals. Existing task/recruitment/fleet providers unchanged.
+- [x] Twenty-one focused regressions pass; compilation OK. Production read reproduced old September 1,636 approved/533 open; corrected full-company visible roster is 1,702 sites: 1,627 approved and 75 open (72 missing, 3 draft), recovering 3 historical periods. No attendance or money records changed.
+- [ ] Signed-in live September click/count verification awaits GitHub-to-Vercel delivery and a live session; production dashboard redirected to login. The user's precise filtered 162/73 split remains unverified.
+
 ## Form windows and section outlines — 16 November
 - [x] Correct narrow desktop document windows, fit paper previews to their available space, and make phone document windows full-screen while retaining edit/save/export actions.
 - [x] Remove the Retina border override that boxed every directional divider; remove decorative form-section outlines without changing input boundaries or official document rules.

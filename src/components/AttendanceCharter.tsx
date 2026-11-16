@@ -1,3 +1,5 @@
+import { useRegisterPeriods } from "@/lib/use-register-periods";
+import { matchesAttendanceStatus, summarizeRegisterStatuses } from "@/lib/register-summary";
 import { matchesSearch } from "@/lib/search-match";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -150,45 +152,17 @@ export function AttendanceCharter({
   }, [units, query]);
 
   const allUnitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
-  const allPeriodsByUnit = useMemo(() => {
-    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of allUnitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
-    return out;
-  }, [allUnitIds, year, monthIdx, windowsByUnit]);
-  const allPeriodKey = useMemo(
-    () => Array.from(allPeriodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
-    [allPeriodsByUnit],
+  const registerPeriods = useRegisterPeriods(allUnitIds, year, monthIdx, windowsByUnit);
+  const allPeriodsByUnit = registerPeriods.periods;
+  const allStatusQ = registerPeriods.statusesQ;
+  const filteredUnits = useMemo(
+    () => matchedUnits.filter((unit) => matchesAttendanceStatus(allStatusQ.data?.get(unit.id), statusFilter)),
+    [allStatusQ.data, matchedUnits, statusFilter],
   );
-  const allStatusQ = useQuery({
-    queryKey: [PERIOD_STATUS_QK, "attendance-charter-all", allPeriodKey],
-    enabled: allUnitIds.length > 0,
-    staleTime: 0,
-    queryFn: () => fetchPeriodStatusesForUnitPeriods(allPeriodsByUnit),
-  });
-  const filteredUnits = useMemo(() => {
-    if (statusFilter === "all") return matchedUnits;
-    return matchedUnits.filter((unit) => {
-      const st = allStatusQ.data?.get(unit.id)?.attendance ?? "none";
-      if (statusFilter === "approved") return st === "approved";
-      if (statusFilter === "submitted") return st === "submitted";
-      if (statusFilter === "in_progress") return st === "draft" || st === "rejected";
-      return st === "none";
-    });
-  }, [allStatusQ.data, matchedUnits, statusFilter]);
-  const statusCounts = useMemo(() => {
-    let approved = 0;
-    let submitted = 0;
-    let inProgress = 0;
-    let open = 0;
-    for (const u of matchedUnits) {
-      const st = allStatusQ.data?.get(u.id)?.attendance ?? "none";
-      if (st === "approved") approved += 1;
-      else if (st === "submitted") submitted += 1;
-      else if (st === "draft" || st === "rejected") inProgress += 1;
-      else open += 1;
-    }
-    return { approved, submitted, inProgress, open: open + inProgress };
-  }, [allStatusQ.data, matchedUnits]);
+  const statusCounts = useMemo(
+    () => summarizeRegisterStatuses(allUnitIds, allStatusQ.data ?? new Map()).attendance,
+    [allUnitIds, allStatusQ.data],
+  );
 
   const [page, setPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(filteredUnits.length / PAGE_SIZE));
@@ -205,9 +179,12 @@ export function AttendanceCharter({
 
   const periodsByUnit = useMemo(() => {
     const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(unitId)));
+    for (const unitId of unitIds) {
+      const period = allPeriodsByUnit.get(unitId);
+      if (period) out.set(unitId, period);
+    }
     return out;
-  }, [unitIds, year, monthIdx, windowsByUnit]);
+  }, [unitIds, allPeriodsByUnit]);
   const periodKey = useMemo(
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
@@ -442,22 +419,15 @@ export function AttendanceCharter({
     }
   };
 
-  const loading = entriesQ.isLoading || shiftQ.isLoading;
+  const loading = registerPeriods.isLoading || entriesQ.isLoading || shiftQ.isLoading;
 
   // Attendance sheets for the selected payroll period, across every matching
   // site (not just the current page), so the tile matches the real charter.
   const sheets = useMemo(() => {
-    let open = 0;
-    let submitted = 0;
-    let approved = 0;
-    for (const unit of matchedUnits) {
-      const state = allStatusQ.data?.get(unit.id)?.attendance ?? "none";
-      if (state === "approved") approved += 1;
-      else if (state === "submitted") submitted += 1;
-      else open += 1;
-    }
-    return { total: matchedUnits.length, open, submitted, approved };
-  }, [matchedUnits, allStatusQ.data]);
+    return { total: matchedUnits.length, ...statusCounts };
+  }, [matchedUnits.length, statusCounts]);
+
+  if (registerPeriods.error) return <div className="py-6 text-sm text-destructive">Attendance statuses could not load. Please try again.</div>;
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -477,7 +447,8 @@ export function AttendanceCharter({
           icon={ClipboardList}
           accent="lime"
           segments={[
-            { label: "Open", value: sheets.open + sheets.submitted, tone: "open" },
+            { label: "Open", value: sheets.open, tone: "open" },
+            { label: "Submitted", value: sheets.submitted, tone: "ready" },
             { label: "Approved", value: sheets.approved, tone: "done" },
           ]}
         />

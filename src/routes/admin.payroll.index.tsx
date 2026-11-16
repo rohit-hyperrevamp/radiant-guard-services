@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
@@ -18,7 +18,10 @@ import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import type { MoneyStatus } from "@/lib/period-status";
 
-const searchSchema = z.object({ window: z.string().optional(), month: z.coerce.number().min(0).max(11).optional(), year: z.coerce.number().min(2000).max(2100).optional(), status: z.enum(["open", "ready", "approved", "processed"]).optional() });
+const searchSchema = z.object({
+  window: z.string().optional(), month: z.coerce.number().optional(), year: z.coerce.number().optional(),
+  status: z.string().optional(), dashboard: z.boolean().optional(),
+});
 
 export const Route = createFileRoute("/admin/payroll/")({
   head: () => ({ meta: [
@@ -35,10 +38,19 @@ export const Route = createFileRoute("/admin/payroll/")({
 
 function PayrollUnitsPage() {
   const search = Route.useSearch();
+  // Dashboard links intentionally replace stale local list filters once on arrival.
+
   const [q, setQ] = useSessionState("payroll:q", "");
   const [orgFilter, setOrgFilter] = useSessionState<string[]>("payroll:orgFilter", []);
   const [unitFilter, setUnitFilter] = useSessionState<string[]>("payroll:unitFilter", []);
-  const [statusFilter, setStatusFilter] = useSessionState<"all" | MoneyStatus>("payroll:statusFilter", search.status ?? "all");
+  const [statusFilter, setStatusFilter] = useSessionState<"all" | MoneyStatus>("payroll:statusFilter", "all");
+  useEffect(() => {
+    if (!search.dashboard) return;
+    setQ(""); setOrgFilter([]); setUnitFilter([]);
+    const status = search.status ?? "all";
+    setStatusFilter(["all", "open", "ready", "approved", "processed"].includes(status) ? status as "all" | MoneyStatus : "all");
+  }, [search.dashboard, search.month, search.year, search.window, search.status]);
+
 
   const { data, isLoading, error } = useQuery({
     queryKey: CHARTER_UNITS_QK,

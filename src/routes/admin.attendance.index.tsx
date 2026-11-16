@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -20,9 +20,8 @@ import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 
 
 const searchSchema = z.object({
-  window: z.string().optional(),
-  month: z.coerce.number().min(0).max(11).optional(),
-  year: z.coerce.number().min(2000).max(2100).optional(),
+  window: z.string().optional(), month: z.coerce.number().optional(), year: z.coerce.number().optional(),
+  status: z.string().optional(), dashboard: z.boolean().optional(),
 });
 
 export const Route = createFileRoute("/admin/attendance/")({
@@ -85,11 +84,21 @@ const stOf = (u: { client_state?: string | null; billing_state: string | null })
 
 function AttendanceUnitsPage() {
   const search = Route.useSearch();
+  // Dashboard links intentionally replace stale local list filters once on arrival.
+
   const [q, setQ] = useSessionState("attendance:q", "");
   const [orgFilter, setOrgFilter] = useSessionState<string[]>("attendance:orgFilter", []);
   const [unitFilter, setUnitFilter] = useSessionState<string[]>("attendance:unitFilter", []);
   const [stateFilter, setStateFilter] = useSessionState<string[]>("attendance:stateFilter", []);
   const [statusFilter, setStatusFilter] = useSessionState<"all" | "open" | "in_progress" | "submitted" | "approved">("attendance:statusFilter", "all");
+  useEffect(() => {
+    if (!search.dashboard) return;
+    setQ(""); setOrgFilter([]); setUnitFilter([]);
+    setStateFilter([]);
+    const status = search.status ?? "all";
+    setStatusFilter(["all", "open", "in_progress", "submitted", "approved"].includes(status) ? status as "all" | "open" | "in_progress" | "submitted" | "approved" : "all");
+  }, [search.dashboard, search.month, search.year, search.window, search.status]);
+
 
 
 
@@ -305,7 +314,7 @@ function AttendanceUnitsPage() {
                           setOrgFilter([]);
                           setUnitFilter([]);
                           setStateFilter([]);
-                          setStatusFilter("approved");
+                          setStatusFilter("all");
                         }}
                       >
                         <X className="h-3.5 w-3.5" /> Clear

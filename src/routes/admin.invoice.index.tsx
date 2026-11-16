@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
@@ -17,7 +17,10 @@ import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import type { MoneyStatus } from "@/lib/period-status";
 
-const searchSchema = z.object({ window: z.string().optional(), month: z.coerce.number().min(0).max(11).optional(), year: z.coerce.number().min(2000).max(2100).optional() });
+const searchSchema = z.object({
+  window: z.string().optional(), month: z.coerce.number().optional(), year: z.coerce.number().optional(),
+  status: z.string().optional(), dashboard: z.boolean().optional(),
+});
 
 export const Route = createFileRoute("/admin/invoice/")({
   head: () => ({ meta: [
@@ -34,10 +37,19 @@ export const Route = createFileRoute("/admin/invoice/")({
 
 function InvoiceUnitsPage() {
   const search = Route.useSearch();
+  // Dashboard links intentionally replace stale local list filters once on arrival.
+
   const [q, setQ] = useSessionState("invoice:q", "");
   const [orgFilter, setOrgFilter] = useSessionState<string[]>("invoice:orgFilter", []);
   const [unitFilter, setUnitFilter] = useSessionState<string[]>("invoice:unitFilter", []);
   const [statusFilter, setStatusFilter] = useSessionState<"all" | MoneyStatus>("invoice:statusFilter", "all");
+  useEffect(() => {
+    if (!search.dashboard) return;
+    setQ(""); setOrgFilter([]); setUnitFilter([]);
+    const status = search.status ?? "all";
+    setStatusFilter(["all", "open", "ready", "approved", "processed"].includes(status) ? status as "all" | MoneyStatus : "all");
+  }, [search.dashboard, search.month, search.year, search.window, search.status]);
+
   const [filterResetKey, setFilterResetKey] = useState(0);
 
   const { data, isLoading, error } = useQuery({

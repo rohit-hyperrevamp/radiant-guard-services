@@ -77,7 +77,11 @@ import {
 } from "@/components/OperationsOverview";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { useOperationsFocus, OPS_PEOPLE_ROLE_KEYS } from "@/lib/ops-scope";
-import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+import { useManagerFieldOfficerScope, useOperationalUnitScope } from "@/lib/use-manager-scope";
+import { fetchDashboardMasterCounts } from "@/lib/dashboard-master-counts";
+import { useRegisterPeriods } from "@/lib/use-register-periods";
+import { dashboardRegisterSearch, summarizeRegisterStatuses } from "@/lib/register-summary";
+import { useAttendanceMoneyRealtime } from "@/lib/period-status";
 import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 import { CasesSummaryTile, useCaseSummary } from "@/components/CasesSummaryTile";
 import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
@@ -121,7 +125,7 @@ type StatusCounts = {
   processed: number;
 };
 
-const DASHBOARD_COUNTS_SNAPSHOT = "radiant:dashboard-counts:v2";
+const DASHBOARD_COUNTS_SNAPSHOT = "radiant:dashboard-counts:v3";
 
 function readDashboardCountsSnapshot(key: string): DashboardCounts | undefined {
   if (typeof window === "undefined") return undefined;
@@ -484,12 +488,14 @@ function DashboardPage() {
     placeholderData: (previous) => previous,
     staleTime: 60_000,
   });
+  const registerScope = useOperationalUnitScope();
+  useAttendanceMoneyRealtime();
   const dashboardUnits = useMemo(() => {
     const units = charterUnitsQ.data?.units ?? [];
-    return managerScope.isScoped
-      ? units.filter((unit) => managerScope.unitIds.has(unit.id))
+    return registerScope.isScoped
+      ? units.filter((unit) => registerScope.unitIds.has(unit.id))
       : units;
-  }, [charterUnitsQ.data?.units, managerScope.isScoped, managerScope.unitIds]);
+  }, [charterUnitsQ.data?.units, registerScope.isScoped, registerScope.unitIds]);
   const periodSelection = usePayrollWindowSelection(
     dashboardUnits.map((unit) => unit.id),
     { month, year },
@@ -610,70 +616,23 @@ function DashboardPage() {
     },
   });
 
-  const lifecycleQuery = useQuery({
-    queryKey: ["dashboard-lifecycle", user?.phone, year, month, periodSelection.selectedKey],
-    enabled: authReady && !!user && !permsLoading && !showInventoryDashboard &&
-      !showTransportDashboard && !showHrExecutiveDashboard &&
-      (can("attendance") || can("payroll") || can("invoice")),
-    staleTime: 2 * 60_000,
-    refetchOnWindowFocus: false,
-    retry: 1,
-    queryFn: async () => {
-      await supabaseSessionReady();
-      const lifecycleResult =
-        can("attendance") || can("payroll") || can("invoice")
-          ? await supabase.rpc(
-              "dashboard_lifecycle_counts" as never,
-              {
-                p_year: year,
-                p_month: month + 1,
-                p_window_start: selectedWindow?.windowStartDay ?? null,
-                p_window_end: selectedWindow?.windowEndDay ?? null,
-              } as never,
-            )
-          : { data: null, error: null };
-      if (lifecycleResult.error) throw lifecycleResult.error;
-      const lifecycleData = lifecycleResult.data;
-
-      const lifecycle = (lifecycleData ?? {}) as {
-        attendance?: { approved?: number; submitted?: number; rejected?: number; open?: number };
-        payroll?: { processed?: number; ready?: number; approved?: number; open?: number };
-        invoice?: { processed?: number; ready?: number; open?: number };
-      };
-      const sheetCounts = lifecycleData
-        ? {
-            approved: lifecycle.attendance?.approved ?? 0,
-            pending: lifecycle.attendance?.submitted ?? 0,
-            draft: 0,
-            rejected: lifecycle.attendance?.rejected ?? 0,
-            open: lifecycle.attendance?.open ?? 0,
-            processed: 0,
-          }
-        : { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
-      const runCounts = lifecycleData
-        ? {
-            pending: lifecycle.payroll?.ready ?? 0,
-            approved: lifecycle.payroll?.approved ?? 0,
-            draft: 0,
-            rejected: 0,
-            open: lifecycle.payroll?.open ?? 0,
-            processed: lifecycle.payroll?.processed ?? 0,
-          }
-        : { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
-      const invoiceCounts = lifecycleData
-        ? {
-            approved: 0,
-            pending: lifecycle.invoice?.ready ?? 0,
-            draft: 0,
-            rejected: 0,
-            open: lifecycle.invoice?.open ?? 0,
-            processed: lifecycle.invoice?.processed ?? 0,
-          }
-        : { approved: 0, pending: 0, draft: 0, rejected: 0, open: 0, processed: 0 };
-
-      return { sheetCounts, runCounts, invoiceCounts };
-    },
-  });
+  const registerPeriods = useRegisterPeriods(
+    [...periodSelection.unitIdsForWindow], year, month, periodSelection.windowsByUnit,
+    authReady && !periodSelection.isLoading && !charterUnitsQ.isLoading,
+  );
+  const lifecycleQuery = registerPeriods.statusesQ;
+  const lifecycleCounts = useMemo(() => {
+    if (!lifecycleQuery.data) return undefined;
+    const counts = summarizeRegisterStatuses([...periodSelection.unitIdsForWindow], lifecycleQuery.data);
+    const moneyCounts = (v: typeof counts.payroll): StatusCounts => ({
+      approved: v.approved, pending: v.ready, processed: v.processed, open: v.open, draft: 0, rejected: 0,
+    });
+    return {
+      sheetCounts: { approved: counts.attendance.approved, pending: counts.attendance.submitted,
+        open: counts.attendance.open, draft: 0, rejected: 0, processed: 0 },
+      runCounts: moneyCounts(counts.payroll), invoiceCounts: moneyCounts(counts.invoice),
+    };
+  }, [lifecycleQuery.data, periodSelection.unitIdsForWindow]);
 
   // The month P&L is heavy (every contract line × every duty). It loads on
   // its own: after the headline tiles have painted and once the section is
@@ -1225,102 +1184,29 @@ function DashboardPage() {
     },
   });
 
-  // Managers count only what their own field officers cover, so the headline
-  // tiles never show company-wide totals to a scoped manager.
   const scopedUnitIds = useMemo(
     () => (managerScope.isScoped ? [...managerScope.unitIds].sort() : null),
     [managerScope.isScoped, managerScope.unitIds],
   );
   const scopedCountsQuery = useQuery({
-    queryKey: ["dashboard-counts-scoped", scopedUnitIds],
-    enabled: !!scopedUnitIds,
-    staleTime: 2 * 60_000,
-    queryFn: async () => {
-      const unitIds = scopedUnitIds ?? [];
-      if (unitIds.length === 0)
-        return {
-          orgs: 0,
-          units: 0,
-          employees: 0,
-          contractsActive: 0,
-          contractsExpiring: [] as ContractExpiringRow[],
-        };
-      const horizon = new Date();
-      horizon.setDate(horizon.getDate() + 60);
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const horizonStr = horizon.toISOString().slice(0, 10);
-
-      // 800+ team sites overflow one request URL, so look them up in chunks.
-      const parts: string[][] = [];
-      for (let i = 0; i < unitIds.length; i += 150) parts.push(unitIds.slice(i, i + 150));
-      const results = await Promise.all(
-        parts.map((ids) =>
-          Promise.all([
-            supabase.from("units").select("id,customer_id").in("id", ids),
-            supabase.from("candidate_units").select("candidate_id").in("unit_id", ids).limit(20000),
-            supabase
-              .from("client_contracts")
-              .select("id,contract_code,end_date,unit_id,status")
-              .in("unit_id", ids),
-            supabase
-              .from("candidates")
-              .select("id")
-              .in("unit_id", ids)
-              .in("status", ["active", "approved"])
-              .limit(20000),
-          ]),
-        ),
-      );
-      for (const [a, b, c, d] of results) {
-        if (d.error) throw d.error;
-        if (a.error) throw a.error;
-        if (b.error) throw b.error;
-        if (c.error) throw c.error;
-      }
-      const unitRows = { data: results.flatMap(([a]) => a.data ?? []) };
-      const links = {
-        data: [
-          ...results.flatMap(([, b]) => b.data ?? []),
-          ...results.flatMap(([, , , d]) =>
-            ((d.data ?? []) as Array<{ id: string }>).map((r) => ({ candidate_id: r.id })),
-          ),
-        ],
-      };
-      const contracts = { data: results.flatMap(([, , c]) => c.data ?? []) };
-
-      const orgs = new Set(
-        ((unitRows.data ?? []) as Array<{ customer_id: string | null }>)
-          .map((u) => u.customer_id)
-          .filter(Boolean) as string[],
-      );
-      const employees = new Set(
-        ((links.data ?? []) as Array<{ candidate_id: string }>).map((l) => l.candidate_id),
-      );
-      const contractRows = (contracts.data ?? []) as unknown as ContractExpiringRow[];
-      const active = contractRows.filter((c) => c.status === "active");
-      return {
-        orgs: orgs.size,
-        units: unitIds.length,
-        employees: employees.size,
-        contractsActive: active.length,
-        contractsExpiring: active
-          .filter((c) => c.end_date && c.end_date >= todayStr && c.end_date <= horizonStr)
-          .sort((a, b) => a.end_date.localeCompare(b.end_date)),
-      };
-    },
+    queryKey: ["dashboard-counts-masters-v1", user?.phone, scopedUnitIds],
+    enabled: authReady && !managerScope.isLoading && !showInventoryDashboard && !showTransportDashboard && !showHrExecutiveDashboard,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    queryFn: () => fetchDashboardMasterCounts(scopedUnitIds ? new Set(scopedUnitIds) : undefined),
   });
 
-  const isLoading = countsQuery.isLoading;
+  const isLoading = countsQuery.isLoading || scopedCountsQuery.isLoading || charterUnitsQ.isLoading || periodSelection.isLoading || registerPeriods.isLoading;
   const data = useMemo(() => {
     if (!countsQuery.data) return undefined;
     return {
       ...countsQuery.data,
-      ...(lifecycleQuery.data ?? {}),
+      ...(lifecycleCounts ?? { sheetCounts: { approved: 0, pending: 0, open: 0, draft: 0, rejected: 0, processed: 0 }, runCounts: { approved: 0, pending: 0, open: 0, draft: 0, rejected: 0, processed: 0 }, invoiceCounts: { approved: 0, pending: 0, open: 0, draft: 0, rejected: 0, processed: 0 } }),
       ...(scopedCountsQuery.data ?? {}),
       pnlRows: pnlQuery.data?.pnlRows ?? ([] as PnLRow[]),
       pnlTotals: pnlQuery.data?.pnlTotals ?? { contract: 0, invoice: 0, payroll: 0, employer: 0 },
     };
-  }, [countsQuery.data, lifecycleQuery.data, scopedCountsQuery.data, pnlQuery.data]);
+  }, [countsQuery.data, lifecycleCounts, scopedCountsQuery.data, pnlQuery.data]);
 
   const isCurrent = now.getFullYear() === year && now.getMonth() === month;
 
@@ -1560,6 +1446,7 @@ function DashboardPage() {
               openLabel="Open"
               accent="emerald"
               to="/admin/attendance"
+              search={dashboardRegisterSearch(month, year, periodSelection.selectedKey)}
             />
           ),
         });
@@ -1582,6 +1469,7 @@ function DashboardPage() {
               openLabel="Open"
               accent="sky"
               to="/admin/payroll"
+              search={dashboardRegisterSearch(month, year, periodSelection.selectedKey)}
             />
           ),
         });
@@ -1603,6 +1491,7 @@ function DashboardPage() {
               openLabel="Open"
               accent="indigo"
               to="/admin/invoice"
+              search={dashboardRegisterSearch(month, year, periodSelection.selectedKey)}
             />
           ),
         });
@@ -1640,6 +1529,9 @@ function DashboardPage() {
     return t.filter((x) => canWidget(widgetOf(x.key)));
   }, [
     data,
+    month,
+    year,
+    periodSelection.selectedKey,
     can,
     canWidget,
     opsFocus,
@@ -1657,6 +1549,11 @@ function DashboardPage() {
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/70" />
       </div>
     );
+  }
+
+  if (!showInventoryDashboard && !showTransportDashboard && !showHrExecutiveDashboard &&
+      (registerPeriods.error || scopedCountsQuery.error)) {
+    return <div className="p-6 text-sm text-destructive">Dashboard counts could not be verified. Please try again.</div>;
   }
 
   if (showPayrollDashboard) {
@@ -1694,7 +1591,7 @@ function DashboardPage() {
               value={rc?.open ?? 0}
               accent="rose"
               to="/admin/payroll"
-              search={{ window: periodSelection.selectedKey, month, year, status: "open" }}
+              search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "open" }}
             />
             <MetricTile
               icon={Wallet}
@@ -1703,7 +1600,7 @@ function DashboardPage() {
               value={rc?.pending ?? 0}
               accent="amber"
               to="/admin/payroll"
-              search={{ window: periodSelection.selectedKey, month, year, status: "ready" }}
+              search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "ready" }}
             />
             <MetricTile
               icon={Sparkles}
@@ -1712,7 +1609,7 @@ function DashboardPage() {
               value={rc?.approved ?? 0}
               accent="sky"
               to="/admin/payroll"
-              search={{ window: periodSelection.selectedKey, month, year, status: "approved" }}
+              search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "approved" }}
             />
             <MetricTile
               icon={Receipt}
@@ -1721,7 +1618,7 @@ function DashboardPage() {
               value={rc?.processed ?? 0}
               accent="emerald"
               to="/admin/payroll"
-              search={{ window: periodSelection.selectedKey, month, year, status: "processed" }}
+              search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "processed" }}
             />
           </div>
         </div>
@@ -2286,7 +2183,7 @@ function Shell({
   accent?: Accent;
 }) {
   const scope = useManagerFieldOfficerScope();
-  const scopedSearch = scope.isScoped ? { ...(search ?? {}), mine: 1 } : search;
+  const scopedSearch = scope.isScoped && !search?.dashboard ? { ...(search ?? {}), mine: 1 } : search;
   return (
     <Link
       to={to}
@@ -2435,6 +2332,7 @@ function StatusTile({
   openLabel = "Open",
   middle,
   to,
+  search,
   accent = "emerald",
 }: {
   middle?: { value: number; label: string };
@@ -2450,10 +2348,11 @@ function StatusTile({
   pendingLabel?: string;
   openLabel?: string;
   to: string;
+  search?: Record<string, unknown>;
 }) {
   const cols = (open != null ? 3 : 2) + (middle ? 1 : 0);
   return (
-    <Shell to={to} accent={accent}>
+    <Shell to={to} search={search} accent={accent}>
       <TileHeader accent={accent} label={label} />
       <div
         className={`dashboard-tile-breakdown relative mt-auto grid min-w-0 items-end gap-1 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}
