@@ -468,12 +468,6 @@ function CandidateDetailsPage() {
             <h2 className="text-lg font-semibold">{currentSection?.label}</h2>
           </div>
           {active === "documents" && <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {visibleSections.filter(s => activeGroup.sections.includes(s.id) && s.id !== "documents").map(s => {
-                const Icon = s.icon;
-                return <Button key={s.id} variant="secondary" className="h-auto min-h-14 justify-start gap-3 whitespace-normal px-4 py-3 text-left" onClick={() => selectSection(s.id)}><Icon className="h-5 w-5 shrink-0 text-primary" /><span>{s.label}</span></Button>;
-              })}
-            </div>
             <DocumentChecklist id={id} employee={form} />
           </div>}
           {active === "basic" && <BasicSection form={form} />}

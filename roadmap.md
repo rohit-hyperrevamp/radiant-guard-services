@@ -1,3 +1,8 @@
+## Employee document navigation duplicates — 16 November
+- [x] Removed duplicate document destination cards from Employee Profile → Documents → Document Overview; retained one top navigation option per destination and the required-document checklist. No employee records, documents or permissions changed.
+- [x] All 24 existing employee visibility, letter and document-follow-up tests pass; compilation and diff checks pass. The duplicate card loop is removed and the existing section navigation/checklist are unchanged.
+- [ ] Signed-in live profile navigation remains unverified pending a live session and GitHub-to-Vercel delivery; existing live checks redirect to sign-in.
+
 ## Website control spacing — 16 November
 - [x] Added shared 8px label spacing and 12px minimum control-row spacing across forms, filters and toolbars, with wrapping for wide directory toolbars; excluded official paper layouts, tables and compact navigation. No data or workflow changes.
 - [x] Eleven existing dropdown, employee-action and letter regressions pass; compilation and diff checks pass. Live desktop/phone Employees checks redirect to sign-in; tested the new screen-spacing rules there without overflow or page errors, but the startup overlay prevented final phone layout verification.
