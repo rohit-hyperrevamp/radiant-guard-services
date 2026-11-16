@@ -16,6 +16,7 @@ import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PrivacypolicyRouteImport } from './routes/privacypolicy'
 import { Route as RequestDataDeletionRouteImport } from './routes/request-data-deletion'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as AdminAbsencePolicyRouteImport } from './routes/admin.absence-policy'
 import { Route as AdminAdditionTypeManagerRouteImport } from './routes/admin.addition-type-manager'
 import { Route as AdminAdditionsRouteImport } from './routes/admin.additions'
 import { Route as AdminAllowanceManagerRouteImport } from './routes/admin.allowance-manager'
@@ -189,6 +190,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAbsencePolicyRoute = AdminAbsencePolicyRouteImport.update({
+  id: '/absence-policy',
+  path: '/absence-policy',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdditionTypeManagerRoute =
   AdminAdditionTypeManagerRouteImport.update({
@@ -929,6 +935,7 @@ export interface FileRoutesByFullPath {
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
+  '/admin/absence-policy': typeof AdminAbsencePolicyRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
@@ -1076,6 +1083,7 @@ export interface FileRoutesByTo {
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
+  '/admin/absence-policy': typeof AdminAbsencePolicyRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
@@ -1219,6 +1227,7 @@ export interface FileRoutesById {
   '/privacypolicy': typeof PrivacypolicyRoute
   '/request-data-deletion': typeof RequestDataDeletionRoute
   '/welcome': typeof WelcomeRoute
+  '/admin/absence-policy': typeof AdminAbsencePolicyRoute
   '/admin/addition-type-manager': typeof AdminAdditionTypeManagerRoute
   '/admin/additions': typeof AdminAdditionsRoute
   '/admin/allowance-manager': typeof AdminAllowanceManagerRoute
@@ -1368,6 +1377,7 @@ export interface FileRouteTypes {
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
+    | '/admin/absence-policy'
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
@@ -1515,6 +1525,7 @@ export interface FileRouteTypes {
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
+    | '/admin/absence-policy'
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
@@ -1657,6 +1668,7 @@ export interface FileRouteTypes {
     | '/privacypolicy'
     | '/request-data-deletion'
     | '/welcome'
+    | '/admin/absence-policy'
     | '/admin/addition-type-manager'
     | '/admin/additions'
     | '/admin/allowance-manager'
@@ -1866,6 +1878,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/absence-policy': {
+      id: '/admin/absence-policy'
+      path: '/absence-policy'
+      fullPath: '/admin/absence-policy'
+      preLoaderRoute: typeof AdminAbsencePolicyRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/addition-type-manager': {
       id: '/admin/addition-type-manager'
@@ -3028,6 +3047,7 @@ const AdminHrRecruitmentRouteWithChildren =
   AdminHrRecruitmentRoute._addFileChildren(AdminHrRecruitmentRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAbsencePolicyRoute: typeof AdminAbsencePolicyRoute
   AdminAdditionTypeManagerRoute: typeof AdminAdditionTypeManagerRoute
   AdminAdditionsRoute: typeof AdminAdditionsRoute
   AdminAllowanceManagerRoute: typeof AdminAllowanceManagerRoute
@@ -3110,6 +3130,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAbsencePolicyRoute: AdminAbsencePolicyRoute,
   AdminAdditionTypeManagerRoute: AdminAdditionTypeManagerRoute,
   AdminAdditionsRoute: AdminAdditionsRoute,
   AdminAllowanceManagerRoute: AdminAllowanceManagerRoute,

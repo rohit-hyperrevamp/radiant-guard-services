@@ -15,7 +15,13 @@ import { logActivity } from "@/lib/activity-log";
 type Search = { request?: string };
 export const Route = createFileRoute("/admin/approvals")({
   validateSearch: (s: Record<string, unknown>): Search => ({ request: typeof s.request === "string" ? s.request : undefined }),
-  head: () => ({ meta: [{ title: "Approvals — Radiant" }, { name: "description", content: "Review and decide approval requests." }] }),
+  head: () => ({ meta: [
+    { title: "Approvals — Radiant Guard Services" },
+    { name: "description", content: "Review employee change and absence termination approval requests." },
+    { property: "og:title", content: "Approvals — Radiant Guard Services" },
+    { property: "og:description", content: "Review configurable employee approval workflows." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   component: ApprovalsPage,
 });
 
@@ -45,8 +51,15 @@ const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" 
 
 function ApprovalsPage() {
   const { isSuperAdmin, isLoading: permsLoading } = useCurrentPermissions();
-  if (permsLoading) return null;
-  if (!isSuperAdmin) return <div className="p-6 text-sm text-muted-foreground">Approvals is available to Super Admins only.</div>;
+  const allowed = useQuery({ queryKey: ["absence-approval-participant"], enabled: !permsLoading && !isSuperAdmin,
+    queryFn: async () => {
+      const { data, error } = await db.rpc("current_user_in_workflow", { _workflow_key: "guard_absence_termination" });
+      if (error) throw error;
+      return data === true;
+    },
+  });
+  if (permsLoading || (!isSuperAdmin && allowed.isPending)) return null;
+  if (!isSuperAdmin && !allowed.data) return <div className="p-6 text-sm text-muted-foreground">You are not assigned to this approval workflow.</div>;
   return <ApprovalsInner />;
 }
 
@@ -85,7 +98,9 @@ function ApprovalsInner() {
     queryFn: async () => {
       const out = new Set<string>();
       await Promise.all((stepsQ.data ?? []).map(async (s) => {
-        const { data } = await db.rpc("workflow_step_matches", { _step_id: s.id, _candidate: meQ.data!.me });
+        const candidate = meQ.data?.me;
+        if (!candidate) return;
+        const { data } = await db.rpc("workflow_step_matches", { _step_id: s.id, _candidate: candidate });
         if (data) out.add(`${s.workflow_definitions.key}:${s.step_order}`);
       }));
       return out;
@@ -109,8 +124,8 @@ function ApprovalsInner() {
   const wfName = (k: string) => stepsQ.data?.find((s) => s.workflow_definitions.key === k)?.workflow_definitions.name ?? k.replace(/_/g, " ");
   const stepName = (k: string, o: number) => stepsQ.data?.find((s) => s.workflow_definitions.key === k && s.step_order === o)?.name ?? `Step ${o}`;
   const isSuper = !!meQ.data?.all;
-  const canAct = (r: Req) => r.status === "pending" && r.requested_by !== meQ.data?.me &&
-    (canActQ.data?.has(`${r.workflow_key}:${r.current_step}`) ?? false);
+  const canAct = (r: Req) => r.status === "pending" &&
+    (isSuper || (r.requested_by !== meQ.data?.me && (canActQ.data?.has(`${r.workflow_key}:${r.current_step}`) ?? false)));
 
   const all = reqQ.data ?? [];
   const lists = {

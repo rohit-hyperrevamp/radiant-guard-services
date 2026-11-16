@@ -164,6 +164,12 @@ const tiles: Tile[] = [
     icon: LogOut,
   },
   {
+    to: "/admin/absence-policy",
+    label: "Guard Absence Rules",
+    description: "Absence warnings and termination approval.",
+    icon: ShieldCheck,
+  },
+  {
     to: "/admin/esic-branch-manager",
     label: "ESIC Branches",
     description: "Branch codes and zones.",

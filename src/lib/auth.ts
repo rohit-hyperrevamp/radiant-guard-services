@@ -37,6 +37,20 @@ export function readStoredAuthUser(): AuthUser | null {
   }
 }
 
+/** Only a confirmed server-side employment block ends otherwise recoverable sessions. */
+export async function checkEmploymentAccess(): Promise<boolean> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) return true;
+  const { data, error } = await supabase.rpc("guard_absence_access_allowed" as never);
+  if (error || data !== false) return true; // Offline/undeployed rule is not evidence of a block.
+  manualSignOut = true;
+  window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem("radiant.impersonator");
+  await supabase.auth.signOut({ scope: "local" });
+  emit();
+  return false;
+}
+
 // A session is only ever abandoned when the user taps Log out. Everything else
 // (offline refresh, background app, flaky network, slow storage broker) is
 // treated as recoverable so a refresh can never silently sign somebody out.

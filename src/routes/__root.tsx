@@ -22,6 +22,7 @@ import { onSessionRecovered } from "@/lib/supabase-ready";
 import { createPortalCache } from "@/lib/portal-cache";
 import { supabase } from "@/integrations/supabase/client";
 import { setPushRouter } from "@/lib/push-deeplink";
+import { checkEmploymentAccess } from "@/lib/auth";
 
 import { NativeAppLock } from "@/components/NativeAppLock";
 
@@ -199,6 +200,37 @@ function RootComponent() {
   // screen. Anything fetched during that gap came back empty (zeros), so
   // refetch once the session is back instead of keeping those zeros cached.
   useEffect(() => onSessionRecovered(() => void queryClient.invalidateQueries()), [queryClient]);
+
+  // One device-level check, never a per-page/per-row subscription.
+  useEffect(() => {
+    let checking = false;
+    let disposed = false;
+    const check = async () => {
+      if (checking || disposed || document.visibilityState !== "visible") return;
+      checking = true;
+      try {
+        const allowed = await checkEmploymentAccess();
+        if (!allowed && !disposed) {
+          queryClient.clear();
+          window.location.replace("/login");
+        }
+      } catch { /* Network failures never force sign-out. */ }
+      finally { checking = false; }
+    };
+    void check();
+    const timer = window.setInterval(() => void check(), 60_000);
+    const onResume = () => void check();
+    window.addEventListener("focus", onResume);
+    window.addEventListener("online", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+      window.removeEventListener("focus", onResume);
+      window.removeEventListener("online", onResume);
+      document.removeEventListener("visibilitychange", onResume);
+    };
+  }, [queryClient]);
 
 
 
