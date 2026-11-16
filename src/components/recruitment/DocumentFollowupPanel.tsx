@@ -21,7 +21,7 @@ import { EmploymentLetters } from "@/components/EmploymentLetters";
 export function DocumentFollowupPanel({ compact = false, tile = false, initialType = "all", initialOverdue = false }: { compact?: boolean; tile?: boolean; initialType?: string; initialOverdue?: boolean }) {
   const perms=useCurrentPermissions(); const session=useHasSupabaseSession(); const qc=useQueryClient();
   const enabled=session && perms.can("recruitment") && perms.canWidget("document_followup");
-  const q=useQuery({queryKey:DOCUMENT_FOLLOWUP_QK,queryFn:fetchDocumentFollowup,enabled,staleTime:0,refetchOnMount:"always",refetchOnWindowFocus:true,refetchInterval:60_000});
+  const q=useQuery({queryKey:DOCUMENT_FOLLOWUP_QK,queryFn:fetchDocumentFollowup,enabled,staleTime:60_000,gcTime:30*60_000,refetchOnWindowFocus:true,refetchInterval:120_000});
   const [type,setType]=useState(initialType);const [purpose,setPurpose]=useState("all");const [search,setSearch]=useState("");const term=useDeferredValue(search);const [page,setPage]=useState(0);
   const [overdueOnly,setOverdueOnly]=useState(initialOverdue);
   const [selected,setSelected]=useState<DocumentPerson|null>(null);const [settings,setSettings]=useState<DocumentPolicy[]|null>(null);const [saving,setSaving]=useState(false);

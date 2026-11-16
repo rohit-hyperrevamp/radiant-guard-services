@@ -3,15 +3,15 @@ import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { documentEvidence, documentStatus, REC_CATEGORY_KEYS, type DocumentPolicy, type DocumentPerson } from "./document-followup";
 
 export const DOCUMENT_FOLLOWUP_QK = ["document-followup"] as const;
-async function all(table: string, columns: string): Promise<any[]> {
+async function pages(load: (from: number, to: number) => PromiseLike<{ data: any[] | null; error: any }>): Promise<any[]> {
   const rows: any[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await recDb.from(table).select(columns).order("id").range(from, from + 999);
-    if (error) throw error;
-    rows.push(...(data ?? []));
-    if (!data || data.length < 1000) return rows;
+  for (let start = 0; ; start += 8000) {
+    const batch = await Promise.all(Array.from({ length: 8 }, (_, i) => load(start + i * 1000, start + i * 1000 + 999)));
+    for (const { data, error } of batch) { if (error) throw error; rows.push(...(data ?? [])); }
+    if (batch.some(({ data }) => !data || data.length < 1000)) return rows;
   }
 }
+const all = (table: string, columns: string) => pages((a, b) => recDb.from(table).select(columns).order("id").range(a, b) as any);
 export async function fetchDocumentPolicies(): Promise<DocumentPolicy[]> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load document policies.");
   const { data, error } = await recDb.from("employee_document_policies").select("*").order("purpose");
@@ -22,7 +22,7 @@ export async function fetchDocumentFollowup(): Promise<{ policies: DocumentPolic
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
   const [policies, employees, recruits, receipts, recDocs, rehires] = await Promise.all([
     fetchDocumentPolicies(),
-    all("candidates", "id,full_name,employee_code,candidate_code,status,is_enabled,preferred_joining_date,created_at,photo_url,aadhaar_image_url,aadhaar_back_image_url,pan_image_url,signature_url,documents,other_info,offboarding_details,onboarding_details,offboarded_at"),
+    pages((a, b) => (recDb as any).rpc("document_followup_employees").order("id").range(a, b)),
     fetchCandidates(), all("employee_document_receipts", "id,candidate_id,rec_candidate_id,document_key,file_path"),
     all("rec_candidate_documents", "id,candidate_id,category,file_path"),
     all("rehire_requests", "id,previous_candidate_id,new_candidate_id,created_at,status,resignation_url,id_card_url"),
@@ -30,24 +30,26 @@ export async function fetchDocumentFollowup(): Promise<{ policies: DocumentPolic
   const byEmployee = new Map<string, string[]>(); const byRec = new Map<string, string[]>();
   for (const receipt of receipts) {
     const map = receipt.candidate_id ? byEmployee : byRec; const id = receipt.candidate_id || receipt.rec_candidate_id;
-    map.set(id, [...(map.get(id) ?? []), receipt.document_key]);
+    const list = map.get(id); if (list) list.push(receipt.document_key); else map.set(id, [receipt.document_key]);
   }
   for (const doc of recDocs) if (doc.file_path && REC_CATEGORY_KEYS[doc.category]) byRec.set(doc.candidate_id, [...(byRec.get(doc.candidate_id) ?? []), REC_CATEGORY_KEYS[doc.category]]);
   const byLinked = new Map(recruits.filter(r => r.employee_candidate_id).map(r => [r.employee_candidate_id, r]));
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const people: DocumentPerson[] = [];
+  const policyBy = new Map(policies.map(p => [p.purpose, p]));
   function add(person: Omit<DocumentPerson, "missing" | "due" | "overdue">) {
-    const policy = policies.find(p => p.purpose === person.purpose);
+    const policy = policyBy.get(person.purpose);
     if (policy) people.push(documentStatus(person, policy, today));
   }
+  const rehireByPerson = new Map<string, any>();
+  for (const r of rehires) for (const pid of [r.previous_candidate_id, r.new_candidate_id]) if (pid) { const cur = rehireByPerson.get(pid); if (!cur || r.created_at > cur.created_at) rehireByPerson.set(pid, r); }
   for (const employee of employees) {
     const rec = byLinked.get(employee.id);
-    const evidence = [...documentEvidence(employee), ...(byEmployee.get(employee.id) ?? []), ...(rec ? byRec.get(rec.id) ?? [] : [])];
-    if (employee.status !== "inactive" && employee.is_enabled !== false) add({ id: employee.id, recId: rec?.id, name: employee.full_name, code: employee.employee_code || employee.candidate_code || "", purpose: "onboarding", start: employee.preferred_joining_date ?? rec?.onboarded_at ?? null, received: evidence });
-    const exit = employee.offboarding_details ?? {};
-    if (exit.date_of_offboarding || employee.offboarded_at || exit.collection_status === "pending") add({ id: employee.id, name: employee.full_name, code: employee.employee_code || employee.candidate_code || "", purpose: "offboarding", start: exit.date_of_offboarding ?? employee.offboarded_at ?? exit.collection_requested_at ?? null, received: evidence });
-    const rehire = rehires.filter(r => r.previous_candidate_id === employee.id || r.new_candidate_id === employee.id).sort((a,b) => b.created_at.localeCompare(a.created_at))[0];
-    if (rehire && !["rejected","cancelled"].includes(rehire.status) && employee.id === (rehire.new_candidate_id || rehire.previous_candidate_id)) add({ id: employee.id, name: employee.full_name, code: employee.employee_code || "", purpose: "rehire", start: rehire.created_at, received: [...evidence, ...(rehire.resignation_url ? ["resignation"] : []), ...(rehire.id_card_url ? ["id_card"] : [])] });
+    const evidence = [...(employee.evidence ?? []), ...(byEmployee.get(employee.id) ?? []), ...(rec ? byRec.get(rec.id) ?? [] : [])];
+    if (employee.active) add({ id: employee.id, recId: rec?.id, name: employee.full_name, code: employee.code, purpose: "onboarding", start: employee.start_date ?? rec?.onboarded_at ?? null, received: evidence });
+    if (employee.exit_pending) add({ id: employee.id, name: employee.full_name, code: employee.code, purpose: "offboarding", start: employee.exit_date ?? null, received: evidence });
+    const rehire = rehireByPerson.get(employee.id);
+    if (rehire && !["rejected","cancelled"].includes(rehire.status) && employee.id === (rehire.new_candidate_id || rehire.previous_candidate_id)) add({ id: employee.id, name: employee.full_name, code: employee.code, purpose: "rehire", start: rehire.created_at, received: [...evidence, ...(rehire.resignation_url ? ["resignation"] : []), ...(rehire.id_card_url ? ["id_card"] : [])] });
   }
   for (const rec of recruits) if (!rec.employee_candidate_id && !["rejected","withdrawn"].includes(rec.stage)) add({ id: rec.id, recId: rec.id, name: rec.full_name, code: rec.code, purpose: "onboarding", start: rec.offer?.joining_date || null, received: byRec.get(rec.id) ?? [] });
   return { policies, people };
