@@ -8,6 +8,22 @@ export const DETAIL_TYPES: Record<string, string> = {
   aadhaar_number: "Aadhaar number", pan_number: "PAN number", bank_account: "Bank account number", bank_ifsc: "Bank IFSC", bank_name: "Bank name", date_of_birth: "Date of birth", mobile: "Mobile number", present_address: "Present address", permanent_address: "Permanent address", emergency_contact: "Emergency contact", last_working_date: "Last working date", exit_reason: "Exit reason",
 };
 export type DocumentStatusFilter = "active" | "inactive" | "all";
+export type DocumentDatePeriod = "all" | "6months" | "1year" | "2years" | "custom";
+export type DocumentDateRange = { from: string | null; to: string | null; valid: boolean };
+/** Filter by joining/rehire/exit action date, not employee age or days overdue. */
+export function documentDateRange(period: DocumentDatePeriod, today: string, from = "", to = ""): DocumentDateRange {
+  const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
+  if (period === "all") return { from: null, to: null, valid: true };
+  if (period === "custom") return { from: from || null, to: to || null, valid: isDate(from) && isDate(to) && from <= to };
+  if (!isDate(today)) return { from: null, to: null, valid: false };
+  const date = new Date(`${today}T12:00:00Z`);
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() - (period === "6months" ? 6 : period === "1year" ? 12 : 24));
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
+  return { from: date.toISOString().slice(0, 10), to: today, valid: true };
+}
 /** Plain message HR can send to the employee listing everything still needed. */
 export function followupRequestText(name: string, missing: string[], details: string[], due: string | null): string {
   const lines = [`Dear ${name},`, "", "Please share the following pending items with HR:"];

@@ -1,3 +1,8 @@
+## Employee document time filter — 16 November
+- [x] Added last six months, one year, two years, all dates and custom inclusive joining/action-date ranges; counts and paged lists filter together without changing employee records.
+- [x] All 15 focused tests pass; compilation OK. All five production ranges verified with Sanskruti's existing access, count/list agreement and backward compatibility; no employee data changed.
+- [ ] Signed-in live UI verification awaits GitHub-to-Vercel delivery and a live session.
+
 ## Recruitment dashboard cleanup — 16 November
 - [x] Replace large tiles and duplicate stage/funnel displays with a compact summary strip and hiring-stage rows; retain interview actions, document links and optional breakdowns without changing data or permissions.
 - [x] Compilation OK, all 11 focused document/letter tests passed, and diff checks passed; no recruitment data or access rules changed.

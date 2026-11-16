@@ -1,8 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { documentStatus, documentEvidence, followupRequestText, type DocumentPolicy } from "./document-followup";
+import { documentDateRange, documentStatus, documentEvidence, followupRequestText, type DocumentPolicy } from "./document-followup";
 const policy: DocumentPolicy = { purpose: "onboarding", required_keys: Array.from({ length: 10 }, (_, i) => `doc${i}`), deadline_days: 10, owner_candidate_id: null };
 const person = { id: "1", name: "Person", code: "42", purpose: "onboarding" as const, start: "2026-11-16", received: [] };
 describe("required document follow-up", () => {
+  it("limits six months to the inclusive joining/action-date range", () => { expect(documentDateRange("6months", "2026-11-16")).toEqual({ from: "2026-05-16", to: "2026-11-16", valid: true }); });
+  it("limits one year to the inclusive joining/action-date range", () => { expect(documentDateRange("1year", "2026-11-16")).toEqual({ from: "2025-11-16", to: "2026-11-16", valid: true }); });
+  it("limits two years to the inclusive joining/action-date range", () => { expect(documentDateRange("2years", "2026-11-16")).toEqual({ from: "2024-11-16", to: "2026-11-16", valid: true }); });
+  it("uses exactly the selected custom dates", () => { expect(documentDateRange("custom", "2026-11-16", "2026-01-01", "2026-03-31")).toEqual({ from: "2026-01-01", to: "2026-03-31", valid: true }); });
+  it("rejects reversed, incomplete and invalid custom ranges", () => { for (const [from,to] of [["2026-03-31","2026-01-01"],["","2026-11-16"],["2026-02-30","2026-11-16"]]) expect(documentDateRange("custom", "2026-11-16", from, to).valid).toBe(false); });
+  it("all dates includes records with no recorded action date", () => { expect(documentDateRange("all", "2026-11-16")).toEqual({ from: null, to: null, valid: true }); });
+  it("clamps a leap-day year range to the last valid day", () => { expect(documentDateRange("1year", "2024-02-29").from).toBe("2023-02-28"); });
   it("shows all ten missing when no files exist", () => { expect(documentStatus(person, policy, "2026-11-16").missing).toHaveLength(10); });
   it("shows eight pending when two of ten are received", () => { expect(documentStatus({ ...person, received: ["doc0", "doc1", "doc1"] }, policy, "2026-11-16").missing).toHaveLength(8); });
   it("sets a ten-day deadline without becoming overdue on the due day", () => { const s = documentStatus(person, policy, "2026-11-26"); expect(s.due).toBe("2026-11-26"); expect(s.overdue).toBe(false); expect(documentStatus(person, policy, "2026-11-27").overdue).toBe(true); });

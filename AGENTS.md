@@ -58,3 +58,4 @@
 - Employment letters share extracted digital text layouts for editing and vector PDF export; tagged immutable copies reuse private employee_signed_documents under its existing appointment template anchor, without changing signatures, employee records or access rules.
 - Recruitment document follow-up uses employee_document_policies and private receipts with one shared evidence/deadline classifier; uploaded files count, typed identity data does not, and lifecycle approvals remain unchanged.
 - Recruitment document summaries/lists come from `document_followup_summary`/`document_followup_list` (DB-computed, paged); dashboards show the compact panel, full lists live on the documents route — never download every employee to the browser.
+- Document follow-up date ranges filter inclusive joining/rehire/exit action dates in both count and list RPCs; retain old RPC signatures for rolling delivery compatibility.

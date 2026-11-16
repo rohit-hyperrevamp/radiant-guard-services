@@ -11,20 +11,20 @@ export async function fetchDocumentPolicies(): Promise<DocumentPolicy[]> {
 }
 export type DocumentSummary = { people: number; overdue: number; types: Record<string, number>; details: Record<string, number> };
 /** Dashboard overview: counts only, computed in the database (document_followup_summary). */
-export async function fetchDocumentSummary(status: string = "active"): Promise<DocumentSummary> {
+export async function fetchDocumentSummary(status: string = "active", from: string | null = null, to: string | null = null): Promise<DocumentSummary> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
-  const { data, error } = await (recDb as any).rpc("document_followup_summary", { p_status: status });
+  const { data, error } = await (recDb as any).rpc("document_followup_summary", { p_status: status, p_from: from, p_to: to });
   if (error) throw error;
   return { people: Number(data?.people ?? 0), overdue: Number(data?.overdue ?? 0), types: data?.types ?? {}, details: data?.details ?? {} };
 }
-export type DocumentListFilters = { type: string; purpose: string; overdue: boolean; words: string[]; page: number; status: string };
+export type DocumentListFilters = { type: string; purpose: string; overdue: boolean; words: string[]; page: number; status: string; from: string | null; to: string | null };
 export const DOCUMENT_PAGE_SIZE = 15;
 /** One filtered page of people with missing files, filtered and paged in the database (document_followup_list). */
 export async function fetchDocumentList(f: DocumentListFilters): Promise<{ total: number; rows: DocumentPerson[] }> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
   const { data, error } = await (recDb as any).rpc("document_followup_list", {
     p_type: f.type === "all" ? null : f.type, p_purpose: f.purpose === "all" ? null : f.purpose, p_overdue: f.overdue,
-    p_words: f.words, p_offset: f.page * DOCUMENT_PAGE_SIZE, p_limit: DOCUMENT_PAGE_SIZE, p_status: f.status,
+    p_words: f.words, p_offset: f.page * DOCUMENT_PAGE_SIZE, p_limit: DOCUMENT_PAGE_SIZE, p_status: f.status, p_from: f.from, p_to: f.to,
   });
   if (error) throw error;
   const rows: DocumentPerson[] = (data?.rows ?? []).map((r: any) => ({
