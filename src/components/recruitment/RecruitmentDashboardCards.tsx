@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { CalendarClock, UsersRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchMyInterviews, fetchOnboarding, fmtDateTime, QK } from "@/lib/recruitment";
+import { DocumentFollowupPanel } from "./DocumentFollowupPanel";
 
 type RecruitmentSummary = {
   pipeline: number;
@@ -125,6 +126,7 @@ export function RecruitmentLeadershipPanel() {
 
   return (
     <div className="space-y-3">
+      <DocumentFollowupPanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {stats.map(([label, value]) => (
           <div key={label} className="rounded-xl border border-border/60 bg-card p-3">

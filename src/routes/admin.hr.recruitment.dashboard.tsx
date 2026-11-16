@@ -8,6 +8,7 @@ import {
   LOST, monthStartIso, PIPELINE, QK, STAGES,
 } from "@/lib/recruitment";
 import { cn } from "@/lib/utils";
+import { DocumentFollowupPanel } from "@/components/recruitment/DocumentFollowupPanel";
 
 export const Route = createFileRoute("/admin/hr/recruitment/dashboard")({
   head: () => ({
@@ -92,6 +93,7 @@ function RecruitmentDashboard() {
         }
       />
 
+      <DocumentFollowupPanel />
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 font-display text-sm font-semibold">Stages</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">

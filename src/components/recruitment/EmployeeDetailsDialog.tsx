@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logActivity } from "@/lib/activity-log";
 import { addEvent, recDb, REC_MODULE, REQUIRED_EMPLOYEE_DETAILS, type RecCandidate } from "@/lib/recruitment";
+import { DocumentChecklist } from "./DocumentChecklist";
 
 type D = Record<string, string | boolean>;
 const REQ = new Set(REQUIRED_EMPLOYEE_DETAILS.map(([k]) => k));
@@ -91,6 +92,7 @@ export function EmployeeDetailsDialog({ candidate, onClose }: { candidate: RecCa
             )}
           </section>
         ))}
+        <DocumentChecklist recId={candidate.id} start={candidate.offer?.joining_date ?? null} />
         <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save details"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>

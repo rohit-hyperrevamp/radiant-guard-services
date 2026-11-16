@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { isNomansUnit } from "@/lib/business-constants";
 import { createRehireRequest, uploadRehireDocument } from "@/lib/workflows";
+import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
 
 export type ExistingCandidateMatch = {
   id: string;
@@ -357,6 +358,7 @@ export function RehireRequestDialog({
           </div>
         )}
 
+        {stage === "docs" && match && <DocumentChecklist id={match.id} purpose="rehire" />}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel

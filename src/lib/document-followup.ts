@@ -1,0 +1,39 @@
+export type DocumentPurpose = "onboarding" | "rehire" | "offboarding";
+export const PURPOSE_LABELS: Record<DocumentPurpose, string> = { onboarding: "Onboarding", rehire: "Rehire", offboarding: "Offboarding" };
+export const DOCUMENT_TYPES: Record<string, string> = {
+  photo: "Photograph", aadhaar_front: "Aadhaar front", aadhaar_back: "Aadhaar back", pan: "PAN card", signature: "Employee signature",
+  tenth: "10th certificate", twelfth: "12th certificate", graduation: "Graduation certificate", professional: "Professional certificate", birth: "Date-of-birth proof", residence: "Residence proof", bank: "Bank proof", salary_slip: "Previous salary slips", resignation: "Resignation letter", relieving: "Previous relieving letter", experience: "Experience letter", id_card: "Returned ID card copy",
+};
+export type DocumentPolicy = { purpose: DocumentPurpose; required_keys: string[]; deadline_days: number; owner_candidate_id: string | null };
+export type DocumentPerson = {
+  id: string; recId?: string; name: string; code: string; purpose: DocumentPurpose; start: string | null;
+  received: string[]; missing: string[]; due: string | null; overdue: boolean;
+};
+export function documentEvidence(employee: Record<string, any>): string[] {
+  const keys = new Set<string>();
+  const urls: Record<string, string> = { photo: "photo_url", aadhaar_front: "aadhaar_image_url", aadhaar_back: "aadhaar_back_image_url", pan: "pan_image_url", signature: "signature_url" };
+  for (const [key, property] of Object.entries(urls)) if (employee[property]) keys.add(key);
+  if (employee.other_info?.digilocker_verified || employee.other_info?.digilocker_verified_aadhaar) { keys.add("aadhaar_front"); keys.add("aadhaar_back"); }
+  for (const doc of employee.documents ?? []) {
+    if (!doc?.file_url && !doc?.url && !doc?.file_path) continue;
+    const key = doc.document_key ?? doc.category;
+    if (key && DOCUMENT_TYPES[key]) keys.add(key);
+  }
+  for (const doc of employee.offboarding_details?.exit_documents ?? []) {
+    if (!doc.file_url || doc.collected === false) continue;
+    if (doc.key === "resignation_letter") keys.add("resignation");
+    if (doc.key === "id_card_photo") keys.add("id_card");
+  }
+  return [...keys];
+}
+export const REC_CATEGORY_KEYS: Record<string, string> = { "10th_certificate": "tenth", "12th_certificate": "twelfth", graduation_certificate: "graduation", salary_slip: "salary_slip", resignation_letter: "resignation", relieving_letter: "relieving", experience_letter: "experience" };
+export function documentStatus(input: Omit<DocumentPerson, "missing" | "due" | "overdue">, policy: DocumentPolicy, today: string): DocumentPerson {
+  const received = [...new Set(input.received)];
+  const missing = policy.required_keys.filter(key => !received.includes(key));
+  let due: string | null = null;
+  if (input.start && /^\d{4}-\d{2}-\d{2}/.test(input.start)) {
+    const d = new Date(`${input.start.slice(0, 10)}T12:00:00Z`);
+    if (!Number.isNaN(d.getTime())) { d.setUTCDate(d.getUTCDate() + policy.deadline_days); due = d.toISOString().slice(0, 10); }
+  }
+  return { ...input, received, missing, due, overdue: missing.length > 0 && due !== null && due < today };
+}

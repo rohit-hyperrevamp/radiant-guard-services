@@ -39,6 +39,7 @@ import { useMe } from "@/lib/use-me";
 import { useAuth } from "@/lib/auth";
 import { supabaseSessionReady, useHasSupabaseSession } from "@/lib/supabase-ready";
 import { HrExecutiveDashboard } from "@/components/HrExecutiveDashboard";
+import { DocumentFollowupPanel } from "@/components/recruitment/DocumentFollowupPanel";
 import { UnitAttendanceCoverage } from "@/components/UnitAttendanceCoverage";
 import { DashboardShell } from "@/components/LiveFeed";
 import {
@@ -1735,6 +1736,7 @@ function DashboardPage() {
             crumbs={[{ label: "Dashboard" }]}
           />
           <MyUpcomingInterviewsCard />
+          <DocumentFollowupPanel />
           <HrExecutiveDashboard />
         </div>
       </DashboardShell>
@@ -1858,6 +1860,7 @@ function DashboardPage() {
 
   return (
     <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
+      <DocumentFollowupPanel />
       <div className="mb-4 empty:hidden">
         <MyUpcomingInterviewsCard />
       </div>

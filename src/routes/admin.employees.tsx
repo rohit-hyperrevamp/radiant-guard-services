@@ -1,5 +1,6 @@
 import { matchesSearch as matchesSearchText, buildSearchHay, compileSearch, type SearchHay } from "@/lib/search-match";
 import { patchEmployeeSlice } from "@/lib/employee-list-cache";
+import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
@@ -9890,6 +9891,7 @@ function CandidateWizard({
             </div>
           </div>
 
+          <div className="max-h-64 shrink-0 overflow-y-auto px-3 sm:px-6"><DocumentChecklist id={editing?.id} employee={form} /></div>
           <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/60 bg-card/95 px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-3 sm:pb-3">
             {saveError && (
               <div

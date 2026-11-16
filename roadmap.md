@@ -1,3 +1,9 @@
+## Recruitment document follow-up — 16 November
+- [x] Added private receipts and configurable required-document policies/deadlines to employee onboarding, recruitment details/queue, rehire and exit profiles; partial and zero uploads show missing types. Initial lists reuse existing five onboarding/two rehire/two exit requirements, with a configurable ten-day default.
+- [x] Added document-type filters, employee drill-down/upload, overdue dates and letter links on recruitment, main and leadership dashboards; upload/settings changes invalidate shared reads. Sanskruti assigned as policy owner; existing workflow confirmed. Leadership granted missing Recruitment View-only rows, no edit/approval changes.
+- [x] Eleven checklist/deadline/letter tests and existing attachment-name script passed; compilation OK. Production owner RLS insert/readback passed with rollback; leadership View true/Edit false verified. Existing live records contain missing files; no employee records or files fabricated.
+- [ ] Signed-in live product-design, upload/edit/download and dashboard delivery checks remain unverified: live recruitment dashboard redirects to login; awaits authenticated live session and GitHub-to-Vercel delivery. No full thumbs-up claimed.
+
 ## Employment letters — 16 November
 - [x] Recreated six supplied formats as editable digital text: employee Hiring Letters (offer/appointment), Confirmation Letter, and Offboarding Docs (termination/experience/relieving). Employee autofill leaves unrecorded CTC/event/signatory fields blank.
 - [x] Added vector PDF downloads and immutable saved-copy history using existing private employee document storage and permissions; no employee source or signed records changed. Eight focused tests pass; rollback-only production save/readback passed; representative pages of all six exports inspected and WPS font corruption corrected; compilation OK.

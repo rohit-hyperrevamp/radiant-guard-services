@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { Button } from "@/components/ui/button";
 import { logActivity } from "@/lib/activity-log";
+import { DocumentChecklist } from "./DocumentChecklist";
+import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import {
   addEvent,
   fetchCandidateDocuments,
@@ -59,6 +61,8 @@ export function CandidateDocumentsSection({ candidate }: { candidate: RecCandida
       await addEvent(candidate.id, "documents_uploaded", `${selected.length} supporting document${selected.length === 1 ? "" : "s"} uploaded`);
       await qc.invalidateQueries({ queryKey: QK.documents(candidate.id) });
       await qc.invalidateQueries({ queryKey: QK.candidate(candidate.id) });
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
+      void qc.invalidateQueries({ queryKey: ["document-evidence"] });
       toast.success(`${selected.length} document${selected.length === 1 ? "" : "s"} uploaded`);
     } catch (error) {
       toast.error((error as Error).message);
@@ -93,6 +97,8 @@ export function CandidateDocumentsSection({ candidate }: { candidate: RecCandida
       });
       await qc.invalidateQueries({ queryKey: QK.documents(candidate.id) });
       toast.success("Document removed");
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
+      void qc.invalidateQueries({ queryKey: ["document-evidence"] });
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -102,6 +108,7 @@ export function CandidateDocumentsSection({ candidate }: { candidate: RecCandida
 
   return (
     <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+      <DocumentChecklist recId={candidate.id} start={candidate.offer?.joining_date ?? null} />
       <div>
         <h2 className="font-display text-sm font-semibold">Miscellaneous documents</h2>
         <p className="mt-1 text-xs text-muted-foreground">Optional supporting documents collected by the recruiter.</p>

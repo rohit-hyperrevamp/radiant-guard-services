@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { logActivity } from "@/lib/activity-log";
 import { createNotification } from "@/lib/notifications";
+import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
+import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { employeeNames, fetchMasters, fetchOnboarding, fmtDateTime, inr, openResume, PAGE_SIZE, QK, recDb, REC_MODULE, type RecCandidate, type RecOnboarding } from "@/lib/recruitment";
 
 export const Route = createFileRoute("/admin/hr/recruitment/onboarding")({
@@ -19,6 +21,8 @@ export const Route = createFileRoute("/admin/hr/recruitment/onboarding")({
       { name: "description", content: "HR-approved recruits waiting for the HR Head to onboard and generate an employee ID." },
       { property: "og:title", content: "Onboarding Requests — Radiant" },
       { property: "og:description", content: "HR-approved recruits waiting for the HR Head to onboard and generate an employee ID." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: OnboardingQueue,
@@ -52,6 +56,7 @@ function OnboardingQueue() {
       const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
       toast.success(`Employee ID ${data} created — ${doj && doj > today ? `goes live on ${doj}` : "live now"}. Set up the salary next.`);
       await qc.invalidateQueries({ queryKey: ["rec"] });
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
       const { data: emp } = await recDb.from("rec_onboarding_requests").select("employee_candidate_id").eq("id", r.id).maybeSingle();
       const empId = (emp as { employee_candidate_id?: string } | null)?.employee_candidate_id;
       if (empId) void navigate({ to: "/admin/employees", search: { tab: "employee", edit: empId } });
@@ -97,6 +102,7 @@ function OnboardingQueue() {
                 <D k="Expected CTC" v={inr(c?.expected_ctc)} /><D k="Rounds cleared" v={`${c?.rounds_cleared ?? 0}/${c?.total_rounds ?? 0}`} />
               </dl>
               {o.notes && <p className="mt-2 rounded-lg bg-muted/40 p-2 text-sm">{o.notes}</p>}
+              <DocumentChecklist recId={r.candidate_id} start={o.joining_date ?? null} />
             </div>
           );
         })}
