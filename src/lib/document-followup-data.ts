@@ -1,58 +1,37 @@
-import { recDb, fetchCandidates, fetchCandidateDocuments, REC_BUCKET } from "@/lib/recruitment";
+import { recDb, fetchCandidateDocuments, REC_BUCKET } from "@/lib/recruitment";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
-import { documentEvidence, documentStatus, REC_CATEGORY_KEYS, type DocumentPolicy, type DocumentPerson } from "./document-followup";
+import { documentEvidence, REC_CATEGORY_KEYS, type DocumentPolicy, type DocumentPerson, type DocumentPurpose } from "./document-followup";
 
 export const DOCUMENT_FOLLOWUP_QK = ["document-followup"] as const;
-async function pages(load: (from: number, to: number) => PromiseLike<{ data: any[] | null; error: any }>): Promise<any[]> {
-  const rows: any[] = [];
-  for (let start = 0; ; start += 8000) {
-    const batch = await Promise.all(Array.from({ length: 8 }, (_, i) => load(start + i * 1000, start + i * 1000 + 999)));
-    for (const { data, error } of batch) { if (error) throw error; rows.push(...(data ?? [])); }
-    if (batch.some(({ data }) => !data || data.length < 1000)) return rows;
-  }
-}
-const all = (table: string, columns: string) => pages((a, b) => recDb.from(table).select(columns).order("id").range(a, b) as any);
 export async function fetchDocumentPolicies(): Promise<DocumentPolicy[]> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load document policies.");
   const { data, error } = await recDb.from("employee_document_policies").select("*").order("purpose");
   if (error) throw error;
   return data ?? [];
 }
-export async function fetchDocumentFollowup(): Promise<{ policies: DocumentPolicy[]; people: DocumentPerson[] }> {
+export type DocumentSummary = { people: number; overdue: number; types: Record<string, number> };
+/** Dashboard overview: counts only, computed in the database (document_followup_summary). */
+export async function fetchDocumentSummary(): Promise<DocumentSummary> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
-  const [policies, employees, recruits, receipts, recDocs, rehires] = await Promise.all([
-    fetchDocumentPolicies(),
-    pages((a, b) => (recDb as any).rpc("document_followup_employees").order("id").range(a, b)),
-    fetchCandidates(), all("employee_document_receipts", "id,candidate_id,rec_candidate_id,document_key,file_path"),
-    all("rec_candidate_documents", "id,candidate_id,category,file_path"),
-    all("rehire_requests", "id,previous_candidate_id,new_candidate_id,created_at,status,resignation_url,id_card_url"),
-  ]);
-  const byEmployee = new Map<string, string[]>(); const byRec = new Map<string, string[]>();
-  for (const receipt of receipts) {
-    const map = receipt.candidate_id ? byEmployee : byRec; const id = receipt.candidate_id || receipt.rec_candidate_id;
-    const list = map.get(id); if (list) list.push(receipt.document_key); else map.set(id, [receipt.document_key]);
-  }
-  for (const doc of recDocs) if (doc.file_path && REC_CATEGORY_KEYS[doc.category]) byRec.set(doc.candidate_id, [...(byRec.get(doc.candidate_id) ?? []), REC_CATEGORY_KEYS[doc.category]]);
-  const byLinked = new Map(recruits.filter(r => r.employee_candidate_id).map(r => [r.employee_candidate_id, r]));
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  const people: DocumentPerson[] = [];
-  const policyBy = new Map(policies.map(p => [p.purpose, p]));
-  function add(person: Omit<DocumentPerson, "missing" | "due" | "overdue">) {
-    const policy = policyBy.get(person.purpose);
-    if (policy) people.push(documentStatus(person, policy, today));
-  }
-  const rehireByPerson = new Map<string, any>();
-  for (const r of rehires) for (const pid of [r.previous_candidate_id, r.new_candidate_id]) if (pid) { const cur = rehireByPerson.get(pid); if (!cur || r.created_at > cur.created_at) rehireByPerson.set(pid, r); }
-  for (const employee of employees) {
-    const rec = byLinked.get(employee.id);
-    const evidence = [...(employee.evidence ?? []), ...(byEmployee.get(employee.id) ?? []), ...(rec ? byRec.get(rec.id) ?? [] : [])];
-    if (employee.active) add({ id: employee.id, recId: rec?.id, name: employee.full_name, code: employee.code, purpose: "onboarding", start: employee.start_date ?? rec?.onboarded_at ?? null, received: evidence });
-    if (employee.exit_pending) add({ id: employee.id, name: employee.full_name, code: employee.code, purpose: "offboarding", start: employee.exit_date ?? null, received: evidence });
-    const rehire = rehireByPerson.get(employee.id);
-    if (rehire && !["rejected","cancelled"].includes(rehire.status) && employee.id === (rehire.new_candidate_id || rehire.previous_candidate_id)) add({ id: employee.id, name: employee.full_name, code: employee.code, purpose: "rehire", start: rehire.created_at, received: [...evidence, ...(rehire.resignation_url ? ["resignation"] : []), ...(rehire.id_card_url ? ["id_card"] : [])] });
-  }
-  for (const rec of recruits) if (!rec.employee_candidate_id && !["rejected","withdrawn"].includes(rec.stage)) add({ id: rec.id, recId: rec.id, name: rec.full_name, code: rec.code, purpose: "onboarding", start: rec.offer?.joining_date || null, received: byRec.get(rec.id) ?? [] });
-  return { policies, people };
+  const { data, error } = await (recDb as any).rpc("document_followup_summary");
+  if (error) throw error;
+  return { people: Number(data?.people ?? 0), overdue: Number(data?.overdue ?? 0), types: data?.types ?? {} };
+}
+export type DocumentListFilters = { type: string; purpose: string; overdue: boolean; words: string[]; page: number };
+export const DOCUMENT_PAGE_SIZE = 15;
+/** One filtered page of people with missing files, filtered and paged in the database (document_followup_list). */
+export async function fetchDocumentList(f: DocumentListFilters): Promise<{ total: number; rows: DocumentPerson[] }> {
+  if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
+  const { data, error } = await (recDb as any).rpc("document_followup_list", {
+    p_type: f.type === "all" ? null : f.type, p_purpose: f.purpose === "all" ? null : f.purpose, p_overdue: f.overdue,
+    p_words: f.words, p_offset: f.page * DOCUMENT_PAGE_SIZE, p_limit: DOCUMENT_PAGE_SIZE,
+  });
+  if (error) throw error;
+  const rows: DocumentPerson[] = (data?.rows ?? []).map((r: any) => ({
+    id: r.id, recId: r.rec_id ?? undefined, name: r.full_name ?? "", code: r.code ?? "", purpose: r.purpose as DocumentPurpose,
+    start: r.start_date ?? null, received: [], missing: r.missing ?? [], due: r.due ?? null, overdue: !!r.overdue,
+  }));
+  return { total: Number(data?.total ?? 0), rows };
 }
 export async function fetchPersonDocumentEvidence(id: string, recId?: string) {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load documents.");
