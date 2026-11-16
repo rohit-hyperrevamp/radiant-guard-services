@@ -1,3 +1,8 @@
+## Employment letters — 16 November
+- [x] Recreated six supplied formats as editable digital text: employee Hiring Letters (offer/appointment), Confirmation Letter, and Offboarding Docs (termination/experience/relieving). Employee autofill leaves unrecorded CTC/event/signatory fields blank.
+- [x] Added vector PDF downloads and immutable saved-copy history using existing private employee document storage and permissions; no employee source or signed records changed. Eight focused tests pass; rollback-only production save/readback passed; representative pages of all six exports inspected and WPS font corruption corrected; compilation OK.
+- [ ] Signed-in live edit/save/download and final exact-layout verification await GitHub-to-Vercel delivery and an authenticated live session; production Employees redirected to login. No end-to-end live completion claimed.
+
 ## Non-billable team visibility — 16 November
 - [ ] Add configurable non-billable Access Control view grants for organizations, clients, contracts and all-unit attendance; preserve separately authorized edit actions and billable-user scope.
 - [ ] Verify production read access and rejected unauthorized writes across departments; preserve operational inactive-client filtering.

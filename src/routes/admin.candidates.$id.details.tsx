@@ -63,6 +63,7 @@ import {
 import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
+import { EmploymentLetters } from "@/components/EmploymentLetters";
 import { CandidateEsicCard } from "@/components/CandidateEsicCard";
 import { ensureFormViiForCandidate, ensureIdCardForCandidate } from "@/lib/company-documents";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
@@ -87,6 +88,8 @@ const SECTIONS = [
   { id: "nominee", label: "Nominee", icon: UserCheck },
   
   { id: "company_docs", label: "Company Documents", icon: FileSignature },
+  { id: "hiring_letters", label: "Hiring Letters", icon: FileText },
+  { id: "confirmation_letter", label: "Confirmation Letter", icon: UserCheck },
   { id: "esic_card", label: "ESIC Card", icon: FileBadge },
   { id: "offboarding", label: "Offboarding Docs", icon: FileText },
 ] as const;
@@ -489,9 +492,9 @@ function CandidateDetailsPage() {
                 employeeCode={form.employee_code || form.candidate_code || ""}
               />
             )}
-          {active === "offboarding" && (
-            <OffboardingRecordsSection details={form.offboarding_details} />
-          )}
+          {active === "hiring_letters" && <EmploymentLetters candidateId={id} group="hiring" />}
+          {active === "confirmation_letter" && <EmploymentLetters candidateId={id} group="confirmation" />}
+          {active === "offboarding" && <div className="space-y-6"><EmploymentLetters candidateId={id} group="exit" /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
         </section>
       </div>
 

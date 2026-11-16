@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PostingOrderDialog } from "@/components/PostingOrderDialog";
+import { EmploymentLetters } from "@/components/EmploymentLetters";
+import { decodeLetter } from "@/lib/employment-letters";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +63,7 @@ export function CandidateCompanyDocuments({
         .eq("candidate_id", candidateId)
         .order("signed_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as SignedDocRow[];
+      return ((data ?? []) as SignedDocRow[]).filter(row => !decodeLetter(row.rendered_body));
     },
   });
 
@@ -125,6 +127,8 @@ export function CandidateCompanyDocuments({
 
   return (
     <div className="space-y-4">
+      <EmploymentLetters candidateId={candidateId} group="hiring" />
+      <EmploymentLetters candidateId={candidateId} group="confirmation" />
       <SectionHeader
         title="Company Documents"
         desc="Statutory documents generated for this employee, signed with their onboarding signature and the company stamp"

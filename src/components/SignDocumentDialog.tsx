@@ -51,6 +51,7 @@ export function SignDocumentDialog({
         .select("*")
         .eq("candidate_id", candidateId as string)
         .eq("doc_type", docType)
+        .not("rendered_body", "like", '{"format":"radiant-employment-letter-v1"%')
         .order("created_at", { ascending: false })
         .limit(1);
       const prev = ((existing as unknown) as SignedDocument[] | null)?.[0] ?? null;

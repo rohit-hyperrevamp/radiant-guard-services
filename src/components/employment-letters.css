@@ -1,0 +1,20 @@
+.employment-letter-page {
+  --letter-paper: #fff;
+  --letter-ink: #000;
+  position: relative;
+  margin: 0 auto 20px;
+  background: var(--letter-paper);
+  color: var(--letter-ink);
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+.employment-letter-line {
+  position: absolute;
+  line-height: 1;
+  white-space: pre;
+  min-height: 1em;
+  outline-offset: 2px;
+}
+.employment-letter-line:focus { outline: 1px solid var(--primary); }
+.employment-serif { font-family: "Times New Roman", "Liberation Serif", Times, serif; }
+.employment-sans { font-family: Arial, "Liberation Sans", sans-serif; }

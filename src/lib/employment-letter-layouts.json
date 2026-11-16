@@ -1,0 +1,5559 @@
+{
+  "offer": [
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 132.0,
+          "left": 438.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Date: {{issue_date}}",
+              "bold": true
+            }
+          ],
+          "width": 85.0
+        },
+        {
+          "top": 159.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "To,",
+              "bold": true
+            }
+          ],
+          "width": 20
+        },
+        {
+          "top": 173.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}},",
+              "bold": true
+            }
+          ],
+          "width": 119.0
+        },
+        {
+          "top": 187.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{address}}",
+              "bold": true
+            }
+          ],
+          "width": 110.0
+        },
+        {
+          "top": 228.0,
+          "left": 252.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "OFFER LETTER",
+              "bold": true
+            }
+          ],
+          "width": 92.0
+        },
+        {
+          "top": 256.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Dear {{salutation}} {{name}},",
+              "bold": false
+            }
+          ],
+          "width": 77.0
+        },
+        {
+          "top": 284.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "With reference to your application and subsequent interview, we are pleased to offer you the ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 298.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "position of ",
+              "bold": false
+            },
+            {
+              "text": "{{designation}} ",
+              "bold": true
+            },
+            {
+              "text": "in our organization with an ",
+              "bold": false
+            },
+            {
+              "text": "Annual CTC of Rs. ",
+              "bold": true
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 312.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{annual_ctc}}/-",
+              "bold": true
+            },
+            {
+              "text": ". Your normal place of work will be at our ",
+              "bold": false
+            },
+            {
+              "text": "{{work_location}}",
+              "bold": true
+            },
+            {
+              "text": " office.",
+              "bold": false
+            }
+          ],
+          "width": 348.0
+        },
+        {
+          "top": 339.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "You will receive a Letter of Appointment upon your acceptance and confirmation. Please ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 353.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "submit the following documents on your date of joining:",
+              "bold": false
+            }
+          ],
+          "width": 271.0
+        },
+        {
+          "top": 381.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "1. Copy of educational certificates (10th, 12th, Graduation & Post Graduation)",
+              "bold": false
+            }
+          ],
+          "width": 383.0
+        },
+        {
+          "top": 396.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "2. Copy of certificates for any professional courses completed",
+              "bold": false
+            }
+          ],
+          "width": 303.0
+        },
+        {
+          "top": 411.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "3. Two recent passport-sized photographs",
+              "bold": false
+            }
+          ],
+          "width": 206.0
+        },
+        {
+          "top": 425.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "4. Proof of Date of Birth (e.g., Driving License, Ration Card)",
+              "bold": false
+            }
+          ],
+          "width": 300.0
+        },
+        {
+          "top": 440.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "5. Proof of Residence (e.g., Voter ID, Driving License)",
+              "bold": false
+            }
+          ],
+          "width": 271.0
+        },
+        {
+          "top": 455.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "6. Copy of PAN Card",
+              "bold": false
+            }
+          ],
+          "width": 110.0
+        },
+        {
+          "top": 470.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "7. Copy of Aadhar Card",
+              "bold": false
+            }
+          ],
+          "width": 122.0
+        },
+        {
+          "top": 499.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Kindly confirm your date of joining and submit the signed duplicate copy of this offer letter ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 513.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "along with the resignation acceptance/relieving letter from your current employment. Please ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 527.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "return these documents as an acceptance of this offer.",
+              "bold": false
+            }
+          ],
+          "width": 257.0
+        },
+        {
+          "top": 554.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Thank you and regards,",
+              "bold": false
+            }
+          ],
+          "width": 113.0
+        },
+        {
+          "top": 582.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "For Radiant Guard Services Pvt. Ltd.",
+              "bold": true
+            }
+          ],
+          "width": 193.0
+        },
+        {
+          "top": 638.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Authorised Signatory",
+              "bold": true
+            }
+          ],
+          "width": 110.0
+        }
+      ]
+    }
+  ],
+  "appointment": [
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 97.0,
+          "left": 451.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Date: {{issue_date}}",
+              "bold": true
+            }
+          ],
+          "width": 75.0
+        },
+        {
+          "top": 121.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "To,",
+              "bold": true
+            }
+          ],
+          "width": 20
+        },
+        {
+          "top": 133.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}},",
+              "bold": true
+            }
+          ],
+          "width": 85.0
+        },
+        {
+          "top": 145.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{address}}",
+              "bold": true
+            }
+          ],
+          "width": 160.0
+        },
+        {
+          "top": 254.0,
+          "left": 245.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Letter of Appointment",
+              "bold": true
+            }
+          ],
+          "width": 116.0
+        },
+        {
+          "top": 292.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "We are delighted to offer you employment on a full-time basis in the role of ",
+              "bold": false
+            },
+            {
+              "text": "“{{designation}}”",
+              "bold": true
+            },
+            {
+              "text": " It is intended ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 304.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "for you to commence your employment  ",
+              "bold": false
+            },
+            {
+              "text": "{{joining_date}}.",
+              "bold": true
+            }
+          ],
+          "width": 256.0
+        },
+        {
+          "top": 328.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Please read through this letter carefully and indicate your acceptance of the offer by signing and returning ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 340.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a copy of this letter.",
+              "bold": false
+            }
+          ],
+          "width": 84.0
+        },
+        {
+          "top": 365.0,
+          "left": 61.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "1.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Commencement of Employment and Probationary Period.",
+              "bold": true
+            }
+          ],
+          "width": 273.0
+        },
+        {
+          "top": 390.0,
+          "left": 77.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. Your employment with the Company will commence on ",
+              "bold": false
+            },
+            {
+              "text": "{{joining_date}}",
+              "bold": true
+            },
+            {
+              "text": " No period of employment ",
+              "bold": false
+            }
+          ],
+          "width": 452.0
+        },
+        {
+          "top": 403.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "with any previous employer counts towards your period of employment with the Company and your ",
+              "bold": false
+            }
+          ],
+          "width": 435.0
+        },
+        {
+          "top": 415.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "continuous employment will therefore begin on the Commencement Date.",
+              "bold": false
+            }
+          ],
+          "width": 312.0
+        },
+        {
+          "top": 439.0,
+          "left": 77.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. The first six months of your employment shall be a probationary period. The probationary period will ",
+              "bold": false
+            }
+          ],
+          "width": 451.0
+        },
+        {
+          "top": 451.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "be automatically extended by a further two months unless a written letter of confirmation is issued by ",
+              "bold": false
+            }
+          ],
+          "width": 435.0
+        },
+        {
+          "top": 463.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "the   company.   During   the   probationary   period,   your   performance   and   suitability   for   continued ",
+              "bold": false
+            }
+          ],
+          "width": 435.0
+        },
+        {
+          "top": 475.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "employment will be monitored. On successful completion of your probation period, your services will ",
+              "bold": false
+            }
+          ],
+          "width": 435.0
+        },
+        {
+          "top": 487.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "be confirmed in writing. ",
+              "bold": false
+            }
+          ],
+          "width": 105.0
+        },
+        {
+          "top": 512.0,
+          "left": 61.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "2.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Job Title and Duties",
+              "bold": true
+            }
+          ],
+          "width": 102.0
+        },
+        {
+          "top": 537.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. You will be employed on the terms and conditions in this agreement, in the role of ",
+              "bold": false
+            },
+            {
+              "text": "“{{designation}}”. ",
+              "bold": true
+            }
+          ],
+          "width": 450.0
+        },
+        {
+          "top": 549.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Your role and job title may change in accordance with the reasonable business requirements of the ",
+              "bold": false
+            }
+          ],
+          "width": 431.0
+        },
+        {
+          "top": 562.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company.",
+              "bold": false
+            }
+          ],
+          "width": 43.0
+        },
+        {
+          "top": 586.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. You will carry out such duties as are consistent with your position and as may be assigned to you from ",
+              "bold": false
+            }
+          ],
+          "width": 452.0
+        },
+        {
+          "top": 598.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "time to time. You may be required to undertake other or additional duties from time to time as ",
+              "bold": false
+            }
+          ],
+          "width": 431.0
+        },
+        {
+          "top": 610.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "follows:",
+              "bold": false
+            }
+          ],
+          "width": 34.0
+        },
+        {
+          "top": 635.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. During your employment you must:",
+              "bold": false
+            }
+          ],
+          "width": 169.0
+        },
+        {
+          "top": 659.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Devote to your duties the whole of your working time, attention and skills during your normal ",
+              "bold": false
+            }
+          ],
+          "width": 432.0
+        },
+        {
+          "top": 671.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "working hours and at such times as may be reasonably required for the proper performance of your ",
+              "bold": false
+            }
+          ],
+          "width": 414.0
+        },
+        {
+          "top": 683.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "duties.",
+              "bold": false
+            }
+          ],
+          "width": 28.0
+        },
+        {
+          "top": 708.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Not undertake any other form of paid employment or engagement without the prior written ",
+              "bold": false
+            }
+          ],
+          "width": 432.0
+        },
+        {
+          "top": 720.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "approval of the Company.",
+              "bold": false
+            }
+          ],
+          "width": 110.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 97.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. As an employee in the full-time employment of the Company, you are required to devote your ",
+              "bold": false
+            }
+          ],
+          "width": 432.0
+        },
+        {
+          "top": 109.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "entire time, attention and effort to the furtherance of the business of the Company and to continually ",
+              "bold": false
+            }
+          ],
+          "width": 414.0
+        },
+        {
+          "top": 121.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "develop your professional skills in your own and the Company’s mutual interest. You shall not, ",
+              "bold": false
+            }
+          ],
+          "width": 414.0
+        },
+        {
+          "top": 133.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "during your employment with the Company, directly or indirectly engage yourself in or devote any ",
+              "bold": false
+            }
+          ],
+          "width": 414.0
+        },
+        {
+          "top": 145.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "time   or   attention   to   any   part-time   employment   or   monetary   position   other   than   that   of   the ",
+              "bold": false
+            }
+          ],
+          "width": 414.0
+        },
+        {
+          "top": 157.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company.",
+              "bold": false
+            }
+          ],
+          "width": 43.0
+        },
+        {
+          "top": 169.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. Adhere to the reasonable and lawful directions of the Company and anyone duly authorized by ",
+              "bold": false
+            }
+          ],
+          "width": 432.0
+        },
+        {
+          "top": 181.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "them.",
+              "bold": false
+            }
+          ],
+          "width": 24.0
+        },
+        {
+          "top": 193.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "v. Comply with all the Company’s rules, regulations, policies and procedures (as amended) from time ",
+              "bold": false
+            }
+          ],
+          "width": 438.0
+        },
+        {
+          "top": 206.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "to time.",
+              "bold": false
+            }
+          ],
+          "width": 32.0
+        },
+        {
+          "top": 218.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vi. Use your best endeavours to promote and protect the interests of the Company, and",
+              "bold": false
+            }
+          ],
+          "width": 368.0
+        },
+        {
+          "top": 230.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vii. To comply with the Radiant Guard Services Code of conduct.",
+              "bold": false
+            }
+          ],
+          "width": 277.0
+        },
+        {
+          "top": 255.0,
+          "left": 61.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "3.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Location ",
+              "bold": true
+            }
+          ],
+          "width": 53.0
+        },
+        {
+          "top": 281.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. Your normal place of work will be the Company’s office in ",
+              "bold": false
+            },
+            {
+              "text": "{{work_location}}",
+              "bold": true
+            },
+            {
+              "text": " However, your services are ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 293.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "liable to be transferred to any other location of the Company and / or any affiliate / associate member  ",
+              "bold": false
+            }
+          ],
+          "width": 431.0
+        },
+        {
+          "top": 305.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company. In case of refusal to accept the transfer, it will be termed as misconduct and management is ",
+              "bold": false
+            }
+          ],
+          "width": 431.0
+        },
+        {
+          "top": 317.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "bound to take serious action as it is considered as disciplinary issue.",
+              "bold": false
+            }
+          ],
+          "width": 285.0
+        },
+        {
+          "top": 341.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. You acknowledge that during your employment, you may be required to travel.",
+              "bold": false
+            }
+          ],
+          "width": 351.0
+        },
+        {
+          "top": 365.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. During any work-related travel you will comply with the terms of travel policy and will take all ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 378.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "reasonable steps to keep all personal and Company property secure.",
+              "bold": false
+            }
+          ],
+          "width": 284.0
+        },
+        {
+          "top": 402.0,
+          "left": 61.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "4.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Hours of Work ",
+              "bold": true
+            }
+          ],
+          "width": 82.0
+        },
+        {
+          "top": 428.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. As a full- time employee you will be required to devote substantially the whole of your time and  ",
+              "bold": false
+            }
+          ],
+          "width": 446.0
+        },
+        {
+          "top": 440.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "attention during the Employer’s ordinary business hours to the performance of your duties under this ",
+              "bold": false
+            }
+          ],
+          "width": 428.0
+        },
+        {
+          "top": 452.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "agreement.",
+              "bold": false
+            }
+          ],
+          "width": 46.0
+        },
+        {
+          "top": 476.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. Any work performed beyond normal working hours shall be on a voluntary basis, and no additional ",
+              "bold": false
+            }
+          ],
+          "width": 446.0
+        },
+        {
+          "top": 488.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "remuneration shall be payable for the same.",
+              "bold": false
+            }
+          ],
+          "width": 183.0
+        },
+        {
+          "top": 512.0,
+          "left": 61.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "5.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Salary and Benefits",
+              "bold": true
+            }
+          ],
+          "width": 98.0
+        },
+        {
+          "top": 538.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. Your annual CTC will be ",
+              "bold": false
+            },
+            {
+              "text": "Rs. {{annual_ctc}} /-",
+              "bold": true
+            },
+            {
+              "text": " Salary break up is attached as per Annexure.",
+              "bold": false
+            }
+          ],
+          "width": 380.0
+        },
+        {
+          "top": 562.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. This salary will be paid monthly.",
+              "bold": false
+            }
+          ],
+          "width": 157.0
+        },
+        {
+          "top": 588.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. The above-mentioned salary is the total cost to the company and includes all payments made and ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 600.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "benefits provided by the Employer directly or indirectly to or on your behalf, whether as salary or ",
+              "bold": false
+            }
+          ],
+          "width": 431.0
+        },
+        {
+          "top": 612.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "otherwise.",
+              "bold": false
+            }
+          ],
+          "width": 43.0
+        },
+        {
+          "top": 650.0,
+          "left": 58.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "6.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Official Expenses",
+              "bold": true
+            }
+          ],
+          "width": 92.0
+        },
+        {
+          "top": 676.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. The company will reimburse you for all reasonable expenses wholly, properly and necessarily incurred ",
+              "bold": false
+            }
+          ],
+          "width": 453.0
+        },
+        {
+          "top": 688.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "in the course of your employment, subject to such expenses being approved by the Company in ",
+              "bold": false
+            }
+          ],
+          "width": 428.0
+        },
+        {
+          "top": 700.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "advance. For  the avoidance of doubt, you will not be reimbursed for any expenses incurred when ",
+              "bold": false
+            }
+          ],
+          "width": 428.0
+        },
+        {
+          "top": 712.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "commuting to your normal place of work, or for daily lunches.",
+              "bold": false
+            }
+          ],
+          "width": 263.0
+        },
+        {
+          "top": 724.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. You will comply with the terms of any Company expenses policy or practice communicated to you ",
+              "bold": false
+            }
+          ],
+          "width": 446.0
+        },
+        {
+          "top": 736.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "from time to time, including any financial limits relating to expenses.",
+              "bold": false
+            }
+          ],
+          "width": 291.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 145.0,
+          "left": 61.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "7.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Leave",
+              "bold": true
+            }
+          ],
+          "width": 38.0
+        },
+        {
+          "top": 171.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. Privilege Leave: You are entitled to 15 days of Privilege Leaves for a calendar year after completion ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 183.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of six months from your date of joining. Any unavailed Privilege Leave balance at the end of the ",
+              "bold": false
+            }
+          ],
+          "width": 431.0
+        },
+        {
+          "top": 195.0,
+          "left": 97.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "calendar year will be encashed as per company policy. ",
+              "bold": false
+            }
+          ],
+          "width": 231.0
+        },
+        {
+          "top": 219.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. Paid Holiday: You are entitled to 12 Paid Holidays as per the guidelines of the Company.",
+              "bold": false
+            }
+          ],
+          "width": 393.0
+        },
+        {
+          "top": 249.0,
+          "left": 65.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "8.  Security Deposit",
+              "bold": true
+            }
+          ],
+          "width": 87.0
+        },
+        {
+          "top": 275.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. The Company maintains a policy of obtaining a refundable, interest-free security deposit equivalent to ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 288.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "one (1) month’s gross salary from employees to secure compliance with employment obligations, return ",
+              "bold": false
+            }
+          ],
+          "width": 433.0
+        },
+        {
+          "top": 301.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of Company property and recovery of any lawful dues.",
+              "bold": false
+            }
+          ],
+          "width": 230.0
+        },
+        {
+          "top": 326.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b.  The Employee may, at their option:",
+              "bold": false
+            }
+          ],
+          "width": 162.0
+        },
+        {
+          "top": 352.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Deposit the full amount of the security deposit upfront prior to or at the time of joining; or",
+              "bold": false
+            }
+          ],
+          "width": 415.0
+        },
+        {
+          "top": 377.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Authorize   the   Company   to   deduct   the   deposit   amount   from   salary   in   equal   monthly ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 390.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "installments, not exceeding twenty (20) installments, at the rate of five percent (5%) of the ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 403.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "monthly gross salary per month or such lower amount as may be required to comply with ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 416.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "applicable wage laws.",
+              "bold": false
+            }
+          ],
+          "width": 92.0
+        },
+        {
+          "top": 441.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. The security deposit shall be non-interest bearing and shall not be treated as wages.",
+              "bold": false
+            }
+          ],
+          "width": 360.0
+        },
+        {
+          "top": 466.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "d. The security deposit shall be refunded to the Employee at the time of full and final settlement upon ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 479.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "separation from employment, after adjustment of any lawful recoverable dues including notice pay, ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 492.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "advances, loss or damage caused to the Company (after due process) or unreturned Company assets, in ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 505.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "accordance with applicable laws.",
+              "bold": false
+            }
+          ],
+          "width": 139.0
+        },
+        {
+          "top": 530.0,
+          "left": 61.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "9.   Retirement",
+              "bold": true
+            }
+          ],
+          "width": 66.0
+        },
+        {
+          "top": 554.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The retirement age is 58 yrs and no prior notice is necessary.",
+              "bold": false
+            }
+          ],
+          "width": 255.0
+        },
+        {
+          "top": 578.0,
+          "left": 58.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "10.  Resignation Procedure & Notice Period",
+              "bold": true
+            }
+          ],
+          "width": 196.0
+        },
+        {
+          "top": 603.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. An Employee intending to resign from the services of the Company shall submit a formal resignation ",
+              "bold": false
+            }
+          ],
+          "width": 446.0
+        },
+        {
+          "top": 616.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "addressed to the Management or Human Resources Department, either in writing (signed hard copy) ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 629.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "or through the Employee’s registered official email ID.",
+              "bold": false
+            }
+          ],
+          "width": 231.0
+        },
+        {
+          "top": 655.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. A resignation shall not be deemed effective unless and until it is formally acknowledged and accepted ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 668.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "by the Company in writing or via official email communication.",
+              "bold": false
+            }
+          ],
+          "width": 269.0
+        },
+        {
+          "top": 694.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. Upon written/email acceptance of the resignation by the Company, the Employee shall mandatorily ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 707.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "serve   a   notice   period   of   sixty   (60)   days,   commencing   from   the   date   of   such   acceptance   as ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 720.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "communicated by the Company. ",
+              "bold": false
+            }
+          ],
+          "width": 139.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 125.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "d. During   the   notice   period,   the   Employee   shall   continue   to   discharge   assigned   duties   diligently, ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 138.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "facilitate   smooth   transition   of   client   assignments,   ensure   proper   handover   of   operational ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 151.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "responsibilities & records, comply with all handover & clearance i.e. return of all Company ",
+              "bold": false
+            }
+          ],
+          "width": 387.0
+        },
+        {
+          "top": 177.0,
+          "left": 105.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "property & data shall be a precondition to processing the Employee’s Full & Final (F&F) settlement ",
+              "bold": false
+            }
+          ],
+          "width": 421.0
+        },
+        {
+          "top": 190.0,
+          "left": 105.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "exit formalities as prescribed by the Company.",
+              "bold": false
+            }
+          ],
+          "width": 196.0
+        },
+        {
+          "top": 216.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "e. Failure to serve the full notice period shall entitle the Company to recover salary in lieu of the ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 229.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "unserved portion, subject to applicable labour laws.",
+              "bold": false
+            }
+          ],
+          "width": 216.0
+        },
+        {
+          "top": 255.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "f. The above-mentioned procedure shall be construed as fair, reasonable & necessary to protect the ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 268.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "legitimate business interest and thus binds all the employees of the Company.",
+              "bold": false
+            }
+          ],
+          "width": 326.0
+        },
+        {
+          "top": 294.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "g. In case of involuntary separation or are terminated, the notice pay and exit terms will be decided on a ",
+              "bold": false
+            }
+          ],
+          "width": 446.0
+        },
+        {
+          "top": 307.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "case to case basis as per the employment status on the date of the termination or separation. In the ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 320.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "event of separation resulted from actions impacting Company’s interest, Company will be free to ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 333.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "exercise available legal remedy and shall be free to make decisions from the outstanding dues as party ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 346.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of the separation process.",
+              "bold": false
+            }
+          ],
+          "width": 107.0
+        },
+        {
+          "top": 373.0,
+          "left": 82.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "h. In the event of any termination or separation, Employee shall be required to ensure a proper transition ",
+              "bold": false
+            }
+          ],
+          "width": 448.0
+        },
+        {
+          "top": 386.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "and handing over of the responsibilities to the satisfaction of the Company.",
+              "bold": false
+            }
+          ],
+          "width": 315.0
+        },
+        {
+          "top": 412.0,
+          "left": 58.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "11.  Absconding / Abandonment of Employment",
+              "bold": true
+            }
+          ],
+          "width": 215.0
+        },
+        {
+          "top": 438.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a.  In the event the Employee remains absent from duty without prior written approval and without ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 451.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "valid intimation for a continuous period of Seven (7) working days or more, such absence shall be ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 464.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "treated as unauthorized absence.",
+              "bold": false
+            }
+          ],
+          "width": 136.0
+        },
+        {
+          "top": 490.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b.   If the Employee fails to provide satisfactory explanation within seven (3) days from the date of issuance ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 503.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of a written notice sent to the last known address/email of the Employee, the Company shall have the ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 516.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "right to presume that the Employee has voluntarily abandoned the employment.",
+              "bold": false
+            }
+          ],
+          "width": 334.0
+        },
+        {
+          "top": 542.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c.   In such circumstances:",
+              "bold": false
+            }
+          ],
+          "width": 117.0
+        },
+        {
+          "top": 567.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. The Employee shall be deemed to have voluntarily terminated the employment without serving ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 580.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "the required notice period;",
+              "bold": false
+            }
+          ],
+          "width": 111.0
+        },
+        {
+          "top": 605.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. The Company shall be entitled to recover notice pay in lieu of the applicable notice period, along ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 618.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "with any other losses, advances or dues payable by the Employee;",
+              "bold": false
+            }
+          ],
+          "width": 277.0
+        },
+        {
+          "top": 643.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. The Company shall have the right to initiate appropriate legal action for recovery of damages, ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 657.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company property, confidential information or any other loss caused to the Company;",
+              "bold": false
+            }
+          ],
+          "width": 362.0
+        },
+        {
+          "top": 682.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. Full and final settlement shall be processed in accordance with applicable laws after adjustment of ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 695.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "lawful recoverable amounts including notice pay, advances, loans, loss or damage caused to the ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 708.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company after due process and the value of Company assets not returned. The Employee shall be ",
+              "bold": false
+            }
+          ],
+          "width": 413.0
+        },
+        {
+          "top": 733.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "required to return all Company property prior to settlement. Any deductions shall be made in compliance ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 746.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "with applicable labour and wage laws.",
+              "bold": false
+            }
+          ],
+          "width": 161.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 148.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The Company shall not be liable for any salary or benefits for the period of unauthorized absence.",
+              "bold": false
+            }
+          ],
+          "width": 411.0
+        },
+        {
+          "top": 173.0,
+          "left": 51.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "12. Workforce Protection, Non-Solicitation & Post-Employment Obligations",
+              "bold": true
+            }
+          ],
+          "width": 347.0
+        },
+        {
+          "top": 211.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. The Employee acknowledges that during the course of employment with the Company, particularly ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 225.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "in a security services organization operating on an India-wide basis, the Employee shall have access ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 239.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "to   confidential   information,   operational   structures,   deployment   strategies,   client   allocations, ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 252.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "manpower   databases,   wage   structures,   and   workforce   arrangements   which   constitute   valuable ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 265.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "proprietary business interests of the Company.",
+              "bold": false
+            }
+          ],
+          "width": 195.0
+        },
+        {
+          "top": 291.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. During the term of employment and at all times thereafter, without limitation as to time (though we ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 305.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "understand & acknowledge the Section 27 of the Indian Contracts Act, 1872) the Employee shall not, ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 319.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "directly or indirectly:",
+              "bold": false
+            }
+          ],
+          "width": 89.0
+        },
+        {
+          "top": 345.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. Solicit, induce, recruit, attempt to recruit, hire, engage, or encourage any existing employee, security ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 359.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "personnel,   contractual   staff,   managerial   employee,   consultant,   or   associate   of   the   Company   to ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 372.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "terminate or alter their engagement with the Company;",
+              "bold": false
+            }
+          ],
+          "width": 230.0
+        },
+        {
+          "top": 399.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "d. Assist, advise, or facilitate any third party, competitor, client, vendor, or manpower agency in ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 413.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "recruiting or attempting to recruit any employee or personnel of the Company;",
+              "bold": false
+            }
+          ],
+          "width": 330.0
+        },
+        {
+          "top": 439.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "e. Use confidential workforce data, deployment information, salary structures, or internal records for the ",
+              "bold": false
+            }
+          ],
+          "width": 449.0
+        },
+        {
+          "top": 454.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "purpose of attracting or diverting Company personnel.",
+              "bold": false
+            }
+          ],
+          "width": 228.0
+        },
+        {
+          "top": 480.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "f. The Employee agrees that workforce stability is fundamental to the Company’s contractual, statutory, ",
+              "bold": false
+            }
+          ],
+          "width": 448.0
+        },
+        {
+          "top": 495.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "and   operational   obligations,   and   that   breach   of   this   clause   would   cause   irreparable   harm   not ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 508.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "adequately   compensable   by   damages   alone.   The   Company   shall   therefore   be   entitled   to   seek ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 521.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "appropriate legal remedies, including injunctive relief and recovery of damages, in accordance with ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 534.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "applicable law.",
+              "bold": false
+            }
+          ],
+          "width": 63.0
+        },
+        {
+          "top": 560.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "g. This clause is expressly intended to protect legitimate business interests and shall not be construed as ",
+              "bold": false
+            }
+          ],
+          "width": 445.0
+        },
+        {
+          "top": 575.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a restraint on the Employee’s right to seek employment or carry-on lawful trade, profession, or ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 588.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "business, except to the limited extent necessary to prevent solicitation or misuse of the Company’s ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 601.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "workforce and confidential information. (though we understand & acknowledge the Section 27 of the ",
+              "bold": false
+            }
+          ],
+          "width": 426.0
+        },
+        {
+          "top": 614.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Indian Contracts Act, 1872)",
+              "bold": false
+            }
+          ],
+          "width": 117.0
+        },
+        {
+          "top": 640.0,
+          "left": 82.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "h. The obligations under this clause shall survive resignation, withdrawal, retirement, or termination of ",
+              "bold": false
+            }
+          ],
+          "width": 444.0
+        },
+        {
+          "top": 655.0,
+          "left": 100.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "employment for any reason whatsoever.",
+              "bold": false
+            }
+          ],
+          "width": 168.0
+        },
+        {
+          "top": 694.0,
+          "left": 51.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "13.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Company Property, Inventory Custody and Accountability",
+              "bold": true
+            }
+          ],
+          "width": 292.0
+        },
+        {
+          "top": 715.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. Any laptop, mobile phone, SIM card, access card, vehicle, documents, uniforms, equipment, or any asset ",
+              "bold": false
+            }
+          ],
+          "width": 447.0
+        },
+        {
+          "top": 728.0,
+          "left": 93.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "issued to you shall remain Company property.",
+              "bold": false
+            }
+          ],
+          "width": 194.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 136.0,
+          "left": 90.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "You shall:",
+              "bold": false
+            }
+          ],
+          "width": 43.0
+        },
+        {
+          "top": 157.0,
+          "left": 120.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Use Company property strictly for official purposes.",
+              "bold": false
+            }
+          ],
+          "width": 244.0
+        },
+        {
+          "top": 180.0,
+          "left": 116.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Not install unauthorized software or applications.",
+              "bold": false
+            }
+          ],
+          "width": 235.0
+        },
+        {
+          "top": 203.0,
+          "left": 113.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. Not misuse IT systems for unlawful or immoral activities.",
+              "bold": false
+            }
+          ],
+          "width": 274.0
+        },
+        {
+          "top": 225.0,
+          "left": 114.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. Employees assigned with custody, handling, storage, or distribution of Company inventory ",
+              "bold": false
+            }
+          ],
+          "width": 415.0
+        },
+        {
+          "top": 240.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "shall maintain complete transparency, accurate records, and proper accountability of all ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 253.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "stock items entrusted to them, including but not limited to uniforms, shoes, umbrellas, ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 266.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "torches, metal detectors, lathis, batons, and other operational materials or equipment. The ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 279.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Employee   shall   ensure   that   all   inventory   issued,   received,   transferred,   distributed,   or ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 292.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "returned is properly recorded in the prescribed format/system of the Company.",
+              "bold": false
+            }
+          ],
+          "width": 330.0
+        },
+        {
+          "top": 313.0,
+          "left": 117.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "v. The Employee shall not misuse, conceal, misappropriate, or unauthorizedly distribute any ",
+              "bold": false
+            }
+          ],
+          "width": 409.0
+        },
+        {
+          "top": 328.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company   inventory   or  stock.   Any   shortage,   discrepancy,   damage,   loss,   or  misuse   of ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 341.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "inventory attributable to negligence, misconduct, or unauthorized actions of the Employee ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 354.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "may result in recovery of the cost of such inventory, disciplinary action, or termination of ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 367.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "employment, as deemed appropriate by the Company. ",
+              "bold": false
+            }
+          ],
+          "width": 229.0
+        },
+        {
+          "top": 388.0,
+          "left": 114.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vi. The Employee shall produce stock records and physical inventory for verification, audit, or ",
+              "bold": false
+            }
+          ],
+          "width": 416.0
+        },
+        {
+          "top": 403.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "inspection whenever required by the Company.",
+              "bold": false
+            }
+          ],
+          "width": 199.0
+        },
+        {
+          "top": 424.0,
+          "left": 110.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vii. Non-return of Company property shall entitle the Company to withhold Full & Final ",
+              "bold": false
+            }
+          ],
+          "width": 416.0
+        },
+        {
+          "top": 439.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Settlement and initiate legal proceedings.",
+              "bold": false
+            }
+          ],
+          "width": 173.0
+        },
+        {
+          "top": 481.0,
+          "left": 51.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "14. Code of Conduct, Misconduct & Zero Tolerance Policy",
+              "bold": true
+            }
+          ],
+          "width": 268.0
+        },
+        {
+          "top": 502.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Standard of Conduct",
+              "bold": true
+            }
+          ],
+          "width": 130.0
+        },
+        {
+          "top": 523.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The Employee shall maintain the highest standards of integrity, discipline, professionalism, and ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 536.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "lawful conduct at all times during employment. The Employee shall act in good faith and in the best ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 549.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "interests of the Company and shall not engage in any act or omission that may harm the Company’s ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 562.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "reputation, goodwill, operations, clients, employees, or commercial interests.",
+              "bold": false
+            }
+          ],
+          "width": 323.0
+        },
+        {
+          "top": 583.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Violation of this Code shall constitute “Misconduct” and may invite disciplinary action.",
+              "bold": false
+            }
+          ],
+          "width": 369.0
+        },
+        {
+          "top": 604.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Acts Constituting Gross Misconduct",
+              "bold": true
+            }
+          ],
+          "width": 198.0
+        },
+        {
+          "top": 625.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Without   prejudice   to   the   Company’s   right   to   determine   misconduct   based   on   facts   and ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 638.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "circumstances, the following shall constitute Gross Misconduct:",
+              "bold": false
+            }
+          ],
+          "width": 269.0
+        },
+        {
+          "top": 660.0,
+          "left": 120.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Fraud, theft, embezzlement, dishonesty, or misappropriation of Company funds, assets, or ",
+              "bold": false
+            }
+          ],
+          "width": 406.0
+        },
+        {
+          "top": 674.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "property.",
+              "bold": false
+            }
+          ],
+          "width": 38.0
+        },
+        {
+          "top": 687.0,
+          "left": 116.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Unauthorized access, disclosure, transmission, copying, retention, or misuse of confidential ",
+              "bold": false
+            }
+          ],
+          "width": 415.0
+        },
+        {
+          "top": 702.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "or proprietary information.",
+              "bold": false
+            }
+          ],
+          "width": 113.0
+        },
+        {
+          "top": 715.0,
+          "left": 113.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. Data breach, cyber misconduct, tampering with IT systems, password misuse, or violation ",
+              "bold": false
+            }
+          ],
+          "width": 413.0
+        },
+        {
+          "top": 730.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of IT security policies under the Information Technology Act, 2000.",
+              "bold": false
+            }
+          ],
+          "width": 286.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 112.0,
+          "left": 114.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. Sexual harassment as defined under the Sexual Harassment of Women at Workplace ",
+              "bold": false
+            }
+          ],
+          "width": 412.0
+        },
+        {
+          "top": 126.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "(Prevention, Prohibition and Redressal) Act, 2013.",
+              "bold": false
+            }
+          ],
+          "width": 213.0
+        },
+        {
+          "top": 139.0,
+          "left": 117.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "v. Physical assault, threats, abusive conduct, intimidation, coercion, or workplace violence.",
+              "bold": false
+            }
+          ],
+          "width": 399.0
+        },
+        {
+          "top": 154.0,
+          "left": 114.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vi. Bribery, corruption, kickbacks, illegal gratification, or violation of anti-corruption laws.",
+              "bold": false
+            }
+          ],
+          "width": 399.0
+        },
+        {
+          "top": 169.0,
+          "left": 110.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vii. Conflict of interest, including undisclosed financial or commercial interest in competing or ",
+              "bold": false
+            }
+          ],
+          "width": 419.0
+        },
+        {
+          "top": 184.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "client businesses.",
+              "bold": false
+            }
+          ],
+          "width": 73.0
+        },
+        {
+          "top": 197.0,
+          "left": 107.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "viii. Client   solicitation,   diversion   of   business,   or   inducing   clients   to   terminate   or   reduce ",
+              "bold": false
+            }
+          ],
+          "width": 419.0
+        },
+        {
+          "top": 212.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "engagement with the Company.",
+              "bold": false
+            }
+          ],
+          "width": 133.0
+        },
+        {
+          "top": 225.0,
+          "left": 114.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ix. Poaching, inducing, or attempting to induce employees, contractors, or associates to leave ",
+              "bold": false
+            }
+          ],
+          "width": 412.0
+        },
+        {
+          "top": 240.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "the Company.",
+              "bold": false
+            }
+          ],
+          "width": 59.0
+        },
+        {
+          "top": 253.0,
+          "left": 117.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "x. Willful insubordination, refusal to follow lawful and reasonable instructions.",
+              "bold": false
+            }
+          ],
+          "width": 349.0
+        },
+        {
+          "top": 268.0,
+          "left": 114.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "xi. Unauthorized absence exceeding three (3) consecutive working days without intimation.",
+              "bold": false
+            }
+          ],
+          "width": 401.0
+        },
+        {
+          "top": 282.0,
+          "left": 110.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "xii. Damage, misuse, unauthorized removal, or retention of Company property, documents, or ",
+              "bold": false
+            }
+          ],
+          "width": 416.0
+        },
+        {
+          "top": 297.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "devices.",
+              "bold": false
+            }
+          ],
+          "width": 34.0
+        },
+        {
+          "top": 310.0,
+          "left": 107.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "xiii. Falsification of records, attendance manipulation, expense fraud, or submission of forged ",
+              "bold": false
+            }
+          ],
+          "width": 419.0
+        },
+        {
+          "top": 325.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "documents.",
+              "bold": false
+            }
+          ],
+          "width": 48.0
+        },
+        {
+          "top": 338.0,
+          "left": 108.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "xiv. Criminal conduct, moral turpitude, or conviction by a court of law affecting employment.",
+              "bold": false
+            }
+          ],
+          "width": 412.0
+        },
+        {
+          "top": 353.0,
+          "left": 111.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "xv. Any act causing financial loss, reputational harm, operational disruption, or regulatory ",
+              "bold": false
+            }
+          ],
+          "width": 415.0
+        },
+        {
+          "top": 368.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "exposure to the Company.",
+              "bold": false
+            }
+          ],
+          "width": 110.0
+        },
+        {
+          "top": 389.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The above list is illustrative and not exhaustive.",
+              "bold": false
+            }
+          ],
+          "width": 200.0
+        },
+        {
+          "top": 410.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. Disciplinary Process",
+              "bold": true
+            }
+          ],
+          "width": 127.0
+        },
+        {
+          "top": 431.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. In cases of alleged misconduct, the Company may initiate disciplinary proceedings in ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 444.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "accordance with principles of natural justice and applicable labour laws.",
+              "bold": false
+            }
+          ],
+          "width": 303.0
+        },
+        {
+          "top": 465.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. The Company may place the Employee under suspension pending inquiry, where deemed ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 478.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "necessary.",
+              "bold": false
+            }
+          ],
+          "width": 43.0
+        },
+        {
+          "top": 499.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. Upon conclusion of disciplinary proceedings, if misconduct is established, the Company ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 512.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "may impose one or more of the following penalties depending on the severity:",
+              "bold": false
+            }
+          ],
+          "width": 328.0
+        },
+        {
+          "top": 533.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Written warning ",
+              "bold": false
+            }
+          ],
+          "width": 90.0
+        },
+        {
+          "top": 546.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Withholding of increments or benefits (as permissible under law)",
+              "bold": false
+            }
+          ],
+          "width": 292.0
+        },
+        {
+          "top": 559.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Suspension",
+              "bold": false
+            }
+          ],
+          "width": 66.0
+        },
+        {
+          "top": 572.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Recovery of financial losses (subject to applicable wage laws)",
+              "bold": false
+            }
+          ],
+          "width": 279.0
+        },
+        {
+          "top": 585.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Demotion or reassignment",
+              "bold": false
+            }
+          ],
+          "width": 129.0
+        },
+        {
+          "top": 598.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Termination without notice in cases of Gross Misconduct",
+              "bold": false
+            }
+          ],
+          "width": 259.0
+        },
+        {
+          "top": 611.0,
+          "left": 162.0,
+          "size": 11.0,
+          "family": "sans",
+          "runs": [
+            {
+              "text": " Initiation of civil and/or criminal proceedings",
+              "bold": false
+            }
+          ],
+          "width": 209.0
+        },
+        {
+          "top": 636.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. If any dispute, difference or claim arises between the Employee and the Company in ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 649.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "relation to employment, compensation, termination, obligations or interpretation of this ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 663.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Appointment Letter, the parties shall first attempt to resolve the matter amicably through ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 676.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "internal discussions.",
+              "bold": false
+            }
+          ],
+          "width": 85.0
+        },
+        {
+          "top": 701.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "v. In the event the matter remains unresolved, the Company shall be entitled to initiate ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 714.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "appropriate legal proceedings before a competent court of law.",
+              "bold": false
+            }
+          ],
+          "width": 263.0
+        },
+        {
+          "top": 739.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "vi. This Appointment Letter shall be governed by and construed in accordance with the laws ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 752.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of India and the courts at Pune, Maharashtra shall have exclusive jurisdiction.",
+              "bold": false
+            }
+          ],
+          "width": 326.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 157.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "d. Zero Tolerance & Summary Termination",
+              "bold": true
+            }
+          ],
+          "width": 222.0
+        },
+        {
+          "top": 178.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. In cases involving Gross Misconduct including but not limited to fraud, data breach, ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 191.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "sexual   harassment,   theft,   violence,   corruption,   or   acts   causing   serious   financial   or ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 204.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "reputational harm, the Company reserves the right to terminate employment without notice ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 217.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "or salary in lieu thereof, subject to due inquiry wherever legally required.",
+              "bold": false
+            }
+          ],
+          "width": 307.0
+        },
+        {
+          "top": 238.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. The Company shall further be entitled to:",
+              "bold": false
+            }
+          ],
+          "width": 210.0
+        },
+        {
+          "top": 259.0,
+          "left": 156.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Recover financial losses or damages suffered.",
+              "bold": false
+            }
+          ],
+          "width": 216.0
+        },
+        {
+          "top": 274.0,
+          "left": 152.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Withhold Full & Final Settlement pending investigation.",
+              "bold": false
+            }
+          ],
+          "width": 266.0
+        },
+        {
+          "top": 289.0,
+          "left": 149.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. Report the matter to law enforcement or regulatory authorities.",
+              "bold": false
+            }
+          ],
+          "width": 295.0
+        },
+        {
+          "top": 304.0,
+          "left": 150.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. Seek injunctive relief or damages before appropriate courts.",
+              "bold": false
+            }
+          ],
+          "width": 281.0
+        },
+        {
+          "top": 327.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "15.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Anti-Bribery and Anti-Corruption ",
+              "bold": true
+            }
+          ],
+          "width": 194.0
+        },
+        {
+          "top": 348.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "a. The Employee shall comply with all applicable anti-bribery and anti-corruption laws, ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 361.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "rules, and regulations during the course of employment with the Company. ",
+              "bold": false
+            }
+          ],
+          "width": 318.0
+        },
+        {
+          "top": 382.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. The Employee shall not, directly or indirectly, offer, promise, give, solicit, accept, or ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 395.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "authorize   any   bribe,   kickback,   facilitation   payment,   or   any   other   improper   payment, ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 408.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "benefit, or advantage, whether financial or otherwise, to or from any on-roll or deployed ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 421.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "employee, customer, vendor, contractor, government official, or any other third party. ",
+              "bold": false
+            }
+          ],
+          "width": 363.0
+        },
+        {
+          "top": 442.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. The   Employee   shall   not   misuse   Company   funds,   resources,   position,   authority,   or ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 455.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "influence for any unlawful, unethical, or improper purpose, including securing any undue ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 468.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "business or personal advantage. ",
+              "bold": false
+            }
+          ],
+          "width": 136.0
+        },
+        {
+          "top": 489.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "d. Any violation of this clause shall be treated as serious misconduct and may result in ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 502.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "disciplinary action, including termination of employment, without prejudice to any legal or ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 515.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "statutory action that may be initiated under applicable laws. ",
+              "bold": false
+            }
+          ],
+          "width": 253.0
+        },
+        {
+          "top": 546.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "16.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Dispute Resolution and Disciplinary Process",
+              "bold": true
+            }
+          ],
+          "width": 234.0
+        },
+        {
+          "top": 572.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": ". In the event of any misconduct, breach of this Appointment Letter, violation of Company ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 585.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "policies or any act prejudicial to the interests of the Company, the Company shall have the ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 598.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "right to initiate disciplinary proceedings against the Employee in accordance with the ",
+              "bold": false
+            }
+          ],
+          "width": 382.0
+        },
+        {
+          "top": 611.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "principles of natural justice.",
+              "bold": false
+            }
+          ],
+          "width": 117.0
+        },
+        {
+          "top": 636.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The Company may, depending upon the nature and severity of the matter, follow the below ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 649.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "process:",
+              "bold": false
+            }
+          ],
+          "width": 34.0
+        },
+        {
+          "top": 674.0,
+          "left": 121.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Issue of verbal or written warning;",
+              "bold": false
+            }
+          ],
+          "width": 168.0
+        },
+        {
+          "top": 700.0,
+          "left": 118.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Conduct of internal inquiry, if deemed necessary by the Company;",
+              "bold": false
+            }
+          ],
+          "width": 306.0
+        },
+        {
+          "top": 726.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. Issuance of final written notice and/or disciplinary action including suspension, recovery ",
+              "bold": false
+            }
+          ],
+          "width": 404.0
+        },
+        {
+          "top": 740.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "of losses, termination of employment or any other action deemed appropriate.",
+              "bold": false
+            }
+          ],
+          "width": 326.0
+        }
+      ]
+    },
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 150.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "b. If any dispute, difference or claim arises between the Employee and the Company in relation ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 163.0,
+          "left": 126.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "to employment, compensation, termination, obligations or interpretation of this Appointment ",
+              "bold": false
+            }
+          ],
+          "width": 400.0
+        },
+        {
+          "top": 176.0,
+          "left": 126.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Letter,   the   parties   shall   first   attempt   to   resolve   the   matter   amicably   through   internal ",
+              "bold": false
+            }
+          ],
+          "width": 400.0
+        },
+        {
+          "top": 189.0,
+          "left": 126.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "discussions.",
+              "bold": false
+            }
+          ],
+          "width": 50.0
+        },
+        {
+          "top": 214.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "c. In   the   event   the   matter   remains   unresolved,   the   Company   shall   be   entitled   to   initiate ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 227.0,
+          "left": 126.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "appropriate legal proceedings before a competent court of law.",
+              "bold": false
+            }
+          ],
+          "width": 263.0
+        },
+        {
+          "top": 252.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "d. This Appointment Letter shall be governed by and construed in accordance with the laws of ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 265.0,
+          "left": 126.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "India and the courts at Pune, Maharashtra shall have exclusive jurisdiction.",
+              "bold": false
+            }
+          ],
+          "width": 315.0
+        },
+        {
+          "top": 291.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "17.",
+              "bold": true
+            },
+            {
+              "text": " ",
+              "bold": false
+            },
+            {
+              "text": "Protection of Company Goodwill & Reputation",
+              "bold": true
+            }
+          ],
+          "width": 248.0
+        },
+        {
+          "top": 316.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The Employee shall not, during or after employment:",
+              "bold": false
+            }
+          ],
+          "width": 224.0
+        },
+        {
+          "top": 337.0,
+          "left": 121.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "i. Make defamatory, disparaging, or false statements against the Company, its directors, ",
+              "bold": false
+            }
+          ],
+          "width": 405.0
+        },
+        {
+          "top": 350.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "employees, or clients.",
+              "bold": false
+            }
+          ],
+          "width": 91.0
+        },
+        {
+          "top": 363.0,
+          "left": 118.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "ii. Publish or circulate any adverse content on social media or public platforms that may harm ",
+              "bold": false
+            }
+          ],
+          "width": 411.0
+        },
+        {
+          "top": 376.0,
+          "left": 144.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Company goodwill.",
+              "bold": false
+            }
+          ],
+          "width": 83.0
+        },
+        {
+          "top": 389.0,
+          "left": 115.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iii. Represent the Company without authorization.",
+              "bold": false
+            }
+          ],
+          "width": 225.0
+        },
+        {
+          "top": 402.0,
+          "left": 116.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "iv. Breach of this clause shall invite strict legal action.",
+              "bold": false
+            }
+          ],
+          "width": 242.0
+        },
+        {
+          "top": 428.0,
+          "left": 72.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "18.       Continuing Obligation",
+              "bold": true
+            }
+          ],
+          "width": 133.0
+        },
+        {
+          "top": 449.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "The obligations under this Code relating to confidentiality, data protection, goodwill protection, and ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 462.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "non-solicitation shall survive termination of employment",
+              "bold": false
+            }
+          ],
+          "width": 239.0
+        },
+        {
+          "top": 495.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Kindly acknowledge and confirm your acceptance of the terms and conditions mentioned in this ",
+              "bold": false
+            }
+          ],
+          "width": 420.0
+        },
+        {
+          "top": 507.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "letter.",
+              "bold": false
+            }
+          ],
+          "width": 24.0
+        },
+        {
+          "top": 532.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "We have pleasure in welcoming you in our Company and look forward to a long term mutually ",
+              "bold": false
+            }
+          ],
+          "width": 420.0
+        },
+        {
+          "top": 544.0,
+          "left": 108.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "beneficial association.",
+              "bold": false
+            }
+          ],
+          "width": 93.0
+        },
+        {
+          "top": 568.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "For Radiant Guard Services Pvt Ltd.                      I accept the terms of employment fully",
+              "bold": true
+            }
+          ],
+          "width": 396.0
+        },
+        {
+          "top": 604.0,
+          "left": 79.0,
+          "size": 11.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Authorised Signatory                                                 Signature",
+              "bold": true
+            }
+          ],
+          "width": 269.0
+        }
+      ]
+    }
+  ],
+  "confirmation": [
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 125,
+          "left": 380.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Date: {{issue_date}}",
+              "bold": false
+            }
+          ],
+          "width": 141.0
+        },
+        {
+          "top": 169.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "To,",
+              "bold": false
+            }
+          ],
+          "width": 20
+        },
+        {
+          "top": 193.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}}",
+              "bold": false
+            }
+          ],
+          "width": 111.0
+        },
+        {
+          "top": 217.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Emp ID: {{employee_code}}",
+              "bold": false
+            }
+          ],
+          "width": 75.0
+        },
+        {
+          "top": 242.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Designation: {{designation}}",
+              "bold": false
+            }
+          ],
+          "width": 130.0
+        },
+        {
+          "top": 284.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Subject:  Letter for Confirmation of Service.",
+              "bold": true
+            }
+          ],
+          "width": 243.0
+        },
+        {
+          "top": 337.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "The Management has reviewed your performance and is extremely pleased to inform ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 353.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "you that your employment with us has been confirmed w.e.f. {{confirmation_date}} as ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 370.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "{{designation}}.",
+              "bold": false
+            }
+          ],
+          "width": 67.0
+        },
+        {
+          "top": 394.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Please note that all other terms and conditions of your employment will remain the ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 410.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "same except for the notice period, which will be 2 months and the prevailing norms ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 426.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "which come into existence from time to time. ",
+              "bold": false
+            }
+          ],
+          "width": 239.0
+        },
+        {
+          "top": 450.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "This is an exciting time for us to have you confirmed as a permanent employee who in ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 467.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "addition to performing as per expectations are also fully integrated into the culture ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 483.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "that we are building at Radiant.",
+              "bold": false
+            }
+          ],
+          "width": 165.0
+        },
+        {
+          "top": 507.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "I hope that you will continue to be a champion of our values and grow a long and ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 523.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "successful career with us.",
+              "bold": false
+            }
+          ],
+          "width": 134.0
+        },
+        {
+          "top": 547.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "You are requested to give your acceptance by signing a copy of this letter and return it ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 564.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "to the undersigned for records.",
+              "bold": false
+            }
+          ],
+          "width": 162.0
+        },
+        {
+          "top": 612.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Regards,",
+              "bold": false
+            }
+          ],
+          "width": 45.0
+        },
+        {
+          "top": 631.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "For RADIANT GUARD SERVICES PVT.LTD.",
+              "bold": true
+            }
+          ],
+          "width": 230.0
+        },
+        {
+          "top": 704.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "HEAD  - HR",
+              "bold": false
+            }
+          ],
+          "width": 62.0
+        }
+      ]
+    }
+  ],
+  "termination": [
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 131.0,
+          "left": 390.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Date:",
+              "bold": true
+            },
+            {
+              "text": " {{issue_date}}",
+              "bold": false
+            }
+          ],
+          "width": 112.0
+        },
+        {
+          "top": 186.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "To,",
+              "bold": true
+            }
+          ],
+          "width": 20
+        },
+        {
+          "top": 200.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}}",
+              "bold": true
+            }
+          ],
+          "width": 137.0
+        },
+        {
+          "top": 228.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Subject: Termination of Contract Due to {{termination_reason}}",
+              "bold": true
+            }
+          ],
+          "width": 356.0
+        },
+        {
+          "top": 256.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Dear {{salutation}} {{name}},",
+              "bold": false
+            }
+          ],
+          "width": 157.0
+        },
+        {
+          "top": 283.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "This   letter   is   to   formally   inform   you   that   your  ",
+              "bold": false
+            },
+            {
+              "text": "contract   with   Radiant   Guard ",
+              "bold": true
+            }
+          ],
+          "width": 419.0
+        },
+        {
+          "top": 297.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Services Pvt. Ltd.",
+              "bold": true
+            },
+            {
+              "text": "  is being terminated with effect from  ",
+              "bold": false
+            },
+            {
+              "text": "{{last_working_date}}",
+              "bold": true
+            },
+            {
+              "text": "  due to ",
+              "bold": false
+            }
+          ],
+          "width": 419.0
+        },
+        {
+          "top": 311.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "unsatisfactory   performance   and   failure   to   meet   the   expected   performance ",
+              "bold": true
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 325.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "standards of the organization",
+              "bold": true
+            },
+            {
+              "text": ".",
+              "bold": false
+            }
+          ],
+          "width": 153.0
+        },
+        {
+          "top": 353.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Despite being provided with appropriate guidance and opportunities to improve your ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 366.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "performance,   the   required   level   of   performance   and   work   output   has   not   been ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 380.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "achieved. Your continued performance issues have affected the expected standards of ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 394.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "work and operational requirements.",
+              "bold": false
+            }
+          ],
+          "width": 171.0
+        },
+        {
+          "top": 422.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "After careful consideration of the matter, the management has decided to ",
+              "bold": false
+            },
+            {
+              "text": "terminate ",
+              "bold": true
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 436.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "your contract with the organization",
+              "bold": true
+            },
+            {
+              "text": ".",
+              "bold": false
+            }
+          ],
+          "width": 185.0
+        },
+        {
+          "top": 463.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "You are required to return all company property, documents, ID cards, access cards, ",
+              "bold": false
+            }
+          ],
+          "width": 418.0
+        },
+        {
+          "top": 477.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "equipment, and any other assets in your possession before your relieving date.",
+              "bold": false
+            }
+          ],
+          "width": 375.0
+        },
+        {
+          "top": 505.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "We thank you for your services and wish you the best in your future endeavors.",
+              "bold": false
+            }
+          ],
+          "width": 381.0
+        },
+        {
+          "top": 533.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "For Radiant Guard Services Pvt. Ltd.",
+              "bold": true
+            }
+          ],
+          "width": 193.0
+        },
+        {
+          "top": 588.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{signatory}}",
+              "bold": true
+            }
+          ],
+          "width": 56.0
+        },
+        {
+          "top": 602.0,
+          "left": 90.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{signatory_title}}",
+              "bold": true
+            }
+          ],
+          "width": 57.0
+        }
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 110.0,
+          "left": 426.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Date: {{issue_date}}",
+              "bold": true
+            }
+          ],
+          "width": 87.0
+        },
+        {
+          "top": 149.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "To",
+              "bold": true
+            }
+          ],
+          "width": 20
+        },
+        {
+          "top": 164.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}}",
+              "bold": true
+            }
+          ],
+          "width": 83.0
+        },
+        {
+          "top": 179.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{designation}}",
+              "bold": true
+            }
+          ],
+          "width": 78.0
+        },
+        {
+          "top": 194.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Emp ID : {{employee_code}}",
+              "bold": true
+            }
+          ],
+          "width": 81.0
+        },
+        {
+          "top": 239.0,
+          "left": 212.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Experience  Cum  Relieving Letter",
+              "bold": true
+            }
+          ],
+          "width": 171.0
+        },
+        {
+          "top": 303.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "This is to certify that ",
+              "bold": false
+            },
+            {
+              "text": "{{salutation}} {{name}}",
+              "bold": true
+            },
+            {
+              "text": " was employed with ",
+              "bold": false
+            },
+            {
+              "text": "Radiant Guard Services Pvt. ",
+              "bold": true
+            }
+          ],
+          "width": 455.0
+        },
+        {
+          "top": 317.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Ltd.",
+              "bold": true
+            },
+            {
+              "text": " as a ",
+              "bold": false
+            },
+            {
+              "text": "{{designation}}",
+              "bold": true
+            },
+            {
+              "text": " from",
+              "bold": false
+            },
+            {
+              "text": " {{joining_date}} to {{last_working_date}}",
+              "bold": true
+            },
+            {
+              "text": ".. During his tenure with ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 330.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "us, {{performance_statement}} ",
+              "bold": false
+            }
+          ],
+          "width": 207.0
+        },
+        {
+          "top": 349.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}} tendered his resignation via a formal letter dated ",
+              "bold": false
+            },
+            {
+              "text": "{{resignation_date}}",
+              "bold": true
+            },
+            {
+              "text": ", which was duly ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 363.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "accepted. He has been relieved from his duties with effect from ",
+              "bold": false
+            },
+            {
+              "text": "{{last_working_date}}",
+              "bold": true
+            },
+            {
+              "text": ". He has left ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 377.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "the organization on his own accord.",
+              "bold": false
+            }
+          ],
+          "width": 171.0
+        },
+        {
+          "top": 396.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "We wish him all the best in his future endeavors.",
+              "bold": false
+            }
+          ],
+          "width": 234.0
+        },
+        {
+          "top": 414.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "For Radiant Guard Services Pvt. Ltd.",
+              "bold": true
+            }
+          ],
+          "width": 193.0
+        },
+        {
+          "top": 452.0,
+          "left": 72.0,
+          "size": 12.0,
+          "family": "serif",
+          "runs": [
+            {
+              "text": "Authorised Signatory ",
+              "bold": true
+            }
+          ],
+          "width": 113.0
+        }
+      ]
+    }
+  ],
+  "relieving": [
+    {
+      "width": 595.0,
+      "height": 841.0,
+      "lines": [
+        {
+          "top": 125,
+          "left": 378,
+          "width": 160,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Date: {{issue_date}}",
+              "bold": true
+            }
+          ]
+        },
+        {
+          "top": 136.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "To",
+              "bold": true
+            }
+          ],
+          "width": 20
+        },
+        {
+          "top": 153.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "{{salutation}} {{name}}",
+              "bold": true
+            }
+          ],
+          "width": 161.0
+        },
+        {
+          "top": 169.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "{{designation}}",
+              "bold": true
+            }
+          ],
+          "width": 128.0
+        },
+        {
+          "top": 186.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Emp ID: {{employee_code}}",
+              "bold": true
+            }
+          ],
+          "width": 83.0
+        },
+        {
+          "top": 217.0,
+          "left": 254.0,
+          "size": 12,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Relieving Letter",
+              "bold": true
+            }
+          ],
+          "width": 111.0
+        },
+        {
+          "top": 259.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Dear {{salutation}} {{name}},",
+              "bold": false
+            }
+          ],
+          "width": 116.0
+        },
+        {
+          "top": 292.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "This in in reference to your resignation letter dated {{resignation_date}}.  We hereby ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 308.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "inform you that your resignation has been accepted, and you are relieved from ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 319.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Radiant Guard Services Pvt. Ltd. with effect from {{last_working_date}}.",
+              "bold": true
+            }
+          ],
+          "width": 393.0
+        },
+        {
+          "top": 358.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "We thank you for your contributions during your tenure with us and wish you ",
+              "bold": false
+            }
+          ],
+          "width": 454.0
+        },
+        {
+          "top": 374.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "every success in your future endeavors.",
+              "bold": false
+            }
+          ],
+          "width": 223.0
+        },
+        {
+          "top": 401.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Best Wishes,",
+              "bold": true
+            }
+          ],
+          "width": 75.0
+        },
+        {
+          "top": 417.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Radiant Guard Services Pvt. Ltd.,",
+              "bold": true
+            }
+          ],
+          "width": 193.0
+        },
+        {
+          "top": 483.0,
+          "left": 72.0,
+          "size": 11,
+          "family": "sans",
+          "runs": [
+            {
+              "text": "Authorized Signatory",
+              "bold": true
+            }
+          ],
+          "width": 127.0
+        }
+      ]
+    }
+  ]
+}
