@@ -2746,3 +2746,55 @@ html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-a
   }
   .letter-preview { overflow: visible; }
 }
+
+/* Shared screen spacing: separate labels/controls without touching paper geometry,
+   table matrices, navigation, or icons positioned inside a search field. */
+:root {
+  --field-label-gap: 0.5rem;
+  --control-row-gap: 0.75rem;
+}
+
+@media screen {
+  /* Block fields often used inline labels, for which space-y had no effect.
+     Existing grid/flex fields receive one gap, not gap plus label margins. */
+  :where(div, section, fieldset):not(.flex):not(.inline-flex):not(.grid):not(.inline-grid)
+    > label:has(+ :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], input:not([type="hidden"]), textarea, select, .relative:has(input))):not(:where(.stat-sheet *, .employment-letter-page *)) {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    margin-block: 0 var(--field-label-gap);
+  }
+
+  :where(div, section, fieldset):not(.flex):not(.inline-flex):not(.grid):not(.inline-grid)
+    > label + :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], input:not([type="hidden"]), textarea, select, .relative:has(input)):not(:where(.stat-sheet *, .employment-letter-page *)) {
+    margin-block-start: 0;
+  }
+
+  /* A minimum gap for legacy tight rows; intentionally larger gaps remain. */
+  :is(.flex, .inline-flex, .grid, .inline-grid):has(> :is(label, [data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], [data-slot="button"], button[role="combobox"], [role="switch"], [role="checkbox"], input:not([type="hidden"]), select, .relative:has(input))):not([class*="gap-"]):not(:where(button, a, nav, [role="tablist"], .stat-sheet *, .employment-letter-page *, table *, [data-slot="calendar"] *)),
+  :is(.flex, .inline-flex, .grid, .inline-grid):is(.gap-0, .gap-0\.5, .gap-1, .gap-1\.5, .gap-2):has(> :is(label, [data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], [data-slot="button"], button[role="combobox"], [role="switch"], [role="checkbox"], input:not([type="hidden"]), select, .relative:has(input))):not(:where(button, a, nav, [role="tablist"], .stat-sheet *, .employment-letter-page *, table *, [data-slot="calendar"] *)) {
+    gap: var(--control-row-gap);
+  }
+
+  :is(.grid, .inline-grid):has(> label):has(> :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], input, textarea, select)):not(:where(.stat-sheet *, .employment-letter-page *)) {
+    row-gap: var(--field-label-gap);
+  }
+
+  .modern-form-field,
+  .guided-form .modern-form-field {
+    gap: var(--field-label-gap);
+  }
+
+  .mobile-directory-toolbar,
+  .mobile-directory-filters,
+  [data-mobile-toolbar],
+  .mobile-directory-toolbar > :where(div, form):not(.relative) {
+    gap: var(--control-row-gap);
+  }
+
+  /* Room for the new gaps rather than forcing wide filter rows to collide. */
+  @media (min-width: 1024px) {
+    .mobile-directory-toolbar { flex-wrap: wrap !important; }
+    .mobile-directory-toolbar > :last-child:not(:first-child) { flex-wrap: wrap; }
+  }
+}

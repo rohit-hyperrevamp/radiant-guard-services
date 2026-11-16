@@ -1,3 +1,8 @@
+## Website control spacing — 16 November
+- [x] Added shared 8px label spacing and 12px minimum control-row spacing across forms, filters and toolbars, with wrapping for wide directory toolbars; excluded official paper layouts, tables and compact navigation. No data or workflow changes.
+- [x] Eleven existing dropdown, employee-action and letter regressions pass; compilation and diff checks pass. Live desktop/phone Employees checks redirect to sign-in; tested the new screen-spacing rules there without overflow or page errors, but the startup overlay prevented final phone layout verification.
+- [ ] Signed-in internal-page spacing and deployed stylesheet verification await a live session and GitHub-to-Vercel delivery; no site-wide visual completion claimed.
+
 ## Employee offboarding switch and profile organization — 16 November
 - [x] Exposed employee status switches in shared list actions; confirmation opens the existing full offboarding form with bounded scrolling and persistent actions. Saved status remains unchanged until completion; pending collection cannot be restarted.
 - [x] Replaced the long profile sidebar with Personal, Employment, Compliance and Documents navigation; centralized document checklist and links, with no automatic letter popups or changes to files/exit visibility.
