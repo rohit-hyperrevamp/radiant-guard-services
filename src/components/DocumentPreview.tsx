@@ -6,6 +6,7 @@ import {
   expandIdCardBody,
   A4_WIDTH_PX,
 } from "@/lib/company-documents";
+import { FittedDocument } from "@/components/FittedDocument";
 
 
 /**
@@ -41,19 +42,13 @@ export function DocumentPreview({
   );
 
   return (
-    <div className={`overflow-auto rounded-md bg-secondary/40 p-3 ${className}`}>
-      <div
-        className={
-          card
-            ? "mx-auto w-fit origin-top"
-            : "mx-auto w-fit origin-top scale-[0.85] shadow-lg sm:scale-100"
-        }
-      >
+    <div className={`min-w-0 overflow-y-auto bg-secondary/40 p-2 ${className}`}>
+      <FittedDocument>
         <div
           style={card ? undefined : { width: A4_WIDTH_PX }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
-      </div>
+      </FittedDocument>
     </div>
   );
 }

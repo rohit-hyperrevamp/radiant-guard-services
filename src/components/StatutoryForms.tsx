@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmployeePicker } from "@/components/EmployeePicker";
+import { FittedDocument } from "@/components/FittedDocument";
 import { FORM_FONTS_HREF, FormProvider } from "@/components/statutory/form-kit";
 import { Esic37Form } from "@/components/statutory/Esic37Form";
 import { AccidentBookForm } from "@/components/statutory/AccidentBookForm";
@@ -74,7 +75,7 @@ export function StatutoryForms() {
     return (!!nominee && Number(nominee[1]) >= nomineeCount) || (!!family && Number(family[1]) >= familyCount);
   };
   if (!allowed) return null;
-  return <section className="my-6 border-y border-border py-5">
+  return <section className="my-6 py-5">
     <h2 className="mb-3 text-base font-semibold">ESIC & EPF forms</h2>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {statutoryForms.map(f => <Button key={f.id} data-panel="true" variant="outline" className="h-auto min-h-20 justify-start gap-3 whitespace-normal p-4 text-left" onClick={() => { setFormId(f.id); setEmployeeId(""); setValues({}); setVerified(false); setNomineeCount(1); setFamilyCount(1); }}>
@@ -82,16 +83,16 @@ export function StatutoryForms() {
       </Button>)}
     </div>
     <Dialog open={!!formId} onOpenChange={open => { if (!open) {setFormId(null); setEmployeeId(""); setValues({});} }}>
-      <DialogContent className="max-h-[95dvh] overflow-y-auto sm:max-w-6xl">
+      <DialogContent size="document" className="overflow-y-auto">
         <DialogHeader><DialogTitle>{definition?.title}</DialogTitle><DialogDescription>Employee particulars and statutory declarations</DialogDescription></DialogHeader>
         <EmployeePicker value={employeeId} onChange={id => { setEmployeeId(id); setValues({}); setVerified(false); }} />
         {data.isFetching && employeeId && <p role="status" className="text-sm text-muted-foreground">Loading employee information…</p>}
         {data.isError && <p role="alert" className="text-sm text-destructive">Employee information could not be loaded. <Button variant="link" onClick={() => void data.refetch()}>Retry</Button></p>}
         {data.data && employeeId && !data.isFetching && <>
           <p className="text-xs text-muted-foreground">Type directly into the shaded boxes on the form. Click a tick box or Yes / No to mark it.</p>
-          {View && <div className="max-h-[72dvh] overflow-auto rounded-md border border-border bg-muted p-4">
+          {View && <div className="max-h-[72dvh] min-w-0 overflow-y-auto bg-muted p-2">
             <FormProvider value={{ values, set: update, hidden }}>
-              <div ref={sheetRef} className="flex w-max flex-col items-center gap-6 mx-auto"><View /></div>
+              <FittedDocument><div ref={sheetRef} className="mx-auto flex w-max flex-col items-center gap-6"><View /></div></FittedDocument>
             </FormProvider>
           </div>}
           {formId === "pf2" && <div className="flex flex-wrap gap-2">

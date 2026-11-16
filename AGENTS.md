@@ -61,3 +61,4 @@
 - Document follow-up date ranges filter inclusive joining/rehire/exit action dates in both count and list RPCs; retain old RPC signatures for rolling delivery compatibility.
 - Training pages share department grouping in training-library; role_key remains the storage grouping and existing RLS is unchanged, so category navigation cannot grant access or lose older guides.
 - Employee rows share EmployeeRowActions and opt out of width-driven SmartList disclosure; exit-document visibility uses hasEmployeeOffboarding so active rehired profiles do not expose historical exit actions.
+- Document dialogs use the shared document size and FittedDocument for screen-only scaling; preserve original paper geometry for exports and remove decorative section frames without stripping inputs or statutory table rules.

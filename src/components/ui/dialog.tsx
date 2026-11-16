@@ -121,12 +121,13 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
   overlayClassName?: string;
   responsive?: boolean;
+  size?: "standard" | "document";
 };
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, overlayClassName, responsive, children, ...props }, ref) => {
+>(({ className, overlayClassName, responsive, size = "standard", children, ...props }, ref) => {
   const [contentElement, setContentElement] = React.useState<HTMLElement | null>(null);
   const [pristine, setPristine] = React.useState(true);
   const dirtyCtx = React.useContext(DialogDirtyContext);
@@ -217,6 +218,7 @@ const DialogContent = React.forwardRef<
       <DialogPortalContainerContext.Provider value={contentElement}>
         <DialogPrimitive.Content
           data-slot="dialog-content"
+          data-dialog-size={size}
           ref={handleRef}
           data-pristine={pristine ? "true" : "false"}
           className={cn(

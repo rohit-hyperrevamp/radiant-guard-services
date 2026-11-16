@@ -11,6 +11,7 @@ import { LETTER_LABELS, LETTER_GROUPS, LETTER_FIELDS, letterFieldKeys, employeeL
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FittedDocument } from "@/components/FittedDocument";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "./employment-letters.css";
@@ -119,30 +120,30 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
       </li>;
     })}</ul>
     </>}
-    <Dialog open={open} onOpenChange={value => { setOpen(value); if (!value) onClose?.(); }}><DialogContent className="flex h-[88dvh] max-h-[1000px] max-w-[1200px] flex-col overflow-hidden">
+    <Dialog open={open} onOpenChange={value => { setOpen(value); if (!value) onClose?.(); }}><DialogContent size="document" className="letter-workspace flex flex-col overflow-hidden">
       <DialogHeader><DialogTitle>{LETTER_LABELS[kind]}</DialogTitle></DialogHeader>
-      <div className="flex shrink-0 flex-wrap gap-2 border-b border-border pb-3">
-        <Select value={kind} onValueChange={value => { setKind(value as LetterKind); setCopy(null); setSavedId(null); }}><SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger><SelectContent>{kinds.map(item => <SelectItem key={item} value={item}>{LETTER_LABELS[item]}</SelectItem>)}</SelectContent></Select>
+      <div className="flex shrink-0 flex-wrap gap-2 pb-1">
+        <Select value={kind} onValueChange={value => { setKind(value as LetterKind); setCopy(null); setSavedId(null); }}><SelectTrigger className="w-full sm:w-[240px]"><SelectValue /></SelectTrigger><SelectContent>{kinds.map(item => <SelectItem key={item} value={item}>{LETTER_LABELS[item]}</SelectItem>)}</SelectContent></Select>
         <Button variant="outline" onClick={() => { setFields(profile.data ?? {}); setCopy(null); setSavedId(null); }}>Fill from employee</Button>
         <Button variant="outline" onClick={() => void save()} disabled={!copy || !canEdit || busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{savedId ? "Save new copy" : "Save copy"}</Button>
         {canExport && <Button variant="outline" disabled={!pdf || pdfBusy} onClick={() => { if (pdf && copy) downloadLetter(pdf, `${LETTER_LABELS[copy.kind].replaceAll(" ", "_")}-${fields.employee_code || candidateId}.pdf`); }}><Download className="mr-2 h-4 w-4" />{pdfBusy ? "Preparing PDF…" : "Export PDF"}</Button>}
       </div>
       {profile.isLoading && <p className="text-sm text-muted-foreground">Loading employee details…</p>}
       {profile.error && <p className="text-sm text-destructive">Could not load employee details. Try again.</p>}
-      <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto lg:grid-cols-[260px_minmax(0,1fr)] lg:overflow-hidden">
-        <div className="space-y-3 lg:overflow-y-auto lg:pr-2">{letterFieldKeys(kind).map(key => <div key={key}><Label htmlFor={`letter-${key}`}>{LETTER_FIELDS[key] ?? key}</Label><Input id={`letter-${key}`} value={fields[key] ?? profile.data?.[key] ?? ""} onChange={e => { const values = { ...(Object.keys(fields).length ? fields : profile.data), [key]: e.target.value }; setFields(values); setCopy(createLetter(kind, values)); setSavedId(null); }} /></div>)}
+      <div className="letter-workspace-body grid min-h-0 flex-1 gap-5 overflow-y-auto md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:overflow-hidden">
+        <div className="min-w-0 md:overflow-y-auto md:pr-2"><div className="grid gap-x-3 gap-y-3 sm:grid-cols-2">{letterFieldKeys(kind).map(key => <div className="min-w-0" key={key}><Label htmlFor={`letter-${key}`}>{LETTER_FIELDS[key] ?? key}</Label><Input id={`letter-${key}`} value={fields[key] ?? profile.data?.[key] ?? ""} onChange={e => { const values = { ...(Object.keys(fields).length ? fields : profile.data), [key]: e.target.value }; setFields(values); setCopy(createLetter(kind, values)); setSavedId(null); }} /></div>)}</div>
           {missing.length > 0 && <p className="text-sm text-muted-foreground">Not recorded: {missing.map(key => LETTER_FIELDS[key] ?? key).join(", ")}. These remain blank.</p>}
           {kind === "appointment" && <p className="text-sm text-muted-foreground">Salary annexure was not supplied. Review employment terms before issuing.</p>}
           {kind === "termination" && <p className="text-sm text-muted-foreground">Review performance statements and the approved reason before issuing.</p>}
         </div>
-        <div className="min-w-0 overflow-auto bg-muted p-3">
-          {copy?.pages.map((page, pi) => <div key={pi} className="employment-letter-page" style={{ width: `${page.width}pt`, height: `${page.height}pt` }}>
+        <div className="letter-preview min-h-0 min-w-0 overflow-y-auto bg-muted p-2">
+          {copy?.pages.map((page, pi) => <FittedDocument key={pi} fitHeight><div className="employment-letter-page" style={{ width: `${page.width}pt`, height: `${page.height}pt` }}>
             {page.lines.map((line, li) => <div key={li} aria-label={`Page ${pi + 1}, line ${li + 1}`} role="textbox" className={`employment-letter-line ${line.family === "serif" ? "employment-serif" : "employment-sans"}`} style={{ left: `${line.left}pt`, top: `${line.top}pt`, fontSize: `${previewSize(line, page.width - line.left - 65)}pt`, width: `${page.width - line.left - 65}pt` }} contentEditable suppressContentEditableWarning onBlur={e => {
               const value = e.currentTarget.textContent ?? "";
               if (value === line.runs.map(run => run.text).join("")) return;
               setCopy(previous => { if (!previous) return previous; const next = structuredClone(previous); next.pages[pi].lines[li].runs = [{ text: value, bold: line.runs.every(run => run.bold) }]; return next; });
             }}>{line.runs.map((run, ri) => run.bold ? <strong key={ri}>{run.text}</strong> : <span key={ri}>{run.text}</span>)}</div>)}
-          </div>)}
+          </div></FittedDocument>)}
         </div>
       </div>
     </DialogContent></Dialog>

@@ -129,7 +129,7 @@ export function SignDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+      <DialogContent size="document" className="overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSignature className="h-5 w-5 text-amber-600" />
@@ -152,7 +152,7 @@ export function SignDocumentDialog({
         )}
         {data && (
           <>
-            <div className="rounded-lg border border-border bg-card p-4">
+            <div className="min-w-0 bg-card">
               <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span className="font-mono">v{data.template.version}</span>
                 {data.prev?.signed_at && <span>Previously signed on {new Date(data.prev.signed_at).toLocaleDateString("en-IN")}</span>}

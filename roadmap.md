@@ -1,3 +1,9 @@
+## Form windows and section outlines — 16 November
+- [x] Correct narrow desktop document windows, fit paper previews to their available space, and make phone document windows full-screen while retaining edit/save/export actions.
+- [x] Remove the Retina border override that boxed every directional divider; remove decorative form-section outlines without changing input boundaries or official document rules.
+- [x] Twenty-four focused letter/employee/document regressions pass; compilation OK and diff checks pass. Shared cards and glass/tile surfaces no longer have decorative outlines.
+- [ ] Signed-in production form interactions await GitHub-to-Vercel delivery and a live session; laptop and phone checks redirect to login, so complete visible edit/save/export verification remains blocked.
+
 ## Employee workspace cleanup — 16 November
 - [x] Simplified employee rows to essential fields and shared View/Edit/More actions; opted out of width-driven column changes and retained secondary controls in the menu/profile.
 - [x] Bounded the editor and profile with persistent navigation and actions; letters open directly, and exit documents appear only during pending offboarding or after a recorded exit, not an old exit on an active rehire.

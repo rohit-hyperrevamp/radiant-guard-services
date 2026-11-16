@@ -162,11 +162,11 @@ export function CandidateCompanyDocuments({
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…
         </div>
       ) : docs.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <div className="bg-card py-8 text-center text-sm text-muted-foreground">
           Documents are being prepared. Use “Sync Documents” if they do not appear automatically.
         </div>
       ) : (
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+        <ul className="space-y-1 bg-card">
           {docs.map((d) => (
             <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div className="flex min-w-0 items-center gap-3">
@@ -207,7 +207,7 @@ export function CandidateCompanyDocuments({
       )}
 
       <Dialog open={!!previewing} onOpenChange={(o) => !o && setPreviewing(null)}>
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+        <DialogContent size="document" className="flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               {previewing
@@ -219,7 +219,7 @@ export function CandidateCompanyDocuments({
             body={previewing?.rendered_body ?? ""}
             employeeSignatureUrl={previewing?.employee_signature_data || undefined}
             companySignatureUrl={previewing?.company_signature_data || undefined}
-            className="max-h-[65vh]"
+            className="min-h-0 flex-1"
           />
         </DialogContent>
       </Dialog>
