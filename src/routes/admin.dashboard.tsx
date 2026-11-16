@@ -1736,8 +1736,8 @@ function DashboardPage() {
             crumbs={[{ label: "Dashboard" }]}
           />
           <MyUpcomingInterviewsCard />
-          <DocumentFollowupPanel />
           <HrExecutiveDashboard />
+          <section className="mt-6 space-y-3"><h2 className="font-display text-lg font-semibold">Employee recruitment</h2><DocumentFollowupPanel compact /></section>
         </div>
       </DashboardShell>
     );
@@ -1860,7 +1860,6 @@ function DashboardPage() {
 
   return (
     <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
-      <DocumentFollowupPanel />
       <div className="mb-4 empty:hidden">
         <MyUpcomingInterviewsCard />
       </div>

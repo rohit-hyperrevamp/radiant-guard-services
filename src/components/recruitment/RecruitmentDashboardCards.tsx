@@ -126,7 +126,6 @@ export function RecruitmentLeadershipPanel() {
 
   return (
     <div className="space-y-3">
-      <DocumentFollowupPanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {stats.map(([label, value]) => (
           <div key={label} className="rounded-xl border border-border/60 bg-card p-3">
@@ -137,6 +136,7 @@ export function RecruitmentLeadershipPanel() {
           </div>
         ))}
       </div>
+      <DocumentFollowupPanel compact />
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
         <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3 text-sm font-semibold">
           <UsersRound className="h-4 w-4 text-accent" />

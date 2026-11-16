@@ -142,6 +142,7 @@ import { Route as AdminCandidatesIdDetailsRouteImport } from './routes/admin.can
 import { Route as AdminFieldSenseOfficerIdRouteImport } from './routes/admin.field-sense.officer.$id'
 import { Route as AdminHrRecruitmentIndexRouteImport } from './routes/admin.hr.recruitment.index'
 import { Route as AdminHrRecruitmentDashboardRouteImport } from './routes/admin.hr.recruitment.dashboard'
+import { Route as AdminHrRecruitmentDocumentsRouteImport } from './routes/admin.hr.recruitment.documents'
 import { Route as AdminHrRecruitmentInterviewsRouteImport } from './routes/admin.hr.recruitment.interviews'
 import { Route as AdminHrRecruitmentOnboardingRouteImport } from './routes/admin.hr.recruitment.onboarding'
 import { Route as AdminHrRecruitmentOpeningsRouteImport } from './routes/admin.hr.recruitment.openings'
@@ -849,6 +850,12 @@ const AdminHrRecruitmentDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => AdminHrRecruitmentRoute,
   } as any)
+const AdminHrRecruitmentDocumentsRoute =
+  AdminHrRecruitmentDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => AdminHrRecruitmentRoute,
+  } as any)
 const AdminHrRecruitmentInterviewsRoute =
   AdminHrRecruitmentInterviewsRouteImport.update({
     id: '/interviews',
@@ -1047,6 +1054,7 @@ export interface FileRoutesByFullPath {
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
   '/admin/field-sense/officer/$id': typeof AdminFieldSenseOfficerIdRoute
   '/admin/hr/recruitment/dashboard': typeof AdminHrRecruitmentDashboardRoute
+  '/admin/hr/recruitment/documents': typeof AdminHrRecruitmentDocumentsRoute
   '/admin/hr/recruitment/interviews': typeof AdminHrRecruitmentInterviewsRoute
   '/admin/hr/recruitment/onboarding': typeof AdminHrRecruitmentOnboardingRoute
   '/admin/hr/recruitment/openings': typeof AdminHrRecruitmentOpeningsRoute
@@ -1188,6 +1196,7 @@ export interface FileRoutesByTo {
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
   '/admin/field-sense/officer/$id': typeof AdminFieldSenseOfficerIdRoute
   '/admin/hr/recruitment/dashboard': typeof AdminHrRecruitmentDashboardRoute
+  '/admin/hr/recruitment/documents': typeof AdminHrRecruitmentDocumentsRoute
   '/admin/hr/recruitment/interviews': typeof AdminHrRecruitmentInterviewsRoute
   '/admin/hr/recruitment/onboarding': typeof AdminHrRecruitmentOnboardingRoute
   '/admin/hr/recruitment/openings': typeof AdminHrRecruitmentOpeningsRoute
@@ -1335,6 +1344,7 @@ export interface FileRoutesById {
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
   '/admin/field-sense/officer/$id': typeof AdminFieldSenseOfficerIdRoute
   '/admin/hr/recruitment/dashboard': typeof AdminHrRecruitmentDashboardRoute
+  '/admin/hr/recruitment/documents': typeof AdminHrRecruitmentDocumentsRoute
   '/admin/hr/recruitment/interviews': typeof AdminHrRecruitmentInterviewsRoute
   '/admin/hr/recruitment/onboarding': typeof AdminHrRecruitmentOnboardingRoute
   '/admin/hr/recruitment/openings': typeof AdminHrRecruitmentOpeningsRoute
@@ -1483,6 +1493,7 @@ export interface FileRouteTypes {
     | '/admin/candidates/$id/details'
     | '/admin/field-sense/officer/$id'
     | '/admin/hr/recruitment/dashboard'
+    | '/admin/hr/recruitment/documents'
     | '/admin/hr/recruitment/interviews'
     | '/admin/hr/recruitment/onboarding'
     | '/admin/hr/recruitment/openings'
@@ -1624,6 +1635,7 @@ export interface FileRouteTypes {
     | '/admin/candidates/$id/details'
     | '/admin/field-sense/officer/$id'
     | '/admin/hr/recruitment/dashboard'
+    | '/admin/hr/recruitment/documents'
     | '/admin/hr/recruitment/interviews'
     | '/admin/hr/recruitment/onboarding'
     | '/admin/hr/recruitment/openings'
@@ -1770,6 +1782,7 @@ export interface FileRouteTypes {
     | '/admin/candidates/$id/details'
     | '/admin/field-sense/officer/$id'
     | '/admin/hr/recruitment/dashboard'
+    | '/admin/hr/recruitment/documents'
     | '/admin/hr/recruitment/interviews'
     | '/admin/hr/recruitment/onboarding'
     | '/admin/hr/recruitment/openings'
@@ -2736,6 +2749,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHrRecruitmentDashboardRouteImport
       parentRoute: typeof AdminHrRecruitmentRoute
     }
+    '/admin/hr/recruitment/documents': {
+      id: '/admin/hr/recruitment/documents'
+      path: '/documents'
+      fullPath: '/admin/hr/recruitment/documents'
+      preLoaderRoute: typeof AdminHrRecruitmentDocumentsRouteImport
+      parentRoute: typeof AdminHrRecruitmentRoute
+    }
     '/admin/hr/recruitment/interviews': {
       id: '/admin/hr/recruitment/interviews'
       path: '/interviews'
@@ -2982,6 +3002,7 @@ const AdminVehiclesRouteWithChildren = AdminVehiclesRoute._addFileChildren(
 
 interface AdminHrRecruitmentRouteChildren {
   AdminHrRecruitmentDashboardRoute: typeof AdminHrRecruitmentDashboardRoute
+  AdminHrRecruitmentDocumentsRoute: typeof AdminHrRecruitmentDocumentsRoute
   AdminHrRecruitmentInterviewsRoute: typeof AdminHrRecruitmentInterviewsRoute
   AdminHrRecruitmentOnboardingRoute: typeof AdminHrRecruitmentOnboardingRoute
   AdminHrRecruitmentOpeningsRoute: typeof AdminHrRecruitmentOpeningsRoute
@@ -2992,6 +3013,7 @@ interface AdminHrRecruitmentRouteChildren {
 
 const AdminHrRecruitmentRouteChildren: AdminHrRecruitmentRouteChildren = {
   AdminHrRecruitmentDashboardRoute: AdminHrRecruitmentDashboardRoute,
+  AdminHrRecruitmentDocumentsRoute: AdminHrRecruitmentDocumentsRoute,
   AdminHrRecruitmentInterviewsRoute: AdminHrRecruitmentInterviewsRoute,
   AdminHrRecruitmentOnboardingRoute: AdminHrRecruitmentOnboardingRoute,
   AdminHrRecruitmentOpeningsRoute: AdminHrRecruitmentOpeningsRoute,

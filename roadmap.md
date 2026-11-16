@@ -1,3 +1,8 @@
+## Recruitment document overview — 16 November
+- [x] Replace dashboard-wide document lists with a compact recruitment overview and filtered dedicated document page; preserve existing document data and permissions.
+- [x] Compilation OK; all 11 document/letter tests passed. New route registered with filtered overview links; no document data or permission changes.
+- [ ] Signed-in live layout/navigation awaits GitHub-to-Vercel delivery and an authenticated session; the live check could not verify the new page.
+
 ## Recruitment document follow-up — 16 November
 - [x] Added private receipts and configurable required-document policies/deadlines to employee onboarding, recruitment details/queue, rehire and exit profiles; partial and zero uploads show missing types. Initial lists reuse existing five onboarding/two rehire/two exit requirements, with a configurable ten-day default.
 - [x] Added document-type filters, employee drill-down/upload, overdue dates and letter links on recruitment, main and leadership dashboards; upload/settings changes invalidate shared reads. Sanskruti assigned as policy owner; existing workflow confirmed. Leadership granted missing Recruitment View-only rows, no edit/approval changes.

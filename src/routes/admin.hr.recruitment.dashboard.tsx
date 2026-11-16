@@ -93,7 +93,6 @@ function RecruitmentDashboard() {
         }
       />
 
-      <DocumentFollowupPanel />
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 font-display text-sm font-semibold">Stages</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
@@ -106,6 +105,7 @@ function RecruitmentDashboard() {
         </div>
       </section>
 
+      <DocumentFollowupPanel compact />
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-border bg-card p-4">
           <h2 className="mb-3 font-display text-sm font-semibold">Funnel</h2>
