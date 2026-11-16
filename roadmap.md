@@ -1,3 +1,9 @@
+## Searchable bulk manager unit mapping — 17 November
+- [x] Extended existing manager dashboard mapping with employee/client/site/ID search, reporting-chain and organization scope discovery, employee picker, individual selection and Select All matching sites across pages.
+- [x] Added confirmed field-officer/operations-manager add or replace using an installed production invoker-RLS function; same-type direct site assignments only, other managers, organization scope and payroll homes preserved. Existing dashboard visibility and access controls retained.
+- [x] Six focused regressions pass, compilation OK, production rollback checks pass for two-site add, repeated add, officer replacement, manager add/replacement readback, invalid role and no-session rejection, unchanged payroll homes/attendance. All test assignments rolled back.
+- [ ] Signed-in live dashboard search/select/save remains unverified: production /admin/dashboard redirects to /login. UI delivery awaits GitHub-to-Vercel; no preview or sandbox used.
+
 ## Guard continuous absence — 17 November
 - [x] Built Control Center switches, warning milestones and a minimum 15-day threshold; guard-only department filters, prospective activation and factual missing-attendance warning wording. Existing approval page now permits assigned absence-workflow participants, with decisions still enforced by the database.
 - [x] Staged `db/guard-absence-policy.sql`: cross-site attendance/punch classifier, deduplicated cases/notices, configurable approval requests, final-decision recheck, audited exit/access blocks and daily 04:00 IST checking. Added one shared device-level sign-out check; no native push files changed.
