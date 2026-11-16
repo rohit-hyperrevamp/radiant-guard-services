@@ -18,7 +18,7 @@ import { DOCUMENT_FOLLOWUP_QK, fetchDocumentFollowup } from "@/lib/document-foll
 import { DocumentChecklist } from "./DocumentChecklist";
 import { EmploymentLetters } from "@/components/EmploymentLetters";
 
-export function DocumentFollowupPanel({ compact = false, initialType = "all", initialOverdue = false }: { compact?: boolean; initialType?: string; initialOverdue?: boolean }) {
+export function DocumentFollowupPanel({ compact = false, tile = false, initialType = "all", initialOverdue = false }: { compact?: boolean; tile?: boolean; initialType?: string; initialOverdue?: boolean }) {
   const perms=useCurrentPermissions(); const session=useHasSupabaseSession(); const qc=useQueryClient();
   const enabled=session && perms.can("recruitment") && perms.canWidget("document_followup");
   const q=useQuery({queryKey:DOCUMENT_FOLLOWUP_QK,queryFn:fetchDocumentFollowup,enabled,staleTime:0,refetchOnMount:"always",refetchOnWindowFocus:true,refetchInterval:60_000});
@@ -37,6 +37,15 @@ export function DocumentFollowupPanel({ compact = false, initialType = "all", in
       await Promise.all([qc.invalidateQueries({queryKey:DOCUMENT_FOLLOWUP_QK}),qc.invalidateQueries({queryKey:["document-policies"]})]);setSettings(null);toast.success("Document requirements saved");
     }catch(e){toast.error(e instanceof Error?e.message:"Could not save requirements");}finally{setSaving(false);}
   }
+  if (tile) return <Button asChild variant="ghost" data-panel className="group h-full w-full min-w-0 items-stretch justify-start overflow-hidden rounded-2xl border border-border/60 bg-card p-3 text-left shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/5 sm:p-5">
+    <Link to="/admin/hr/recruitment/documents" search={{type:"all",overdue:false}} aria-label="Employee documents — view pending files">
+      <span className="flex h-full w-full min-w-0 flex-col">
+        <span className="flex items-center justify-between gap-2"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold sm:text-sm"><FileClock className="h-4 w-4 shrink-0 text-primary"/><span className="whitespace-normal">Employee documents</span></span><ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground"/></span>
+        <strong className="mt-auto block text-2xl tabular-nums text-primary sm:text-3xl">{q.isLoading||q.error ? "—" : new Set(pending.map(p=>p.recId??p.id)).size.toLocaleString("en-IN")}</strong>
+        <span className="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 whitespace-normal text-[11px] sm:text-xs"><span className="text-muted-foreground">{q.isLoading?"Loading…":q.error?"Overview unavailable":"People with missing files"}</span>{!q.isLoading&&!q.error&&<span className={pending.some(p=>p.overdue)?"font-semibold text-destructive":"text-muted-foreground"}>{pending.filter(p=>p.overdue).length.toLocaleString("en-IN")} overdue</span>}</span>
+      </span>
+    </Link>
+  </Button>;
   if (compact) return <section className="space-y-3 border-t border-border pt-4" aria-label="Recruitment document overview">
     <header className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="flex items-center gap-2 text-sm font-semibold"><FileClock className="h-4 w-4 text-primary"/>Employee documents</h3>

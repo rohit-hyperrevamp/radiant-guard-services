@@ -1736,8 +1736,8 @@ function DashboardPage() {
             crumbs={[{ label: "Dashboard" }]}
           />
           <MyUpcomingInterviewsCard />
+          <div className="mb-4 grid auto-rows-[124px] grid-cols-2 gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 xl:grid-cols-4"><DocumentFollowupPanel tile /></div>
           <HrExecutiveDashboard />
-          <section className="mt-6 space-y-3"><h2 className="font-display text-lg font-semibold">Employee recruitment</h2><DocumentFollowupPanel compact /></section>
         </div>
       </DashboardShell>
     );
@@ -2048,6 +2048,7 @@ function DashboardPage() {
                   {t.node}
                 </motion.div>
               ))}
+          <DocumentFollowupPanel tile />
         </div>
 
         {/* P&L renders full-width below the shell via fullWidthBelow */}

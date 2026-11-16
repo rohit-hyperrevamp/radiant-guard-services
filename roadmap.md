@@ -1,3 +1,8 @@
+## Direct dashboard document card — 16 November
+- [x] Add the Employee documents card alongside the main dashboard cards, including Leadership and HR, linking directly to the dedicated page without opening the Recruitment tab; reuse current counts and access rules.
+- [x] All 11 document/letter tests passed; compilation OK. Card sits directly in the main tile grid and HR dashboard, preserving existing access and document data.
+- [ ] Signed-in live card placement remains unverified pending authenticated production access and Vercel delivery.
+
 ## Recruitment document overview — 16 November
 - [x] Replace dashboard-wide document lists with a compact recruitment overview and filtered dedicated document page; preserve existing document data and permissions.
 - [x] Compilation OK; all 11 document/letter tests passed. New route registered with filtered overview links; no document data or permission changes.
