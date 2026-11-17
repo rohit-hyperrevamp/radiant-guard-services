@@ -1,10 +1,32 @@
 export type Box = [number, number, number, number];
-export type DigitalText = { id: string; box: Box; origin: [number,number]; text: string; size: number; family: string; bold: boolean; italic: boolean; color: number };
-export type DigitalField = { id: string; box: Box; label: string; size: number };
-export type DigitalPage = { width: number; height: number; texts: DigitalText[]; paths: { d: string; width: number; stroke: number[] | null; fill: number[] | null }[]; fields: DigitalField[]; scanReview: boolean };
+export type DigitalText = { id: string; box: Box; origin: [number,number]; text: string; size: number; family: string; bold: boolean; italic: boolean; color: number; direction?: [number,number]; sourceMarkup?: string; outlined?: boolean };
+export type DigitalField = { id: string; box: Box; label: string; size: number; placeholder?: boolean };
+export type DigitalPage = { width: number; height: number; texts: DigitalText[]; paths: { d: string; width: number; stroke: number[] | null; fill: number[] | null }[]; fields: DigitalField[]; scanReview: boolean; sourceArtwork?: string };
 export type DigitalForm = { id: string; version: number; pages: DigitalPage[] };
 export type DigitalDraft = { templateId: string; version: 1; values: Record<string, string> };
 export const digitalKey = (page: number, id: string) => `${page}:${id}`;
+
+/** Fixed paper geometry: wrap edited values instead of squeezing one long line. */
+export function digitalFieldLines(value: string, box: Box, preferredSize: number) {
+  const width = Math.max(1, box[2] - box[0]);
+  const height = Math.max(1, box[3] - box[1]);
+  for (let size = Math.min(preferredSize, height / 1.15); size >= 4; size -= .5) {
+    const limit = Math.max(1, Math.floor(width / (size * .6)));
+    const lines: string[] = [];
+    for (const paragraph of value.split('\n')) {
+      let line = '';
+      for (const word of paragraph.split(/\s+/)) {
+        if (line && line.length + word.length + 1 > limit) { lines.push(line); line = ''; }
+        let remainder = word;
+        while (remainder.length > limit) { if (line) { lines.push(line); line = ''; } lines.push(remainder.slice(0, limit)); remainder = remainder.slice(limit); }
+        line = line ? `${line} ${remainder}` : remainder;
+      }
+      lines.push(line);
+    }
+    if (lines.length * size * 1.15 <= height) return { size, lines, overflow: false };
+  }
+  return { size: 4, lines: value.split('\n'), overflow: true };
+}
 
 export function parseDigitalDraft(text: string, form: DigitalForm): Record<string, string> {
   const draft: unknown = JSON.parse(text);
