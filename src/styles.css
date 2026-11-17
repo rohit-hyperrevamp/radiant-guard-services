@@ -2689,6 +2689,16 @@ html body [data-slot="button"][data-size="icon"]:not([role="switch"]):not([role=
 html body :is(td, .list-row, [data-col="actions"], .directory-actions, [data-smart-list]) :is(button, a)[data-icon-only="true"]:hover,
 html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-action, var(--action-view)) !important; filter: brightness(0.9); }
 
+/* Digital compliance paper roles are independent of the application theme. */
+:root { --document-paper: #fff; --document-ink: #000; --document-edit: rgb(37 99 235 / .07); --document-selected: rgb(37 99 235 / .2); }
+.compliance-digital-sheet { display: block; flex: none; overflow: hidden; background: var(--document-paper); }
+.compliance-digital-sheet .digital-paper { fill: var(--document-paper); }
+.compliance-digital-sheet .digital-ink { fill: var(--document-ink); }
+.digital-selection { fill: transparent; }
+.digital-selection.digital-blank { fill: var(--document-edit); }
+.digital-selection.digital-selected { fill: var(--document-selected); stroke: var(--ring); stroke-width: .5; }
+.digital-print-frame { position: fixed; width: 0; height: 0; right: 0; bottom: 0; border: 0; visibility: hidden; }
+
 /* Digital statutory forms: paper replicas, so ink and paper colours are intentionally fixed. */
 .stat-sheet { position: relative; flex: none; overflow: hidden; background: #fff; color: #000; box-shadow: 0 1px 6px rgb(0 0 0 / 0.18); }
 .stat-sheet input.stat-field, .stat-sheet textarea.stat-field { display: inline-block; margin: 0; padding: 0 1pt; border: 0; border-radius: 0; outline: none; color: #000; background: rgb(37 99 235 / 0.08); font-size: inherit; resize: none; overflow: hidden; }
