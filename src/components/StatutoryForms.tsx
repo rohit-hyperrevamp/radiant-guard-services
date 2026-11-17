@@ -6,8 +6,10 @@ import { FileText, Plus, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { EmployeePicker } from "@/components/EmployeePicker";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ComplianceFormControls, type FormClient } from './ComplianceFormControls';
+import { ComplianceFieldEditor } from './ComplianceFieldEditor';
+import { ComplianceMonthlyForms } from './ComplianceMonthlyForms';
 import { FittedDocument } from "@/components/FittedDocument";
 import { FORM_FONTS_HREF, FormProvider } from "@/components/statutory/form-kit";
 import { Esic37Form } from "@/components/statutory/Esic37Form";
@@ -21,12 +23,15 @@ import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { statutoryForms, type FormId } from "@/lib/statutory-form-schema";
 import { prefillStatutoryForm, missingStatutoryFields, type DraftValues, type EmployeeFormSource } from "@/lib/statutory-form-data";
 
-export function StatutoryForms({ renderLauncher }: { renderLauncher?: (open: (id: FormId) => void) => ReactNode }) {
+export function StatutoryForms({ renderLauncher, initialMonth }: { renderLauncher?: (open: (id: FormId) => void) => ReactNode; initialMonth?:string }) {
   const permissions = useCurrentPermissions();
   const session = useHasSupabaseSession();
   const [formId, setFormId] = useState<FormId | null>(null);
   const [employeeId, setEmployeeId] = useState("");
   const [values, setValues] = useState<DraftValues>({});
+  const [month,setMonth]=useState(initialMonth??new Date().toISOString().slice(0,7));
+  const [client,setClient]=useState<FormClient|null>(null);
+  const [selected,setSelected]=useState('');
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -63,9 +68,9 @@ export function StatutoryForms({ renderLauncher }: { renderLauncher?: (open: (id
   const missing = formId ? missingStatutoryFields(formId, values) : [];
   const update = (key: string, value: string) => { setValues(v => ({...v, [key]: value})); setVerified(false); };
   async function exportPdf() {
-    if (!formId || !exportAllowed || !data.data || data.isFetching || !sheetRef.current) return;
+    if (!formId || !exportAllowed || data.isFetching || !sheetRef.current) return;
     setBusy(true);
-    try { await printStatutorySheets(sheetRef.current, `${definition?.title ?? formId} - ${String(data.data.employee.employee_code ?? "employee")}`, !verified || missing.length > 0); }
+    try { await printStatutorySheets(sheetRef.current, `${definition?.title ?? formId} - ${String(data.data?.employee.employee_code ?? "manual")}`, !verified || missing.length > 0); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Unable to export this form"); }
     finally { setBusy(false); }
   }
@@ -75,7 +80,7 @@ export function StatutoryForms({ renderLauncher }: { renderLauncher?: (open: (id
     return (!!nominee && Number(nominee[1]) >= nomineeCount) || (!!family && Number(family[1]) >= familyCount);
   };
   if (!allowed) return null;
-  const openForm = (id: FormId) => { setFormId(id); setEmployeeId(""); setValues({}); setVerified(false); setNomineeCount(1); setFamilyCount(1); };
+  const openForm = (id: FormId) => { setFormId(id); setEmployeeId(""); setValues({}); setVerified(false); setNomineeCount(1); setFamilyCount(1); setSelected('');setClient(null);setMonth(initialMonth??new Date().toISOString().slice(0,7)); };
   return <>{renderLauncher ? renderLauncher(openForm) : <section className="my-6 py-5">
     <h2 className="mb-3 text-base font-semibold">ESIC & EPF forms</h2>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -85,29 +90,32 @@ export function StatutoryForms({ renderLauncher }: { renderLauncher?: (open: (id
     </div>
     </section>}
     <Dialog open={!!formId} onOpenChange={open => { if (!open) {setFormId(null); setEmployeeId(""); setValues({});} }}>
-      <DialogContent size="document" className="overflow-y-auto">
-        <DialogHeader><DialogTitle>{definition?.title}</DialogTitle><DialogDescription>Employee particulars and statutory declarations</DialogDescription></DialogHeader>
-        <EmployeePicker value={employeeId} onChange={id => { setEmployeeId(id); setValues({}); setVerified(false); }} />
+      <DialogContent size="document" className="flex h-[calc(100dvh-1.5rem)] flex-col overflow-hidden">
+        <DialogHeader className="shrink-0 pr-10"><DialogTitle>{definition?.title}</DialogTitle></DialogHeader>
+        <ComplianceFormControls employee={employeeId} onEmployee={id=>{setEmployeeId(id);setValues({});setSelected('');setVerified(false);}} month={month} onMonth={setMonth} client={client} onClient={setClient}/>
         {data.isFetching && employeeId && <p role="status" className="text-sm text-muted-foreground">Loading employee information…</p>}
         {data.isError && <p role="alert" className="text-sm text-destructive">Employee information could not be loaded. <Button variant="link" onClick={() => void data.refetch()}>Retry</Button></p>}
-        {data.data && employeeId && !data.isFetching && <>
-          <p className="text-xs text-muted-foreground">Type directly into the shaded boxes on the form. Click a tick box or Yes / No to mark it.</p>
-          {View && <div className="max-h-[72dvh] min-w-0 overflow-y-auto bg-muted p-2">
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] lg:overflow-hidden">
+          <aside className="min-w-0 space-y-4 lg:overflow-y-auto lg:pr-2"><ComplianceFieldEditor items={(definition?.fields??[]).filter(f=>!hidden(f.key)).map(f=>({key:f.key,label:f.label,page:f.page,initial:'',options:f.marks?Object.keys(f.marks):undefined}))} selected={selected} onSelect={setSelected} values={values} onChange={update} onRestore={key=>update(key,data.data&&formId?prefillStatutoryForm(formId,data.data.employee,data.data.employer)[key]??'':'')}/></aside>
+          {View && <div className="min-w-0 overflow-y-auto bg-muted p-2" onFocusCapture={e=>{const key=(e.target as HTMLElement).getAttribute('data-form-key');if(key)setSelected(key);}}>
             <FormProvider value={{ values, set: update, hidden }}>
               <FittedDocument><div ref={sheetRef} className="mx-auto flex w-max flex-col items-center gap-6"><View /></div></FittedDocument>
             </FormProvider>
           </div>}
+        </div>
+        <details className="shrink-0"><summary className="cursor-pointer text-sm font-medium">Monthly statutory records · {month}</summary><div className="max-h-[25dvh] overflow-auto pt-2"><ComplianceMonthlyForms month={month} unitId={client?.id} onEmployee={id=>{setEmployeeId(id);setValues({});setSelected('');setVerified(false);}}/></div></details>
+        {formId && !data.isFetching && <>
           {formId === "pf2" && <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={nomineeCount === 6} onClick={() => setNomineeCount(n => n + 1)}><Plus/>EPF nominee</Button>
             <Button variant="outline" disabled={familyCount === 6} onClick={() => setFamilyCount(n => n + 1)}><Plus/>EPS family member</Button>
             {nomineeCount > 1 && <Button variant="outline" onClick={() => {const i = nomineeCount - 1; for (const k of ["nomName", "nomAddress", "nomRelation", "nomDob", "nomShare", "nomGuardian"]) update(`${k}${i}`, ""); setNomineeCount(i);}}><Trash2/>Last nominee</Button>}
           </div>}
-          <div className="space-y-2 border-t border-border pt-3 text-sm">
+          <div className="max-h-[18dvh] shrink-0 space-y-2 overflow-y-auto border-t border-border pt-3 text-sm">
             {missing.length > 0 && <details className="text-destructive"><summary>{missing.length} required details missing — draft only</summary><ul className="list-disc pl-5">{missing.map((m, i) => <li key={i}>{m}</li>)}</ul></details>}
             <p className="text-muted-foreground">Signatures, medical acceptance, attachments and statutory declarations require verification before submission.</p>
             <label className="flex items-start gap-2"><Checkbox checked={verified} disabled={missing.length > 0} onCheckedChange={v => setVerified(v === true)}/><span>I verified all particulars, applicable declarations and required signatures / attachments outside this export.</span></label>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3"><span className="text-xs text-muted-foreground">Choose “Save as PDF” in the print window.</span><Button disabled={!exportAllowed || busy} onClick={() => void exportPdf()}><Printer/>{verified && !missing.length ? "Export PDF" : "Export draft PDF"}</Button></div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-3"><Button variant="outline" onClick={()=>setFormId(null)}>Close</Button><Button disabled={!exportAllowed || busy || data.isFetching} onClick={() => void exportPdf()}><Printer/>{verified && !missing.length ? "Export PDF" : "Export draft PDF"}</Button></div>
           {!exportAllowed && <p className="text-sm text-destructive">Employee export permission is required.</p>}
         </>}
       </DialogContent>

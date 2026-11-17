@@ -2,8 +2,20 @@ import { digitalKey, type DigitalForm, type DigitalField, type DigitalPage } fro
 import { prefillStatutoryForm, formDate, type EmployeeFormSource } from './statutory-form-data';
 import { inLedgerScope, ledgerAmount, statutoryHead } from './statutory-heads';
 import type { MonthDed, MonthContrib } from './compliance-month';
+import { complianceFieldMappings } from './compliance-field-mappings';
 
 export type AutofillFacts = Record<string,string>;
+export function mergeAutofillValues(values:Record<string,string>, previous:Record<string,string>, next:Record<string,string>) {
+  const result={...values};
+  for(const [key,value] of Object.entries(previous))if(result[key]===value)delete result[key];
+  for(const [key,value] of Object.entries(next))if(result[key]===undefined)result[key]=value;
+  return result;
+}
+export function contextualAutofillFacts(month:string, client:{name:string;code:string;address?:string}|null, deds:MonthDed[], contribs:MonthContrib[], employeeId:string, unitId?:string):AutofillFacts {
+  const row = monthlyStatutoryRows(deds.filter(d=>(!unitId||d.unit_id===unitId)&&d.deduction_date.startsWith(`${month}-`)),contribs.filter(c=>(!unitId||c.unit_id===unitId)&&c.contribution_date.startsWith(`${month}-`))).find(r=>r.candidateId===employeeId);
+  const monthLabel = /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}) : '';
+  return {month:monthLabel,clientName:client?.name??'',clientCode:client?.code??'',clientAddress:client?.address??'',...Object.fromEntries(row ? ['employeeEsic','employerEsic','employeePf','employerPf','pt'].map(key=>[key,String(row[key as keyof typeof row])]) : [])};
+}
 export function employeeAutofillFacts(employee:EmployeeFormSource,employer:EmployeeFormSource):AutofillFacts {
   const facts=prefillStatutoryForm('epf11',employee,employer);
   const pf=prefillStatutoryForm('pf2',employee,employer);
@@ -14,6 +26,10 @@ export function factForLabel(label:string):string|null {
   const n=label.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   // Never infer event dates, signatures, nominees, medical facts or wage bases.
   if (/signature|thumb|nominee|witness|accident|injur|previous|passport|declar|principal employer|contractor|wage rate|\bage\b/.test(n))return null;
+  if (/^(?:for the |for |wage |salary |return )?month(?: and year)?$/.test(n))return 'month';
+  if (/^(?:client|site) name$|^name of (?:the )?(?:client|site)$/.test(n))return 'clientName';
+  if (/^(?:client|site) (?:code|id)$/.test(n))return 'clientCode';
+  if (/^(?:client|site) address$/.test(n))return 'clientAddress';
   if (/name.*address.*(?:establishment|employer)/.test(n))return 'employerNameAddress';
   if (/name.*(?:employee|worker|workman).*address/.test(n))return 'employeeNameAddress';
   if (/name.*(?:establishment|employer)|company name/.test(n))return 'employerName';
@@ -48,7 +64,9 @@ export function labelForDigitalField(page:DigitalPage,field:DigitalField):string
 export function autoFillDigital(form:DigitalForm,facts:AutofillFacts):Record<string,string> {
   const values:Record<string,string>={};
   form.pages.forEach((p,i)=>p.fields.forEach(f=>{
-    const fact=f.factKey??factForLabel(labelForDigitalField(p,f));
+    const key=digitalKey(i,f.id);
+    // Repeated register rows must not all acquire the same employee from nearby headings.
+    const fact=f.factKey??complianceFieldMappings[form.id]?.[key]??(f.label.startsWith('Table cell')?null:factForLabel(f.label)??factForLabel(labelForDigitalField(p,f)));
     if(fact&&facts[fact])values[digitalKey(i,f.id)]=facts[fact];
   }));
   return values;

@@ -6,13 +6,13 @@ import { useHasSupabaseSession } from '@/lib/supabase-ready';
 import { Button } from '@/components/ui/button';
 import { complianceMoney } from '@/lib/statutory-heads';
 
-export function ComplianceMonthlyForms({month,onEmployee}:{month:string;onEmployee:(id:string)=>void}) {
+export function ComplianceMonthlyForms({month,onEmployee,unitId}:{month:string;onEmployee:(id:string)=>void;unitId?:string}) {
   const permissions=useCurrentPermissions();const session=useHasSupabaseSession();
   const allowed=session&&!permissions.isLoading&&permissions.can('compliance','view')&&permissions.can('employees','view');
   const ledger=useQuery({...complianceMonthQuery(month,'posted'),enabled:allowed});
   const directory=useQuery({queryKey:['compliance-form-month-directory',month],enabled:allowed&&!!ledger.data,queryFn:()=>complianceDirectory([...(ledger.data?.deds??[]),...(ledger.data?.contribs??[])])});
   if(!allowed)return null;
-  const rows=monthlyStatutoryRows(ledger.data?.deds??[],ledger.data?.contribs??[]);
+  const rows=monthlyStatutoryRows((ledger.data?.deds??[]).filter(d=>!unitId||d.unit_id===unitId),(ledger.data?.contribs??[]).filter(c=>!unitId||c.unit_id===unitId));
   return <section className="space-y-3"><h3 className="text-sm font-semibold">Posted statutory records · {month}</h3>
     {(ledger.isFetching||directory.isFetching)&&<p role="status" className="text-sm text-muted-foreground">Loading monthly records…</p>}
     {(ledger.isError||directory.isError)&&<p role="alert" className="text-sm text-destructive">Monthly records could not be loaded.</p>}

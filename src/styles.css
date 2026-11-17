@@ -2694,6 +2694,7 @@ html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-a
 .compliance-digital-sheet { display: block; flex: none; overflow: hidden; background: var(--document-paper); }
 .compliance-digital-sheet .digital-paper { fill: var(--document-paper); }
 .compliance-digital-sheet .digital-ink { fill: var(--document-ink); }
+.compliance-digital-sheet .digital-rule { stroke: var(--document-ink); }
 .digital-selection { fill: transparent; }
 .digital-selection.digital-blank { fill: var(--document-edit); }
 .digital-selection.digital-selected { fill: var(--document-selected); stroke: var(--ring); stroke-width: .5; }
@@ -2701,9 +2702,9 @@ html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-a
 
 /* Digital statutory forms: paper replicas, so ink and paper colours are intentionally fixed. */
 .stat-sheet { position: relative; flex: none; overflow: hidden; background: #fff; color: #000; box-shadow: 0 1px 6px rgb(0 0 0 / 0.18); }
-.stat-sheet input.stat-field, .stat-sheet textarea.stat-field { display: inline-block; margin: 0; padding: 0 1pt; border: 0; border-radius: 0; outline: none; color: #000; background: rgb(37 99 235 / 0.08); font-size: inherit; resize: none; overflow: hidden; }
+.stat-sheet input.stat-field, .stat-sheet textarea.stat-field { box-sizing: border-box; display: inline-block; margin: 0; padding: 0 1pt; border: 0; border-radius: 0; outline: none; color: var(--document-ink); background: var(--document-edit); font-size: inherit; resize: none; overflow: hidden; }
 .stat-sheet .stat-field:hover { background: rgb(37 99 235 / 0.14); }
-.stat-sheet .stat-field:focus { background: rgb(37 99 235 / 0.16); box-shadow: inset 0 0 0 1px rgb(37 99 235 / 0.7); }
+.stat-sheet .stat-field:focus { background: var(--document-selected); box-shadow: inset 0 0 0 1px var(--ring); }
 .stat-sheet .stat-field:disabled { background: transparent; }
 .stat-sheet .stat-tick, .stat-sheet .stat-choice { margin: 0; padding: 0; background: transparent; color: #000; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
 .stat-sheet .stat-tick:hover, .stat-sheet .stat-choice:hover { background: rgb(37 99 235 / 0.14); }

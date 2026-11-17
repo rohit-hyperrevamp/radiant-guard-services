@@ -52,9 +52,9 @@ export function Blank({ k, w, line = "dotted", s, align = "left", font, label, u
   const ref = useRef<HTMLInputElement>(null);
   const v = hidden(k) ? "" : values[k] ?? "";
   useFit(ref, v, s ?? 9, false);
-  return <input ref={ref} className="stat-field" aria-label={label ?? k} title={label ?? k} value={v} disabled={hidden(k)}
+  return <input ref={ref} className="stat-field" data-form-key={k} aria-label={label ?? k} title={label ?? k} value={v} disabled={hidden(k)}
     onChange={e => set(k, upper ? e.target.value.toUpperCase() : e.target.value)}
-    style={{ flex: w ? `0 0 ${w}pt` : "1 1 0", width: w ? `${w}pt` : "auto", minWidth: 0, fontFamily: font ?? FONT.arial, textAlign: align, borderBottom: line === "none" ? 0 : `${line === "dotted" ? "1pt dotted" : "0.6pt solid"} #000`, height: "1.25em", lineHeight: 1.1 }} />;
+    style={{ flex: w ? `0 0 ${w}pt` : "1 1 0", width: w ? `${w}pt` : "auto", minWidth: 0, fontFamily: font ?? FONT.arial, textAlign: align, borderBottom: line === "none" ? 0 : `${line === "dotted" ? "1pt dotted" : "0.6pt solid"} #000`, height: `${(s ?? 9)*1.25}pt`, lineHeight: 1.1 }} />;
 }
 
 /** Field occupying a fixed rectangle (table cells, boxes). */
@@ -65,22 +65,22 @@ export function Box({ k, x, y, w, h, s = 9, multi, font, align = "left", label, 
   useFit(ref, v, s, !!multi);
   const style: CSSProperties = { position: "absolute", left: `${x}pt`, top: `${y}pt`, width: `${w}pt`, height: `${h}pt`, fontFamily: font ?? FONT.arial, textAlign: align, lineHeight: lh ? `${lh}pt` : 1.15 };
   return multi
-    ? <textarea ref={ref} className="stat-field" aria-label={label ?? k} title={label ?? k} value={v} disabled={hidden(k)} onChange={e => set(k, e.target.value)} style={style} />
-    : <input ref={ref} className="stat-field" aria-label={label ?? k} title={label ?? k} value={v} disabled={hidden(k)} onChange={e => set(k, e.target.value)} style={style} />;
+    ? <textarea ref={ref} className="stat-field" data-form-key={k} aria-label={label ?? k} title={label ?? k} value={v} disabled={hidden(k)} onChange={e => set(k, e.target.value)} style={style} />
+    : <input ref={ref} className="stat-field" data-form-key={k} aria-label={label ?? k} title={label ?? k} value={v} disabled={hidden(k)} onChange={e => set(k, e.target.value)} style={style} />;
 }
 
 /** Printed square tick box; clicking selects `option` for field k. */
 export function Tick({ k, option, x, y, size = 8, square = true }: { k: string; option: string; x: number; y: number; size?: number; square?: boolean }) {
   const { values, set } = useForm();
   const on = values[k] === option;
-  return <button type="button" className="stat-tick" aria-pressed={on} aria-label={option} title={option} onClick={() => set(k, on ? "" : option)}
+  return <button type="button" className="stat-tick" data-form-key={k} aria-pressed={on} aria-label={option} title={option} onClick={() => set(k, on ? "" : option)}
     style={{ position: "absolute", left: `${x}pt`, top: `${y}pt`, width: `${size}pt`, height: `${size}pt`, border: square ? "0.75pt solid #000" : 0, fontSize: `${size}pt`, lineHeight: 1 }}>{on ? "✓" : ""}</button>;
 }
 
 /** Printed "Yes / No": the chosen word is circled. */
 export function YesNo({ k, x, y, s }: { k: string; x: number; y: number; s: number }) {
   const { values, set } = useForm();
-  const opt = (o: string) => <button type="button" className="stat-choice" aria-pressed={values[k] === o} aria-label={o} onClick={() => set(k, values[k] === o ? "" : o)}
+  const opt = (o: string) => <button type="button" className="stat-choice" data-form-key={k} aria-pressed={values[k] === o} aria-label={o} onClick={() => set(k, values[k] === o ? "" : o)}
     style={{ border: values[k] === o ? "0.9pt solid #000" : "0.9pt solid transparent", borderRadius: "50%", padding: "0 1.5pt", font: "inherit" }}>{o}</button>;
   return <T x={x} y={y} s={s} b>{opt("Yes")} / {opt("No")}</T>;
 }

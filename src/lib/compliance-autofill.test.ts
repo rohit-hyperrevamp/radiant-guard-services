@@ -1,9 +1,39 @@
 import { describe,expect,it } from 'vitest';
-import { employeeAutofillFacts,factForLabel,autoFillDigital,monthlyStatutoryRows } from './compliance-autofill';
+import { employeeAutofillFacts,factForLabel,autoFillDigital,monthlyStatutoryRows,contextualAutofillFacts,mergeAutofillValues } from './compliance-autofill';
 import type { DigitalForm } from './compliance-digital';
 import type { MonthDed,MonthContrib } from './compliance-month';
 import { readFileSync } from 'node:fs';
+import { reviewedDigitalLayout } from './compliance-reviewed-layout';
 describe('compliance factual autofill',()=>{
+  it('reviewed wage-slip fields fill a single name, month and identifiers, not repeated columns',()=>{
+    const form=reviewedDigitalLayout(JSON.parse(readFileSync('public/compliance-digital/compliance-30.json','utf8')));
+    expect(autoFillDigital(form,{name:'Test Employee',father:'Test Father',month:'November 2026',uan:'100001',bankAccount:'200002',designation:'Guard',employeePf:'1800',employeeEsic:'150',employerEsic:'650'})).toMatchObject({'0:field-0':'Test Employee','0:field-3':'Test Father','0:field-6':'Guard','0:field-9':'100001','0:field-12':'200002','0:field-15':'November 2026','0:review-employee-pf':'1800','0:review-employee-esic':'150'});
+    expect(form.pages[0].fields.find(f=>f.id==='field-0')?.box).toEqual([273.4,319.6,460.8,328.6]);
+    expect(form.pages[0].fields.some(f=>f.id==='field-1')).toBe(false);
+  });
+  it('changes automatically filled context but preserves manually entered answers',()=>{
+    expect(mergeAutofillValues({name:'Employee',month:'September 2026',client:'Manual Client',amount:'500'}, {name:'Employee',month:'September 2026',client:'Original Client'}, {name:'Employee',month:'October 2026',client:'Next Client'})).toEqual({name:'Employee',month:'October 2026',client:'Manual Client',amount:'500'});
+    expect(mergeAutofillValues({amount:'150'},{amount:'150'},{})).toEqual({});
+  });
+  it('reviewed first register row fills only one selected employee, never all repeated rows',()=>{
+    const form:DigitalForm=JSON.parse(readFileSync('public/compliance-digital/compliance-06.json','utf8'));
+    const values=autoFillDigital(form,{name:'Test Employee',father:'Test Father',designation:'Security Guard'});
+    expect(values).toEqual({'0:field-1':'Test Employee','0:field-2':'Test Father','0:field-4':'Security Guard'});
+    expect(values['0:field-9']).toBeUndefined();expect(values['0:field-6']).toBeUndefined();
+  });
+  it('selected month and client provide applicable facts without replacing the legal employer',()=>{
+    const facts=contextualAutofillFacts('2026-11',{name:'Test Client',code:'CLI100',address:'Site address'},[],[],'employee');
+    expect(facts).toMatchObject({month:'November 2026',clientName:'Test Client',clientCode:'CLI100',clientAddress:'Site address'});
+    expect(facts.employerName).toBeUndefined();expect(factForLabel('Month and year')).toBe('month');expect(factForLabel('Client name')).toBe('clientName');
+    expect(factForLabel('Accounting year ending')).toBeNull();expect(factForLabel('Signature date')).toBeNull();
+  });
+  it('monthly amounts are scoped to the selected employee, month and original client site',()=>{
+    const ded=(id:string,unit_id:string,candidate_id:string,month:string,amount:number):MonthDed=>({id,unit_id,candidate_id,deduction_date:`${month}-30`,deduction_name:'ESIC',amount,computed_amount:null,status:'completed',source_kind:null,source_ref:null});
+    const rows=[ded('a','site-a','employee','2026-09',150),ded('b','site-b','employee','2026-09',200),ded('c','site-a','another','2026-09',500),ded('d','site-a','employee','2026-10',900)];
+    expect(contextualAutofillFacts('2026-09',null,rows,[],'employee','site-a').employeeEsic).toBe('150');
+    expect(contextualAutofillFacts('2026-09',null,rows,[],'employee','site-b').employeeEsic).toBe('200');
+    expect(contextualAutofillFacts('2026-11',null,rows,[],'employee','site-a').employeeEsic).toBeUndefined();
+  });
   it('Bonus Register fills the selected employee, father, designation and establishment without inventing financial entries',()=>{
     const form:DigitalForm=JSON.parse(readFileSync('public/compliance-digital/compliance-05.json','utf8'));
     const facts=employeeAutofillFacts({full_name:'Test Guard',designation:'Security Guard',other_info:{father_name:'Test Father'}},{company_name:'Radiant Guard Services'});
