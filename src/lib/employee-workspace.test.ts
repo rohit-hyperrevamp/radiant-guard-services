@@ -14,7 +14,16 @@ describe("employee offboarding document visibility", () => {
   it("does not treat an old exit as a new exit after rehire", () => {
     expect(hasEmployeeOffboarding({ status: "active", offboarded_at: "2025-01-01", offboarding_details: { collection_status: "completed" } })).toBe(false);
   });
-  it("does not equate an inactive status alone with offboarding", () => {
-    expect(hasEmployeeOffboarding({ status: "inactive" })).toBe(false);
+  it("keeps exit documents available for inactive employees without recorded exit details", () => {
+    expect(hasEmployeeOffboarding({ status: "inactive" })).toBe(true);
+  });
+  it("keeps exit documents available when employee access is disabled", () => {
+    expect(hasEmployeeOffboarding({ status: "active", is_enabled: false })).toBe(true);
+  });
+  it("keeps exit documents available for a disabled profile", () => {
+    expect(hasEmployeeOffboarding({ status: "active", is_disabled: true })).toBe(true);
+  });
+  it("hides historical exit actions after an employee is re-enabled and rehired", () => {
+    expect(hasEmployeeOffboarding({ status: "active", is_enabled: true, is_disabled: false, offboarded_at: "2025-01-01", offboarding_details: { collection_status: "completed" } })).toBe(false);
   });
 });

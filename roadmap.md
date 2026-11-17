@@ -1,3 +1,9 @@
+## Inactive employee exit documents — 17 November
+- [x] Found exit metadata visibility gate hiding inactive employees' documents; corrected shared visibility for inactive/disabled profiles while preserving active rehire behavior.
+- [x] Redirected list Offboarding documents and legacy profile links to the full exit checklist, uploaded records and exit letters rather than only generated letters. No records or permissions changed.
+- [x] All 27 visibility, document-follow-up and letter tests pass; compilation OK. Production confirms 89 inactive profiles lack exit metadata and the exit checklist requires resignation and returned ID card. No employee records changed.
+- [ ] Signed-in live document navigation/upload remains unverified without a production session and GitHub-to-Vercel delivery.
+
 ## Searchable bulk manager unit mapping — 17 November
 - [x] Extended existing manager dashboard mapping with employee/client/site/ID search, reporting-chain and organization scope discovery, employee picker, individual selection and Select All matching sites across pages.
 - [x] Added confirmed field-officer/operations-manager add or replace using an installed production invoker-RLS function; same-type direct site assignments only, other managers, organization scope and payroll homes preserved. Existing dashboard visibility and access controls retained.

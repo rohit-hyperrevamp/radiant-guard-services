@@ -22,7 +22,7 @@ export function EmployeeRowActions({ id, canEdit, editLocked, opening, hasExit, 
         {onEnableRehire && <DropdownMenuItem onSelect={onEnableRehire}>Enable approved rehire</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => setLetters("hiring")}><FileText />Hiring letters</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setLetters("confirmation")}><FileText />Confirmation letter</DropdownMenuItem>
-        {hasExit && <DropdownMenuItem onSelect={() => setLetters("exit")}><FileText />Offboarding documents</DropdownMenuItem>}
+        {hasExit && <DropdownMenuItem asChild><Link to="/admin/candidates/$id/details" params={{ id }} search={{ section: "offboarding" }}><FileText />Offboarding documents</Link></DropdownMenuItem>}
         {onSites && <DropdownMenuItem onSelect={onSites}><MapPin />Client sites</DropdownMenuItem>}
         {canEdit && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={onPostings}><Network />Billing type & postings</DropdownMenuItem><DropdownMenuItem onSelect={() => onSign("nda")}><FileSignature />Sign NDA</DropdownMenuItem><DropdownMenuItem onSelect={() => onSign("appointment_letter")}><FileSignature />Sign appointment letter</DropdownMenuItem></>}
       </DropdownMenuContent>

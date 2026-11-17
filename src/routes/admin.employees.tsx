@@ -4535,7 +4535,7 @@ function EmployeesPage() {
                           to="/admin/candidates/$id/details"
                           params={{ id: c.id }}
                           search={
-                            c.offboarding_details && Object.keys(c.offboarding_details).length > 0
+                            hasEmployeeOffboarding(c)
                               ? { section: "offboarding" }
                               : undefined
                           }
@@ -4913,7 +4913,7 @@ function EmployeesPage() {
                     to="/admin/candidates/$id/details"
                     params={{ id: c.id }}
                     search={
-                      c.offboarding_details && Object.keys(c.offboarding_details).length > 0
+                      hasEmployeeOffboarding(c)
                         ? { section: "offboarding" }
                         : undefined
                     }
