@@ -299,7 +299,7 @@ function CompliancePage() {
       <InsuranceHeadTiles ym={ym} scope={ledgerScope} />
 
       <StatutoryForms />
-      <ComplianceFormLibrary />
+      <ComplianceFormLibrary month={ym} />
 
       {!showExceptions && (
         <Button
