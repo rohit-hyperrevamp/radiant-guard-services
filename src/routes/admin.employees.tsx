@@ -4,7 +4,7 @@ import { requestEmployeeStatusAction } from "@/lib/employee-status-action";
 import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { patchEmployeeSlice } from "@/lib/employee-list-cache";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
-import { EmploymentLetters } from "@/components/EmploymentLetters";
+import { OffboardingDocuments } from "@/components/OffboardingDocuments";
 import { employeeLetterFields } from "@/lib/employment-letters";
 import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
@@ -11009,11 +11009,10 @@ function OffboardingDialog({
             )}
           </section>
 
-          <EmploymentLetters key={target.id} candidateId={target.id} group="exit" fieldOverrides={(() => {
+          <OffboardingDocuments key={target.id} candidateId={target.id} employee={{...target, offboarding_details: {...target.offboarding_details, date_of_offboarding: dateOfOffboarding, date_of_resignation: dateOfResignation, date_of_last_working: dateOfLastWorking, reason_text: reasonText}}} start={dateOfOffboarding || null} fieldOverrides={(() => {
             const values = employeeLetterFields({ offboarding_details: { date_of_resignation: dateOfResignation, date_of_last_working: dateOfLastWorking, reason_text: reasonText, review } });
             return Object.fromEntries(["resignation_date", "last_working_date", "termination_reason", "resignation_reason", "performance_statement"].map(key => [key, values[key]]));
           })()} />
-          <DocumentChecklist id={target.id} purpose="offboarding" employee={{...target, offboarding_details: {...target.offboarding_details, date_of_offboarding: dateOfOffboarding, date_of_resignation: dateOfResignation, date_of_last_working: dateOfLastWorking, reason_text: reasonText}}} start={dateOfOffboarding || null} />
 
           {/* Section: Rating */}
           <section className="space-y-3">

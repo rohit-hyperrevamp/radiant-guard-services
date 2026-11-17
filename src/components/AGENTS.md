@@ -6,4 +6,4 @@
 - Mark clickable record/notification/priority panels data-panel so shared pill controls cannot change their rectangular shape; finance rows expose labelled View destinations separately from breakdown expansion.
 - Circular action colours map to icon purpose globally, including portal dialogs; finance summary View commands scroll to and focus their record list without changing filters.
 - Issued employment copies create per-copy signed-return follow-up; drafts never satisfy receipts. MyDocumentFollowup uses an owner-scoped RPC, while HR reminders retain configurable Recruitment Edit permission.
-- Offboarding reuses EmploymentLetters and DocumentChecklist against the existing employee ID; unsaved form dates override letter autofill and exported exit drafts are saved before download so inactive profiles retain them.
+- OffboardingDocuments merges templates, requirements and received files into one list using EmploymentLetters and DocumentChecklist against the existing employee ID; unsaved form dates override letter autofill and exported exit drafts save before download so inactive profiles retain them.

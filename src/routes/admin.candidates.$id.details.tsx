@@ -65,6 +65,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
 import { EmploymentLetters } from "@/components/EmploymentLetters";
+import { OffboardingDocuments } from "@/components/OffboardingDocuments";
 import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
 import { CandidateEsicCard } from "@/components/CandidateEsicCard";
@@ -525,7 +526,7 @@ function CandidateDetailsPage() {
             )}
           {active === "hiring_letters" && <EmploymentLetters key="hiring" candidateId={id} group="hiring" />}
           {active === "confirmation_letter" && <EmploymentLetters key="confirmation" candidateId={id} group="confirmation" />}
-          {active === "offboarding" && hasExit && <div className="space-y-6"><EmploymentLetters key="exit" candidateId={id} group="exit" /><DocumentChecklist id={id} purpose="offboarding" employee={form} start={form.offboarding_details?.date_of_offboarding ?? form.offboarded_at ?? null} /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
+          {active === "offboarding" && hasExit && <div className="space-y-6"><OffboardingDocuments candidateId={id} employee={form} start={form.offboarding_details?.date_of_offboarding ?? form.offboarded_at ?? null} /><OffboardingRecordsSection details={form.offboarding_details} /></div>}
         </section>
       </div>
 

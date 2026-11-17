@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, Download, Save, Pencil, Loader2, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ import "./employment-letters.css";
 
 type Saved = { id: string; rendered_body: string; version: number; created_at: string; signed_at: string | null; issued_at: string | null };
 
-export function EmploymentLetters({ candidateId, group = "hiring", initialOpen = false, launcherHidden = false, fieldOverrides, onClose }: { candidateId: string; group?: string; initialOpen?: boolean; launcherHidden?: boolean; fieldOverrides?: Record<string, string>; onClose?: () => void }) {
+export function EmploymentLetters({ candidateId, group = "hiring", initialOpen = false, launcherHidden = false, fieldOverrides, renderLauncher, onClose }: { candidateId: string; group?: string; initialOpen?: boolean; launcherHidden?: boolean; fieldOverrides?: Record<string, string>; renderLauncher?: (start: (kind: LetterKind) => void, history: (kind: LetterKind) => ReactNode) => ReactNode; onClose?: () => void }) {
   const permissions = useCurrentPermissions();
   const session = useHasSupabaseSession();
   const qc = useQueryClient();
@@ -113,23 +113,24 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
   }
   if (!canView) return null;
   const missing = letterFieldKeys(kind).filter(key => !(fields[key] ?? profile.data?.[key])?.trim());
-  return <div className="space-y-4">
-    {!launcherHidden && <>
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h3 className="text-base font-semibold">{group === "exit" ? "Exit Letters" : group === "confirmation" ? "Confirmation Letter" : "Hiring & Rehiring Letters"}</h3>
-      <div className="flex flex-wrap gap-2">{kinds.map(item => <Button key={item} variant="outline" size="sm" onClick={() => start(item)}><FileText className="mr-2 h-4 w-4" />{LETTER_LABELS[item]}</Button>)}</div>
-    </div>
-    {history.error && <p className="text-sm text-destructive">Saved letters could not be loaded.</p>}
-    <ul className="divide-y divide-border">{(history.data ?? []).map(row => {
+  const savedHistory = (selected?: LetterKind) => <ul className="divide-y divide-border">{(history.data ?? []).map(row => {
       const item = decodeLetter(row.rendered_body);
-      if (!item || !kinds.includes(item.kind)) return null;
+      if (!item || !kinds.includes(item.kind) || selected && item.kind !== selected) return null;
       return <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
         <div><span className="text-sm font-medium">{LETTER_LABELS[item.kind]}</span><p className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleString("en-IN")} · {row.issued_at ? "Issued copy" : "Draft copy"}</p></div>
         {canEdit && row.issued_at && <label className="cursor-pointer text-sm font-medium text-primary"><span className="flex items-center gap-2"><Upload className="h-4 w-4"/>Upload signed copy</span><input className="sr-only" type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={busy} onChange={async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;if(file.size>10*1024*1024){toast.error("Each file must be 10 MB or smaller");return;}setBusy(true);try{await uploadFollowupDocument(candidateId,undefined,`signed_${item.kind}`,file,row.id);await Promise.all([qc.invalidateQueries({queryKey:DOCUMENT_FOLLOWUP_QK}),qc.invalidateQueries({queryKey:["document-evidence"]}),qc.invalidateQueries({queryKey:["my-document-followup"]})]);toast.success("Signed copy received");}catch(error){toast.error(error instanceof Error?error.message:"Upload failed");}finally{setBusy(false);}}}/></label>}
         <Button variant="outline" size="sm" onClick={() => { setKind(item.kind); setFields(item.fields); setCopy(item); setSavedId(row.id); setOpen(true); }}><Pencil className="mr-2 h-4 w-4" />Open</Button>
       </li>;
-    })}</ul>
+    })}</ul>;
+  return <div className="space-y-4">
+    {renderLauncher ? renderLauncher(start, savedHistory) : !launcherHidden && <>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h3 className="text-base font-semibold">{group === "exit" ? "Exit Letters" : group === "confirmation" ? "Confirmation Letter" : "Hiring & Rehiring Letters"}</h3>
+      <div className="flex flex-wrap gap-2">{kinds.map(item => <Button key={item} variant="outline" size="sm" onClick={() => start(item)}><FileText className="mr-2 h-4 w-4" />{LETTER_LABELS[item]}</Button>)}</div>
+    </div>
+    {savedHistory()}
     </>}
+    {history.error && <p className="text-sm text-destructive">Saved letters could not be loaded.</p>}
     <Dialog open={open} onOpenChange={value => { setOpen(value); if (!value) onClose?.(); }}><DialogContent size="document" className="letter-workspace flex flex-col overflow-hidden">
       <DialogHeader><DialogTitle>{LETTER_LABELS[kind]}</DialogTitle></DialogHeader>
       <div className="flex shrink-0 flex-wrap gap-2 pb-1">

@@ -1,3 +1,8 @@
+## Unified offboarding documents — 18 November
+- [x] Combined templates, required uploads, per-letter saved copies and received files in one Offboarding documents list, shared by the exit form and inactive profile. Each letter opens its existing editable preview/export/save/issue workspace; uploads and signed copies remain stored under the employee. Received files have preview and single-click download; originals and signed files are not edited in place.
+- [x] All 31 focused tests pass and compilation OK; signed-in production confirmation opens the existing two-section form, confirming the reported duplication. Cancelled without saving or changing an employee.
+- [ ] The unified list, actual export/upload and later retrieval UI await GitHub-to-Vercel delivery; current production screenshot still shows the preceding release's Exit Letters and Required documents sections. No live end-to-end completion claimed.
+
 ## Letters inside offboarding form — 18 November
 - [x] Added editable employee-review resignation draft alongside the three supplied exit formats inside the confirmed offboarding form. Form dates/reason feed new letters; exit exports save a retained copy before downloading, and existing signed uploads/checklist remain linked to the same employee for later inactive-profile retrieval.
 - [x] All 31 focused tests pass; compilation OK. Installed resignation follow-up classification in production; rollback-only tests verify owner read/upload receipt, signed-return clearance, HR notification/deduplication and immutable issued copy. No real employee status or documents changed.
