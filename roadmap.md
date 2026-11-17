@@ -1,3 +1,8 @@
+## Date control spacing — 18 November
+- [x] Extended shared label spacing to date/calendar popup buttons, previously missed by the selector; dates now sit below labels with the same gap as other fields, without changing calendars or official paper layouts.
+- [x] Compilation OK and eight employee visibility tests pass. Signed-in production form checked with the revised spacing stylesheet temporarily applied in the browser at 1280px and 390px: all five dates have an 8px label gap, no horizontal overflow, both screenshots inspected; cancelled without saving.
+- [ ] Permanent spacing delivery awaits GitHub-to-Vercel; browser-injected stylesheet evidence verifies the proposed rules, not deployment. Shared rules also cover other label-adjacent popup controls, but not every portal page was individually checked.
+
 ## Unified offboarding documents — 18 November
 - [x] Combined templates, required uploads, per-letter saved copies and received files in one Offboarding documents list, shared by the exit form and inactive profile. Each letter opens its existing editable preview/export/save/issue workspace; uploads and signed copies remain stored under the employee. Received files have preview and single-click download; originals and signed files are not edited in place.
 - [x] All 31 focused tests pass and compilation OK; signed-in production confirmation opens the existing two-section form, confirming the reported duplication. Cancelled without saving or changing an employee.

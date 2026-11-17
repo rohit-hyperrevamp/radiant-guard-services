@@ -2758,7 +2758,7 @@ html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-a
   /* Block fields often used inline labels, for which space-y had no effect.
      Existing grid/flex fields receive one gap, not gap plus label margins. */
   :where(div, section, fieldset):not(.flex):not(.inline-flex):not(.grid):not(.inline-grid)
-    > label:has(+ :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], input:not([type="hidden"]), textarea, select, .relative:has(input))):not(:where(.stat-sheet *, .employment-letter-page *)) {
+    > label:has(+ :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], button[aria-haspopup="dialog"], input:not([type="hidden"]), textarea, select, .relative:has(input))):not(:where(.stat-sheet *, .employment-letter-page *)) {
     display: flex;
     width: fit-content;
     max-width: 100%;
@@ -2766,7 +2766,7 @@ html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-a
   }
 
   :where(div, section, fieldset):not(.flex):not(.inline-flex):not(.grid):not(.inline-grid)
-    > label + :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], input:not([type="hidden"]), textarea, select, .relative:has(input)):not(:where(.stat-sheet *, .employment-letter-page *)) {
+    > label + :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], button[aria-haspopup="dialog"], input:not([type="hidden"]), textarea, select, .relative:has(input)):not(:where(.stat-sheet *, .employment-letter-page *)) {
     margin-block-start: 0;
   }
 
@@ -2776,7 +2776,7 @@ html body [data-slot="button"][data-size="icon"]:hover { background: var(--row-a
     gap: var(--control-row-gap);
   }
 
-  :is(.grid, .inline-grid):has(> label):has(> :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], input, textarea, select)):not(:where(.stat-sheet *, .employment-letter-page *)) {
+  :is(.grid, .inline-grid):has(> label):has(> :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], button[role="combobox"], button[aria-haspopup="dialog"], input, textarea, select)):not(:where(.stat-sheet *, .employment-letter-page *)) {
     row-gap: var(--field-label-gap);
   }
 

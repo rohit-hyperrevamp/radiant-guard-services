@@ -10040,12 +10040,13 @@ function DatePickerInput({
         <Button
           type="button"
           variant="outline"
+          data-date-control
           className={cn(
             "w-full justify-start text-left font-normal",
             !parsed && "text-muted-foreground",
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
           {parsed ? formatDateFns(parsed, "dd MMM yyyy") : placeholder}
         </Button>
       </PopoverTrigger>
