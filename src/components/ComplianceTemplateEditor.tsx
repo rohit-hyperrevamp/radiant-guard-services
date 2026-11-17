@@ -9,7 +9,7 @@ import { recDb } from "@/lib/recruitment";
 import { downloadLetter } from "@/lib/employment-letters";
 import type { ComplianceTemplate } from "@/lib/compliance-form-catalog";
 import { digitalKey, digitalPrintHtml, digitalFieldLines, digitalAnswerLayout, parseDigitalDraft, type DigitalForm, type DigitalDraft } from "@/lib/compliance-digital";
-import { autoFillDigital, employeeAutofillFacts, contextualAutofillFacts, mergeAutofillValues } from '@/lib/compliance-autofill';
+import { autoFillDigital, employeeAutofillFacts, contextualAutofillFacts, mergeAutofillValues, ageAtMonthEnd, ANSWER_FONT } from '@/lib/compliance-autofill';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { complianceMonthQuery } from '@/lib/compliance-month';
@@ -37,10 +37,11 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
   const [month,setMonth]=useState(initialMonth??new Date().toISOString().slice(0,7));
   const [client,setClient]=useState<FormClient|null>(null);
   const [profileFacts,setProfileFacts]=useState<Record<string,string>>({});
+  const [birthDate,setBirthDate]=useState('');
   const [fontRevision,setFontRevision]=useState(0);
   const permissions=useCurrentPermissions();const session=useHasSupabaseSession();
   const ledger=useQuery({...complianceMonthQuery(month,'posted'),enabled:session&&permissions.can('compliance','view')&&!!employee});
-  const measure=useMemo(()=>{if(typeof document==='undefined')return undefined;const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');if(!ctx)return undefined;return (text:string,size:number)=>{ctx.font=`${size}px serif`;return ctx.measureText(text).width;};},[fontRevision]);
+  const measure=useMemo(()=>{if(typeof document==='undefined')return undefined;const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');if(!ctx)return undefined;return (text:string,size:number)=>{ctx.font=`${size}px ${ANSWER_FONT}`;return ctx.measureText(text).width;};},[fontRevision]);
   useEffect(()=>{let live=true;void document.fonts.ready.then(()=>{if(live)setFontRevision(n=>n+1);});return()=>{live=false;};},[]);
   const paper=useRef<HTMLDivElement>(null);
   const upload=useRef<HTMLInputElement>(null);
@@ -55,7 +56,7 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
     return()=>controller.abort();
   },[template.id]);
   useEffect(()=>{
-    const current=++request.current;setProfileFacts({});setSourceBusy(false);if(!form||!session||imported)return;
+    const current=++request.current;setProfileFacts({});setBirthDate('');setSourceBusy(false);if(!form||!session||imported)return;
     setSourceBusy(true);
     void Promise.all([
       employee?recDb.from("candidates").select("id,full_name,employee_code,designation_id,date_of_birth,preferred_joining_date,mobile,personal_mobile,email,gender,marital_status,aadhaar_number,pan_number,bank_account_number,bank_ifsc,permanent_address1,permanent_address2,permanent_city,permanent_district,permanent_state,permanent_pincode,compliance,contacts,other_info").eq("id",employee).single():Promise.resolve({data:null,error:null}),
@@ -63,21 +64,24 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
     ]).then(async ([person,org])=>{
       if(request.current!==current)return;
       if(person.error||org.error){setSourceBusy(false);toast.error("Saved details could not be loaded");return;}
-      const designation=person.data?.designation_id?await recDb.from('designations').select('name').eq('id',person.data.designation_id).maybeSingle():null;
+      // Imported employees often keep their role only in the posting designation list.
+      const posted=person.data&&!person.data.designation_id?await recDb.from('candidate_designations').select('designation_id,is_primary').eq('candidate_id',person.data.id).order('is_primary',{ascending:false}).limit(1).maybeSingle():null;
+      const designationId=person.data?.designation_id??posted?.data?.designation_id??null;
+      const designation=designationId?await recDb.from('designations').select('name').eq('id',designationId).maybeSingle():null;
       if(request.current!==current)return;
       const facts=employeeAutofillFacts({...person.data,designation:designation?.data?.name??''},org.data??{});
-      setProfileFacts(facts);setSourceBusy(false);
+      setProfileFacts(facts);setBirthDate(String(person.data?.date_of_birth??''));setSourceBusy(false);
     }).catch(()=>{if(request.current===current){setSourceBusy(false);toast.error('Saved details could not be loaded');}});return()=>{request.current++;};
   },[employee,form,session,imported]);
   useEffect(()=>{
     if(!form||imported)return;
-    const facts={...profileFacts,...contextualAutofillFacts(month,client?{name:client.name,code:client.code,address:[client.shipping_address1,client.shipping_address2].filter(Boolean).join(', ')}:null,ledger.data?.deds??[],ledger.data?.contribs??[],employee,client?.id)};
+    const facts={...profileFacts,...contextualAutofillFacts(month,client?{name:client.name,code:client.code,address:[client.shipping_address1,client.shipping_address2].filter(Boolean).join(', ')}:null,ledger.data?.deds??[],ledger.data?.contribs??[],employee,client?.id),age:ageAtMonthEnd(birthDate,month)};
     setParticulars(facts);
     const next=autoFillDigital(form,facts);
     const previous=autoValues.current;
     setValues(values=>mergeAutofillValues(values,previous,next));
     autoValues.current=next;
-  },[form,profileFacts,client,month,employee,ledger.data,imported]);
+  },[form,profileFacts,birthDate,client,month,employee,ledger.data,imported]);
   const items=form?.pages.flatMap((p,i)=>[...p.texts.map(t=>({key:digitalKey(i,t.id),label:t.text,initial:t.text,page:i})),...p.fields.map(f=>({key:digitalKey(i,f.id),label:f.label,initial:"",page:i}))])??[];
   const overflowItems=form?.pages.flatMap((p,i)=>[...p.texts,...p.fields].filter(t=>{const value=values[digitalKey(i,t.id)];return value!==undefined&&('text' in t?value!==t.text:true)&&digitalFieldLines(value,t.box,t.size,measure).overflow;}))??[];
   const fileName=template.title.replace(/[^a-z0-9 -]/gi,"");
@@ -95,7 +99,7 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
         <rect width={p.width} height={p.height} className="digital-paper"/>
         {p.sourceArtwork?<g dangerouslySetInnerHTML={{__html:p.sourceArtwork}}/>:p.paths.map((path,n)=><path key={n} d={path.d} stroke={ink(path.stroke)} fill={ink(path.fill)} strokeWidth={path.width??.5}/>)}
         {p.texts.map(t=>{const key=digitalKey(i,t.id);const value=values[key]??t.text;const unchanged=value===t.text;const [x,y,x1,y1]=t.box;const angle=t.direction?Math.atan2(t.direction[1],t.direction[0])*180/Math.PI:0;const fitted=digitalFieldLines(value,t.box,t.size,measure);return <g key={key} className="cursor-text" onClick={()=>setSelected(key)}><title>{t.text}</title>{!unchanged&&<rect x={x} y={y} width={x1-x} height={y1-y} className="digital-paper"/>}{unchanged&&t.sourceMarkup?<g dangerouslySetInnerHTML={{__html:t.sourceMarkup}}/>:unchanged&&t.outlined?null:<text x={unchanged?t.origin[0]:x} y={unchanged?t.origin[1]:y+fitted.size} transform={unchanged&&angle?`rotate(${angle} ${t.origin[0]} ${t.origin[1]})`:undefined} fontSize={unchanged?t.size:fitted.size} fontFamily={t.family} fontWeight={t.bold?700:400} fontStyle={t.italic?'italic':'normal'} fill={textInk(t.color)}>{unchanged?value:fitted.lines.map((line,n)=><tspan key={n} x={x} dy={n?fitted.size*1.15:0}>{line}</tspan>)}</text>}<rect x={x} y={y} width={Math.max(3,x1-x)} height={Math.max(3,y1-y)} className={selected===key?'digital-selection digital-selected':'digital-selection'}/></g>;})}
-        {p.fields.map(f=>{const key=digitalKey(i,f.id);const [x,y,x1,y1]=f.box;const value=values[key]??"";const fitted=digitalAnswerLayout(value,f.box,f.size,measure);return <g key={key} className="cursor-text" onClick={()=>setSelected(key)}><title>{f.label}</title>{value&&f.placeholder&&<><rect x={x} y={y} width={x1-x} height={y1-y} className="digital-paper"/><line x1={x} x2={x1} y1={y1} y2={y1} className="digital-rule" strokeWidth=".5" strokeDasharray="1 2"/></>}<rect x={x} y={y} width={Math.max(1,x1-x)} height={Math.max(1,y1-y)} className={selected===key?'digital-selection digital-selected':'digital-selection digital-blank'}/><text x={fitted.x} y={fitted.baseline} fontFamily="serif" fontSize={fitted.size} className="digital-ink">{fitted.lines.map((line,n)=><tspan key={n} x={x} dy={n?fitted.size*1.15:0}>{line}</tspan>)}</text></g>;})}
+        {p.fields.map(f=>{const key=digitalKey(i,f.id);const [x,y,x1,y1]=f.box;const value=values[key]??"";const fitted=digitalAnswerLayout(value,f.box,f.size,measure);return <g key={key} className="cursor-text" onClick={()=>setSelected(key)}><title>{f.label}</title>{value&&f.placeholder&&<><rect x={x} y={y} width={x1-x} height={y1-y} className="digital-paper"/><line x1={x} x2={x1} y1={y1} y2={y1} className="digital-rule" strokeWidth=".5" strokeDasharray="1 2"/></>}<rect x={x} y={y} width={Math.max(1,x1-x)} height={Math.max(1,y1-y)} className={selected===key?'digital-selection digital-selected':'digital-selection digital-blank'}/><text x={fitted.x} y={fitted.baseline} fontFamily={ANSWER_FONT} fontSize={fitted.size} className="digital-ink">{fitted.lines.map((line,n)=><tspan key={n} x={x} dy={n?fitted.size*1.15:0}>{line}</tspan>)}</text></g>;})}
       </svg></FittedDocument>)}</div>
     </div>
     <details className="shrink-0"><summary className="cursor-pointer text-sm font-medium">Monthly statutory records · {month}</summary><div className="max-h-[25dvh] overflow-auto pt-2"><ComplianceMonthlyForms month={month} unitId={client?.id} onEmployee={id=>{setImported(false);setEmployee(id);setValues({});autoValues.current={};setSelected('');}}/></div></details>

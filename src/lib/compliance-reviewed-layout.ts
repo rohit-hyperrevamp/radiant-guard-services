@@ -1,7 +1,26 @@
-import type { DigitalForm, DigitalField } from './compliance-digital';
+import type { DigitalForm, DigitalField, Box } from './compliance-digital';
+import reviewedFields from './compliance-reviewed-fields.json';
+
+type FieldReview={facts?:Record<string,string>;remove?:string[];add?:{page:number;id:string;label:string;box:number[];size:number;factKey?:string;placeholder?:boolean}[]};
+/** Per-form reviewed blanks: answer boxes sit in the empty space, never over printed wording; '' fact = never autofill. */
+function applyFieldReview(form:DigitalForm):DigitalForm {
+  const review=(reviewedFields as Record<string,FieldReview>)[form.id];
+  if(!review)return form;
+  const removed=new Set(review.remove??[]);
+  return {...form,pages:form.pages.map((p,i)=>({...p,fields:[
+    ...p.fields.filter(f=>!removed.has(`${i}:${f.id}`)).map(f=>{const fact=review.facts?.[`${i}:${f.id}`];return fact===undefined?f:{...f,factKey:fact};}),
+    ...(review.add??[]).filter(a=>a.page===i).map(a=>({id:a.id,label:a.label,box:a.box.slice(0,4) as Box,size:a.size,factKey:a.factKey,placeholder:a.placeholder})),
+  ]}))};
+}
 
 /** Source-reviewed repairs; generic extraction must not decide which legal blanks to merge. */
+/** One answer size across every form; the fitter only shrinks it when a blank is genuinely smaller. */
+export const ANSWER_SIZE=8;
 export function reviewedDigitalLayout(form:DigitalForm):DigitalForm {
+  const reviewed=applyFieldReview(sourceReviewedLayout(form));
+  return {...reviewed,pages:reviewed.pages.map(p=>({...p,fields:p.fields.map(f=>({...f,size:ANSWER_SIZE}))}))};
+}
+function sourceReviewedLayout(form:DigitalForm):DigitalForm {
   if(form.id==='compliance-16') {
     // The supplied consent sheet leaves almost no name space on its first line.
     // Keep every source word, but move this one label pair to two separate lines.

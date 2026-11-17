@@ -30,12 +30,12 @@ export function ComplianceFormControls({ employee, onEmployee, month, onMonth, c
     staleTime: 60_000,
   });
   const rows = (units.data ?? []).filter(u => matchesSearch(words,[u.name,u.code]));
-  return <div className="grid shrink-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+  return <div className="grid shrink-0 gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_19.5rem] xl:items-end">
     <div className="min-w-0 space-y-2"><Label>Employee</Label><EmployeePicker value={employee} onChange={onEmployee}/></div>
     <div className="min-w-0 space-y-2"><Label>Client / site</Label><Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild><Button variant="outline" disabled={!allowed} className="h-10 w-full justify-between font-normal"><span className="truncate">{client ? `${client.code} · ${client.name}` : 'Select client / site'}</span><ChevronDown className="ml-2 h-4 w-4 shrink-0"/></Button></PopoverTrigger>
+      <PopoverTrigger asChild><Button variant="outline" disabled={!allowed} className="h-10 w-full min-w-0 justify-between overflow-hidden font-normal"><span className="min-w-0 flex-1 truncate text-left">{client ? `${client.code} · ${client.name}` : 'Select client / site'}</span><ChevronDown className="ml-2 h-4 w-4 shrink-0"/></Button></PopoverTrigger>
       <PopoverContent align="start" className="w-[min(28rem,calc(100vw-2rem))] p-2"><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search client name or ID"/><div className="mt-2 max-h-64 overflow-y-auto"><Button variant="ghost" className="w-full justify-start" onClick={()=>{onClient(null);setOpen(false);}}>All sites</Button>{units.isFetching&&<p role="status" className="p-2 text-sm text-muted-foreground">Loading clients…</p>}{units.isError&&<p role="alert" className="p-2 text-sm text-destructive">Clients could not be loaded.</p>}{rows.map(u=><Button key={u.id} variant="ghost" className="h-auto w-full justify-start gap-2 whitespace-normal text-left" onClick={()=>{onClient(u);setOpen(false);}}>{client?.id===u.id&&<Check className="h-4 w-4 shrink-0"/>}{u.code} · {u.name}</Button>)}</div></PopoverContent>
     </Popover></div>
-    <div className="min-w-0 space-y-2"><Label>Month</Label><MonthYearPicker value={month} onChange={onMonth} className="flex w-full max-w-full sm:w-auto [&_[role=combobox]]:min-w-[90px]"/></div>
+    <div className="min-w-0 space-y-2 md:col-span-2 xl:col-span-1"><Label>Month</Label><MonthYearPicker value={month} onChange={onMonth} className="flex w-full max-w-full justify-between sm:flex sm:w-full"/></div>
   </div>;
 }

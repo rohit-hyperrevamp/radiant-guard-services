@@ -1,0 +1,3050 @@
+{
+ "compliance-01": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-3": "employeeNameAddress",
+   "0:field-4": "gender",
+   "0:field-5": "age",
+   "0:field-6": "esic",
+   "0:field-121": ""
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-02": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "name",
+    "box": [
+     109,
+     168,
+     407,
+     179
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-gender",
+    "label": "gender",
+    "box": [
+     100,
+     188,
+     407,
+     199
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "gender"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "father",
+    "box": [
+     201,
+     207,
+     407,
+     218
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "designation",
+    "box": [
+     142,
+     265,
+     407,
+     276
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "joining",
+    "box": [
+     574,
+     168,
+     780,
+     179
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   }
+  ]
+ },
+ "compliance-03": {
+  "facts": {
+   "0:field-20": "month"
+  },
+  "remove": [
+   "0:field-57",
+   "0:field-1",
+   "0:field-3",
+   "0:field-5",
+   "0:field-7"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "establishment",
+    "box": [
+     207,
+     118,
+     526,
+     128
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-serial",
+    "label": "serial",
+    "box": [
+     201,
+     132,
+     526,
+     143
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "serial"
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "name",
+    "box": [
+     443,
+     150,
+     484,
+     161
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "father",
+    "box": [
+     486,
+     150,
+     526,
+     161
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "joining",
+    "box": [
+     223,
+     169,
+     526,
+     180
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "designation",
+    "box": [
+     195,
+     188,
+     526,
+     199
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "designation"
+   }
+  ]
+ },
+ "compliance-04": {
+  "facts": {},
+  "remove": [
+   "0:field-1",
+   "0:field-2",
+   "0:field-3"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-petitioner",
+    "label": "Petitioner name",
+    "box": [
+     136,
+     197.5,
+     350,
+     209.5
+    ],
+    "size": 10,
+    "factKey": "name",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-petitioner-address",
+    "label": "Petitioner full address",
+    "box": [
+     126,
+     211,
+     352,
+     223.5
+    ],
+    "size": 9,
+    "factKey": "address",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-opposite-party",
+    "label": "Opposite party (employer)",
+    "box": [
+     136,
+     239,
+     346,
+     251
+    ],
+    "size": 10,
+    "factKey": "employerName",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-employer-address",
+    "label": "Opposite party full address",
+    "box": [
+     126,
+     252.5,
+     352,
+     265
+    ],
+    "size": 9,
+    "factKey": "employerAddress",
+    "placeholder": true
+   }
+  ]
+ },
+ "compliance-05": {
+  "facts": {
+   "0:establishment": "employerName",
+   "0:employee-name": "name",
+   "0:father-name": "father",
+   "0:designation": "designation",
+   "0:serial": "serial"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-06": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "father",
+   "0:field-4": "designation"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment name",
+    "box": [
+     195,
+     222.5,
+     470,
+     233
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   }
+  ]
+ },
+ "compliance-07": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment name and postal address",
+    "box": [
+     340,
+     203.5,
+     781,
+     214
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer name",
+    "box": [
+     178,
+     239.5,
+     781,
+     250
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   }
+  ]
+ },
+ "compliance-08": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "establishment",
+    "box": [
+     55,
+     153.1,
+     555,
+     164.1
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-employee",
+    "label": "employee",
+    "box": [
+     69,
+     215.2,
+     555,
+     226.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employeeNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-dob",
+    "label": "dob",
+    "box": [
+     151,
+     228,
+     355,
+     239
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "dob"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "designation",
+    "box": [
+     129,
+     277,
+     355,
+     288
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "joining",
+    "box": [
+     165,
+     301,
+     355,
+     312
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "employer",
+    "box": [
+     55,
+     427,
+     355,
+     438
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   }
+  ]
+ },
+ "compliance-09": {
+  "facts": {
+   "0:field-0": "name",
+   "0:field-2": "designation",
+   "0:field-27": "employerNameAddress",
+   "0:field-33": "clientNameAddress"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-site-establishment",
+    "label": "Client establishment name and address",
+    "box": [
+     382,
+     241.2,
+     539,
+     250.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-site-location",
+    "label": "Location of work (client address)",
+    "box": [
+     178,
+     313.2,
+     539,
+     322.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   }
+  ]
+ },
+ "compliance-10": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "father",
+   "0:field-3": "gender",
+   "0:field-38": "employerNameAddress",
+   "0:field-42": "clientNameAddress"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-site-establishment",
+    "label": "Client establishment name and address",
+    "box": [
+     382,
+     286.2,
+     539,
+     295.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-site-location",
+    "label": "Location of work (client address)",
+    "box": [
+     178,
+     304.2,
+     539,
+     313.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "For the month of",
+    "box": [
+     310,
+     316.5,
+     538,
+     325.5
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "month"
+   }
+  ]
+ },
+ "compliance-11": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-3": "designation",
+   "0:field-45": "employerNameAddress",
+   "0:field-49": "clientNameAddress"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-site-establishment",
+    "label": "Client establishment name and address",
+    "box": [
+     382,
+     259.2,
+     539,
+     268.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-site-location",
+    "label": "Location of work (client address)",
+    "box": [
+     178,
+     277.2,
+     539,
+     286.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Monthly wage period",
+    "box": [
+     154,
+     403.2,
+     538,
+     411.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "month"
+   }
+  ]
+ },
+ "compliance-12": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "father",
+   "0:field-3": "designation",
+   "0:field-52": "employerNameAddress",
+   "0:field-56": "clientNameAddress"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-site-establishment",
+    "label": "Client establishment name and address",
+    "box": [
+     382,
+     259.2,
+     539,
+     268.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-site-location",
+    "label": "Location of work (client address)",
+    "box": [
+     178,
+     277.2,
+     539,
+     286.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   }
+  ]
+ },
+ "compliance-13": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "father",
+   "0:field-3": "designation",
+   "0:field-33": "employerNameAddress",
+   "0:field-37": "clientNameAddress"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-site-establishment",
+    "label": "Client establishment name and address",
+    "box": [
+     382,
+     259.2,
+     539,
+     268.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-site-location",
+    "label": "Location of work (client address)",
+    "box": [
+     178,
+     277.2,
+     539,
+     286.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   }
+  ]
+ },
+ "compliance-14": {
+  "facts": {
+   "0:field-85": "employerNameAddress",
+   "0:field-89": "clientNameAddress"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-site-establishment",
+    "label": "Client establishment name and address",
+    "box": [
+     382,
+     259.2,
+     539,
+     268.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-site-location",
+    "label": "Location of work (client address)",
+    "box": [
+     178,
+     277.2,
+     539,
+     286.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "name",
+    "box": [
+     239,
+     385.2,
+     385,
+     394.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "father",
+    "box": [
+     389,
+     385.2,
+     539,
+     394.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "month",
+    "box": [
+     184,
+     403.2,
+     539,
+     412.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "month"
+   },
+   {
+    "page": 0,
+    "id": "review-gender",
+    "label": "gender",
+    "box": [
+     152,
+     421.2,
+     539,
+     430.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "gender"
+   },
+   {
+    "page": 0,
+    "id": "review-employee-code",
+    "label": "employee-code",
+    "box": [
+     132,
+     439.2,
+     539,
+     448.2
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employeeCode"
+   }
+  ]
+ },
+ "compliance-15": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-2": "employerNameAddress"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-16": {
+  "facts": {
+   "0:review-name": "name",
+   "0:review-address": "address",
+   "0:review-designation": "designation",
+   "0:review-joining": "joining"
+  },
+  "remove": [
+   "0:review-employer"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-employer-clear",
+    "label": "Employer name",
+    "box": [
+     157,
+     224.3,
+     508,
+     236.3
+    ],
+    "size": 9,
+    "placeholder": true,
+    "factKey": "employerName"
+   }
+  ]
+ },
+ "compliance-17": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment name",
+    "box": [
+     116,
+     149,
+     255,
+     161
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-worker",
+    "label": "Worker name",
+    "box": [
+     212,
+     111,
+     257,
+     123
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer name",
+    "box": [
+     261,
+     112,
+     400,
+     124
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "Entry into service",
+    "box": [
+     297,
+     162,
+     400,
+     173
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   }
+  ]
+ },
+ "compliance-18": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "dob",
+   "0:field-3": "gender",
+   "0:field-4": "father",
+   "0:field-5": "designation",
+   "0:field-10": "joining"
+  },
+  "remove": [
+   "0:field-6",
+   "0:field-7"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-permanent",
+    "label": "Permanent home address",
+    "box": [
+     361,
+     262,
+     477,
+     271.5
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "address"
+   },
+   {
+    "page": 0,
+    "id": "review-contractor",
+    "label": "Contractor name and address",
+    "box": [
+     185,
+     121,
+     810,
+     132
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-site",
+    "label": "Location of work",
+    "box": [
+     177,
+     134,
+     810,
+     145
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-principal",
+    "label": "Principal employer",
+    "box": [
+     216,
+     146,
+     810,
+     157
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment where contract carried on",
+    "box": [
+     365,
+     160,
+     810,
+     171
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Month",
+    "box": [
+     109,
+     175,
+     199,
+     185
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "month"
+   }
+  ]
+ },
+ "compliance-19": {
+  "facts": {
+   "0:field-1": "serial",
+   "0:field-2": "employeeCode",
+   "0:field-3": "name",
+   "0:field-4": "father",
+   "0:field-5": "gender",
+   "0:field-6": "designation",
+   "0:field-7": "joining",
+   "0:field-8": "esic",
+   "0:field-9": "pf",
+   "1:field-3": "serial",
+   "1:field-4": "employeeCode",
+   "1:field-5": "name",
+   "2:field-1": "serial",
+   "2:field-2": "employeeCode",
+   "2:field-3": "name",
+   "3:field-1": "serial",
+   "3:field-2": "employeeCode",
+   "3:field-3": "name",
+   "2:field-19": "employeeEsic",
+   "2:field-20": "employeePf",
+   "2:field-21": "pt"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Month and year",
+    "box": [
+     66,
+     60,
+     143,
+     66
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "month"
+   },
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment name and address",
+    "box": [
+     28,
+     81,
+     147,
+     104
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 1,
+    "id": "review-month",
+    "label": "Month and year",
+    "box": [
+     343,
+     60,
+     420,
+     66
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "month"
+   },
+   {
+    "page": 1,
+    "id": "review-establishment",
+    "label": "Establishment name and address",
+    "box": [
+     305,
+     81,
+     424,
+     104
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 2,
+    "id": "review-month",
+    "label": "Month and year",
+    "box": [
+     86,
+     60,
+     163,
+     66
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "month"
+   },
+   {
+    "page": 2,
+    "id": "review-establishment",
+    "label": "Establishment name and address",
+    "box": [
+     48,
+     81,
+     167,
+     104
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 3,
+    "id": "review-month",
+    "label": "Month and year",
+    "box": [
+     345,
+     60,
+     422,
+     66
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "month"
+   },
+   {
+    "page": 3,
+    "id": "review-establishment",
+    "label": "Establishment name and address",
+    "box": [
+     307,
+     81,
+     426,
+     104
+    ],
+    "size": 6,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-contractor",
+    "label": "Contractor name and address",
+    "box": [
+     369,
+     81,
+     545,
+     105
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 2,
+    "id": "review-contractor",
+    "label": "Contractor name and address",
+    "box": [
+     197,
+     81,
+     360,
+     104
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 2,
+    "id": "review-principal",
+    "label": "Principal employer name and address",
+    "box": [
+     365,
+     89,
+     610,
+     112
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   }
+  ]
+ },
+ "compliance-20": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "father",
+   "1:field-0": "gender",
+   "1:field-1": "designation"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-contractor",
+    "label": "Contractor",
+    "box": [
+     261,
+     148,
+     506,
+     160
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-site",
+    "label": "Work location",
+    "box": [
+     240,
+     163,
+     506,
+     175
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-principal",
+    "label": "Principal employer",
+    "box": [
+     303,
+     179,
+     506,
+     191
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Contract establishment",
+    "box": [
+     326,
+     194,
+     506,
+     218
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Month",
+    "box": [
+     177,
+     239,
+     506,
+     251
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "month"
+   }
+  ]
+ },
+ "compliance-21": {
+  "facts": {
+   "0:field-0": "serial",
+   "0:field-1": "name",
+   "0:field-2": "father",
+   "0:field-3": "designation"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-contractor",
+    "label": "Contractor",
+    "box": [
+     151,
+     94,
+     760,
+     103
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-site",
+    "label": "Work location",
+    "box": [
+     145,
+     104,
+     760,
+     113
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-principal",
+    "label": "Principal employer",
+    "box": [
+     177,
+     114,
+     760,
+     123
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Contract establishment",
+    "box": [
+     300,
+     125,
+     760,
+     135
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Month",
+    "box": [
+     85,
+     144,
+     145,
+     152
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "month"
+   }
+  ]
+ },
+ "compliance-22": {
+  "facts": {
+   "0:field-0": "employerName",
+   "0:field-1": "employerName",
+   "0:field-5": "employeeCode",
+   "0:field-6": "name",
+   "0:field-8": "gender",
+   "0:field-9": "father",
+   "0:field-10": "dob",
+   "0:field-14": "joining",
+   "0:field-15": "designation",
+   "0:field-21": "mobile",
+   "0:field-22": "uan",
+   "0:field-23": "pan",
+   "0:field-27": "esic",
+   "0:field-28": "aadhaar",
+   "0:field-29": "bankAccount",
+   "0:field-30": "bank",
+   "0:field-31": "ifsc",
+   "0:field-33": "address"
+  },
+  "remove": [
+   "0:field-41"
+  ],
+  "add": []
+ },
+ "compliance-23": {
+  "facts": {
+   "0:field-0": "employerName",
+   "0:field-1": "employerName",
+   "0:field-5": "serial",
+   "0:field-6": "employeeCode",
+   "0:field-7": "",
+   "0:field-8": "",
+   "0:field-11": "month",
+   "0:field-22": "employeePf",
+   "0:field-23": "employeeEsic",
+   "1:field-7": "employerName",
+   "1:field-8": "employerAddress",
+   "1:field-9": "month",
+   "1:field-10": "name",
+   "1:field-11": "father",
+   "1:field-12": "designation",
+   "1:field-13": "uan",
+   "1:field-14": "bankAccount",
+   "1:field-15": "month",
+   "1:field-24": "employeePf",
+   "1:field-25": "employeeEsic"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-24": {
+  "facts": {
+   "0:field-0": "employerName",
+   "0:field-1": "employerName",
+   "0:field-4": "month",
+   "0:field-5": "serial",
+   "0:field-6": "employeeCode",
+   "0:field-7": "name",
+   "0:field-8": "designation",
+   "0:field-10": "clientNameAddress"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-25": {
+  "facts": {
+   "0:field-7": "employerName",
+   "0:field-8": "employerAddress",
+   "0:field-9": "month",
+   "0:field-10": "name",
+   "0:field-11": "father",
+   "0:field-12": "designation",
+   "0:field-13": "uan",
+   "0:field-14": "bankAccount",
+   "0:field-15": "month",
+   "0:field-24": "employeePf",
+   "0:field-25": "employeeEsic"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-26": {
+  "facts": {},
+  "remove": [
+   "1:field-0"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "Person making nomination",
+    "box": [
+     236,
+     683.3,
+     505,
+     693
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "Father or spouse",
+    "box": [
+     193,
+     703,
+     505,
+     712.7
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-dob",
+    "label": "Birth date",
+    "box": [
+     152,
+     713,
+     505,
+     722.6
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "dob"
+   },
+   {
+    "page": 0,
+    "id": "review-gender",
+    "label": "Sex",
+    "box": [
+     117,
+     723,
+     505,
+     733
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "gender"
+   },
+   {
+    "page": 1,
+    "id": "review-marital",
+    "label": "Marital status",
+    "box": [
+     156,
+     59,
+     505,
+     69
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "marital"
+   },
+   {
+    "page": 1,
+    "id": "review-permanent",
+    "label": "Permanent address",
+    "box": [
+     133,
+     79.3,
+     505,
+     89
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "address"
+   },
+   {
+    "page": 1,
+    "id": "review-certificate-name",
+    "label": "Employee name in employer certificate",
+    "box": [
+     91,
+     426,
+     202,
+     435
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   }
+  ]
+ },
+ "compliance-27": {
+  "facts": {
+   "0:field-0": "employerName",
+   "0:field-1": "employerName",
+   "0:field-4": "employeeCode",
+   "0:field-5": "name",
+   "0:field-9": "gender",
+   "0:field-11": "father",
+   "0:field-12": "dob",
+   "0:field-16": "joining",
+   "0:field-17": "designation",
+   "0:field-20": "mobile",
+   "1:field-0": "uan",
+   "1:field-1": "pan",
+   "1:field-8": "esic",
+   "1:field-9": "aadhaar",
+   "1:field-10": "bankAccount",
+   "1:field-11": "bank",
+   "1:field-12": "ifsc",
+   "1:field-14": "address"
+  },
+  "remove": [
+   "0:field-10"
+  ],
+  "add": []
+ },
+ "compliance-28": {
+  "facts": {
+   "0:field-1": "employerName",
+   "0:field-2": "employerName",
+   "0:field-4": "serial",
+   "0:field-5": "employeeCode",
+   "0:field-6": "name",
+   "0:field-7": "designation",
+   "0:field-9": "clientName"
+  },
+  "remove": [
+   "0:field-17"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Month and year",
+    "box": [
+     432,
+     282.2,
+     489,
+     291.1
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "month"
+   },
+   {
+    "page": 0,
+    "id": "review-year",
+    "label": "Year",
+    "box": [
+     409,
+     293,
+     489,
+     302
+    ],
+    "size": 7,
+    "placeholder": true,
+    "factKey": "year"
+   }
+  ]
+ },
+ "compliance-29": {
+  "facts": {
+   "0:field-0": "employerName",
+   "0:field-1": "employerName",
+   "0:field-4": "month",
+   "0:field-5": "serial",
+   "0:field-6": "employeeCode",
+   "0:field-7": "name",
+   "0:field-8": "designation",
+   "0:field-11": "month",
+   "1:field-7": "employeePf",
+   "1:field-8": "employeeEsic"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-30": {
+  "facts": {
+   "0:field-0": "name",
+   "0:field-3": "father",
+   "0:field-6": "designation",
+   "0:field-9": "uan",
+   "0:field-12": "bankAccount",
+   "0:field-15": "month",
+   "0:review-employee-pf": "employeePf",
+   "0:review-employee-esic": "employeeEsic"
+  },
+  "remove": [
+   "0:field-30",
+   "0:field-31",
+   "0:field-32"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment-clear",
+    "label": "Establishment name",
+    "box": [
+     245,
+     297.6,
+     400.5,
+     306.5
+    ],
+    "size": 8,
+    "factKey": "employerName",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-address-clear",
+    "label": "Establishment address",
+    "box": [
+     180,
+     307.6,
+     326,
+     318.6
+    ],
+    "size": 7,
+    "factKey": "employerAddress",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-period-clear",
+    "label": "Period",
+    "box": [
+     354,
+     308.6,
+     441.7,
+     317.5
+    ],
+    "size": 8,
+    "factKey": "month",
+    "placeholder": true
+   }
+  ]
+ },
+ "compliance-31": {
+  "facts": {
+   "0:field-0": "name",
+   "1:field-0": "dob",
+   "1:field-1": "uan",
+   "1:field-2": "gender",
+   "1:field-4": "joining",
+   "1:field-21": "email",
+   "1:field-23": "mobile"
+  },
+  "remove": [
+   "1:field-24"
+  ],
+  "add": [
+   {
+    "page": 1,
+    "id": "review-father",
+    "label": "Father",
+    "box": [
+     394,
+     72,
+     529,
+     84
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 1,
+    "id": "review-marital",
+    "label": "Marital",
+    "box": [
+     394,
+     165,
+     529,
+     175
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "marital"
+   },
+   {
+    "page": 1,
+    "id": "review-designation",
+    "label": "Designation",
+    "box": [
+     394,
+     203,
+     529,
+     213
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 1,
+    "id": "review-address",
+    "label": "Address",
+    "box": [
+     280,
+     259,
+     529,
+     269
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "address"
+   },
+   {
+    "page": 1,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     109,
+     475,
+     509,
+     485
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 3,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     110,
+     249,
+     407,
+     258
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 3,
+    "id": "review-employee",
+    "label": "Employee",
+    "box": [
+     421,
+     622,
+     529,
+     633
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 3,
+    "id": "review-marital",
+    "label": "Marital",
+    "box": [
+     400,
+     647,
+     529,
+     658
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "marital"
+   },
+   {
+    "page": 3,
+    "id": "review-address",
+    "label": "Address",
+    "box": [
+     250,
+     659,
+     529,
+     670
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "address"
+   }
+  ]
+ },
+ "compliance-32": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     110,
+     249,
+     407,
+     258
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-employee",
+    "label": "Employee",
+    "box": [
+     421,
+     622,
+     529,
+     633
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-marital",
+    "label": "Marital",
+    "box": [
+     400,
+     647,
+     529,
+     658
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "marital"
+   },
+   {
+    "page": 0,
+    "id": "review-address",
+    "label": "Address",
+    "box": [
+     250,
+     659,
+     529,
+     670
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "address"
+   },
+   {
+    "page": 1,
+    "id": "review-employee",
+    "label": "Employee",
+    "box": [
+     211,
+     70,
+     520,
+     81
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 1,
+    "id": "review-designation",
+    "label": "Designation",
+    "box": [
+     215,
+     191,
+     520,
+     202
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 1,
+    "id": "review-joining",
+    "label": "Joining",
+    "box": [
+     199,
+     215,
+     520,
+     226
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 1,
+    "id": "review-bank",
+    "label": "Claimant bank account (confirm applicant)",
+    "box": [
+     110,
+     370,
+     515,
+     382
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": ""
+   }
+  ]
+ },
+ "compliance-33": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-employee",
+    "label": "Employee",
+    "box": [
+     211,
+     70,
+     520,
+     81
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "Designation",
+    "box": [
+     215,
+     191,
+     520,
+     202
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "Joining",
+    "box": [
+     199,
+     215,
+     520,
+     226
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 0,
+    "id": "review-recipient",
+    "label": "Recipient",
+    "box": [
+     111,
+     554,
+     510,
+     565
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employeeNameAddress"
+   },
+   {
+    "page": 1,
+    "id": "review-joining",
+    "label": "Joining",
+    "box": [
+     225,
+     215,
+     515,
+     226
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 1,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     353,
+     370,
+     518,
+     382
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   }
+  ]
+ },
+ "compliance-34": {
+  "facts": {
+   "0:field-0": "month"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     235,
+     142,
+     530,
+     153
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "Name",
+    "box": [
+     410,
+     159,
+     530,
+     170
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "Father",
+    "box": [
+     250,
+     171,
+     530,
+     180
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "Joining",
+    "box": [
+     228,
+     181,
+     530,
+     192
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 0,
+    "id": "review-esic",
+    "label": "Esic",
+    "box": [
+     322,
+     194,
+     530,
+     205
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "esic"
+   },
+   {
+    "page": 0,
+    "id": "review-pf",
+    "label": "Pf",
+    "box": [
+     402,
+     212,
+     530,
+     223
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "pf"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "Designation",
+    "box": [
+     205,
+     234,
+     530,
+     245
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   }
+  ]
+ },
+ "compliance-35": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     106,
+     138,
+     520,
+     148
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "Name",
+    "box": [
+     225,
+     584,
+     520,
+     594
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-gender",
+    "label": "Gender",
+    "box": [
+     132,
+     595,
+     520,
+     605
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "gender"
+   },
+   {
+    "page": 0,
+    "id": "review-marital",
+    "label": "Marital",
+    "box": [
+     308,
+     618,
+     520,
+     628
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "marital"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "Designation",
+    "box": [
+     295,
+     641,
+     520,
+     651
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "Joining",
+    "box": [
+     205,
+     653,
+     520,
+     663
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   },
+   {
+    "page": 0,
+    "id": "review-address",
+    "label": "Address",
+    "box": [
+     202,
+     665,
+     520,
+     675
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "address"
+   }
+  ]
+ },
+ "compliance-36": {
+  "facts": {
+   "0:review-dob": "dob",
+   "0:review-profession": "designation",
+   "0:review-permanent-address": "address",
+   "0:review-present-address": ""
+  },
+  "remove": [
+   "0:field-0",
+   "0:field-1",
+   "0:review-name",
+   "0:review-father"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-name-clear",
+    "label": "name",
+    "box": [
+     260,
+     158,
+     511,
+     168
+    ],
+    "size": 8,
+    "factKey": "name",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-father-clear",
+    "label": "father",
+    "box": [
+     74,
+     224,
+     424,
+     235
+    ],
+    "size": 8,
+    "factKey": "father",
+    "placeholder": true
+   }
+  ]
+ },
+ "compliance-37": {
+  "facts": {
+   "0:field-0": "name",
+   "0:field-1": "designation",
+   "0:field-2": "employeeCode",
+   "0:field-3": "dob",
+   "0:field-4": "address",
+   "0:field-6": "mobile",
+   "0:field-10": "aadhaar"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-38": {
+  "facts": {
+   "0:field-15": "serial",
+   "0:field-18": "designation"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-contractor",
+    "label": "Contractor",
+    "box": [
+     231,
+     171,
+     565,
+     182
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-site",
+    "label": "Site",
+    "box": [
+     427,
+     185,
+     565,
+     196
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-location",
+    "label": "Location",
+    "box": [
+     208,
+     199,
+     565,
+     210
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-principal",
+    "label": "Principal",
+    "box": [
+     268,
+     213,
+     565,
+     224
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-employee",
+    "label": "Employee",
+    "box": [
+     242,
+     227,
+     565,
+     238
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employeeNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-dob",
+    "label": "Dob",
+    "box": [
+     171,
+     241,
+     565,
+     252
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "dob"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "Father",
+    "box": [
+     197,
+     268,
+     565,
+     279
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   }
+  ]
+ },
+ "compliance-39": {
+  "facts": {
+   "0:field-30": "name",
+   "0:field-32": "designation",
+   "0:field-33": "joining"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment",
+    "box": [
+     124,
+     85,
+     400,
+     93
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     120,
+     94,
+     400,
+     102
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-month",
+    "label": "Month",
+    "box": [
+     105,
+     103,
+     400,
+     111
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "month"
+   }
+  ]
+ },
+ "compliance-40": {
+  "facts": {},
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "Name",
+    "box": [
+     320,
+     91,
+     524,
+     103
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "Father",
+    "box": [
+     320,
+     124,
+     524,
+     136
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-dob",
+    "label": "Dob",
+    "box": [
+     320,
+     153,
+     524,
+     163
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "dob"
+   },
+   {
+    "page": 0,
+    "id": "review-gender",
+    "label": "Gender",
+    "box": [
+     320,
+     168,
+     524,
+     178
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "gender"
+   },
+   {
+    "page": 0,
+    "id": "review-marital",
+    "label": "Marital",
+    "box": [
+     320,
+     183,
+     524,
+     193
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "marital"
+   },
+   {
+    "page": 0,
+    "id": "review-email",
+    "label": "Email",
+    "box": [
+     320,
+     198,
+     524,
+     208
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "email"
+   },
+   {
+    "page": 0,
+    "id": "review-mobile",
+    "label": "Mobile",
+    "box": [
+     320,
+     213,
+     524,
+     220
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "mobile"
+   },
+   {
+    "page": 0,
+    "id": "review-uan",
+    "label": "Uan",
+    "box": [
+     320,
+     274,
+     524,
+     286
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "uan"
+   },
+   {
+    "page": 0,
+    "id": "review-bank",
+    "label": "Bank",
+    "box": [
+     320,
+     444,
+     524,
+     456
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "bank"
+   },
+   {
+    "page": 0,
+    "id": "review-aadhaar",
+    "label": "Aadhaar",
+    "box": [
+     320,
+     465,
+     524,
+     475
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "aadhaar"
+   },
+   {
+    "page": 0,
+    "id": "review-pan",
+    "label": "Pan",
+    "box": [
+     320,
+     480,
+     524,
+     490
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "pan"
+   },
+   {
+    "page": 0,
+    "id": "review-previous-pf",
+    "label": "Previous pf",
+    "box": [
+     320,
+     295,
+     524,
+     304
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": ""
+   },
+   {
+    "page": 0,
+    "id": "review-previous-exit",
+    "label": "Previous exit",
+    "box": [
+     320,
+     313,
+     524,
+     322
+    ],
+    "size": 8,
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-scheme-certificate",
+    "label": "Scheme certificate",
+    "box": [
+     320,
+     329,
+     524,
+     338
+    ],
+    "size": 8,
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-ppo",
+    "label": "Ppo",
+    "box": [
+     320,
+     345,
+     524,
+     354
+    ],
+    "size": 8,
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-country",
+    "label": "Country",
+    "box": [
+     320,
+     381,
+     524,
+     390
+    ],
+    "size": 8,
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-passport",
+    "label": "Passport",
+    "box": [
+     320,
+     397,
+     524,
+     406
+    ],
+    "size": 8,
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-passport-validity",
+    "label": "Passport validity",
+    "box": [
+     320,
+     412,
+     524,
+     421
+    ],
+    "size": 8,
+    "placeholder": true
+   }
+  ]
+ },
+ "compliance-41": {
+  "facts": {},
+  "remove": [
+   "0:field-3",
+   "0:field-4",
+   "0:field-5"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer name and address",
+    "box": [
+     262,
+     462.1,
+     465,
+     471.1
+    ],
+    "size": 8,
+    "factKey": "employerNameAddress",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-employer-code",
+    "label": "Employer code number",
+    "box": [
+     260,
+     475.6,
+     465,
+     484.6
+    ],
+    "size": 8,
+    "factKey": "employerEsicCode",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "Certified that Shri",
+    "box": [
+     298,
+     488.9,
+     465.6,
+     497.9
+    ],
+    "size": 9,
+    "factKey": "name",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "Son of",
+    "box": [
+     164,
+     502.4,
+     345,
+     511.4
+    ],
+    "size": 9,
+    "factKey": "father",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-esic",
+    "label": "Insurance number",
+    "box": [
+     402,
+     502.4,
+     463.9,
+     511.4
+    ],
+    "size": 8,
+    "factKey": "esic",
+    "placeholder": true
+   }
+  ]
+ },
+ "compliance-42": {
+  "facts": {
+   "0:field-0": "employerNameAddress",
+   "0:field-1": "employerNameAddress",
+   "0:field-2": "name",
+   "0:field-4": "address",
+   "0:field-5": "father",
+   "0:field-6": "dob",
+   "0:field-7": "joining",
+   "0:field-8": "designation",
+   "0:field-9": "designation",
+   "0:field-10": "employeeCode"
+  },
+  "remove": [],
+  "add": []
+ },
+ "compliance-43": {
+  "facts": {
+   "1:field-31": "name",
+   "1:field-38": "address",
+   "1:field-43": "father",
+   "1:field-44": "gender",
+   "1:field-45": "age",
+   "1:field-46": "address",
+   "2:field-13": "address",
+   "2:field-17": "designation",
+   "2:field-19": "joining"
+  },
+  "remove": [],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-contractor",
+    "label": "Contractor",
+    "box": [
+     359,
+     201,
+     542,
+     225
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment",
+    "box": [
+     359,
+     331,
+     542,
+     355
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   },
+   {
+    "page": 0,
+    "id": "review-principal",
+    "label": "Principal",
+    "box": [
+     359,
+     396,
+     542,
+     420
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "clientName"
+   }
+  ]
+ },
+ "compliance-44": {
+  "facts": {
+   "0:field-8": ""
+  },
+  "remove": [
+   "0:field-0",
+   "0:field-1",
+   "0:field-2",
+   "0:field-3"
+  ],
+  "add": [
+   {
+    "page": 0,
+    "id": "review-establishment",
+    "label": "Establishment",
+    "box": [
+     266,
+     180,
+     530,
+     191
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     247,
+     196,
+     340,
+     207
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerName"
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "Name",
+    "box": [
+     181,
+     247,
+     340,
+     258
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-father",
+    "label": "Father",
+    "box": [
+     188,
+     270,
+     530,
+     281
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "father"
+   },
+   {
+    "page": 0,
+    "id": "review-recipient",
+    "label": "Recipient",
+    "box": [
+     170,
+     509,
+     530,
+     520
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "name"
+   },
+   {
+    "page": 0,
+    "id": "review-address",
+    "label": "Address",
+    "box": [
+     94,
+     536,
+     530,
+     560
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "address"
+   },
+   {
+    "page": 0,
+    "id": "review-age",
+    "label": "Age",
+    "box": [
+     153,
+     298,
+     180,
+     306
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "age"
+   },
+   {
+    "page": 0,
+    "id": "review-dob",
+    "label": "Dob",
+    "box": [
+     285,
+     298,
+     330,
+     306
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "dob"
+   },
+   {
+    "page": 0,
+    "id": "review-designation",
+    "label": "Designation",
+    "box": [
+     194,
+     319,
+     258,
+     329
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "designation"
+   },
+   {
+    "page": 0,
+    "id": "review-joining",
+    "label": "Joining",
+    "box": [
+     418,
+     319,
+     478,
+     329
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "joining"
+   }
+  ]
+ },
+ "compliance-45": {
+  "facts": {
+   "0:field-71": "dob",
+   "0:field-72": "pf",
+   "0:field-73": "gender"
+  },
+  "remove": [
+   "0:field-70",
+   "0:field-74",
+   "0:field-75",
+   "1:field-5"
+  ],
+  "add": [
+   {
+    "page": 1,
+    "id": "review-employer",
+    "label": "Employer",
+    "box": [
+     90,
+     670,
+     320,
+     702
+    ],
+    "size": 8,
+    "placeholder": true,
+    "factKey": "employerNameAddress"
+   },
+   {
+    "page": 0,
+    "id": "review-name",
+    "label": "name",
+    "box": [
+     206,
+     118,
+     522,
+     127
+    ],
+    "size": 8,
+    "factKey": "name",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-marital",
+    "label": "marital",
+    "box": [
+     337,
+     165,
+     491,
+     174
+    ],
+    "size": 8,
+    "factKey": "marital",
+    "placeholder": true
+   },
+   {
+    "page": 0,
+    "id": "review-address",
+    "label": "address",
+    "box": [
+     228,
+     183,
+     522,
+     192
+    ],
+    "size": 8,
+    "factKey": "address",
+    "placeholder": true
+   },
+   {
+    "page": 1,
+    "id": "review-certified-name",
+    "label": "certified-name",
+    "box": [
+     110,
+     482,
+     349,
+     491
+    ],
+    "size": 8,
+    "factKey": "name",
+    "placeholder": true
+   }
+  ]
+ }
+}

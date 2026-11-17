@@ -13,15 +13,20 @@ export function prefillStatutoryForm(id: FormId, employee: EmployeeFormSource, e
   const c = object(employee.compliance), other = object(employee.other_info);
   const address = [employee.permanent_address1, employee.permanent_address2, employee.permanent_city, employee.permanent_district, employee.permanent_state, employee.permanent_pincode].map(text).filter(Boolean).join(", ");
   const name = text(employee.full_name), father = text(other.father_name);
-  const pf = text(c.pf_number) || text(c.epf_number);
+  // Imported payroll records keep identifiers under other_info.pages_* until the profile is completed.
+  const imported = object(other.pages_profile);
+  const pf = text(c.pf_number) || text(c.epf_number) || text(other.pages_epf_no);
+  const uan = text(c.uan) || text(other.pages_uan);
+  const esicNo = text(c.esic_number) || text(other.pages_esic_no);
+  const joining = formDate(employee.preferred_joining_date) || formDate(imported.doj) || formDate(other.pages_doj);
   const values: DraftValues = {
     name, father, dob: formDate(employee.date_of_birth), gender: text(employee.gender), marital: text(employee.marital_status),
     email: text(employee.email), mobile: text(employee.personal_mobile) || text(employee.mobile),
-    esic: text(c.esic_number), uan: text(c.uan), pf,
+    esic: esicNo, uan, pf,
     bank: [employee.bank_account_number, employee.bank_ifsc].map(text).filter(Boolean).join(" / "),
     aadhaar: text(employee.aadhaar_number), pan: text(employee.pan_number), address,
     employerName: text(employer.company_name), employerAddress: text(employer.registered_address), employerEsic: text(employer.esic_number),
-    joining: formDate(employee.preferred_joining_date), employerMember: name, allottedUan: text(c.uan),
+    joining, employerMember: name, allottedUan: uan,
     injured: [name, address].filter(Boolean).join("\n"),
     employer: [employer.company_name, employer.registered_address].map(text).filter(Boolean).join("\n"),
     blockName: name.toUpperCase(), blockFather: father.toUpperCase(),

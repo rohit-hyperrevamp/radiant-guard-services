@@ -4,6 +4,8 @@ import { inLedgerScope, ledgerAmount, statutoryHead } from './statutory-heads';
 import type { MonthDed, MonthContrib } from './compliance-month';
 import { complianceFieldMappings } from './compliance-field-mappings';
 
+/** Filled answers use one plain sans face that matches the printed forms; measured and rendered identically. */
+export const ANSWER_FONT='Arial, Helvetica, sans-serif';
 export type AutofillFacts = Record<string,string>;
 export function mergeAutofillValues(values:Record<string,string>, previous:Record<string,string>, next:Record<string,string>) {
   const result={...values};
@@ -14,13 +16,30 @@ export function mergeAutofillValues(values:Record<string,string>, previous:Recor
 export function contextualAutofillFacts(month:string, client:{name:string;code:string;address?:string}|null, deds:MonthDed[], contribs:MonthContrib[], employeeId:string, unitId?:string):AutofillFacts {
   const row = monthlyStatutoryRows(deds.filter(d=>(!unitId||d.unit_id===unitId)&&d.deduction_date.startsWith(`${month}-`)),contribs.filter(c=>(!unitId||c.unit_id===unitId)&&c.contribution_date.startsWith(`${month}-`))).find(r=>r.candidateId===employeeId);
   const monthLabel = /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}) : '';
-  return {month:monthLabel,clientName:client?.name??'',clientCode:client?.code??'',clientAddress:client?.address??'',...Object.fromEntries(row ? ['employeeEsic','employerEsic','employeePf','employerPf','pt'].map(key=>[key,String(row[key as keyof typeof row])]) : [])};
+  return {month:monthLabel,year:monthLabel?month.slice(0,4):'',serial:employeeId?'1':'',clientName:client?.name??'',clientCode:client?.code??'',clientAddress:client?.address??'',clientNameAddress:[client?.name,client?.address].filter(Boolean).join(', '),...Object.fromEntries(row ? ['employeeEsic','employerEsic','employeePf','employerPf','pt'].map(key=>[key,String(row[key as keyof typeof row])]) : [])};
 }
 export function employeeAutofillFacts(employee:EmployeeFormSource,employer:EmployeeFormSource):AutofillFacts {
   const facts=prefillStatutoryForm('epf11',employee,employer);
   const pf=prefillStatutoryForm('pf2',employee,employer);
   const esic=prefillStatutoryForm('esic37',employee,employer);
-  return {...facts,...pf,...esic,designation:String(employee.designation??''),employeeCode:String(employee.employee_code??''),joining:formDate(employee.preferred_joining_date),employerPf:String(employer.pf_number??''),bankAccount:String(employee.bank_account_number??''),ifsc:String(employee.bank_ifsc??''),employeeNameAddress:[facts.name,facts.address].filter(Boolean).join(', '),employerNameAddress:[facts.employerName,facts.employerAddress].filter(Boolean).join(', ')};
+  const other=(employee.other_info&&typeof employee.other_info==='object'?employee.other_info:{}) as Record<string,unknown>;
+  const imported=(other.pages_profile&&typeof other.pages_profile==='object'?other.pages_profile:{}) as Record<string,unknown>;
+  const compliance=(employee.compliance&&typeof employee.compliance==='object'?employee.compliance:{}) as Record<string,unknown>;
+  const pick=(...v:unknown[])=>v.map(x=>typeof x==='string'||typeof x==='number'?String(x).trim():'').find(Boolean)??'';
+  // Employer registration codes use *Code keys: employerPf/employerEsic are reserved for posted monthly amounts.
+  const {employerEsic:employerEsicCode='',...esicFacts}=esic;
+  const merged:AutofillFacts={...facts,...pf,...esicFacts,employerEsicCode,employerPfCode:String(employer.pf_number??''),
+    uan:pick(compliance.uan,other.pages_uan),esic:pick(compliance.esic_number,other.pages_esic_no),pf:pick(compliance.pf_number,compliance.epf_number,other.pages_epf_no),
+    designation:String(employee.designation??''),employeeCode:String(employee.employee_code??''),joining:formDate(employee.preferred_joining_date)||formDate(imported.doj)||formDate(other.pages_doj),bankAccount:String(employee.bank_account_number??''),ifsc:String(employee.bank_ifsc??'')};
+  delete merged.employerPf;
+  return {...merged,employeeNameAddress:[merged.name,merged.address].filter(Boolean).join(', '),employerNameAddress:[merged.employerName,merged.employerAddress].filter(Boolean).join(', ')};
+}
+/** Completed years on the last day of the selected month; blank without a valid saved birth date. */
+export function ageAtMonthEnd(dob:unknown,month:string):string {
+  const d=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(dob??''));const m=/^(\d{4})-(\d{2})$/.exec(month);if(!d||!m)return '';
+  const end=new Date(Date.UTC(+m[1],+m[2],0));let age=end.getUTCFullYear()-+d[1];
+  if(end.getUTCMonth()+1<+d[2]||(end.getUTCMonth()+1===+d[2]&&end.getUTCDate()<+d[3]))age--;
+  return age>=0&&age<120?String(age):'';
 }
 export function factForLabel(label:string):string|null {
   const n=label.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -34,7 +53,7 @@ export function factForLabel(label:string):string|null {
   if (/name.*(?:employee|worker|workman).*address/.test(n))return 'employeeNameAddress';
   if (/name.*(?:establishment|employer)|company name/.test(n))return 'employerName';
   if (/address.*(?:establishment|employer)|registered address/.test(n))return 'employerAddress';
-  if (/employer.*(?:esic|esi).*code/.test(n))return 'employerEsic';
+  if (/employer.*(?:esic|esi).*code/.test(n))return 'employerEsicCode';
   if (/\buan\b|universal account/.test(n))return 'uan';
   if (/\b(?:esic|esi|insurance)\b.*(?:number|no)|insurance no/.test(n))return 'esic';
   if (/\bpf\b.*(?:number|no)|provident fund.*number/.test(n))return 'pf';

@@ -10,7 +10,7 @@ export const digitalKey = (page: number, id: string) => `${page}:${id}`;
 export function digitalFieldLines(value: string, box: Box, preferredSize: number, measure?: (text: string, size: number) => number) {
   const width = Math.max(1, box[2] - box[0]);
   const height = Math.max(1, box[3] - box[1]);
-  for (let size = Math.min(preferredSize, height / 1.15); size >= 4; size -= .5) {
+  const wrap = (size: number, breakWords: boolean) => {
     const fits = (text: string) => (measure ? measure(text,size) : text.length * size * .6) <= width;
     const lines: string[] = [];
     for (const paragraph of value.split('\n')) {
@@ -18,7 +18,7 @@ export function digitalFieldLines(value: string, box: Box, preferredSize: number
       for (const word of paragraph.split(/\s+/)) {
         if (line && !fits(`${line} ${word}`)) { lines.push(line); line = ''; }
         let remainder = word;
-        while (remainder && !fits(remainder)) {
+        while (breakWords && remainder && !fits(remainder)) {
           if (line) { lines.push(line); line = ''; }
           let cut = remainder.length - 1;
           while (cut > 0 && !fits(remainder.slice(0,cut))) cut--;
@@ -29,7 +29,16 @@ export function digitalFieldLines(value: string, box: Box, preferredSize: number
       }
       lines.push(line);
     }
-    if (lines.every(fits) && lines.length * size * 1.15 <= height) return { size, lines, overflow: false };
+    return lines.every(fits) && lines.length * size * 1.15 <= height ? lines : null;
+  };
+  // Dense registers print at ~4pt in very short rows, so their answers may go to 3pt; everything else stays ≥4pt.
+  const minimum = height < 9 ? 3 : 4;
+  // Shrink whole words first; split a word mid-way only when no readable size keeps it intact.
+  for (const breakWords of [false, true]) {
+    for (let size = Math.min(preferredSize, height / 1.15); size >= minimum; size -= .25) {
+      const lines = wrap(size, breakWords);
+      if (lines) return { size, lines, overflow: false };
+    }
   }
   return { size: 4, lines: value.split('\n'), overflow: true };
 }
