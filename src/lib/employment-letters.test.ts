@@ -21,12 +21,21 @@ describe("employment letters", () => {
     expect(restored?.fields.name).toBe("First"); expect(restored?.pages[0].lines[0].runs[0].text).toBe("Edited date");
     expect(decodeLetter("existing signed appointment")).toBeNull();
   });
-  it("exports all six formats as nonempty vector PDF files", async () => {
+  it("exports every format as a nonempty vector PDF file", async () => {
     for (const kind of Object.keys(LETTER_LABELS) as Array<keyof typeof LETTER_LABELS>) {
       const copy = createLetter(kind, { name: "Test Person", employee_code: "TEST42" });
       const blob = await letterPdf(copy);
       expect(blob.type).toBe("application/pdf"); expect(blob.size).toBeGreaterThan(1000);
       expect((await blob.text()).slice(0, 5)).toBe("%PDF-");
     }
+  });
+  it("uses unsaved offboarding dates and reason in resignation and exit copies", () => {
+    const fields = employeeLetterFields({ full_name: "Test Guard", employee_code: "TEST42", offboarding_details: { date_of_resignation: "2026-11-18", date_of_last_working: "2026-11-30", reason_text: "Personal reasons" } });
+    expect(fields.resignation_date).toContain("18 November 2026");
+    expect(fields.last_working_date).toContain("30 November 2026");
+    const copy = createLetter("resignation", fields);
+    expect(copy.fields.resignation_reason).toBe("Personal reasons");
+    expect(decodeLetter(JSON.stringify(copy))?.kind).toBe("resignation");
+    expect(copy.fields.signatory).toBe("");
   });
 });

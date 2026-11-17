@@ -38,6 +38,7 @@ export async function fetchPersonDocumentEvidence(id: string, recId?: string) {
   const { data, error } = await recDb.from("employee_document_receipts").select("*").eq(recId ? "rec_candidate_id" : "candidate_id", recId || id).order("created_at", { ascending: false });
   if (error) throw error;
   let evidence: string[] = (data ?? []).map((row: any) => row.document_key);
+  if (evidence.includes("signed_resignation")) evidence.push("resignation");
   if (recId) {
     const docs = await fetchCandidateDocuments(recId);
     evidence.push(...docs.filter(d => d.file_path).map(d => REC_CATEGORY_KEYS[d.category]).filter(Boolean));

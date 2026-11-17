@@ -4,6 +4,8 @@ import { requestEmployeeStatusAction } from "@/lib/employee-status-action";
 import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { patchEmployeeSlice } from "@/lib/employee-list-cache";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
+import { EmploymentLetters } from "@/components/EmploymentLetters";
+import { employeeLetterFields } from "@/lib/employment-letters";
 import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { useIsHrHead } from "@/lib/use-hr-head";
@@ -10588,11 +10590,12 @@ function OffboardingDialog({
     enabled: !!target?.id,
     staleTime: 15_000,
     queryFn: async () => {
+      if (!target) return [];
       const { data, error } = await supabase
         .from("inv_stock_balances" as never)
         .select("item_id,size_value,qty,inv_items(name,unit)")
         .eq("location_type", "guard")
-        .eq("location_id", target!.id)
+        .eq("location_id", target.id)
         .gt("qty", 0);
       if (error) throw error;
       return (
@@ -10612,18 +10615,19 @@ function OffboardingDialog({
     enabled: !!target?.id,
     staleTime: 30_000,
     queryFn: async () => {
+      if (!target) return "";
       const [entries, punches] = await Promise.all([
         supabase
           .from("attendance_entries" as never)
           .select("entry_date,code")
-          .eq("candidate_id", target!.id)
+          .eq("candidate_id", target.id)
           .in("code", ["P", "HD", "OT"])
           .order("entry_date", { ascending: false })
           .limit(1),
         supabase
           .from("self_attendance_punches" as never)
           .select("punch_date,check_in_at")
-          .eq("candidate_id", target!.id)
+          .eq("candidate_id", target.id)
           .not("check_in_at", "is", null)
           .order("punch_date", { ascending: false })
           .limit(1),
@@ -11005,7 +11009,11 @@ function OffboardingDialog({
             )}
           </section>
 
-          {target && <DocumentChecklist id={target.id} purpose="offboarding" employee={{...target, offboarding_details: {...target.offboarding_details, date_of_last_working: dateOfLastWorking, reason_text: reasonText}}} start={dateOfOffboarding || null} />}
+          <EmploymentLetters key={target.id} candidateId={target.id} group="exit" fieldOverrides={(() => {
+            const values = employeeLetterFields({ offboarding_details: { date_of_resignation: dateOfResignation, date_of_last_working: dateOfLastWorking, reason_text: reasonText, review } });
+            return Object.fromEntries(["resignation_date", "last_working_date", "termination_reason", "resignation_reason", "performance_statement"].map(key => [key, values[key]]));
+          })()} />
+          <DocumentChecklist id={target.id} purpose="offboarding" employee={{...target, offboarding_details: {...target.offboarding_details, date_of_offboarding: dateOfOffboarding, date_of_resignation: dateOfResignation, date_of_last_working: dateOfLastWorking, reason_text: reasonText}}} start={dateOfOffboarding || null} />
 
           {/* Section: Rating */}
           <section className="space-y-3">

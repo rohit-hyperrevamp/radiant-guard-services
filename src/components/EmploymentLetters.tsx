@@ -19,7 +19,7 @@ import "./employment-letters.css";
 
 type Saved = { id: string; rendered_body: string; version: number; created_at: string; signed_at: string | null; issued_at: string | null };
 
-export function EmploymentLetters({ candidateId, group = "hiring", initialOpen = false, launcherHidden = false, onClose }: { candidateId: string; group?: string; initialOpen?: boolean; launcherHidden?: boolean; onClose?: () => void }) {
+export function EmploymentLetters({ candidateId, group = "hiring", initialOpen = false, launcherHidden = false, fieldOverrides, onClose }: { candidateId: string; group?: string; initialOpen?: boolean; launcherHidden?: boolean; fieldOverrides?: Record<string, string>; onClose?: () => void }) {
   const permissions = useCurrentPermissions();
   const session = useHasSupabaseSession();
   const qc = useQueryClient();
@@ -66,10 +66,10 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
   }, [copy, canExport]);
   useEffect(() => {
     if (open && profile.data && !copy) {
-      const values = Object.keys(fields).length ? fields : profile.data;
+      const values = Object.keys(fields).length ? fields : { ...profile.data, ...fieldOverrides };
       setFields(values); setCopy(createLetter(kind, values));
     }
-  }, [open, profile.data, copy, fields, kind]);
+  }, [open, profile.data, copy, fields, kind, fieldOverrides]);
 
   function previewSize(line: LetterLine, available: number) {
     if (typeof document === "undefined") return line.size;
@@ -82,10 +82,10 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
   }
 
   function start(selected: LetterKind) {
-    setKind(selected); setFields(profile.data ?? {}); setCopy(null); setSavedId(null); setOpen(true);
+    setKind(selected); setFields(profile.data ? { ...profile.data, ...fieldOverrides } : {}); setCopy(null); setSavedId(null); setOpen(true);
   }
   async function save(issue = false) {
-    if (!copy || !canEdit || !session) return;
+    if (!copy || !canEdit || !session) return false;
     setBusy(true);
     try {
       // Existing private employee-document RLS and template anchor remain authoritative.
@@ -107,7 +107,8 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
         if(reminder.error) toast.error("Letter saved; dashboard reminder could not be sent");
         else if(reminder.data?.status==="no_account") toast.info("No employee login exists; share the exported letter directly");
       }
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not save letter"); }
+      return true;
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not save letter"); return false; }
     finally { setBusy(false); }
   }
   if (!canView) return null;
@@ -133,10 +134,10 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
       <DialogHeader><DialogTitle>{LETTER_LABELS[kind]}</DialogTitle></DialogHeader>
       <div className="flex shrink-0 flex-wrap gap-2 pb-1">
         <Select value={kind} onValueChange={value => { setKind(value as LetterKind); setCopy(null); setSavedId(null); }}><SelectTrigger className="w-full sm:w-[240px]"><SelectValue /></SelectTrigger><SelectContent>{kinds.map(item => <SelectItem key={item} value={item}>{LETTER_LABELS[item]}</SelectItem>)}</SelectContent></Select>
-        <Button variant="outline" onClick={() => { setFields(profile.data ?? {}); setCopy(null); setSavedId(null); }}>Fill from employee</Button>
+        <Button variant="outline" onClick={() => { setFields({ ...profile.data, ...fieldOverrides }); setCopy(null); setSavedId(null); }}>Fill from employee</Button>
         <Button variant="outline" onClick={() => void save()} disabled={!copy || !canEdit || busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{savedId ? "Save new copy" : "Save copy"}</Button>
         {canEdit && <Button variant="outline" disabled={!copy || busy} onClick={()=>void save(true)}><Send className="mr-2 h-4 w-4"/>Issue for signature</Button>}
-        {canExport && <Button variant="outline" disabled={!pdf || pdfBusy} onClick={() => { if (pdf && copy) downloadLetter(pdf, `${LETTER_LABELS[copy.kind].replaceAll(" ", "_")}-${fields.employee_code || candidateId}.pdf`); }}><Download className="mr-2 h-4 w-4" />{pdfBusy ? "Preparing PDF…" : "Export PDF"}</Button>}
+        {canExport && <Button variant="outline" disabled={!pdf || pdfBusy || busy} onClick={async () => { if (!pdf || !copy) return; if (group === "exit" && canEdit && !savedId && !(await save())) return; downloadLetter(pdf, `${LETTER_LABELS[copy.kind].replaceAll(" ", "_")}-${fields.employee_code || candidateId}.pdf`); }}><Download className="mr-2 h-4 w-4" />{pdfBusy ? "Preparing PDF…" : "Export PDF"}</Button>}
       </div>
       {profile.isLoading && <p className="text-sm text-muted-foreground">Loading employee details…</p>}
       {profile.error && <p className="text-sm text-destructive">Could not load employee details. Try again.</p>}
@@ -145,12 +146,14 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
           {missing.length > 0 && <p className="text-sm text-muted-foreground">Not recorded: {missing.map(key => LETTER_FIELDS[key] ?? key).join(", ")}. These remain blank.</p>}
           {kind === "appointment" && <p className="text-sm text-muted-foreground">Salary annexure was not supplied. Review employment terms before issuing.</p>}
           {kind === "termination" && <p className="text-sm text-muted-foreground">Review performance statements and the approved reason before issuing.</p>}
+          {kind === "resignation" && <p className="text-sm text-muted-foreground">Employee review draft — valid only after the employee confirms and signs it.</p>}
         </div>
         <div className="letter-preview min-h-0 min-w-0 overflow-y-auto bg-muted p-2">
           {copy?.pages.map((page, pi) => <FittedDocument key={pi} fitHeight><div className="employment-letter-page" style={{ width: `${page.width}pt`, height: `${page.height}pt` }}>
             {page.lines.map((line, li) => <div key={li} aria-label={`Page ${pi + 1}, line ${li + 1}`} role="textbox" className={`employment-letter-line ${line.family === "serif" ? "employment-serif" : "employment-sans"}`} style={{ left: `${line.left}pt`, top: `${line.top}pt`, fontSize: `${previewSize(line, page.width - line.left - 65)}pt`, width: `${page.width - line.left - 65}pt` }} contentEditable suppressContentEditableWarning onBlur={e => {
               const value = e.currentTarget.textContent ?? "";
               if (value === line.runs.map(run => run.text).join("")) return;
+              setSavedId(null);
               setCopy(previous => { if (!previous) return previous; const next = structuredClone(previous); next.pages[pi].lines[li].runs = [{ text: value, bold: line.runs.every(run => run.bold) }]; return next; });
             }}>{line.runs.map((run, ri) => run.bold ? <strong key={ri}>{run.text}</strong> : <span key={ri}>{run.text}</span>)}</div>)}
           </div></FittedDocument>)}

@@ -1,3 +1,8 @@
+## Letters inside offboarding form — 18 November
+- [x] Added editable employee-review resignation draft alongside the three supplied exit formats inside the confirmed offboarding form. Form dates/reason feed new letters; exit exports save a retained copy before downloading, and existing signed uploads/checklist remain linked to the same employee for later inactive-profile retrieval.
+- [x] All 31 focused tests pass; compilation OK. Installed resignation follow-up classification in production; rollback-only tests verify owner read/upload receipt, signed-return clearance, HR notification/deduplication and immutable issued copy. No real employee status or documents changed.
+- [ ] Signed-in production confirmation opens the form and resignation upload is visibly present, but new letter buttons are not deployed yet; cancelled without saving. New letter generation/export, actual file transfer and later inactive-profile readback await GitHub-to-Vercel delivery. Resignation is a newly authored employee-review draft, not one of the six supplied originals.
+
 ## Complete letter collection and employee reminders — 18 November
 - [x] Preserved six supplied digital formats in hiring (Offer/Appointment), Confirmation and exit (Termination/Experience/Relieving); original appointment/confirmation/termination uploads rechecked. No new letter wording or employee details invented.
 - [x] Added immutable issued copies, per-copy signed-return receipts, HR upload/download controls and owner-only pending details/documents with letter export/upload on My Profile and Employee Dashboard. Issued letters automatically request signed return; drafts do not. Requirements remain configurable.

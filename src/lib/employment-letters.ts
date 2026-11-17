@@ -1,6 +1,8 @@
 import layouts from "./employment-letter-layouts.json";
+import { resignationLayout } from "./resignation-letter-layout";
 
-export type LetterKind = keyof typeof layouts;
+const allLayouts = { ...layouts, resignation: resignationLayout };
+export type LetterKind = keyof typeof allLayouts;
 export type LetterRun = { text: string; bold: boolean };
 export type LetterLine = { top: number; left: number; width: number; size: number; family: string; runs: LetterRun[] };
 export type LetterPage = { width: number; height: number; lines: LetterLine[] };
@@ -8,9 +10,10 @@ export type LetterCopy = { format: "radiant-employment-letter-v1"; kind: LetterK
 export const LETTER_LABELS: Record<LetterKind, string> = {
   offer: "Offer Letter", appointment: "Appointment Letter", confirmation: "Confirmation Letter",
   termination: "Termination Letter", experience: "Experience Cum Relieving Letter", relieving: "Relieving Letter",
+  resignation: "Resignation Letter",
 };
 export const LETTER_GROUPS: Record<string, LetterKind[]> = {
-  hiring: ["offer", "appointment"], confirmation: ["confirmation"], exit: ["termination", "experience", "relieving"],
+  hiring: ["offer", "appointment"], confirmation: ["confirmation"], exit: ["resignation", "termination", "experience", "relieving"],
 };
 export const LETTER_FIELDS: Record<string, string> = {
   salutation: "Salutation", name: "Employee name", employee_code: "Employee ID", address: "Address",
@@ -19,6 +22,7 @@ export const LETTER_FIELDS: Record<string, string> = {
   last_working_date: "Last working / termination effective date", resignation_date: "Resignation letter date",
   termination_reason: "Approved termination reason", performance_statement: "Approved performance statement",
   signatory: "Authorised signatory", signatory_title: "Signatory designation",
+  resignation_reason: "Employee's resignation reason",
 };
 
 function date(value: unknown): string {
@@ -39,17 +43,18 @@ export function employeeLetterFields(employee: Record<string, any>, resolved: Re
     issue_date: date(new Date().toISOString()), joining_date: date(employee.preferred_joining_date),
     confirmation_date: date(terms.confirmation_date), last_working_date: date(exit.date_of_last_working),
     resignation_date: date(exit.date_of_resignation), termination_reason: text(exit.reason_text),
+    resignation_reason: text(exit.reason_text),
     performance_statement: text(exit.review), signatory: "", signatory_title: "",
   };
 }
 
 export function letterFieldKeys(kind: LetterKind): string[] {
-  const source = JSON.stringify(layouts[kind]);
+  const source = JSON.stringify(allLayouts[kind]);
   return [...new Set(Array.from(source.matchAll(/\{\{([a-z_]+)\}\}/g), m => m[1]))];
 }
 
 export function createLetter(kind: LetterKind, fields: Record<string, string>): LetterCopy {
-  const pages = structuredClone(layouts[kind]) as LetterPage[];
+  const pages = structuredClone(allLayouts[kind]) as LetterPage[];
   for (const page of pages) for (const line of page.lines) for (const run of line.runs) {
     run.text = run.text.replace(/\{\{([a-z_]+)\}\}/g, (_m, key) => fields[key]?.trim() || "________________");
   }
