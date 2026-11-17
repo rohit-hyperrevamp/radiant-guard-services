@@ -63,11 +63,18 @@ export async function fetchPersonDocumentEvidence(id: string, recId?: string) {
   }
   return { evidence: [...new Set(evidence)], receipts: data ?? [] };
 }
-export async function uploadFollowupDocument(id: string, recId: string | undefined, key: string, file: File) {
+export async function uploadFollowupDocument(id: string, recId: string | undefined, key: string, file: File, letterCopyId?: string) {
   const path = `followup/${recId || id}/${key}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g,"_")}`;
   const { error } = await recDb.storage.from(REC_BUCKET).upload(path,file,{ contentType: file.type || undefined, upsert:false });
   if (error) throw error;
-  const { data, error: saveError } = await recDb.from("employee_document_receipts").insert({ candidate_id: recId ? null : id, rec_candidate_id: recId || null, document_key:key, file_path:path, file_name:file.name }).select("id").single();
+  const { data, error: saveError } = await recDb.from("employee_document_receipts").insert({ candidate_id: recId ? null : id, rec_candidate_id: recId || null, document_key:key, file_path:path, file_name:file.name, letter_copy_id:letterCopyId ?? null }).select("id").single();
   if (saveError) { await recDb.storage.from(REC_BUCKET).remove([path]); throw saveError; }
+  return data;
+}
+
+export async function downloadFollowupDocument(path: string, filename: string): Promise<Blob> {
+  const { data, error } = await recDb.storage.from(REC_BUCKET).download(path);
+  if (error) throw error;
+  if (!data || data.size === 0) throw new Error(`Could not download ${filename}`);
   return data;
 }

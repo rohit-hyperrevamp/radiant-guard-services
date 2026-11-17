@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, Download, Save, Pencil, Loader2 } from "lucide-react";
+import { FileText, Download, Save, Pencil, Loader2, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { recDb as supabase } from "@/lib/recruitment";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { fetchCandidateForRender, fetchActiveTemplate } from "@/lib/company-documents";
+import { uploadFollowupDocument, DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { logActivity } from "@/lib/activity-log";
 import { LETTER_LABELS, LETTER_GROUPS, LETTER_FIELDS, letterFieldKeys, employeeLetterFields, createLetter, decodeLetter, letterPdf, downloadLetter, fitLetterLine, type LetterLine, type LetterCopy, type LetterKind } from "@/lib/employment-letters";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "./employment-letters.css";
 
-type Saved = { id: string; rendered_body: string; version: number; created_at: string; signed_at: string | null };
+type Saved = { id: string; rendered_body: string; version: number; created_at: string; signed_at: string | null; issued_at: string | null };
 
 export function EmploymentLetters({ candidateId, group = "hiring", initialOpen = false, launcherHidden = false, onClose }: { candidateId: string; group?: string; initialOpen?: boolean; launcherHidden?: boolean; onClose?: () => void }) {
   const permissions = useCurrentPermissions();
@@ -49,7 +50,7 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
   const history = useQuery({
     queryKey, enabled: session && canView,
     queryFn: async () => {
-      const { data, error } = await supabase.from("employee_signed_documents").select("id,rendered_body,version,created_at,signed_at").eq("candidate_id", candidateId).eq("doc_type", "appointment_letter").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("employee_signed_documents").select("id,rendered_body,version,created_at,signed_at,issued_at").eq("candidate_id", candidateId).eq("doc_type", "appointment_letter").order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Saved[];
     },
@@ -83,14 +84,14 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
   function start(selected: LetterKind) {
     setKind(selected); setFields(profile.data ?? {}); setCopy(null); setSavedId(null); setOpen(true);
   }
-  async function save() {
+  async function save(issue = false) {
     if (!copy || !canEdit || !session) return;
     setBusy(true);
     try {
       // Existing private employee-document RLS and template anchor remain authoritative.
       const template = await fetchActiveTemplate("appointment_letter");
       if (!template) throw new Error("An active Appointment Letter master is required to save this copy.");
-      const payload = { candidate_id: candidateId, template_id: template.id, doc_type: "appointment_letter", version: template.version, rendered_body: JSON.stringify(copy), employee_signature_data: "", company_signature_data: "", signed_at: null };
+      const payload = { candidate_id: candidateId, template_id: template.id, doc_type: "appointment_letter", version: template.version, rendered_body: JSON.stringify(copy), employee_signature_data: "", company_signature_data: "", signed_at: null, issued_at: issue ? new Date().toISOString() : null };
       // Never overwrite an issued/signed document. Each save produces a retained copy.
       const { data, error } = await supabase.from("employee_signed_documents").insert(payload).select("id").single();
       if (error) throw error;
@@ -98,7 +99,14 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
       await logActivity({ module: "Employment Letters", action: "create", entityType: "employee_signed_documents", entityId: data.id, entityLabel: LETTER_LABELS[copy.kind], details: { candidate_id: candidateId, letter_kind: copy.kind } });
       void qc.invalidateQueries({ queryKey });
       void qc.invalidateQueries({ queryKey: ["candidate-signed-docs", candidateId] });
-      toast.success("Letter copy saved to this employee");
+      void qc.invalidateQueries({queryKey:DOCUMENT_FOLLOWUP_QK});
+      void qc.invalidateQueries({queryKey:["my-document-followup"]});
+      toast.success(issue ? "Issued copy saved — signed return is now pending" : "Letter copy saved to this employee");
+      if(issue && permissions.can("recruitment","edit")) {
+        const reminder=await supabase.rpc("notify_document_followup",{p_candidate:candidateId});
+        if(reminder.error) toast.error("Letter saved; dashboard reminder could not be sent");
+        else if(reminder.data?.status==="no_account") toast.info("No employee login exists; share the exported letter directly");
+      }
     } catch (e) { toast.error(e instanceof Error ? e.message : "Could not save letter"); }
     finally { setBusy(false); }
   }
@@ -115,7 +123,8 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
       const item = decodeLetter(row.rendered_body);
       if (!item || !kinds.includes(item.kind)) return null;
       return <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-        <div><span className="text-sm font-medium">{LETTER_LABELS[item.kind]}</span><p className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleString("en-IN")} · Saved copy</p></div>
+        <div><span className="text-sm font-medium">{LETTER_LABELS[item.kind]}</span><p className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleString("en-IN")} · {row.issued_at ? "Issued copy" : "Draft copy"}</p></div>
+        {canEdit && row.issued_at && <label className="cursor-pointer text-sm font-medium text-primary"><span className="flex items-center gap-2"><Upload className="h-4 w-4"/>Upload signed copy</span><input className="sr-only" type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={busy} onChange={async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;if(file.size>10*1024*1024){toast.error("Each file must be 10 MB or smaller");return;}setBusy(true);try{await uploadFollowupDocument(candidateId,undefined,`signed_${item.kind}`,file,row.id);await Promise.all([qc.invalidateQueries({queryKey:DOCUMENT_FOLLOWUP_QK}),qc.invalidateQueries({queryKey:["document-evidence"]}),qc.invalidateQueries({queryKey:["my-document-followup"]})]);toast.success("Signed copy received");}catch(error){toast.error(error instanceof Error?error.message:"Upload failed");}finally{setBusy(false);}}}/></label>}
         <Button variant="outline" size="sm" onClick={() => { setKind(item.kind); setFields(item.fields); setCopy(item); setSavedId(row.id); setOpen(true); }}><Pencil className="mr-2 h-4 w-4" />Open</Button>
       </li>;
     })}</ul>
@@ -126,6 +135,7 @@ export function EmploymentLetters({ candidateId, group = "hiring", initialOpen =
         <Select value={kind} onValueChange={value => { setKind(value as LetterKind); setCopy(null); setSavedId(null); }}><SelectTrigger className="w-full sm:w-[240px]"><SelectValue /></SelectTrigger><SelectContent>{kinds.map(item => <SelectItem key={item} value={item}>{LETTER_LABELS[item]}</SelectItem>)}</SelectContent></Select>
         <Button variant="outline" onClick={() => { setFields(profile.data ?? {}); setCopy(null); setSavedId(null); }}>Fill from employee</Button>
         <Button variant="outline" onClick={() => void save()} disabled={!copy || !canEdit || busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{savedId ? "Save new copy" : "Save copy"}</Button>
+        {canEdit && <Button variant="outline" disabled={!copy || busy} onClick={()=>void save(true)}><Send className="mr-2 h-4 w-4"/>Issue for signature</Button>}
         {canExport && <Button variant="outline" disabled={!pdf || pdfBusy} onClick={() => { if (pdf && copy) downloadLetter(pdf, `${LETTER_LABELS[copy.kind].replaceAll(" ", "_")}-${fields.employee_code || candidateId}.pdf`); }}><Download className="mr-2 h-4 w-4" />{pdfBusy ? "Preparing PDF…" : "Export PDF"}</Button>}
       </div>
       {profile.isLoading && <p className="text-sm text-muted-foreground">Loading employee details…</p>}

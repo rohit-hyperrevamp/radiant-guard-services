@@ -98,7 +98,7 @@ export async function letterPdf(copy: LetterCopy): Promise<Blob> {
 }
 
 export function downloadLetter(blob: Blob, filename: string): void {
-  const file = new File([blob], filename, { type: "application/pdf" });
+  const file = new File([blob], filename, { type: blob.type });
   if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
     void navigator.share({ files: [file], title: filename }).catch((e) => { if (e.name !== "AbortError") downloadFallback(blob, filename); });
   } else downloadFallback(blob, filename);

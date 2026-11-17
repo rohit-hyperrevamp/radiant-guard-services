@@ -29,6 +29,7 @@ import { DashboardSkeleton } from "@/components/Skeletons";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { DashboardShell } from "@/components/LiveFeed";
 import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { MyDocumentFollowup } from "@/components/recruitment/MyDocumentFollowup";
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
   head: () => ({
@@ -639,6 +640,7 @@ function EmployeeDashboard() {
             </div>
           </header>
 
+          <MyDocumentFollowup />
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <HeroStat label="Present" value={attStats.present} icon={ClipboardCheck} tone="mint" />
             <HeroStat label="ED hrs" value={attStats.ot} icon={CalendarDays} tone="blue" />

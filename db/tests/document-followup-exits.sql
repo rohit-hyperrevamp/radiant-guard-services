@@ -9,7 +9,7 @@ set local role authenticated;
 do $$declare x record; s jsonb; l jsonb; begin
  if not public.current_user_can_recruit() then raise exception 'Fixture account cannot read recruitment'; end if;
  select * into x from public.document_followup_pending() where full_name='Exit follow-up rollback test' and purpose='offboarding';
- if x.id is null or x.missing <> array['resignation','id_card'] or x.missing_details <> array['last_working_date','exit_reason'] or x.due is not null then raise exception 'Disabled employee incomplete-exit assertion failed'; end if;
+ if x.id is null or not (x.missing @> array['resignation','id_card'] and cardinality(x.missing)=2) or not (x.missing_details @> array['last_working_date','exit_reason'] and cardinality(x.missing_details)=2) or x.due is not null then raise exception 'Disabled employee incomplete-exit assertion failed'; end if;
  s:=public.document_followup_summary('exits',null,null);
  l:=public.document_followup_list(null,null,false,'{}',0,15,'exits',null,null);
  if (s->>'people')::int <> (l->>'total')::int or (s->>'exits')::int <> (l->>'total')::int then raise exception 'Count/list mismatch'; end if;

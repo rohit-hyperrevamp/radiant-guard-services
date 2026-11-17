@@ -5,3 +5,4 @@
 - Use Button's explicit data-icon-only metadata for circular sizing; SVG :only-child ignores bare text and incorrectly squares labelled actions.
 - Mark clickable record/notification/priority panels data-panel so shared pill controls cannot change their rectangular shape; finance rows expose labelled View destinations separately from breakdown expansion.
 - Circular action colours map to icon purpose globally, including portal dialogs; finance summary View commands scroll to and focus their record list without changing filters.
+- Issued employment copies create per-copy signed-return follow-up; drafts never satisfy receipts. MyDocumentFollowup uses an owner-scoped RPC, while HR reminders retain configurable Recruitment Edit permission.

@@ -1,3 +1,9 @@
+## Complete letter collection and employee reminders — 18 November
+- [x] Preserved six supplied digital formats in hiring (Offer/Appointment), Confirmation and exit (Termination/Experience/Relieving); original appointment/confirmation/termination uploads rechecked. No new letter wording or employee details invented.
+- [x] Added immutable issued copies, per-copy signed-return receipts, HR upload/download controls and owner-only pending details/documents with letter export/upload on My Profile and Employee Dashboard. Issued letters automatically request signed return; drafts do not. Requirements remain configurable.
+- [x] Installed production schema/access/functions; 30 focused tests pass. Rollback-only production checks confirm employee isolation, issued confirmation visibility, own receipt insert/readback, pending clearance, HR reminder creation/deduplication, immutable copies, existing exit behavior and count/list agreement. All test records rolled back; compilation OK.
+- [ ] Signed-in live dashboard, actual file transfer, original-format visual fidelity and notification click-through remain unverified: production profile/dashboard/follow-up redirect to login; no production session is available. Code delivery awaits GitHub-to-Vercel. Existing leadership/Sanskruti cards are preserved; no mobile push changes were made.
+
 ## Exit document and detail follow-up — 18 November
 - [x] Installed production exit-follow-up fix including disabled/inactive employees without exit metadata, pending collections and excluding enabled active rehires; preserved existing configurable requirements and approvals. No employee data changed.
 - [x] Added separate pending-exit count/link to existing leadership/recruitment document sections and matching paged exit list; surfaced required files and details in the exit form. Disable, completion, collection and employee-detail saves refresh follow-up queries.

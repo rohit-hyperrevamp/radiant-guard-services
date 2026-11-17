@@ -3,6 +3,7 @@ export const PURPOSE_LABELS: Record<DocumentPurpose, string> = { onboarding: "On
 export const DOCUMENT_TYPES: Record<string, string> = {
   photo: "Photograph", aadhaar_front: "Aadhaar front", aadhaar_back: "Aadhaar back", pan: "PAN card", signature: "Employee signature",
   tenth: "10th certificate", twelfth: "12th certificate", graduation: "Graduation certificate", professional: "Professional certificate", birth: "Date-of-birth proof", residence: "Residence proof", bank: "Bank proof", salary_slip: "Previous salary slips", resignation: "Resignation letter", relieving: "Previous relieving letter", experience: "Experience letter", id_card: "Returned ID card copy",
+  signed_offer: "Signed Offer Letter", signed_appointment: "Signed Appointment Letter", signed_confirmation: "Signed Confirmation Letter", signed_termination: "Signed Termination Letter", signed_experience: "Signed Experience Cum Relieving Letter", signed_relieving: "Signed Relieving Letter",
 };
 export const DETAIL_TYPES: Record<string, string> = {
   aadhaar_number: "Aadhaar number", pan_number: "PAN number", bank_account: "Bank account number", bank_ifsc: "Bank IFSC", bank_name: "Bank name", date_of_birth: "Date of birth", mobile: "Mobile number", present_address: "Present address", permanent_address: "Permanent address", emergency_contact: "Emergency contact", last_working_date: "Last working date", exit_reason: "Exit reason",

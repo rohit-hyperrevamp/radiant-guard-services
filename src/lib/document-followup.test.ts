@@ -24,6 +24,11 @@ describe("required document follow-up", () => {
   it("sets a ten-day deadline without becoming overdue on the due day", () => { const s = documentStatus(person, policy, "2026-11-26"); expect(s.due).toBe("2026-11-26"); expect(s.overdue).toBe(false); expect(documentStatus(person, policy, "2026-11-27").overdue).toBe(true); });
   it("supports a five-day submission policy", () => { expect(documentStatus(person, { ...policy, deadline_days: 5 }, "2026-11-16").due).toBe("2026-11-21"); });
   it("does not treat typed identity numbers as uploaded documents", () => { expect(documentEvidence({ aadhaar_number: "123456789012", pan_number: "ABCDE1234F" })).toEqual([]); });
+  it("does not count an unsigned generated letter as a signed upload", () => {
+    expect(documentEvidence({ rendered_body: "draft", signed_at: null })).not.toContain("signed_appointment");
+    expect(documentStatus({ ...person, received: [] }, { ...policy, required_keys: ["signed_appointment"] }, "2026-11-16").missing).toEqual(["signed_appointment"]);
+    expect(documentStatus({ ...person, received: ["signed_appointment"] }, { ...policy, required_keys: ["signed_appointment"] }, "2026-11-16").missing).toEqual([]);
+  });
   it("reuses verified Aadhaar and real exit uploads for rehire", () => { expect(documentEvidence({ other_info: { digilocker_verified: true }, offboarding_details: { exit_documents: [{ key: "resignation_letter", collected: true, file_url: "private" }] } })).toEqual(["aadhaar_front", "aadhaar_back", "resignation"]); });
   it("does not invent a deadline when the lifecycle date is missing", () => { expect(documentStatus({ ...person, start: null }, policy, "2026-11-16").due).toBeNull(); });
   it("request message lists missing details and documents with the deadline", () => { const t = followupRequestText("Ravi", ["pan"], ["bank_ifsc"], "2026-11-26"); expect(t).toContain("- Bank IFSC"); expect(t).toContain("- PAN card (copy)"); expect(t).toContain("2026-11-26"); });
