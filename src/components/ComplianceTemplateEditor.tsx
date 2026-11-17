@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FittedDocument } from "@/components/FittedDocument";
 import { EmployeePicker } from "@/components/EmployeePicker";
@@ -61,16 +62,18 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
   const overflowItems=form?.pages.flatMap((p,i)=>[...p.texts,...p.fields].filter(t=>{const value=values[digitalKey(i,t.id)];return value!==undefined&&('text' in t?value!==t.text:true)&&digitalFieldLines(value,t.box,t.size).overflow;}))??[];
   const setValue=(value:string)=>{if(selected)setValues(v=>({...v,[selected]:value}));};
   const fileName=template.title.replace(/[^a-z0-9 -]/gi,"");
-  return <Dialog open onOpenChange={open=>{if(!open)close();}}><DialogContent size="document" className="flex flex-col overflow-hidden"><DialogHeader><DialogTitle>{template.title}</DialogTitle></DialogHeader>
-    <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="min-w-0 space-y-4 md:overflow-y-auto">
-        <EmployeePicker value={employee} onChange={id=>{setEmployee(id);setParticulars({});setValues({});setSelected("");}}/>
-        <MonthYearPicker value={month} onChange={setMonth}/>
+  return <Dialog open onOpenChange={open=>{if(!open)close();}}><DialogContent size="document" className="flex h-[calc(100dvh-1.5rem)] flex-col overflow-hidden"><DialogHeader className="shrink-0 pr-10"><DialogTitle>{template.title}</DialogTitle></DialogHeader>
+    <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+      <div className="min-w-0 space-y-2"><Label>Employee</Label><EmployeePicker value={employee} onChange={id=>{setEmployee(id);setParticulars({});setValues({});setSelected("");}}/></div>
+      <div className="min-w-0 space-y-2"><Label>Month</Label><MonthYearPicker value={month} onChange={setMonth} className="flex w-full max-w-full sm:w-auto [&_[role=combobox]]:min-w-[90px] [&_[role=combobox]]:whitespace-nowrap"/></div>
+    </div>
+    <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] lg:overflow-hidden">
+      <aside className="min-w-0 space-y-4 lg:overflow-y-auto lg:pr-2">
         {sourceBusy&&<p role="status" className="text-sm text-muted-foreground">Filling employee information…</p>}
         {overflowItems.length>0&&<p role="alert" className="text-sm text-destructive">Some information is too long for its field. Shorten it before exporting.</p>}
         {active&&<div className="space-y-3"><Label htmlFor="digital-form-value">{active.label||"Field value"} · page {active.page+1}</Label><Textarea id="digital-form-value" value={values[active.key]??active.initial} onChange={e=>setValue(e.target.value)} rows={4}/><Button variant="outline" onClick={()=>setValues(v=>{const next={...v};delete next[active.key];return next;})}><RotateCcw className="mr-2 h-4 w-4"/>Restore original</Button></div>}
-        {Object.entries(particulars).filter(([,value])=>value).map(([key,value])=><Button key={key} variant="outline" disabled={!active||sourceBusy} className="h-auto w-full justify-start whitespace-normal text-left" onClick={()=>setValue(value)}>{key.replaceAll("_"," ")}: {value}</Button>)}
-        <div className="space-y-2">{form?.pages.map((p,i)=><details key={i}><summary className="cursor-pointer text-sm font-medium">Page {i+1} · {p.fields.length} blank fields</summary><div className="space-y-1 pt-2">{p.fields.map((f,n)=><Button key={f.id} variant={selected===digitalKey(i,f.id)?"secondary":"ghost"} className="h-auto w-full justify-start whitespace-normal text-left" onClick={()=>setSelected(digitalKey(i,f.id))}>{n+1}. {values[digitalKey(i,f.id)]||f.label}</Button>)}</div></details>)}</div>
+        <div className="space-y-2"><Label>Form field</Label><Select value={selected} onValueChange={setSelected}><SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Choose a field"/></SelectTrigger><SelectContent>{items.filter(item=>!item.initial).map(item=><SelectItem key={item.key} value={item.key}>Page {item.page+1} · {item.label}</SelectItem>)}</SelectContent></Select></div>
+        {Object.values(particulars).some(Boolean)&&<div className="space-y-2"><Label>Employee information</Label><Select value="" disabled={!active||sourceBusy} onValueChange={key=>setValue(particulars[key]??"")}><SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Insert saved information"/></SelectTrigger><SelectContent>{Object.entries(particulars).filter(([,value])=>value).map(([key,value])=><SelectItem key={key} value={key}>{key.replaceAll("_"," ")}: {value}</SelectItem>)}</SelectContent></Select></div>}
         {form?.pages.some(p=>p.scanReview)&&<p role="status" className="text-xs text-muted-foreground">Recreated from a scanned or outlined original. Check wording and alignment against the original before submission.</p>}
       </aside>
       <div ref={paper} className="min-w-0 space-y-4 overflow-y-auto bg-muted p-2">{error&&<p role="alert" className="text-destructive">{error}</p>}{!form&&!error&&<p role="status">Loading digital form…</p>}{form?.pages.map((p,i)=><FittedDocument key={i}><svg className="compliance-digital-sheet" role="group" aria-label={`${template.title}, page ${i+1}`} xmlns="http://www.w3.org/2000/svg" width={p.width} height={p.height} viewBox={`0 0 ${p.width} ${p.height}`}>
@@ -80,7 +83,7 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
         {p.fields.map(f=>{const key=digitalKey(i,f.id);const [x,y,x1,y1]=f.box;const value=values[key]??"";const fitted=digitalFieldLines(value,f.box,f.size);return <g key={key} className="cursor-text" onClick={()=>setSelected(key)}><title>{f.label}</title>{value&&f.placeholder&&<rect x={x} y={y} width={x1-x} height={y1-y} className="digital-paper"/>}<rect x={x} y={y} width={Math.max(1,x1-x)} height={Math.max(1,y1-y)} className={selected===key?'digital-selection digital-selected':'digital-selection digital-blank'}/><text x={x} y={y+fitted.size} fontFamily="serif" fontSize={fitted.size} className="digital-ink">{fitted.lines.map((line,n)=><tspan key={n} x={x} dy={n?fitted.size*1.15:0}>{line}</tspan>)}</text></g>;})}
       </svg></FittedDocument>)}</div>
     </div>
-    <details className="shrink-0"><summary className="cursor-pointer text-sm font-medium">Monthly statutory records · {month}</summary><ComplianceMonthlyForms month={month} onEmployee={id=>{setEmployee(id);setValues({});setSelected('');}}/></details>
+    <details className="shrink-0"><summary className="cursor-pointer text-sm font-medium">Monthly statutory records · {month}</summary><div className="max-h-[25dvh] overflow-auto pt-2"><ComplianceMonthlyForms month={month} onEmployee={id=>{setEmployee(id);setValues({});setSelected('');}}/></div></details>
     <Input ref={upload} type="file" accept=".json,application/json" className="hidden" aria-label="Import editable form draft" onChange={async e=>{const file=e.target.files?.[0];e.target.value="";if(!file||!form)return;try{if(file.size>2_000_000)throw new Error('Choose a draft smaller than 2 MB.');setValues(parseDigitalDraft(await file.text(),form));setEmployee("");setSelected("");toast.success("Draft imported");}catch(e){toast.error(e instanceof Error?e.message:"Import failed");}}}/>
     <div className="flex shrink-0 flex-wrap justify-end gap-3 pt-3"><Button variant="outline" onClick={close}>Close</Button><Button variant="outline" disabled={!form} onClick={()=>upload.current?.click()}><FileUp className="mr-2 h-4 w-4"/>Import draft</Button><Button variant="outline" disabled={!canExport||!form} onClick={()=>{const draft:DigitalDraft={templateId:template.id,version:1,values};downloadLetter(new Blob([JSON.stringify(draft)],{type:"application/json"}),`${fileName}-editable.json`);}}><Download className="mr-2 h-4 w-4"/>Export editable draft</Button><Button disabled={!canExport||busy||!form} onClick={async()=>{
       if(!form||!paper.current)return;if(overflowItems.length){toast.error('Shorten overflowing fields before exporting.');return;}setBusy(true);

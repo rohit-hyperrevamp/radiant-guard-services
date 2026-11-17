@@ -22,7 +22,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { ComplianceAccessGate } from "@/components/ComplianceAccessGate";
 import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
 import { ComplianceLedgerScope } from "@/components/ComplianceLedgerScope";
-import { StatutoryForms } from "@/components/StatutoryForms";
 import { ComplianceFormLibrary } from "@/components/ComplianceFormLibrary";
 import type { LedgerScope } from "@/lib/statutory-heads";
 import { InsuranceHeadTiles } from "@/components/InsuranceHeadTiles";
@@ -298,7 +297,6 @@ function CompliancePage() {
       {/* Insurance registers */}
       <InsuranceHeadTiles ym={ym} scope={ledgerScope} />
 
-      <StatutoryForms />
       <ComplianceFormLibrary month={ym} />
 
       {!showExceptions && (

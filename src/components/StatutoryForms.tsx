@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const FORM_VIEWS = { esic37: Esic37Form, accident11: AccidentBookForm, epf11: Epf11Form, pf2: Pf2Form } as const;
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +21,7 @@ import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { statutoryForms, type FormId } from "@/lib/statutory-form-schema";
 import { prefillStatutoryForm, missingStatutoryFields, type DraftValues, type EmployeeFormSource } from "@/lib/statutory-form-data";
 
-export function StatutoryForms() {
+export function StatutoryForms({ renderLauncher }: { renderLauncher?: (open: (id: FormId) => void) => ReactNode }) {
   const permissions = useCurrentPermissions();
   const session = useHasSupabaseSession();
   const [formId, setFormId] = useState<FormId | null>(null);
@@ -75,13 +75,15 @@ export function StatutoryForms() {
     return (!!nominee && Number(nominee[1]) >= nomineeCount) || (!!family && Number(family[1]) >= familyCount);
   };
   if (!allowed) return null;
-  return <section className="my-6 py-5">
+  const openForm = (id: FormId) => { setFormId(id); setEmployeeId(""); setValues({}); setVerified(false); setNomineeCount(1); setFamilyCount(1); };
+  return <>{renderLauncher ? renderLauncher(openForm) : <section className="my-6 py-5">
     <h2 className="mb-3 text-base font-semibold">ESIC & EPF forms</h2>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {statutoryForms.map(f => <Button key={f.id} data-panel="true" variant="outline" className="h-auto min-h-20 justify-start gap-3 whitespace-normal p-4 text-left" onClick={() => { setFormId(f.id); setEmployeeId(""); setValues({}); setVerified(false); setNomineeCount(1); setFamilyCount(1); }}>
         <FileText className="h-5 w-5 shrink-0 text-primary"/><span>{f.title}</span>
       </Button>)}
     </div>
+    </section>}
     <Dialog open={!!formId} onOpenChange={open => { if (!open) {setFormId(null); setEmployeeId(""); setValues({});} }}>
       <DialogContent size="document" className="overflow-y-auto">
         <DialogHeader><DialogTitle>{definition?.title}</DialogTitle><DialogDescription>Employee particulars and statutory declarations</DialogDescription></DialogHeader>
@@ -110,5 +112,5 @@ export function StatutoryForms() {
         </>}
       </DialogContent>
     </Dialog>
-  </section>;
+  </>;
 }
