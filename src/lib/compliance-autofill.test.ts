@@ -2,7 +2,17 @@ import { describe,expect,it } from 'vitest';
 import { employeeAutofillFacts,factForLabel,autoFillDigital,monthlyStatutoryRows } from './compliance-autofill';
 import type { DigitalForm } from './compliance-digital';
 import type { MonthDed,MonthContrib } from './compliance-month';
+import { readFileSync } from 'node:fs';
 describe('compliance factual autofill',()=>{
+  it('Bonus Register fills the selected employee, father, designation and establishment without inventing financial entries',()=>{
+    const form:DigitalForm=JSON.parse(readFileSync('public/compliance-digital/compliance-05.json','utf8'));
+    const facts=employeeAutofillFacts({full_name:'Test Guard',designation:'Security Guard',other_info:{father_name:'Test Father'}},{company_name:'Radiant Guard Services'});
+    const values=autoFillDigital(form,facts);
+    expect(values).toEqual({'0:employee-name':'Test Guard','0:father-name':'Test Father','0:designation':'Security Guard','0:establishment':'Radiant Guard Services'});
+    expect(values['0:bonus-payable']).toBeUndefined();expect(values['0:signature']).toBeUndefined();
+    const next=autoFillDigital(form,employeeAutofillFacts({full_name:'Second Guard'},{company_name:'Radiant Guard Services'}));
+    expect(next['0:employee-name']).toBe('Second Guard');expect(next['0:father-name']).toBeUndefined();
+  });
   it('copies employee and employer facts, leaving unavailable identifiers blank',()=>{
     const f=employeeAutofillFacts({full_name:'Review Employee',date_of_birth:'1990-09-10',compliance:{esic_number:'123456',uan:'987654'},bank_account_number:'111',bank_ifsc:'ABCD001'},{company_name:'Radiant'});
     expect(f.name).toBe('Review Employee');expect(f.dob).toBe('10/09/1990');expect(f.esic).toBe('123456');expect(f.uan).toBe('987654');expect(f.bankAccount).toBe('111');expect(f.ifsc).toBe('ABCD001');expect(f.pan).toBe('');

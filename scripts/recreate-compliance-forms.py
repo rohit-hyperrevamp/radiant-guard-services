@@ -4,6 +4,7 @@ from pathlib import Path
 import pymupdf as fitz
 import pytesseract
 from PIL import Image
+import importlib.util
 
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = Path('/tmp/compliance-library/inventory.json')
@@ -182,7 +183,13 @@ def page_layout(page):
 report=[]
 for item in json.loads(INVENTORY.read_text()):
     doc=fitz.open(item['pdf'])
-    layout=dict(id=item['id'],version=1,pages=[page_layout(p) for p in doc])
+    if item['id'] == 'compliance-05':
+        spec = importlib.util.spec_from_file_location('bonus_register', ROOT/'scripts/bonus-register-layout.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        layout = module.bonus_register()
+    else:
+        layout=dict(id=item['id'],version=1,pages=[page_layout(p) for p in doc])
     (OUTPUT / f"{item['id']}.json").write_text(json.dumps(layout,separators=(',',':')))
     report.append(dict(id=item['id'],pages=len(doc),texts=sum(len(p['texts']) for p in layout['pages']),fields=sum(len(p['fields']) for p in layout['pages']),scanReview=any(p['scanReview'] for p in layout['pages'])))
 print(json.dumps(report,indent=2))

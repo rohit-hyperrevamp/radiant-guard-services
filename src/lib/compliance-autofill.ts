@@ -8,7 +8,7 @@ export function employeeAutofillFacts(employee:EmployeeFormSource,employer:Emplo
   const facts=prefillStatutoryForm('epf11',employee,employer);
   const pf=prefillStatutoryForm('pf2',employee,employer);
   const esic=prefillStatutoryForm('esic37',employee,employer);
-  return {...facts,...pf,...esic,employeeCode:String(employee.employee_code??''),joining:formDate(employee.preferred_joining_date),employerPf:String(employer.pf_number??''),bankAccount:String(employee.bank_account_number??''),ifsc:String(employee.bank_ifsc??''),employeeNameAddress:[facts.name,facts.address].filter(Boolean).join(', '),employerNameAddress:[facts.employerName,facts.employerAddress].filter(Boolean).join(', ')};
+  return {...facts,...pf,...esic,designation:String(employee.designation??''),employeeCode:String(employee.employee_code??''),joining:formDate(employee.preferred_joining_date),employerPf:String(employer.pf_number??''),bankAccount:String(employee.bank_account_number??''),ifsc:String(employee.bank_ifsc??''),employeeNameAddress:[facts.name,facts.address].filter(Boolean).join(', '),employerNameAddress:[facts.employerName,facts.employerAddress].filter(Boolean).join(', ')};
 }
 export function factForLabel(label:string):string|null {
   const n=label.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -48,7 +48,7 @@ export function labelForDigitalField(page:DigitalPage,field:DigitalField):string
 export function autoFillDigital(form:DigitalForm,facts:AutofillFacts):Record<string,string> {
   const values:Record<string,string>={};
   form.pages.forEach((p,i)=>p.fields.forEach(f=>{
-    const fact=factForLabel(labelForDigitalField(p,f));
+    const fact=f.factKey??factForLabel(labelForDigitalField(p,f));
     if(fact&&facts[fact])values[digitalKey(i,f.id)]=facts[fact];
   }));
   return values;

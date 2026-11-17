@@ -1,6 +1,6 @@
 export type Box = [number, number, number, number];
 export type DigitalText = { id: string; box: Box; origin: [number,number]; text: string; size: number; family: string; bold: boolean; italic: boolean; color: number; direction?: [number,number]; sourceMarkup?: string; outlined?: boolean };
-export type DigitalField = { id: string; box: Box; label: string; size: number; placeholder?: boolean };
+export type DigitalField = { id: string; box: Box; label: string; size: number; placeholder?: boolean; factKey?: string };
 export type DigitalPage = { width: number; height: number; texts: DigitalText[]; paths: { d: string; width: number; stroke: number[] | null; fill: number[] | null }[]; fields: DigitalField[]; scanReview: boolean; sourceArtwork?: string };
 export type DigitalForm = { id: string; version: number; pages: DigitalPage[] };
 export type DigitalDraft = { templateId: string; version: 1; values: Record<string, string> };

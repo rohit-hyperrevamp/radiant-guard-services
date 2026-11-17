@@ -47,13 +47,15 @@ export function ComplianceTemplateEditor({ template, close, canExport, initialMo
     const current=++request.current;setParticulars({});setSourceBusy(false);if(!employee||!form)return;
     setSourceBusy(true);
     void Promise.all([
-      recDb.from("candidates").select("id,full_name,employee_code,date_of_birth,preferred_joining_date,mobile,personal_mobile,email,gender,marital_status,aadhaar_number,pan_number,bank_account_number,bank_ifsc,permanent_address1,permanent_address2,permanent_city,permanent_district,permanent_state,permanent_pincode,compliance,contacts,other_info").eq("id",employee).single(),
+      recDb.from("candidates").select("id,full_name,employee_code,designation_id,date_of_birth,preferred_joining_date,mobile,personal_mobile,email,gender,marital_status,aadhaar_number,pan_number,bank_account_number,bank_ifsc,permanent_address1,permanent_address2,permanent_city,permanent_district,permanent_state,permanent_pincode,compliance,contacts,other_info").eq("id",employee).single(),
       supabase.from('org_settings').select('company_name,registered_address,esic_number,pf_number').maybeSingle()
-    ]).then(([person,org])=>{
+    ]).then(async ([person,org])=>{
       if(request.current!==current)return;
       setSourceBusy(false);
       if(person.error||org.error){toast.error("Employee details could not be loaded");return;}
-      const facts=employeeAutofillFacts(person.data??{},org.data??{});
+      const designation=person.data?.designation_id?await recDb.from('designations').select('name').eq('id',person.data.designation_id).maybeSingle():null;
+      if(request.current!==current)return;
+      const facts=employeeAutofillFacts({...person.data,designation:designation?.data?.name??''},org.data??{});
       setParticulars(facts);setValues(autoFillDigital(form,facts));
     });return()=>{request.current++;};
   },[employee,form]);
