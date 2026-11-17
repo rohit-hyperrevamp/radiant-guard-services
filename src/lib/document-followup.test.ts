@@ -1,8 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { documentDateRange, documentStatus, documentEvidence, followupRequestText, type DocumentPolicy } from "./document-followup";
+import { documentDateRange, documentStatus, documentEvidence, missingDocumentDetails, followupRequestText, type DocumentPolicy } from "./document-followup";
 const policy: DocumentPolicy = { purpose: "onboarding", required_keys: Array.from({ length: 10 }, (_, i) => `doc${i}`), deadline_days: 10, owner_candidate_id: null };
 const person = { id: "1", name: "Person", code: "42", purpose: "onboarding" as const, start: "2026-11-16", received: [] };
 describe("required document follow-up", () => {
+  it("keeps last working date and exit reason pending for a disabled employee with no exit details", () => {
+    expect(missingDocumentDetails({ is_enabled: false }, ["last_working_date", "exit_reason"])).toEqual(["last_working_date", "exit_reason"]);
+    expect(missingDocumentDetails({ offboarding_details: { date_of_last_working: "2026-11-17", reason_text: "Resigned" } }, ["last_working_date", "exit_reason"])).toEqual([]);
+  });
+  it("keeps exit details overdue even after all required files are received", () => {
+    const exitPolicy: DocumentPolicy = { ...policy, purpose: "offboarding", required_keys: ["resignation", "id_card"] };
+    const result = documentStatus({ ...person, purpose: "offboarding", received: ["resignation", "id_card"], missingDetails: ["last_working_date"] }, exitPolicy, "2026-11-27");
+    expect(result.missing).toEqual([]); expect(result.overdue).toBe(true);
+  });
   it("limits six months to the inclusive joining/action-date range", () => { expect(documentDateRange("6months", "2026-11-16")).toEqual({ from: "2026-05-16", to: "2026-11-16", valid: true }); });
   it("limits one year to the inclusive joining/action-date range", () => { expect(documentDateRange("1year", "2026-11-16")).toEqual({ from: "2025-11-16", to: "2026-11-16", valid: true }); });
   it("limits two years to the inclusive joining/action-date range", () => { expect(documentDateRange("2years", "2026-11-16")).toEqual({ from: "2024-11-16", to: "2026-11-16", valid: true }); });

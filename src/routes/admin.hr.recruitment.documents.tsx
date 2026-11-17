@@ -7,6 +7,7 @@ export const Route = createFileRoute("/admin/hr/recruitment/documents")({
   validateSearch: (search: Record<string, unknown>) => ({
     type: typeof search.type === "string" ? search.type : "all",
     overdue: search.overdue === true || search.overdue === "true",
+    ...(search.status === "exits" ? { status: "exits" } : {}),
   }),
   head: () => ({ meta: [
     { title: "Employee Document Follow-up — Radiant" },
@@ -20,12 +21,12 @@ export const Route = createFileRoute("/admin/hr/recruitment/documents")({
 });
 
 function DocumentsPage() {
-  const { type, overdue } = Route.useSearch();
+  const { type, overdue, status = "active" } = Route.useSearch();
   return <div className="space-y-4">
     <header className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="font-display text-xl font-semibold">Employee documents</h1>
       <Button asChild variant="outline" size="sm"><Link to="/admin/hr/recruitment/dashboard"><ArrowLeft className="mr-2 h-4 w-4"/>Recruitment dashboard</Link></Button>
     </header>
-    <DocumentFollowupPanel key={`${type}-${overdue}`} initialType={type} initialOverdue={overdue}/>
+    <DocumentFollowupPanel key={`${type}-${overdue}-${status}`} initialType={type} initialOverdue={overdue} initialStatus={status}/>
   </div>;
 }

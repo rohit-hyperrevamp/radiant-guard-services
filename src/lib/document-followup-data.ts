@@ -9,13 +9,13 @@ export async function fetchDocumentPolicies(): Promise<DocumentPolicy[]> {
   if (error) throw error;
   return data ?? [];
 }
-export type DocumentSummary = { people: number; overdue: number; types: Record<string, number>; details: Record<string, number> };
+export type DocumentSummary = { people: number; overdue: number; exits: number; exitOverdue: number; types: Record<string, number>; details: Record<string, number> };
 /** Dashboard overview: counts only, computed in the database (document_followup_summary). */
 export async function fetchDocumentSummary(status: string = "active", from: string | null = null, to: string | null = null): Promise<DocumentSummary> {
   if (!(await supabaseSessionReady())) throw new Error("Sign in to load pending documents.");
   const { data, error } = await (recDb as any).rpc("document_followup_summary", { p_status: status, p_from: from, p_to: to });
   if (error) throw error;
-  return { people: Number(data?.people ?? 0), overdue: Number(data?.overdue ?? 0), types: data?.types ?? {}, details: data?.details ?? {} };
+  return { people: Number(data?.people ?? 0), overdue: Number(data?.overdue ?? 0), exits: Number(data?.exits ?? 0), exitOverdue: Number(data?.exit_overdue ?? 0), types: data?.types ?? {}, details: data?.details ?? {} };
 }
 export type DocumentListFilters = { type: string; purpose: string; overdue: boolean; words: string[]; page: number; status: string; from: string | null; to: string | null };
 export const DOCUMENT_PAGE_SIZE = 15;

@@ -5,6 +5,7 @@ import { Search, PackageCheck, Inbox, ShieldCheck, Warehouse, ChevronDown, Chevr
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import { PageHeader } from "@/components/PageHeader";
@@ -15,7 +16,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
 
-export const Route = createFileRoute("/admin/inventory/collections")({ component: CollectionsPage });
+export const Route = createFileRoute("/admin/inventory/collections")({
+  head: () => ({ meta: [
+    { title: "Inventory Collections — Radiant" },
+    { name: "description", content: "Manage returned employee equipment and offboarding collections." },
+    { property: "og:title", content: "Inventory Collections — Radiant" },
+    { property: "og:description", content: "Manage returned employee equipment and offboarding collections." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
+  component: CollectionsPage,
+});
 
 const MODULE = "Inventory Collections";
 const ENTITY = "inv_stock_movements";
@@ -349,6 +359,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         toast.success("Collected — stock returned to you");
       }
       qc.invalidateQueries({ queryKey: ["collections"] });
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
       qc.invalidateQueries({ queryKey: ["inv", "balances-sum"] });
       qc.invalidateQueries({ queryKey: ["inv"] });
       setOpenGuard(null);

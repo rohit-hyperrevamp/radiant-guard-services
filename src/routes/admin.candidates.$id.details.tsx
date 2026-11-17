@@ -3,7 +3,8 @@ import { EmployeeChangeRequest } from "@/components/EmployeeChangeRequest";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
@@ -162,6 +163,7 @@ export const Route = createFileRoute("/admin/candidates/$id/details")({
 });
 
 function CandidateDetailsPage() {
+  const qc = useQueryClient();
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
@@ -275,6 +277,7 @@ function CandidateDetailsPage() {
         toast.success("Saved — company documents updated automatically");
       }
       setBaselinePayload(JSON.stringify(payload));
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
       if (closeAfter) navigate({ to: "/admin/employees" });
     } catch (e: any) {
       toast.error(e.message || "Failed to save");

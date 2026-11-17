@@ -8,6 +8,18 @@ export const DETAIL_TYPES: Record<string, string> = {
   aadhaar_number: "Aadhaar number", pan_number: "PAN number", bank_account: "Bank account number", bank_ifsc: "Bank IFSC", bank_name: "Bank name", date_of_birth: "Date of birth", mobile: "Mobile number", present_address: "Present address", permanent_address: "Permanent address", emergency_contact: "Emergency contact", last_working_date: "Last working date", exit_reason: "Exit reason",
 };
 export type DocumentStatusFilter = "active" | "inactive" | "all";
+export function missingDocumentDetails(employee: Record<string, any>, required: string[]): string[] {
+  const fields: Record<string, unknown> = {
+    aadhaar_number: employee.aadhaar_number, pan_number: employee.pan_number,
+    bank_account: employee.bank_account_number, bank_ifsc: employee.bank_ifsc, bank_name: employee.bank_name,
+    date_of_birth: employee.date_of_birth, mobile: employee.mobile,
+    present_address: employee.present_address1, permanent_address: employee.permanent_address1,
+    emergency_contact: employee.emergency_contact_mobile,
+    last_working_date: employee.offboarding_details?.date_of_last_working,
+    exit_reason: employee.offboarding_details?.reason_text,
+  };
+  return required.filter(key => !String(fields[key] ?? "").trim());
+}
 export type DocumentDatePeriod = "all" | "6months" | "1year" | "2years" | "custom";
 export type DocumentDateRange = { from: string | null; to: string | null; valid: boolean };
 /** Filter by joining/rehire/exit action date, not employee age or days overdue. */
@@ -63,5 +75,5 @@ export function documentStatus(input: Omit<DocumentPerson, "missing" | "due" | "
     const d = new Date(`${input.start.slice(0, 10)}T12:00:00Z`);
     if (!Number.isNaN(d.getTime())) { d.setUTCDate(d.getUTCDate() + policy.deadline_days); due = d.toISOString().slice(0, 10); }
   }
-  return { ...input, received, missing, due, overdue: missing.length > 0 && due !== null && due < today };
+  return { ...input, received, missing, due, overdue: (missing.length > 0 || (input.missingDetails?.length ?? 0) > 0) && due !== null && due < today };
 }

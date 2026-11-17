@@ -4,6 +4,7 @@ import { requestEmployeeStatusAction } from "@/lib/employee-status-action";
 import { hasEmployeeOffboarding } from "@/lib/employee-workspace";
 import { patchEmployeeSlice } from "@/lib/employee-list-cache";
 import { DocumentChecklist } from "@/components/recruitment/DocumentChecklist";
+import { DOCUMENT_FOLLOWUP_QK } from "@/lib/document-followup-data";
 import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { useIsHrHead } from "@/lib/use-hr-head";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
@@ -3094,6 +3095,7 @@ function EmployeesPage() {
       showSavedEmployee({ ...vars.candidate, is_enabled: vars.enabled, status: vars.enabled ? "active" : "inactive",
         ...(vars.enabled ? { offboarding_reason_id: null, offboarded_at: null } : {}) });
       toast.success(vars.enabled ? "Employee activated" : "Employee deactivated");
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
       void qc.invalidateQueries({ queryKey: QK, refetchType: "none" });
       void qc.invalidateQueries({ queryKey: [...QK, "inactive-count"] });
     },
@@ -3487,6 +3489,7 @@ function EmployeesPage() {
       qc.invalidateQueries({ queryKey: QK });
       qc.invalidateQueries({ queryKey: ["inv_stock_balances"] });
       qc.invalidateQueries({ queryKey: ["inv_stock_movements"] });
+      void qc.invalidateQueries({ queryKey: DOCUMENT_FOLLOWUP_QK });
       setOffboardTarget(null);
       setOffboardReasonId("");
     },
@@ -11001,6 +11004,8 @@ function OffboardingDialog({
               </>
             )}
           </section>
+
+          {target && <DocumentChecklist id={target.id} purpose="offboarding" employee={{...target, offboarding_details: {...target.offboarding_details, date_of_last_working: dateOfLastWorking, reason_text: reasonText}}} start={dateOfOffboarding || null} />}
 
           {/* Section: Rating */}
           <section className="space-y-3">

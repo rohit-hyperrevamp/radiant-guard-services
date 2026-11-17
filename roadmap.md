@@ -1,3 +1,9 @@
+## Exit document and detail follow-up — 18 November
+- [x] Installed production exit-follow-up fix including disabled/inactive employees without exit metadata, pending collections and excluding enabled active rehires; preserved existing configurable requirements and approvals. No employee data changed.
+- [x] Added separate pending-exit count/link to existing leadership/recruitment document sections and matching paged exit list; surfaced required files and details in the exit form. Disable, completion, collection and employee-detail saves refresh follow-up queries.
+- [x] All 29 document/visibility/letter tests pass and compilation OK. Repeatable production rollback tests verify dummy disabled guard, two required files/two details, files-complete/details-pending, complete checklist removal, active rehire exclusion, pending collection inclusion, count/list agreement and unsigned denial; no dummy records remain. Live historical pending exits = 21,705; dates are not invented for older incomplete records.
+- [ ] Signed-in dashboard and actual file-upload UI checks await a production session and GitHub-to-Vercel delivery; live destination redirects to login without runtime errors, screenshot shows startup overlay. Database evidence tests do not verify storage upload or signed-in screen behavior.
+
 ## Inactive employee exit documents — 17 November
 - [x] Found exit metadata visibility gate hiding inactive employees' documents; corrected shared visibility for inactive/disabled profiles while preserving active rehire behavior.
 - [x] Redirected list Offboarding documents and legacy profile links to the full exit checklist, uploaded records and exit letters rather than only generated letters. No records or permissions changed.
