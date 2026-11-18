@@ -1,4 +1,5 @@
 import { matchesSearch } from "@/lib/search-match";
+import { matchesVehicleFilters, vehicleCardFilters } from "@/lib/vehicle-inventory-filters";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { useCallback, useMemo, useState } from "react";
@@ -171,13 +172,23 @@ function VehicleInventoryPage() {
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [deleting, setDeleting] = useState<Vehicle | null>(null);
 
+  const selectCard = (card: string) => {
+    const next = vehicleCardFilters(card);
+    setQuery(next.query);
+    setTypeFilter(next.typeFilter);
+    setFuelFilter(next.fuelFilter);
+    setStatusFilter(next.statusFilter);
+  };
+  const activeCard = query.trim() || typeFilter !== "all" || statusFilter === "disabled"
+    ? null
+    : statusFilter === "enabled" && fuelFilter === "all"
+      ? "enabled"
+      : statusFilter === "all" ? fuelFilter : null;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((i) => {
-      if (typeFilter !== "all" && i.type !== typeFilter) return false;
-      if (fuelFilter !== "all" && i.fuel_type !== fuelFilter) return false;
-      if (statusFilter === "enabled" && !i.enabled) return false;
-      if (statusFilter === "disabled" && i.enabled) return false;
+      if (!matchesVehicleFilters(i, { query, typeFilter, fuelFilter, statusFilter })) return false;
       if (!q) return true;
       return (
         matchesSearch(q, [i.vehicle_id, i.vehicle_number, i.name, i.brand, i.make, i.engine_number, i.chassis_number, i.owner])
@@ -205,10 +216,22 @@ function VehicleInventoryPage() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MiniStat label="Total Vehicles" value={stats.total} />
-        <MiniStat label="Enabled" value={stats.enabled} tone="accent" />
-        {FUEL_TYPES.filter((f) => stats.byFuel[f]).slice(0, 6).map((f) => (
-          <MiniStat key={f} label={f} value={stats.byFuel[f] ?? 0} />
+        {[
+          { key: "all", label: "Total Vehicles", value: stats.total },
+          { key: "enabled", label: "Enabled", value: stats.enabled },
+          ...FUEL_TYPES.filter((f) => f !== "LPG" || stats.byFuel[f]).map((f) => ({ key: f, label: f, value: stats.byFuel[f] ?? 0 })),
+        ].map((card) => (
+          <Button
+            key={card.key}
+            variant="ghost"
+            data-panel
+            aria-label={`Show ${card.label.toLowerCase()} vehicles`}
+            aria-pressed={activeCard === card.key}
+            onClick={() => selectCard(card.key)}
+            className={`block h-auto w-full min-w-0 whitespace-normal rounded-2xl p-0 text-left hover:bg-transparent sm:rounded-[26px] ${activeCard === card.key ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+          >
+            <MiniStat label={card.label} value={card.value} tone={card.key === "enabled" ? "accent" : undefined} />
+          </Button>
         ))}
       </div>
 
