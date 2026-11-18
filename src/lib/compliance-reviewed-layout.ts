@@ -45,8 +45,8 @@ function sourceReviewedLayout(form:DigitalForm):DigitalForm {
       const siblings=merged[f.id]?.map(id=>p.fields.find(other=>other.id===id)).filter((other):other is DigitalField=>!!other)??[];
       return {...f,...(siblings.length?{box:[f.box[0],f.box[1],Math.max(f.box[2],...siblings.map(s=>s.box[2])),f.box[3]] as DigitalField['box']}:{}),...(facts[f.id]?{factKey:facts[f.id],label:labels[f.id]}:{})};
     }).filter(f=>!Object.values(merged).flat().includes(f.id)).concat([
-      {id:'review-employee-pf',label:'Posted employee PF deduction',box:[294,460.8,322.5,469.8],size:7,factKey:'employeePf'},
-      {id:'review-employee-esic',label:'Posted employee ESI deduction',box:[345,460.8,391.7,469.8],size:7,factKey:'employeeEsic'},
+      {id:'review-employee-pf',label:'Posted employee PF deduction',box:[297,460.8,327,469.8],size:7,factKey:'employeePf'},
+      {id:'review-employee-esic',label:'Posted employee ESI deduction',box:[353,460.8,396,469.8],size:7,factKey:'employeeEsic'},
     ])})};
   }
   if(form.id==='compliance-36') {

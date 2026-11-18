@@ -13,9 +13,10 @@ describe('digital compliance collection',()=>{
   });
   it('source-reviewed certificate blanks have distinct employee fields inside the paper',()=>{
     const form=reviewedDigitalLayout(load('compliance-36'));
-    expect(form.pages[0].fields.find(f=>f.id==='review-name')?.factKey).toBe('name');
+    expect(form.pages[0].fields.find(f=>f.id==='review-name-clear')?.factKey).toBe('name');
     expect(form.pages[0].fields.find(f=>f.id==='review-permanent-address')?.factKey).toBe('address');
-    expect(form.pages[0].fields.find(f=>f.id==='review-present-address')?.factKey).toBeUndefined();
+    // Only a permanent address is saved, so the present-address blank must never be guessed.
+    expect(form.pages[0].fields.find(f=>f.id==='review-present-address')?.factKey).toBe('');
     for(const f of form.pages[0].fields){expect(f.box[0]).toBeGreaterThanOrEqual(0);expect(f.box[2]).toBeLessThanOrEqual(612);expect(f.box[3]).toBeLessThanOrEqual(792);}
   });
   it('fits names by measured glyph width without stretching or crossing the blank',()=>{
