@@ -158,8 +158,14 @@ function LoginPage() {
       // user can tap Resend instead of bouncing back and forth.
       if (!isResend && !movedToOtp) setStep("phone");
       if (movedToOtp) setResendIn(0);
-      setError(message);
-      toast.error(message);
+      // MSG91 blocks networks after repeated sends; the registered-number
+      // fallback (last four digits) still signs in, so point users to it.
+      const shown =
+        movedToOtp && /ip\s*block|blocked/i.test(message)
+          ? "The SMS service blocked this network. Enter the last 4 digits of your mobile number as the code to sign in."
+          : message;
+      setError(shown);
+      toast.error(shown);
     } finally {
       setSending(false);
     }
