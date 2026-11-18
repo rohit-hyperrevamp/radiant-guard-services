@@ -1,3 +1,7 @@
+## HR Radiant HO automatic checkout — 18 November
+- [x] Installed production HR-department/Pune-HO twelve-hour attendance checkout from activation date; earlier manual checkout and GPS/selfie evidence preserved. Existing attendance synchronization retained, no session logout or older attendance backfill.
+- [x] Production rollback fixtures passed exact 12h, before 12h, manual preservation, other department/site exclusion, historical exclusion, Present readback, no fabricated evidence, repeated execution and browser execution denial. One next-deadline job re-arms while pending and removes itself after drain; minute scheduling records exactly +12h with up to one minute processing delay. Signed-in screen readback and actual future scheduler execution not observed; no frontend changes needed.
+
 ## Consistent compliance form entry and contextual autofill — 18 November
 - [x] Unified employee/client/month controls and field entry across statutory/digital editor families; paper rules retained, statutory manual entry/export available without employee selection.
 - [x] Added glyph-measured digital answer fitting, retained dotted blanks and fixed statutory blank heights. Source-reviewed wage-slip cells merged, Character Certificate/night-shift consent blanks added; no payroll/employee data changed.
