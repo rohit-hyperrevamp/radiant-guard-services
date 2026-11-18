@@ -1,4 +1,5 @@
 import { matchesSearch, statusRank } from "@/lib/search-match";
+import { organizationCounts } from "@/lib/organization-counts";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -128,7 +129,7 @@ function CustomerManagerPage() {
     return list.filter((c) => matchesSearch(query, [c.code, c.name, c.website, c.phone, c.address]));
   }, [customers, query, statusFilter]);
 
-  const activeCount = customers.filter((c) => c.status === "active").length;
+  const counts = organizationCounts(customers, statusFilter);
   const pg = usePagination(rows);
 
   return (
@@ -144,9 +145,9 @@ function CustomerManagerPage() {
         ]}
         kpis={
           <>
-            <PageStat label="Total organizations" value={customers.length} icon={Network} />
-            <PageStat label="Active" value={activeCount} tone="accent" icon={Users} />
-            <PageStat label="Inactive" value={customers.length - activeCount} tone="warning" />
+            <PageStat label="Total organizations" value={counts.total} icon={Network} />
+            <PageStat label="Active" value={counts.active} tone="accent" icon={Users} />
+            <PageStat label="Inactive" value={counts.inactive} tone="warning" />
           </>
         }
       />
