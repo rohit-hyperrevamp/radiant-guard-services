@@ -135,6 +135,7 @@ import { Route as AdminVehiclesInsurancesRouteImport } from './routes/admin.vehi
 import { Route as AdminVehiclesInventoryRouteImport } from './routes/admin.vehicles.inventory'
 import { Route as AdminVehiclesPucsRouteImport } from './routes/admin.vehicles.pucs'
 import { Route as AdminVehiclesServiceManagerRouteImport } from './routes/admin.vehicles.service-manager'
+import { Route as AdminVehiclesTripsRouteImport } from './routes/admin.vehicles.trips'
 import { Route as ApiPublicDataDeletionRequestRouteImport } from './routes/api/public/data-deletion-request'
 import { Route as ApiPublicOtpHealthRouteImport } from './routes/api/public/otp-health'
 import { Route as ApiPublicOtpRelayRouteImport } from './routes/api/public/otp-relay'
@@ -812,6 +813,11 @@ const AdminVehiclesServiceManagerRoute =
     path: '/service-manager',
     getParentRoute: () => AdminVehiclesRoute,
   } as any)
+const AdminVehiclesTripsRoute = AdminVehiclesTripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
+  getParentRoute: () => AdminVehiclesRoute,
+} as any)
 const ApiPublicDataDeletionRequestRoute =
   ApiPublicDataDeletionRequestRouteImport.update({
     id: '/api/public/data-deletion-request',
@@ -1049,6 +1055,7 @@ export interface FileRoutesByFullPath {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/admin/vehicles/trips': typeof AdminVehiclesTripsRoute
   '/api/public/data-deletion-request': typeof ApiPublicDataDeletionRequestRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/api/public/otp-relay': typeof ApiPublicOtpRelayRoute
@@ -1192,6 +1199,7 @@ export interface FileRoutesByTo {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/admin/vehicles/trips': typeof AdminVehiclesTripsRoute
   '/api/public/data-deletion-request': typeof ApiPublicDataDeletionRequestRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/api/public/otp-relay': typeof ApiPublicOtpRelayRoute
@@ -1341,6 +1349,7 @@ export interface FileRoutesById {
   '/admin/vehicles/inventory': typeof AdminVehiclesInventoryRoute
   '/admin/vehicles/pucs': typeof AdminVehiclesPucsRoute
   '/admin/vehicles/service-manager': typeof AdminVehiclesServiceManagerRoute
+  '/admin/vehicles/trips': typeof AdminVehiclesTripsRoute
   '/api/public/data-deletion-request': typeof ApiPublicDataDeletionRequestRoute
   '/api/public/otp-health': typeof ApiPublicOtpHealthRoute
   '/api/public/otp-relay': typeof ApiPublicOtpRelayRoute
@@ -1491,6 +1500,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/admin/vehicles/trips'
     | '/api/public/data-deletion-request'
     | '/api/public/otp-health'
     | '/api/public/otp-relay'
@@ -1634,6 +1644,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/admin/vehicles/trips'
     | '/api/public/data-deletion-request'
     | '/api/public/otp-health'
     | '/api/public/otp-relay'
@@ -1782,6 +1793,7 @@ export interface FileRouteTypes {
     | '/admin/vehicles/inventory'
     | '/admin/vehicles/pucs'
     | '/admin/vehicles/service-manager'
+    | '/admin/vehicles/trips'
     | '/api/public/data-deletion-request'
     | '/api/public/otp-health'
     | '/api/public/otp-relay'
@@ -2712,6 +2724,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVehiclesServiceManagerRouteImport
       parentRoute: typeof AdminVehiclesRoute
     }
+    '/admin/vehicles/trips': {
+      id: '/admin/vehicles/trips'
+      path: '/trips'
+      fullPath: '/admin/vehicles/trips'
+      preLoaderRoute: typeof AdminVehiclesTripsRouteImport
+      parentRoute: typeof AdminVehiclesRoute
+    }
     '/api/public/data-deletion-request': {
       id: '/api/public/data-deletion-request'
       path: '/api/public/data-deletion-request'
@@ -3003,6 +3022,7 @@ interface AdminVehiclesRouteChildren {
   AdminVehiclesInventoryRoute: typeof AdminVehiclesInventoryRoute
   AdminVehiclesPucsRoute: typeof AdminVehiclesPucsRoute
   AdminVehiclesServiceManagerRoute: typeof AdminVehiclesServiceManagerRoute
+  AdminVehiclesTripsRoute: typeof AdminVehiclesTripsRoute
 }
 
 const AdminVehiclesRouteChildren: AdminVehiclesRouteChildren = {
@@ -3013,6 +3033,7 @@ const AdminVehiclesRouteChildren: AdminVehiclesRouteChildren = {
   AdminVehiclesInventoryRoute: AdminVehiclesInventoryRoute,
   AdminVehiclesPucsRoute: AdminVehiclesPucsRoute,
   AdminVehiclesServiceManagerRoute: AdminVehiclesServiceManagerRoute,
+  AdminVehiclesTripsRoute: AdminVehiclesTripsRoute,
 }
 
 const AdminVehiclesRouteWithChildren = AdminVehiclesRoute._addFileChildren(

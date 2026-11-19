@@ -17,6 +17,7 @@
 - Pages data: archived payslips are read-only `pages_payslip_archive` (never recalculated).
 - Site-grain MIS exports group by unit, designation, billing rate — keeps contract lines separate.
 - Punch/location listeners refetch at most every 30s (never per-row streams).
+- Dashboard attendance uses the paged dashboard_attendance_people RPC: distinct people, saved check-in GPS, server-enforced reporting/unit scope, and no residential data; presence is separate from online sessions.
 - Portal persistence is an explicit reference-list allowlist in session storage, owned by the root's real auth identity; never persist employee PII, permissions, financial results or signed links. Bounded freshness handles changes missed while closed.
 - Contract pay lines with `contractOverride: true` (set when edited on the contract: amount, %, or formula) are contract-owned — editor overlays, `hydrateFormulasFromMaster` and statutory ESI must not overwrite them; Reset clears the flag.
 - Invoice duty-rate exceptions use `invoice-duty-rates`; detail, print and exports price regular/ED quantities separately so totals reconcile without modifying payroll.

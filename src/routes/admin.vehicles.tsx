@@ -11,6 +11,14 @@ import { cn } from "@/lib/utils";
 import { VehicleTourProvider, useVehicleTour } from "@/components/VehicleTour";
 
 export const Route = createFileRoute("/admin/vehicles")({
+  head: () => ({ meta: [
+    { title: "Fleet Overview | Radiant Guard Services" },
+    { name: "description", content: "Vehicle inventory, trip assignments, FASTags, fuel expenses and fleet compliance." },
+    { property: "og:title", content: "Fleet Overview | Radiant Guard Services" },
+    { property: "og:description", content: "Vehicle inventory, trip assignments, FASTags, fuel expenses and fleet compliance." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: VehiclesLayout,
 });
 
@@ -148,6 +156,11 @@ function VehiclesDashboard() {
       />
 
       {/* Top stat cards — clickable, deep-link into managers with filter */}
+      <div className="mb-4 flex flex-wrap gap-3">
+        <Button asChild variant="outline"><Link to="/admin/vehicles/trips"><Car className="h-4 w-4" />Vehicle Trips</Link></Button>
+        <Button asChild variant="outline"><Link to="/admin/vehicles/fastags">FASTag Details</Link></Button>
+        <Button asChild variant="outline"><Link to="/admin/vehicles/expense-manager">Expenses & Photos</Link></Button>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard
           dataTour="stat-total"

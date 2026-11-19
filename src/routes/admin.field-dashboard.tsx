@@ -1,4 +1,6 @@
 import { useSecondaryPostings } from "@/lib/use-secondary-postings";
+import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
+import { distinctPresentPeople } from "@/lib/attendance-people-utils";
 import { TileNumber } from "@/components/TileNumber";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -122,6 +124,7 @@ type FoStats = {
   joinedThisWeek: number;
   joinedLastWeek: number;
   attendanceRateToday: number;
+  presentToday: number;
   attendanceRateYesterday: number;
   pendingOnboardingTotal: number;
   pendingOnboardingLastWeek: number;
@@ -364,6 +367,7 @@ function FieldOfficerDashboard() {
         joinedThisWeek: 0,
         joinedLastWeek: 0,
         attendanceRateToday: 0,
+        presentToday: 0,
         attendanceRateYesterday: 0,
         pendingOnboardingTotal: 0,
         pendingOnboardingLastWeek: 0,
@@ -538,18 +542,15 @@ function FieldOfficerDashboard() {
       if (guardIds.length) {
         const { data: entries } = await supabase
           .from("attendance_entries")
-          .select("candidate_id,code,entry_date")
+          .select("candidate_id,code,entry_date,unit_id,ot_hours")
           .in("entry_date", [today, yday])
+          .in("unit_id", unitIds)
           .in("candidate_id", guardIds);
-        for (const e of (entries ?? []) as Array<{ code: string; entry_date: string }>) {
-          if (e.entry_date === today) {
-            totalToday += 1;
-            if (presentCodes.has(e.code)) presentToday += 1;
-          } else {
-            totalYday += 1;
-            if (presentCodes.has(e.code)) presentYday += 1;
-          }
-        }
+        const marks = (entries ?? []) as Array<{ candidate_id: string; code: string; entry_date: string; ot_hours: number }>;
+        presentToday = distinctPresentPeople(marks.filter(e => e.entry_date === today), presentCodes);
+        presentYday = distinctPresentPeople(marks.filter(e => e.entry_date === yday), presentCodes);
+        totalToday = new Set(guardIds).size;
+        totalYday = totalToday;
       }
 
       const mine = (mineRes.data ?? []) as Array<{
@@ -641,6 +642,7 @@ function FieldOfficerDashboard() {
         joinedThisWeek,
         joinedLastWeek,
         attendanceRateToday: totalToday ? Math.round((presentToday / totalToday) * 100) : 0,
+        presentToday,
         attendanceRateYesterday: totalYday ? Math.round((presentYday / totalYday) * 100) : 0,
         pendingOnboardingTotal,
         pendingOnboardingLastWeek,
@@ -719,6 +721,7 @@ function FieldOfficerDashboard() {
       joinedThisWeek: stats?.joinedThisWeek ?? 0,
       joinedLastWeek: stats?.joinedLastWeek ?? 0,
       attendanceRateToday: stats?.attendanceRateToday ?? 0,
+      presentToday: stats?.presentToday ?? 0,
       attendanceRateYesterday: stats?.attendanceRateYesterday ?? 0,
       pendingOnboardingTotal: stats?.pendingOnboardingTotal ?? 0,
       pendingOnboardingLastWeek: stats?.pendingOnboardingLastWeek ?? 0,
@@ -767,7 +770,6 @@ function FieldOfficerDashboard() {
 
   const onbDelta = (data?.pendingOnboardingTotal ?? 0) - (data?.pendingOnboardingLastWeek ?? 0);
   const totalListings = data?.guardsTotal ?? 0;
-  const attnPresent = Math.round(((data?.attendanceRateToday ?? 0) / 100) * totalListings);
   const totalItems = data?.myStockQty ?? 0;
 
   const taskSummary = useTaskSummary();
@@ -776,6 +778,7 @@ function FieldOfficerDashboard() {
     <DashboardShell rightExtras={<FoPeopleInsights />} fixedRightRail>
       <div className="space-y-4">
         <SecondaryDutyCard />
+        <AttendanceTodayCard />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <HeroStat
             label="Team"
@@ -786,7 +789,7 @@ function FieldOfficerDashboard() {
           />
           <HeroStat
             label="Present"
-            value={`${attnPresent} (${data?.attendanceRateToday ?? 0}%)`}
+            value={`${data?.presentToday ?? 0} (${data?.attendanceRateToday ?? 0}%)`}
             icon={UserCheck}
             tone="mint"
             to="/admin/attendance"

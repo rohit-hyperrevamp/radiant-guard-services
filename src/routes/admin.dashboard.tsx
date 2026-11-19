@@ -1,3 +1,4 @@
+import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit, invoicePoolStrength } from "@/lib/invoice-present-cap";
 import { invoiceExtraDutyRate, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { TileNumber } from "@/components/TileNumber";
@@ -1664,6 +1665,7 @@ function DashboardPage() {
           />
           <MyUpcomingInterviewsCard />
           <TransportFleetAssetsTiles />
+          <AttendanceTodayCard />
         </DashboardShell>
       </div>
     );
@@ -1782,6 +1784,7 @@ function DashboardPage() {
         }
         fullWidthBelow={
           <>
+            <AttendanceTodayCard />
             {canWidget("team_clients") && <TeamClientsCard />}
             {opsFocus ? (
               <>
@@ -2103,6 +2106,7 @@ function LivePeopleCard({
       </Link>
       <Link
         to="/admin/live-staff"
+        search={{ status: "all" }}
         className={
           compact
             ? "rounded-xl border border-border p-2 text-[11px] hover:bg-muted/50"

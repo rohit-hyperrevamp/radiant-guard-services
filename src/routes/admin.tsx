@@ -146,6 +146,7 @@ const recruitmentChildren: LeafItem[] = [
 
 
 const vehiclesChildren: LeafItem[] = [
+  { to: "/admin/vehicles/trips", label: "Vehicle Trips", icon: Car, sub: "trips" },
   { to: "/admin/vehicles/inventory", label: "Vehicle Inventory", icon: Car, sub: "vehicle_inventory" },
   { to: "/admin/vehicles/fastags", label: "FastTag Manager", icon: CreditCard, sub: "fastag_manager" },
   { to: "/admin/vehicles/insurances", label: "Insurance Manager", icon: ShieldCheck, sub: "insurance_manager" },
@@ -481,7 +482,7 @@ function AdminLayout() {
       
       { key: "tasks", label: "Tasks", icon: ListTodo, to: "/admin/tasks", activePrefixes: ["/admin/tasks"] },
       { key: "case-desk", label: "Case Desk", module: "legal_cases", icon: Scale, to: "/admin/cases", activePrefixes: ["/admin/cases"] },
-      { key: "live-staff", label: "Live Staff", module: "employees", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
+      { key: "live-staff", label: "Staff Attendance", module: "dashboard", icon: Activity, to: "/admin/live-staff", activePrefixes: ["/admin/live-staff"] },
       { key: "my-attendance", label: "My Attendance", icon: CalendarClock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
       { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
