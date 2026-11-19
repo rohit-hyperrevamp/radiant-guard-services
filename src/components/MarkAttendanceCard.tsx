@@ -316,7 +316,7 @@ export function MarkAttendanceCard({
 
   const showPunchError = (action: "in" | "out", error: unknown) => confirmAction({
     title: action === "in" ? "Unable to log in" : "Unable to log out",
-    description: error instanceof Error ? error.message : `${action === "in" ? "Login" : "Logout"} could not be completed.`,
+    description: punchErrorMessage(error) ?? `${action === "in" ? "Login" : "Logout"} could not be completed.`,
     confirmText: "Got it",
     hideCancel: true,
     tone: "warning",
@@ -763,4 +763,16 @@ export function MarkAttendanceCard({
       )}
     </section>
   );
+}
+
+/** Server errors arrive as plain objects (not Error), so read their message too. */
+function punchErrorMessage(error: unknown): string | null {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === "object") {
+    const e = error as { message?: unknown; details?: unknown; hint?: unknown };
+    const parts = [e.message, e.details, e.hint].filter((x): x is string => typeof x === "string" && x.trim() !== "");
+    if (parts.length) return parts.join(" — ");
+  }
+  if (typeof error === "string" && error.trim()) return error;
+  return null;
 }
