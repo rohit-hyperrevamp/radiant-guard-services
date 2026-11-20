@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Download, AlertTriangle, BarChart3, Warehouse, Building2, UserCog, Shield, FileSpreadsheet, Layers } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Search, Download, AlertTriangle, BarChart3, Warehouse, Building2, UserCog, Shield, FileSpreadsheet, Layers, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,11 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { useCurrentPermissions } from "@/lib/rbac";
+import { logActivity } from "@/lib/activity-log";
+import { stockCorrectionDelta } from "@/lib/stock-correction";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/inventory/stock")({ component: StockPage });
+export const Route = createFileRoute("/admin/inventory/stock")({
+  head: () => ({ meta: [
+    { title: "Uniform Stock Report — Radiant" },
+    { name: "description", content: "View and correct Radiant uniform stock balances across locations." },
+    { property: "og:title", content: "Uniform Stock Report — Radiant" },
+    { property: "og:description", content: "View and correct Radiant uniform stock balances across locations." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }), component: StockPage,
+});
 
 type HolderType = "all" | "warehouse" | "branch" | "field_officer" | "security_guard";
-type Balance = { location_type: string; location_id: string; item_id: string; size_value: string; qty: number };
+type Balance = { id: string; location_type: string; location_id: string; item_id: string; size_value: string; qty: number };
 type Item = { id: string; name: string; item_code: string; unit: string; default_reorder_level: number };
 type Holder = { id: string; name: string; sub?: string };
 
@@ -36,6 +51,36 @@ function normalizeType(t: string): HolderType | null {
 }
 
 function StockPage() {
+  const permissions = useCurrentPermissions();
+  const qc = useQueryClient();
+  const canEdit = permissions.canSub("inventory", "stock_report", "edit");
+  const canDelete = permissions.canSub("inventory", "stock_report", "delete");
+  const [correction, setCorrection] = useState<{ balance: Balance; label: string; remove: boolean } | null>(null);
+  const [targetQty, setTargetQty] = useState("");
+  const [reason, setReason] = useState("");
+  const correctionMut = useMutation({
+    mutationFn: async () => {
+      if (!correction) throw new Error("Select a stock line");
+      if (!targetQty.trim()) throw new Error("Enter the corrected quantity");
+      const target = correction.remove ? 0 : Number(targetQty);
+      stockCorrectionDelta(Number(correction.balance.qty), target);
+      if (reason.trim().length < 3) throw new Error("Enter a correction reason");
+      const { error } = await supabase.rpc("correct_inventory_stock" as never, {
+        _balance_id: correction.balance.id, _expected_qty: Number(correction.balance.qty), _new_qty: target, _reason: reason.trim(),
+      } as never);
+      if (error) throw error;
+      void logActivity({ module: "Uniform Stock Report", action: correction.remove ? "delete" : "update", entityType: "inv_stock_balances", entityId: correction.balance.id, entityLabel: correction.label,
+        details: { previous_qty: Number(correction.balance.qty), corrected_qty: target, reason: reason.trim(), history_preserved: true } });
+    },
+    onSuccess: () => {
+      toast.success(correction?.remove ? "Stock removed; history retained" : "Stock quantity corrected");
+      setCorrection(null);
+      void qc.invalidateQueries({ queryKey: ["inv"] });
+      void qc.invalidateQueries({ queryKey: ["inv_stock_balances"] });
+      void qc.invalidateQueries({ queryKey: ["inv_stock_movements"] });
+    },
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : (error as { message?: string })?.message ?? "Could not correct stock"),
+  });
   const { data: balances = [] } = useQuery({
     queryKey: ["inv", "stock-all"],
     queryFn: async () => {
@@ -125,6 +170,7 @@ function StockPage() {
   // ---------- Filtered rows ----------
   const rows = useMemo(() => {
     const out: {
+      balance: Balance;
       key: string;
       holder_type: HolderType;
       holder_id: string;
@@ -154,6 +200,7 @@ function StockPage() {
       }
       const reorder = it?.default_reorder_level ?? 0;
       out.push({
+        balance: b,
         key: `${b.location_type}-${b.location_id}-${b.item_id}-${b.size_value}`,
         holder_type: t,
         holder_id: b.location_id,
@@ -303,15 +350,6 @@ function StockPage() {
     XLSX.writeFile(wb, `stock-${holderType}-${today}.xlsx`);
   }
 
-  if (scope.isLoading || role.isLoading) {
-    return (
-      <div>
-        <PageHeader title="Stock Report" description="Live balances for all locations." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Stock" }]} />
-        <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading…</div>
-      </div>
-    );
-  }
-
   const isFO = role.isFieldOfficer;
 
   // For FO: force the type filter to their own stock + their guards, and hide
@@ -323,6 +361,8 @@ function StockPage() {
       setHolderId("all");
     }
   }, [isFO, holderType]);
+
+  if (scope.isLoading || role.isLoading || permissions.isLoading) return <div className="py-6 text-muted-foreground">Loading stock…</div>;
 
   return (
     <div>
@@ -387,7 +427,7 @@ function StockPage() {
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search item or holder…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link to="/admin/inventory/stock-ledger" className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 text-sm font-semibold text-primary hover:bg-primary/10">
             <FileSpreadsheet className="h-4 w-4" />Open Stock Ledger
           </Link>
@@ -409,7 +449,7 @@ function StockPage() {
 
       {/* Table */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="overflow-x-clip">
+        <div className="overflow-x-auto">
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
@@ -419,6 +459,7 @@ function StockPage() {
                 <th className="px-5 py-3 text-right">Qty</th>
                 <th className="px-5 py-3">Client</th>
                 <th className="px-5 py-3 text-right">Reorder</th>
+                {(canEdit || canDelete) && <th className="px-5 py-3 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -433,10 +474,14 @@ function StockPage() {
                   <td className={`px-5 py-3 text-right font-semibold tabular-nums ${r.low ? "text-amber-700" : ""}`}>{r.qty.toLocaleString("en-IN")}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground">{r.unit}</td>
                   <td className="px-5 py-3 text-right text-xs text-muted-foreground tabular-nums">{r.reorder || "—"}</td>
+                  {(canEdit || canDelete) && <td data-col="actions" className="px-5 py-3"><div className="flex justify-end gap-2">
+                    {canEdit && <Button variant="outline" size="icon" title="Correct quantity" aria-label={`Correct quantity for ${r.item_name} at ${r.holder_label}`} onClick={() => { setCorrection({ balance: r.balance, label: `${r.item_name} · ${r.holder_label}`, remove: false }); setTargetQty(String(r.qty)); setReason(""); }}><Pencil className="h-4 w-4" /></Button>}
+                    {canDelete && <Button variant="destructive" size="icon" title="Remove stock" aria-label={`Remove ${r.item_name} stock at ${r.holder_label}`} onClick={() => { setCorrection({ balance: r.balance, label: `${r.item_name} · ${r.holder_label}`, remove: true }); setTargetQty("0"); setReason(""); }}><Trash2 className="h-4 w-4" /></Button>}
+                  </div></td>}
                 </tr>
               ))}
               {!rows.length && (
-                <tr><td colSpan={6} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                <tr><td colSpan={canEdit || canDelete ? 7 : 6} className="px-5 py-12 text-center text-sm text-muted-foreground">
                   <BarChart3 className="mx-auto mb-2 h-8 w-8 opacity-40" />No stock to show for this selection.
                 </td></tr>
               )}
@@ -445,6 +490,17 @@ function StockPage() {
         </div>
         <DataPagination {...pg} />
       </div>
+      <Dialog open={!!correction} onOpenChange={(open) => { if (!open && !correctionMut.isPending) setCorrection(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{correction?.remove ? "Remove stock" : "Correct stock quantity"}</DialogTitle><DialogDescription>{correction?.label} · Size {correction?.balance.size_value || "—"}. {correction?.remove ? "The balance becomes zero; previous receipts and movements remain saved." : "Previous receipts and movements remain saved."}</DialogDescription></DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm">Current quantity: <strong>{Number(correction?.balance.qty ?? 0)}</strong></div>
+            {!correction?.remove && <div className="space-y-2"><Label htmlFor="corrected-stock-qty">Correct quantity</Label><Input id="corrected-stock-qty" type="number" min="0" step="any" value={targetQty} onChange={(e) => setTargetQty(e.target.value)} disabled={correctionMut.isPending} /></div>}
+            <div className="space-y-2"><Label htmlFor="stock-correction-reason">Reason</Label><Textarea id="stock-correction-reason" value={reason} onChange={(e) => setReason(e.target.value)} disabled={correctionMut.isPending} /></div>
+          </div>
+          <DialogFooter><Button variant="outline" disabled={correctionMut.isPending} onClick={() => setCorrection(null)}>Cancel</Button><Button variant={correction?.remove ? "destructive" : "default"} disabled={correctionMut.isPending || reason.trim().length < 3} onClick={() => correctionMut.mutate()}>{correctionMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{correction?.remove ? "Remove stock" : "Save correction"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

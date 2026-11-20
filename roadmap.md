@@ -1,3 +1,8 @@
+## Uniform stock corrections — 20 November
+- [x] Added permission-gated quantity correction and remove-to-zero actions with reasons, preserving movement history.
+- [x] Installed atomic production correction; quantity, stale-balance, removal/history and unsigned-denial rollback tests pass. No real stock changed.
+- [ ] Authenticated live stock UI verification awaits a production-compatible signed-in session and GitHub-to-Vercel delivery. Desktop/phone checks in both theme preferences redirect to sign-in, not the stock report.
+
 ## Vijay Raj Sharma official phone and remote attendance — 20 November
 - [x] Kept official phone 9156657381, cleared personal phone, and realigned his existing sign-in account without changing its identity. Added employee-only remote attendance override and Telangana branch scope for Hyderabad; retained Pune payroll home and existing mappings.
 - [x] Production readback assertions passed official-only phone, original account identity, sign-in eligibility, remote attendance exception, regional scope and unchanged payroll home. No real attendance was marked; device-level sign-in/check-in remains untested.
