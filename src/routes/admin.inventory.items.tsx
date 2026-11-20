@@ -1,4 +1,6 @@
 import { matchesSearch } from "@/lib/search-match";
+import { matchesProductVendor, vendorProductIds, type VendorProductLink } from "@/lib/inventory-vendor-filter";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { deleteInventoryProduct, productDeleteFailure } from "@/lib/inventory-product-delete";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
@@ -84,6 +86,44 @@ function rowToItem(r: Record<string, unknown>): Item {
 
 function ItemsPage() {
   const qc = useQueryClient();
+  const sessionReady = useHasSupabaseSession();
+  const [vendorFilter, setVendorFilter] = useState("all");
+  const { data: vendors = [], isPending: vendorsLoading, error: vendorsError } = useQuery({
+    queryKey: ["inv", "vendors", "product-filter"],
+    enabled: sessionReady,
+    queryFn: async () => {
+      const rows: { id: string; name: string; vendor_code: string }[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.from("inv_vendors" as never).select("id,name,vendor_code").order("name").order("id").range(offset, offset + 999);
+        if (error) throw error;
+        const batch = (data as unknown as typeof rows) ?? [];
+        rows.push(...batch);
+        if (batch.length < 1000) return rows;
+      }
+    },
+  });
+  const { data: vendorLinks = [], isFetching: vendorLinksLoading, error: vendorLinksError } = useQuery({
+    queryKey: ["inv", "product-vendor-links", vendorFilter],
+    enabled: sessionReady && vendorFilter !== "all",
+    queryFn: async (): Promise<VendorProductLink[]> => {
+      const links: VendorProductLink[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.from("inv_vendor_rate_cards" as never).select("item_id,vendor_id").eq("vendor_id", vendorFilter).order("id").range(offset, offset + 999);
+        if (error) throw error;
+        const batch = (data as unknown as VendorProductLink[]) ?? [];
+        links.push(...batch);
+        if (batch.length < 1000) break;
+      }
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.from("inv_po_lines" as never).select("item_id,inv_purchase_orders!inner(vendor_id)").eq("inv_purchase_orders.vendor_id", vendorFilter).order("id").range(offset, offset + 999);
+        if (error) throw error;
+        const batch = (data as unknown as { item_id: string }[]) ?? [];
+        links.push(...batch.map((row) => ({ item_id: row.item_id, vendor_id: vendorFilter })));
+        if (batch.length < 1000) return links;
+      }
+    },
+  });
+  const linkedVendorIds = useMemo(() => vendorProductIds(vendorFilter, vendorLinks), [vendorFilter, vendorLinks]);
   const { data: items = [] } = useQuery({
     queryKey: QK,
     queryFn: async () => {
@@ -115,10 +155,11 @@ function ItemsPage() {
     const q = query.trim().toLowerCase();
     return items.filter((i) => {
       if (catFilter !== "all" && i.category_id !== catFilter) return false;
+      if (!matchesProductVendor(i, vendorFilter, linkedVendorIds)) return false;
       if (!q) return true;
       return matchesSearch(q, [i.name, i.item_code, i.hsn_code]);
     });
-  }, [items, query, catFilter]);
+  }, [items, query, catFilter, vendorFilter, linkedVendorIds]);
   const pg = usePagination(filtered);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: QK });
@@ -179,7 +220,7 @@ function ItemsPage() {
       <PageHeader title="Products" description="Inventory items and SKUs." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Products" }]} />
 
       <div className="mobile-directory-toolbar mobile-glass-surface mb-3 flex flex-col gap-2 rounded-xl border border-border/60 bg-card/70 p-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2 sm:rounded-2xl sm:p-2.5">
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search items…" className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30" />
@@ -191,12 +232,22 @@ function ItemsPage() {
               {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={vendorFilter} onValueChange={setVendorFilter}>
+            <SelectTrigger aria-label="Filter by vendor" disabled={vendorsLoading} className="h-10 w-full sm:w-56"><SelectValue placeholder="All vendors" /></SelectTrigger>
+            <SelectContent searchable searchPlaceholder="Search vendors…">
+              <SelectItem value="all">All vendors</SelectItem>
+              {vendors.map((vendor) => <SelectItem key={vendor.id} value={vendor.id} textValue={`${vendor.name} ${vendor.vendor_code}`}>{vendor.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setAddOpen(true)} className="h-10 rounded-lg bg-primary font-semibold text-primary-foreground hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" />Add Item</Button>
           <Button variant="outline" disabled={!filtered.length} onClick={() => downloadCsv("inventory-items", filtered.map((i) => ({ code: i.item_code, name: i.name, category: catMap.get(i.category_id ?? "") ?? "", unit: i.unit, sized: i.is_sized ? "Yes" : "No", hsn: i.hsn_code, reorder: i.default_reorder_level, enabled: i.enabled ? "Yes" : "No" })))} className="h-10 rounded-lg"><Download className="mr-1.5 h-4 w-4" />Export</Button>
         </div>
       </div>
+
+      {(vendorsError || vendorLinksError) && <p role="alert" className="mb-3 text-sm text-destructive">Could not load vendor information. Please try again.</p>}
+      {vendorFilter !== "all" && vendorLinksLoading && <p role="status" className="mb-3 text-sm text-muted-foreground">Loading vendor products…</p>}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border bg-accent/10 px-5 py-2.5 text-xs font-medium">
@@ -245,7 +296,7 @@ function ItemsPage() {
                   </td>
                 </tr>
               ))}
-              {!filtered.length && <tr><td colSpan={10} className="px-5 py-12 text-center text-sm text-muted-foreground">No items yet. Click "Add Item" to begin.</td></tr>}
+              {!filtered.length && <tr><td colSpan={10} className="px-5 py-12 text-center text-sm text-muted-foreground">{vendorLinksLoading ? "Loading vendor products…" : "No products match the selected filters."}</td></tr>}
             </tbody>
           </table>
           <DataPagination {...pg} />

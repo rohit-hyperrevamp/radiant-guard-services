@@ -1,3 +1,8 @@
+## Vendor-wise product filter — 20 November
+- [x] Added searchable All vendors beside All categories; filters combine with product search/category and use vendor rate cards, purchase history and last purchase vendor. All vendors remain selectable, with paged reads and no data changes.
+- [x] Twelve vendor/deletion/shared-dropdown tests passed; compilation OK. Production read confirmed all four vendors and their saved links; no products or vendors changed.
+- [ ] Live vendor selection, combined filters and export readback await website delivery and authorized production access; Uniform Manager/Products redirect to sign-in at phone/desktop widths with both theme preferences.
+
 ## Product deletion failures — 20 November
 - [x] Identified production foreign-key protection on used products and generic error masking; unused products now require confirmed removal, linked products show the reason and offer explicit disabling without deleting history.
 - [x] Four focused deletion tests passed; production rollback test confirmed unused-product deletion and foreign-key rejection/history preservation for used products. Compilation OK; no real product changed.
