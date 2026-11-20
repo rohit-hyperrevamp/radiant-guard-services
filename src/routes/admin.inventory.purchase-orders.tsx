@@ -19,6 +19,8 @@ import { useItemSizeOptions, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { GuidedForm, useGuidedFormCloseGuard, type GuidedFormStep } from "@/components/GuidedForm";
+import { SearchSelect } from "@/components/SearchSelect";
+import { purchaseOrderVendorItems, purchaseOrderVendorSizes } from "@/lib/purchase-order-vendor-items";
 
 // PO status → user-facing delivery label. Legacy "approved" maps to Delivery Open.
 const PO_STATUS_LABEL: Record<string, string> = {
@@ -409,12 +411,17 @@ function POFormDialog({
     }
     return m;
   }, [itemSizes]);
-  // Items quoted by the selected vendor (via rate cards). Empty vendor => no items.
-  const vendorItems = useMemo(() => {
-    if (!vendorId) return [] as Item[];
-    const ids = new Set(rateCards.filter((rc) => rc.vendor_id === vendorId).map((rc) => rc.item_id));
-    return items.filter((i) => ids.has(i.id));
-  }, [vendorId, rateCards, items]);
+  // Only products mapped to this vendor through enabled rate cards are offered.
+  const vendorItems = useMemo(
+    () => purchaseOrderVendorItems(vendorId, items, rateCards),
+    [vendorId, rateCards, items],
+  );
+  const vendorSizes = (itemId: string) => purchaseOrderVendorSizes(
+    vendorId,
+    itemId,
+    rateCards,
+    sizesByItem.get(itemId) ?? [],
+  );
   // Line/header field edits lock once goods start arriving. Status toggle stays available unless cancelled.
   const readOnly = !!initial && !(initial.status === "draft" || initial.status === "open" || initial.status === "approved");
 
@@ -696,7 +703,7 @@ function POFormDialog({
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <Label className="text-sm font-semibold">Line Items</Label>
-                {vendorId && <span className="ml-2 text-[11px] text-muted-foreground">Showing {vendorItems.length} item{vendorItems.length === 1 ? "" : "s"} this vendor quotes</span>}
+                {vendorId && <span className="ml-2 text-[11px] text-muted-foreground">Showing {vendorItems.length} mapped item{vendorItems.length === 1 ? "" : "s"}</span>}
                 {!vendorId && <span className="ml-2 text-[11px] text-muted-foreground">Pick a vendor to see their items</span>}
               </div>
               {!readOnly && (
@@ -707,8 +714,10 @@ function POFormDialog({
                     const toAdd: POLine[] = [];
                     for (const it of vendorItems) {
                       if (existing.has(it.id)) continue;
-                      const rc = findRate(vendorId, it.id, "");
-                      toAdd.push({ item_id: it.id, size_value: "", ordered_qty: 1, unit_price: rc?.unit_price ?? 0, tax_percent: rc?.tax_percent ?? 0, notes: "" });
+                      const sizes = vendorSizes(it.id);
+                      const sizeValue = sizes.length === 1 ? (sizes[0] ?? "") : "";
+                      const rc = findRate(vendorId, it.id, sizeValue);
+                      toAdd.push({ item_id: it.id, size_value: sizeValue, ordered_qty: 1, unit_price: rc?.unit_price ?? 0, tax_percent: rc?.tax_percent ?? 0, notes: "" });
                     }
                     if (!toAdd.length) { toast.info("All vendor items already added"); return; }
                     setLines((ls) => [...ls, ...toAdd]);
@@ -721,6 +730,11 @@ function POFormDialog({
                 </div>
               )}
             </div>
+            {vendorId && !vendorItems.length && (
+              <p className="mb-3 rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+                No products are mapped to this vendor. Add its products and sizes in Vendor Rate Cards first.
+              </p>
+            )}
             <div className="overflow-x-clip rounded-xl border border-border">
               <table className="ios-table w-full text-sm">
                 <thead className="bg-secondary/60 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -743,19 +757,36 @@ function POFormDialog({
                     const overpayPct = cheap && cheap.unit_price > 0 ? ((l.unit_price - cheap.unit_price) / cheap.unit_price) * 100 : 0;
                     return (
                       <tr key={idx}>
-                        <td className="px-2 py-1.5">
-                          <Select value={l.item_id} onValueChange={(v) => applyRateToLine(idx, v, l.size_value)} disabled={readOnly}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Pick item" /></SelectTrigger>
-                            <SelectContent>{vendorItems.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}{!vendorItems.length && <div className="px-3 py-2 text-xs text-muted-foreground">No items quoted by this vendor</div>}</SelectContent>
-                          </Select>
+                        <td className="min-w-56 px-2 py-1.5">
+                          <SearchSelect
+                            ariaLabel={`Item on line ${idx + 1}`}
+                            className="h-9"
+                            value={l.item_id}
+                            disabled={readOnly || !vendorId}
+                            onChange={(itemId) => {
+                              const sizes = vendorSizes(itemId);
+                              applyRateToLine(idx, itemId, sizes.length === 1 ? (sizes[0] ?? "") : "");
+                            }}
+                            options={(item && !vendorItems.some((it) => it.id === item.id) ? [item, ...vendorItems] : vendorItems).map((it) => {
+                              const sizes = vendorSizes(it.id);
+                              return {
+                                value: it.id,
+                                label: it.name,
+                                hint: `${it.item_code}${sizes.length ? ` · Sizes: ${sizes.join(", ")}` : ""}`,
+                              };
+                            })}
+                            placeholder="Pick item"
+                            searchPlaceholder="Search item name, code or size"
+                            emptyText={!vendorId ? "Select a vendor first." : vendorItems.length ? "No matching mapped items." : "No products mapped to this vendor."}
+                          />
                         </td>
                         <td className="px-2 py-1.5 align-top">
                           {item?.is_sized ? (
-                            (sizesByItem.get(l.item_id)?.length ?? 0) > 0 ? (
+                            vendorSizes(l.item_id).length > 0 ? (
                               <Select value={l.size_value || undefined} onValueChange={(v) => applyRateToLine(idx, l.item_id, v)} disabled={readOnly}>
                                 <SelectTrigger className="h-9"><SelectValue placeholder="Size" /></SelectTrigger>
                                 <SelectContent>
-                                  {sizesByItem.get(l.item_id)!.map((sv) => <SelectItem key={sv} value={sv}>{sv}</SelectItem>)}
+                                  {vendorSizes(l.item_id).map((sv) => <SelectItem key={sv} value={sv}>{sv}</SelectItem>)}
                                 </SelectContent>
                               </Select>
                             ) : (
