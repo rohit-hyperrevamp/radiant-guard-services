@@ -25,6 +25,7 @@ import {
 import { isNativePlatform } from "@/lib/native";
 import { captureAttendanceSelfie } from "@/lib/attendance-selfie";
 import { cn } from "@/lib/utils";
+import { attendancePositionStatus } from "@/lib/attendance-position";
 
 // In-memory reverse-geocode cache keyed by rounded coords.
 const placeCache = new Map<string, string>();
@@ -314,6 +315,17 @@ export function MarkAttendanceCard({
     cancelText: "Not now",
   });
 
+  const checkOfficeDistance = (distance: number, geo: import("@/lib/self-attendance").Geo, unitName: string) => {
+    if (distance < 0) return;
+    const status = attendancePositionStatus(distance, geo.accuracy, proximityThresholdM);
+    if (status === "uncertain") {
+      throw new Error(`Your device's location is not precise enough to confirm you are at ${unitName} (reported accuracy ±${Math.round(geo.accuracy)}m). Enable precise location and retry, or use your phone with GPS on. The office limit remains ${proximityThresholdM}m.`);
+    }
+    if (status === "outside") {
+      throw new Error(`Your device reports ${formatDistance(distance)} from ${unitName} (accuracy ±${Math.round(geo.accuracy)}m). You must be within ${proximityThresholdM}m. If you are already there, enable precise location and retry or use your phone with GPS on.`);
+    }
+  };
+
   const showPunchError = (action: "in" | "out", error: unknown) => confirmAction({
     title: action === "in" ? "Unable to log in" : "Unable to log out",
     description: punchErrorMessage(error) ?? `${action === "in" ? "Login" : "Logout"} could not be completed.`,
@@ -349,7 +361,7 @@ export function MarkAttendanceCard({
       }
       // Location is MANDATORY for every attendance punch. Attendance cannot be
       // marked while GPS / location permission is off.
-      const geo: import("@/lib/self-attendance").Geo = await getCurrentPosition();
+      const geo: import("@/lib/self-attendance").Geo = await getCurrentPosition({ fresh: true });
 
       if (gated) {
         const units = allowedUnits ?? [];
@@ -362,7 +374,7 @@ export function MarkAttendanceCard({
             // -1 = site has no saved location yet; this punch will set it.
             distance: u.latitude == null || u.longitude == null
               ? -1
-              : distanceMeters({ lat: geo!.lat, lng: geo!.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
+              : distanceMeters({ lat: geo.lat, lng: geo.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
           }))
           .sort((a, b) => a.distance - b.distance);
 
@@ -375,11 +387,8 @@ export function MarkAttendanceCard({
         }
 
         const only = withDist[0];
-        if (only.distance > proximityThresholdM) {
-          throw new Error(
-            `You are ${formatDistance(only.distance)} from ${only.unit.name}. Move within ${proximityThresholdM}m and try again.`,
-          );
-        }
+        if (!only) throw new Error("No site is mapped to you for attendance.");
+        checkOfficeDistance(only.distance, geo, only.unit.name);
         const confirmed = await confirmPunch("in", only.unit.name);
         if (!confirmed) return null;
         return await performCheckIn(only.unit.id, geo, face);
@@ -408,11 +417,8 @@ export function MarkAttendanceCard({
       if (!pendingGeo) throw new Error("Location expired. Try again.");
       const picked = nearby.find((item) => item.unit.id === unitId);
       const unitName = picked?.unit.name ?? "Assigned unit";
-      if (picked && picked.distance > proximityThresholdM) {
-        throw new Error(
-          `You are ${formatDistance(picked.distance)} from ${unitName}. Move within ${proximityThresholdM}m of it and try again.`,
-        );
-      }
+      if (!picked) throw new Error("Please select a mapped site.");
+      checkOfficeDistance(picked.distance, pendingGeo.geo, unitName);
       const confirmed = await confirmPunch("in", unitName);
       if (!confirmed) return null;
       return await performCheckIn(unitId, pendingGeo.geo, pendingGeo.face);
@@ -442,7 +448,7 @@ export function MarkAttendanceCard({
       if (selfieRequired && isNativePlatform()) {
         face = await verifyFaceForAttendance("Attendance logout");
       }
-      const geo = await getCurrentPosition();
+      const geo = await getCurrentPosition({ fresh: true });
       const nearest = (allowedUnits ?? [])
         .filter((unit) => unit.latitude != null && unit.longitude != null)
         .map((unit) => ({
@@ -488,7 +494,8 @@ export function MarkAttendanceCard({
         ]);
         if (cancelled) return;
         await pushTelemetry(punch.id, {
-          geo: geo.status === "fulfilled" ? geo.value : null,
+          // A coarse network estimate must not overwrite a precise saved fix.
+          geo: geo.status === "fulfilled" && geo.value.accuracy > 0 && geo.value.accuracy <= proximityThresholdM ? geo.value : null,
           battery: battery.status === "fulfilled" ? battery.value : null,
           network: network.status === "fulfilled" ? network.value : null,
         });
@@ -503,7 +510,7 @@ export function MarkAttendanceCard({
       cancelled = true;
       clearInterval(t);
     };
-  }, [state, punch?.id, candidateId, qc]);
+  }, [state, punch?.id, candidateId, qc, proximityThresholdM]);
 
 
   const pillClass =
@@ -639,7 +646,9 @@ export function MarkAttendanceCard({
                           : "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
                       )}
                     >
-                      {formatDistance(d)} away
+                      {attendancePositionStatus(d, punch?.last_accuracy ?? punch?.check_in_accuracy ?? 0, proximityThresholdM) === "uncertain"
+                        ? "Location uncertain"
+                        : `${formatDistance(d)} away`}
                     </span>
                   )}
                 </li>

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isNativePlatform, logNativeEvent } from "@/lib/native";
+import { freshBrowserPosition } from "@/lib/attendance-position";
 
 export type SelfPunch = {
   id: string;
@@ -37,7 +38,7 @@ export type Geo = {
   accuracy: number;
 };
 
-export async function getCurrentPosition(): Promise<Geo> {
+export async function getCurrentPosition(options?: { fresh?: boolean }): Promise<Geo> {
   if (isNativePlatform()) {
     const { requestLocationPermission, LOCATION_REQUIRED_MESSAGE } = await import(
       "@/lib/location-permission"
@@ -49,7 +50,7 @@ export async function getCurrentPosition(): Promise<Geo> {
       const pos = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 20_000,
-        maximumAge: 15_000,
+        maximumAge: options?.fresh ? 0 : 15_000,
       });
       return {
         lat: Number(pos.coords.latitude.toFixed(7)),
@@ -65,6 +66,14 @@ export async function getCurrentPosition(): Promise<Geo> {
   }
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     throw new Error("Location is not available on this device.");
+  }
+  if (options?.fresh) {
+    const pos = await freshBrowserPosition(navigator.geolocation);
+    return {
+      lat: Number(pos.coords.latitude.toFixed(7)),
+      lng: Number(pos.coords.longitude.toFixed(7)),
+      accuracy: Number(pos.coords.accuracy.toFixed(2)),
+    };
   }
   return await new Promise<Geo>((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
