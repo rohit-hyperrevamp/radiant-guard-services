@@ -2,7 +2,7 @@
 - [x] Restricted Order from Vendor item choices to the selected vendor's mappings, added mapped-size hints and restricted size-specific choices accordingly; blank-size vendor rates retain the product's full size chart.
 - [x] Added searchable product/code/size selection, single-size autofill and clear empty-mapping guidance. Production Ludhiana has no rate-card, last-purchase or purchase-order product links, so no mappings were invented.
 - [x] Thirteen focused tests, typecheck, diff checks and automatic build pass; production mapping readback confirms no products, vendors, sizes or orders changed.
-- [ ] Link Ludhiana's actual products/sizes after the user identifies them; signed-in live picker verification awaits GitHub-to-Vercel delivery.
+- [ ] Link Ludhiana's actual products/sizes after the user identifies them. Live desktop/phone purchase-order checks in light/dark preferences all redirected to sign-in with no page errors, so mapped-item selection and size display remain unverified pending GitHub-to-Vercel delivery and authorized production access.
 
 ## Vendor-wise product filter — 20 November
 - [x] Added searchable All vendors beside All categories; filters combine with product search/category and use vendor rate cards, purchase history and last purchase vendor. All vendors remain selectable, with paged reads and no data changes.
