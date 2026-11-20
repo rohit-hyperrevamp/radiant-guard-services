@@ -1,3 +1,7 @@
+## Vijay Raj Sharma official phone and remote attendance — 20 November
+- [x] Kept official phone 9156657381, cleared personal phone, and realigned his existing sign-in account without changing its identity. Added employee-only remote attendance override and Telangana branch scope for Hyderabad; retained Pune payroll home and existing mappings.
+- [x] Production readback assertions passed official-only phone, original account identity, sign-in eligibility, remote attendance exception, regional scope and unchanged payroll home. No real attendance was marked; device-level sign-in/check-in remains untested.
+
 ## Vehicle in-charge access and today's mapped attendance — 19 November
 - [x] Shahid (26881) already has full Vehicles permissions; added fleet trip register/assignment destination, configurable Trips child, driver picker and direct FASTag/expense-photo links. Production has zero saved trips; no FASTag photo field exists. Existing vehicle details/photos retained and no employee editing granted.
 - [x] Installed paged server-scoped attendance/check-in location summary; added cards to main, transport and field dashboards and exact distinct-person FO Present count. Present, checked-in and on-duty stay separate; missing GPS never becomes a guessed location. Production admin readback: 30 present / 30 checked in at verification time.
