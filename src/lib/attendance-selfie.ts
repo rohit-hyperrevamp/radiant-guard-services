@@ -87,7 +87,7 @@ export async function captureAttendanceSelfie(opts: {
 }): Promise<{ path: string; place: string | null }> {
   const label = opts.action === "in" ? "Log in" : "Log out";
   const [photo, place] = await Promise.all([
-    capturePhoto({ front: true, title: `Face scan · ${label}` }),
+    capturePhoto({ front: true, title: `Face scan · ${label}`, cameraOnly: true }),
     reversePlace(opts.geo.lat, opts.geo.lng),
   ]);
   if (!photo) throw new Error("A face photo is required to mark attendance. Please take the photo.");

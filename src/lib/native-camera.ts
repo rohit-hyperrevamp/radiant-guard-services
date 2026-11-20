@@ -5,7 +5,21 @@ import { isNativePlatform } from "@/lib/native";
  * - On native (iOS/Android) uses @capacitor/camera and prompts the OS camera.
  * - On web, falls back to a hidden `<input type="file" capture="environment">`.
  */
-export type CaptureOptions = { front?: boolean; title?: string };
+export type CaptureOptions = { front?: boolean; title?: string; cameraOnly?: boolean };
+
+export function cameraErrorMessage(error: unknown): string {
+  const name = error && typeof error === "object" && "name" in error ? error.name : null;
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return "Camera access is blocked. Allow Camera for this website in your browser settings, then retry attendance.";
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "No camera was found. Connect a webcam or mark attendance from your phone's camera.";
+  }
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "The camera could not open. Close other apps using the camera, then retry attendance.";
+  }
+  return "The camera could not open. Check camera permissions and retry, or use your phone's camera.";
+}
 
 export async function capturePhoto(opts: CaptureOptions = {}): Promise<string | null> {
   if (isNativePlatform()) {
@@ -22,6 +36,7 @@ export async function capturePhoto(opts: CaptureOptions = {}): Promise<string | 
       });
       return res.dataUrl ?? null;
     } catch (err) {
+      if (opts.cameraOnly) throw new Error(cameraErrorMessage(err));
       // User cancelled or permission denied — surface as null
       console.warn("[capturePhoto] native failed", err);
       return null;
@@ -36,8 +51,13 @@ export async function capturePhoto(opts: CaptureOptions = {}): Promise<string | 
     try {
       return await capturePhotoFromWebCamera(opts);
     } catch (err) {
+      if (opts.cameraOnly) throw new Error(cameraErrorMessage(err));
       console.warn("[capturePhoto] web camera failed", err);
     }
+  }
+
+  if (opts.cameraOnly) {
+    throw new Error("This browser cannot open the camera. Use an updated browser with camera access or mark attendance from your phone.");
   }
 
   return new Promise<string | null>((resolve) => {
@@ -78,9 +98,9 @@ async function capturePhotoFromWebCamera(opts: CaptureOptions): Promise<string |
     audio: false,
   });
 
-  return await new Promise<string | null>((resolve) => {
+  return await new Promise<string | null>((resolve, reject) => {
     let settled = false;
-    const cleanup = (value: string | null) => {
+    const cleanup = (value: string | null, error?: unknown) => {
       if (settled) return;
       settled = true;
       stream.getTracks().forEach((track) => track.stop());
@@ -89,7 +109,8 @@ async function capturePhotoFromWebCamera(opts: CaptureOptions): Promise<string |
       } catch {
         /* noop */
       }
-      resolve(value);
+      if (error) reject(error);
+      else resolve(value);
     };
 
     const overlay = document.createElement("div");
@@ -170,8 +191,9 @@ async function capturePhotoFromWebCamera(opts: CaptureOptions): Promise<string |
     capture.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const width = video.videoWidth || 1280;
-      const height = video.videoHeight || 960;
+      if (!video.videoWidth || !video.videoHeight) return;
+      const width = video.videoWidth;
+      const height = video.videoHeight;
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
@@ -188,6 +210,8 @@ async function capturePhotoFromWebCamera(opts: CaptureOptions): Promise<string |
     overlay.append(title, videoWrap, actions);
     document.body.appendChild(overlay);
 
-    video.play().catch(() => cleanup(null));
+    video.play().catch((error: unknown) => {
+      cleanup(null, error);
+    });
   });
 }
