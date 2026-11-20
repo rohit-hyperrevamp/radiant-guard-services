@@ -1,3 +1,8 @@
+## Product deletion failures — 20 November
+- [x] Identified production foreign-key protection on used products and generic error masking; unused products now require confirmed removal, linked products show the reason and offer explicit disabling without deleting history.
+- [x] Four focused deletion tests passed; production rollback test confirmed unused-product deletion and foreign-key rejection/history preservation for used products. Compilation OK; no real product changed.
+- [ ] Deployed deletion/disable UI verification awaits GitHub-to-Vercel delivery and authorized live access; production Products redirects to sign-in.
+
 ## Uniform stock corrections — 20 November
 - [x] Added permission-gated quantity correction and remove-to-zero actions with reasons, preserving movement history.
 - [x] Installed atomic production correction; quantity, stale-balance, removal/history and unsigned-denial rollback tests pass. No real stock changed.

@@ -1,4 +1,5 @@
 import { matchesSearch } from "@/lib/search-match";
+import { deleteInventoryProduct, productDeleteFailure } from "@/lib/inventory-product-delete";
 import { createFileRoute } from "@tanstack/react-router";
 import { RecordViewButton } from "@/components/RecordViewButton";
 import { ScrollingText } from "@/components/ScrollingText";
@@ -106,6 +107,7 @@ function ItemsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
   const [deleting, setDeleting] = useState<Item | null>(null);
+  const [deleteFailure, setDeleteFailure] = useState<{ linked: boolean; message: string } | null>(null);
   const [historyFor, setHistoryFor] = useState<Item | null>(null);
   const [stockFor, setStockFor] = useState<Item | null>(null);
 
@@ -163,8 +165,10 @@ function ItemsPage() {
   });
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inv_items" as never).delete().eq("id", id);
-      if (error) throw error;
+      await deleteInventoryProduct(id, async (productId) => {
+        const { data, error } = await supabase.from("inv_items" as never).delete().eq("id", productId).select("id").maybeSingle();
+        return { data: data as { id: string } | null, error };
+      });
       void logActivity({ module: MODULE, action: "delete", entityType: ENTITY, entityId: id });
     },
     onSuccess: invalidate,
@@ -236,7 +240,7 @@ function ItemsPage() {
                         onEdit={() => setEditing(i)}
                       />
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit" onClick={() => setEditing(i)}><Edit2 className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" title="Delete" onClick={() => setDeleting(i)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" title="Delete" onClick={() => { setDeleteFailure(null); setDeleting(i); }}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </td>
                 </tr>
@@ -251,10 +255,24 @@ function ItemsPage() {
       <ItemFormDialog open={addOpen} onOpenChange={setAddOpen} title="Add Item" categories={categories} onSubmit={async (p) => { try { await addMut.mutateAsync(p); void notifySaved({ title: "Saved", description: "Item added" }); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />
       <ItemFormDialog open={!!editing} initial={editing} onOpenChange={(o) => !o && setEditing(null)} title="Edit Item" categories={categories} onSubmit={async (p) => { if (!editing) return null; try { await updateMut.mutateAsync({ id: editing.id, p }); void notifySaved({ title: "Saved", description: "Updated" }); setEditing(null); return null; } catch (e) { return e instanceof Error ? e.message : "Failed"; } }} />
 
-      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o && !deleteMut.isPending && !toggleMut.isPending) { setDeleting(null); setDeleteFailure(null); } }}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete item?</AlertDialogTitle><AlertDialogDescription>{deleting && <span className="font-semibold">{deleting.name}</span>}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { if (!deleting) return; try { await deleteMut.mutateAsync(deleting.id); toast.success("Deleted"); setDeleting(null); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } }}>Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>{deleteFailure?.linked ? "Product has inventory history" : "Delete product?"}</AlertDialogTitle><AlertDialogDescription>{deleting && <span className="font-semibold">{deleting.name}</span>}<span className="mt-3 block">{deleteFailure?.message ?? "Permanently delete this product? Products with inventory history must be retained."}</span></AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMut.isPending || toggleMut.isPending}>Cancel</AlertDialogCancel>
+            {deleteFailure?.linked ? (
+              deleting?.enabled ? <Button disabled={toggleMut.isPending} onClick={async () => {
+                if (!deleting) return;
+                try { await toggleMut.mutateAsync({ id: deleting.id, enabled: false }); toast.success("Product disabled; inventory history retained"); setDeleting(null); setDeleteFailure(null); }
+                catch (e) { toast.error(productDeleteFailure(e).message); }
+              }}>{toggleMut.isPending ? "Disabling…" : "Disable product"}</Button> : null
+            ) : <AlertDialogAction disabled={deleteMut.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async (event) => {
+              event.preventDefault();
+              if (!deleting) return;
+              try { await deleteMut.mutateAsync(deleting.id); toast.success("Product deleted"); setDeleting(null); setDeleteFailure(null); }
+              catch (e) { setDeleteFailure(productDeleteFailure(e)); }
+            }}>{deleteMut.isPending ? "Deleting…" : "Delete"}</AlertDialogAction>}
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
