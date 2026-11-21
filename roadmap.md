@@ -1,3 +1,7 @@
+## CLI3871 weekly off as Present — 21 November
+- [x] Enabled WO-as-P on CLI3871 active contract CON14307 only; expired contract, other clients, rates and 443 attendance entries unchanged. Production currently has no saved WO marks for CLI3871.
+- [x] Rollback preservation test, production readback and shared WO calculation tests pass. Signed-in screen display not checked.
+
 ## Vendor-specific purchase-order items — 20 November
 - [x] Restricted Order from Vendor item choices to the selected vendor's mappings, added mapped-size hints and restricted size-specific choices accordingly; blank-size vendor rates retain the product's full size chart.
 - [x] Added searchable product/code/size selection, single-size autofill and clear empty-mapping guidance. Production Ludhiana has no rate-card, last-purchase or purchase-order product links, so no mappings were invented.
