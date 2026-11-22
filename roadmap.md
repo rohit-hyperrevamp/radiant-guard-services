@@ -1,3 +1,8 @@
+## Karnataka October workbook attendance — 22 November
+- [ ] Reactivate CLI2702 only through 31 December 2026, preserve its rates, and include its workbook attendance.
+- [ ] Match workbook clients/employees, import only explicit daily marks, ignore summaries and preserve unrelated records.
+- [ ] Verify production readback and report unmatched or incomplete rows.
+
 ## CLI3871 weekly off as Present — 21 November
 - [x] Enabled WO-as-P on CLI3871 active contract CON14307 only; expired contract, other clients, rates and 443 attendance entries unchanged. Production currently has no saved WO marks for CLI3871.
 - [x] Rollback preservation test, production readback and shared WO calculation tests pass. Signed-in screen display not checked.
