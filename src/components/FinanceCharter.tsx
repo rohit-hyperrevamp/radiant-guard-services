@@ -259,9 +259,9 @@ export function FinanceCharter({
   );
 
   const financeQ = useQuery({
-    queryKey: ["finance-charter-contracts", unitIds.join(",")],
+    queryKey: ["finance-charter-contracts", periodKey],
     enabled: unitIds.length > 0,
-    queryFn: () => fetchUnitFinance(unitIds),
+    queryFn: () => fetchUnitFinance(unitIds, periodsByUnit),
   });
 
   const entriesQ = useQuery({
@@ -534,7 +534,7 @@ export function FinanceCharter({
     const splitFor = (unitId: string) => splits.get(targets.find((u) => u.id === unitId)?.customer_id ?? "") ?? null;
     const financeMap = new Map<string, UnitFinance>();
     for (const chunkIds of chunkOf(ids, 100)) {
-      const part = await fetchUnitFinance(chunkIds);
+      const part = await fetchUnitFinance(chunkIds, allPeriodsByUnit);
       for (const [key, value] of part) financeMap.set(key, value);
     }
     const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -577,7 +577,8 @@ export function FinanceCharter({
       const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
       const period = allPeriodsByUnit.get(entryUnitId);
       const hasEdRate = rate.extraDutyBillRate != null || rate.extraDutyFromMonthlyBilling;
-      const perDay = (hasEdRate || rate.invoicePresentCap) && period
+      // Same per-duty rate as invoice detail: monthly billing ÷ billing-days rule.
+      const perDay = period
         ? billingRatePerDay(rate.billRate, rate, periodDateList(period.start, period.end))
         : rate.billRate / periodDays;
       const edRate = rate.extraDutyFromMonthlyBilling && period
@@ -839,7 +840,7 @@ export function FinanceCharter({
 
       const financeMap = new Map<string, UnitFinance>();
       for (const chunkIds of chunkOf(ids, 100)) {
-        const part = await fetchUnitFinance(chunkIds);
+        const part = await fetchUnitFinance(chunkIds, allPeriodsByUnit);
         for (const [k, v] of part) financeMap.set(k, v);
       }
 

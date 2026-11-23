@@ -5,6 +5,7 @@ import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
 import { invoiceExtraDutyRate, isCli2989Caretaker } from "@/lib/invoice-duty-rates";
 import { contractMonthlyBilling } from "@/lib/contract-rate-display";
 import { invoiceCapPool, invoicePoolStrength } from "@/lib/invoice-present-cap";
+import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -71,38 +72,70 @@ function sumAmounts(list: unknown): number {
 }
 
 
-export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMap> {
+/**
+ * Contract governing a period, same rule as fetchPeriodContract: an active or
+ * expired contract overlapping the period (latest start, active first, newest),
+ * else the latest active contract.
+ */
+export function pickPeriodContract<T extends { status?: unknown; start_date?: unknown; end_date?: unknown; created_at?: unknown }>(
+  contracts: T[],
+  period?: { start: string; end: string } | null,
+): T | null {
+  const s = (v: unknown) => String(v ?? "");
+  const order = (a: T, b: T) =>
+    s(b.start_date).localeCompare(s(a.start_date)) ||
+    s(a.status).localeCompare(s(b.status)) ||
+    s(b.created_at).localeCompare(s(a.created_at));
+  if (period) {
+    const overlap = contracts
+      .filter((c) => (c.status === "active" || c.status === "expired") && s(c.start_date) <= period.end && (!c.end_date || s(c.end_date) >= period.start))
+      .sort(order);
+    if (overlap[0]) return overlap[0];
+  }
+  return contracts.filter((c) => c.status === "active").sort(order)[0] ?? null;
+}
+
+export async function fetchUnitFinance(
+  unitIds: string[],
+  periods?: Map<string, { start: string; end: string }>,
+): Promise<UnitFinanceMap> {
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
   const out: UnitFinanceMap = new Map();
   if (!ids.length) return out;
 
-  const contracts = await fetchInChunks<{ id: string; unit_id: string | null; contract_code: string | null }>(
+  type ContractRow = { id: string; unit_id: string | null; contract_code: string | null; status: string; start_date: string | null; end_date: string | null; created_at: string | null };
+  const contracts = await fetchInChunks<ContractRow>(
     ids,
     (chunk, from, to) =>
       supabase
         .from("client_contracts")
-        .select("id, unit_id, contract_code, status, start_date")
+        .select("id, unit_id, contract_code, status, start_date, end_date, created_at")
         .in("unit_id", chunk)
-        .eq("status", "active")
+        .eq("record_type", "client")
+        .in("status", ["active", "expired"])
+        .order("id")
         .range(from, to),
   );
 
-  const contractByUnit = new Map<string, { id: string; code: string }>();
+  const byUnit = new Map<string, ContractRow[]>();
   for (const c of contracts) {
     if (!c.unit_id) continue;
-    if (!contractByUnit.has(c.unit_id)) {
-      contractByUnit.set(c.unit_id, { id: c.id as string, code: (c.contract_code as string) || "—" });
-    }
+    byUnit.set(c.unit_id, [...(byUnit.get(c.unit_id) ?? []), c]);
+  }
+  const contractByUnit = new Map<string, { id: string; code: string }>();
+  for (const [unitId, list] of byUnit) {
+    const c = pickPeriodContract(list, periods?.get(unitId) ?? null);
+    if (c) contractByUnit.set(unitId, { id: c.id, code: c.contract_code || "—" });
   }
   if (!contractByUnit.size) return out;
 
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
-  const [resources, designations, payrollBases, billingBases, postingShifts, units] = await Promise.all([
+  const [rawResources, designations, payrollBases, billingBases, postingShifts, units] = await Promise.all([
     fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
       supabase
         .from("contract_resources")
         .select(
-          "contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, round_off_final, round_off_totals",
+          "id, contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, round_off_final, round_off_totals, ot_basis, ot_hourly_rate, ot_hourly_esic",
         )
         .in("contract_id", chunk)
         .range(from, to),
@@ -141,6 +174,18 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
 
   const unitByContract = new Map<string, string>();
   for (const [unitId, c] of contractByUnit) unitByContract.set(c.id, unitId);
+  // Period rates: day-split approved rate revisions, as invoice/payroll detail apply them.
+  const byPeriod = new Map<string, Record<string, unknown>[]>();
+  for (const r of rawResources) {
+    const p = periods?.get(unitByContract.get(String(r.contract_id)) ?? "");
+    const key = p ? `${p.start}|${p.end}` : "";
+    byPeriod.set(key, [...(byPeriod.get(key) ?? []), r]);
+  }
+  const resources: Record<string, unknown>[] = [];
+  for (const [key, list] of byPeriod) {
+    const [start, end] = key.split("|");
+    resources.push(...(key ? await applyRateRevisionsForPeriod(list, start, end) : list));
+  }
 
   const grouped = new Map<string, ResourceRate[]>();
   for (const r of resources) {
@@ -174,6 +219,10 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
         unitCode: unitCodeById.get(unitId),
         designationName: (r.designation_id ? desigMap.get(String(r.designation_id)) : undefined) ?? null,
         monthlyBilling,
+        // Contract "custom per-hour" Extra Duty bills (ED wage + ESIC) per hour.
+        hourlyEd: r.ot_basis === "hourly"
+          ? { rate: r.ot_hourly_rate as number | null, esic: r.ot_hourly_esic as number | null, shiftHours: Number(r.shift_hours) || 8 }
+          : null,
       }),
       extraDutyFromMonthlyBilling: isCli2989Caretaker(unitCodeById.get(unitId), r.designation_id ? desigMap.get(String(r.designation_id)) : null),
       payrollDayBase: r.payroll_day_base_id ? payrollBaseById.get(String(r.payroll_day_base_id)) ?? null : null,
