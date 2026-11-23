@@ -14,7 +14,7 @@ describe("payrollUnitTotals", () => {
     expect(t.gross).toBe(35400);
     expect(t.deductions).toBe(3960);
     expect(t.net).toBe(31440);
-    expect(t.byPerson.get("a")).toEqual({ gross: 20400, deductions: 2160 });
+    expect(t.byPerson.get("a")).toEqual({ gross: 20400, deductions: 2160, employerCost: 1800 });
   });
 
   it("leaves billed margin out of employer cost", () => {
@@ -26,5 +26,7 @@ describe("payrollUnitTotals", () => {
     const t = payrollUnitTotals([row("a", 18000, 0, [{ name: "ER EPF", amount: 1800 }, { name: "Management Fee", amount: 1500 }, { name: "Reliever Charges", amount: 900 }])]);
     expect(t.employerAll).toBe(4200);
     expect(t.managementFee).toBe(1500);
+    // Profit-side employer cost per person: management fee stays in profit, reliever charges are cost.
+    expect(t.byPerson.get("a")?.employerCost).toBe(2700);
   });
 });

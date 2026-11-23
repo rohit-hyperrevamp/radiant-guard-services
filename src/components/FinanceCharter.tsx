@@ -70,6 +70,8 @@ type PersonMoney = {
   payrollAmount: number;
   /** Contract-level statutory / recurring deductions earned in the period. */
   deductionAmount: number;
+  /** Employer contribution less management fee (which stays in profit). */
+  employerCost: number;
   /** Net payable = gross − deductions. */
   netPayrollAmount: number;
 };
@@ -364,6 +366,7 @@ export function FinanceCharter({
           invoiceAmount: 0,
           payrollAmount: 0,
           deductionAmount: 0,
+          employerCost: 0,
           netPayrollAmount: 0,
         };
         bucket.set(e.candidate_id, person);
@@ -411,11 +414,15 @@ export function FinanceCharter({
           const x = pay.byPerson.get(p.id);
           p.payrollAmount = x?.gross ?? 0;
           p.deductionAmount = x?.deductions ?? 0;
+          p.employerCost = x?.employerCost ?? 0;
           p.netPayrollAmount = Math.max(0, p.payrollAmount - p.deductionAmount);
         }
         const payrollAmount = pay ? pay.gross : people.reduce((s, p) => s + p.payrollAmount, 0);
         const deductionAmount = pay ? pay.deductions : people.reduce((s, p) => s + p.deductionAmount, 0);
         const netPayrollAmount = pay ? pay.net : Math.max(0, payrollAmount - deductionAmount);
+        // Same profit rule as the dashboard: management fee stays in profit, reliever charges are cost.
+        const employerCost = pay ? pay.employerAll - pay.managementFee : 0;
+        const margin = invoiceAmount - payrollAmount - employerCost;
         const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,
           attendance: "none",
@@ -439,8 +446,9 @@ export function FinanceCharter({
           deductionAmount,
           netPayrollAmount,
           status,
-          margin: invoiceAmount - payrollAmount,
-          marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
+          employerCost,
+          margin,
+          marginPct: invoiceAmount > 0 ? Math.round((margin / invoiceAmount) * 100) : 0,
           realisationPct: pct(invoiceAmount, contractedMtd),
           period,
         };
@@ -492,6 +500,7 @@ export function FinanceCharter({
     const invoiceAmount = allRows.reduce((s, r) => s + r.invoiceAmount, 0);
     const payrollAmount = allRows.reduce((s, r) => s + r.payrollAmount, 0);
     const deductionAmount = allRows.reduce((s, r) => s + r.deductionAmount, 0);
+    const margin = allRows.reduce((s, r) => s + r.margin, 0);
     return {
       monthlyContracted,
       contractedMtd,
@@ -499,8 +508,8 @@ export function FinanceCharter({
       payrollAmount,
       deductionAmount,
       netPayrollAmount: Math.max(0, payrollAmount - deductionAmount),
-      margin: invoiceAmount - payrollAmount,
-      marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
+      margin,
+      marginPct: invoiceAmount > 0 ? Math.round((margin / invoiceAmount) * 100) : 0,
       realisationPct: pct(invoiceAmount, contractedMtd),
     };
   }, [allRows]);
@@ -1391,7 +1400,7 @@ export function FinanceCharter({
                                        value={
                                          p.invoiceAmount > 0
                                            ? Math.round(
-                                               ((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100,
+                                               ((p.invoiceAmount - p.payrollAmount - p.employerCost) / p.invoiceAmount) * 100,
                                              )
                                            : 0
                                        }

@@ -861,8 +861,8 @@ export type PayrollUnitTotals = {
   employerAll: number;
   /** Management fee within employerAll — billed margin, counted as profit on the dashboard. */
   managementFee: number;
-  /** Per employee: gross / deductions summed over their lines at this site. */
-  byPerson: Map<string, { gross: number; deductions: number }>;
+  /** Per employee: gross / deductions / profit-side employer cost summed over their lines at this site. */
+  byPerson: Map<string, { gross: number; deductions: number; employerCost: number }>;
 };
 
 function payrollDates(start: string, end: string): string[] {
@@ -879,7 +879,7 @@ function payrollDates(start: string, end: string): string[] {
 }
 
 export function payrollUnitTotals(rows: PayrollUnitRow[]): PayrollUnitTotals {
-  const byPerson = new Map<string, { gross: number; deductions: number }>();
+  const byPerson = new Map<string, { gross: number; deductions: number; employerCost: number }>();
   let gross = 0, deductions = 0, net = 0, employer = 0, employerAll = 0, managementFee = 0;
   for (const r of rows) {
     if (!r.wages) continue;
@@ -889,9 +889,11 @@ export function payrollUnitTotals(rows: PayrollUnitRow[]): PayrollUnitTotals {
     employer += employerCostOnly(r.wages.employerContributions as never);
     employerAll += Number(r.wages.totalEmployerContributions) || 0;
     managementFee += managementFeeOf(r.wages.employerContributions as never);
-    const p = byPerson.get(r.id) ?? { gross: 0, deductions: 0 };
+    const p = byPerson.get(r.id) ?? { gross: 0, deductions: 0, employerCost: 0 };
     p.gross += Number(r.wages.earnedGross) || 0;
     p.deductions += Number(r.wages.totalDeductions) || 0;
+    // Employer cost for profit: every employer line except the management fee (kept as profit).
+    p.employerCost += (Number(r.wages.totalEmployerContributions) || 0) - managementFeeOf(r.wages.employerContributions as never);
     byPerson.set(r.id, p);
   }
   const r2 = (n: number) => Math.round(n * 100) / 100;
