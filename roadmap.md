@@ -1,3 +1,9 @@
+## Dashboard saved totals and negative-margin audit — 24 November
+- [ ] Replace dashboard recalculation with versioned saved invoice/payroll summaries, preserving exact site periods and source totals.
+- [ ] Refresh only changed summaries automatically; reject stale/incomplete results and preserve posted records.
+- [ ] Audit all recorded months/sites for negative margins and source mismatches; retain genuine losses with a factual explanation.
+- [ ] Test calculation, invalidation, permissions and production readback; verify delivered signed-in screens if access is available.
+
 ## Dashboard invoice vs payroll / P&L accuracy — 23 November
 - [x] Invoice and payroll registers now use the period contract, day-split rate revisions, hourly Extra Duty rates and the billing-days divisor, matching invoice detail.
 - [x] Dashboard now prices each line with invoice-detail rules (contract ED rate regardless of Present cap, saved rounding, rate revisions, 4-dp duties, separate 8/10/12 h lines, active-newest contract tie-break) and passes contract ED rules to payroll; old browser snapshots discarded. Signed-in live screen not checked.
