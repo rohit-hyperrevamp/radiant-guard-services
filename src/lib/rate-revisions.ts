@@ -9,6 +9,7 @@ import { fetchInChunks } from "@/lib/supabase-batch";
  * Rows without any approved revision are returned unchanged.
  */
 type Row = Record<string, unknown>;
+export type RateRevisionRow = Rev;
 type Rev = {
   resource_id: string;
   status: string;
@@ -66,7 +67,7 @@ function blendArrays(parts: { arr: unknown; w: number }[]): Row[] {
 }
 
 /** Approved/expired revisions for many resource lines (chunked: long id lists exceed URL limits). */
-async function fetchRevisions(ids: string[]): Promise<Rev[] | null> {
+export async function fetchRevisions(ids: string[]): Promise<Rev[] | null> {
   try {
     return await fetchInChunks<Rev>(ids, (chunk, a, b) =>
       supabase
@@ -89,7 +90,17 @@ export async function applyRateRevisionsForPeriod<T extends Row>(
 ): Promise<T[]> {
   const ids = resources.map((r) => r.id).filter(Boolean).map(String);
   if (!ids.length || !start || !end) return resources;
-  const data = await fetchRevisions(ids);
+  return applyRateRevisionsWith(resources, await fetchRevisions(ids), start, end);
+}
+
+/** Same as applyRateRevisionsForPeriod, with revisions already loaded (bulk callers). */
+export function applyRateRevisionsWith<T extends Row>(
+  resources: T[],
+  data: Rev[] | null,
+  start: string,
+  end: string,
+): T[] {
+  if (!resources.length || !start || !end) return resources;
   if (!data || data.length === 0) return resources;
   const byRes = new Map<string, Rev[]>();
   for (const r of data as unknown as Rev[]) {
@@ -142,10 +153,20 @@ export async function rateSegmentsForPeriod<T extends Row>(
   start: string,
   end: string,
 ): Promise<Map<string, RateSegment<T>[]>> {
-  const out = new Map<string, RateSegment<T>[]>();
   const ids = resources.map((r) => r.id).filter(Boolean).map(String);
-  if (!ids.length || !start || !end) return out;
-  const data = await fetchRevisions(ids);
+  if (!ids.length || !start || !end) return new Map();
+  return rateSegmentsWith(resources, await fetchRevisions(ids), start, end);
+}
+
+/** Same as rateSegmentsForPeriod, with revisions already loaded (bulk callers). */
+export function rateSegmentsWith<T extends Row>(
+  resources: T[],
+  data: Rev[] | null,
+  start: string,
+  end: string,
+): Map<string, RateSegment<T>[]> {
+  const out = new Map<string, RateSegment<T>[]>();
+  if (!resources.length || !start || !end) return out;
   if (!data) return out;
   const byRes = new Map<string, Rev[]>();
   for (const r of data as unknown as Rev[]) {

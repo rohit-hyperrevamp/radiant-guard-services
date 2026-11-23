@@ -87,8 +87,18 @@ export function resolveInvoiceSplit(contractRule: unknown, organizationRule: unk
   return parseInvoiceSplit(contractRule ?? organizationRule);
 }
 
+/** Pure form of loadOrgInvoiceSplit: the contract's own rule, else the organization's, then the contract ED mode. */
+export function resolveOrgInvoiceSplit(
+  contract: { invoice_split?: unknown; invoice_ed_mode?: unknown } | null | undefined,
+  customerSplit: unknown,
+): InvoiceSplit {
+  const edMode = normalizeInvoiceEdMode(contract?.invoice_ed_mode);
+  if (contract?.invoice_split != null) return applyInvoiceEdMode(resolveInvoiceSplit(contract.invoice_split, null), edMode);
+  return applyInvoiceEdMode(parseInvoiceSplit(customerSplit), edMode);
+}
+
 export async function loadOrgInvoiceSplit(customerId: string | null, contractId?: string | null): Promise<InvoiceSplit> {
-  let edMode: InvoiceEdMode | null = null;
+  let contract: { invoice_split?: unknown; invoice_ed_mode?: unknown } | null = null;
   if (contractId) {
     const { data, error } = await supabase
       .from("client_contracts")
@@ -96,18 +106,17 @@ export async function loadOrgInvoiceSplit(customerId: string | null, contractId?
       .eq("id", contractId)
       .maybeSingle();
     if (error) throw error;
-    const row = data as { invoice_split?: unknown; invoice_ed_mode?: unknown } | null;
-    edMode = normalizeInvoiceEdMode(row?.invoice_ed_mode);
-    if (row?.invoice_split != null) return applyInvoiceEdMode(resolveInvoiceSplit(row.invoice_split, null), edMode);
+    contract = data as { invoice_split?: unknown; invoice_ed_mode?: unknown } | null;
+    if (contract?.invoice_split != null) return resolveOrgInvoiceSplit(contract, null);
   }
-  if (!customerId) return applyInvoiceEdMode(DEFAULT_SPLIT, edMode);
+  if (!customerId) return resolveOrgInvoiceSplit(contract, null);
   const { data, error } = await supabase
     .from("customers")
     .select("invoice_split" as never)
     .eq("id", customerId)
     .maybeSingle();
   if (error) throw error;
-  return applyInvoiceEdMode(parseInvoiceSplit((data as { invoice_split?: unknown } | null)?.invoice_split), edMode);
+  return resolveOrgInvoiceSplit(contract, (data as { invoice_split?: unknown } | null)?.invoice_split);
 }
 
 type TotalsLike = { pDays: number; phDays: number; otDays: number; otHours: number; tDays: number };

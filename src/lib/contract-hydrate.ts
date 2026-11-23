@@ -33,11 +33,17 @@ type ResourceShape = {
 };
 
 
-export async function hydrateFormulasFromMaster<T extends ResourceShape>(
-  resources: T[],
-): Promise<T[]> {
-  if (!resources.length) return resources;
+export type FormulaMaster = {
+  mode: string | null;
+  expr: string | null;
+  version: number | null;
+  fixedCalcMethod?: string | null;
+  fixedDutyComponents?: string[] | null;
+  fixedDutyDivisor?: string | null;
+};
 
+/** Master formula ids referenced by these contract lines. */
+export function formulaMasterIds<T extends ResourceShape>(resources: T[]) {
   const allowanceIds = new Set<string>();
   const costIds = new Set<string>();
   for (const r of resources) {
@@ -53,50 +59,61 @@ export async function hydrateFormulasFromMaster<T extends ResourceShape>(
       }
     }
   }
+  return { allowanceIds, costIds };
+}
 
-  type Master = {
-    mode: string | null;
-    expr: string | null;
-    version: number | null;
-    fixedCalcMethod?: string | null;
-    fixedDutyComponents?: string[] | null;
-    fixedDutyDivisor?: string | null;
-  };
-  const masterById = new Map<string, Master>();
+const toMaster = (m: Record<string, unknown>): FormulaMaster => ({
+  mode: (m.formula_mode as string | null) ?? null,
+  expr: (m.formula_expression as string | null) ?? null,
+  version: m.formula_version == null ? null : Number(m.formula_version),
+  fixedCalcMethod: (m.fixed_calc_method as string | null) ?? null,
+  fixedDutyComponents: Array.isArray(m.fixed_duty_components) ? (m.fixed_duty_components as string[]) : null,
+  fixedDutyDivisor: (m.fixed_duty_divisor as string | null) ?? null,
+});
+const MASTER_COLS = "id, formula_mode, formula_expression, formula_version, fixed_calc_method, fixed_duty_components, fixed_duty_divisor";
 
+/** Every allowance and cost-component master (bulk callers hydrate thousands of lines at once). */
+export async function loadAllFormulaMasters(): Promise<Map<string, FormulaMaster>> {
+  const out = new Map<string, FormulaMaster>();
+  for (const table of ["allowance_types", "cost_components"] as const) {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from(table).select(MASTER_COLS).order("id").range(from, from + 999);
+      if (error) throw error;
+      for (const m of (data ?? []) as Array<Record<string, unknown>>) out.set(String(m.id), toMaster(m));
+      if ((data ?? []).length < 1000) break;
+    }
+  }
+  return out;
+}
+
+export async function hydrateFormulasFromMaster<T extends ResourceShape>(
+  resources: T[],
+): Promise<T[]> {
+  if (!resources.length) return resources;
+  const { allowanceIds, costIds } = formulaMasterIds(resources);
+  const masterById = new Map<string, FormulaMaster>();
   if (allowanceIds.size > 0) {
     const { data } = await supabase
       .from("allowance_types")
-      .select("id, formula_mode, formula_expression, formula_version, fixed_calc_method, fixed_duty_components, fixed_duty_divisor")
+      .select(MASTER_COLS)
       .in("id", Array.from(allowanceIds));
-    for (const m of (data ?? []) as Array<Record<string, unknown>>) {
-      masterById.set(String(m.id), {
-        mode: (m.formula_mode as string | null) ?? null,
-        expr: (m.formula_expression as string | null) ?? null,
-        version: m.formula_version == null ? null : Number(m.formula_version),
-        fixedCalcMethod: (m.fixed_calc_method as string | null) ?? null,
-        fixedDutyComponents: Array.isArray(m.fixed_duty_components) ? (m.fixed_duty_components as string[]) : null,
-        fixedDutyDivisor: (m.fixed_duty_divisor as string | null) ?? null,
-      });
-    }
+    for (const m of (data ?? []) as Array<Record<string, unknown>>) masterById.set(String(m.id), toMaster(m));
   }
   if (costIds.size > 0) {
     const { data } = await supabase
       .from("cost_components")
-      .select("id, formula_mode, formula_expression, formula_version, fixed_calc_method, fixed_duty_components, fixed_duty_divisor")
+      .select(MASTER_COLS)
       .in("id", Array.from(costIds));
-    for (const m of (data ?? []) as Array<Record<string, unknown>>) {
-      masterById.set(String(m.id), {
-        mode: (m.formula_mode as string | null) ?? null,
-        expr: (m.formula_expression as string | null) ?? null,
-        version: m.formula_version == null ? null : Number(m.formula_version),
-        fixedCalcMethod: (m.fixed_calc_method as string | null) ?? null,
-        fixedDutyComponents: Array.isArray(m.fixed_duty_components) ? (m.fixed_duty_components as string[]) : null,
-        fixedDutyDivisor: (m.fixed_duty_divisor as string | null) ?? null,
-      });
-    }
+    for (const m of (data ?? []) as Array<Record<string, unknown>>) masterById.set(String(m.id), toMaster(m));
   }
+  return hydrateFormulasWith(resources, masterById);
+}
 
+/** Overlay already-loaded master formulas (same rules as hydrateFormulasFromMaster). */
+export function hydrateFormulasWith<T extends ResourceShape>(
+  resources: T[],
+  masterById: Map<string, FormulaMaster>,
+): T[] {
   const overlay = (line: LineWithIds): LineWithIds => {
     // A line edited on the contract itself (amount, % or formula) belongs to
     // the contract — the master must never overwrite it.
