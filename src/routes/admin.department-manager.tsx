@@ -6,6 +6,7 @@ import { Download, Edit2, Plus, Search, Trash2, Network } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { EmployeePicker } from "@/components/EmployeePicker";
 import { downloadCsv } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -46,7 +47,7 @@ export const Route = createFileRoute("/admin/department-manager")({
   }),
 });
 
-type Department = { id: string; name: string; enabled: boolean };
+type Department = { id: string; name: string; enabled: boolean; head_candidate_id: string | null };
 
 const QK = ["admin", "departments"] as const;
 const MODULE = "Department Manager";
@@ -59,20 +60,21 @@ function useDepartments() {
     queryFn: async (): Promise<Department[]> => {
       const { data, error } = await supabase
         .from("departments" as never)
-        .select("id,name,enabled")
+        .select("id,name,enabled,head_candidate_id")
         .order("name", { ascending: true });
       if (error) throw error;
       return ((data as unknown) as Record<string, unknown>[]).map((r) => ({
         id: String(r.id),
         name: String(r.name ?? ""),
         enabled: Boolean(r.enabled ?? true),
+        head_candidate_id: r.head_candidate_id ? String(r.head_candidate_id) : null,
       }));
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = async () => { await Promise.all([qc.invalidateQueries({ queryKey: QK }), qc.invalidateQueries({ queryKey: ['department-team'] })]); };
   type Payload = Omit<Department, "id">;
-  const toRow = (p: Payload) => ({ name: p.name.trim(), enabled: p.enabled });
+  const toRow = (p: Payload) => ({ name: p.name.trim(), enabled: p.enabled, head_candidate_id: p.head_candidate_id });
 
   const addMut = useMutation({
     mutationFn: async (p: Payload) => {
@@ -317,6 +319,7 @@ function DepartmentFormDialog({
 }) {
   const [name, setName] = useState("");
   const [enabled, setEnabled] = useState(true);
+  const [head, setHead] = useState('');
   const [saving, setSaving] = useState(false);
   const [last, setLast] = useState(false);
 
@@ -325,6 +328,7 @@ function DepartmentFormDialog({
     if (open) {
       setName(initial?.name ?? "");
       setEnabled(initial?.enabled ?? true);
+      setHead(initial?.head_candidate_id ?? '');
     }
   }
 
@@ -347,6 +351,7 @@ function DepartmentFormDialog({
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>
+          <div className="grid gap-2"><Label>Department head</Label><EmployeePicker value={head} onChange={setHead} activeOnly placeholder="Select department head" /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
@@ -354,7 +359,7 @@ function DepartmentFormDialog({
             disabled={saving}
             onClick={async () => {
               setSaving(true);
-              const err = await onSubmit({ name, enabled });
+              const err = await onSubmit({ name, enabled, head_candidate_id: head || null });
               setSaving(false);
               if (err) toast.error(err);
               else onOpenChange(false);

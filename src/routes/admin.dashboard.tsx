@@ -1,4 +1,5 @@
 import { WorkTeamMap } from '@/components/WorkTeamMap';
+import { DepartmentTeamCard } from '@/components/DepartmentTeamCard';
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { readDashboardFinance } from "@/lib/finance-summary-read";
 import { TileNumber } from "@/components/TileNumber";
@@ -1038,6 +1039,7 @@ function DashboardPage() {
               }}
             />
           </div>
+          <DepartmentTeamCard />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <MetricTile
               icon={ClipboardList}
@@ -1093,6 +1095,7 @@ function DashboardPage() {
           <MyUpcomingInterviewsCard />
           <div className="mb-4 grid auto-rows-[124px] grid-cols-2 gap-2 sm:auto-rows-[172px] sm:gap-4 md:grid-cols-3 xl:grid-cols-4"><DocumentFollowupPanel tile /></div>
           <HrExecutiveDashboard />
+          <DepartmentTeamCard />
         </div>
       </DashboardShell>
     );
@@ -1119,6 +1122,7 @@ function DashboardPage() {
           />
           <MyUpcomingInterviewsCard />
           <TransportFleetAssetsTiles />
+          <DepartmentTeamCard />
           <WorkTeamMap mode="transport" />
           <AttendanceTodayCard />
         </DashboardShell>
@@ -1137,6 +1141,7 @@ function DashboardPage() {
           />
           <MyUpcomingInterviewsCard />
           <InventoryOwnerDashboard />
+          <DepartmentTeamCard />
         </DashboardShell>
       </div>
     );
@@ -1154,6 +1159,7 @@ function DashboardPage() {
             />
             <MyUpcomingInterviewsCard />
             <UnitAttendanceCoverage />
+            <DepartmentTeamCard />
           </div>
         </div>
       </DashboardShell>
@@ -1172,6 +1178,7 @@ function DashboardPage() {
             />
             <MyUpcomingInterviewsCard />
             <OperationsRadarSummary expanded />
+            <DepartmentTeamCard />
             <LiveFieldOfficersCard />
             <div className="grid gap-4 xl:grid-cols-2">
               <AdminVisitProgressCard />
@@ -1240,6 +1247,7 @@ function DashboardPage() {
         }
         fullWidthBelow={
           <>
+            <DepartmentTeamCard />
             <AttendanceTodayCard />
             {canWidget("team_clients") && <TeamClientsCard />}
             {opsFocus ? (

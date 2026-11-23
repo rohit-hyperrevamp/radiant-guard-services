@@ -297,6 +297,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "w_team_people_only", label: "Show only own team in Live staff, birthdays & anniversaries (switch on to limit)", path: "", icon: LayoutDashboard },
       { key: "w_live_people", label: "Live now: field officers & staff", path: "", icon: LayoutDashboard },
       { key: "w_attendance_today", label: "Today’s attendance and mapped check-in locations", path: "/admin/live-staff", icon: Users },
+      { key: "w_my_team", label: "My Team — department-head attendance and employee IDs", path: "/admin/dashboard", icon: Users },
       { key: "w_driver_team", label: "Driver team map and present / absent counts", path: "/admin/dashboard", icon: Car },
       { key: "w_orgs", label: "Organizations tile", path: "", icon: LayoutDashboard },
       { key: "w_units", label: "Clients tile", path: "", icon: LayoutDashboard },

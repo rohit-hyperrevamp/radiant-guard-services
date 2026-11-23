@@ -16,15 +16,16 @@ export function VisitProofs({ visitId, signaturePath, photoPath }: { visitId: st
 
   if (!signaturePath && !photoPath) return null;
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2">
+    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
       {photoPath && <a href={proofQuery.data?.photoUrl ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Open client photo" className="overflow-hidden rounded-lg border border-border/60 bg-secondary/30">
-        {proofQuery.data?.photoUrl ? <img src={proofQuery.data.photoUrl} alt="Client visit proof" className="h-20 w-full object-cover" loading="lazy" /> : <span className="grid h-20 place-items-center text-muted-foreground"><ImageIcon className="h-5 w-5" /></span>}
+        {proofQuery.data?.photoUrl ? <img src={proofQuery.data.photoUrl} alt="Client visit proof" className="h-44 w-full object-contain" loading="lazy" /> : <span className="grid h-44 place-items-center text-muted-foreground"><ImageIcon className="h-5 w-5" /></span>}
         <span className="block px-2 py-1.5 text-[10px] font-semibold text-foreground">Client photo</span>
       </a>}
       {signaturePath && <a href={proofQuery.data?.signatureUrl ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Open client signature" className="overflow-hidden rounded-lg border border-border/60 bg-card">
         {proofQuery.data?.signatureUrl ? <img src={proofQuery.data.signatureUrl} alt="Client signature" className="h-20 w-full object-contain p-2" loading="lazy" /> : <span className="grid h-20 place-items-center text-muted-foreground"><FileSignature className="h-5 w-5" /></span>}
         <span className="block px-2 py-1.5 text-[10px] font-semibold text-foreground">Signature</span>
       </a>}
+      {!proofQuery.isPending && (proofQuery.error || (photoPath && !proofQuery.data?.photoUrl) || (signaturePath && !proofQuery.data?.signatureUrl)) && <p role="alert" className="text-xs text-destructive sm:col-span-2">Saved visit evidence could not load. Please reopen the form to retry.</p>}
     </div>
   );
 }

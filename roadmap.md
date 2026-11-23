@@ -1,3 +1,11 @@
+## Department-head My Team and compact Radar — 24 November
+- [x] Added department-scoped My Team totals and searchable Present/Absent EMP-ID drill-down across dashboard variants; own-department teammates exclude the head and remain independent of office/site scope.
+- [x] Configured only Noor for Legal and Shahid for Transport. Other heads remain unassigned per user's answer; Department Manager has a searchable head selector with server-side scope-change protection.
+- [x] Map warning was an empty new India day: 23 November has seven accessible Radar check-ins, all with GPS. Added explicit date/Yesterday choices, factual empty states, resize handling and complete-check-in GPS fallback when telemetry is incomplete.
+- [x] Bounded/paged map and client lists and tabbed secondary Radar sections; visits expose actual check-in/out, ratings, reviews, full photo previews, saved revisions and all-period forms PDF with a fresh read before export.
+- [x] Production rollback suites passed five members/three present/two absent, checkout retention, EMP-ID search, paging, unauthorized head-change denial, coordinate fallback and immutable visit forms; no fixture records remain. Noor's real 23 November readback: three teammates, two present/one not marked. Shahid: ten drivers, none marked present.
+- [ ] Delivered signed-in My Team clicks/head assignment, map rendering and real proof-bearing PDF download await GitHub-to-Vercel delivery and a production-compatible signed-in session. Desktop/phone production checks redirect to login; startup overlays mean these captures do not verify internal layout. No preview checks used.
+
 ## Task workflow, Radar history and transport team — 24 November
 - [x] Implemented multi-department and multi-employee selection, smart search and Select All; one grouped task with independent recipient progress.
 - [x] Installed/tested submit-review-accept and mandatory feedback/future-deadline reopening, resubmission, retained evidence/events, uncapped shared counts and immediate affected-cache refresh.
