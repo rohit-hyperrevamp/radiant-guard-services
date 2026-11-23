@@ -3,6 +3,7 @@ import { summarizeRegisterStatuses } from "@/lib/register-summary";
 import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
 import { computeDashboardUnitFinance, type DashboardUnitFinance } from "@/lib/dashboard-finance";
 import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
+import { readDashboardFinance } from "@/lib/finance-summary-read";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -206,7 +207,7 @@ export function FinanceCharter({
   // windows and period statuses are also fetched (ids + status only — cheap)
   // for every searched unit. This also lets status filtering happen before pagination.
   const allUnitIds = useMemo(() => searchedUnits.map((u) => u.id), [searchedUnits]);
-  const { canAction, isSuperAdmin } = useCurrentPermissions();
+  const { can, canAction, isSuperAdmin } = useCurrentPermissions();
   const canFinalise = mode === "invoice" && (isSuperAdmin || canAction("invoice", "finalise", "edit"));
   const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : []);
 
@@ -283,6 +284,14 @@ export function FinanceCharter({
     enabled: unitIds.length > 0,
     staleTime: 60_000,
     queryFn: () => computePayrollUnitsTotals(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
+  });
+
+  const savedTotalsQ = useQuery({
+    queryKey: ["finance-charter-saved-totals-v1", periodKey],
+    enabled: unitIds.length > 0 && can("invoice") && can("payroll"),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    queryFn: () => readDashboardFinance(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
   });
 
   const entriesQ = useQuery({
@@ -397,6 +406,8 @@ export function FinanceCharter({
   }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
   const allRows = useMemo(() => {
+    // Never present the old simple estimate as an actual invoice or payroll total.
+    if (!payrollQ.isSuccess || (mode === "invoice" && !engineQ.isSuccess)) return [];
     return matchedUnits
       .map((u) => {
         const finance: UnitFinance | undefined = financeQ.data?.get(u.id);
@@ -408,7 +419,8 @@ export function FinanceCharter({
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
         const engine = engineQ.data?.get(u.id);
         if (engine) for (const p of people) p.invoiceAmount = engine.invoice_by_person.get(p.id) ?? 0;
-        const invoiceAmount = engine ? engine.invoice_amount : people.reduce((s, p) => s + p.invoiceAmount, 0);
+        const saved = savedTotalsQ.data?.pnlRows.find((r) => r.unit_id === u.id);
+        const invoiceAmount = saved?.invoice_amount ?? (engine ? engine.invoice_amount : 0);
         const pay = payrollQ.data?.get(u.id);
         if (pay) for (const p of people) {
           const x = pay.byPerson.get(p.id);
@@ -417,11 +429,11 @@ export function FinanceCharter({
           p.employerCost = x?.employerCost ?? 0;
           p.netPayrollAmount = Math.max(0, p.payrollAmount - p.deductionAmount);
         }
-        const payrollAmount = pay ? pay.gross : people.reduce((s, p) => s + p.payrollAmount, 0);
-        const deductionAmount = pay ? pay.deductions : people.reduce((s, p) => s + p.deductionAmount, 0);
-        const netPayrollAmount = pay ? pay.net : Math.max(0, payrollAmount - deductionAmount);
+        const payrollAmount = saved?.payroll_cost ?? pay?.gross ?? 0;
+        const deductionAmount = saved?.deductions ?? pay?.deductions ?? 0;
+        const netPayrollAmount = saved?.net_pay ?? pay?.net ?? 0;
         // Same profit rule as the dashboard: management fee stays in profit, reliever charges are cost.
-        const employerCost = pay ? pay.employerAll - pay.managementFee : 0;
+        const employerCost = saved ? saved.employer_contribution - saved.management_fee : pay ? pay.employerAll - pay.managementFee : 0;
         const margin = invoiceAmount - payrollAmount - employerCost;
         const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,
@@ -453,7 +465,7 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, engineQ.data, payrollQ.data]);
+  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, engineQ.data, payrollQ.data, savedTotalsQ.data, payrollQ.isSuccess, engineQ.isSuccess, mode]);
   const pageIdSet = useMemo(() => new Set(pageUnits.map((u) => u.id)), [pageUnits]);
   const rows = useMemo(() => allRows.filter((r) => pageIdSet.has(r.unit.id)), [allRows, pageIdSet]);
 
