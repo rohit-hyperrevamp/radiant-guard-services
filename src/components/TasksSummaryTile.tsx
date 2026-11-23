@@ -2,55 +2,32 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useHasSupabaseSession } from '@/lib/supabase-ready';
 
 import { TileNumber } from "@/components/TileNumber";
 import { ACCENT_TILE_BG } from "@/components/tile-theme";
 
-type Row = {
-  status: string;
-  due_at: string | null;
-  acknowledged_at: string | null;
-  assignee_id: string;
-  created_by: string;
-};
 type Sum = {
   total: number;
   open: number;
   notResponded: number;
   overdue: number;
   completed: number;
+  review: number;
 };
 
 /** Shared task counts for the dashboard tiles (assigned to me / created by me). */
 export function useTaskSummary() {
+  const ready = useHasSupabaseSession();
   return useQuery({
     queryKey: ["tasks-summary-tile"],
+    enabled: ready,
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data: me } = await supabase.rpc("current_user_candidate_id" as never);
-      const cid = me as unknown as string | null;
-      if (!cid) return null;
-      const { data } = await supabase
-        .from("tasks" as never)
-        .select("status,due_at,acknowledged_at,assignee_id,created_by")
-        .or(`assignee_id.eq.${cid},created_by.eq.${cid}`)
-        .limit(2000);
-      const rows = (data ?? []) as unknown as Row[];
-      const now = Date.now();
-      const isOpen = (r: Row) => !["completed", "cancelled"].includes(r.status);
-      const sum = (list: Row[]): Sum => ({
-        total: list.length,
-        open: list.filter(isOpen).length,
-        notResponded: list.filter((r) => r.status === "open" && !r.acknowledged_at).length,
-        overdue: list.filter((r) => isOpen(r) && r.due_at && new Date(r.due_at).getTime() < now)
-          .length,
-        completed: list.filter((r) => r.status === "completed").length,
-      });
-      return {
-        mine: sum(rows.filter((r) => r.assignee_id === cid)),
-        created: sum(rows.filter((r) => r.created_by === cid)),
-      };
+      const { data, error } = await supabase.rpc('task_summary_counts' as never);
+      if (error) throw error;
+      return data as unknown as { mine: Sum; created: Sum } | null;
     },
   });
 }

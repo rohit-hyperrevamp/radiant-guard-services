@@ -145,6 +145,13 @@
   --rate-revised-foreground: #3a3300;
 }
 
+.work-team-map { isolation: isolate; }
+.work-map-marker { background: transparent; border: 0; }
+.work-map-pin { display: grid; place-items: center; width: 36px; height: 36px; border: 3px solid var(--card); font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgb(var(--surface-shadow) / 25%); }
+.work-map-pin-field_officer { border-radius: 50%; background: var(--accent); color: var(--accent-foreground); }
+.work-map-pin-guard { border-radius: 5px 5px 14px 14px; background: var(--chart-2); color: var(--foreground); }
+.work-map-pin-driver { border-radius: 5px; background: var(--chart-3); color: var(--foreground); }
+
 .field-officer-hero-overlay {
   background: linear-gradient(
     90deg,

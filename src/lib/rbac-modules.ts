@@ -140,6 +140,7 @@ export const RBAC_MODULES: ModuleDef[] = [
     subModules: [
       { key: "vehicle_inventory",  label: "Vehicle Inventory",   path: "/admin/vehicles/inventory",  icon: Briefcase },
       { key: "trips", label: "Vehicle Trips", path: "/admin/vehicles/trips", icon: Car },
+      { key: "driver_team_all", label: "View explicitly mapped driver team (View; off unless granted)", path: "/admin/dashboard", icon: Users },
       { key: "fastag_manager",     label: "FastTag Manager",     path: "/admin/vehicles/fastags",    icon: Briefcase },
       { key: "insurance_manager",  label: "Insurance Manager",   path: "/admin/vehicles/insurances", icon: ShieldCheck },
       { key: "puc_manager",        label: "PUC Manager",         path: "/admin/vehicles/pucs",       icon: Briefcase },
@@ -296,6 +297,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "w_team_people_only", label: "Show only own team in Live staff, birthdays & anniversaries (switch on to limit)", path: "", icon: LayoutDashboard },
       { key: "w_live_people", label: "Live now: field officers & staff", path: "", icon: LayoutDashboard },
       { key: "w_attendance_today", label: "Today’s attendance and mapped check-in locations", path: "/admin/live-staff", icon: Users },
+      { key: "w_driver_team", label: "Driver team map and present / absent counts", path: "/admin/dashboard", icon: Car },
       { key: "w_orgs", label: "Organizations tile", path: "", icon: LayoutDashboard },
       { key: "w_units", label: "Clients tile", path: "", icon: LayoutDashboard },
       { key: "w_contracts", label: "Contracts tile", path: "", icon: LayoutDashboard },

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useMe } from '@/lib/use-me';
+import { trackingEligible, usableLocationFix } from '@/lib/work-location';
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { fetchTodayPunch, pushTelemetry, readBattery, readNetworkType, distanceMeters } from "@/lib/self-attendance";
 import { insertTrackPoint } from "@/lib/field-visits";
@@ -14,32 +16,37 @@ const PUNCH_POLL_MS = 60_000;
 type Last = { lat: number; lng: number; at: number } | null;
 
 /**
- * Global live-location beacon for field officers.
+ * Foreground live-location beacon for field officers and transport drivers.
  *
- * Mounted once in the admin layout: while the signed-in field officer is on
+ * Mounted once in the admin layout: while the signed-in employee is on
  * duty (checked in, not checked out), their position is streamed to
  * `self_attendance_punches` telemetry on every screen — not only on Radar —
  * so viewers with Radar access see them move in real time. Track points are
  * appended when they actually move, keeping the day's trail meaningful.
  */
 export function useLiveLocationBeacon() {
-  const { candidateId, isFieldOfficer } = useCurrentUserRole();
+  const { candidateId, roleKey } = useCurrentUserRole();
+  const me = useMe();
+  const eligible = trackingEligible(roleKey, me.designation);
   const punchRef = useRef<{ id: string; onDuty: boolean } | null>(null);
   const lastRef = useRef<Last>(null);
 
   useEffect(() => {
-    if (!isFieldOfficer || !candidateId) return;
+    if (!eligible || !candidateId) return;
+    const employeeId = candidateId;
+    punchRef.current = null; lastRef.current = null;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
 
     let cancelled = false;
     let watchId: number | null = null;
     let pushTimer: number | null = null;
     let punchTimer: number | null = null;
-    let current: { lat: number; lng: number; accuracy: number | null } | null = null;
+    let current: { lat: number; lng: number; accuracy: number | null; timestamp: number } | null = null;
+    let flushing = false;
 
     async function refreshPunch() {
       try {
-        const punch = await fetchTodayPunch(candidateId!);
+        const punch = await fetchTodayPunch(employeeId);
         if (cancelled) return;
         punchRef.current = punch
           ? { id: punch.id, onDuty: !!punch.check_in_at && !punch.check_out_at }
@@ -51,10 +58,12 @@ export function useLiveLocationBeacon() {
 
     async function flush() {
       const punch = punchRef.current;
-      if (!punch?.onDuty || !current) return;
+      if (cancelled || flushing || !punch?.onDuty || !current || !usableLocationFix(current.timestamp, current.accuracy)) return;
+      flushing = true;
       const geo = { lat: current.lat, lng: current.lng, accuracy: current.accuracy ?? 0 };
       try {
         const [battery, network] = await Promise.all([readBattery(), readNetworkType()]);
+        if (cancelled) { flushing = false; return; }
         await pushTelemetry(punch.id, { geo, battery, network });
       } catch {
         /* telemetry is best-effort */
@@ -62,10 +71,10 @@ export function useLiveLocationBeacon() {
       const prev = lastRef.current;
       const moved = prev ? distanceMeters(prev, geo) : null;
       const precise = geo.accuracy == null || geo.accuracy === 0 || geo.accuracy <= 100;
-      if (precise && (!prev || (moved != null && moved >= MIN_MOVE_METERS))) {
+      if (roleKey === "field_officer" && precise && (!prev || (moved != null && moved >= MIN_MOVE_METERS))) {
         try {
           await insertTrackPoint({
-            candidateId: candidateId!,
+            candidateId: employeeId,
             lat: geo.lat,
             lng: geo.lng,
             accuracy: geo.accuracy,
@@ -78,6 +87,7 @@ export function useLiveLocationBeacon() {
           /* trail write is best-effort */
         }
       }
+      flushing = false;
     }
 
     void refreshPunch();
@@ -85,7 +95,8 @@ export function useLiveLocationBeacon() {
 
     watchId = navigator.geolocation.watchPosition(
       (p) => {
-        current = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy ?? null };
+        current = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy ?? null, timestamp: p.timestamp };
+        void flush();
       },
       () => { /* permission denied or unavailable — stay silent */ },
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
@@ -108,7 +119,7 @@ export function useLiveLocationBeacon() {
       if (punchTimer) window.clearInterval(punchTimer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [candidateId, isFieldOfficer]);
+  }, [candidateId, eligible, roleKey]);
 }
 
 /** Realtime subscription helper: run `onChange` whenever live punch telemetry changes. */

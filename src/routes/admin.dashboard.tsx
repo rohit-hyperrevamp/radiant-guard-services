@@ -1,3 +1,4 @@
+import { WorkTeamMap } from '@/components/WorkTeamMap';
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { readDashboardFinance } from "@/lib/finance-summary-read";
 import { TileNumber } from "@/components/TileNumber";
@@ -1118,6 +1119,7 @@ function DashboardPage() {
           />
           <MyUpcomingInterviewsCard />
           <TransportFleetAssetsTiles />
+          <WorkTeamMap mode="transport" />
           <AttendanceTodayCard />
         </DashboardShell>
       </div>

@@ -43,7 +43,7 @@ export function useOperationsRadarLive() {
   return useQuery({
     queryKey: ["ops-radar-live", today(), officerIds ?? "all"],
     enabled: !managerScope.isLoading,
-    refetchInterval: 20_000,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<LivePunch[]> => {
       if (officerIds && officerIds.length === 0) return [];
       if (officerIds) {
@@ -104,18 +104,6 @@ export function OperationsRadarSummary({ expanded = false }: { expanded?: boolea
     },
   });
 
-  useEffect(() => {
-    const name = `ops-radar-${Math.random().toString(36).slice(2)}`;
-    const ch = supabase.channel(name);
-    ch.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "self_attendance_punches" },
-      () => throttledRefresh(() => void qc.invalidateQueries({ queryKey: ["ops-radar-live", today()] })),
-    ).subscribe();
-    return () => {
-      void supabase.removeChannel(ch);
-    };
-  }, [qc]);
 
   const rows = useMemo(
     () => (liveQ.data ?? []).filter((r) => r.last_lat != null && r.last_lng != null),

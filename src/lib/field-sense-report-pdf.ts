@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { DetailedVisit } from './visit-coverage';
+import { signedProofUrl } from './field-visits';
 
 export type ReportVisit = {
   date: string;
@@ -232,4 +234,29 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   const safeCust = input.customerName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const stamp = input.rangeStart === input.rangeEnd ? input.rangeStart : `${input.rangeStart}_to_${input.rangeEnd}`;
   doc.save(`radiant-field-report_${safeCust}_${stamp}.pdf`);
+}
+
+/** Complete saved forms, with their original client photo and signature, one visit per section. */
+export async function generateEmployeeVisitPdf(name: string, code: string | null, start: string, end: string, visits: DetailedVisit[]): Promise<void> {
+  if (!visits.length) throw new Error('No saved visit forms in this period');
+  const doc = new jsPDF({unit:'pt',format:'a4'});
+  for (let i=0; i<visits.length; i++) {
+    const v=visits[i]; if (!v) continue;
+    if (i) doc.addPage();
+    doc.setFontSize(15); doc.text('Radiant — Field Visit Form',32,36);
+    autoTable(doc,{startY:50,margin:32,theme:'grid',styles:{fontSize:10,overflow:'linebreak'},body:[
+      ['Employee',`${name} · ${code ?? ''}`],['Period',`${start} to ${end}`],['Site',`${v.customer_name ?? ''} — ${v.unit_name} · ${v.unit_code ?? ''}`],['Visit date',v.visit_date],['Check-in',new Date(v.check_in_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})],['Check-out',v.check_out_at?new Date(v.check_out_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'Not checked out'],['Client representative',v.client_name ?? 'Not recorded'],['Rating',v.customer_rating!=null?`${v.customer_rating} / 5`:'Not recorded'],['Visit notes',v.visit_notes ?? 'Not recorded'],
+      ['Check-in coordinates',v.check_in_lat!=null&&v.check_in_lng!=null?`${v.check_in_lat}, ${v.check_in_lng}`:'Not recorded'],['Visit ID',v.id]
+    ]});
+    let y=(doc as jsPDF & {lastAutoTable?:{finalY:number}}).lastAutoTable?.finalY ?? 500;
+    for (const [label,path] of [['Client photo',v.client_photo_url],['Client signature',v.client_signature_url]] as const) {
+      if(!path) continue;
+      const url=await signedProofUrl(path); const image=url?await loadDataUrl(url):null;
+      if(!image) throw new Error(`Could not load ${label.toLowerCase()} for ${v.unit_name}; export stopped to avoid omitting evidence`);
+      const props=doc.getImageProperties(image); const scale=Math.min(500/props.width,210/props.height); const height=props.height*scale;
+      if(y+height+50>doc.internal.pageSize.getHeight()-32){doc.addPage();y=32;}
+      doc.setFontSize(11);doc.text(label,32,y+22);doc.addImage(image,props.fileType,32,y+32,props.width*scale,height);y+=height+45;
+    }
+  }
+  const safeName=name.replace(/[^a-z0-9]+/gi,'-'); doc.save(`radiant-visits-${safeName}-${start}-${end}.pdf`);
 }

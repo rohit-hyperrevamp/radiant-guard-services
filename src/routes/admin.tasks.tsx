@@ -17,7 +17,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { SearchSelect } from "@/components/SearchSelect";
-import { EmployeePicker } from "@/components/EmployeePicker";
+import { TaskRecipients } from '@/components/TaskRecipients';
+import { useTaskSummary } from '@/components/TasksSummaryTile';
+import { taskFinished, taskSubmitted, taskDeadline } from '@/lib/task-workflow';
+import { matchesSearch } from '@/lib/search-match';
+import { useHasSupabaseSession } from '@/lib/supabase-ready';
 import { confirmAction } from "@/components/ConfirmProvider";
 import { PriorityBadge, PRIORITIES, priorityLabel } from "@/components/PriorityBadge";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +63,9 @@ export const Route = createFileRoute("/admin/tasks")({
 
 type Task = {
   id: string;
+  assignment_group_id: string | null;
+  review_status: string;
+  feedback: string | null;
   title: string;
   description: string;
   created_by: string;
@@ -112,8 +119,12 @@ const toLocalInput = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
 
 function TasksPage() {
   const { candidateId: roleCandidateId } = useCurrentUserRole();
+  const ready = useHasSupabaseSession();
+  const summaryQ = useTaskSummary();
+  const [groupId, setGroupId] = useState<string | null>(null);
   const meQ = useQuery({
     queryKey: ["task-me"],
+    enabled: ready,
     staleTime: 10 * 60_000,
     queryFn: async () => (await db.rpc("current_user_candidate_id")).data as string | null,
   });
@@ -126,27 +137,30 @@ function TasksPage() {
 
   const permsQ = useQuery({
     queryKey: ["task-perms"],
+    enabled: ready,
     queryFn: async () => {
-      const [a, o, m, d] = await Promise.all([
+      const [a, o, m, d, e] = await Promise.all([
         db.rpc("current_user_can_assign_tasks"),
         db.rpc("current_user_is_task_overseer"),
         db.rpc("current_user_can_manage_tasks"),
         db.rpc("current_user_can_delete_tasks"),
+        db.rpc("current_user_can_manage_own_tasks"),
       ]);
-      return { canAssign: !!a.data, overseer: !!o.data, manage: !!m.data, canDelete: !!d.data };
+      return { canAssign: !!a.data, overseer: !!o.data, manage: !!m.data, canDelete: !!d.data, creatorManage: e.data !== false };
     },
   });
   const tasksQ = useQuery({
     queryKey: ["tasks"],
+    enabled: ready,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await db
-        .from("tasks")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return (data ?? []) as Task[];
+      const out: Task[] = [];
+      for (let page = 0; ; page++) {
+        const { data, error } = await db.from('tasks').select('*').order('created_at', { ascending: false }).order('id').range(page * 500, page * 500 + 499);
+        if (error) throw error;
+        const batch = (data ?? []) as Task[]; out.push(...batch); if (batch.length < 500) break;
+      }
+      return out;
     },
   });
   const personIds = useMemo(
@@ -206,10 +220,10 @@ function TasksPage() {
   };
 
   const all = tasksQ.data ?? [];
-  const done = (t: Task) => t.status === "completed" || t.status === "cancelled";
+  const done = taskFinished;
   const lists = {
-    mine: all.filter((t) => t.assignee_id === candidateId && !done(t)),
-    assigned: all.filter((t) => t.created_by === candidateId && !done(t)),
+    mine: all.filter((t) => t.assignee_id === candidateId),
+    assigned: all.filter((t) => t.created_by === candidateId),
     all: all.filter((t) => !done(t)),
     recent: all.filter((t) => done(t)),
   };
@@ -224,21 +238,25 @@ function TasksPage() {
   const [st, setSt] = useState("all");
   const tabRows = lists[tab];
   const rows = tabRows.filter((t) => {
-    const s = q.trim().toLowerCase();
     return (
       (prio === "all" || (t.priority ?? "medium") === prio) &&
-      (st === "all" || t.status === st) &&
-      (!s ||
-        `${t.title} ${t.description} ${name(t.created_by)} ${name(t.assignee_id)} ${t.department_id ? (depts.get(t.department_id) ?? "") : ""}`
-          .toLowerCase()
-          .includes(s))
+      (st === "all" || (st === "pending" ? !done(t) : st === "review" ? taskSubmitted(t) : st === "completed" ? t.status === "completed" && !taskSubmitted(t) : t.status === st)) &&
+      matchesSearch(q, [t.title, t.description, name(t.created_by), name(t.assignee_id), t.department_id ? depts.get(t.department_id) : ''])
     );
   });
   const prioCounts = PRIORITIES.slice()
     .reverse()
     .map((p) => ({ p, n: tabRows.filter((t) => (t.priority ?? "medium") === p).length }));
   const current = all.find((t) => t.id === openId);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["tasks"] });
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ['tasks'] });
+    void qc.invalidateQueries({ queryKey: ['task-events'] });
+    void qc.invalidateQueries({ queryKey: ['task-proofs'] });
+    void qc.invalidateQueries({ queryKey: ['tasks-summary-tile'] });
+  };
+  const listedGroups = new Set<string>();
+  const groupedRows = tab === 'mine' ? rows : rows.filter(t => { const key = t.assignment_group_id || t.id; if (listedGroups.has(key)) return false; listedGroups.add(key); return true; });
+  const groupMembers = groupId ? all.filter(t => (t.assignment_group_id || t.id) === groupId) : [];
 
   return (
     <div className="space-y-4 p-4">
@@ -251,6 +269,15 @@ function TasksPage() {
           </Button>
         }
       />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5" aria-label="Task totals">
+        {[
+          {label: 'Created by me', value: summaryQ.data?.created.total, tab: 'assigned', status: 'all'},
+          {label: 'Assigned to me', value: summaryQ.data?.mine.total, tab: 'mine', status: 'all'},
+          {label: 'My pending work', value: summaryQ.data?.mine.open, tab: 'mine', status: 'pending'},
+          {label: 'Awaiting my review', value: summaryQ.data?.created.review, tab: 'assigned', status: 'review'},
+          {label: 'Completed work', value: summaryQ.data?.created.completed, tab: 'assigned', status: 'completed'},
+        ].map(c => <Button key={c.label} data-panel="true" variant="outline" className="h-auto min-h-20 flex-col items-start gap-2 p-3" onClick={() => {setTab(c.tab as 'mine' | 'assigned');setSt(c.status);}}><span className="text-xs text-muted-foreground">{c.label}</span><span className="text-2xl font-semibold">{summaryQ.error ? '—' : c.value ?? '…'}</span></Button>)}
+      </section>
       <div className="flex flex-wrap gap-2">
         {tabs.map((t) => (
           <button
@@ -301,6 +328,8 @@ function TasksPage() {
           onChange={setSt}
           options={[
             { value: "all", label: "All statuses" },
+            { value: "pending", label: "Pending work" },
+            { value: "review", label: "Submitted for review" },
             ...Object.entries(STATUS).map(([v, s]) => ({ value: v, label: s.label })),
           ]}
         />
@@ -319,19 +348,21 @@ function TasksPage() {
         {!tasksQ.isLoading && rows.length === 0 && (
           <div className="p-6 text-center text-sm text-muted-foreground">No tasks here.</div>
         )}
-        {rows.map((t) => {
+        {tasksQ.error && <p className="p-4 text-sm text-destructive">Could not load tasks: {tasksQ.error.message}</p>}
+        {groupedRows.map((t) => {
+          const members = tab === 'mine' ? [t] : all.filter(x => (x.assignment_group_id || x.id) === (t.assignment_group_id || t.id));
           const overdue = t.due_at && !done(t) && isPast(new Date(t.due_at));
           return (
             <button
               key={t.id}
               data-panel="true"
-              onClick={() => setOpenId(t.id)}
+              onClick={() => members.length > 1 ? setGroupId(t.assignment_group_id || t.id) : setOpenId(t.id)}
               className="flex w-full items-start justify-between gap-3 p-3 text-left hover:bg-muted/40"
             >
               <div className="min-w-0">
                 <div className="truncate font-medium">{t.title}</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  {nameRole(t.created_by)} → {nameRole(t.assignee_id)}
+                  {nameRole(t.created_by)} → {members.length > 1 ? `${members.length} employees` : nameRole(t.assignee_id)}
                   {t.department_id ? ` · ${depts.get(t.department_id) ?? ""}` : ""}
                 </div>
               </div>
@@ -344,7 +375,7 @@ function TasksPage() {
                       STATUS[t.status]?.cls,
                     )}
                   >
-                    {STATUS[t.status]?.label ?? t.status}
+                    {members.length > 1 ? `${members.filter(taskFinished).length}/${members.length} finished · ${members.filter(taskSubmitted).length} for review` : taskSubmitted(t) ? 'Submitted for review' : STATUS[t.status]?.label ?? t.status}
                   </span>
                 </div>
                 <span
@@ -374,11 +405,13 @@ function TasksPage() {
           }}
         />
       )}
+      {groupMembers.length > 0 && <Dialog open onOpenChange={open => { if (!open) setGroupId(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl"><DialogHeader><DialogTitle>{groupMembers[0]?.title}</DialogTitle></DialogHeader><div className="text-sm text-muted-foreground">{groupMembers.length} recipients · {groupMembers.filter(taskFinished).length} finished · {groupMembers.filter(taskSubmitted).length} awaiting review</div><div className="divide-y divide-border">{groupMembers.map(member => <Button key={member.id} data-panel="true" variant="ghost" className="flex h-auto w-full justify-between gap-3 p-3 text-left" onClick={() => {setGroupId(null); setOpenId(member.id);}}><span className="min-w-0 whitespace-normal">{nameRole(member.assignee_id)}</span><Badge variant="outline">{taskSubmitted(member) ? 'Submitted for review' : STATUS[member.status]?.label}</Badge></Button>)}</div></DialogContent></Dialog>}
       {current && (
         <TaskDialog
           task={current}
           me={candidateId}
           overseer={!!permsQ.data?.manage}
+          creatorManage={!!permsQ.data?.creatorManage}
           canDelete={
             !!permsQ.data?.canDelete &&
             (current?.created_by === candidateId || !!permsQ.data?.overseer)
@@ -406,8 +439,8 @@ function CreateTaskDialog({
 }) {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [dept, setDept] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [departmentIds, setDepartmentIds] = useState<string[]>([]);
+  const [employeeIds, setEmployeeIds] = useState<string[]>([]);
   const [priority, setPriority] = useState("medium");
   const today = new Date();
   const [dueDate, setDueDate] = useState(toLocalInput(today).slice(0, 10));
@@ -417,41 +450,27 @@ function CreateTaskDialog({
 
   const save = async () => {
     if (!title.trim()) return toast.error("Add a task title");
-    if (!assignee) return toast.error("Choose who should do this task");
+    if (!employeeIds.length) return toast.error("Choose who should do this task");
     if (!me)
       return toast.error(
         "Your employee profile isn't linked to this login, so tasks can't be assigned from it",
       );
     setSaving(true);
-    const { data: person } = await supabase
-      .from("candidates")
-      .select("full_name,department_id")
-      .eq("id", assignee)
-      .maybeSingle();
-    const { data, error } = await db
-      .from("tasks")
-      .insert({
-        title: title.trim(),
-        description: desc.trim(),
-        created_by: me,
-        assignee_id: assignee,
-        department_id: dept || person?.department_id || null,
-        due_at: due ? new Date(due).toISOString() : null,
-        priority,
-      })
-      .select("id")
-      .single();
+    const { data, error } = await db.rpc('create_task_group', {
+      _title: title.trim(), _description: desc.trim(), _departments: departmentIds,
+      _employees: employeeIds, _due_at: due ? new Date(due).toISOString() : null, _priority: priority,
+    });
     setSaving(false);
     if (error) return toast.error(error.message);
     void logActivity({
       module: "Tasks",
       action: "create",
       entityType: "task",
-      entityId: data?.id,
+      entityId: typeof data === "string" ? data : undefined,
       entityLabel: title.trim(),
-      details: { assignee: person?.full_name, due },
+      details: { employees: employeeIds, departments: departmentIds, due },
     });
-    toast.success("Task assigned");
+    toast.success(`Task assigned to ${employeeIds.length} employees`);
     onCreated();
   };
 
@@ -479,34 +498,7 @@ function CreateTaskDialog({
               onChange={(e) => setDesc(e.target.value)}
             />
           </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <div className="mb-1 text-xs text-muted-foreground">Department (optional)</div>
-              <SearchSelect
-                value={dept}
-                onChange={(v) => {
-                  setDept(v);
-                  setAssignee("");
-                }}
-                options={[
-                  { value: "", label: "All departments" },
-                  ...departments.map((d) => ({ value: d.id, label: d.name })),
-                ]}
-                placeholder="All departments"
-                searchPlaceholder="Search departments…"
-              />
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-muted-foreground">Assign to</div>
-              <EmployeePicker
-                value={assignee}
-                onChange={setAssignee}
-                departmentId={dept || undefined}
-                activeOnly
-                placeholder="Choose a person"
-              />
-            </div>
-          </div>
+          <TaskRecipients departments={departments} departmentIds={departmentIds} onDepartmentsChange={setDepartmentIds} employeeIds={employeeIds} onEmployeesChange={setEmployeeIds} />
           <div>
             <div className="mb-1 text-xs text-muted-foreground">Priority</div>
             <div className="flex flex-wrap gap-1.5">
@@ -557,7 +549,8 @@ const EV_LABEL: Record<string, string> = {
   request_extension: "Asked for more time",
   approve_extension: "Approved new date",
   reject_extension: "Did not approve more time",
-  complete: "Completed",
+  complete: "Submitted work for review",
+  accept: "Accepted the work",
   reopen: "Reopened",
   cancel: "Cancelled",
   comment: "Commented",
@@ -567,6 +560,7 @@ function TaskDialog({
   task: t,
   me,
   overseer,
+  creatorManage,
   canDelete,
   name,
   deptName,
@@ -576,6 +570,7 @@ function TaskDialog({
   task: Task;
   me: string | null;
   overseer: boolean;
+  creatorManage: boolean;
   canDelete: boolean;
   name: (id?: string | null) => string;
   deptName?: string;
@@ -583,7 +578,7 @@ function TaskDialog({
   onChanged: () => void;
 }) {
   const isAssignee = t.assignee_id === me;
-  const isManager = t.created_by === me || overseer;
+  const isManager = (t.created_by === me && creatorManage) || overseer;
   const open = t.status !== "completed" && t.status !== "cancelled";
   const [mode, setMode] = useState<null | "extend" | "complete" | "decide" | "reopen">(null);
   const [note, setNote] = useState("");
@@ -664,7 +659,7 @@ function TaskDialog({
         });
         paths.push(path);
       }
-      if (await act("complete", { paths })) toast.success("Task completed");
+      if (await act("complete", { paths })) toast.success("Work submitted for review");
       else if (paths.length) await supabase.storage.from("task-proofs").remove(paths);
     } catch (error) {
       if (paths.length) await supabase.storage.from("task-proofs").remove(paths);
@@ -689,7 +684,7 @@ function TaskDialog({
                 STATUS[t.status]?.cls,
               )}
             >
-              {STATUS[t.status]?.label}
+              {taskSubmitted(t) ? 'Submitted for review' : STATUS[t.status]?.label}
             </span>
             {deptName && <Badge variant="outline">{deptName}</Badge>}
           </div>
@@ -721,6 +716,7 @@ function TaskDialog({
               <div className="mt-1">{t.extension_reason}</div>
             </div>
           )}
+          {t.feedback && <div className="space-y-1 rounded-lg bg-accent/10 p-3 text-sm"><b>Reviewer feedback</b><p className="whitespace-pre-wrap break-words">{t.feedback}</p><div className="text-xs text-muted-foreground">New deadline: {fmt(t.due_at)}</div></div>}
           {t.completion_note && (
             <div className="rounded-lg bg-primary/10 p-3 text-xs">
               <b>Completion note:</b> {t.completion_note}
@@ -759,7 +755,7 @@ function TaskDialog({
               {(evQ.data ?? []).map((e) => (
                 <li key={e.id} className="text-xs">
                   <div>
-                    <b>{name(e.actor_id)}</b> · {EV_LABEL[e.kind] ?? e.kind}
+                    <b>{typeof e.data['actor_name'] === 'string' ? e.data['actor_name'] : name(e.actor_id)}</b> · {EV_LABEL[e.kind] ?? e.kind}
                     {typeof e.data?.from === "string" && typeof e.data?.until === "string" ? (
                       <>
                         {" "}
@@ -776,8 +772,9 @@ function TaskDialog({
                   {e.note && e.kind !== "created" && (
                     <div className="text-muted-foreground">{e.note}</div>
                   )}
+                  {Array.isArray(e.data["paths"]) && <div className="text-muted-foreground">{e.data["paths"].length} submission documents retained above</div>}
                   <div className="text-[10px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                    {fmt(e.created_at)} · {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
                   </div>
                 </li>
               ))}
@@ -818,7 +815,7 @@ function TaskDialog({
               />
               <NamedDocumentsPicker value={files} onChange={setFiles} disabled={busy} />
               <Button disabled={busy || !note.trim()} onClick={complete} className="gap-1">
-                <CheckCircle2 className="h-4 w-4" /> {busy ? "Saving…" : "Mark complete"}
+                <CheckCircle2 className="h-4 w-4" /> {busy ? "Saving…" : "Submit work"}
               </Button>
             </div>
           )}
@@ -834,10 +831,11 @@ function TaskDialog({
               />
               <Textarea
                 rows={2}
-                placeholder="Note (optional)"
+                placeholder={mode === "reopen" ? "Feedback: what needs to change?" : "Note (optional)"}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
+              {mode === 'reopen' && <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setUntil(toLocalInput(taskDeadline(1)))}>In 1 hour</Button><Button variant="outline" size="sm" onClick={() => setUntil(toLocalInput(taskDeadline(2)))}>In 2 hours</Button></div>}
               {mode === "decide" ? (
                 <div className="flex gap-2">
                   <Button
@@ -859,8 +857,8 @@ function TaskDialog({
                   )}
                 </div>
               ) : (
-                <Button disabled={busy} onClick={() => act("reopen", { until })}>
-                  Reopen task
+                <Button disabled={busy || !note.trim() || !until} onClick={() => act("reopen", { until })}>
+                  Send feedback & reopen
                 </Button>
               )}
             </div>
@@ -880,13 +878,14 @@ function TaskDialog({
               Ask for more time
             </Button>
           )}
-          {isAssignee && open && <Button onClick={() => setMode("complete")}>Complete task</Button>}
+          {isAssignee && open && <Button onClick={() => setMode("complete")}>Submit work</Button>}
           {isManager && t.status === "extension_requested" && (
             <Button onClick={() => setMode("decide")}>Review time request</Button>
           )}
+          {isManager && taskSubmitted(t) && <Button disabled={busy} onClick={() => act('accept').then(ok => ok && toast.success('Work accepted'))}>Accept work</Button>}
           {isManager && !open && t.status === "completed" && (
             <Button variant="outline" onClick={() => setMode("reopen")}>
-              Reopen
+              Return with feedback
             </Button>
           )}
           {isManager && open && t.status !== "extension_requested" && (
@@ -912,34 +911,7 @@ function TaskDialog({
               Cancel task
             </Button>
           )}
-          {canDelete && (
-            <Button
-              variant="destructive"
-              disabled={busy}
-              onClick={async () => {
-                if (!window.confirm("Delete this task permanently?")) return;
-                setBusy(true);
-                const { error } = await db.from("tasks").delete().eq("id", t.id);
-                setBusy(false);
-                if (error) {
-                  toast.error(error.message);
-                  return;
-                }
-                void logActivity({
-                  module: "Tasks",
-                  action: "delete",
-                  entityType: "task",
-                  entityId: t.id,
-                  entityLabel: t.title,
-                });
-                toast.success("Task deleted");
-                onChanged();
-                onClose();
-              }}
-            >
-              Delete
-            </Button>
-          )}
+
         </DialogFooter>
       </DialogContent>
     </Dialog>

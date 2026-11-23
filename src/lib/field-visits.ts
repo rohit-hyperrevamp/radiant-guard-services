@@ -291,13 +291,13 @@ export async function uploadVisitProof(params: {
 }): Promise<string> {
   const ext = params.kind === "signature" ? "png" : "jpg";
   const contentType = params.kind === "signature" ? "image/png" : "image/jpeg";
-  const path = `${params.candidateId}/${params.visitId}/${params.kind}.${ext}`;
+  const path = `${params.candidateId}/${params.visitId}/${params.kind}-${crypto.randomUUID()}.${ext}`;
   // Convert data URL to Blob
   const res = await fetch(params.dataUrl);
   const blob = await res.blob();
   const { error } = await supabase.storage
     .from("field-visit-proofs")
-    .upload(path, blob, { contentType, upsert: true });
+    .upload(path, blob, { contentType, upsert: false });
   if (error) throw error;
   return path;
 }

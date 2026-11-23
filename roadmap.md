@@ -1,3 +1,11 @@
+## Task workflow, Radar history and transport team — 24 November
+- [ ] Multi-department and multi-employee task selection with search and Select All; one grouped task with independent employee progress.
+- [ ] Review, feedback, deadline reschedule, reopen/resubmit, durable logs and accurate created/assigned/pending/completed totals.
+- [ ] Give the verified legal-team Noor Singh Leadership access while retaining her Legal work identity.
+- [ ] Distinct Field Officer/Guard map markers; searchable visit status, historical coverage, saved forms/photos and per-employee PDF export.
+- [ ] Shahid transport dashboard team map, real location updates, present/absent totals and employee drill-down.
+- [ ] Run focused tests and production permission/readback checks; verify delivered signed-in flows or identify delivery/access blockers.
+
 ## Dashboard saved totals and negative-margin audit — 24 November
 - [x] Dashboard reads versioned saved invoice/payroll summaries only; exact periods and latest processed payroll versions preserved. FPL September and October saved/read back exactly.
 - [x] Source changes dirty saved summaries; protected leased worker rejects raced/failed results, with event dispatch and hourly recovery. Production schema installed.
