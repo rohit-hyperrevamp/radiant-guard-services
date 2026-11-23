@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchInChunks } from "@/lib/supabase-batch";
 
 /**
  * Contract rate cards are versioned per resource line in contract_rate_revisions.
@@ -64,6 +65,23 @@ function blendArrays(parts: { arr: unknown; w: number }[]): Row[] {
   return order.map((k) => ({ ...base.get(k)!, amount: Math.round((amt.get(k) ?? 0) * 100) / 100 }));
 }
 
+/** Approved/expired revisions for many resource lines (chunked: long id lists exceed URL limits). */
+async function fetchRevisions(ids: string[]): Promise<Rev[] | null> {
+  try {
+    return await fetchInChunks<Rev>(ids, (chunk, a, b) =>
+      supabase
+        .from("contract_rate_revisions" as never)
+        .select("*")
+        .in("resource_id", chunk)
+        .in("status", ["approved", "expired"])
+        .order("id")
+        .range(a, b),
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function applyRateRevisionsForPeriod<T extends Row>(
   resources: T[],
   start: string,
@@ -71,12 +89,8 @@ export async function applyRateRevisionsForPeriod<T extends Row>(
 ): Promise<T[]> {
   const ids = resources.map((r) => r.id).filter(Boolean).map(String);
   if (!ids.length || !start || !end) return resources;
-  const { data, error } = await supabase
-    .from("contract_rate_revisions" as never)
-    .select("*")
-    .in("resource_id", ids)
-    .in("status", ["approved", "expired"]);
-  if (error || !data || (data as unknown[]).length === 0) return resources;
+  const data = await fetchRevisions(ids);
+  if (!data || data.length === 0) return resources;
   const byRes = new Map<string, Rev[]>();
   for (const r of data as unknown as Rev[]) {
     const list = byRes.get(r.resource_id) ?? [];
@@ -131,12 +145,8 @@ export async function rateSegmentsForPeriod<T extends Row>(
   const out = new Map<string, RateSegment<T>[]>();
   const ids = resources.map((r) => r.id).filter(Boolean).map(String);
   if (!ids.length || !start || !end) return out;
-  const { data, error } = await supabase
-    .from("contract_rate_revisions" as never)
-    .select("*")
-    .in("resource_id", ids)
-    .in("status", ["approved", "expired"]);
-  if (error || !data) return out;
+  const data = await fetchRevisions(ids);
+  if (!data) return out;
   const byRes = new Map<string, Rev[]>();
   for (const r of data as unknown as Rev[]) {
     const list = byRes.get(r.resource_id) ?? [];

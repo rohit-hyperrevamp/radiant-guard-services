@@ -1,6 +1,10 @@
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit, invoicePoolStrength } from "@/lib/invoice-present-cap";
-import { invoiceExtraDutyRate, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
+import { invoiceLineAmount, type BillingMode } from "@/lib/dashboard-invoice-line";
+import { contractMonthlyBilling } from "@/lib/contract-rate-display";
+import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
+import { roundDutyDays } from "@/lib/duty-days";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
@@ -53,7 +57,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { CONTROL_CENTER_ROLES, ROLE_KEYS } from "@/lib/role-keys";
 import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
-import { fmtINR, computeWages, type ContractResourceLike } from "@/lib/payroll-calc";
+import { fmtINR, computeWages, normalizeOtEsi, type ContractResourceLike } from "@/lib/payroll-calc";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns, employerCostOnly } from "@/lib/contract-billing-addons";
@@ -264,7 +268,7 @@ type PnLRow = {
 };
 
 // Last finance report per user + month + window, so revisits paint instantly.
-const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v1";
+const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v2";
 const FINANCE_SNAPSHOT_KEEP = 4;
 
 type FinanceSnapshot = { at: number; data: unknown };
@@ -707,6 +711,17 @@ function DashboardPage() {
         employer_contributions: unknown;
         payroll_day_base_id: string | null;
         shift_hours?: number | null;
+        id?: string;
+        billing_day_base_id?: string | null;
+        invoice_present_cap?: boolean | null;
+        ot_multiplier?: number | null;
+        ot_basis?: string | null;
+        ot_formula?: string | null;
+        ot_esi?: unknown;
+        ot_hourly_rate?: number | null;
+        ot_hourly_esic?: number | null;
+        round_off_final?: boolean | null;
+        round_off_totals?: Record<string, boolean> | null;
       };
       type PairRow = {
         unit_id: string;
@@ -734,7 +749,12 @@ function DashboardPage() {
       };
       const allowedUnitIds = periodSelection.unitIdsForWindow;
       const unitRows = (payload.units ?? []).filter((unit) => allowedUnitIds.has(unit.unit_id));
-      const resources = payload.resources ?? [];
+      // Same period rate as invoice/payroll detail (day-split rate revisions).
+      const resources = (await applyRateRevisionsForPeriod(
+        (payload.resources ?? []) as unknown as Record<string, unknown>[],
+        monthStart,
+        monthEnd,
+      )) as unknown as ResourceRow[];
       const pairRows = payload.pairs ?? [];
 
       const pdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
@@ -770,6 +790,16 @@ function DashboardPage() {
           ? (r.employer_contributions as ContractResourceLike["employerContributions"])
           : [],
         payrollDayBase: r.payroll_day_base_id ? (pdbMap.get(r.payroll_day_base_id) ?? null) : null,
+        // Contract-owned Extra Duty rule and billing rounding, exactly as detail maps them.
+        otMultiplier: Number(r.ot_multiplier ?? 1) || 1,
+        otBasis: (r.ot_basis ?? "components") as ContractResourceLike["otBasis"],
+        otFormula: r.ot_formula ?? null,
+        otHourlyRate: r.ot_hourly_rate ?? null,
+        otHourlyEsic: r.ot_hourly_esic ?? null,
+        otShiftHours: [8, 10, 12].includes(Number(r.shift_hours)) ? Number(r.shift_hours) : 8,
+        otEsi: normalizeOtEsi(r.ot_esi),
+        roundOffFinal: r.round_off_final === true,
+        roundOffTotals: (r.round_off_totals ?? {}) as Record<string, boolean>,
       });
 
       // Resources grouped by (contract_id → designation_id).
@@ -927,6 +957,8 @@ function DashboardPage() {
       const invoiceStrengthByContract = new Map<string, Map<string, number>>();
       const billingTypeByContract = new Map<string, string>();
       const extrasByUnit = new Map<string, number>();
+      const exactDayRateContracts = new Set<string>();
+      const designationNames = new Map<string, string>();
       const bdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>();
       {
         const cChunks: string[][] = [];
@@ -938,6 +970,10 @@ function DashboardPage() {
             .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
           supabase.from("billing_types" as never).select("id, code"),
         ]);
+        const designationRows = await fetchAllPages<{ id: string; name: string | null }>((a, b) =>
+          supabase.from("designations").select("id,name").order("id").range(a, b),
+        );
+        for (const d of designationRows) designationNames.set(d.id, d.name ?? "");
         for (const b of (bdbs ?? []) as Record<string, unknown>[]) {
           bdbMap.set(String(b.id), {
             method: b.method as never,
@@ -961,7 +997,7 @@ function DashboardPage() {
                 .from("contract_resources" as never)
                 .select("contract_id, designation_id, quantity, billing_day_base_id, shift_hours, invoice_present_cap")
                 .in("contract_id", ids),
-              supabase.from("client_contracts").select("id, billing_type_id").in("id", ids),
+              supabase.from("client_contracts").select("id, billing_type_id, exact_day_rate" as never).in("id", ids),
             ]);
             const capResources = (crs ?? []) as Record<string, unknown>[];
             for (const contractId of ids) {
@@ -982,7 +1018,8 @@ function DashboardPage() {
                 shift: Number.isFinite(h) && h > 0 ? h : 8,
               });
             }
-            for (const c of (ccs ?? []) as { id: string; billing_type_id: string | null }[]) {
+            for (const c of (ccs ?? []) as unknown as { id: string; billing_type_id: string | null; exact_day_rate?: boolean | null }[]) {
+              if (c.exact_day_rate) exactDayRateContracts.add(c.id);
               billingTypeByContract.set(
                 c.id,
                 c.billing_type_id ? (btCode.get(c.billing_type_id) ?? "man_days") : "man_days",
@@ -1037,15 +1074,7 @@ function DashboardPage() {
           );
           // Same contracted monthly billing as the actual-invoice estimate
           // (components + benefits + all employer lines) so both sides compare like-for-like.
-          const sumLines = (items: { amount?: unknown }[] | undefined) =>
-            (items ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-          const invoicePerHead =
-            Math.round(
-              (sumLines(resource.components) +
-                sumLines(resource.benefits) +
-                sumLines(resource.employerContributions)) *
-                100,
-            ) / 100;
+          const invoicePerHead = contractMonthlyBilling(resource);
           committedPayroll += qty * payrollPerHead;
           if (!isInternal) contractValue += qty * invoicePerHead;
         }
@@ -1065,17 +1094,17 @@ function DashboardPage() {
         for (const [pairIndex, p] of pairs.entries()) {
           const resRow = resMap.get(p.designation_id);
           if (!resRow) continue;
-          const pDays = round2(Number(p.p_days) || 0);
-          const phDays = round2(Number(p.ph_days) || 0);
-          const otDays = round2(Number(p.ot_days) || 0);
-          const otherPaidDays = round2(Number(p.other_paid_days) || 0);
+          const pDays = roundDutyDays(Number(p.p_days) || 0);
+          const phDays = roundDutyDays(Number(p.ph_days) || 0);
+          const otDays = roundDutyDays(Number(p.ot_days) || 0);
+          const otherPaidDays = roundDutyDays(Number(p.other_paid_days) || 0);
           const totals = {
             pDays,
             otHours: otDays,
             otDays,
             phDays,
             otherPaidDays,
-            tDays: round2(pDays + phDays + otDays),
+            tDays: roundDutyDays(pDays + phDays + otDays),
           };
           const resource =
             hydratedByContractDesignation.get(lineShiftKey(u.contract_id, p.designation_id, p.shift)) ??
@@ -1087,18 +1116,6 @@ function DashboardPage() {
             // list the payroll page passes, otherwise ED pay comes out different.
             dayBases: dayBaseDefs,
           });
-          // Same maths as the Invoices page (contractBillableMonthly +
-          // invoiceMathFor): saved components + benefits + employer lines,
-          // rate = contracted ÷ billing days rounded to 2 dp, × billed duties.
-          const sumSaved = (items: { amount?: unknown }[] | undefined) =>
-            (items ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-          const contractedInvoice =
-            Math.round(
-              (sumSaved(resource.components) +
-                sumSaved(resource.benefits) +
-                sumSaved(resource.employerContributions)) *
-                100,
-            ) / 100;
           const payrollDays =
             resolvePayrollDayCount(resource.payrollDayBase, periodDates) ??
             (wages.baseDays || periodDates.length || 30);
@@ -1111,28 +1128,25 @@ function DashboardPage() {
               periodDates,
               { clampToPeriod: false },
             ) ?? payrollDays;
-          const mode = billingTypeByContract.get(u.contract_id) ?? "man_days";
-          const billedDays = Math.round(totals.tDays * 100) / 100;
-          const shiftHours = meta?.shift ?? 8;
-          let earnedInvoice: number;
-          if (mode === "lumpsum" || mode === "man_months") earnedInvoice = contractedInvoice;
-          else if (mode === "man_hours") {
-            const perHour =
-              billingDays > 0
-                ? Math.round((contractedInvoice / billingDays / shiftHours) * 100) / 100
-                : 0;
-            earnedInvoice =
-              Math.round(((perHour * Math.round(billedDays * shiftHours * 100)) / 100) * 100) / 100;
-          } else {
-            const perDay =
-              billingDays > 0 ? Math.round((contractedInvoice / billingDays) * 100) / 100 : 0;
-            earnedInvoice = Math.round(perDay * billedDays * 100) / 100;
-          }
-          if (meta?.invoicePresentCap && (mode === "man_days" || mode === "man_hours")) {
-            const regularRate = billingDays > 0 ? Math.round(contractedInvoice / billingDays / (mode === "man_hours" ? shiftHours : 1) * 100) / 100 : 0;
-            const edRate = invoiceExtraDutyRate(u.unit_id, resource.components, { unitCode: u.unit_code, monthlyBilling: contractedInvoice, billingDays, hourlyEd: resource.otBasis === "hourly" ? { rate: resource.otHourlyRate, esic: resource.otHourlyEsic, shiftHours } : null }) ?? (billingDays > 0 ? contractedInvoice / billingDays : 0);
-            earnedInvoice = splitInvoiceDuties({ billedDays: totals.tDays, otDays: allocations[pairIndex].extraDuty, regularRate, extraDutyRate: edRate, shiftHours, hourly: mode === "man_hours" }).actual;
-          }
+          const mode = (billingTypeByContract.get(u.contract_id) ?? "man_days") as BillingMode;
+          const capped = !!meta?.invoicePresentCap && (mode === "man_days" || mode === "man_hours");
+          // Invoice detail pricing: regular and Extra Duty priced separately; a
+          // Present cap only changes the split, never whether ED has its own rate.
+          const earnedInvoice = invoiceLineAmount({
+            resource,
+            mode,
+            billingDays,
+            shiftHours: meta?.shift ?? 8,
+            tDays: totals.tDays,
+            otDays: capped ? allocations[pairIndex].extraDuty : totals.otDays,
+            invoicePresentCap: capped,
+            unitId: u.unit_id,
+            unitCode: u.unit_code,
+            customerName: u.customer_name,
+            designationName: designationNames.get(p.designation_id) ?? null,
+            savedExtraDutyRate: wages.perDutyOtAmount,
+            exactDayRate: exactDayRateContracts.has(u.contract_id),
+          });
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += wages.earnedGross;
           // Management fee / reliever / service charges are billed margin, not cost.

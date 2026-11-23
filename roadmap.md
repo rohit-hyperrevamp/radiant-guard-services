@@ -1,3 +1,6 @@
+## Dashboard invoice vs payroll / P&L accuracy — 23 November
+- [x] Dashboard now prices each line with invoice-detail rules (contract ED rate regardless of Present cap, saved rounding, rate revisions, 4-dp duties, separate 8/10/12 h lines, active-newest contract tie-break) and passes contract ED rules to payroll; old browser snapshots discarded. Signed-in live screen not checked.
+
 ## September Professional Tax register — 23 November
 - [x] Register defaulted to Posted only; 946 imported September PT records were hidden. Production holds 967 September PT records, not 6–7 thousand.
 - [x] PT register and its tile link now default to All recorded; Posted filter still available.
