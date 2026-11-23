@@ -1,3 +1,7 @@
+## September Professional Tax register — 23 November
+- [ ] Diagnose the 21-employee count against production September payroll records.
+- [ ] Include verified historical deductions without duplicating current postings; validate counts, amounts and exports.
+
 ## Karnataka October workbook attendance — 22 November
 - [x] Reactivated CLI2702 and its sole active contract through 31 December 2026; all rates and historical versions preserved.
 - [x] Verified 527 daily cells across 17 employees/12 clients: added 186 missing cells, retained 341 exact existing matches; W kept as W, workbook paid H maps to PH, summaries ignored. Name-only floor rows resolved to CLI4680/CLI4682 through saved employee mappings.
