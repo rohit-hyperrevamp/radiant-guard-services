@@ -59,11 +59,21 @@ export type UnitFinanceRow = {
   committed_payroll: number;
   actual_payroll: number;
   actual_employer_contribution: number;
+  /** Management fee inside the employer contribution: billed margin, so it stays in profit. */
+  actual_management_fee?: number;
   committed_invoice: number;
   actual_invoice: number;
   /** Attendance still open for the window — invoice/payroll not ready. */
   attendance_open?: boolean;
 };
+
+/**
+ * Site profit: invoice − earned gross − employer contribution, except the
+ * management fee (billed margin) stays in profit. Reliever charges are a cost.
+ */
+export function unitProfit(r: Pick<UnitFinanceRow, "actual_invoice" | "actual_payroll" | "actual_employer_contribution" | "actual_management_fee">): number {
+  return r.actual_invoice - r.actual_payroll - (r.actual_employer_contribution - (r.actual_management_fee ?? 0));
+}
 
 export type Tone = "success" | "ok" | "warning" | "destructive";
 
@@ -579,7 +589,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const invoice = ready.reduce((s, r) => s + r.actual_invoice, 0);
     const earnedGross = ready.reduce((s, r) => s + r.actual_payroll, 0);
     const employerContribution = ready.reduce((s, r) => s + r.actual_employer_contribution, 0);
-    const profit = invoice - earnedGross - employerContribution;
+    const profit = ready.reduce((sum, r) => sum + unitProfit(r), 0);
     return {
       invoice,
       earnedGross,
@@ -603,7 +613,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const val = (r: UnitFinanceRow) =>
       r.attendance_open
         ? -Infinity
-        : r.actual_invoice - r.actual_payroll - r.actual_employer_contribution;
+        : unitProfit(r);
     return [...list].sort((a, b) => val(b) - val(a));
   }, [scopedRows, query]);
 
@@ -625,11 +635,11 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           : Math.round(r.actual_employer_contribution),
         Profitability: r.attendance_open
           ? "##"
-          : Math.round(r.actual_invoice - r.actual_payroll - r.actual_employer_contribution),
+          : Math.round(unitProfit(r)),
         Margin:
           r.attendance_open || r.actual_invoice <= 0
             ? "##"
-            : `${(((r.actual_invoice - r.actual_payroll - r.actual_employer_contribution) / r.actual_invoice) * 100).toFixed(1)}%`,
+            : `${(((unitProfit(r)) / r.actual_invoice) * 100).toFixed(1)}%`,
         Status: r.attendance_open ? "Awaiting approval – not in totals" : "Included",
       })),
     );
@@ -644,7 +654,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           <h2 className="text-base font-semibold">Client Profitability</h2>
           <p className="text-xs text-muted-foreground">
             Live unit-level invoice, earned gross and employer contribution for the selected payroll
-            window. Sites whose attendance is not yet approved show ## and are left out of the totals.
+            window. Profit keeps the management fee; reliever charges count as cost. Sites whose attendance is not yet approved show ## and are left out of the totals.
           </p>
         </div>
         <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
@@ -751,7 +761,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
               </tr>
             )}
             {paged.pageRows.map((r) => {
-              const profit = r.actual_invoice - r.actual_payroll - r.actual_employer_contribution;
+              const profit = unitProfit(r);
               const margin = r.actual_invoice > 0 ? (profit / r.actual_invoice) * 100 : 0;
               if (r.attendance_open) {
                 return (

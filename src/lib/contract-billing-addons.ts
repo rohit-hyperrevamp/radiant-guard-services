@@ -181,6 +181,10 @@ export const isBillingMarkupLine = (x: { name?: unknown }) => {
   return /admin(istrative)?\s*charges?/i.test(n) && !/\b(e?pf|edli)\b|0\.5\s*%/i.test(n);
 };
 
+/** Management fee lines only — billed margin that the dashboard counts as profit. */
+export const managementFeeOf = (items: { name?: unknown; amount?: unknown }[] | undefined) =>
+  Math.round((items ?? []).reduce((s, i) => s + (isMgmtFeeLine(i) ? Number(i.amount) || 0 : 0), 0) * 100) / 100;
+
 /** Employer cost excluding billing markup lines. */
 export const employerCostOnly = (items: { name?: unknown; amount?: unknown }[] | undefined) =>
   Math.round((items ?? []).reduce((s, i) => s + (isBillingMarkupLine(i) ? 0 : Number(i.amount) || 0), 0) * 100) / 100;

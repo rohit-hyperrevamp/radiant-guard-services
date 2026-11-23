@@ -8,7 +8,7 @@
 - Explicit changes to attendance code, ED or cap provenance discard previous rule-original metadata in a before-update trigger; internal rule writes retain it, so recalculation never restores an obsolete mark over a correction.
 - Monthly attendance rules persist non-primary `is_reliever` flags and synchronize recent editable site postings (`is_primary` plus `is_reliever`); primary-site cap ED stays regular — labels and payroll line classification must agree with the same database decision.
 
-- Dashboard P&L employer cost excludes billing markup (management fee/reliever) — keeps margins aligned.
+- Dashboard P&L employer contribution is the payroll page's own "Employer contrib" total (`PayrollUnitTotals.employerAll`) — dashboard and payroll page must show the same figure.
 - Billing add-on refresh excludes reliever/management fee from CTC even when passed as extra employer lines — keeps CTC-only formulas consistent with the contract editor.
 - Rate changes are versioned in `contract_rate_revisions`; payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (day split), a daily job promotes due rates — past periods keep old rates.
 - Period contract resolution (`fetchPeriodContract`) breaks equal start dates by status (active first) then newest `created_at` — overlapping contract copies otherwise made payroll/invoice flip between runs.

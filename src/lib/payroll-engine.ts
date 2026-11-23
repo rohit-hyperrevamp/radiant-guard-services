@@ -31,7 +31,7 @@ import {
   normalizeOtEsi,
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
-import { employerCostOnly } from "@/lib/contract-billing-addons";
+import { employerCostOnly, managementFeeOf } from "@/lib/contract-billing-addons";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, ptForSite } from "@/lib/pt-cross-site";
 
@@ -857,6 +857,10 @@ export type PayrollUnitTotals = {
   net: number;
   /** Employer contributions excluding billed margin (management fee, reliever, service charge). */
   employer: number;
+  /** The payroll page's own "Employer contrib" total (every employer line, as shown there). */
+  employerAll: number;
+  /** Management fee within employerAll — billed margin, counted as profit on the dashboard. */
+  managementFee: number;
   /** Per employee: gross / deductions summed over their lines at this site. */
   byPerson: Map<string, { gross: number; deductions: number }>;
 };
@@ -876,20 +880,22 @@ function payrollDates(start: string, end: string): string[] {
 
 export function payrollUnitTotals(rows: PayrollUnitRow[]): PayrollUnitTotals {
   const byPerson = new Map<string, { gross: number; deductions: number }>();
-  let gross = 0, deductions = 0, net = 0, employer = 0;
+  let gross = 0, deductions = 0, net = 0, employer = 0, employerAll = 0, managementFee = 0;
   for (const r of rows) {
     if (!r.wages) continue;
     gross += Number(r.wages.earnedGross) || 0;
     deductions += Number(r.wages.totalDeductions) || 0;
     net += Number(r.wages.netPay) || 0;
     employer += employerCostOnly(r.wages.employerContributions as never);
+    employerAll += Number(r.wages.totalEmployerContributions) || 0;
+    managementFee += managementFeeOf(r.wages.employerContributions as never);
     const p = byPerson.get(r.id) ?? { gross: 0, deductions: 0 };
     p.gross += Number(r.wages.earnedGross) || 0;
     p.deductions += Number(r.wages.totalDeductions) || 0;
     byPerson.set(r.id, p);
   }
   const r2 = (n: number) => Math.round(n * 100) / 100;
-  return { gross: r2(gross), deductions: r2(deductions), net: r2(net), employer: r2(employer), byPerson };
+  return { gross: r2(gross), deductions: r2(deductions), net: r2(net), employer: r2(employer), employerAll: r2(employerAll), managementFee: r2(managementFee), byPerson };
 }
 
 /**

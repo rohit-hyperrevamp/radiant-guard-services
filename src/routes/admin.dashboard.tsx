@@ -1,5 +1,6 @@
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { computeDashboardUnitFinance } from "@/lib/dashboard-finance";
+import { managementFeeOf } from "@/lib/contract-billing-addons";
 import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
 import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
@@ -55,7 +56,6 @@ import { CONTROL_CENTER_ROLES, ROLE_KEYS } from "@/lib/role-keys";
 import { InventoryOwnerDashboard } from "./admin.inventory.dashboard";
 import { fmtINR } from "@/lib/payroll-calc";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { employerCostOnly } from "@/lib/contract-billing-addons";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
@@ -247,6 +247,8 @@ type PnLRow = {
   payroll_cost: number;
   /** Employer-side statutory and contractual costs earned for this window. */
   employer_contribution: number;
+  /** Management fee inside employer_contribution (kept as profit). */
+  management_fee: number;
   variance: number;
   variance_pct: number;
   /** Full-month contracted payroll cost (components + ER + benefits) × headcount. */
@@ -261,7 +263,7 @@ type PnLRow = {
 };
 
 // Last finance report per user + month + window, so revisits paint instantly.
-const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v4";
+const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v6";
 const FINANCE_SNAPSHOT_KEEP = 4;
 
 type FinanceSnapshot = { at: number; data: unknown };
@@ -664,9 +666,13 @@ function DashboardPage() {
     enabled: financeAvailable && financeInputsReady && financeInView,
     initialData: financeSnapshot?.data as never,
     initialDataUpdatedAt: financeSnapshot?.at,
-    staleTime: 5 * 60_000,
+    // Figures are recalculated from live attendance, contracts and payroll on
+    // every visit and when the tab regains focus (after 2 minutes), so edits
+    // made on invoice or payroll pages flow here without any manual step.
+    staleTime: 2 * 60_000,
     gcTime: 30 * 60_000,
-    refetchOnWindowFocus: false,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     retry: 1,
     queryFn: async () => {
       await supabaseSessionReady();
@@ -693,6 +699,7 @@ function DashboardPage() {
       const approvedUnits = new Set<string>();
       const postedPayroll = new Map<string, number>();
       const postedEmployerContribution = new Map<string, number>();
+      const postedManagementFee = new Map<string, number>();
       const finalInvoiceByUnit = new Map<string, number>();
       await Promise.all(
         chunks.map(async (ids) => {
@@ -744,9 +751,16 @@ function DashboardPage() {
               postedEmployerContribution.set(
                 s.unit_id,
                 (postedEmployerContribution.get(s.unit_id) ?? 0) +
-                  (Array.isArray(s.employer_contributions)
-                    ? employerCostOnly(s.employer_contributions)
-                    : Number(s.total_employer) || 0),
+                  // Same figure as the payroll page's "Employer contrib": every employer line.
+                  (Number(s.total_employer) ||
+                    (Array.isArray(s.employer_contributions)
+                      ? s.employer_contributions.reduce((x, c) => x + (Number(c.amount) || 0), 0)
+                      : 0)),
+              );
+              postedManagementFee.set(
+                s.unit_id,
+                (postedManagementFee.get(s.unit_id) ?? 0) +
+                  (Array.isArray(s.employer_contributions) ? managementFeeOf(s.employer_contributions) : 0),
               );
             }
           }
@@ -785,13 +799,19 @@ function DashboardPage() {
         let invoiceAmount = f.invoice_amount;
         const pay = payrollByUnit.get(f.unit_id);
         let payrollCost = pay ? pay.gross : f.payroll_cost;
-        let employerContribution = pay ? pay.employer : f.employer_contribution;
+        // Employer contribution = the payroll page's own "Employer contrib" total.
+        let employerContribution = pay ? pay.employerAll : f.employer_contribution;
         if (!f.internal && finalInvoiceByUnit.has(f.unit_id)) invoiceAmount = finalInvoiceByUnit.get(f.unit_id)!;
         const postedGross = postedPayroll.get(f.unit_id);
         if (postedGross != null) payrollCost = postedGross;
         const postedEmployer = postedEmployerContribution.get(f.unit_id);
-        if (postedEmployer != null) employerContribution = postedEmployer;
-        const variance = invoiceAmount - payrollCost - employerContribution;
+        let managementFee = pay ? pay.managementFee : 0;
+        if (postedEmployer != null) {
+          employerContribution = postedEmployer;
+          managementFee = postedManagementFee.get(f.unit_id) ?? 0;
+        }
+        // Management fee is billed margin: it stays in profit.
+        const variance = invoiceAmount - payrollCost - (employerContribution - managementFee);
         pnlByUnit.set(f.unit_id, {
           unit_id: f.unit_id,
           unit_code: f.unit_code,
@@ -801,6 +821,7 @@ function DashboardPage() {
           invoice_amount: invoiceAmount,
           payroll_cost: payrollCost,
           employer_contribution: employerContribution,
+          management_fee: managementFee,
           variance,
           variance_pct: invoiceAmount > 0 ? (variance / invoiceAmount) * 100 : 0,
           internal: f.internal,
@@ -1400,6 +1421,7 @@ function DashboardPage() {
     committed_payroll: r.committed_payroll,
     actual_payroll: r.payroll_cost,
     actual_employer_contribution: r.employer_contribution,
+    actual_management_fee: r.management_fee ?? 0,
     committed_invoice: canSeeCommercial ? r.contract_value : 0,
     actual_invoice: canSeeCommercial ? r.invoice_amount : 0,
     attendance_open: !r.attendance_approved,

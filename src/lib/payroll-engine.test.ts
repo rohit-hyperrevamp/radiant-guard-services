@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { payrollUnitTotals, type PayrollUnitRow } from "@/lib/payroll-engine";
 
 const row = (id: string, gross: number, deductions: number, employer: { name: string; amount: number }[]) =>
-  ({ id, wages: { earnedGross: gross, totalDeductions: deductions, netPay: gross - deductions, employerContributions: employer } }) as unknown as PayrollUnitRow;
+  ({ id, wages: { earnedGross: gross, totalDeductions: deductions, netPay: gross - deductions, employerContributions: employer, totalEmployerContributions: employer.reduce((s, e) => s + e.amount, 0) } }) as unknown as PayrollUnitRow;
 
 describe("payrollUnitTotals", () => {
   it("adds every line of a person and the site, as the payroll page totals them", () => {
@@ -20,5 +20,11 @@ describe("payrollUnitTotals", () => {
   it("leaves billed margin out of employer cost", () => {
     const t = payrollUnitTotals([row("a", 18000, 0, [{ name: "ER EPF", amount: 1800 }, { name: "Management Fee", amount: 1500 }])]);
     expect(t.employer).toBe(1800);
+  });
+
+  it("employer contribution matches the payroll page total, including management fee and reliever charges", () => {
+    const t = payrollUnitTotals([row("a", 18000, 0, [{ name: "ER EPF", amount: 1800 }, { name: "Management Fee", amount: 1500 }, { name: "Reliever Charges", amount: 900 }])]);
+    expect(t.employerAll).toBe(4200);
+    expect(t.managementFee).toBe(1500);
   });
 });
