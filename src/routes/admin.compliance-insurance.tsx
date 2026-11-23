@@ -50,7 +50,7 @@ export const Route = createFileRoute("/admin/compliance-insurance")({
     search: Record<string, unknown>,
   ): { ym?: string; head?: string; scope?: LedgerScope } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
-    scope: search.scope === "pending" || search.scope === "all" ? search.scope : "posted",
+    scope: search.scope === "pending" || search.scope === "posted" ? search.scope : "all",
     head: typeof search.head === "string" ? search.head : undefined,
   }),
   head: () => ({
@@ -235,7 +235,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 function InsuranceRegisterPage() {
   const now = new Date();
   const { ym: ymParam, head: headParam, scope: scopeParam } = Route.useSearch();
-  const scope = scopeParam ?? "posted";
+  const scope = scopeParam ?? "all";
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const head: InsuranceHeadKey =
     headParam === "wc" ? "wc" : headParam === "esic" ? "esic" : "gpaip";

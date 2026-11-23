@@ -169,7 +169,7 @@ function CompliancePage() {
   const now = new Date();
   const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [ym, setYm] = useState(currentYm);
-  const [ledgerScope, setLedgerScope] = useState<LedgerScope>("posted");
+  const [ledgerScope, setLedgerScope] = useState<LedgerScope>("all");
   const [showExceptions, setShowExceptions] = useState(false);
   const [domain, setDomain] = useState<DomainKey | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");

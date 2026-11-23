@@ -43,7 +43,7 @@ export const Route = createFileRoute("/admin/compliance-lwf")({
   component: LwfRegisterPageGated,
   validateSearch: (search: Record<string, unknown>): { ym?: string; scope?: LedgerScope } => ({
     ym: typeof search.ym === "string" ? search.ym : undefined,
-    scope: search.scope === "pending" || search.scope === "all" ? search.scope : "posted",
+    scope: search.scope === "pending" || search.scope === "posted" ? search.scope : "all",
   }),
   head: () => ({
     meta: [
@@ -181,7 +181,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 function LwfRegisterPage() {
   const now = new Date();
   const { ym: ymParam, scope: scopeParam } = Route.useSearch();
-  const scope = scopeParam ?? "posted";
+  const scope = scopeParam ?? "all";
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const navigate = useNavigate({ from: "/admin/compliance-lwf" });
   const setYm = (next: string) => navigate({ search: { ym: next, scope } });

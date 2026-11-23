@@ -28,7 +28,7 @@ export const Route = createFileRoute("/admin/compliance-ledger")({
         ? s.ym
         : new Date().toISOString().slice(0, 7),
     head: s.head === "levy" ? "levy" : "epf",
-    scope: s.scope === "pending" || s.scope === "all" ? s.scope : "posted",
+    scope: s.scope === "pending" || s.scope === "posted" ? s.scope : "all",
   }),
   head: () => ({
     meta: [
