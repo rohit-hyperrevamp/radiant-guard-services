@@ -1,6 +1,7 @@
 import { useRegisterPeriods } from "@/lib/use-register-periods";
 import { summarizeRegisterStatuses } from "@/lib/register-summary";
 import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
+import { computeDashboardUnitFinance } from "@/lib/dashboard-finance";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -264,6 +265,15 @@ export function FinanceCharter({
     queryFn: () => fetchUnitFinance(unitIds, periodsByUnit),
   });
 
+  // Invoice values come from the invoice engine — the single-site invoice
+  // page's own calculation — so the register, dashboard and invoice agree.
+  const engineQ = useQuery({
+    queryKey: ["finance-charter-invoice-engine", periodKey],
+    enabled: mode === "invoice" && unitIds.length > 0,
+    staleTime: 60_000,
+    queryFn: () => computeDashboardUnitFinance(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
+  });
+
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
     enabled: mode === "invoice" && unitIds.length > 0 && allStatusQ.isSuccess,
@@ -384,7 +394,9 @@ export function FinanceCharter({
         );
         const monthlyContracted = finance?.monthlyContracted ?? 0;
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
-        const invoiceAmount = people.reduce((s, p) => s + p.invoiceAmount, 0);
+        const engine = engineQ.data?.get(u.id);
+        if (engine) for (const p of people) p.invoiceAmount = engine.invoice_by_person.get(p.id) ?? 0;
+        const invoiceAmount = engine ? engine.invoice_amount : people.reduce((s, p) => s + p.invoiceAmount, 0);
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
         const deductionAmount = people.reduce((s, p) => s + p.deductionAmount, 0);
         const netPayrollAmount = Math.max(0, payrollAmount - deductionAmount);
@@ -417,7 +429,7 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data]);
+  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, engineQ.data]);
   const pageIdSet = useMemo(() => new Set(pageUnits.map((u) => u.id)), [pageUnits]);
   const rows = useMemo(() => allRows.filter((r) => pageIdSet.has(r.unit.id)), [allRows, pageIdSet]);
 
@@ -425,8 +437,9 @@ export function FinanceCharter({
   // number issued yet for the open period.
   // Selection spans every page: picks on page 1 stay selected on page 2.
   const selectableRows = useMemo(
-    () => allRows.filter((r) => !r.finalInvoice && r.status.attendance === "approved"),
-    [allRows],
+    // Finalising needs the exact invoice value, so wait for the invoice engine.
+    () => (mode === "invoice" && !engineQ.isSuccess ? [] : allRows.filter((r) => !r.finalInvoice && r.status.attendance === "approved")),
+    [allRows, mode, engineQ.isSuccess],
   );
   // Invoice numbers are state-driven, so one final invoice can never span two
   // states: the first pick locks the state for the rest of the selection.

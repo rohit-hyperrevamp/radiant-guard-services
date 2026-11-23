@@ -5,15 +5,13 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { fetchInChunks } from "@/lib/supabase-batch";
-import { fetchRevisions, type RateRevisionRow } from "@/lib/rate-revisions";
+import type { RateRevisionRow } from "@/lib/rate-revisions";
 import { visibleAttendanceCandidateIds } from "@/lib/attendance-roster-eligibility";
 import { resolveOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
 import type { AttendanceEntryFetchRow } from "@/lib/attendance-fetch";
 import {
   ADDITION_COLS,
   DEDUCTION_COLS,
-  INVOICE_CANDIDATE_COLS,
-  RESOURCE_COLS,
   billingModeFromCode,
   unitPhFromRow,
   type InvoiceCandidate,
@@ -94,25 +92,50 @@ function mapExtra(r: Row): InvoiceExtraLike & { periodStart: string | null; peri
   };
 }
 
-/** Attendance of many sites, each over its own period (one compact RPC per batch). */
-async function fetchPeriodEntries(periods: Map<string, UnitPeriod>): Promise<{ entries: Map<string, AttendanceEntryFetchRow[]>; people: Map<string, Row> }> {
+type RpcFn = (fn: string, args: Row) => Promise<{ data: unknown; error: { message: string } | null }>;
+const rpc = (fn: string, args: Row) => (supabase.rpc as unknown as RpcFn)(fn, args);
+
+type PeriodInputs = {
+  sites: Row[];
+  contracts: Row[];
+  primary: Row[];
+  scopes: Row[];
+  extras: Row[];
+  entries: Map<string, AttendanceEntryFetchRow[]>;
+  people: Map<string, Row>;
+  links: Row[];
+};
+
+/** Site rows, contracts, rosters, postings and attendance of many sites, each over its own period. */
+async function fetchPeriodInputs(periods: Map<string, UnitPeriod>): Promise<PeriodInputs> {
   const list = [...periods].map(([u, p]) => ({ u, s: p.start, e: p.end }));
-  const out = new Map<string, AttendanceEntryFetchRow[]>();
-  const people = new Map<string, Row>();
-  const size = 150;
+  const out: PeriodInputs = { sites: [], contracts: [], primary: [], scopes: [], extras: [], entries: new Map(), people: new Map(), links: [] };
+  const size = 120;
   const batches: (typeof list)[] = [];
   for (let i = 0; i < list.length; i += size) batches.push(list.slice(i, i + size));
   const run = async (batch: typeof list) => {
-    const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Row) => Promise<{ data: unknown; error: { message: string } | null }>)("invoice_period_entries", { p_units: batch });
+    const { data, error } = await rpc("invoice_period_entries", { p_units: batch });
     if (error) throw error;
-    const payload = (data ?? {}) as { people?: unknown[][]; c?: string[]; d?: string[]; units?: { u: string; s: string; r: [number, number, number, string, number | null, number | null, number][] }[] };
+    const payload = (data ?? {}) as {
+      site?: Row[]; contracts?: Row[]; primary?: unknown[][]; scopes?: unknown[][]; extras?: Row[];
+      links?: unknown[][]; people?: unknown[][]; c?: string[]; d?: string[];
+      units?: { u: string; s: string; r: [number, number, number, string, number | null, number | null, number][] }[];
+    };
+    out.sites.push(...(payload.site ?? []));
+    out.contracts.push(...(payload.contracts ?? []));
+    out.extras.push(...(payload.extras ?? []));
+    for (const [id, unit_id, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date] of payload.primary ?? []) {
+      out.primary.push({ id, unit_id, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date });
+    }
+    for (const [scope_id, candidate_id] of payload.scopes ?? []) out.scopes.push({ scope_id, candidate_id });
+    for (const [unit_id, candidate_id, shift_hours] of payload.links ?? []) out.links.push({ unit_id, candidate_id, shift_hours });
+    for (const [id, unit_id, is_enabled, status, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date] of payload.people ?? []) {
+      out.people.set(String(id), { id, unit_id, is_enabled, status, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date });
+    }
     const c = payload.c ?? [];
     const d = payload.d ?? [];
-    for (const [id, unit_id, is_enabled, status, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date] of payload.people ?? []) {
-      people.set(String(id), { id, unit_id, is_enabled, status, employee_code, full_name, designation_id, gender, is_disabled, preferred_joining_date });
-    }
     for (const unit of payload.units ?? []) {
-      const rows: AttendanceEntryFetchRow[] = unit.r.map(([ci, di, off, code, ot, shift, rel]) => ({
+      out.entries.set(unit.u, unit.r.map(([ci, di, off, code, ot, shift, rel]) => ({
         candidate_id: c[ci],
         designation_id: di >= 0 ? d[di] : null,
         entry_date: addDays(unit.s, off),
@@ -120,12 +143,34 @@ async function fetchPeriodEntries(periods: Map<string, UnitPeriod>): Promise<{ e
         ot_hours: ot,
         shift_hours: shift,
         is_reliever: rel === 1,
-      }));
-      out.set(unit.u, rows);
+      })));
     }
   };
-  for (let i = 0; i < batches.length; i += 4) await Promise.all(batches.slice(i, i + 4).map(run));
-  return { entries: out, people };
+  for (let i = 0; i < batches.length; i += 5) await Promise.all(batches.slice(i, i + 5).map(run));
+  return out;
+}
+
+/** Contract lines in stored order (duplicate role lines: the later one prices, as on the invoice page). */
+async function fetchContractResources(contractIds: string[]): Promise<Row[]> {
+  const size = 250;
+  const batches: string[][] = [];
+  for (let i = 0; i < contractIds.length; i += size) batches.push(contractIds.slice(i, i + size));
+  const results = await Promise.all(batches.map(async (ids) => {
+    const { data, error } = await rpc("invoice_contract_resources", { p_contract_ids: ids });
+    if (error) throw error;
+    return (data ?? []) as Row[];
+  }));
+  return results.flat();
+}
+
+/** Every approved/expired rate revision (a small table) — the period helpers pick each line's own. */
+async function fetchAllRevisions(): Promise<RateRevisionRow[] | null> {
+  try {
+    return await fetchInChunks<RateRevisionRow>(["all"], (_c, a, b) =>
+      supabase.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b));
+  } catch {
+    return null;
+  }
 }
 
 export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Promise<{ units: Map<string, BulkInvoiceUnit>; resources: Row[]; revisions: RateRevisionRow[] | null }> {
@@ -137,19 +182,14 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
   const minStart = starts[0];
   const maxEnd = ends[ends.length - 1];
 
-  const [unitRows, contracts, billingTypes, primaryRows, linkRows, scopeRows, periodEntries, extraRows, additionRows, deductionRows] = await Promise.all([
-    fetchInChunks<Row>(unitIds, (chunk, a, b) => supabase.from("units").select("id, code, name, customer_id, epf_cap_enabled, billing_state, billing_pincode, pt_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days, customers(name, invoice_split)" as never).in("id", chunk).order("id").range(a, b)),
-    fetchInChunks<Row>(unitIds, (chunk, a, b) => supabase.from("client_contracts").select("id, unit_id, status, start_date, end_date, created_at, billing_type_id, gst_option, payroll_window_id, wo_as_present, exact_day_rate, invoice_split, invoice_ed_mode, is_internal" as never).in("unit_id", chunk).eq("record_type", "client").in("status", ["active", "expired"]).order("id").range(a, b)),
+  const [inputs, billingTypes, additionRows, deductionRows, revisions] = await Promise.all([
+    fetchPeriodInputs(periods),
     supabase.from("billing_types" as never).select("id, code").then((r) => (r.data ?? []) as unknown as Row[]),
-    fetchInChunks<Row>(unitIds, (chunk, a, b) => supabase.from("candidates").select(`${INVOICE_CANDIDATE_COLS}, unit_id`).in("unit_id", chunk).eq("is_enabled", true).eq("status", "active").order("id").range(a, b)),
-    fetchInChunks<Row>(unitIds, (chunk, a, b) => supabase.from("candidate_units").select("id, unit_id, candidate_id, shift_hours" as never).in("unit_id", chunk).order("id").range(a, b)),
-    fetchInChunks<Row>(unitIds, (chunk, a, b) => supabase.from("employee_scope_assignments").select("id, scope_id, candidate_id").eq("scope_type", "unit").in("scope_id", chunk).order("id").range(a, b)),
-    fetchPeriodEntries(periods),
-    fetchInChunks<Row>(unitIds, (chunk, a, b) => supabase.from("invoice_extra_charges" as never).select("*").in("unit_id", chunk).order("id").range(a, b)),
     fetchInChunks<Row>(["x"], (_c, a, b) => supabase.from("additions" as never).select(`${ADDITION_COLS}, addition_date, end_date, unit_id`).eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
     fetchInChunks<Row>(["x"], (_c, a, b) => supabase.from("deductions" as never).select(`${DEDUCTION_COLS}, deduction_date, unit_id`).eq("status", "active").gte("deduction_date", minStart).lte("deduction_date", maxEnd).order("id").range(a, b)),
+    fetchAllRevisions(),
   ]);
-
+  const { sites: unitRows, contracts, primary: primaryRows, scopes: scopeRows, extras: extraRows } = inputs;
   const btCode = new Map(billingTypes.map((b) => [s(b.id), (b.code as string | null) ?? "man_days"]));
   const contractsByUnit = new Map<string, Row[]>();
   for (const c of contracts) {
@@ -163,8 +203,7 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
     if (c) periodContract.set(unitId, c);
   }
   const contractIds = Array.from(new Set([...periodContract.values()].map((c) => s(c.id))));
-  const resources = await fetchInChunks<Row>(contractIds, (chunk, a, b) => supabase.from("contract_resources" as never).select(`${RESOURCE_COLS}, contract_id`).in("contract_id", chunk).order("id").range(a, b));
-  const revisions = resources.length ? await fetchRevisions(resources.map((r) => s(r.id))) : null;
+  const resources = await fetchContractResources(contractIds);
   const resourcesByContract = new Map<string, Row[]>();
   for (const r of resources) {
     const list = resourcesByContract.get(s(r.contract_id)) ?? [];
@@ -180,6 +219,7 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
     list.push(c as unknown as InvoiceCandidate);
     primaryByUnit.set(s(c.unit_id), list);
   }
+  const linkRows = inputs.links;
   const linksByUnit = new Map<string, { candidate_id: string; shift_hours?: number | null }[]>();
   for (const l of linkRows) {
     const list = linksByUnit.get(s(l.unit_id)) ?? [];
@@ -194,8 +234,8 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
   }
 
   // Profiles of linked and attended people (any unit / status), from the same read as attendance.
-  const entriesByUnit = periodEntries.entries;
-  const candById = periodEntries.people;
+  const entriesByUnit = inputs.entries;
+  const candById = inputs.people;
   const strip = (c: Row): InvoiceCandidate => ({
     id: s(c.id),
     employee_code: (c.employee_code as string | null) ?? null,
@@ -238,7 +278,7 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
     const rosterIds = new Set([...primary, ...secondary, ...leavers].map((c) => c.id));
     const flags = chooseFlagContract(contractsByUnit.get(unitId) ?? [], p.start, p.end);
     const ptStateRaw = (unit.pt_state as string | null) || null;
-    const customer = (unit.customers ?? null) as { name?: string | null; invoice_split?: unknown } | null;
+    const customer = { name: (unit.customer_name as string | null) ?? null, invoice_split: unit.customer_invoice_split };
     const data: InvoiceUnitData = {
       unitId,
       start: p.start,

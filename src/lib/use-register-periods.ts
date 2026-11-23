@@ -50,5 +50,5 @@ export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: nu
     refetchOnWindowFocus: true,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periods),
   });
-  return { periods, periodKey, statusesQ, isLoading: enabled && hasSession && ids.length > 0 && !savedQ.error && (savedQ.isLoading || (savedQ.isSuccess && statusesQ.isLoading)), error: savedQ.error ?? statusesQ.error };
+  return { periods, periodKey, periodsReady: savedQ.isSuccess, statusesQ, isLoading: enabled && hasSession && ids.length > 0 && !savedQ.error && (savedQ.isLoading || (savedQ.isSuccess && statusesQ.isLoading)), error: savedQ.error ?? statusesQ.error };
 }

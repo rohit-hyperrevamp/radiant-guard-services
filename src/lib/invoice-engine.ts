@@ -614,6 +614,16 @@ export function computeInvoiceUnit(src: InvoiceUnitData, g: InvoiceGlobals) {
     gstOption: typeof periodContract?.gst_option === "string" ? (periodContract.gst_option as string) : null,
     periodDates,
     resources,
+    /** One priced contract line per role × shift (quantity from the last saved line), for contract-value totals. */
+    contractLines: (() => {
+      const qty = new Map<string, number>();
+      for (const r of resources) {
+        const did = String(r.designation_id ?? "");
+        if (did) qty.set(shiftKey(did, r.shift_hours as number | null | undefined), Number(r.quantity) || 0);
+      }
+      return [...qty].map(([k, quantity]) => ({ quantity, resource: resourceByShiftKey.get(k) ?? null }));
+    })(),
+    rosterSize: new Set([...src.primary, ...src.secondary].map((c) => c.id)).size,
   };
 }
 
@@ -778,7 +788,7 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
   if (primaryRes.error) throw primaryRes.error;
   if (linksRes.error) throw linksRes.error;
   const unit = (unitRes.data ?? null) as Row | null;
-  const flags = ((flagsRes.data ?? []) as Row[])[0];
+  const flags = ((flagsRes.data ?? []) as unknown as Row[])[0];
   const links = (linksRes.data ?? []) as unknown as { candidate_id: string; shift_hours?: number | null }[];
   const linkIds = links.map((l) => l.candidate_id);
   let secondary: InvoiceCandidate[] = [];
@@ -865,7 +875,7 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
 }
 
 /** Shared reference data (codes, day bases, designations, formula masters, PT/LWF, holidays). */
-export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateRevisionRow[] | null = null): Promise<InvoiceGlobals> {
+export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateRevisionRow[] | null = null, preloadedMasters?: Promise<Map<string, FormulaMaster>>): Promise<InvoiceGlobals> {
   const pages = async <T,>(build: (a: number, b: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>) => {
     const out: T[] = [];
     for (let from = 0; ; from += 1000) {
@@ -888,7 +898,7 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
     supabase.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded").then((r) => (r.data ?? []) as PincodeRangeLike[]),
     supabase.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes").then((r) => (r.data ?? []) as LwfRow[]),
   ]);
-  const masters = await loadFormulaMastersFor(resources, revisions);
+  const masters = await (preloadedMasters ?? loadFormulaMastersFor(resources, revisions));
   return {
     codes,
     pdbs,

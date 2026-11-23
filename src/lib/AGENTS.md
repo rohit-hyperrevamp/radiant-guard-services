@@ -8,7 +8,7 @@
 - Explicit changes to attendance code, ED or cap provenance discard previous rule-original metadata in a before-update trigger; internal rule writes retain it, so recalculation never restores an obsolete mark over a correction.
 - Monthly attendance rules persist non-primary `is_reliever` flags and synchronize recent editable site postings (`is_primary` plus `is_reliever`); primary-site cap ED stays regular — labels and payroll line classification must agree with the same database decision.
 
-- Dashboard P&L mirrors payroll rules (period contract, attended roster, shift lines, unit PH); employer cost excludes billing markup — keeps margins aligned.
+- Dashboard P&L employer cost excludes billing markup (management fee/reliever) — keeps margins aligned.
 - Billing add-on refresh excludes reliever/management fee from CTC even when passed as extra employer lines — keeps CTC-only formulas consistent with the contract editor.
 - Rate changes are versioned in `contract_rate_revisions`; payroll/invoice resolve per period via `applyRateRevisionsForPeriod` (day split), a daily job promotes due rates — past periods keep old rates.
 - Period contract resolution (`fetchPeriodContract`) breaks equal start dates by status (active first) then newest `created_at` — overlapping contract copies otherwise made payroll/invoice flip between runs.
@@ -34,4 +34,4 @@
 - Reviewed Bonus Register fields use explicit factKey mappings for employee name, father, designation and establishment; regenerate its hand-built natural-width layout through bonus-register-layout.py rather than legacy font extraction, preserving blank unverified annual money/event inputs.
 - reviewedDigitalLayout applies source-reviewed certificate/wage-slip blank repairs without modifying original downloads; retain legacy field IDs so compatible saved drafts still import.
 - Reviewed compliance blanks live in compliance-reviewed-fields.json (per-form facts/remove/add; factKey '' = never autofill) and all answers render at one ANSWER_SIZE; employer registration codes use employerPfCode/employerEsicCode because employerPf/employerEsic mean posted monthly amounts.
-- Dashboard P&L prices invoice lines only through `invoiceLineAmount` (dashboard-invoice-line.ts) on `dashboard_pnl_inputs` resources carrying full ED/rounding fields and period rate revisions; bump the finance snapshot version when the maths changes — so dashboard and invoice detail never diverge.
+- Invoice money is computed only by `invoice-engine.ts` (`computeInvoiceUnit` + `invoiceLineMath`/`invoiceUnitTaxable`); the invoice page loads one site via `loadInvoiceUnitData`, the dashboard many via `invoice-engine-bulk.ts` (each site's own register period, stored-order contract lines/postings) — never re-implement invoice pricing elsewhere; bump the dashboard finance snapshot version when the maths changes.
