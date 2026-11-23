@@ -43,6 +43,7 @@ export function useLiveLocationBeacon() {
     let punchTimer: number | null = null;
     let current: { lat: number; lng: number; accuracy: number | null; timestamp: number } | null = null;
     let flushing = false;
+    let lastPushedAt = 0;
 
     async function refreshPunch() {
       try {
@@ -58,13 +59,14 @@ export function useLiveLocationBeacon() {
 
     async function flush() {
       const punch = punchRef.current;
-      if (cancelled || flushing || !punch?.onDuty || !current || !usableLocationFix(current.timestamp, current.accuracy)) return;
+      if (cancelled || flushing || Date.now() - lastPushedAt < BEACON_INTERVAL_MS || !punch?.onDuty || !current || !usableLocationFix(current.timestamp, current.accuracy)) return;
       flushing = true;
       const geo = { lat: current.lat, lng: current.lng, accuracy: current.accuracy ?? 0 };
       try {
         const [battery, network] = await Promise.all([readBattery(), readNetworkType()]);
         if (cancelled) { flushing = false; return; }
         await pushTelemetry(punch.id, { geo, battery, network });
+        lastPushedAt = Date.now();
       } catch {
         /* telemetry is best-effort */
       }

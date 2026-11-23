@@ -237,7 +237,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
 }
 
 /** Complete saved forms, with their original client photo and signature, one visit per section. */
-export async function generateEmployeeVisitPdf(name: string, code: string | null, start: string, end: string, visits: DetailedVisit[]): Promise<void> {
+export async function buildEmployeeVisitPdf(name: string, code: string | null, start: string, end: string, visits: DetailedVisit[]): Promise<jsPDF> {
   if (!visits.length) throw new Error('No saved visit forms in this period');
   const doc = new jsPDF({unit:'pt',format:'a4'});
   for (let i=0; i<visits.length; i++) {
@@ -258,5 +258,10 @@ export async function generateEmployeeVisitPdf(name: string, code: string | null
       doc.setFontSize(11);doc.text(label,32,y+22);doc.addImage(image,props.fileType,32,y+32,props.width*scale,height);y+=height+45;
     }
   }
-  const safeName=name.replace(/[^a-z0-9]+/gi,'-'); doc.save(`radiant-visits-${safeName}-${start}-${end}.pdf`);
+  return doc;
+}
+export async function generateEmployeeVisitPdf(name: string, code: string | null, start: string, end: string, visits: DetailedVisit[]): Promise<void> {
+  const doc=await buildEmployeeVisitPdf(name,code,start,end,visits);
+  const safeName=name.replace(/[^a-z0-9]+/gi,'-');
+  doc.save(`radiant-visits-${safeName}-${start}-${end}.pdf`);
 }

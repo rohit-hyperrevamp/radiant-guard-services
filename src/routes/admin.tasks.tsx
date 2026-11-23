@@ -256,6 +256,7 @@ function TasksPage() {
   };
   const listedGroups = new Set<string>();
   const groupedRows = tab === 'mine' ? rows : rows.filter(t => { const key = t.assignment_group_id || t.id; if (listedGroups.has(key)) return false; listedGroups.add(key); return true; });
+  const displayRows = groupedRows.filter(t => tab === 'mine' || st !== 'completed' || all.filter(x => (x.assignment_group_id || x.id) === (t.assignment_group_id || t.id)).every(taskFinished));
   const groupMembers = groupId ? all.filter(t => (t.assignment_group_id || t.id) === groupId) : [];
 
   return (
@@ -290,7 +291,7 @@ function TasksPage() {
                 : "border-border bg-card hover:bg-muted/50",
             )}
           >
-            {t.l} <span className="ml-1 opacity-70">{lists[t.k].length}</span>
+            {t.l} <span className="ml-1 opacity-70">{t.k === 'mine' ? lists[t.k].length : new Set(lists[t.k].map(x => x.assignment_group_id || x.id)).size}</span>
           </button>
         ))}
       </div>
@@ -345,11 +346,11 @@ function TasksPage() {
       </div>
       <div className="divide-y divide-border rounded-xl border border-border bg-card">
         {tasksQ.isLoading && <div className="p-4 text-sm text-muted-foreground">Loading…</div>}
-        {!tasksQ.isLoading && rows.length === 0 && (
+        {!tasksQ.isLoading && displayRows.length === 0 && (
           <div className="p-6 text-center text-sm text-muted-foreground">No tasks here.</div>
         )}
         {tasksQ.error && <p className="p-4 text-sm text-destructive">Could not load tasks: {tasksQ.error.message}</p>}
-        {groupedRows.map((t) => {
+        {displayRows.map((t) => {
           const members = tab === 'mine' ? [t] : all.filter(x => (x.assignment_group_id || x.id) === (t.assignment_group_id || t.id));
           const overdue = t.due_at && !done(t) && isPast(new Date(t.due_at));
           return (

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { distanceMeters } from "@/lib/self-attendance";
+import { indiaDate } from './work-location';
 
 export type FieldVisit = {
   id: string;
@@ -36,15 +37,11 @@ export type FieldTrackPoint = {
 };
 
 function today(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return indiaDate();
 }
 
 function firstOfMonth(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-01`;
+  return `${indiaDate().slice(0,7)}-01`;
 }
 
 // ----------------- Date range presets -----------------
@@ -72,7 +69,7 @@ export function resolveRange(
   customStart?: string | null,
   customEnd?: string | null,
 ): { start: string; end: string; label: string; preset: RangePreset } {
-  const now = new Date();
+  const now = new Date(`${indiaDate()}T12:00:00`);
   const p = (n: number) => String(n).padStart(2, "0");
   const iso = (d: Date) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   const td = iso(now);

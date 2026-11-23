@@ -1,10 +1,11 @@
 ## Task workflow, Radar history and transport team — 24 November
-- [ ] Multi-department and multi-employee task selection with search and Select All; one grouped task with independent employee progress.
-- [ ] Review, feedback, deadline reschedule, reopen/resubmit, durable logs and accurate created/assigned/pending/completed totals.
-- [ ] Give the verified legal-team Noor Singh Leadership access while retaining her Legal work identity.
-- [ ] Distinct Field Officer/Guard map markers; searchable visit status, historical coverage, saved forms/photos and per-employee PDF export.
-- [ ] Shahid transport dashboard team map, real location updates, present/absent totals and employee drill-down.
-- [ ] Run focused tests and production permission/readback checks; verify delivered signed-in flows or identify delivery/access blockers.
+- [x] Implemented multi-department and multi-employee selection, smart search and Select All; one grouped task with independent recipient progress.
+- [x] Installed/tested submit-review-accept and mandatory feedback/future-deadline reopening, resubmission, retained evidence/events, uncapped shared counts and immediate affected-cache refresh.
+- [x] Verified Legal Noor 494185 now has Leadership role and matching effective permissions, with Legal department/payroll home preserved; other Legal employees untouched.
+- [x] Implemented distinct Field Officer/Guard markers and searchable daily/history site coverage, pending/completed lists, preserved form revisions/photos and per-employee PDF export. Old dates without saved assignment rosters are labelled current-roster comparisons, never invented historical assignments.
+- [x] Saved Shahid’s ten active transport-driver memberships independently of payroll sites/reporting managers; implemented team map, present/absent drill-down and fresh foreground device updates. No native push or app-shell changes.
+- [x] Twenty focused tests and both production rollback suites passed: task lifecycle/permissions, driver scope/GPS/presence, day snapshots, immutable form-history readback and two-form PDF generation/evidence-failure rejection; no verification records remain. Automatic compilation passed.
+- [ ] Delivered signed-in task creation/upload/review, map rendering, phone movement and proof-bearing PDF verification await GitHub-to-Vercel delivery and a production-compatible signed-in session; the live HTML is the preceding release. Foreground tracking is implemented; reliable locked-screen/background tracking requires native capability and device testing, not the existing JavaScript collector.
 
 ## Dashboard saved totals and negative-margin audit — 24 November
 - [x] Dashboard reads versioned saved invoice/payroll summaries only; exact periods and latest processed payroll versions preserved. FPL September and October saved/read back exactly.
