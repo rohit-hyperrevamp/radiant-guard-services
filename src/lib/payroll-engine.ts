@@ -1,3 +1,4 @@
+import { checkedQueryData } from "@/lib/finance-source";
 /**
  * Payroll register for one site and period — the payroll page's own
  * calculation, moved here verbatim so the payroll page and the payroll list
@@ -906,12 +907,13 @@ export function payrollUnitTotals(rows: PayrollUnitRow[]): PayrollUnitTotals {
  */
 export async function computePayrollUnitsTotals(
   periods: Map<string, { start: string; end: string }>,
+  db = supabase,
 ): Promise<Map<string, PayrollUnitTotals>> {
   const out = new Map<string, PayrollUnitTotals>();
   const ids = Array.from(periods.keys());
   if (!ids.length) return out;
-  await supabaseSessionReady();
-  const [{ fetchEnabledPublicHolidays, holidayMapForDates }, { fetchPlatformFlag, PLATFORM_SETTING_KEYS }, bulk, { applyRateRevisionsWith }, { hydrateFormulasWith, loadAllFormulaMasters }, { fetchInChunks }, { visibleAttendanceCandidateIds }] = await Promise.all([
+  if (db === supabase) await supabaseSessionReady();
+  const [{ fetchEnabledPublicHolidaysWith, holidayMapForDates }, { fetchPlatformFlag, PLATFORM_SETTING_KEYS }, bulk, { applyRateRevisionsWith }, { hydrateFormulasWith, loadAllFormulaMasters }, { fetchInChunks }, { visibleAttendanceCandidateIds }] = await Promise.all([
     import("@/lib/public-holidays"),
     import("@/lib/platform-settings"),
     import("@/lib/invoice-engine-bulk"),
@@ -928,20 +930,20 @@ export async function computePayrollUnitsTotals(
   const dedFrom = (() => { const d = new Date(`${minStart}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 62); return d.toISOString().slice(0, 10); })();
   const all = <T,>(q: (a: number, b: number) => unknown) => fetchInChunks<T>(["x"], (_c, a, b) => q(a, b) as never);
   const [holidays, esiRoundUp, slabsRes, rangesRes, lwfRes, inputs, revisions, masters, codes, addTypes, pdbs, desigs, additions, deductions] = await Promise.all([
-    fetchEnabledPublicHolidays(),
-    fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true),
-    supabase.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender"),
-    supabase.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded"),
-    supabase.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes"),
-    bulk.fetchPeriodInputs(periods),
-    bulk.fetchAllRevisions(),
-    loadAllFormulaMasters(),
-    supabase.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (r.data ?? []) as AnyRow[]),
-    supabase.from("addition_types").select("id, code").then((r) => (r.data ?? []) as AnyRow[]),
-    supabase.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (r.data ?? []) as AnyRow[]),
-    all<AnyRow>((a, b) => supabase.from("designations").select("id, name").order("id").range(a, b)),
-    all<AnyRow>((a, b) => supabase.from("additions" as never).select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount, addition_date, end_date, unit_id").eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
-    all<AnyRow>((a, b) => supabase.from("deductions" as never).select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date, unit_id").eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", maxEnd).order("id").range(a, b)),
+    fetchEnabledPublicHolidaysWith(db),
+    fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true, db),
+    db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender"),
+    db.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded"),
+    db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes"),
+    bulk.fetchPeriodInputs(periods, db),
+    bulk.fetchAllRevisions(db),
+    loadAllFormulaMasters(db),
+    db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
+    db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
+    db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
+    all<AnyRow>((a, b) => db.from("designations").select("id, name").order("id").range(a, b)),
+    all<AnyRow>((a, b) => db.from("additions" as never).select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount, addition_date, end_date, unit_id").eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
+    all<AnyRow>((a, b) => db.from("deductions" as never).select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date, unit_id").eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", maxEnd).order("id").range(a, b)),
   ]);
   for (const r of [slabsRes, rangesRes, lwfRes]) if (r.error) throw r.error;
   const ptSlabs = (slabsRes.data ?? []) as PtSlabLike[];
@@ -960,7 +962,7 @@ export async function computePayrollUnitsTotals(
     const c = bulk.choosePeriodContract(contractsByUnit.get(u) ?? [], p.start, p.end);
     if (c) periodContract.set(u, c);
   }
-  const resources = await bulk.fetchContractResources(Array.from(new Set([...periodContract.values()].map((c) => s(c.id)))));
+  const resources = await bulk.fetchContractResources(Array.from(new Set([...periodContract.values()].map((c) => s(c.id)))), db);
   const resourcesByContract = group(resources, (r) => s(r.contract_id));
   const primaryByUnit = group(inputs.primary, (c) => s(c.unit_id));
   const linksByUnit = group(inputs.links, (l) => s(l.unit_id));
@@ -1010,7 +1012,7 @@ export async function computePayrollUnitsTotals(
           // The answer only matters for one-time joining fees (unit_fee deductions).
           const feeIds = new Set(pick(dedsByCand).filter((d) => d.source_kind === "unit_fee").map((d) => s(d.candidate_id)));
           if (!cids.length || !cids.some((id) => feeIds.has(id))) return [];
-          const { data } = await supabase.from("attendance_entries").select("candidate_id").eq("unit_id", unitId).in("candidate_id", cids).lt("entry_date", p.start);
+          const { data } = await db.from("attendance_entries").select("candidate_id").eq("unit_id", unitId).in("candidate_id", cids).lt("entry_date", p.start);
           return (data ?? []) as { candidate_id: string }[];
         },
         addTypes, pdbs, hydrate,
@@ -1023,22 +1025,22 @@ export async function computePayrollUnitsTotals(
   const everyone = Array.from(new Set(prepared.flatMap((x) => x.rosterIds)));
   const months = Array.from(new Set(prepared.map((x) => x.end.slice(0, 7))));
   const [wages, snaps, allocs] = await Promise.all([
-    fetchInChunks<AnyRow>(everyone, (chunk, a, b) => supabase.from("employee_wages" as never).select("candidate_id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id").in("candidate_id", chunk).range(a, b) as never),
+    fetchInChunks<AnyRow>(everyone, (chunk, a, b) => db.from("employee_wages" as never).select("candidate_id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id").in("candidate_id", chunk).range(a, b) as never),
     Promise.all(months.map((m) => {
       const [y, mo] = m.split("-").map(Number);
       const ms = `${m}-01`;
       const me = new Date(Date.UTC(y!, mo!, 0)).toISOString().slice(0, 10);
-      return fetchInChunks<AnyRow>(everyone, (chunk, a, b) => supabase
+      return fetchInChunks<AnyRow>(everyone, (chunk, a, b) => db
         .from("payroll_run_snapshots")
         .select("candidate_id, payroll_run_id, version, gross, deductions, payroll_runs!inner(unit_id, period_end, payroll_status)")
         .in("candidate_id", chunk).eq("payroll_runs.payroll_status", "processed")
-        .gte("payroll_runs.period_end", ms).lte("payroll_runs.period_end", me).range(a, b) as never).catch(() => [] as AnyRow[]).then((rows) => [m, rows] as const);
+        .gte("payroll_runs.period_end", ms).lte("payroll_runs.period_end", me).range(a, b) as never).then((rows) => [m, rows] as const);
     })),
     Promise.all(months.map((m) => {
       const [y, mo] = m.split("-").map(Number);
-      return fetchInChunks<AnyRow>(everyone, (chunk, a, b) => (supabase as unknown as { from: (t: string) => any })
+      return fetchInChunks<AnyRow>(everyone, (chunk, a, b) => (db as unknown as { from: (t: string) => any })
         .from("pt_site_allocations").select("candidate_id, unit_id, pt_amount")
-        .in("candidate_id", chunk).eq("period_year", y).eq("period_month", mo).range(a, b) as never).catch(() => [] as AnyRow[]).then((rows) => [m, rows] as const);
+        .in("candidate_id", chunk).eq("period_year", y).eq("period_month", mo).range(a, b) as never).then((rows) => [m, rows] as const);
     })),
   ]);
   const wagesByCand = group(wages, (w) => s(w.candidate_id));

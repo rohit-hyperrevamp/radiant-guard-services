@@ -8,6 +8,7 @@ import { isSplit } from "@/lib/invoice-split";
 import { loadInvoiceUnitsBulk, type UnitPeriod } from "@/lib/invoice-engine-bulk";
 import { contractMonthlyBilling } from "@/lib/contract-rate-display";
 import { loadAllFormulaMasters } from "@/lib/contract-hydrate";
+import { supabase } from "@/integrations/supabase/client";
 import { employerCostOnly } from "@/lib/contract-billing-addons";
 
 export type DashboardUnitFinance = {
@@ -63,12 +64,12 @@ export type DashboardInvoicePart = {
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const yieldToBrowser = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-export async function computeDashboardUnitFinance(periods: Map<string, UnitPeriod>): Promise<Map<string, DashboardUnitFinance>> {
+export async function computeDashboardUnitFinance(periods: Map<string, UnitPeriod>, db = supabase): Promise<Map<string, DashboardUnitFinance>> {
   const out = new Map<string, DashboardUnitFinance>();
   if (!periods.size) return out;
   // Reference data loads alongside the site data (all formula masters: small tables).
-  const globalsP = loadInvoiceGlobals([], null, loadAllFormulaMasters());
-  const bulk = await loadInvoiceUnitsBulk(periods);
+  const globalsP = loadInvoiceGlobals([], null, loadAllFormulaMasters(db), db);
+  const bulk = await loadInvoiceUnitsBulk(periods, db);
   const globals = await globalsP;
   let n = 0;
   for (const [unitId, unit] of bulk.units) {

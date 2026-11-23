@@ -1,7 +1,5 @@
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
-import { computeDashboardUnitFinance } from "@/lib/dashboard-finance";
-import { managementFeeOf } from "@/lib/contract-billing-addons";
-import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
+import { readDashboardFinance } from "@/lib/finance-summary-read";
 import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
@@ -261,49 +259,6 @@ type PnLRow = {
   /** Attendance for the window is approved — invoice/payroll can be shown. */
   attendance_approved: boolean;
 };
-
-// Last finance report per user + month + window, so revisits paint instantly.
-const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v6";
-const FINANCE_SNAPSHOT_KEEP = 4;
-
-type FinanceSnapshot = { at: number; data: unknown };
-
-function readFinanceSnapshot(key: string): FinanceSnapshot | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const raw = window.localStorage.getItem(`${FINANCE_SNAPSHOT}:${key}`);
-    return raw ? (JSON.parse(raw) as FinanceSnapshot) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function writeFinanceSnapshot(key: string, data: unknown, at: number) {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = JSON.stringify({ at, data });
-    if (raw.length > 2_000_000) return;
-    const prefix = `${FINANCE_SNAPSHOT}:`;
-    const own = `${prefix}${key}`;
-    const others: { k: string; at: number }[] = [];
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const k = window.localStorage.key(i);
-      if (!k || !k.startsWith(prefix) || k === own) continue;
-      try {
-        others.push({ k, at: (JSON.parse(window.localStorage.getItem(k) ?? "{}") as FinanceSnapshot).at ?? 0 });
-      } catch {
-        others.push({ k, at: 0 });
-      }
-    }
-    others
-      .sort((a, b) => b.at - a.at)
-      .slice(FINANCE_SNAPSHOT_KEEP - 1)
-      .forEach((o) => window.localStorage.removeItem(o.k));
-    window.localStorage.setItem(own, raw);
-  } catch {
-    // Snapshot is only a speed aid; a full or blocked store is harmless.
-  }
-}
 
 function useNearScreen(onNear: () => void) {
   const ref = React.useRef<HTMLDivElement | null>(null);
@@ -638,7 +593,6 @@ function DashboardPage() {
   // its own: after the headline tiles have painted and once the section is
   // near the screen. The last result per month/window paints instantly from a
   // saved snapshot while fresh figures load quietly in the background.
-  const financeKey = `${user?.phone ?? ""}|${year}|${month}|${periodSelection.selectedKey}`;
   const [financeInView, setFinanceInView] = useState(false);
   const financeAvailable =
     !showInventoryDashboard &&
@@ -646,7 +600,7 @@ function DashboardPage() {
     !showPayrollDashboard &&
     !opsFocus &&
     !lightMode &&
-    (can("payroll") || can("invoice") || can("contracts"));
+    can("payroll") && can("invoice");
   const financeInputsReady =
     authReady && !!user && !permsLoading &&
     !charterUnitsQ.isLoading && !periodSelection.isLoading &&
@@ -657,19 +611,15 @@ function DashboardPage() {
     for (let i = 0; i < registerPeriods.periodKey.length; i++) h = (h * 31 + registerPeriods.periodKey.charCodeAt(i)) | 0;
     return `${registerPeriods.periodKey.length}:${h}`;
   }, [registerPeriods.periodKey]);
-  const financeSnapshot = useMemo(() => readFinanceSnapshot(financeKey), [financeKey]);
   const pnlQuery = useQuery({
-    queryKey: ["dashboard-pnl", user?.phone, year, month, periodSelection.selectedKey, periodsHash],
+    queryKey: ["dashboard-pnl-saved-v1", user?.phone, year, month, periodSelection.selectedKey, periodsHash],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
     enabled: financeAvailable && financeInputsReady && financeInView,
-    initialData: financeSnapshot?.data as never,
-    initialDataUpdatedAt: financeSnapshot?.at,
-    // Figures are recalculated from live attendance, contracts and payroll on
-    // every visit and when the tab regains focus (after 2 minutes), so edits
-    // made on invoice or payroll pages flow here without any manual step.
-    staleTime: 2 * 60_000,
+    // Read versioned aggregate rows only; the source engines run on changed periods in the worker.
+    staleTime: 15_000,
+    refetchInterval: financeInView ? 30_000 : false,
     gcTime: 30 * 60_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
@@ -684,170 +634,7 @@ function DashboardPage() {
       for (const [unitId, p] of registerPeriods.periods) {
         if (allowedUnitIds.has(unitId)) unitPeriods.set(unitId, { start: p.start, end: p.end });
       }
-      // Payroll cost is the payroll page's own calculation (same rule: each site, own period).
-      const [financeByUnit, payrollByUnit] = await Promise.all([
-        computeDashboardUnitFinance(unitPeriods),
-        computePayrollUnitsTotals(unitPeriods),
-      ]);
-
-      // Real figures for the window: approved attendance sheets decide whether
-      // a unit is ready; posted payroll snapshots and single-unit final invoices
-      // override the computed values whenever they exist.
-      const unitIdList = [...financeByUnit.keys()];
-      const chunks: string[][] = [];
-      for (let i = 0; i < unitIdList.length; i += 200) chunks.push(unitIdList.slice(i, i + 200));
-      const approvedUnits = new Set<string>();
-      const postedPayroll = new Map<string, number>();
-      const postedEmployerContribution = new Map<string, number>();
-      const postedManagementFee = new Map<string, number>();
-      const finalInvoiceByUnit = new Map<string, number>();
-      await Promise.all(
-        chunks.map(async (ids) => {
-          const [sheets, runs, invUnits] = await Promise.all([
-            supabase
-              .from("attendance_sheets")
-              .select("unit_id,status")
-              .in("unit_id", ids)
-              // Each site has its own pay cycle (e.g. 21 Sep–20 Oct); a cycle
-              // belongs to the month in which it ends.
-              .gte("period_end", monthStart)
-              .lte("period_end", monthEnd)
-              .eq("status", "approved"),
-            supabase
-              .from("payroll_runs")
-              .select("id,unit_id")
-              .in("unit_id", ids)
-              // Each site has its own pay cycle (e.g. 21 Sep–20 Oct); a cycle
-              // belongs to the month in which it ends.
-              .gte("period_end", monthStart)
-              .lte("period_end", monthEnd),
-            supabase
-              .from("final_invoice_units" as never)
-              .select("unit_id,final_invoice_id")
-              .in("unit_id", ids)
-              // Each site has its own pay cycle (e.g. 21 Sep–20 Oct); a cycle
-              // belongs to the month in which it ends.
-              .gte("period_end", monthStart)
-              .lte("period_end", monthEnd),
-          ]);
-          for (const s of (sheets.data ?? []) as { unit_id: string }[])
-            approvedUnits.add(s.unit_id);
-          const runIds = ((runs.data ?? []) as { id: string }[]).map((r) => r.id);
-          if (runIds.length) {
-            const { data: snaps } = await supabase
-              .from("payroll_run_snapshots" as never)
-              .select("unit_id,gross,total_employer,employer_contributions")
-              .in("payroll_run_id", runIds);
-            for (const s of (snaps ?? []) as {
-              unit_id: string;
-              gross: number;
-              total_employer: number;
-              employer_contributions: { name?: string; amount?: number }[] | null;
-            }[]) {
-              postedPayroll.set(
-                s.unit_id,
-                (postedPayroll.get(s.unit_id) ?? 0) + (Number(s.gross) || 0),
-              );
-              postedEmployerContribution.set(
-                s.unit_id,
-                (postedEmployerContribution.get(s.unit_id) ?? 0) +
-                  // Same figure as the payroll page's "Employer contrib": every employer line.
-                  (Number(s.total_employer) ||
-                    (Array.isArray(s.employer_contributions)
-                      ? s.employer_contributions.reduce((x, c) => x + (Number(c.amount) || 0), 0)
-                      : 0)),
-              );
-              postedManagementFee.set(
-                s.unit_id,
-                (postedManagementFee.get(s.unit_id) ?? 0) +
-                  (Array.isArray(s.employer_contributions) ? managementFeeOf(s.employer_contributions) : 0),
-              );
-            }
-          }
-          const links = (invUnits.data ?? []) as { unit_id: string; final_invoice_id: string }[];
-          const invIds = Array.from(new Set(links.map((l) => l.final_invoice_id)));
-          if (invIds.length) {
-            const [{ data: invs }, { data: allLinks }] = await Promise.all([
-              supabase
-                .from("final_invoices" as never)
-                .select("id,taxable_value")
-                .in("id", invIds),
-              supabase
-                .from("final_invoice_units" as never)
-                .select("final_invoice_id,unit_id")
-                .in("final_invoice_id", invIds),
-            ]);
-            const unitCount = new Map<string, number>();
-            for (const l of (allLinks ?? []) as { final_invoice_id: string }[])
-              unitCount.set(l.final_invoice_id, (unitCount.get(l.final_invoice_id) ?? 0) + 1);
-            const value = new Map(
-              ((invs ?? []) as { id: string; taxable_value: number }[]).map((i) => [
-                i.id,
-                Number(i.taxable_value) || 0,
-              ]),
-            );
-            for (const l of links) {
-              if (unitCount.get(l.final_invoice_id) !== 1) continue;
-              finalInvoiceByUnit.set(l.unit_id, value.get(l.final_invoice_id) ?? 0);
-            }
-          }
-        }),
-      );
-
-      const pnlByUnit = new Map<string, PnLRow>();
-      for (const f of financeByUnit.values()) {
-        let invoiceAmount = f.invoice_amount;
-        const pay = payrollByUnit.get(f.unit_id);
-        let payrollCost = pay ? pay.gross : f.payroll_cost;
-        // Employer contribution = the payroll page's own "Employer contrib" total.
-        let employerContribution = pay ? pay.employerAll : f.employer_contribution;
-        if (!f.internal && finalInvoiceByUnit.has(f.unit_id)) invoiceAmount = finalInvoiceByUnit.get(f.unit_id)!;
-        const postedGross = postedPayroll.get(f.unit_id);
-        if (postedGross != null) payrollCost = postedGross;
-        const postedEmployer = postedEmployerContribution.get(f.unit_id);
-        let managementFee = pay ? pay.managementFee : 0;
-        if (postedEmployer != null) {
-          employerContribution = postedEmployer;
-          managementFee = postedManagementFee.get(f.unit_id) ?? 0;
-        }
-        // Management fee is billed margin: it stays in profit.
-        const variance = invoiceAmount - payrollCost - (employerContribution - managementFee);
-        pnlByUnit.set(f.unit_id, {
-          unit_id: f.unit_id,
-          unit_code: f.unit_code,
-          unit_name: f.unit_name,
-          customer_name: f.customer_name,
-          contract_value: f.contract_value,
-          invoice_amount: invoiceAmount,
-          payroll_cost: payrollCost,
-          employer_contribution: employerContribution,
-          management_fee: managementFee,
-          variance,
-          variance_pct: invoiceAmount > 0 ? (variance / invoiceAmount) * 100 : 0,
-          internal: f.internal,
-          committed_payroll: f.committed_payroll,
-          committed_strength: f.committed_strength,
-          actual_strength: f.actual_strength,
-          attendance_approved: approvedUnits.has(f.unit_id),
-        });
-      }
-
-      const pnlRows = Array.from(pnlByUnit.values()).sort(
-        (a, b) => b.contract_value - a.contract_value,
-      );
-      const pnlTotals = pnlRows.reduce(
-        (s, r) => ({
-          contract: s.contract + r.contract_value,
-          invoice: s.invoice + r.invoice_amount,
-          payroll: s.payroll + r.payroll_cost,
-          employer: s.employer + r.employer_contribution,
-        }),
-        { contract: 0, invoice: 0, payroll: 0, employer: 0 },
-      );
-
-      const result = { pnlRows, pnlTotals };
-      writeFinanceSnapshot(financeKey, result, Date.now());
-      return result;
+      return readDashboardFinance(unitPeriods);
     },
   });
 
@@ -1534,7 +1321,10 @@ function DashboardPage() {
                       <InvoiceCoverageCard rows={financeRows} />
                     )}
                     {pnlQuery.data && can("invoice") && canWidget("profitability") && (
-                      <ProfitabilityCard rows={financeRows} />
+                      <>
+                        {(pnlQuery.data.pending ?? 0) > 0 && <p className="mb-3 text-sm text-muted-foreground">{pnlQuery.data.pending} site periods awaiting updated totals · excluded from this report</p>}
+                        <ProfitabilityCard rows={financeRows} />
+                      </>
                     )}
                     {canWidget("org_tree") && departmentTree}
                   </>

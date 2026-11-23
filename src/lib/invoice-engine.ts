@@ -1,3 +1,4 @@
+import { checkedQueryData } from "@/lib/finance-source";
 /**
  * Invoice engine: the exact per-site invoice calculation used by the invoice
  * detail page, split into (1) loading the site's period data and (2) a pure,
@@ -875,7 +876,7 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
 }
 
 /** Shared reference data (codes, day bases, designations, formula masters, PT/LWF, holidays). */
-export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateRevisionRow[] | null = null, preloadedMasters?: Promise<Map<string, FormulaMaster>>): Promise<InvoiceGlobals> {
+export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateRevisionRow[] | null = null, preloadedMasters?: Promise<Map<string, FormulaMaster>>, db = supabase): Promise<InvoiceGlobals> {
   const pages = async <T,>(build: (a: number, b: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>) => {
     const out: T[] = [];
     for (let from = 0; ; from += 1000) {
@@ -888,17 +889,17 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
     return out;
   };
   const [codes, pdbs, bdbs, designations, holidays, addTypes, ptSlabs, pincodeRanges, lwfRows] = await Promise.all([
-    supabase.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (r.data ?? []) as AttendanceCodeLike[]),
-    supabase.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (r.data ?? []) as unknown as Row[]),
-    supabase.from("billing_day_bases" as never).select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (r.data ?? []) as unknown as Row[]),
-    pages<{ id: string; name: string | null }>((a, b) => supabase.from("designations").select("id,name").order("id").range(a, b)),
-    supabase.from("public_holidays" as never).select("id,name,holiday_month,holiday_day,enabled,sort_order").eq("enabled", true).then((r) => ((r.data ?? []) as unknown as Row[]).map((h) => ({ id: String(h.id), name: String(h.name ?? ""), month: Number(h.holiday_month ?? 1), day: Number(h.holiday_day ?? 1), enabled: Boolean(h.enabled ?? true), sortOrder: Number(h.sort_order ?? 0) }))),
-    supabase.from("addition_types").select("id, code").then((r) => (r.data ?? []) as { id: string; code: string | null }[]),
-    supabase.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender").then((r) => (r.data ?? []) as PtSlabLike[]),
-    supabase.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded").then((r) => (r.data ?? []) as PincodeRangeLike[]),
-    supabase.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes").then((r) => (r.data ?? []) as LwfRow[]),
+    db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AttendanceCodeLike[]),
+    db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
+    db.from("billing_day_bases" as never).select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
+    pages<{ id: string; name: string | null }>((a, b) => db.from("designations").select("id,name").order("id").range(a, b)),
+    db.from("public_holidays" as never).select("id,name,holiday_month,holiday_day,enabled,sort_order").eq("enabled", true).then((r) => ((checkedQueryData(r) ?? []) as unknown as Row[]).map((h) => ({ id: String(h.id), name: String(h.name ?? ""), month: Number(h.holiday_month ?? 1), day: Number(h.holiday_day ?? 1), enabled: Boolean(h.enabled ?? true), sortOrder: Number(h.sort_order ?? 0) }))),
+    db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as { id: string; code: string | null }[]),
+    db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender").then((r) => (checkedQueryData(r) ?? []) as PtSlabLike[]),
+    db.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded").then((r) => (checkedQueryData(r) ?? []) as PincodeRangeLike[]),
+    db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes").then((r) => (checkedQueryData(r) ?? []) as LwfRow[]),
   ]);
-  const masters = await (preloadedMasters ?? loadFormulaMastersFor(resources, revisions));
+  const masters = await (preloadedMasters ?? loadFormulaMastersFor(resources, revisions, db));
   return {
     codes,
     pdbs,
@@ -914,7 +915,7 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
 }
 
 /** Formula masters referenced by these raw contract_resources rows (and their revisions). */
-export async function loadFormulaMastersFor(resources: Row[], revisions: RateRevisionRow[] | null = null): Promise<Map<string, FormulaMaster>> {
+export async function loadFormulaMastersFor(resources: Row[], revisions: RateRevisionRow[] | null = null, db = supabase): Promise<Map<string, FormulaMaster>> {
   const shape = (r: Row) => ({
     components: (Array.isArray(r.components) ? r.components : []) as never[],
     benefits: (Array.isArray(r.benefits) ? r.benefits : []) as never[],
@@ -926,7 +927,7 @@ export async function loadFormulaMastersFor(resources: Row[], revisions: RateRev
   const cols = "id, formula_mode, formula_expression, formula_version, fixed_calc_method, fixed_duty_components, fixed_duty_divisor";
   const load = async (table: "allowance_types" | "cost_components", ids: string[]) => {
     for (let i = 0; i < ids.length; i += 150) {
-      const { data, error } = await supabase.from(table).select(cols).in("id", ids.slice(i, i + 150));
+      const { data, error } = await db.from(table).select(cols).in("id", ids.slice(i, i + 150));
       if (error) throw error;
       for (const m of (data ?? []) as Row[]) {
         out.set(String(m.id), {

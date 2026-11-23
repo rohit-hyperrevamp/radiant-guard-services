@@ -1,3 +1,4 @@
+import { financeProfit, financeLossReason } from "@/lib/finance-totals";
 import { matchesSearch } from "@/lib/search-match";
 import { TileNumber } from "@/components/TileNumber";
 import { useEffect, useMemo, useState } from "react";
@@ -72,7 +73,7 @@ export type UnitFinanceRow = {
  * management fee (billed margin) stays in profit. Reliever charges are a cost.
  */
 export function unitProfit(r: Pick<UnitFinanceRow, "actual_invoice" | "actual_payroll" | "actual_employer_contribution" | "actual_management_fee">): number {
-  return r.actual_invoice - r.actual_payroll - (r.actual_employer_contribution - (r.actual_management_fee ?? 0));
+  return financeProfit({ invoice: r.actual_invoice, gross: r.actual_payroll, employer: r.actual_employer_contribution, managementFee: r.actual_management_fee ?? 0 });
 }
 
 export type Tone = "success" | "ok" | "warning" | "destructive";
@@ -551,7 +552,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     () =>
       orgFilter.length === 0
         ? rows
-        : rows.filter((r) => orgFilter.includes(r.customer_id || r.customer_name)),
+        : rows.filter((r) => !r.internal && orgFilter.includes(r.customer_id || r.customer_name)),
     [rows, orgFilter],
   );
   const stateOptions = useMemo(
@@ -806,6 +807,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
                     )}
                   >
                     {fmtINR(profit)}
+                    {profit < 0 && <div className="mt-1 max-w-72 whitespace-normal text-xs font-normal text-destructive">{financeLossReason({ invoice: r.actual_invoice, gross: r.actual_payroll, employer: r.actual_employer_contribution, managementFee: r.actual_management_fee ?? 0 })}</div>}
                   </td>
                   <td
                     className={cn(

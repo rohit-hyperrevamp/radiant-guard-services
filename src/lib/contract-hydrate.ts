@@ -73,11 +73,11 @@ const toMaster = (m: Record<string, unknown>): FormulaMaster => ({
 const MASTER_COLS = "id, formula_mode, formula_expression, formula_version, fixed_calc_method, fixed_duty_components, fixed_duty_divisor";
 
 /** Every allowance and cost-component master (bulk callers hydrate thousands of lines at once). */
-export async function loadAllFormulaMasters(): Promise<Map<string, FormulaMaster>> {
+export async function loadAllFormulaMasters(db = supabase): Promise<Map<string, FormulaMaster>> {
   const out = new Map<string, FormulaMaster>();
   for (const table of ["allowance_types", "cost_components"] as const) {
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await supabase.from(table).select(MASTER_COLS).order("id").range(from, from + 999);
+      const { data, error } = await db.from(table).select(MASTER_COLS).order("id").range(from, from + 999);
       if (error) throw error;
       for (const m of (data ?? []) as Array<Record<string, unknown>>) out.set(String(m.id), toMaster(m));
       if ((data ?? []).length < 1000) break;

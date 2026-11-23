@@ -152,6 +152,7 @@ import { Route as AdminSalesProspectsIndexRouteImport } from './routes/admin.sal
 import { Route as AdminSalesProspectsLeadIdRouteImport } from './routes/admin.sales.prospects.$leadId'
 import { Route as ApiPublicHooksAlertcheckinSyncRouteImport } from './routes/api/public/hooks/alertcheckin-sync'
 import { Route as ApiPublicHooksDailyPeoplePingsRouteImport } from './routes/api/public/hooks/daily-people-pings'
+import { Route as ApiPublicHooksFinanceRefreshRouteImport } from './routes/api/public/hooks/finance-refresh'
 import { Route as ApiPublicHooksSohcmSyncRouteImport } from './routes/api/public/hooks/sohcm-sync'
 import { Route as ApiPublicNativePushRouteImport } from './routes/api/public/native/push'
 import { Route as AdminHrRecruitmentCandidatesIndexRouteImport } from './routes/admin.hr.recruitment.candidates.index'
@@ -910,6 +911,12 @@ const ApiPublicHooksDailyPeoplePingsRoute =
     path: '/api/public/hooks/daily-people-pings',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksFinanceRefreshRoute =
+  ApiPublicHooksFinanceRefreshRouteImport.update({
+    id: '/api/public/hooks/finance-refresh',
+    path: '/api/public/hooks/finance-refresh',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksSohcmSyncRoute = ApiPublicHooksSohcmSyncRouteImport.update({
   id: '/api/public/hooks/sohcm-sync',
   path: '/api/public/hooks/sohcm-sync',
@@ -1075,6 +1082,7 @@ export interface FileRoutesByFullPath {
   '/admin/sales/prospects/$leadId': typeof AdminSalesProspectsLeadIdRoute
   '/api/public/hooks/alertcheckin-sync': typeof ApiPublicHooksAlertcheckinSyncRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
+  '/api/public/hooks/finance-refresh': typeof ApiPublicHooksFinanceRefreshRoute
   '/api/public/hooks/sohcm-sync': typeof ApiPublicHooksSohcmSyncRoute
   '/api/public/native/push': typeof ApiPublicNativePushRoute
   '/admin/hr/recruitment/': typeof AdminHrRecruitmentIndexRoute
@@ -1219,6 +1227,7 @@ export interface FileRoutesByTo {
   '/admin/sales/prospects/$leadId': typeof AdminSalesProspectsLeadIdRoute
   '/api/public/hooks/alertcheckin-sync': typeof ApiPublicHooksAlertcheckinSyncRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
+  '/api/public/hooks/finance-refresh': typeof ApiPublicHooksFinanceRefreshRoute
   '/api/public/hooks/sohcm-sync': typeof ApiPublicHooksSohcmSyncRoute
   '/api/public/native/push': typeof ApiPublicNativePushRoute
   '/admin/hr/recruitment': typeof AdminHrRecruitmentIndexRoute
@@ -1369,6 +1378,7 @@ export interface FileRoutesById {
   '/admin/sales/prospects/$leadId': typeof AdminSalesProspectsLeadIdRoute
   '/api/public/hooks/alertcheckin-sync': typeof ApiPublicHooksAlertcheckinSyncRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
+  '/api/public/hooks/finance-refresh': typeof ApiPublicHooksFinanceRefreshRoute
   '/api/public/hooks/sohcm-sync': typeof ApiPublicHooksSohcmSyncRoute
   '/api/public/native/push': typeof ApiPublicNativePushRoute
   '/admin/hr/recruitment/': typeof AdminHrRecruitmentIndexRoute
@@ -1520,6 +1530,7 @@ export interface FileRouteTypes {
     | '/admin/sales/prospects/$leadId'
     | '/api/public/hooks/alertcheckin-sync'
     | '/api/public/hooks/daily-people-pings'
+    | '/api/public/hooks/finance-refresh'
     | '/api/public/hooks/sohcm-sync'
     | '/api/public/native/push'
     | '/admin/hr/recruitment/'
@@ -1664,6 +1675,7 @@ export interface FileRouteTypes {
     | '/admin/sales/prospects/$leadId'
     | '/api/public/hooks/alertcheckin-sync'
     | '/api/public/hooks/daily-people-pings'
+    | '/api/public/hooks/finance-refresh'
     | '/api/public/hooks/sohcm-sync'
     | '/api/public/native/push'
     | '/admin/hr/recruitment'
@@ -1813,6 +1825,7 @@ export interface FileRouteTypes {
     | '/admin/sales/prospects/$leadId'
     | '/api/public/hooks/alertcheckin-sync'
     | '/api/public/hooks/daily-people-pings'
+    | '/api/public/hooks/finance-refresh'
     | '/api/public/hooks/sohcm-sync'
     | '/api/public/native/push'
     | '/admin/hr/recruitment/'
@@ -1836,6 +1849,7 @@ export interface RootRouteChildren {
   ApiPublicSheetOcrRoute: typeof ApiPublicSheetOcrRoute
   ApiPublicHooksAlertcheckinSyncRoute: typeof ApiPublicHooksAlertcheckinSyncRoute
   ApiPublicHooksDailyPeoplePingsRoute: typeof ApiPublicHooksDailyPeoplePingsRoute
+  ApiPublicHooksFinanceRefreshRoute: typeof ApiPublicHooksFinanceRefreshRoute
   ApiPublicHooksSohcmSyncRoute: typeof ApiPublicHooksSohcmSyncRoute
   ApiPublicNativePushRoute: typeof ApiPublicNativePushRoute
 }
@@ -2843,6 +2857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDailyPeoplePingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/finance-refresh': {
+      id: '/api/public/hooks/finance-refresh'
+      path: '/api/public/hooks/finance-refresh'
+      fullPath: '/api/public/hooks/finance-refresh'
+      preLoaderRoute: typeof ApiPublicHooksFinanceRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/sohcm-sync': {
       id: '/api/public/hooks/sohcm-sync'
       path: '/api/public/hooks/sohcm-sync'
@@ -3250,6 +3271,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSheetOcrRoute: ApiPublicSheetOcrRoute,
   ApiPublicHooksAlertcheckinSyncRoute: ApiPublicHooksAlertcheckinSyncRoute,
   ApiPublicHooksDailyPeoplePingsRoute: ApiPublicHooksDailyPeoplePingsRoute,
+  ApiPublicHooksFinanceRefreshRoute: ApiPublicHooksFinanceRefreshRoute,
   ApiPublicHooksSohcmSyncRoute: ApiPublicHooksSohcmSyncRoute,
   ApiPublicNativePushRoute: ApiPublicNativePushRoute,
 }

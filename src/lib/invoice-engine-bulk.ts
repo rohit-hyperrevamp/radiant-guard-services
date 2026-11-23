@@ -1,3 +1,4 @@
+import { checkedQueryData } from "@/lib/finance-source";
 /**
  * Bulk loader for the invoice engine: the same per-site data the invoice page
  * loads, fetched for many sites (each over its own period) in a few batched
@@ -93,7 +94,7 @@ function mapExtra(r: Row): InvoiceExtraLike & { periodStart: string | null; peri
 }
 
 type RpcFn = (fn: string, args: Row) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpc = (fn: string, args: Row) => (supabase.rpc as unknown as RpcFn)(fn, args);
+const rpc = (fn: string, args: Row, db = supabase) => (db.rpc as unknown as RpcFn)(fn, args);
 
 export type PeriodInputs = {
   sites: Row[];
@@ -107,14 +108,14 @@ export type PeriodInputs = {
 };
 
 /** Site rows, contracts, rosters, postings and attendance of many sites, each over its own period. */
-export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>): Promise<PeriodInputs> {
+export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>, db = supabase): Promise<PeriodInputs> {
   const list = [...periods].map(([u, p]) => ({ u, s: p.start, e: p.end }));
   const out: PeriodInputs = { sites: [], contracts: [], primary: [], scopes: [], extras: [], entries: new Map(), people: new Map(), links: [] };
   const size = 120;
   const batches: (typeof list)[] = [];
   for (let i = 0; i < list.length; i += size) batches.push(list.slice(i, i + size));
   const run = async (batch: typeof list) => {
-    const { data, error } = await rpc("invoice_period_entries", { p_units: batch });
+    const { data, error } = await rpc("invoice_period_entries", { p_units: batch }, db);
     if (error) throw error;
     const payload = (data ?? {}) as {
       site?: Row[]; contracts?: Row[]; primary?: unknown[][]; scopes?: unknown[][]; extras?: Row[];
@@ -151,12 +152,12 @@ export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>): Promi
 }
 
 /** Contract lines in stored order (duplicate role lines: the later one prices, as on the invoice page). */
-export async function fetchContractResources(contractIds: string[]): Promise<Row[]> {
+export async function fetchContractResources(contractIds: string[], db = supabase): Promise<Row[]> {
   const size = 250;
   const batches: string[][] = [];
   for (let i = 0; i < contractIds.length; i += size) batches.push(contractIds.slice(i, i + size));
   const results = await Promise.all(batches.map(async (ids) => {
-    const { data, error } = await rpc("invoice_contract_resources", { p_contract_ids: ids });
+    const { data, error } = await rpc("invoice_contract_resources", { p_contract_ids: ids }, db);
     if (error) throw error;
     return (data ?? []) as Row[];
   }));
@@ -164,16 +165,12 @@ export async function fetchContractResources(contractIds: string[]): Promise<Row
 }
 
 /** Every approved/expired rate revision (a small table) — the period helpers pick each line's own. */
-export async function fetchAllRevisions(): Promise<RateRevisionRow[] | null> {
-  try {
-    return await fetchInChunks<RateRevisionRow>(["all"], (_c, a, b) =>
-      supabase.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b));
-  } catch {
-    return null;
-  }
+export async function fetchAllRevisions(db = supabase): Promise<RateRevisionRow[] | null> {
+  return await fetchInChunks<RateRevisionRow>(["all"], (_c, a, b) =>
+      db.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b));
 }
 
-export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Promise<{ units: Map<string, BulkInvoiceUnit>; resources: Row[]; revisions: RateRevisionRow[] | null }> {
+export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db = supabase): Promise<{ units: Map<string, BulkInvoiceUnit>; resources: Row[]; revisions: RateRevisionRow[] | null }> {
   const unitIds = [...periods.keys()];
   const units = new Map<string, BulkInvoiceUnit>();
   if (!unitIds.length) return { units, resources: [], revisions: null };
@@ -183,11 +180,11 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
   const maxEnd = ends[ends.length - 1];
 
   const [inputs, billingTypes, additionRows, deductionRows, revisions] = await Promise.all([
-    fetchPeriodInputs(periods),
-    supabase.from("billing_types" as never).select("id, code").then((r) => (r.data ?? []) as unknown as Row[]),
-    fetchInChunks<Row>(["x"], (_c, a, b) => supabase.from("additions" as never).select(`${ADDITION_COLS}, addition_date, end_date, unit_id`).eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
-    fetchInChunks<Row>(["x"], (_c, a, b) => supabase.from("deductions" as never).select(`${DEDUCTION_COLS}, deduction_date, unit_id`).eq("status", "active").gte("deduction_date", minStart).lte("deduction_date", maxEnd).order("id").range(a, b)),
-    fetchAllRevisions(),
+    fetchPeriodInputs(periods, db),
+    db.from("billing_types" as never).select("id, code").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
+    fetchInChunks<Row>(["x"], (_c, a, b) => db.from("additions" as never).select(`${ADDITION_COLS}, addition_date, end_date, unit_id`).eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
+    fetchInChunks<Row>(["x"], (_c, a, b) => db.from("deductions" as never).select(`${DEDUCTION_COLS}, deduction_date, unit_id`).eq("status", "active").gte("deduction_date", minStart).lte("deduction_date", maxEnd).order("id").range(a, b)),
+    fetchAllRevisions(db),
   ]);
   const { sites: unitRows, contracts, primary: primaryRows, scopes: scopeRows, extras: extraRows } = inputs;
   const btCode = new Map(billingTypes.map((b) => [s(b.id), (b.code as string | null) ?? "man_days"]));
@@ -203,7 +200,7 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>): Pr
     if (c) periodContract.set(unitId, c);
   }
   const contractIds = Array.from(new Set([...periodContract.values()].map((c) => s(c.id))));
-  const resources = await fetchContractResources(contractIds);
+  const resources = await fetchContractResources(contractIds, db);
   const resourcesByContract = new Map<string, Row[]>();
   for (const r of resources) {
     const list = resourcesByContract.get(s(r.contract_id)) ?? [];

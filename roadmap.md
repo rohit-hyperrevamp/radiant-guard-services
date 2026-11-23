@@ -1,8 +1,9 @@
 ## Dashboard saved totals and negative-margin audit — 24 November
-- [ ] Replace dashboard recalculation with versioned saved invoice/payroll summaries, preserving exact site periods and source totals.
-- [ ] Refresh only changed summaries automatically; reject stale/incomplete results and preserve posted records.
-- [ ] Audit all recorded months/sites for negative margins and source mismatches; retain genuine losses with a factual explanation.
-- [ ] Test calculation, invalidation, permissions and production readback; verify delivered signed-in screens if access is available.
+- [x] Dashboard reads versioned saved invoice/payroll summaries only; exact periods and latest processed payroll versions preserved. FPL September and October saved/read back exactly.
+- [x] Source changes dirty saved summaries; protected leased worker rejects raced/failed results, with event dispatch and hourly recovery. Production schema installed.
+- [ ] Complete all-period negative-margin audit: 2,521 of 2,745 eligible periods were traversed before timeout but full results were not retained; only FPL September/October have completed saved readback. Remaining periods await delivered background worker.
+- [x] Seventeen focused tests, production rollback invalidation/grant tests and automatic compilation passed.
+- [ ] Delivered worker and signed-in dashboard verification: live new hook still returns 404 until GitHub-to-Vercel deployment. Background enabled, queued periods await delivery.
 
 ## Dashboard invoice vs payroll / P&L accuracy — 23 November
 - [x] Invoice and payroll registers now use the period contract, day-split rate revisions, hourly Extra Duty rates and the billing-days divisor, matching invoice detail.

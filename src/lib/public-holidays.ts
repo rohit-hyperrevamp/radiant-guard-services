@@ -20,8 +20,12 @@ export type PublicHoliday = {
 };
 
 /** Enabled public holidays only — these repeat every year on the same date. */
-export async function fetchEnabledPublicHolidays(): Promise<PublicHoliday[]> {
-  const { data, error } = await supabase
+export function fetchEnabledPublicHolidays(): Promise<PublicHoliday[]> {
+  return fetchEnabledPublicHolidaysWith(supabase);
+}
+
+export async function fetchEnabledPublicHolidaysWith(db: typeof supabase): Promise<PublicHoliday[]> {
+  const { data, error } = await db
     .from("public_holidays" as never)
     .select("id,name,holiday_month,holiday_day,enabled,sort_order")
     .eq("enabled", true)

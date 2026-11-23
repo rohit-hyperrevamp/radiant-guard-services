@@ -19,8 +19,9 @@ export const platformFlagQueryKey = (key: PlatformSettingKey) =>
 export async function fetchPlatformFlag(
   key: PlatformSettingKey,
   fallback = true,
+  db = supabase,
 ): Promise<boolean> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("inv_settings" as never)
     .select("value")
     .eq("key", key)
