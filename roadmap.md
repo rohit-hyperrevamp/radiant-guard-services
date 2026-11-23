@@ -1,7 +1,8 @@
 ## Karnataka October workbook attendance — 22 November
-- [ ] Reactivate CLI2702 only through 31 December 2026, preserve its rates, and include its workbook attendance.
-- [ ] Match workbook clients/employees, import only explicit daily marks, ignore summaries and preserve unrelated records.
-- [ ] Verify production readback and report unmatched or incomplete rows.
+- [x] Reactivated CLI2702 and its sole active contract through 31 December 2026; all rates and historical versions preserved.
+- [x] Verified 527 daily cells across 17 employees/12 clients: added 186 missing cells, retained 341 exact existing matches; W kept as W, workbook paid H maps to PH, summaries ignored. Name-only floor rows resolved to CLI4680/CLI4682 through saved employee mappings.
+- [x] Production second readback matches every source cell; seven focused tests and transaction preservation assertions pass. Created missing October draft sheets without inventing approvals; signed-in screen not checked.
+- [ ] Five totals-only rows (CLI4683/CLI4389) and four sections mentioned only in Review Notes need actual daily source attendance; exceptions report provided, no dates or duties invented.
 
 ## CLI3871 weekly off as Present — 21 November
 - [x] Enabled WO-as-P on CLI3871 active contract CON14307 only; expired contract, other clients, rates and 443 attendance entries unchanged. Production currently has no saved WO marks for CLI3871.
