@@ -27,6 +27,37 @@ export type DashboardUnitFinance = {
   employer_contribution: number;
   /** Invoice amount per employee (all invoice parts; extra charges excluded). */
   invoice_by_person: Map<string, number>;
+  /** Each invoice part (one when the contract has no split), exactly as the invoice page bills it. */
+  parts: DashboardInvoicePart[];
+};
+
+/** One employee line of an invoice part, with the invoice page's own rates. */
+export type DashboardMisLine = {
+  candidateId: string;
+  employeeCode: string;
+  name: string;
+  joiningDate: string | null;
+  isRegular: boolean;
+  designation: string;
+  shiftHours: number;
+  payrollDays: number;
+  contracted: number;
+  perDay: number;
+  billedDays: number;
+  otDays: number;
+  actual: number;
+  maxWorkingDays: number | null;
+  extraDutyRate: number | null;
+};
+
+export type DashboardInvoicePart = {
+  key: string;
+  label: string;
+  /** Billed lines plus this part's extra charges. */
+  taxable: number;
+  /** Tally voucher lines, same as the invoice page's Tally export. */
+  tallyLines: { qty: number; rate: number; amount: number; monthly: number }[];
+  mis: DashboardMisLine[];
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -48,17 +79,49 @@ export async function computeDashboardUnitFinance(periods: Map<string, UnitPerio
       result,
       { unitId, unitCode: unit.data.unitCode, customerName: unit.customerName, invoiceSplit: unit.invoiceSplit, exactDayRate: unit.data.exactDayRate },
       unit.extras,
-    ).taxable;
+    );
     const invoiceByPerson = new Map<string, number>();
     const split = unit.invoiceSplit;
     const parts = isSplit(split) ? split.parts.map((p) => p.key) : [split.parts[0]?.key ?? "main"];
     const mathCtx = { unitId, unitCode: unit.data.unitCode, customerName: unit.customerName, billingMode: result.billingMode, invoiceSplit: split, periodDates: result.periodDates, shiftHoursByDesignation: result.shiftHoursByDesignation, billingDayBaseByDesignation: result.billingDayBaseByDesignation, exactDayRate: unit.data.exactDayRate };
+    const partOut: DashboardInvoicePart[] = [];
     if (!unit.isInternal) {
       for (const part of parts) {
+        const tallyLines: DashboardInvoicePart["tallyLines"] = [];
+        const mis: DashboardMisLine[] = [];
         for (const row of invoicePartRows(result.rows, split, part, result.billingMode)) {
           if (!row.wages) continue;
-          invoiceByPerson.set(row.id, r2((invoiceByPerson.get(row.id) ?? 0) + invoiceLineMath(row, mathCtx).actual));
+          const m = invoiceLineMath(row, mathCtx);
+          invoiceByPerson.set(row.id, r2((invoiceByPerson.get(row.id) ?? 0) + m.actual));
+          if (!row.resource) continue;
+          if (result.billingMode === "lumpsum") tallyLines.push({ qty: 1, rate: m.actual, amount: m.actual, monthly: m.contracted });
+          else for (const item of m.billingLines) tallyLines.push({ qty: item.quantity, rate: item.rate, amount: item.amount, monthly: m.contracted });
+          mis.push({
+            candidateId: row.id,
+            employeeCode: String(row.employeeCode ?? ""),
+            name: String(row.name ?? ""),
+            joiningDate: row.joiningDate ?? null,
+            isRegular: !!row.isRegular,
+            designation: String(row.designation ?? ""),
+            shiftHours: m.shiftHours,
+            payrollDays: m.payrollDays,
+            contracted: m.contracted,
+            perDay: m.perDay,
+            billedDays: m.billedDays ?? 0,
+            otDays: row.totals.otDays ?? 0,
+            actual: m.actual,
+            maxWorkingDays: row.invoicePresentCap || m.dutySplit ? null : m.billingDays,
+            extraDutyRate: m.extraDutyRate,
+          });
         }
+        const t = taxable.parts.find((x) => x.part === part);
+        partOut.push({
+          key: part,
+          label: (isSplit(split) ? split.parts.find((x) => x.key === part)?.label : null) ?? "Main invoice",
+          taxable: t?.taxable ?? 0,
+          tallyLines: tallyLines.filter((l) => l.amount > 0),
+          mis,
+        });
       }
     }
     let payroll = 0;
@@ -90,10 +153,11 @@ export async function computeDashboardUnitFinance(periods: Map<string, UnitPerio
       committed_payroll: r2(committedPayroll),
       committed_strength: committedStrength,
       actual_strength: result.rosterSize,
-      invoice_amount: unit.isInternal ? 0 : taxable,
+      invoice_amount: unit.isInternal ? 0 : taxable.taxable,
       payroll_cost: r2(payroll),
       employer_contribution: r2(employer),
       invoice_by_person: invoiceByPerson,
+      parts: partOut,
     });
   }
   return out;

@@ -1,7 +1,7 @@
 import { useRegisterPeriods } from "@/lib/use-register-periods";
 import { summarizeRegisterStatuses } from "@/lib/register-summary";
 import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
-import { computeDashboardUnitFinance } from "@/lib/dashboard-finance";
+import { computeDashboardUnitFinance, type DashboardUnitFinance } from "@/lib/dashboard-finance";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -531,111 +531,25 @@ export function FinanceCharter({
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
-  // Billed lines per unit, routed to the organization's invoice parts
-  // (Organizations → Invoice format). Unsplit organizations get one "main" part.
-  type PartLine = { qty: number; amount: number; monthly: number };
-  const loadPartLines = async (targets: { id: string; customer_id?: string | null }[]) => {
-    const chunkOf = <T,>(items: T[], size: number) => {
-      const chunks: T[][] = [];
-      for (let index = 0; index < items.length; index += size) chunks.push(items.slice(index, index + size));
-      return chunks;
-    };
-    const ids = targets.map((u) => u.id);
-    const customerIds = Array.from(new Set(targets.map((u) => u.customer_id ?? "").filter(Boolean)));
-    const splits = new Map<string, InvoiceSplit>();
-    await Promise.all(customerIds.map(async (cid) => splits.set(cid, await loadOrgInvoiceSplit(cid))));
-    const splitFor = (unitId: string) => splits.get(targets.find((u) => u.id === unitId)?.customer_id ?? "") ?? null;
-    const financeMap = new Map<string, UnitFinance>();
-    for (const chunkIds of chunkOf(ids, 100)) {
-      const part = await fetchUnitFinance(chunkIds, allPeriodsByUnit);
-      for (const [key, value] of part) financeMap.set(key, value);
-    }
-    const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
-    for (const unit of targets) {
-      const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
-      const key = `${period.start}|${period.mtdEnd}`;
-      const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
-      group.unitIds.push(unit.id);
-      groups.set(key, group);
-    }
-    const entries = (await Promise.all(
-      Array.from(groups.values()).flatMap((group) =>
-        chunkOf(group.unitIds, 100).map((unitIds) =>
-          fetchAttendanceEntriesForPeriod({ unitIds, start: group.start, end: group.end, includeUnitId: true }),
-        ),
-      ),
-    )).flat();
-    const linesByUnit = new Map<string, Map<string, Map<string, PartLine>>>();
-    const add = (unitId: string, part: string, desig: string, qty: number, amount: number, monthly: number) => {
-      if (qty <= 0 || part === EXCLUDE) return;
-      const byPart = linesByUnit.get(unitId) ?? new Map<string, Map<string, PartLine>>();
-      const lines = byPart.get(part) ?? new Map<string, PartLine>();
-      const line = lines.get(desig) ?? { qty: 0, amount: 0, monthly };
-      line.qty += qty;
-      line.amount += amount;
-      lines.set(desig, line);
-      byPart.set(part, lines);
-      linesByUnit.set(unitId, byPart);
-    };
-    const allocated = allocateInvoiceEntries(entries, e => rateFor(financeMap.get(e.unit_id ?? ""), e.designation_id, e.candidate_id, e.shift_hours), e => { const p = allPeriodsByUnit.get(e.unit_id ?? ""); return p ? periodDateList(p.start, p.end) : []; }, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? Number(code.day_value ?? 1) || 0 : 0; });
-    for (const [index, entry] of entries.entries()) {
-      const entryUnitId = entry.unit_id ?? "";
-      const rate = rateFor(financeMap.get(entryUnitId), entry.designation_id, entry.candidate_id, (entry as any).shift_hours);
-      if (!entryUnitId || !rate) continue;
-      const code = codeMap.get(entry.code);
-      const rawDayValue = code?.day_value;
-      const dayValue = rawDayValue == null || Number.isNaN(Number(rawDayValue)) ? 1 : Math.max(0, Number(rawDayValue));
-      const paid = Math.max(0, (code && (code.counts_as_present || code.is_paid) ? dayValue : 0) - allocated[index].moved);
-      const ot = allocated[index].extraDuty;
-      const periodDays = allPeriodsByUnit.get(entryUnitId)?.totalDays ?? 1;
-      const period = allPeriodsByUnit.get(entryUnitId);
-      const hasEdRate = rate.extraDutyBillRate != null || rate.extraDutyFromMonthlyBilling;
-      // Same per-duty rate as invoice detail: monthly billing ÷ billing-days rule.
-      const perDay = period
-        ? billingRatePerDay(rate.billRate, rate, periodDateList(period.start, period.end))
-        : rate.billRate / periodDays;
-      const edRate = rate.extraDutyFromMonthlyBilling && period
-        ? rate.billRate / resolveBillingDivisor(rate, periodDateList(period.start, period.end)) * 2
-        : rate.extraDutyBillRate ?? perDay;
-      const desig = entry.designation_id ?? "—";
-      const split = splitFor(entryUnitId);
-      const route = (item: InvoiceItemKey) => (split && isSplit(split) ? split.assign[item] : "main");
-      if ((entry as any).is_reliever && !rate.invoicePresentCap) {
-        if (hasEdRate) {
-          add(entryUnitId, route("reliever"), desig, paid, perDay * paid, rate.billRate);
-          add(entryUnitId, route("reliever"), `${desig}|ed`, ot, edRate * ot, rate.billRate);
-        } else add(entryUnitId, route("reliever"), desig, paid + ot, perDay * (paid + ot), rate.billRate);
-        continue;
-      }
-      const isPh = !!code && code.code.toUpperCase().startsWith("PH");
-      add(entryUnitId, route(isPh ? "ph" : "regular"), desig, paid, perDay * paid, rate.billRate);
-      add(entryUnitId, route("ed"), hasEdRate ? `${desig}|ed` : desig, ot, edRate * ot, rate.billRate);
-    }
-    const partLabel = (unitId: string, part: string) =>
-      splitFor(unitId)?.parts.find((p) => p.key === part)?.label ?? "Main invoice";
-    return { linesByUnit, partLabel, splitFor };
-  };
+  // Invoice engine results for the filtered sites (same calculation as the invoice page).
+  const engineData = async () => engineQ.data ?? (await engineQ.refetch()).data ?? new Map<string, DashboardUnitFinance>();
 
   // Final invoices: a site of a split organization becomes one target per
-  // invoice part, valued by that part's share of the billed attendance.
+  // invoice part, valued exactly as the invoice page values that part.
   const [preparingFinal, setPreparingFinal] = useState(false);
   const [finalTargets, setFinalTargets] = useState<FinalInvoiceTarget[]>([]);
   const openFinal = async () => {
     setPreparingFinal(true);
     try {
-      const units = selectedTargets.map((t) => ({ id: t.unitId, customer_id: t.customerId }));
-      const { linesByUnit, partLabel, splitFor } = await loadPartLines(units);
+      const engine = await engineData();
       const out: FinalInvoiceTarget[] = [];
       for (const t of selectedTargets) {
-        const split = splitFor(t.unitId);
-        if (!split || !isSplit(split)) { out.push(t); continue; }
-        const byPart = linesByUnit.get(t.unitId) ?? new Map<string, Map<string, PartLine>>();
-        const sum = (k: string) => Array.from(byPart.get(k)?.values() ?? []).reduce((a, l) => a + l.amount, 0);
-        const total = split.parts.reduce((a, p) => a + sum(p.key), 0);
-        for (const p of split.parts) {
-          const share = total > 0 ? sum(p.key) / total : 0;
-          if (share <= 0) continue;
-          out.push({ ...t, partKey: p.key, partLabel: partLabel(t.unitId, p.key), taxableValue: Math.round(t.taxableValue * share * 100) / 100 });
+        const parts = engine.get(t.unitId)?.parts ?? [];
+        // Split contracts: one final invoice per part, each at that part's own invoice-page value.
+        if (parts.length <= 1) { out.push(t); continue; }
+        for (const p of parts) {
+          if (p.taxable <= 0) continue;
+          out.push({ ...t, partKey: p.key, partLabel: p.label, taxableValue: p.taxable });
         }
       }
       if (!out.length) return toast.error("Nothing billable for the selected sites.");
@@ -669,12 +583,11 @@ export function FinanceCharter({
         const p = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         return { unitId: u.id, periodStart: p.start, periodEnd: p.end };
       }));
-      const [{ data: org }, gstBranches, partData] = await Promise.all([supabase
+      const [{ data: org }, gstBranches, engine] = await Promise.all([supabase
         .from("org_settings")
         .select("*")
         .limit(1)
-        .maybeSingle(), loadGstBillingBranches(), loadPartLines(targets)]);
-      const { linesByUnit, partLabel } = partData;
+        .maybeSingle(), loadGstBillingBranches(), engineData()]);
 
       const unitRows: Record<string, any>[] = [];
       for (const chunkIds of chunkOf(ids, 100)) {
@@ -743,16 +656,10 @@ export function FinanceCharter({
       for (const unit of targets) {
         const unitRow = unitById.get(unit.id);
         if (!unitRow) continue;
-        for (const [partKey, lines] of linesByUnit.get(unit.id) ?? []) {
-        const label = partLabel(unit.id, partKey);
-        const voucherLines = Array.from(lines.values())
-          .filter((line) => line.amount > 0)
-          .map((line) => ({
-            qty: Math.round(line.qty * 100) / 100,
-            rate: line.qty > 0 ? line.amount / line.qty : 0,
-            amount: Math.round(line.amount * 100) / 100,
-            monthly: line.monthly,
-          }));
+        for (const part of engine.get(unit.id)?.parts ?? []) {
+        const label = part.label;
+        // Same lines as the invoice page's own Tally export.
+        const voucherLines = part.tallyLines;
         if (voucherLines.length === 0) continue;
         const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
         const customerId = String(unitRow.customer_id ?? "");
@@ -851,29 +758,8 @@ export function FinanceCharter({
       ]);
       const entity = String((org as { company_name?: string } | null)?.company_name ?? "Radiant").trim();
 
-      const financeMap = new Map<string, UnitFinance>();
-      for (const chunkIds of chunkOf(ids, 100)) {
-        const part = await fetchUnitFinance(chunkIds, allPeriodsByUnit);
-        for (const [k, v] of part) financeMap.set(k, v);
-      }
-
-      // Attendance entries, grouped by each unit's payroll window.
-      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
-      for (const u of targets) {
-        const period = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
-        const key = `${period.start}|${period.mtdEnd}`;
-        const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
-        group.unitIds.push(u.id);
-        groups.set(key, group);
-      }
-      const entriesPages = await Promise.all(
-        Array.from(groups.values()).flatMap((group) =>
-          chunkOf(group.unitIds, 100).map((unitIds) =>
-            fetchAttendanceEntriesForPeriod({ unitIds, start: group.start, end: group.end, includeUnitId: true }),
-          ),
-        ),
-      );
-      const entries = entriesPages.flat();
+      // Employee lines and rates come from the invoice engine — the invoice page's own calculation.
+      const engine = await engineData();
 
       // Site fields printed in the client MIS.
       const unitRows: any[] = [];
@@ -885,58 +771,6 @@ export function FinanceCharter({
         if (unitsErr) throw new Error(unitsErr.message);
         unitRows.push(...((data ?? []) as any[]));
       }
-      const candidateIds = Array.from(new Set(entries.map((e) => e.candidate_id).filter(Boolean)));
-      const candidateRows: any[] = [];
-      for (const chunkIds of chunkOf(candidateIds, 100)) {
-        const { data, error } = await supabase
-          .from("candidates")
-          .select("id, employee_code, full_name, preferred_joining_date, designation_id")
-          .in("id", chunkIds);
-        if (error) throw new Error(error.message);
-        candidateRows.push(...((data ?? []) as any[]));
-      }
-      const candidateById = new Map(candidateRows.map((candidate) => [String(candidate.id), candidate]));
-
-      type MisBucket = { candidateId: string; designationId: string | null; shift: number | null; reliever: boolean; workingDays: number; otDays: number; otHours: number };
-      const linesByUnit = new Map<string, Map<string, MisBucket>>();
-      const allocated = allocateInvoiceEntries(entries, e => rateFor(financeMap.get(e.unit_id ?? ""), e.designation_id, e.candidate_id, e.shift_hours), e => { const p = allPeriodsByUnit.get(e.unit_id ?? ""); return p ? periodDateList(p.start, p.end) : []; }, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? Number(code.day_value ?? 1) || 0 : 0; });
-      for (const [index, e] of entries.entries()) {
-        const unitId = e.unit_id ?? "";
-        if (!unitId) continue;
-        const finance = financeMap.get(unitId);
-        const rate = rateFor(finance, e.designation_id, e.candidate_id, (e as any).shift_hours);
-        if (!rate) continue;
-        const code = codeMap.get(e.code);
-        const raw = code?.day_value;
-        const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
-        // Billable duties only — exactly what the invoice bills: days that count
-        // as present (P, HD) plus paid holidays. Paid weekly offs and paid leave
-        // are part of the monthly wage and are never billed as duties, so they
-        // must never inflate the MIS working days.
-        const counted = Math.max(0, (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) - allocated[index].moved);
-        const otDays = allocated[index].extraDuty;
-        if (counted + otDays <= 0) continue;
-
-        if (!linesByUnit.has(unitId)) linesByUnit.set(unitId, new Map());
-        const bucket = linesByUnit.get(unitId)!;
-        const eShift = Number((e as any).shift_hours) || null;
-        const eRel = (e as any).is_reliever === true && !rate.invoicePresentCap;
-        const key = `${e.candidate_id}|${e.designation_id ?? ""}|${eShift ?? ""}|${eRel ? "r" : ""}`;
-        const line = bucket.get(key) ?? {
-          candidateId: e.candidate_id,
-          designationId: e.designation_id,
-          shift: eShift,
-          reliever: eRel,
-          workingDays: 0,
-          otDays: 0,
-          otHours: 0,
-        };
-        line.workingDays += counted;
-        line.otDays += otDays;
-        line.otHours += otDays * (rate.shiftHours || 8);
-        bucket.set(key, line);
-      }
-
       const unitById = new Map(unitRows.map((u) => [u.id, u]));
       // One combined workbook uses the MIS format of the organization being
       // exported; a mixed selection falls back to the standard layout.
@@ -948,25 +782,13 @@ export function FinanceCharter({
         const p = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         return { unitId: u.id, periodStart: p.start, periodEnd: p.end };
       }));
-      // Contracts flagged exact_day_rate bill monthly ÷ billing days × duties, rounded once.
-      const exactUnits = new Set<string>();
-      for (let i = 0; i < ids.length; i += 100) {
-        const { data } = await supabase
-          .from("client_contracts")
-          .select("unit_id, exact_day_rate" as never)
-          .eq("record_type", "client")
-          .eq("status", "active")
-          .in("unit_id", ids.slice(i, i + 100));
-        for (const c of (data ?? []) as unknown as { unit_id: string; exact_day_rate?: boolean }[]) {
-          if (c.exact_day_rate) exactUnits.add(String(c.unit_id));
-        }
-      }
       const sourceRows: MisSourceRow[] = [];
       let serial = 1;
       const sgCountedUnits = new Set<string>();
       for (const u of targets) {
-        const lines = linesByUnit.get(u.id);
-        if (!lines || lines.size === 0) continue;
+        const unitEngine = engine.get(u.id);
+        const lines = (unitEngine?.parts ?? []).flatMap((p) => p.mis);
+        if (lines.length === 0) continue;
         const unitRow = unitById.get(u.id);
         if (!unitRow) continue;
         const supplierBranch = resolveGstBillingBranch(gstBranches, unitRow.billing_state, org as never);
@@ -987,43 +809,24 @@ export function FinanceCharter({
         const branchName = clientNorm && !siteNorm.includes(clientNorm)
           ? [u.customer_name, unitRow.name].filter(Boolean).join(", ")
           : unitRow.name || unitRow.code;
-        for (const line of lines.values()) {
-          const finance = financeMap.get(u.id);
-          const rate = rateFor(finance, line.designationId, line.candidateId, line.shift);
-          if (!rate) continue;
-          const candidate = candidateById.get(line.candidateId);
-          // The MIS rate is the invoice rate: monthly billing divided by the
-          // contract's billing-days rule (e.g. ÷27), never by the calendar days
-          // in the cycle. Extra Duty bills at the same per-duty rate.
-          const perDay = billingRatePerDay(rate.billRate, rate, periodDates);
-          const billedDays = line.workingDays + line.otDays;
-          const extraDutyRate = rate.extraDutyFromMonthlyBilling
-            ? rate.billRate / resolveBillingDivisor(rate, periodDates) * 2 : rate.extraDutyBillRate;
-          const dutySplit = extraDutyRate != null
-            ? splitInvoiceDuties({ billedDays, otDays: line.otDays, regularRate: perDay, extraDutyRate, exactExtraDutyRate: rate.extraDutyFromMonthlyBilling })
-            : null;
+        const contractedPosts = unitEngine?.committed_strength ?? 0;
+        for (const line of lines) {
+          // Exactly the invoice page's MIS maths for this employee line.
           const misLine = misBillingLine({
-            perDay,
-            billedDays,
+            perDay: line.perDay,
+            billedDays: line.billedDays,
             otDays: line.otDays,
-            extraDutyRate,
-            total: dutySplit?.actual ?? (exactUnits.has(u.id)
-              ? (resolveBillingDivisor(rate, periodDates) > 0 ? (rate.billRate / resolveBillingDivisor(rate, periodDates)) * billedDays : 0)
-              : perDay * billedDays),
+            total: line.actual,
             intraState,
             gstOption: gstOptions.get(u.id),
-            // Regular duties can never exceed the contract's billing days; the
-            // surplus is Extra Duty at the same rate.
-            maxWorkingDays: rate.invoicePresentCap || dutySplit ? null : resolveBillingDivisor(rate, periodDates),
+            maxWorkingDays: line.maxWorkingDays,
+            extraDutyRate: line.extraDutyRate,
           });
+          const shift = line.shiftHours > 0 ? line.shiftHours : 8;
           const workingDays = misLine.workingDays;
           const otDuties = misLine.otDays;
-          const otHours = otDuties * (rate.shiftHours || 8);
-          // OT rate is hourly: per-duty rate divided by the contractual shift
-          // length (8h or 12h unit).
-          const otRate = rate.extraDutyFromMonthlyBilling
-            ? Math.round((extraDutyRate ?? 0) / (rate.shiftHours || 8) * 100) / 100
-            : rate.extraDutyBillRate != null ? misLine.otRate : misLine.otRate / (rate.shiftHours || 8);
+          const otHours = otDuties;
+          const otRate = line.extraDutyRate != null ? misLine.otRate : misLine.otRate / shift;
           const otAmount = misLine.otAmount;
           const regular = misLine.regularBilling;
           const otBilling = misLine.otBilling;
@@ -1031,8 +834,10 @@ export function FinanceCharter({
           const lineTax = { total: misLine.gstTotal };
           const { cgst, sgst, igst } = misLine;
           const round = (value: number) => Math.round(value * 100) / 100;
+          const rate = { billRate: round(line.contracted), designationName: line.designation, shiftHours: line.shiftHours };
+          const candidate = { employee_code: line.employeeCode, full_name: line.name };
 
-          const doj = String(candidate?.preferred_joining_date ?? "").slice(0, 10);
+          const doj = String(line.joiningDate ?? "").slice(0, 10);
           const incrementCutoff = new Date(period.start);
           incrementCutoff.setFullYear(incrementCutoff.getFullYear() - 1);
           const hasIncrement = !!doj && new Date(doj) <= incrementCutoff;
@@ -1042,13 +847,13 @@ export function FinanceCharter({
             values: {
               sr_no: serial++, invoice_no: invoiceNo, invoice_date: invoiceDate,
               emp_code: candidate?.employee_code ?? "",
-              employee_name: candidate?.full_name ?? nameById.get(line.candidateId) ?? "",
-              regular_reliever: line.reliever ? "Reliever" : "Regular",
+              employee_name: candidate.full_name || nameById.get(line.candidateId) || "",
+              regular_reliever: line.isRegular ? "Regular" : "Reliever",
               doj: jd && jm && jy ? `${jd}-${jm}-${jy}` : "", entity,
               designation: `${rate.designationName} @ (${rate.shiftHours})`, branch_name: branchName,
               state: unitRow.client_state || unitRow.billing_state || "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
-              month_days: periodDays, month_rate: periodDays, billing_rate: rate.billRate,
-              billing_rate_per_day: round(perDay), ot_rate: round(otRate), working_days: round(workingDays),
+              month_days: periodDays, month_rate: line.payrollDays, billing_rate: rate.billRate,
+              billing_rate_per_day: round(line.perDay), ot_rate: round(otRate), working_days: round(workingDays),
               ot_duties: round(otDuties), ot_amount: round(otAmount),
               working_days_billing_with_ot: round(regular + otBilling), total_regular_billing: round(regular),
               ot_billing: round(otBilling), total_billing: round(totalBilling),
@@ -1063,7 +868,7 @@ export function FinanceCharter({
               gst_no: unitRow.gst_number ?? "",
               invoice_month: `${String(period.start).slice(8, 10)}-${String(period.start).slice(5, 7)}-${String(period.start).slice(0, 4)} To ${String(period.end).slice(8, 10)}-${String(period.end).slice(5, 7)}-${String(period.end).slice(0, 4)}`,
               // Contracted posts at the site, counted once per site.
-              sg_count: sgCountedUnits.has(u.id) ? 0 : (sgCountedUnits.add(u.id), (finance?.rates ?? []).reduce((s, r) => s + (Number(r.quantity) || 0), 0) || 1),
+              sg_count: sgCountedUnits.has(u.id) ? 0 : (sgCountedUnits.add(u.id), contractedPosts || 1),
               regular_rate: rate.billRate,
               increment_rate: hasIncrement ? rate.billRate : 0,
               regular_duties: hasIncrement ? 0 : round(workingDays),
