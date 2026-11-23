@@ -2,6 +2,7 @@ import { useRegisterPeriods } from "@/lib/use-register-periods";
 import { summarizeRegisterStatuses } from "@/lib/register-summary";
 import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
 import { computeDashboardUnitFinance, type DashboardUnitFinance } from "@/lib/dashboard-finance";
+import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -274,6 +275,14 @@ export function FinanceCharter({
     queryFn: () => computeDashboardUnitFinance(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
   });
 
+  // Payroll values come from the payroll page's own calculation (per site, own period).
+  const payrollQ = useQuery({
+    queryKey: ["finance-charter-payroll-engine", periodKey],
+    enabled: unitIds.length > 0,
+    staleTime: 60_000,
+    queryFn: () => computePayrollUnitsTotals(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
+  });
+
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", periodKey],
     enabled: mode === "invoice" && unitIds.length > 0 && allStatusQ.isSuccess,
@@ -397,9 +406,16 @@ export function FinanceCharter({
         const engine = engineQ.data?.get(u.id);
         if (engine) for (const p of people) p.invoiceAmount = engine.invoice_by_person.get(p.id) ?? 0;
         const invoiceAmount = engine ? engine.invoice_amount : people.reduce((s, p) => s + p.invoiceAmount, 0);
-        const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
-        const deductionAmount = people.reduce((s, p) => s + p.deductionAmount, 0);
-        const netPayrollAmount = Math.max(0, payrollAmount - deductionAmount);
+        const pay = payrollQ.data?.get(u.id);
+        if (pay) for (const p of people) {
+          const x = pay.byPerson.get(p.id);
+          p.payrollAmount = x?.gross ?? 0;
+          p.deductionAmount = x?.deductions ?? 0;
+          p.netPayrollAmount = Math.max(0, p.payrollAmount - p.deductionAmount);
+        }
+        const payrollAmount = pay ? pay.gross : people.reduce((s, p) => s + p.payrollAmount, 0);
+        const deductionAmount = pay ? pay.deductions : people.reduce((s, p) => s + p.deductionAmount, 0);
+        const netPayrollAmount = pay ? pay.net : Math.max(0, payrollAmount - deductionAmount);
         const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,
           attendance: "none",
@@ -429,7 +445,7 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, engineQ.data]);
+  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, engineQ.data, payrollQ.data]);
   const pageIdSet = useMemo(() => new Set(pageUnits.map((u) => u.id)), [pageUnits]);
   const rows = useMemo(() => allRows.filter((r) => pageIdSet.has(r.unit.id)), [allRows, pageIdSet]);
 

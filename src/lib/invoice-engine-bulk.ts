@@ -95,7 +95,7 @@ function mapExtra(r: Row): InvoiceExtraLike & { periodStart: string | null; peri
 type RpcFn = (fn: string, args: Row) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = (fn: string, args: Row) => (supabase.rpc as unknown as RpcFn)(fn, args);
 
-type PeriodInputs = {
+export type PeriodInputs = {
   sites: Row[];
   contracts: Row[];
   primary: Row[];
@@ -107,7 +107,7 @@ type PeriodInputs = {
 };
 
 /** Site rows, contracts, rosters, postings and attendance of many sites, each over its own period. */
-async function fetchPeriodInputs(periods: Map<string, UnitPeriod>): Promise<PeriodInputs> {
+export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>): Promise<PeriodInputs> {
   const list = [...periods].map(([u, p]) => ({ u, s: p.start, e: p.end }));
   const out: PeriodInputs = { sites: [], contracts: [], primary: [], scopes: [], extras: [], entries: new Map(), people: new Map(), links: [] };
   const size = 120;
@@ -151,7 +151,7 @@ async function fetchPeriodInputs(periods: Map<string, UnitPeriod>): Promise<Peri
 }
 
 /** Contract lines in stored order (duplicate role lines: the later one prices, as on the invoice page). */
-async function fetchContractResources(contractIds: string[]): Promise<Row[]> {
+export async function fetchContractResources(contractIds: string[]): Promise<Row[]> {
   const size = 250;
   const batches: string[][] = [];
   for (let i = 0; i < contractIds.length; i += size) batches.push(contractIds.slice(i, i + size));
@@ -164,7 +164,7 @@ async function fetchContractResources(contractIds: string[]): Promise<Row[]> {
 }
 
 /** Every approved/expired rate revision (a small table) — the period helpers pick each line's own. */
-async function fetchAllRevisions(): Promise<RateRevisionRow[] | null> {
+export async function fetchAllRevisions(): Promise<RateRevisionRow[] | null> {
   try {
     return await fetchInChunks<RateRevisionRow>(["all"], (_c, a, b) =>
       supabase.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b));

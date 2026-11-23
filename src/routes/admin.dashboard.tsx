@@ -1,5 +1,6 @@
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { computeDashboardUnitFinance } from "@/lib/dashboard-finance";
+import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
 import { TileNumber } from "@/components/TileNumber";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
@@ -260,7 +261,7 @@ type PnLRow = {
 };
 
 // Last finance report per user + month + window, so revisits paint instantly.
-const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v3";
+const FINANCE_SNAPSHOT = "radiant:dashboard-finance:v4";
 const FINANCE_SNAPSHOT_KEEP = 4;
 
 type FinanceSnapshot = { at: number; data: unknown };
@@ -677,7 +678,11 @@ function DashboardPage() {
       for (const [unitId, p] of registerPeriods.periods) {
         if (allowedUnitIds.has(unitId)) unitPeriods.set(unitId, { start: p.start, end: p.end });
       }
-      const financeByUnit = await computeDashboardUnitFinance(unitPeriods);
+      // Payroll cost is the payroll page's own calculation (same rule: each site, own period).
+      const [financeByUnit, payrollByUnit] = await Promise.all([
+        computeDashboardUnitFinance(unitPeriods),
+        computePayrollUnitsTotals(unitPeriods),
+      ]);
 
       // Real figures for the window: approved attendance sheets decide whether
       // a unit is ready; posted payroll snapshots and single-unit final invoices
@@ -778,8 +783,9 @@ function DashboardPage() {
       const pnlByUnit = new Map<string, PnLRow>();
       for (const f of financeByUnit.values()) {
         let invoiceAmount = f.invoice_amount;
-        let payrollCost = f.payroll_cost;
-        let employerContribution = f.employer_contribution;
+        const pay = payrollByUnit.get(f.unit_id);
+        let payrollCost = pay ? pay.gross : f.payroll_cost;
+        let employerContribution = pay ? pay.employer : f.employer_contribution;
         if (!f.internal && finalInvoiceByUnit.has(f.unit_id)) invoiceAmount = finalInvoiceByUnit.get(f.unit_id)!;
         const postedGross = postedPayroll.get(f.unit_id);
         if (postedGross != null) payrollCost = postedGross;
