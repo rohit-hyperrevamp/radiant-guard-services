@@ -970,7 +970,7 @@ function DashboardPage() {
             .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
           supabase.from("billing_types" as never).select("id, code"),
         ]);
-        const designationRows = await fetchAllPages<{ id: string; name: string | null }>((a, b) =>
+        const designationRows = await fetchAllPages<{ id: string; name: string | null }>((a: number, b: number) =>
           supabase.from("designations").select("id,name").order("id").range(a, b),
         );
         for (const d of designationRows) designationNames.set(d.id, d.name ?? "");

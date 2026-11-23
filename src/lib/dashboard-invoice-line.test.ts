@@ -3,13 +3,14 @@ import { invoiceLineAmount } from "./dashboard-invoice-line";
 import type { ContractResourceLike } from "./payroll-calc";
 
 const resource = (extra: Partial<ContractResourceLike> = {}): ContractResourceLike => ({
+  payrollDayBase: null,
   designationId: "guard",
   components: [{ name: "Basic", amount: 20656.03 }],
   benefits: [],
   deductions: [],
   employerContributions: [{ name: "ER PF", amount: 8324.47 }],
   ...extra,
-});
+} as ContractResourceLike);
 const base = { mode: "man_days" as const, billingDays: 30, shiftHours: 8, invoicePresentCap: false, unitId: "u", unitCode: "CLI3246" };
 
 describe("dashboard invoice line matches invoice detail pricing", () => {
