@@ -126,7 +126,7 @@ export function StatutoryHeadTiles({ ym, scope = "posted" }: { ym: string; scope
               key={h.key}
               to={h.to}
               search={
-                h.key === "pt" || h.key === "lwf" ? { ym, scope } : { ym, scope, head: h.key }
+                h.key === "pt" || h.key === "lwf" ? { ym, scope: h.key === "pt" && scope === "posted" ? "all" : scope } : { ym, scope, head: h.key }
               }
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-[22px] border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-4",

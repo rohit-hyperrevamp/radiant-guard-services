@@ -1,6 +1,6 @@
 ## September Professional Tax register — 23 November
-- [ ] Diagnose the 21-employee count against production September payroll records.
-- [ ] Include verified historical deductions without duplicating current postings; validate counts, amounts and exports.
+- [x] Register defaulted to Posted only; 946 imported September PT records were hidden. Production holds 967 September PT records, not 6–7 thousand.
+- [x] PT register and its tile link now default to All recorded; Posted filter still available.
 
 ## Karnataka October workbook attendance — 22 November
 - [x] Reactivated CLI2702 and its sole active contract through 31 December 2026; all rates and historical versions preserved.
