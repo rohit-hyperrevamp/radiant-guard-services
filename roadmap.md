@@ -1,3 +1,8 @@
+## Poonawalla Haryana rates from CLI4508 — 24 November
+- [x] Identified 87 active Haryana Poonawalla target contracts, all eight-hour Security Guards matching CLI4508 CON16681. Excluded three Bajaj-labelled legacy records with no contracts and held six Poonawalla sites without active contracts.
+- [x] Backed up all target rate structures and the reference. Rollback and committed production tests verified exact copies of saved rate/formula/Extra Duty/rounding/cap selections; quantities, identities, source, contract headers, units, historical revisions, attendance and paid snapshots passed preservation checks. No frontend changes or signed-in selector verification.
+- Scope clarified: rate-structure changes only; no new contracts, activation or date changes. Sites without an active contract retain their existing history.
+
 ## P.D. Leave employer contribution — 24 November
 - [x] Added the separate enabled employer choice “P.D. Leave (35 Days PA)” at 10.25% of Basic + DA in production. Seven focused tests passed; existing formula masters and contract rates passed exact preservation assertions, and creation is audited. Signed-in selector interaction was not verified.
 
