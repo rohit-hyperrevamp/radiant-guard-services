@@ -1,3 +1,10 @@
+## P.D. Leave employer contribution — 24 November
+- [x] Added the separate enabled employer choice “P.D. Leave (35 Days PA)” at 10.25% of Basic + DA in production. Seven focused tests passed; existing formula masters and contract rates passed exact preservation assertions, and creation is audited. Signed-in selector interaction was not verified.
+
+## September duplication sources and fixes — 24 November
+- [x] Read-only source review confirmed zero remaining balancing inputs and CLI4530 Pages-matching audit provenance. September snapshot has 246 employee-level flags across 46 clients, not 246 independently proven errors.
+- [x] Traced CLI3210's second ₹200 PT to the 17 October automated update that missed “ALFA EE PT.” Identified CLI3018 PF variants as sequential September revisions, so a blended-month flag alone is not proof of excess. Explained name/date-aware validation, source-backed correction and paid-record preservation; financial records and workbooks unchanged. Full attribution of other flags remains unverified.
+
 ## Contract-only payroll and September exception workbook — 24 November
 - [x] Implemented client contract-and-attendance calculations excluding personal salary overrides, adjustment ledgers, imported PT allocations and live master overrides; office salary setup remains separate. Source contracts and settled payroll were not edited.
 - [x] Identical saved charges apply once; ambiguous components and missing/invalid settings block approval/processing rather than select a rate by assumption. Added unique shift keys, explicit per-person PF caps and posting checks; 121 focused payroll/invoice/finance tests passed.
