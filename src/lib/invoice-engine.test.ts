@@ -47,6 +47,20 @@ describe("invoice engine (shared by invoice page and dashboard)", () => {
     own.entries = own.entries.filter((e) => e.entry_date <= "2026-09-20");
     expect(taxable(own)).toBe(2000);
   });
+
+  it("ignores reconciliation cash and day adjustments without changing contract billing or genuine deductions", () => {
+    const d = site("2026-09-01", "2026-09-30", ["2026-09-01", "2026-09-02"]);
+    d.additions = [{ candidate_id: "g1", addition_name: "Payroll Adjustment", calculation_type: "fixed", amount: 1089, installments: 1, source_kind: "pages_sep_2026_recon", entry_mode: "days_x_per_day", include_in_total_days: true, days: 3, affects_days_for: ["present"] }];
+    d.deductions = [
+      { candidate_id: "g1", deduction_name: "Payroll Adjustment", calculation_type: "fixed", amount: 583, installments: 1, source_kind: "pages_sep_2026_recon" },
+      { candidate_id: "g1", deduction_name: "Uniform recovery", calculation_type: "fixed", amount: 100, installments: 1, source_kind: "manual" },
+    ];
+    const { rows } = computeInvoiceUnit(d, globals);
+    expect(rows[0]?.wages?.earnedGross).toBe(2000);
+    expect(rows[0]?.wages?.totalDeductions).toBe(100);
+    expect(rows[0]?.wages?.netPay).toBe(1900);
+    expect(taxable(d)).toBe(2000);
+  });
 });
 
 describe("bulk loader rules mirror the invoice page queries", () => {

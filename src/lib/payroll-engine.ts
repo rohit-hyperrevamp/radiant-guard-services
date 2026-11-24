@@ -1,4 +1,5 @@
 import { checkedQueryData } from "@/lib/finance-source";
+import { isPayrollReconciliationItem } from "@/lib/payroll-reconciliation";
 /**
  * Payroll register for one site and period — the payroll page's own
  * calculation, moved here verbatim so the payroll page and the payroll list
@@ -278,6 +279,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       && buckets.every((b) => SYSTEM_COMPUTED_BUCKETS.has(b));
 
     for (const a of ((addsRes.data ?? []) as unknown as RawAdd[])) {
+      if (isPayrollReconciliationItem(a)) continue;
       const inst = Math.max(1, Number(a.installments) || 1);
       const amt = (Number(a.amount) || 0) / inst;
       const isPhType = !!(a.addition_type_id && phTypeIds.has(String(a.addition_type_id)));
@@ -334,6 +336,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       ]),
     );
     for (const d of ((dedsRes.data ?? []) as unknown as RawDed[])) {
+      if (isPayrollReconciliationItem(d)) continue;
       const isInPeriod = d.deduction_date >= start;
       const joined = joiningDateByCandidate.get(d.candidate_id) ?? null;
       const isNewJoiner = !!joined && joined >= prevWindowStart;

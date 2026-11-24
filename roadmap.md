@@ -1,3 +1,9 @@
+## Remove synthetic payroll reconciliation adjustments — 24 November
+- [x] Deleted 689 active balancing additions, 815 balancing deductions and three posted copies across 456 sites; production readback finds zero reconciliation ledger or snapshot lines. All 192,062 genuine ledger rows passed exact preservation checks, and contract rates, actual attendance, approvals/payment metadata and deletion audit remain intact.
+- [x] Corrected three CLI4222 saved snapshots, installed matching database ledger/snapshot rejection guards and shared payroll/invoice ingestion exclusions, and refreshed 6,431 saved exact periods. September CLI4530 reads gross 36,999, deductions 6,448, net 30,551; CLI4222's saved 21 Aug–20 Sep run equals the engine at gross 41,147, deductions 3,555, net 37,592. The other 57 periods have no usable saved source totals and retain no old adjusted money; no numbers invented.
+- [x] Thirty-three focused regressions, production rollback/committed preservation assertions, zero-remaining readback, write-guard tests and safe repeated-removal checks passed; automatic compilation passed.
+- [ ] Signed-in live payroll screen verification requires a production-compatible browser session; none is available. Source removal and write protection are already applied in production; frontend defensive exclusions await GitHub-to-Vercel delivery.
+
 ## Finance flow sweep — dashboard scope
 - [x] Read dashboard comparisons/drill-downs/CSV, both register routes and shared register/export paths, payroll detail/MIS/profile CTC, invoice/detail/finalisation, source totals, saved calculation, worker/endpoint and database invalidation/queue/recovery definitions; documented each in the finance flow review.
 - [x] Corrected the existing Relieving Charges commercial alias and added a statutory-base guard regression. Only affected aggregate generations are invalidated; settled records, permissions, settings and unrelated payroll displays unchanged.

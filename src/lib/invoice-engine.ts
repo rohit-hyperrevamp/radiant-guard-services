@@ -1,4 +1,5 @@
 import { checkedQueryData } from "@/lib/finance-source";
+import { isPayrollReconciliationItem } from "@/lib/payroll-reconciliation";
 /**
  * Invoice engine: the exact per-site invoice calculation used by the invoice
  * detail page, split into (1) loading the site's period data and (2) a pure,
@@ -64,11 +65,11 @@ export type InvoiceUnitPh = {
   dayValue: number | null;
 };
 
-export type RawAddition = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; repeat_monthly?: boolean | null; prorate_by_days?: boolean | null; counts_for_pf?: boolean | null; counts_for_esi?: boolean | null; formula_expression?: string | null; per_day_amount?: number | string | null; addition_date?: string | null; end_date?: string | null; unit_id?: string | null; status?: string | null };
-export type RawDeduction = { candidate_id: string; deduction_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; deduction_date?: string | null; unit_id?: string | null; status?: string | null };
+export type RawAddition = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; repeat_monthly?: boolean | null; prorate_by_days?: boolean | null; counts_for_pf?: boolean | null; counts_for_esi?: boolean | null; formula_expression?: string | null; per_day_amount?: number | string | null; addition_date?: string | null; end_date?: string | null; unit_id?: string | null; status?: string | null; source_kind?: string | null };
+export type RawDeduction = { candidate_id: string; deduction_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; deduction_date?: string | null; unit_id?: string | null; status?: string | null; source_kind?: string | null };
 
-export const ADDITION_COLS = "candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount";
-export const DEDUCTION_COLS = "candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for";
+export const ADDITION_COLS = "candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount, source_kind";
+export const DEDUCTION_COLS = "candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind";
 export const RESOURCE_COLS = "id, designation_id, quantity, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_final, round_off_totals";
 
 /** Everything one site's invoice needs for one period. */
@@ -255,6 +256,7 @@ export function computeInvoiceUnit(src: InvoiceUnitData, g: InvoiceGlobals) {
       && buckets.every((b) => SYSTEM_COMPUTED_BUCKETS.has(b));
 
     for (const a of src.additions) {
+      if (isPayrollReconciliationItem(a)) continue;
       const inst = Math.max(1, Number(a.installments) || 1);
       const amt = (Number(a.amount) || 0) / inst;
       const isPhType = !!(a.addition_type_id && phTypeIds.has(String(a.addition_type_id)));
@@ -283,6 +285,7 @@ export function computeInvoiceUnit(src: InvoiceUnitData, g: InvoiceGlobals) {
       }
     }
     for (const d of src.deductions) {
+      if (isPayrollReconciliationItem(d)) continue;
       const inst = Math.max(1, Number(d.installments) || 1);
       const amt = (Number(d.amount) || 0) / inst;
       const isDayAdj = isSystemComputedDayAdj(d.entry_mode, d.include_in_total_days, d.affects_days_for);
