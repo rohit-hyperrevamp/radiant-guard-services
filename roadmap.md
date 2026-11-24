@@ -1,3 +1,8 @@
+## CLI3619 formula-only rate review — 24 November
+- [ ] Save a scoped, exact backup of the current contract rate structure before any changes.
+- [ ] Identify legitimate existing formula masters and percentages for each derived line, preserving every agreed amount and limiting contract changes to CLI3619.
+- [ ] Verify editor-save, payroll and invoice calculations, unknown variables and production rollback/readback; retain any unexplained lines unchanged rather than inventing formulas.
+
 ## Remove synthetic payroll reconciliation adjustments — 24 November
 - [x] Deleted 689 active balancing additions, 815 balancing deductions and three posted copies across 456 sites; production readback finds zero reconciliation ledger or snapshot lines. All 192,062 genuine ledger rows passed exact preservation checks, and contract rates, actual attendance, approvals/payment metadata and deletion audit remain intact.
 - [x] Corrected three CLI4222 saved snapshots, installed matching database ledger/snapshot rejection guards and shared payroll/invoice ingestion exclusions, and refreshed 6,431 saved exact periods. September CLI4530 reads gross 36,999, deductions 6,448, net 30,551; CLI4222's saved 21 Aug–20 Sep run equals the engine at gross 41,147, deductions 3,555, net 37,592. The other 57 periods have no usable saved source totals and retain no old adjusted money; no numbers invented.
