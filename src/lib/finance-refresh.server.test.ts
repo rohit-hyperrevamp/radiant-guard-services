@@ -7,7 +7,7 @@ vi.mock('@/lib/radiant-admin.server', () => {
       mocks.calls.push(fn);
       if (fn === 'claim_finance_totals') return {data:[mocks.row],error:null};
       if (fn === 'publish_finance_totals') {
-        expect((args?.['p_rows'] as {calculation_version:number}[])[0]?.calculation_version).toBe(3);
+        expect((args?.['p_rows'] as {calculation_version:number}[])[0]?.calculation_version).toBe(4);
         return {data:1,error:null};
       }
       return {data:null,error:null};

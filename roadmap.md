@@ -1496,3 +1496,9 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [x] Deliver the inspected backup and September bulk exception workbook: 1,712 active clients, 2,362 saved windows, 293 source-review windows, 409 duplicate findings; six tabs and all master-row totals verified. Source contracts, attendance, invoices and processed payroll preserved.
 - [ ] Resolve the 293 source-review windows only from authorized component/formula/role/shift facts; no source charges were deleted or chosen by assumption.
 - [ ] Verify signed-in live payroll after GitHub → Vercel delivers this commit; deployment occurs after the response and no production sign-in session is available in this turn.
+
+## September payroll approvals and dashboard refresh — 24 November
+- [x] Back up current September approvals and dashboard aggregates; fresh shared-engine calculation verified 2,364 windows against the current contract-only rules.
+- [x] Submit and approve verified eligible September records: 616 payrolls and four attendance sheets; rollback-first checks passed, existing approvals and all money sources preserved.
+- [x] Refresh September dashboard totals through the shared source engines and verify production readback: 2,058 current version-4 totals; 293 payroll source exceptions and 13 unavailable invoice windows remain explicitly pending.
+- [ ] Verify the authenticated homepage after GitHub → Vercel delivers version 4; live assets still use version 2 and cannot read the corrected totals as current. Deployment trigger updated, no production sign-in session available.
