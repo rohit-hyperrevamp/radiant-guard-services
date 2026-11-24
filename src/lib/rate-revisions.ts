@@ -143,6 +143,16 @@ export function applyRateRevisionsWith<T extends Row>(
 
 export type RateSegment<T> = { from: string; to: string; values: T };
 
+/** Payroll must calculate formulas in their original date windows, never blended arrays. */
+export function payrollRateSegmentsWith<T extends Row>(resources: T[], data: Rev[], start: string, end: string): Map<string, RateSegment<T>[]> {
+  const result = new Map<string, RateSegment<T>[]>();
+  for (const resource of resources) {
+    const revisions = data.filter((r) => r.resource_id === String(resource.id) && (r.status === "approved" || r.status === "expired"));
+    result.set(String(resource.id), splitSegments(resource, revisions, start, end));
+  }
+  return result;
+}
+
 /**
  * For invoices: resources whose rate changes inside the period, split into
  * date windows each carrying that window's own (unblended) rate card.
@@ -196,7 +206,7 @@ function splitSegments<T extends Row>(res: T, revs: Rev[], start: string, end: s
     const to = i + 1 < starts.length ? addDays(starts[i + 1], -1) : end;
     const rev = revFor(revs, from);
     const v = (rev ?? res) as Row;
-    const revKey = rev ? String((rev as unknown as Row).id ?? "") : "";
+    const revKey = rev ? `${String((rev as unknown as Row).id ?? "")}|${rev.effective_from ?? ""}|${rev.effective_to ?? ""}` : "";
     const values: Row = { ...res };
     for (const f of RATE_FIELDS) if (f in res && f in v) values[f] = v[f];
     const prev = segs[segs.length - 1] as (RateSegment<T> & { _rev?: string }) | undefined;

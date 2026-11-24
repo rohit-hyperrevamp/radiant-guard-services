@@ -1489,8 +1489,10 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [ ] 846 of 848 approved September payrolls are not processed, so they post nothing to Compliance (only CLI1651 processed; it reconciles exactly). Waiting on user choice: process them or show approved-unprocessed as Pending.
 
 ## Backup-first contract-only payroll duplication correction — 24 November
-- [ ] Save and verify a dated rate/revision/reference backup and pre-change code rollback reference. Blocker: production PostgreSQL connection timed out during the backup and two bounded retries; no complete backup was written. Do not use the unrelated managed backend or change rates/payroll until the production backup succeeds.
-- [ ] Resolve attendance to its actual saved role/shift; calculate historical rate segments independently.
-- [ ] Validate all pay components within their own side/date window; preserve conflicting source charges for review.
-- [ ] Verify shared monthly limits, unchanged source rates/attendance/processed payroll, and focused regression tests.
-- [ ] Deliver the backup and September bulk exception workbook; record deployment verification limits. Implementation remains held by the user's explicit backup-first requirement; no contract, payroll, attendance or calculation code changed in this attempt.
+- [x] Save and verify a dated rate/revision/reference backup and pre-change code rollback reference. Retry succeeded: UTC 17:34:17 snapshot includes 24,053 resource rows, 141 revisions and rate/reference tables; SHA-256 hashes and original calculation files retained in the inspected backup archive.
+- [x] Resolve attendance to its actual saved role/shift; calculate historical rate segments independently. Overlapping duties and unavailable dated rates block rather than lose money inputs.
+- [x] Validate all pay components within their own side/date window; preserve conflicting source charges for review. Constant monthly items apply once; zero-snapshot formulas are checked and NFH is not mistaken for PF.
+- [x] Verify shared monthly limits, unchanged source rates/attendance/processed payroll, and focused regression tests. All 74 tests pass; production fingerprints and all 24,053 rate/141 revision rows match the backup. Version-4 finance publication safeguard rollback-tested and applied.
+- [x] Deliver the inspected backup and September bulk exception workbook: 1,712 active clients, 2,362 saved windows, 293 source-review windows, 409 duplicate findings; six tabs and all master-row totals verified. Source contracts, attendance, invoices and processed payroll preserved.
+- [ ] Resolve the 293 source-review windows only from authorized component/formula/role/shift facts; no source charges were deleted or chosen by assumption.
+- [ ] Verify signed-in live payroll after GitHub → Vercel delivers this commit; deployment occurs after the response and no production sign-in session is available in this turn.

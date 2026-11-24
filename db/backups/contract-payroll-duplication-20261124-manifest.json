@@ -1,0 +1,83 @@
+{
+  "saved_at_utc": "2026-11-24 17:34:17.630948+00",
+  "scope": "Specific saved contract rate structures, historical revisions, contract directory, day bases and formula reference tables. Not a full database backup; excludes employee/auth/attendance/storage data.",
+  "before_code_commit": "84ee93e36c991733ce3a7dec519518322ec9614b",
+  "rows": {
+    "rate_structures": 24053,
+    "rate_revisions": 141,
+    "contract_directory": 16668,
+    "payroll_day_bases": 11,
+    "allowance_formula_masters": 84,
+    "cost_formula_masters": 199
+  },
+  "files": {
+    "snapshot-time.txt": {
+      "sha256": "24aaf4d290ca7d48946f6f59cc9a3f59e7ca4fee3462b3c7c4e74f722865be43",
+      "bytes": 30
+    },
+    "RESTORE_NOTES.md": {
+      "sha256": "b900f222d31f2b5aa304f3c918a39651c14ce07152935833b728c9d712e98334",
+      "bytes": 876
+    },
+    "finance_functions_before.sql": {
+      "sha256": "779d5145ab7190ade77136a8e8b25f752b66eb997d906eb3451f424affcc3f76",
+      "bytes": 3330
+    },
+    "rates/rate_structures.ndjson": {
+      "sha256": "b2a18524fe632a9a51240d1f9f53a56069fcdc7ef15d043c33866c33d21be828",
+      "bytes": 69390985
+    },
+    "rates/rate_revisions.ndjson": {
+      "sha256": "569c970a115ec742e0ed498498f51e5f59f95c808d1111398f3a87974a7a227f",
+      "bytes": 734973
+    },
+    "rates/contract_directory.ndjson": {
+      "sha256": "814a85e6f82d53a6f8e94a3420e708517d6e885a523d2cb8eb8640066521dd66",
+      "bytes": 5184055
+    },
+    "rates/payroll_day_bases.ndjson": {
+      "sha256": "f61c3c6d791d6d5e2cc3472e53fb6822db58a88e7fcbb785c30042e383e849f4",
+      "bytes": 5074
+    },
+    "rates/allowance_formula_masters.ndjson": {
+      "sha256": "5c9a290b96a11d17f229378e44646bab0bde94045ecd2e9ca45204d624bcd0db",
+      "bytes": 61557
+    },
+    "rates/cost_formula_masters.ndjson": {
+      "sha256": "21172aef731db564449ea0ebd2bc9ecbf7a4967476d013f81c7487ba3e74826c",
+      "bytes": 152018
+    },
+    "code-before/src/lib/payroll-engine.ts": {
+      "sha256": "d1a66879691436feee90aa975ab876c3fc7db6a085624220a57aa3c1dc5340b3",
+      "bytes": 63478
+    },
+    "code-before/src/lib/payroll-calc.ts": {
+      "sha256": "4f0812b0b6a7f198643f7ff15e5e4e19b3e1262cf360d8c3ca35aa57cb71bccb",
+      "bytes": 79573
+    },
+    "code-before/src/lib/payroll-contract-rules.ts": {
+      "sha256": "6235a629433ef4991bd21183e06ce8c410d4cf0ba2e42b393157a44f22a491f2",
+      "bytes": 6276
+    },
+    "code-before/src/lib/rate-revisions.ts": {
+      "sha256": "4f081a9c18eee925feb90a05ea4ec471a29ebb0bec6a0fb81ba41eab100153f0",
+      "bytes": 7968
+    },
+    "code-before/src/lib/finance-totals.ts": {
+      "sha256": "bd0e41299d0e251acfb8e7b1d693a2414873868eb76d44a29231f719c0affc2c",
+      "bytes": 4012
+    },
+    "code-before/src/lib/AGENTS.md": {
+      "sha256": "eff87e34f82be5862283eed31deaeee4a039ce8096829be886a3943c26ccc3f0",
+      "bytes": 11211
+    },
+    "code-before/src/lib/payroll-contract-only.test.ts": {
+      "sha256": "a82b6d391146929f3651cd0fffe0efd5716ec58c61f7795743a0d0bd21102235",
+      "bytes": 7831
+    },
+    "code-before/src/lib/finance-totals.test.ts": {
+      "sha256": "a5ca25ebb960b0082c1982e467a548474db61dc59c89be395fb2e53a03de45fc",
+      "bytes": 4149
+    }
+  }
+}

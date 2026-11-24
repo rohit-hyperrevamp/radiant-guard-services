@@ -1,4 +1,4 @@
-export const FINANCE_CALCULATION_VERSION = 3;
+export const FINANCE_CALCULATION_VERSION = 4;
 
 export type FinanceTotals = {
   invoice: number;

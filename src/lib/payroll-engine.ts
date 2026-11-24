@@ -1,5 +1,5 @@
 import { checkedQueryData } from "@/lib/finance-source";
-import { prepareContractPayrollResource, applySavedPayrollMonthlyCaps, type PayrollContractIssue } from "@/lib/payroll-contract-rules";
+import { applySavedPayrollMonthlyCaps, payrollLineSignature, type PayrollContractIssue } from "@/lib/payroll-contract-rules";
 import { isPayrollReconciliationItem } from "@/lib/payroll-reconciliation";
 /**
  * Payroll register for one site and period — the payroll page's own
@@ -13,7 +13,8 @@ import { mergePayItems } from "@/lib/pay-item-names";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { normShift, shiftKey } from "@/lib/shift-resources";
-import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
+import { applyRateRevisionsWith, fetchRevisions, payrollRateSegmentsWith, type RateRevisionRow, type RateSegment } from "@/lib/rate-revisions";
+import { computeContractRateSegments, type PayrollRateBreakdown, type PreparedPayrollRateSegment } from "@/lib/payroll-rate-segments";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
 import {
   applyEpfBreakdownToWageComputation,
@@ -32,7 +33,6 @@ import {
   type PtSlabLike,
   EXTRA_DUTY_COMPONENT_RE,
   normalizeOtEsi,
-  unknownFormulaVariables,
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { employerCostOnly, managementFeeOf } from "@/lib/contract-billing-addons";
@@ -88,8 +88,9 @@ export type PayrollUnitSource = {
   entries: AnyRow[];
   codes: AnyRow[];
   periodContract: AnyRow | null;
-  /** Contract lines in stored order, rate revisions already applied. */
+  /** Original saved contract lines, with unblended revisions supplied separately. */
   resources: AnyRow[];
+  rateRevisions?: RateRevisionRow[];
   additions: AnyRow[];
   deductions: AnyRow[];
   /** Answers the page's prior-attendance query for these candidates. */
@@ -183,12 +184,27 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     const { data: r } = await supabase
       .from("contract_resources")
       .select(
-        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals",
+        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals, sort_order",
       )
-      .eq("contract_id", contractId);
+      .eq("contract_id", contractId)
+      .order("sort_order");
     resources = ((r ?? []) as unknown) as Record<string, unknown>[];
-    resources = await applyRateRevisionsForPeriod(resources as Record<string, unknown>[], start, end);
   }
+  const revisions = src ? src.rateRevisions ?? [] : resources.length ? await fetchRevisions(resources.map((r) => String(r.id))) : [];
+  if (revisions === null) throw new Error("Saved contract rate history could not be loaded. Payroll was not calculated from a guessed current rate.");
+  const rawPayrollSegments = new Map<string, RateSegment<Record<string, unknown>>[]>();
+  if (contractOnly) {
+    const byResource = payrollRateSegmentsWith(resources, revisions, start, end);
+    const effective = new Map<string, Record<string, unknown>>();
+    for (const segments of byResource.values()) {
+      for (const segment of segments) {
+        const key = shiftKey(String(segment.values.designation_id ?? ""), segment.values.shift_hours);
+        rawPayrollSegments.set(key, [...(rawPayrollSegments.get(key) ?? []), segment]);
+        effective.set(key, segment.values);
+      }
+    }
+    resources = [...effective.values()];
+  } else resources = applyRateRevisionsWith(resources, revisions, start, end);
 
   // 3b. Per-employee Additions & Deductions (Control Center catalog).
   // Pull anything dated within the payroll period and still active.
@@ -449,8 +465,11 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     shiftsByDesignation.set(did, set);
     if (!shiftForDesignationDefault.has(did)) shiftForDesignationDefault.set(did, normShift((r as { shift_hours?: unknown }).shift_hours));
     shiftKeysOrdered.push(sk);
-    resourceByShiftKey.set(sk, {
-      designationId: did,
+    resourceByShiftKey.set(sk, makeResource(r));
+  }
+  function makeResource(r: Record<string, unknown>): ContractResourceLike {
+    return {
+      designationId: String(r.designation_id ?? ""),
       roundOffTotals: (r["round_off_totals"] ?? {}) as Record<string, boolean>,
       components: Array.isArray(r.components)
         ? (r.components as { name: string; amount: number; allowanceId?: string | null; includeInOt?: boolean; formulaMode?: string | null; formulaExpression?: string | null; formulaVersion?: number | null }[]).map((c) => ({
@@ -483,7 +502,21 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       payrollDayBase: r.payroll_day_base_id
         ? pdbMap.get(String(r.payroll_day_base_id)) ?? null
         : null,
-    });
+    };
+  }
+  const segmentsByShiftKey = new Map<string, PreparedPayrollRateSegment[]>();
+  for (const [key, segments] of rawPayrollSegments) {
+    const unique: PreparedPayrollRateSegment[] = [];
+    for (const s of segments) {
+      const resource = makeResource(s.values);
+      const signature = payrollLineSignature({ ...resource, name: "Saved rate", amount: 0 });
+      if (unique.some((t) => t.from === s.from && t.to === s.to && payrollLineSignature({ ...t.resource, name: "Saved rate", amount: 0 }) === signature)) continue;
+      unique.push({ from: s.from, to: s.to, resource });
+    }
+    segmentsByShiftKey.set(key, unique);
+    if (unique.some((s, i) => unique.some((t, j) => j < i && s.from <= t.to && t.from <= s.to))) {
+      issuesByShiftKey.set(key, [{ kind: "possible_duplicate", side: "contract", component: "Role / shift rate", detail: "Multiple saved resource lines cover the same role, shift and date. No rate was chosen by assumption.", blocking: true }]);
+    }
   }
 
   // Hydrate formula_mode/expression/version from Control Center masters
@@ -497,18 +530,9 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   hydratedList.forEach((r, i) => {
     const key = uniqueShiftKeys[i];
     if (!key) return;
-    const prepared = contractOnly ? prepareContractPayrollResource(r) : { resource: r, issues: [] as PayrollContractIssue[] };
-    if (contractOnly) {
-      for (const side of ["components", "benefits", "deductions", "employerContributions"] as const) {
-        for (const line of prepared.resource[side]) {
-          const unknown = unknownFormulaVariables(line.formulaExpression, prepared.resource.components.map((c) => c.name));
-          if (unknown.length) prepared.issues.push({ kind: "invalid_formula", side, component: line.name, detail: `Unknown saved formula variables: ${unknown.join(", ")}`, blocking: true });
-        }
-      }
-    }
-    issuesByShiftKey.set(key, prepared.issues);
-    resourceByShiftKey.set(key, prepared.resource);
-    if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, prepared.resource);
+    // Contract exceptions are checked against each original applicable date window below.
+    resourceByShiftKey.set(key, r);
+    if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, r);
   });
   const postingShiftRes = src ? { data: src.postingShifts } : await supabase
     .from("candidate_units")
@@ -522,6 +546,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   const resourceForLine = (cid: string, did: string, lineShift?: number) => {
     const offered = shiftsByDesignation.get(did);
     const wanted = [8, 10, 12].includes(Number(lineShift)) ? lineShift : postingShift.get(cid);
+    if (wanted && !offered?.has(wanted)) return undefined;
     const shift = wanted && offered?.has(wanted) ? wanted : (shiftForDesignationDefault.get(did) ?? 8);
     return resourceByShiftKey.get(shiftKey(did, shift)) ?? resourceByDesignation.get(did);
   };
@@ -567,11 +592,25 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // line for any other designation found in their attendance entries.
   const rosterById = new Map(roster.map((c) => [c.id, c]));
   const pairKey = (cid: string, did: string | null, sh = 0) => `${cid}|${did ?? "__none__"}|${sh}`;
-  const entryShift = (e: unknown) => Number((e as { shift_hours?: number | null }).shift_hours) || 0;
+  const entryShift = (e: { candidate_id: string; designation_id: string | null; entry_date: string; shift_hours?: number | null }) => {
+    const raw = Number(e.shift_hours) || 0;
+    if (raw > 0) return raw;
+    if (contractOnly) {
+      const dated = new Set<number>();
+      for (const segments of rawPayrollSegments.values()) {
+        for (const s of segments) if (String(s.values.designation_id ?? "") === e.designation_id && e.entry_date >= s.from && e.entry_date <= s.to) dated.add(normShift(s.values.shift_hours));
+      }
+      if (dated.size === 1) return [...dated][0] ?? 0;
+      const posting = postingShift.get(e.candidate_id);
+      if (posting && dated.has(posting)) return posting;
+      if (dated.size > 1) return 0;
+    }
+    return resourceForLine(e.candidate_id, e.designation_id ?? "")?.otShiftHours ?? postingShift.get(e.candidate_id) ?? 0;
+  };
   const pairs = new Map<string, { candidateId: string; designationId: string | null; shift: number }>();
 
   for (const c of roster) {
-    const sh = postingShift.get(c.id) ?? 0;
+    const sh = resourceForLine(c.id, c.designation_id ?? "")?.otShiftHours ?? postingShift.get(c.id) ?? 0;
     const k = pairKey(c.id, c.designation_id ?? null, sh);
     pairs.set(k, { candidateId: c.id, designationId: c.designation_id ?? null, shift: sh });
   }
@@ -669,12 +708,35 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     const usesPtSlab = !contractOnly || (resource?.deductions ?? []).some((line) => PT_COMPONENT_RE.test(line.name) && !line.formulaExpression?.trim() && Number(line.amount) === 0 && (line as { contractOverride?: boolean }).contractOverride !== true);
     const usesLwfMaster = !contractOnly || [...(resource?.deductions ?? []), ...(resource?.employerContributions ?? [])].some((line) => /\blwf\b|labou?r\s*welfare/i.test(line.name) && !line.formulaExpression?.trim() && Number(line.amount) === 0 && (line as { contractOverride?: boolean }).contractOverride !== true);
     const calculationIssues: PayrollContractIssue[] = contractOnly ? [...(issuesByShiftKey.get(shiftKey(did, resolvedShift)) ?? [])] : [];
+    if (contractOnly && p.shift === 0 && (shiftsByDesignation.get(did)?.size ?? 0) > 1) calculationIssues.push({ kind: "missing_setting", side: "attendance", component: "Duty shift", detail: "More than one saved shift applies and no posting shift resolves these duties. No shift was guessed.", blocking: true });
+    if (contractOnly && new Set(lineEntries.map((e) => e.entry_date)).size !== lineEntries.length) calculationIssues.push({ kind: "possible_duplicate", side: "attendance", component: "Same-day duties", detail: "Attendance overlaps after resolving the saved role and shift. No duty was silently dropped or counted twice; review the source sheet.", blocking: true });
+    const applicableSegments = segmentsByShiftKey.get(shiftKey(did, resolvedShift)) ?? [];
+    if (contractOnly && resource && lineEntries.some((e) => (Boolean(e.code) || Number(e.ot_hours) > 0) && !applicableSegments.some((s) => e.entry_date >= s.from && e.entry_date <= s.to))) calculationIssues.push({ kind: "missing_setting", side: "contract", component: "Dated role / shift rate", detail: "An attended date has no saved rate for this role and shift. No duty was silently omitted from payroll.", blocking: true });
     if (contractOnly && !resource) calculationIssues.push({ kind: "missing_setting", side: "contract", component: designationName, detail: "No saved contract rate for this attended role and shift.", blocking: true });
     const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
     let wages: ReturnType<typeof computeWages> | null = null;
+    let rateBreakdown: PayrollRateBreakdown[] = [];
     if (resource && !calculationIssues.some((i) => i.blocking)) {
       try {
-        wages = computeWages(totals, resource, periodDates.length, { savedContractOnly: contractOnly, phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(`${d}T00:00:00Z`)), dayBases, epfCapEnabled, esiRoundUp });
+        const options = { savedContractOnly: contractOnly, periodDates: periodDates.map((d) => new Date(`${d}T00:00:00Z`)), dayBases, epfCapEnabled, esiRoundUp, ...(phOverride == null ? {} : { phOverrideAmount: phOverride }) };
+        if (contractOnly) {
+          const segmented = computeContractRateSegments({
+            segments: segmentsByShiftKey.get(shiftKey(did, resolvedShift)) ?? [],
+            periodDates,
+            options,
+            totalsForWindow: (from, to) => computeAttendanceTotals(
+              c.id, periodDates.filter((d) => d >= from && d <= to),
+              lineEntries.filter((e) => e.entry_date >= from && e.entry_date <= to) as AttendanceEntryLike[],
+              (codes ?? []) as AttendanceCodeLike[],
+              isPrimaryLine && !(unitPh?.excluded ?? []).includes(String(c.id)) && phConfig ? { ...phConfig, dates: phConfig.dates.filter((d) => d >= from && d <= to && !(unitPh?.excludedDays ?? []).includes(`${c.id}|${d}`)) } : null,
+              (c as { preferred_joining_date?: string | null }).preferred_joining_date ?? null,
+              unitPh?.dayValue ?? null, woAsPresent,
+            ),
+          });
+          wages = segmented.wages;
+          rateBreakdown = segmented.breakdown;
+          calculationIssues.push(...segmented.issues);
+        } else wages = computeWages(totals, resource, periodDates.length, options);
       } catch (error) {
         if (!contractOnly) throw error;
         calculationIssues.push({ kind: "invalid_formula", side: "contract", component: designationName, detail: error instanceof Error ? error.message : "Invalid saved contract formula", blocking: true });
@@ -784,6 +846,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       shiftHours: resolvedShift,
       calculationBasis: contractOnly ? "contract" as const : "employee_salary" as const,
       calculationIssues,
+      rateBreakdown,
       usesPtSlab,
       employeeCode: c.employee_code || "",
       name: c.full_name || "—",
@@ -846,6 +909,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   if (contractOnly) applySavedPayrollMonthlyCaps(rows);
   // Client rounding follows the saved contract, not an implicit whole-rupee rule.
   for (const r of rows) {
+    if (contractOnly && r.calculationIssues.some((i) => i.blocking)) r.wages = null;
     if (!contractOnly && r.wages && esiRoundUp) Object.assign(r.wages, roundEsiUp(r.wages));
     if (r.wages && (!contractOnly || r.resource?.roundOffTotals?.["gross"])) Object.assign(r.wages, roundFinalGross(r.wages));
     const wages = r.wages;
@@ -988,6 +1052,7 @@ export async function computePayrollUnitsTotals(
     all<AnyRow>((a, b) => db.from("deductions" as never).select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date, unit_id").eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", maxEnd).order("id").range(a, b)),
   ]);
   for (const r of [slabsRes, rangesRes, lwfRes]) if (r.error) throw r.error;
+  if (revisions === null) throw new Error("Saved contract rate history could not be loaded; bulk payroll remains pending.");
   const ptSlabs = (slabsRes.data ?? []) as PtSlabLike[];
   const pincodeRanges = (rangesRes.data ?? []) as PincodeRangeLike[];
   const lwfRows = (lwfRes.data ?? []) as LwfRow[];
@@ -1041,7 +1106,8 @@ export async function computePayrollUnitsTotals(
       src: {
         primary, linkIds, secondary, attendedIds, people: inputs.people, designations,
         entries, codes, periodContract: contract,
-        resources: applyRateRevisionsWith(lines, revisions, p.start, p.end),
+        resources: lines,
+        rateRevisions: revisions,
         additions: pick(addsByCand).filter((a) => {
           const d = s(a.addition_date);
           if (!d || d > p.end) return false;

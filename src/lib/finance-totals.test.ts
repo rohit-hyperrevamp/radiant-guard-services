@@ -3,6 +3,11 @@ import { dashboardFinanceRows, FINANCE_CALCULATION_VERSION, financeLossReason, f
 import { checkedQueryData } from "./finance-source";
 
 describe("authoritative finance totals", () => {
+  it("requires the rate-segment calculation version rather than the earlier blended payroll", () => {
+    expect(FINANCE_CALCULATION_VERSION).toBe(4);
+    const row = { generation: 1, calculated_generation: 1, calculation_version: 3, computed_at: "2026-11-24", totals: { employer_cost: 1800 } } as SavedFinanceRow;
+    expect(financeRowIsCurrent(row)).toBe(false);
+  });
   it("retains FPL's fee in invoice revenue without adding it a second time", () => {
     expect(financeProfit({ invoice: 1623569.26, gross: 1219126, employer: 274229.32 })).toBe(130213.94);
   });
