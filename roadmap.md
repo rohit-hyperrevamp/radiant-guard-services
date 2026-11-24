@@ -1487,3 +1487,10 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [x] Atomic payroll saving installed in production DB (13 Nov 2026).
 - [x] Test: CLI4222 Sep payroll processed live via atomic save; ledgers ₹3,555 / ₹12,511.67 match and Compliance (Posted) rose by exactly those heads.
 - [ ] 846 of 848 approved September payrolls are not processed, so they post nothing to Compliance (only CLI1651 processed; it reconciles exactly). Waiting on user choice: process them or show approved-unprocessed as Pending.
+
+## Backup-first contract-only payroll duplication correction — 24 November
+- [ ] Save and verify a dated rate/revision/reference backup and pre-change code rollback reference. Blocker: production PostgreSQL connection timed out during the backup and two bounded retries; no complete backup was written. Do not use the unrelated managed backend or change rates/payroll until the production backup succeeds.
+- [ ] Resolve attendance to its actual saved role/shift; calculate historical rate segments independently.
+- [ ] Validate all pay components within their own side/date window; preserve conflicting source charges for review.
+- [ ] Verify shared monthly limits, unchanged source rates/attendance/processed payroll, and focused regression tests.
+- [ ] Deliver the backup and September bulk exception workbook; record deployment verification limits. Implementation remains held by the user's explicit backup-first requirement; no contract, payroll, attendance or calculation code changed in this attempt.
