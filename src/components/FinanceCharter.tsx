@@ -71,7 +71,7 @@ type PersonMoney = {
   payrollAmount: number;
   /** Contract-level statutory / recurring deductions earned in the period. */
   deductionAmount: number;
-  /** Employer contribution less management fee (which stays in profit). */
+  /** Actual employer costs, excluding all commercial billing add-ons. */
   employerCost: number;
   /** Net payable = gross − deductions. */
   netPayrollAmount: number;
@@ -287,7 +287,7 @@ export function FinanceCharter({
   });
 
   const savedTotalsQ = useQuery({
-    queryKey: ["finance-charter-saved-totals-v1", periodKey],
+    queryKey: ["finance-charter-saved-totals-v2", periodKey],
     enabled: unitIds.length > 0 && can("invoice") && can("payroll"),
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -419,7 +419,7 @@ export function FinanceCharter({
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
         const engine = engineQ.data?.get(u.id);
         if (engine) for (const p of people) p.invoiceAmount = engine.invoice_by_person.get(p.id) ?? 0;
-        const saved = savedTotalsQ.data?.pnlRows.find((r) => r.unit_id === u.id);
+        const saved = savedTotalsQ.data?.pnlRows.find((r) => r.unit_id === u.id && r.totals_status === "ready");
         const invoiceAmount = saved?.invoice_amount ?? (engine ? engine.invoice_amount : 0);
         const pay = payrollQ.data?.get(u.id);
         if (pay) for (const p of people) {
@@ -432,8 +432,8 @@ export function FinanceCharter({
         const payrollAmount = saved?.payroll_cost ?? pay?.gross ?? 0;
         const deductionAmount = saved?.deductions ?? pay?.deductions ?? 0;
         const netPayrollAmount = saved?.net_pay ?? pay?.net ?? 0;
-        // Same profit rule as the dashboard: management fee stays in profit, reliever charges are cost.
-        const employerCost = saved ? saved.employer_contribution - saved.management_fee : pay ? pay.employerAll - pay.managementFee : 0;
+        // Same actual-cost separation as the dashboard; billing add-ons stay inside revenue.
+        const employerCost = saved?.employer_contribution ?? pay?.employer ?? 0;
         const margin = invoiceAmount - payrollAmount - employerCost;
         const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,

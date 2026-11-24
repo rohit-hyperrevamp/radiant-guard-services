@@ -247,8 +247,9 @@ type PnLRow = {
   payroll_cost: number;
   /** Employer-side statutory and contractual costs earned for this window. */
   employer_contribution: number;
-  /** Management fee inside employer_contribution (kept as profit). */
+  /** Commercial management fee, separate from employer contribution. */
   management_fee: number;
+  totals_status?: "ready" | "pending" | "failed";
   variance: number;
   variance_pct: number;
   /** Full-month contracted payroll cost (components + ER + benefits) × headcount. */
@@ -591,10 +592,8 @@ function DashboardPage() {
     };
   }, [lifecycleQuery.data, periodSelection.unitIdsForWindow]);
 
-  // The month P&L is heavy (every contract line × every duty). It loads on
-  // its own: after the headline tiles have painted and once the section is
-  // near the screen. The last result per month/window paints instantly from a
-  // saved snapshot while fresh figures load quietly in the background.
+  // Read small, versioned period aggregates once the section nears the screen.
+  // Client coverage comes from the register roster, not the refreshed subset.
   const [financeInView, setFinanceInView] = useState(false);
   const financeAvailable =
     !showInventoryDashboard &&
@@ -614,7 +613,7 @@ function DashboardPage() {
     return `${registerPeriods.periodKey.length}:${h}`;
   }, [registerPeriods.periodKey]);
   const pnlQuery = useQuery({
-    queryKey: ["dashboard-pnl-saved-v1", user?.phone, year, month, periodSelection.selectedKey, periodsHash],
+    queryKey: ["dashboard-pnl-saved-v2", user?.phone, year, month, periodSelection.selectedKey, periodsHash],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.
@@ -636,7 +635,7 @@ function DashboardPage() {
       for (const [unitId, p] of registerPeriods.periods) {
         if (allowedUnitIds.has(unitId)) unitPeriods.set(unitId, { start: p.start, end: p.end });
       }
-      return readDashboardFinance(unitPeriods);
+      return readDashboardFinance(unitPeriods, dashboardUnits);
     },
   });
 
@@ -1221,6 +1220,8 @@ function DashboardPage() {
     committed_invoice: canSeeCommercial ? r.contract_value : 0,
     actual_invoice: canSeeCommercial ? r.invoice_amount : 0,
     attendance_open: !r.attendance_approved,
+    totals_pending: r.totals_status !== "ready",
+    totals_error: r.totals_status === "failed",
   }));
 
   return (
@@ -1332,7 +1333,7 @@ function DashboardPage() {
                     )}
                     {pnlQuery.data && can("invoice") && canWidget("profitability") && (
                       <>
-                        {(pnlQuery.data.pending ?? 0) > 0 && <p className="mb-3 text-sm text-muted-foreground">{pnlQuery.data.pending} site periods awaiting updated totals · excluded from this report</p>}
+                        {(pnlQuery.data.pending ?? 0) > 0 && <p className="mb-3 text-sm text-muted-foreground">{pnlQuery.data.pending} client periods awaiting updated totals</p>}
                         <ProfitabilityCard rows={financeRows} />
                       </>
                     )}

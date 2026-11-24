@@ -893,8 +893,8 @@ export function payrollUnitTotals(rows: PayrollUnitRow[]): PayrollUnitTotals {
     const p = byPerson.get(r.id) ?? { gross: 0, deductions: 0, employerCost: 0 };
     p.gross += Number(r.wages.earnedGross) || 0;
     p.deductions += Number(r.wages.totalDeductions) || 0;
-    // Employer cost for profit: every employer line except the management fee (kept as profit).
-    p.employerCost += (Number(r.wages.totalEmployerContributions) || 0) - managementFeeOf(r.wages.employerContributions as never);
+    // Commercial fees and reliever charges are billing margin, not employer cost.
+    p.employerCost += employerCostOnly(r.wages.employerContributions as never);
     byPerson.set(r.id, p);
   }
   const r2 = (n: number) => Math.round(n * 100) / 100;

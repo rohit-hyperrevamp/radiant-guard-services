@@ -21,6 +21,7 @@ export async function computeFinanceSummaries(periods: Map<string, { start: stri
       committed_strength: inv.committed_strength, actual_strength: inv.actual_strength,
       invoice_amount: inv.invoice_amount, payroll_cost: pay.gross,
       employer_contribution: pay.employerAll, management_fee: pay.managementFee,
+      employer_cost: pay.employer, billing_addons: Math.round((pay.employerAll - pay.employer) * 100) / 100,
       deductions: pay.deductions, net_pay: pay.net,
       invoice_parts: inv.parts.map((p) => ({ key: p.key, taxable: p.taxable })),
     });
@@ -33,7 +34,7 @@ export async function computeFinanceSummaries(periods: Map<string, { start: stri
     db.from("payroll_run_snapshots" as never).select("payroll_run_id,version,unit_id,gross,total_deductions,net_pay,total_employer,employer_contributions").in("payroll_run_id", chunk).order("id").range(a, b));
   for (const [id, posted] of latestPostedPayrollTotals(snapshots)) {
     const t = out.get(id);
-    if (t) Object.assign(t, { payroll_cost: posted.gross, deductions: posted.deductions, net_pay: posted.net, employer_contribution: posted.employer, management_fee: posted.managementFee });
+    if (t) Object.assign(t, { payroll_cost: posted.gross, deductions: posted.deductions, net_pay: posted.net, employer_contribution: posted.employer, management_fee: posted.managementFee, employer_cost: posted.employerCost, billing_addons: posted.billingAddons });
   }
   // Keep each finalised part's saved amount; never drop ED by taking only the last part.
   const links = await fetchInChunks<{ final_invoice_id: string; unit_id: string; period_start: string; period_end: string; part_key: string | null }>([...periods.keys()], (chunk, a, b) =>

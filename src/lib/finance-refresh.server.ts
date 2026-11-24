@@ -1,11 +1,11 @@
 import { computeFinanceSummaries } from "@/lib/finance-summary-compute";
-import type { SavedFinanceRow } from "@/lib/finance-totals";
+import { FINANCE_CALCULATION_VERSION, type SavedFinanceRow } from "@/lib/finance-totals";
 
 type ClaimedRow = SavedFinanceRow & { lease_token: string };
 
 export async function refreshFinanceSummaries() {
   const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
-  const rpc = supabaseAdmin.rpc as unknown as (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const rpc = supabaseAdmin.rpc.bind(supabaseAdmin) as unknown as (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
   const claimed = await rpc("claim_finance_totals", { p_limit: 40 });
   if (claimed.error) throw new Error(claimed.error.message);
   const rows = (claimed.data ?? []) as ClaimedRow[];
@@ -25,7 +25,7 @@ export async function refreshFinanceSummaries() {
       if (missing.length) await rpc("fail_finance_totals", { p_rows: missing });
       const result = await rpc("publish_finance_totals", { p_rows: available.map((r) => ({
         unit_id: r.unit_id, period_start: r.period_start, period_end: r.period_end,
-        generation: r.generation, lease_token: r.lease_token, totals: totals.get(r.unit_id),
+        generation: r.generation, lease_token: r.lease_token, calculation_version: FINANCE_CALCULATION_VERSION, totals: totals.get(r.unit_id),
       })) });
       if (result.error) throw new Error(result.error.message);
       published += Number(result.data) || 0;
