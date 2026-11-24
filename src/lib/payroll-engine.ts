@@ -1,4 +1,5 @@
 import { checkedQueryData } from "@/lib/finance-source";
+import { prepareContractPayrollResource, applySavedPayrollMonthlyCaps, type PayrollContractIssue } from "@/lib/payroll-contract-rules";
 import { isPayrollReconciliationItem } from "@/lib/payroll-reconciliation";
 /**
  * Payroll register for one site and period — the payroll page's own
@@ -31,6 +32,7 @@ import {
   type PtSlabLike,
   EXTRA_DUTY_COMPONENT_RE,
   normalizeOtEsi,
+  unknownFormulaVariables,
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { employerCostOnly, managementFeeOf } from "@/lib/contract-billing-addons";
@@ -52,6 +54,8 @@ const PT_COMPONENT_RE = /\bprofessional\s*tax\b|\bp\.?\s*tax\b|\bpt\b/i;
 
 export type PayrollUnitInput = {
   unitId: string;
+  /** Office payroll retains its separately saved salary setup. */
+  isBillable?: boolean;
   start: string;
   end: string;
   periodDates: string[];
@@ -168,7 +172,8 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     .eq("enabled", true);
 
   // 3. Contract resources for this unit's active contract.
-  const periodContract = src ? src.periodContract : await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id");
+  const periodContract = src ? src.periodContract : await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, is_internal");
+  const contractOnly = input.isBillable !== false && periodContract?.is_internal !== true;
   const contracts = periodContract ? [periodContract as any] : [];
   const contractId = contracts?.[0]?.id;
 
@@ -178,7 +183,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     const { data: r } = await supabase
       .from("contract_resources")
       .select(
-        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic",
+        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals",
       )
       .eq("contract_id", contractId);
     resources = ((r ?? []) as unknown) as Record<string, unknown>[];
@@ -197,7 +202,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // PH cash override: user-entered PH addition amount is paid as-is on
   // the "Paid Holiday" line (bypasses the engine's perDayRate × phCount).
   const phCashByCandidate = new Map<string, number>();
-  if (candidateIds.length > 0) {
+  if (!contractOnly && candidateIds.length > 0) {
     const [addsRes, dedsRes, priorAttendanceRes, addTypesRes] = src ? [
       { data: src.additions },
       { data: src.deductions },
@@ -429,6 +434,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       : null,
   }));
 
+  const issuesByShiftKey = new Map<string, PayrollContractIssue[]>();
   const resourceByDesignation = new Map<string, ContractResourceLike>();
   const resourceByShiftKey = new Map<string, ContractResourceLike>();
   const shiftKeysOrdered: string[] = [];
@@ -445,6 +451,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     shiftKeysOrdered.push(sk);
     resourceByShiftKey.set(sk, {
       designationId: did,
+      roundOffTotals: (r["round_off_totals"] ?? {}) as Record<string, boolean>,
       components: Array.isArray(r.components)
         ? (r.components as { name: string; amount: number; allowanceId?: string | null; includeInOt?: boolean; formulaMode?: string | null; formulaExpression?: string | null; formulaVersion?: number | null }[]).map((c) => ({
             // Keep every line setting (rounding, per-duty / lump-sum method,
@@ -484,12 +491,24 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // contract snapshot pre-dates the formula engine. Per-line `amount`
   // (the agreed monetary base) stays from the snapshot.
   const uniqueShiftKeys = Array.from(new Set(shiftKeysOrdered));
-  const hydratedList = src
-    ? src.hydrate(uniqueShiftKeys.map((k) => resourceByShiftKey.get(k)!))
-    : await hydrateFormulasFromMaster(uniqueShiftKeys.map((k) => resourceByShiftKey.get(k)!));
+  const savedList = uniqueShiftKeys.flatMap((k) => { const r = resourceByShiftKey.get(k); return r ? [r] : []; });
+  // Saved contract formulas are authoritative for clients; master edits require a contract save.
+  const hydratedList = contractOnly ? savedList : src ? src.hydrate(savedList) : await hydrateFormulasFromMaster(savedList);
   hydratedList.forEach((r, i) => {
-    resourceByShiftKey.set(uniqueShiftKeys[i], r);
-    if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, r);
+    const key = uniqueShiftKeys[i];
+    if (!key) return;
+    const prepared = contractOnly ? prepareContractPayrollResource(r) : { resource: r, issues: [] as PayrollContractIssue[] };
+    if (contractOnly) {
+      for (const side of ["components", "benefits", "deductions", "employerContributions"] as const) {
+        for (const line of prepared.resource[side]) {
+          const unknown = unknownFormulaVariables(line.formulaExpression, prepared.resource.components.map((c) => c.name));
+          if (unknown.length) prepared.issues.push({ kind: "invalid_formula", side, component: line.name, detail: `Unknown saved formula variables: ${unknown.join(", ")}`, blocking: true });
+        }
+      }
+    }
+    issuesByShiftKey.set(key, prepared.issues);
+    resourceByShiftKey.set(key, prepared.resource);
+    if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, prepared.resource);
   });
   const postingShiftRes = src ? { data: src.postingShifts } : await supabase
     .from("candidate_units")
@@ -513,7 +532,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   const resourceByCandidate = new Map<string, ContractResourceLike>();
   {
     const rosterIds = roster.map((c) => c.id);
-    if (rosterIds.length > 0) {
+    if (!contractOnly && rosterIds.length > 0) {
       const { data: ew } = src ? { data: src.employeeWages.filter((w) => rosterIds.includes(String(w.candidate_id))) } : await supabase
         .from("employee_wages" as never)
         .select(
@@ -596,11 +615,12 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     : await Promise.all([
     fetchOtherSitePtTotals(candidateIds, unitId, end),
     fetchOtherSitesWorked(candidateIds, unitId, end),
-    fetchPtAllocations(candidateIds, unitId, end),
+    contractOnly ? Promise.resolve(new Map<string, number>()) : fetchPtAllocations(candidateIds, unitId, end),
   ]);
 
   const rows = Array.from(pairs.values()).map((p) => {
-    const c = rosterById.get(p.candidateId)!;
+    const c = rosterById.get(p.candidateId);
+    if (!c) throw new Error("Payroll roster changed during calculation");
     const did = p.designationId ? String(p.designationId) : "";
     const designationName = (p.designationId && desigMap.get(p.designationId)) || "—";
     // Filter entries to just this (candidate, designation) pair so totals reflect only that line.
@@ -643,18 +663,30 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       if (phDisplay) totals.phDays = totals.phDays + phDisplay;
     }
     const contractResource = resourceForLine(c.id, did, p.shift);
-    const resource = withContractEdRule(resourceByCandidate.get(c.id), contractResource) ?? contractResource;
+    const resource = contractOnly ? contractResource : withContractEdRule(resourceByCandidate.get(c.id), contractResource) ?? contractResource;
+    const resolvedShift = resource?.otShiftHours ?? p.shift;
+    // Zero placeholder statutory lines opt into saved master slabs; explicit contract amounts/formulas win.
+    const usesPtSlab = !contractOnly || (resource?.deductions ?? []).some((line) => PT_COMPONENT_RE.test(line.name) && !line.formulaExpression?.trim() && Number(line.amount) === 0 && (line as { contractOverride?: boolean }).contractOverride !== true);
+    const usesLwfMaster = !contractOnly || [...(resource?.deductions ?? []), ...(resource?.employerContributions ?? [])].some((line) => /\blwf\b|labou?r\s*welfare/i.test(line.name) && !line.formulaExpression?.trim() && Number(line.amount) === 0 && (line as { contractOverride?: boolean }).contractOverride !== true);
+    const calculationIssues: PayrollContractIssue[] = contractOnly ? [...(issuesByShiftKey.get(shiftKey(did, resolvedShift)) ?? [])] : [];
+    if (contractOnly && !resource) calculationIssues.push({ kind: "missing_setting", side: "contract", component: designationName, detail: "No saved contract rate for this attended role and shift.", blocking: true });
     const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
-    const wages = resource
-      ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled, esiRoundUp })
-      : null;
+    let wages: ReturnType<typeof computeWages> | null = null;
+    if (resource && !calculationIssues.some((i) => i.blocking)) {
+      try {
+        wages = computeWages(totals, resource, periodDates.length, { savedContractOnly: contractOnly, phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(`${d}T00:00:00Z`)), dayBases, epfCapEnabled, esiRoundUp });
+      } catch (error) {
+        if (!contractOnly) throw error;
+        calculationIssues.push({ kind: "invalid_formula", side: "contract", component: designationName, detail: error instanceof Error ? error.message : "Invalid saved contract formula", blocking: true });
+      }
+    }
     const isPrimary = carrierByCandidate.get(c.id) === pairKey(p.candidateId, p.designationId, p.shift);
     const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
     const candidateIsDisabled = Boolean((c as unknown as { is_disabled?: boolean | null }).is_disabled);
 
     // Fold per-employee additions/deductions onto the primary line only so
     // we don't double-count across multiple designation lines for one person.
-    if (wages && isPrimary) {
+    if (!contractOnly && wages && isPrimary) {
       const rawAdds = additionsByCandidate.get(c.id) ?? [];
       const extraDeds = deductionsByCandidate.get(c.id) ?? [];
       if (extraDeds.length > 0) {
@@ -667,7 +699,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
 
     // Resolve Professional Tax for this employee from state/gender/earnedGross slabs.
     let ptResolved: ReturnType<typeof resolvePtAmount> | null = null;
-    if (wages && isPrimary) {
+    if (usesPtSlab && wages && isPrimary) {
       ptResolved = resolvePtAmount({
         state: ptState,
         pincode: ptPincode,
@@ -685,7 +717,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
         ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
       });
       Object.assign(wages, applyPtToWageComputation(wages, ptResolved.amount));
-    } else if (wages) {
+    } else if (wages && !isPrimary) {
       // PT is a once-a-month statutory deduction per employee. Secondary
       // lines (e.g. extra-duty-only designation rows) must never charge it
       // again — the primary line already carries it.
@@ -705,7 +737,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     // Resolve LWF from Control Center master (pincode → state → LWF row).
     // Only fires if this period's month is in the master's deduction_months
     // and the master row is enabled. Otherwise LWF rows are zeroed.
-    if (wages && isPrimary && lwfRows && pincodeRanges) {
+    if (usesLwfMaster && wages && isPrimary && lwfRows && pincodeRanges) {
       const lwfRes = resolveLwf(String(ptPincode ?? ""), pincodeRanges as never, lwfRows, ptState);
       const periodMonth = new Date(start).getMonth() + 1; // 1-12
       let applies = false;
@@ -743,20 +775,16 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
           employerContributions: mergePayItems(resource.employerContributions),
         }
       : null;
-    if (wages) {
-      wages.components = mergePayItems(wages.components) as typeof wages.components;
-      wages.deductions = mergePayItems(wages.deductions) as typeof wages.deductions;
-      wages.employerContributions = mergePayItems(wages.employerContributions) as typeof wages.employerContributions;
-      const wAny = wages as unknown as { additions?: { name: string; amount: number }[] };
-      if (Array.isArray(wAny.additions)) {
-        wAny.additions = mergePayItems(wAny.additions);
-      }
-    }
+
 
     const cAny = c as unknown as Record<string, unknown>;
     return {
       id: c.id,
-      rowKey: pairKey(c.id, p.designationId),
+      rowKey: pairKey(c.id, p.designationId, p.shift),
+      shiftHours: resolvedShift,
+      calculationBasis: contractOnly ? "contract" as const : "employee_salary" as const,
+      calculationIssues,
+      usesPtSlab,
       employeeCode: c.employee_code || "",
       name: c.full_name || "—",
       designation: designationName,
@@ -794,14 +822,14 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     if (r.wages) siteGrossByCandidate.set(r.id, (siteGrossByCandidate.get(r.id) ?? 0) + r.wages.earnedGross);
   }
   for (const r of rows) {
-    if (!r.wages || !r.isPrimary) continue;
+    if (!r.usesPtSlab || !r.wages || !r.isPrimary) continue;
     const resolved = ptForSite({
       state: ptState,
       pincode: ptPincode,
       gender: ((rosterById.get(r.id) as unknown as { gender?: string | null } | undefined)?.gender ?? "").toString(),
       siteGross: siteGrossByCandidate.get(r.id) ?? 0,
       other: otherSitePt.get(r.id),
-      allocated: ptAllocated.get(r.id) ?? null,
+      allocated: contractOnly ? null : ptAllocated.get(r.id) ?? null,
       slabs: (ptSlabs ?? []) as PtSlabLike[],
       ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
     });
@@ -812,13 +840,24 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
       otherGross: other?.gross ?? 0,
       otherPt: other?.pt ?? 0,
       otherSites: otherSitesWorked.get(r.id) ?? [],
-      allocated: ptAllocated.has(r.id),
+      allocated: !contractOnly && ptAllocated.has(r.id),
     } as typeof r.pt;
   }
-  // Gross is paid in whole rupees (nearest); net = rounded gross − deductions.
+  if (contractOnly) applySavedPayrollMonthlyCaps(rows);
+  // Client rounding follows the saved contract, not an implicit whole-rupee rule.
   for (const r of rows) {
-    if (r.wages && esiRoundUp) Object.assign(r.wages, roundEsiUp(r.wages));
-    if (r.wages) Object.assign(r.wages, roundFinalGross(r.wages));
+    if (!contractOnly && r.wages && esiRoundUp) Object.assign(r.wages, roundEsiUp(r.wages));
+    if (r.wages && (!contractOnly || r.resource?.roundOffTotals?.["gross"])) Object.assign(r.wages, roundFinalGross(r.wages));
+    const wages = r.wages;
+    if (wages) {
+      wages.components = mergePayItems(wages.components) as typeof wages.components;
+      wages.deductions = mergePayItems(wages.deductions) as typeof wages.deductions;
+      wages.employerContributions = mergePayItems(wages.employerContributions) as typeof wages.employerContributions;
+      const wAny = wages as unknown as { additions?: { name: string; amount: number }[] };
+      if (Array.isArray(wAny.additions)) {
+        wAny.additions = mergePayItems(wAny.additions);
+      }
+    }
   }
 
 
@@ -1098,8 +1137,9 @@ export async function computePayrollUnitsTotals(
         ptPincode: u?.pt_state ? null : ((u?.billing_pincode as string | null) ?? null),
         epfCapEnabled: (u?.epf_cap_enabled as boolean | null) ?? true,
         esiRoundUp, woAsPresent: Boolean(flags?.wo_as_present), unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows,
+        isBillable: !flags?.is_internal,
       }, { ...x.src, employeeWages: x.rosterIds.flatMap((id) => wagesByCand.get(id) ?? []), otherSitePt, ptAllocated });
-      out.set(x.unitId, payrollUnitTotals(rows));
+      if (!rows.some((r) => r.calculationIssues.some((i) => i.blocking))) out.set(x.unitId, payrollUnitTotals(rows));
     }
   };
   await Promise.all(Array.from({ length: Math.min(4, prepared.length) }, worker));

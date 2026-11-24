@@ -1,3 +1,9 @@
+## Contract-only payroll and September exception workbook — 24 November
+- [ ] Route unprocessed payroll through saved period contract rates/formulas and actual attendance only; exclude employee wage overrides, ledger adjustments and imported PT allocations without deleting source records or changing invoices/processed payroll.
+- [ ] Prevent confirmed same-side duplicate contract charges; report ambiguous repeated components and missing/invalid source settings rather than silently changing agreed rates.
+- [ ] Run focused calculation regressions and all-client September production-source comparison; provide Master, Approved, Calculated Payroll and Duplication Exceptions workbook tabs.
+- [ ] Verify production source preservation, refresh eligible saved finance totals, and check live delivery/session availability.
+
 ## CLI3619 original-rate restoration — 24 November
 - [x] Restored only CLI3619 CON15115 from the original pre-formula backup. Committed production readback exactly matches all eight original role structures across all four contracts, excluding automatic update timestamps; other clients, headers, attendance, settled payroll and shared masters passed preservation assertions.
 - [x] Formula trial stopped; original backup retained. Restoration transaction and repeatable rollback test passed, as did 11 focused calculation tests. No further change will be made without the user's next instruction.

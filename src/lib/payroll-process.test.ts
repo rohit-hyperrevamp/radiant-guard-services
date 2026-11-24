@@ -10,6 +10,15 @@ const row = { candidateId:'employee',employeeCode:'1',name:'Employee',deductions
 const args = {runId:'run',unitId:'site',unitLabel:'Site',periodStart:'2026-09-01',periodEnd:'2026-09-30',rows:[row],heldCandidateIds:[]};
 beforeEach(()=>{state.error=null;state.payload=null;});
 describe('single payroll posting boundary',()=>{
+ it('refuses repeated duty-line keys before any payroll save',async()=>{
+  const keyed={...row,payrollLineKey:'employee|guard|8'};
+  await expect(processPayrollRun({...args,rows:[keyed,keyed]})).rejects.toThrow('Duplicate payroll duty line');
+  expect(state.payload).toBeNull();
+ });
+ it('refuses unresolved saved-contract exceptions before any payroll save',async()=>{
+  await expect(processPayrollRun({...args,rows:[{...row,calculationIssues:[{blocking:true,detail:'Repeated PF'}]}]})).rejects.toThrow('Resolve saved contract exceptions');
+  expect(state.payload).toBeNull();
+ });
  it('sends all ledgers and saved payroll in one call',async()=>{
   await processPayrollRun(args);
   expect(state.payload.deductions[0].amount).toBe(200);

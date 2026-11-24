@@ -859,6 +859,8 @@ export function computeWages(
   resource: ContractResourceLike,
   periodDayCount: number,
   options?: {
+    /** Client payroll uses saved contract settings without inferred statutory rates. */
+    savedContractOnly?: boolean;
     phOverrideAmount?: number;
     periodDates?: Date[];
     dayBases?: PayrollDayBaseDef[];
@@ -873,6 +875,7 @@ export function computeWages(
     esiRoundUp?: boolean;
   },
 ): WageComputation {
+  if (options?.savedContractOnly && !resource.payrollDayBase) throw new Error("Missing saved payroll day base");
   const contractGross = resource.components.reduce(
     (s, c) => s + (Number(c.amount) || 0),
     0,
@@ -1065,6 +1068,7 @@ export function computeWages(
     const fixedAmt = round2((Number(item.amount) || 0) * baseRatio);
     const ctx: FormulaContext = { ...baseFormulaCtx, fixed_amount: fixedAmt };
     const r = evaluateFormula(cfg, ctx);
+    if (r.error && options?.savedContractOnly) throw new Error(`Invalid saved formula: ${r.error}`);
     return r.error ? null : r.amount;
   };
 
@@ -1206,6 +1210,7 @@ export function computeWages(
   const isFixedItem = (i: BenefitLike) => {
     if (i.deductionCalcType === "fixed_amount") return true;
     if (i.deductionCalcType === "earned_salary") return false;
+    if (options?.savedContractOnly) return i.calcType === "fixed" && i.fixedCalcMethod === "flat";
     const n = i.name;
     return (
       /\buniform\b/i.test(n) ||
@@ -1443,18 +1448,19 @@ export function computeWages(
   const esiLimitSrc = (employeeEsiItem ?? employerEsiItem) as
     | (BenefitLike & { esiLimitOn?: string[]; esiLimitBasis?: string })
     | undefined;
-  const esiLimitKeys = Array.isArray(esiLimitSrc?.esiLimitOn) ? esiLimitSrc!.esiLimitOn!.map((k) => slugifyVar(k)) : [];
+  const esiLimitKeys = Array.isArray(esiLimitSrc?.esiLimitOn) ? esiLimitSrc.esiLimitOn.map((k) => slugifyVar(k)) : [];
   const sumByKeys = (list: { name: string; amount: number | string | null | undefined }[]) => {
     const taken = exactFormulaKeys(list.map((c) => c.name));
     return list
       .filter((c) => formulaNameAliases(c.name, taken).some((a) => esiLimitKeys.includes(slugifyVar(a))))
       .reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
   };
-  const esiAboveCeiling = esiLimitKeys.length > 0
+  const hasSavedEsiCeiling = Number(employeeEsiItem?.capAmount) > 0 || Number(employerEsiItem?.capAmount) > 0;
+  const esiAboveCeiling = options?.savedContractOnly && !hasSavedEsiCeiling ? false : esiLimitKeys.length > 0
     ? (esiLimitSrc?.esiLimitBasis === "earnings" ? sumByKeys(benefitBaseComponents) : sumByKeys(resource.components)) > esiCeiling
     : earnedGrossExcludingEd > esiCeiling;
 
-  const deductions = applyBonusRule(
+  const deductions = options?.savedContractOnly ? deductionsScaled : applyBonusRule(
     applyEsiRule(
       applyEpfRule(deductionsScaled, employeeEpfAmount),
       esi.employee,
@@ -1463,7 +1469,7 @@ export function computeWages(
     ),
     employeeBonusAmount,
   );
-  const employerContributions = applyGratuityRule(
+  const employerContributions = options?.savedContractOnly ? employerContributionsScaled : applyGratuityRule(
     applyBonusRule(
       applyEsiRule(
         applyEpfRule(employerContributionsScaled, employerEpfAmount),
@@ -1481,7 +1487,7 @@ export function computeWages(
   // formula or flat) may ever exceed its percentage applied to the PF wage
   // ceiling. Unit policy `epfCapEnabled === false` opts out of the ceiling.
   const clampEpf = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] => {
-    if (epfCapPolicy === false) return items;
+    if (options?.savedContractOnly || epfCapPolicy === false) return items;
     return items.map((i) => {
       if (!EPF_NAME_RE.test(i.name)) return i;
       const src = contractItems.find((c) => EPF_NAME_RE.test(c.name));
@@ -1509,7 +1515,7 @@ export function computeWages(
       // Contract rounding wins; otherwise the payroll "Round ESI up" switch applies.
       const mode =
         contractMode ||
-        (options?.esiRoundUp && !(i.roundOff ?? src?.roundOff) && /\besi(c)?\b/i.test(i.name) ? "up" : contractMode);
+        (!options?.savedContractOnly && options?.esiRoundUp && !(i.roundOff ?? src?.roundOff) && /\besi(c)?\b/i.test(i.name) ? "up" : contractMode);
       const raw = Number(i.amount) || 0;
       const roundOff = i.roundOff ?? src?.roundOff ?? null;
       const rounded = roundLineAmount(raw, mode, roundOff);
@@ -1520,12 +1526,15 @@ export function computeWages(
   // Professional Tax is a slab on the person's monthly gross (Extra Duty
   // included), so an ED-only line still keeps the contract's PT row; the slab
   // amount is filled later by applyPtToWageComputation (Pages does the same).
+  const applySavedEsiEligibility = (items: WageComponent[]) => options?.savedContractOnly && hasSavedEsiCeiling && esiAboveCeiling
+    ? items.map((i) => ESI_NAME_RE.test(i.name) && !(i as WageComponent & { noEsiCeiling?: boolean }).noEsiCeiling ? { ...i, amount: 0 } : i)
+    : items;
   const finalDeductions = edOnly
     ? deductions.filter((d) => PT_NAME_RE.test(d.name) && !hasConfiguredFormula(d)).map((d) => ({ ...d, amount: 0 }))
-    : roundFlagged(clampEpf(deductions, resource.deductions), resource.deductions);
+    : roundFlagged(applySavedEsiEligibility(clampEpf(deductions, resource.deductions)), resource.deductions);
   const finalEmployerContributions = edOnly
     ? []
-    : roundFlagged(clampEpf(employerContributions, resource.employerContributions), resource.employerContributions);
+    : roundFlagged(applySavedEsiEligibility(clampEpf(employerContributions, resource.employerContributions)), resource.employerContributions);
 
   // ---- ESI on Extra Duty (only when the contract role switches it on) ----
   // Formula variables are the Extra Duty share of each pay item: with

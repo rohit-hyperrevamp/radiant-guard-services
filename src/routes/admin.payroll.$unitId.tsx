@@ -257,11 +257,11 @@ function PayrollUnitPage() {
       await supabaseSessionReady();
       const { data } = await supabase
         .from("units")
-        .select("id, code, name, customer_id, billing_state, billing_pincode, pt_state, epf_cap_enabled" as never)
+        .select("id, code, name, customer_id, billing_state, billing_pincode, pt_state, epf_cap_enabled, is_billable" as never)
         .eq("id", unitId)
         .maybeSingle();
       if (!data) return null;
-      const unitRow = data as unknown as { id: string; code: string | null; name: string; customer_id: string | null; billing_state: string | null; billing_pincode: string | null; pt_state: string | null; epf_cap_enabled: boolean | null };
+      const unitRow = data as unknown as { id: string; code: string | null; name: string; customer_id: string | null; billing_state: string | null; billing_pincode: string | null; pt_state: string | null; epf_cap_enabled: boolean | null; is_billable: boolean | null };
       const { data: cust } = await supabase
         .from("customers")
         .select("name")
@@ -518,7 +518,7 @@ function PayrollUnitPage() {
     refetchOnMount: "always",
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      return computePayrollUnitRows({ unitId, start, end, periodDates, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows });
+      return computePayrollUnitRows({ unitId, isBillable: unit?.is_billable !== false, start, end, periodDates, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows });
     },
   });
 
@@ -529,6 +529,9 @@ function PayrollUnitPage() {
   // an empty/loading state tears down every row and is perceived as a full-page
   // flicker, especially when an expanded pay sheet changes the table height.
   const rows = data ?? [];
+  const contractPayroll = unit?.is_billable !== false;
+  const payrollExceptions = rows.flatMap((r) => r.calculationIssues.filter((i) => i.blocking).map((i) => ({ employeeCode: r.employeeCode, name: r.name, ...i })));
+  const hasPayrollExceptions = payrollExceptions.length > 0;
   const isLoading = isPending && data === undefined;
   const pg = usePagination(rows);
 
@@ -677,6 +680,8 @@ function PayrollUnitPage() {
       .filter((r) => r.wages)
       .map((r) => ({
         candidateId: r.id,
+        payrollLineKey: r.rowKey,
+        calculationIssues: r.calculationIssues,
         employeeCode: r.employeeCode,
         name: r.name,
         earnings: (r.wages!.components ?? []).map((c) => ({ name: c.name, amount: Number(c.amount) || 0 })),
@@ -785,6 +790,7 @@ function PayrollUnitPage() {
   const processAmendment = useMutation({
     mutationFn: async () => {
       if (!run?.id) throw new Error("Payroll run not found");
+      if (hasPayrollExceptions) throw new Error("Resolve the saved contract exceptions before processing payroll");
       const result = await processPayrollAmendment({
         runId: run.id,
         unitId,
@@ -827,12 +833,14 @@ function PayrollUnitPage() {
   const processRun = useMutation({
     mutationFn: async () => {
       if (!run?.id) throw new Error("Payroll run not found");
+      if (hasPayrollExceptions) throw new Error("Resolve the saved contract exceptions before processing payroll");
+      if (rows.some((r) => r.pt !== null)) {
       // PT is one slab per person per month: if another site's payroll for
       // the same people was processed after this register was computed,
       // recompute first so PT is never charged twice.
       const ptUsed = new Map<string, { gross: number; pt: number } | null>();
       for (const r of rows) {
-        if (!r.wages || !r.isPrimary) continue;
+        if (!r.wages || !r.isPrimary || !r.pt) continue;
         const p = r.pt as { otherGross?: number; otherPt?: number } | null | undefined;
         ptUsed.set(r.id, { gross: p?.otherGross ?? 0, pt: p?.otherPt ?? 0 });
       }
@@ -840,6 +848,7 @@ function PayrollUnitPage() {
       if (otherSitePtChanged(ptUsed, ptFresh)) {
         await queryClient.invalidateQueries({ queryKey: ["payroll-register-compute", unitId, start, end] });
         throw new Error("Another site's payroll for some of these employees was just processed. Professional Tax has been recalculated — please review and process again.");
+      }
       }
       const payloadRows = buildPayloadRows();
 
@@ -1304,7 +1313,7 @@ function PayrollUnitPage() {
               Wage slips
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || rows.length === 0}>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || hasPayrollExceptions || rows.length === 0}>
             <Download className="mr-1.5 h-4 w-4" />
             {isLoading ? "Loading…" : "Export"}
           </Button>
@@ -1338,19 +1347,19 @@ function PayrollUnitPage() {
                 queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "allowance-types"] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "cost-components"] });
-                toast.success("Recalculating from latest contract, attendance, additions and deductions");
+                toast.success(contractPayroll ? "Recalculating from saved contract and attendance" : "Recalculating office salary and attendance");
               }}
             >
               Recalculate
             </Button>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground" title="Applies when the contract sets no rounding for ESI">
+            {!contractPayroll && <label className="flex items-center gap-2 text-xs text-muted-foreground" title="Applies when the contract sets no rounding for ESI">
               <Switch
                 checked={esiRoundUp}
                 disabled={esiRoundFlag.isLoading || esiRoundMut.isPending}
                 onCheckedChange={(v) => esiRoundMut.mutate(v)}
               />
               Round ESI up
-            </label>
+            </label>}
           </div>
         </div>
 
@@ -1364,13 +1373,24 @@ function PayrollUnitPage() {
 
       </div>
 
-      <UnappliedDeductionsBanner
+      {hasPayrollExceptions && (
+        <section role="alert" className="border border-destructive bg-muted p-4 text-sm">
+          <h2 className="font-semibold text-destructive">Payroll not ready — saved contract exceptions</h2>
+          <p className="mt-1 text-muted-foreground">Totals exclude unresolved employee lines. Resolve the contract before approving or processing.</p>
+          <ul className="mt-3 space-y-2">
+            {payrollExceptions.slice(0, 25).map((i, index) => <li key={`${i.employeeCode}-${i.component}-${index}`}><strong>{i.employeeCode} · {i.name} · {i.component}</strong>: {i.detail}</li>)}
+          </ul>
+          {payrollExceptions.length > 25 && <p className="mt-2 text-muted-foreground">{payrollExceptions.length - 25} further exceptions</p>}
+        </section>
+      )}
+
+      {!contractPayroll && <UnappliedDeductionsBanner
         unitId={unitId}
         start={start}
         end={end}
         ready={!isLoading && data !== undefined}
         payrollPeople={Array.from(new Map(rows.map((r) => [r.id, { id: r.id, employeeCode: r.employeeCode, name: r.name }])).values())}
-      />
+      />}
 
       {/* Payroll approval workflow */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-3">
@@ -1401,13 +1421,13 @@ function PayrollUnitPage() {
             <span className="text-xs text-amber-700">Approve attendance first to submit payroll.</span>
           )}
           {sheet?.status === "approved" && (runStatus === "draft" || runStatus === "rejected") && !canApprove && canSubmitPayroll && (
-            <Button size="sm" onClick={() => transitionRun.mutate({ status: "submitted" })} disabled={transitionRun.isPending}>
+            <Button size="sm" onClick={() => transitionRun.mutate({ status: "submitted" })} disabled={transitionRun.isPending || isLoading || hasPayrollExceptions}>
               <Send className="mr-1.5 h-4 w-4" /> Submit for Approval
             </Button>
           )}
           {sheet?.status === "approved" && runStatus !== "approved" && canApprove && (
             <>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => transitionRun.mutate({ status: "approved" })} disabled={transitionRun.isPending}>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => transitionRun.mutate({ status: "approved" })} disabled={transitionRun.isPending || isLoading || hasPayrollExceptions}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve
               </Button>
               <Button size="sm" variant="destructive" onClick={() => setRejectOpen(true)} disabled={transitionRun.isPending}>
@@ -1435,7 +1455,7 @@ function PayrollUnitPage() {
                 size="sm"
                 className="bg-violet-600 hover:bg-violet-700"
                 onClick={() => setProcessOpen(true)}
-                disabled={processRun.isPending || rows.length === 0}
+                disabled={processRun.isPending || isLoading || hasPayrollExceptions || rows.length === 0}
               >
                 <Banknote className="mr-1.5 h-4 w-4" /> Process Payroll
               </Button>
@@ -1458,7 +1478,7 @@ function PayrollUnitPage() {
               size="sm"
               className="bg-indigo-600 hover:bg-indigo-700"
               onClick={() => setAmendReviewOpen(true)}
-              disabled={processAmendment.isPending || rows.length === 0}
+              disabled={processAmendment.isPending || isLoading || hasPayrollExceptions || rows.length === 0}
             >
               <Banknote className="mr-1.5 h-4 w-4" /> Review &amp; process amendment v{sheetVersion}
             </Button>
@@ -1569,7 +1589,7 @@ function PayrollUnitPage() {
             <Button
               className="bg-indigo-600 hover:bg-indigo-700"
               onClick={() => processAmendment.mutate()}
-              disabled={processAmendment.isPending || amendmentDeltas.length === 0}
+              disabled={processAmendment.isPending || hasPayrollExceptions || amendmentDeltas.length === 0}
             >
               {processAmendment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Post difference for {amendmentDeltas.length} employee{amendmentDeltas.length === 1 ? "" : "s"}
@@ -1611,7 +1631,7 @@ function PayrollUnitPage() {
             <Button
               className="bg-violet-600 hover:bg-violet-700"
               onClick={() => processRun.mutate()}
-              disabled={processRun.isPending}
+              disabled={processRun.isPending || hasPayrollExceptions}
             >
               {processRun.isPending ? "Processing…" : "Process payroll"}
             </Button>

@@ -19,6 +19,8 @@ import { fetchAllPages } from "@/lib/supabase-batch";
 export type ProcessLine = { name: string; amount: number };
 
 export type ProcessableRow = {
+  payrollLineKey?: string;
+  calculationIssues?: { blocking: boolean; detail: string }[];
   candidateId: string;
   employeeCode: string;
   name: string;
@@ -182,6 +184,12 @@ export async function processPayrollRun(args: {
   version?: number;
 }): Promise<ProcessResult> {
   const { runId, unitId, unitLabel, periodStart, periodEnd, rows } = args;
+  const lineKeys = new Set<string>();
+  for (const row of rows) {
+    if (row.calculationIssues?.some((i) => i.blocking)) throw new Error("Resolve saved contract exceptions before posting payroll");
+    if (row.payrollLineKey && lineKeys.has(row.payrollLineKey)) throw new Error("Duplicate payroll duty line; no payroll was posted");
+    if (row.payrollLineKey) lineKeys.add(row.payrollLineKey);
+  }
   const held = new Set(args.heldCandidateIds);
   const payable = rows.filter((r) => !held.has(r.candidateId));
 
