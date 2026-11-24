@@ -9,6 +9,8 @@ import { computeBenefitAmount, type BenefitItem, type ResourceComponent } from "
 import { computeWages, unknownFormulaVariables, type ContractResourceLike } from "../../src/lib/payroll-calc";
 import { contractMonthlyBilling } from "../../src/lib/contract-rate-display";
 import { hydrateFormulasWith, type FormulaMaster } from "../../src/lib/contract-hydrate";
+import { computeInvoiceUnit, invoiceUnitTaxable, type InvoiceGlobals, type InvoiceUnitData } from "../../src/lib/invoice-engine";
+import { DEFAULT_SPLIT } from "../../src/lib/invoice-split";
 
 const original = before.contracts.find((c) => c.contract_code === "CON15115");
 if (!original) throw new Error("CLI3619 active contract backup is required");
@@ -56,6 +58,30 @@ describe("CLI3619 verified formula conversion preserves the agreed rate structur
       expect(wages.netPay).toBe(role === "Security Guard" ? 19588 : 22890);
       expect(wages.employerContributions.find((l) => l.name.startsWith("ER EPF"))?.amount).toBe(1950);
       expect(contractMonthlyBilling(data)).toBe(role === "Security Guard" ? 24863 : 28165);
+      const old = original.resources.find((x) => x.id === r.id);
+      if (!old) throw new Error("Original invoice rate is required");
+      const globals: InvoiceGlobals = {
+        codes: [{ code: "P", counts_as_present: true, is_paid: true, day_value: 1 }],
+        pdbs: [{ id: r.payroll_day_base_id, method: "fixed_days", fixed_days: 26 }],
+        bdbs: [{ id: r.billing_day_base_id, method: "fixed_days", fixed_days: 26 }],
+        designationNames: new Map([[r.designation_id, role]]), masters: new Map(),
+        publicHolidays: [], phTypeIds: new Set(), ptSlabs: [], pincodeRanges: [], lwfRows: [],
+      };
+      const input: InvoiceUnitData = {
+        unitId: before.unit_id, unitCode: "CLI3619", customerName: "Cipla", start: "2026-09-01", end: "2026-09-30",
+        epfCapEnabled: true, ptState: null, ptPincode: null, unitPh: null, woAsPresent: false, exactDayRate: false,
+        primary: [{ id: "test-person", employee_code: "TEST", full_name: "Formula test", designation_id: r.designation_id }],
+        links: [], secondary: [], leavers: [],
+        entries: Array.from({ length: 26 }, (_, day) => ({ candidate_id: "test-person", designation_id: r.designation_id,
+          entry_date: `2026-09-${String(day + 1).padStart(2, "0")}`, code: "P", ot_hours: 0, shift_hours: 8, is_reliever: false })),
+        periodContract: { id: original.id, billing_type_id: null, gst_option: "igst" },
+        billingMode: "man_days", resources: [r], revisions: null, additions: [], deductions: [],
+      };
+      const invoiceOptions = { unitId: before.unit_id, unitCode: "CLI3619", customerName: "Cipla", invoiceSplit: DEFAULT_SPLIT, exactDayRate: false };
+      const originalInvoice = invoiceUnitTaxable(computeInvoiceUnit({ ...input, resources: [old] }, globals), invoiceOptions, []).taxable;
+      const convertedInvoice = invoiceUnitTaxable(computeInvoiceUnit(input, globals), invoiceOptions, []).taxable;
+      expect(originalInvoice).toBeGreaterThan(0);
+      expect(convertedInvoice).toBe(originalInvoice);
       for (const line of [...data.deductions, ...data.employerContributions]) {
         expect(computeBenefitAmount(line as BenefitItem, data.components as ResourceComponent[])).toBe(line.amount);
         expect(unknownFormulaVariables(line.formulaExpression, data.components.map((c) => c.name))).toEqual([]);

@@ -1,7 +1,9 @@
 ## CLI3619 formula-only rate review — 24 November
-- [ ] Save a scoped, exact backup of the current contract rate structure before any changes.
-- [ ] Identify legitimate existing formula masters and percentages for each derived line, preserving every agreed amount and limiting contract changes to CLI3619.
-- [ ] Verify editor-save, payroll and invoice calculations, unknown variables and production rollback/readback; retain any unexplained lines unchanged rather than inventing formulas.
+- [x] Save a scoped, exact backup of the current contract rate structure before any changes; exact rollback passed production testing.
+- [x] Link both roles' employee and employer EPF to verified existing masters; production readback and 16 focused tests preserve all agreed monetary values, quantities and other fields.
+- [x] User has no percentage sheet: independently examined both supplied sheets, 31 Cipla role structures and 72 allowance-master evaluations. None reproduces the remaining allowances; supervisor Bonus equals Basic+DA/12 but Guard does not, so no arbitrary formula or percentage was created.
+- [x] Verified editor amount evaluation, master hydration, full-month and partial-attendance payroll, before/after invoice engine, unknown variables, production update/restore/preservation and exact committed readback. All 16 focused tests pass. Billing stays Guard ₹24,863 / Supervisor ₹28,165; September–November scoped finance totals refreshed current.
+- [ ] Full formula conversion awaits verifiable bases for HRA/Bonus/Leave and any genuinely percentage-driven flat charges; correct existing values are retained. Signed-in live contract-screen check also requires a production-compatible browser session.
 
 ## Remove synthetic payroll reconciliation adjustments — 24 November
 - [x] Deleted 689 active balancing additions, 815 balancing deductions and three posted copies across 456 sites; production readback finds zero reconciliation ledger or snapshot lines. All 192,062 genuine ledger rows passed exact preservation checks, and contract rates, actual attendance, approvals/payment metadata and deletion audit remain intact.
