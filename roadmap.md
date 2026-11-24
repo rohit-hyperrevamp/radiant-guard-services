@@ -1,3 +1,7 @@
+## Poonawalla Haryana replacement reference CLI4012 — 24 November
+- [x] Backed up current rate structures for 87 active Haryana targets, including the previous reference CLI4508, and the user-updated CLI4012 CON15690 reference.
+- [x] Copied CLI4012's exact saved rates, formulas, master links and selected Extra Duty/rounding/cap settings. Rollback and committed production tests passed all 87 copies and preservation of the reference, other rate structures, contract terms, units, historical revisions, attendance and paid snapshots. No new contracts, status changes or frontend changes; six sites without active contracts remain unchanged.
+
 ## Poonawalla Haryana rates from CLI4508 — 24 November
 - [x] Identified 87 active Haryana Poonawalla target contracts, all eight-hour Security Guards matching CLI4508 CON16681. Excluded three Bajaj-labelled legacy records with no contracts and held six Poonawalla sites without active contracts.
 - [x] Backed up all target rate structures and the reference. Rollback and committed production tests verified exact copies of saved rate/formula/Extra Duty/rounding/cap selections; quantities, identities, source, contract headers, units, historical revisions, attendance and paid snapshots passed preservation checks. No frontend changes or signed-in selector verification.
