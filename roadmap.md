@@ -1,9 +1,13 @@
+## CLI3619 original-rate restoration — 24 November
+- [x] Restored only CLI3619 CON15115 from the original pre-formula backup. Committed production readback exactly matches all eight original role structures across all four contracts, excluding automatic update timestamps; other clients, headers, attendance, settled payroll and shared masters passed preservation assertions.
+- [x] Formula trial stopped; original backup retained. Restoration transaction and repeatable rollback test passed, as did 11 focused calculation tests. No further change will be made without the user's next instruction.
+
 ## CLI3619 formula-only rate review — 24 November
 - [x] Save a scoped, exact backup of the current contract rate structure before any changes; exact rollback passed production testing.
 - [x] Link both roles' employee and employer EPF to verified existing masters; production readback and 16 focused tests preserve all agreed monetary values, quantities and other fields.
 - [x] User has no percentage sheet: independently examined both supplied sheets, 31 Cipla role structures and 72 allowance-master evaluations. None reproduces the remaining allowances; supervisor Bonus equals Basic+DA/12 but Guard does not, so no arbitrary formula or percentage was created.
 - [x] Verified editor amount evaluation, master hydration, full-month and partial-attendance payroll, before/after invoice engine, unknown variables, production update/restore/preservation and exact committed readback. All 16 focused tests pass. Billing stays Guard ₹24,863 / Supervisor ₹28,165; September–November scoped finance totals refreshed current.
-- [ ] Full formula conversion awaits verifiable bases for HRA/Bonus/Leave and any genuinely percentage-driven flat charges; correct existing values are retained. Signed-in live contract-screen check also requires a production-compatible browser session.
+- [x] Further formula conversion cancelled by the user's explicit request to restore the original rate structure; no additional formulas will be applied.
 
 ## Remove synthetic payroll reconciliation adjustments — 24 November
 - [x] Deleted 689 active balancing additions, 815 balancing deductions and three posted copies across 456 sites; production readback finds zero reconciliation ledger or snapshot lines. All 192,062 genuine ledger rows passed exact preservation checks, and contract rates, actual attendance, approvals/payment metadata and deletion audit remain intact.

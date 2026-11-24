@@ -1,5 +1,9 @@
 # CLI3619 formula trial: verified results and limits
 
+## Current status — restored at the user's request
+
+On 24 November 2026, the user explicitly requested the original rate structure. The guarded restoration was committed to production: both active roles now have the exact original deductions and fixed employer contributions, without the trial master links. A fresh readback confirms every rate field across all eight roles in the four original CLI3619 contracts matches the backup, excluding automatic update timestamps. Other clients, contract headers, attendance, settled payroll and shared masters passed transaction-level preservation checks. The retained restoration regression passes before and after the committed restore, and 11 focused calculation tests pass. The original backup remains available; the formula trial and further conversion are cancelled. The following sections describe the previous, now-reverted trial, not the current configuration.
+
 ## Scope and backup
 
 Only active CLI3619 contract CON15115, Security Guard and Security Supervisor. Original rate structures for all four CLI3619 contracts are saved in `db/backups/cli3619-rate-structure-20261124.json`. The guarded restoration script restores the original active contract rate fields and refuses to overwrite later edits. Apply and exact restoration both passed production rollback testing.
