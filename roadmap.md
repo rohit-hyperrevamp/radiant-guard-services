@@ -1501,9 +1501,11 @@ User superseded the October workbook as the source on 12 November: do not apply 
 - [x] Back up current September approvals and dashboard aggregates; fresh shared-engine calculation verified 2,364 windows against the current contract-only rules.
 - [x] Submit and approve verified eligible September records: 616 payrolls and four attendance sheets; rollback-first checks passed, existing approvals and all money sources preserved.
 - [x] Refresh September dashboard totals through the shared source engines and verify production readback: 2,058 current version-4 totals; 293 payroll source exceptions and 13 unavailable invoice windows remain explicitly pending.
-- [ ] Verify the authenticated homepage after GitHub → Vercel delivers version 4; live assets still use version 2 and cannot read the corrected totals as current. Deployment trigger updated, no production sign-in session available.
+- [x] Verify GitHub → Vercel delivered version 4: public GitHub deployment succeeded approximately 18:24 UTC; live finance assets now use version 4 and the production worker publishes totals successfully.
+- [ ] Verify the authenticated homepage visually; no production sign-in session is available. Live version and saved-total publication are verified, not signed-in rendering.
 
 ## Restore production dashboard delivery — 24 November
-- [ ] Trace the existing Git-to-Vercel delivery and identify why the live homepage is still on the old finance version.
-- [ ] Correct the verified delivery or compatibility defect without weakening payroll validation or changing saved money sources.
-- [ ] Check the live homepage version and current finance totals; report any external access needed to finish delivery.
+- [x] Trace the existing GitHub-to-Vercel delivery: the old version remained live until the production deployment completed approximately 18:24 UTC. Public repository/status reads verify the current commits and successful delivery.
+- [x] Correct rolling-version compatibility, saved-total cache identities, misleading zero summaries in coverage/P&L/details and rejected-publication repeat loops; 40 tests and rollback-first production checks passed, financial sources/privileges preserved.
+- [x] Check the live homepage version and current finance totals: version 4 is live, 2,058 September totals remain current and automatic refreshes now publish successfully. No extra connection was created.
+- [ ] Verify signed-in homepage figures visually; waits only on an authorized production sign-in session, not on database access or Git/Vercel delivery.

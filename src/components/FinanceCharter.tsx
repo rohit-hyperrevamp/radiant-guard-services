@@ -287,7 +287,7 @@ export function FinanceCharter({
   });
 
   const savedTotalsQ = useQuery({
-    queryKey: ["finance-charter-saved-totals-v2", periodKey],
+    queryKey: ["finance-charter-saved-totals-v4", periodKey],
     enabled: unitIds.length > 0 && can("invoice") && can("payroll"),
     staleTime: 15_000,
     refetchInterval: 30_000,

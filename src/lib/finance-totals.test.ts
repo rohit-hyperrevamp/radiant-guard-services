@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dashboardFinanceRows, FINANCE_CALCULATION_VERSION, financeLossReason, financeProfit, financeRowIsCurrent, type SavedFinanceRow } from "./finance-totals";
+import { dashboardFinanceRows, FINANCE_CALCULATION_VERSION, financeLossReason, financeProfit, financeRowIsCurrent, financeSummaryAmount, type SavedFinanceRow } from "./finance-totals";
 import { checkedQueryData } from "./finance-source";
 
 describe("authoritative finance totals", () => {
@@ -53,5 +53,18 @@ describe("authoritative finance totals", () => {
   it("does not equate an incomplete saved result with an actual zero", () => {
     const row = { generation: 1, calculated_generation: 1, calculation_version: 1, computed_at: null, totals: null } as SavedFinanceRow;
     expect(financeRowIsCurrent(row)).toBe(false);
+  });
+  it("keeps compatible newer saved results visible during a rolling deployment", () => {
+    const row = { generation: 7, calculated_generation: 7, calculation_version: 5, computed_at: "2026-11-24", totals: { employer_cost: 1800 } } as SavedFinanceRow;
+    expect(financeRowIsCurrent(row)).toBe(true);
+    expect(financeRowIsCurrent({ ...row, calculated_generation: 6 })).toBe(false);
+  });
+  it("withholds a summary when no client has verified amounts instead of reporting zero", () => {
+    expect(financeSummaryAmount(0, 0)).toBeNull();
+    expect(financeSummaryAmount(25000, 0)).toBeNull();
+  });
+  it("retains a verified zero result and partial verified amounts", () => {
+    expect(financeSummaryAmount(0, 1)).toBe(0);
+    expect(financeSummaryAmount(25000, 1)).toBe(25000);
   });
 });

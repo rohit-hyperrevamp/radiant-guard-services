@@ -1,4 +1,4 @@
-import { financeProfit, financeLossReason } from "@/lib/finance-totals";
+import { financeProfit, financeLossReason, financeSummaryAmount } from "@/lib/finance-totals";
 import { matchesSearch } from "@/lib/search-match";
 import { TileNumber } from "@/components/TileNumber";
 import { useEffect, useMemo, useState } from "react";
@@ -180,6 +180,11 @@ function VarianceChip({ diff, money }: { diff: number; money?: boolean }) {
 
 type Money = { committed: number; actual: number };
 
+function summaryMoney(value: number, readyCount: number): string {
+  const amount = financeSummaryAmount(value, readyCount);
+  return amount === null ? "—" : fmtINR(amount);
+}
+
 function CoverageCard({
   eyebrow,
   title,
@@ -215,6 +220,7 @@ function CoverageCard({
       { committed: 0, actual: 0 },
     );
     return {
+      ready: ready.length,
       committed,
       actual,
       remaining: committed - actual,
@@ -244,7 +250,7 @@ function CoverageCard({
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
           label={labels.committed}
-          value={fmtINR(totals.committed)}
+          value={summaryMoney(totals.committed, totals.ready)}
           sub={
             strengthOf
               ? `${totals.strength.committed} committed strength · full month`
@@ -255,21 +261,21 @@ function CoverageCard({
         />
         <Tile
           label={labels.actual}
-          value={fmtINR(totals.actual)}
+          value={summaryMoney(totals.actual, totals.ready)}
           sub={`${rows.length} clients · ${rows.filter(r => r.totals_pending).length} pending`}
           icon={icons.actual}
           tone={toneTile}
         />
         <Tile
           label="Remaining to full month"
-          value={`${totals.remaining < 0 ? "+" : ""}${fmtINR(Math.abs(Math.round(totals.remaining)))}`}
-          sub={totals.remaining >= 0 ? "Contract value not yet earned" : "Earned above commitment"}
+          value={totals.ready > 0 ? `${totals.remaining < 0 ? "+" : ""}${fmtINR(Math.abs(Math.round(totals.remaining)))}` : "—"}
+          sub={totals.ready === 0 ? "Awaiting updated totals" : totals.remaining >= 0 ? "Contract value not yet earned" : "Earned above commitment"}
           icon={TrendingDown}
           tone={toneTile}
         />
         <Tile
           label="MTD completion"
-          value={`${totals.coverage}%`}
+          value={totals.ready > 0 ? `${totals.coverage}%` : "—"}
           sub="Actual ÷ full-month committed"
           icon={Gauge}
           tone={toneTile}
@@ -328,13 +334,14 @@ function CharterDialog({
 
   const paged = usePaged(filtered, `${query}|${rows.length}`);
 
-  const totals = useMemo(
-    () => ({
-      committed: filtered.reduce((s, r) => s + pick(r).committed, 0),
-      actual: filtered.reduce((s, r) => s + pick(r).actual, 0),
-    }),
-    [filtered, pick],
-  );
+  const totals = useMemo(() => {
+    const ready = filtered.filter((r) => !r.totals_pending);
+    return {
+      ready: ready.length,
+      committed: ready.reduce((s, r) => s + pick(r).committed, 0),
+      actual: ready.reduce((s, r) => s + pick(r).actual, 0),
+    };
+  }, [filtered, pick]);
 
   const exportCsv = () => {
     downloadCsv(
@@ -370,11 +377,11 @@ function CharterDialog({
           </div>
           <div className="text-xs text-muted-foreground">
             <span className="font-semibold text-foreground tabular-nums">
-              {fmtINR(totals.committed)}
+              {summaryMoney(totals.committed, totals.ready)}
             </span>{" "}
             committed ·{" "}
             <span className="font-semibold text-foreground tabular-nums">
-              {fmtINR(totals.actual)}
+              {summaryMoney(totals.actual, totals.ready)}
             </span>{" "}
             actual
           </div>
@@ -666,35 +673,35 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <Tile
           label="Invoice"
-          value={fmtINR(totals.invoice)}
+          value={summaryMoney(totals.invoice, totals.ready)}
           sub={`${totals.ready} site${totals.ready === 1 ? "" : "s"} ready`}
           icon={Receipt}
           tone="accent"
         />
         <Tile
           label="Earned gross"
-          value={fmtINR(totals.earnedGross)}
+          value={summaryMoney(totals.earnedGross, totals.ready)}
           sub="Gross earned from attendance"
           icon={Wallet}
           tone="accent"
         />
         <Tile
           label="Employer contribution"
-          value={fmtINR(totals.employerContribution)}
+          value={summaryMoney(totals.employerContribution, totals.ready)}
           sub="Employer-side cost"
           icon={Banknote}
           tone="accent"
         />
         <Tile
           label="Profitability"
-          value={fmtINR(totals.profit)}
-          sub={`${totals.margin.toFixed(1)}% margin`}
+          value={summaryMoney(totals.profit, totals.ready)}
+          sub={totals.ready > 0 ? `${totals.margin.toFixed(1)}% margin` : "Awaiting updated totals"}
           icon={PiggyBank}
           tone={totals.profit < 0 ? "destructive" : "success"}
         />
         <Tile
           label="Margin"
-          value={`${totals.margin.toFixed(1)}%`}
+          value={totals.ready > 0 ? `${totals.margin.toFixed(1)}%` : "—"}
           sub={`${totals.open} client${totals.open === 1 ? "" : "s"} awaiting totals`}
           icon={Gauge}
           tone={totals.margin < 0 ? "destructive" : "success"}

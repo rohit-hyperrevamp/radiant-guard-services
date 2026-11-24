@@ -613,7 +613,7 @@ function DashboardPage() {
     return `${registerPeriods.periodKey.length}:${h}`;
   }, [registerPeriods.periodKey]);
   const pnlQuery = useQuery({
-    queryKey: ["dashboard-pnl-saved-v2", user?.phone, year, month, periodSelection.selectedKey, periodsHash],
+    queryKey: ["dashboard-pnl-saved-v4", user?.phone, year, month, periodSelection.selectedKey, periodsHash],
     // Phones stay on the light counts: the month P&L is a desktop view.
     // Commercial figures are RBAC-gated: skip the whole computation for roles
     // (e.g. HR) that hold payroll access but no client-commercial access.

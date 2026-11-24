@@ -40,7 +40,12 @@ export type SavedFinanceRow = {
 };
 
 export function financeRowIsCurrent(row: SavedFinanceRow): boolean {
-  return row.totals !== null && Number.isFinite(row.totals.employer_cost) && row.computed_at !== null && row.calculation_version === FINANCE_CALCULATION_VERSION && row.calculated_generation === row.generation;
+  return row.totals !== null && Number.isFinite(row.totals.employer_cost) && row.computed_at !== null && row.calculation_version >= FINANCE_CALCULATION_VERSION && row.calculated_generation === row.generation;
+}
+
+/** An unavailable summary is not a zero-valued financial result. */
+export function financeSummaryAmount(value: number, readyCount: number): number | null {
+  return readyCount > 0 && Number.isFinite(value) ? value : null;
 }
 
 export type FinanceRosterUnit = { id: string; code: string; name: string; customer_name: string; internal?: boolean };
