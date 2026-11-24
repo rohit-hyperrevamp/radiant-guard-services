@@ -22,6 +22,12 @@ describe("P&L employer cost", () => {
   it('keeps statutory EPF Admin Fee as employer cost, despite the word fee', () => {
     expect(employerCostOnly([{name:'EPF Admin Fee 1%',amount:250}])).toBe(250);
   });
+  it('treats the saved Relieving Charges label as commercial reliever charges', () => {
+    const lines = [{name:'ER EPF',amount:1800},{name:'Relieving Charges 16.67% (CTC)',amount:900}];
+    expect(employerCostOnly(lines)).toBe(1800);
+    expect(billingMarkupOf(lines)).toBe(900);
+    expect(employerCostOnly([{name:'ER EPF 13% (Basic+DA+Relieving Charges)',amount:1950}])).toBe(1950);
+  });
   it('keeps statutory contributions even when their formula base mentions reliever charges', () => {
     expect(employerCostOnly([{name:'ER ESI 3.25% (Basic+DA+Reliever Charges)',amount:670},{name:'ER EPF 13% (Basic+DA+Reliever, cap 15000)',amount:1950},{name:'ADM Charges 0.5% (Basic + DA, cap ₹25,000)',amount:125},{name:'Admin Charges 0.5%',amount:75}])).toBe(2820);
   });

@@ -178,7 +178,7 @@ export const isBillingMarkupLine = (x: { name?: unknown }) => {
   // A statutory line may mention Reliever Charges in its wage/formula base.
   // Classify its head, not the ingredients inside parentheses.
   if (/^\s*(?:(?:ER|Employer|PFL)\s+)?(?:E?PF|ESI[C]?|EDLI|ADM)\b/i.test(n)) return false;
-  if (isBillingAddOn(x)) return true;
+  if (isBillingAddOn(x) || /\brelieving[\s_-]*charges?\b/i.test(n)) return true;
   if (/service[\s_-]*(?:fees?|charges?)|billing[\s-]*only|billing\s*rate\s*adjustment|rounding\s*adjustment|\bprofit\b|\bmargin\b|commission/i.test(n)) return true;
   // Agency admin fee, but not statutory EPF/EDLI admin charges.
   return /admin(?:istration|istrative)?[\s_-]*(?:fees?|charges?)/i.test(n) && !/\b(e?pf|edli)\b|0\.5\s*%/i.test(n);

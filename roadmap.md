@@ -1,3 +1,8 @@
+## Finance flow sweep — dashboard scope
+- [x] Read dashboard comparisons/drill-downs/CSV, both register routes and shared register/export paths, payroll detail/MIS/profile CTC, invoice/detail/finalisation, source totals, saved calculation, worker/endpoint and database invalidation/queue/recovery definitions; documented each in the finance flow review.
+- [x] Corrected the existing Relieving Charges commercial alias and added a statutory-base guard regression. Only affected aggregate generations are invalidated; settled records, permissions, settings and unrelated payroll displays unchanged.
+- [x] Reported outside-dashboard register fallback/whole-rupee CSV and broad employer/CTC displays separately; source-data and live-verification limits carried forward.
+
 ## Dashboard full client coverage and commercial fees — 24 November
 - [x] Found only CLI1375 saved for September/October: the dashboard dropped every other client, and the automatic refresh lost its database client receiver and returned 503 before claiming work.
 - [x] Dashboard now lists the entire selected register roster, including source-unavailable/pending rows; current money is shown independently of attendance approval. Employer cost excludes commercial Admin/Service/Management fees and Reliever Charges, while statutory PF/ESI/EDLI/ADM remain costs even when their formula base mentions relievers. Profit never adds billing fees twice.
