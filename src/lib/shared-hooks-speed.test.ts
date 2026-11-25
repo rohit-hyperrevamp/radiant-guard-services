@@ -75,7 +75,7 @@ describe("final invoices for units", () => {
     final_invoices: { id: `${unit}-${end}-${part}`, invoice_no: "X" },
   });
 
-  it("filters by the viewed period server-side, runs chunks in parallel, keys unchanged", async () => {
+  it("few sites: period-filtered unit chunks run in parallel, keys unchanged", async () => {
     let inFlight = 0;
     let peak = 0;
     handler = async (c) => {
@@ -84,14 +84,28 @@ describe("final invoices for units", () => {
       inFlight--;
       return inIds(c).flatMap((u) => [fi(u, "2026-11-30"), fi(u, "2026-11-30", "p2")]);
     };
-    const units = ids(1000);
+    const units = ids(400);
     const out = await loadFinalInvoicesForUnits(units, { periodEndFrom: "2026-11-01", periodEndTo: "2026-11-30" });
-    expect(calls).toHaveLength(5); // 200 ids per chunk
+    expect(calls).toHaveLength(2); // 200 ids per chunk
     expect(peak).toBeGreaterThan(1);
     expect(calls.every((c) => opsOf(c, "gte")[0]?.[2] === "2026-11-01" && opsOf(c, "lte")[0]?.[2] === "2026-11-30")).toBe(true);
-    expect(out.size).toBe(2000);
+    expect(out.size).toBe(800);
     expect(out.get(unitPeriodKey(units[3], "2026-11-01", "2026-11-30"))?.id).toBe(`${units[3]}-2026-11-30-main`);
     expect(out.get(unitPeriodKey(units[3], "2026-11-01", "2026-11-30", "p2"))?.id).toBe(`${units[3]}-2026-11-30-p2`);
+  });
+
+  it("many sites: one ordered period scan narrowed to the units (same rows as chunks)", async () => {
+    const units = ids(1000);
+    const others = ids(200, "z");
+    handler = (c) => (inIds(c).length ? inIds(c) : [...units, ...others]).flatMap((u) => [fi(u, "2026-11-30"), fi(u, "2026-11-30", "p2")]);
+    const out = await loadFinalInvoicesForUnits(units, { periodEndFrom: "2026-11-01", periodEndTo: "2026-11-30" });
+    expect(calls).toHaveLength(3); // 2,400 period rows = three 1,000-row pages, no unit-id chunks
+    expect(calls.every((c) => opsOf(c, "in").length === 0)).toBe(true);
+    expect(calls.every((c) => opsOf(c, "gte")[0]?.[2] === "2026-11-01" && opsOf(c, "lte")[0]?.[2] === "2026-11-30")).toBe(true);
+    expect(opsOf(calls[0], "order").map((o) => o[1])).toEqual(["unit_id", "period_start", "part_key", "id"]);
+    expect(out.size).toBe(2000);
+    expect(out.get(unitPeriodKey(units[3], "2026-11-01", "2026-11-30", "p2"))?.id).toBe(`${units[3]}-2026-11-30-p2`);
+    expect(out.has(unitPeriodKey(others[0], "2026-11-01", "2026-11-30"))).toBe(false);
   });
 
   it("without a period reads every period (previous behaviour)", async () => {

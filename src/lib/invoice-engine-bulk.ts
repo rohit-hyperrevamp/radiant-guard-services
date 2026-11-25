@@ -12,8 +12,16 @@ import { visibleAttendanceCandidateIds } from "@/lib/attendance-roster-eligibili
 import { resolveOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
 import type { AttendanceEntryFetchRow } from "@/lib/attendance-fetch";
 import {
-  ADDITION_COLS,
-  DEDUCTION_COLS,
+  additionLowerBound,
+  contextAdditions,
+  contextCopy,
+  contextCovers,
+  contextDeductions,
+  INVOICE_ADDITION_FIELDS,
+  INVOICE_DEDUCTION_FIELDS,
+  type FinanceSharedContext,
+} from "@/lib/finance-shared-context";
+import {
   billingModeFromCode,
   unitPhFromRow,
   type InvoiceCandidate,
@@ -196,11 +204,11 @@ export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>, db = s
 }
 
 /** Contract lines in stored order (duplicate role lines: the later one prices, as on the invoice page). */
-export async function fetchContractResources(contractIds: string[], db = supabase): Promise<Row[]> {
+export async function fetchContractResources(contractIds: string[], db = supabase, concurrency = PERIOD_BATCH_CONCURRENCY): Promise<Row[]> {
   const size = 250;
   const batches: string[][] = [];
   for (let i = 0; i < contractIds.length; i += size) batches.push(contractIds.slice(i, i + size));
-  const results = await mapPool(batches, PERIOD_BATCH_CONCURRENCY, (ids) =>
+  const results = await mapPool(batches, concurrency, (ids) =>
     sharedRead(db, `invoice_contract_resources:${ids.join(",")}`, () => runBulk(async () => {
       const { data, error } = await rpc("invoice_contract_resources", { p_contract_ids: ids }, db);
       if (error) throw error;
@@ -215,7 +223,7 @@ export async function fetchAllRevisions(db = supabase): Promise<RateRevisionRow[
       db.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b)));
 }
 
-export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db = supabase): Promise<{ units: Map<string, BulkInvoiceUnit>; resources: Row[]; revisions: RateRevisionRow[] | null }> {
+export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db = supabase, context?: FinanceSharedContext | null): Promise<{ units: Map<string, BulkInvoiceUnit>; resources: Row[]; revisions: RateRevisionRow[] | null }> {
   const unitIds = [...periods.keys()];
   const units = new Map<string, BulkInvoiceUnit>();
   if (!unitIds.length) return { units, resources: [], revisions: null };
@@ -223,6 +231,8 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db 
   const ends = [...periods.values()].map((p) => p.end).sort();
   const minStart = starts[0];
   const maxEnd = ends[ends.length - 1];
+  // The register's shared reads, when made through this client and covering this batch.
+  const sc = contextCovers(context, db, minStart, maxEnd) ? context : null;
 
   const [inputs, billingTypes, additionRows, deductionRows, revisions] = await Promise.all([
     fetchPeriodInputs(periods, db),
@@ -230,9 +240,15 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db 
     db === supabase
       ? getReference<Row>("billingTypes")
       : db.from("billing_types" as never).select("id, code").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
-    fetchInChunks<Row>(["x"], (_c, a, b) => db.from("additions" as never).select(`${ADDITION_COLS}, addition_date, end_date, unit_id`).eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
-    fetchInChunks<Row>(["x"], (_c, a, b) => db.from("deductions" as never).select(`${DEDUCTION_COLS}, deduction_date, unit_id`).eq("status", "active").gte("deduction_date", minStart).lte("deduction_date", maxEnd).order("id").range(a, b)),
-    fetchAllRevisions(db),
+    // Additions: the single-site page's lower bound (dated in the window, or
+    // repeating and still running at its start); additionsForPeriod is stricter.
+    sc
+      ? contextAdditions(sc, INVOICE_ADDITION_FIELDS, minStart, maxEnd)
+      : fetchInChunks<Row>(["x"], (_c, a, b) => db.from("additions" as never).select(INVOICE_ADDITION_FIELDS.join(", ")).eq("status", "active").lte("addition_date", maxEnd).or(additionLowerBound(minStart)).order("id").range(a, b)),
+    sc
+      ? contextDeductions(sc, INVOICE_DEDUCTION_FIELDS, minStart, maxEnd)
+      : fetchInChunks<Row>(["x"], (_c, a, b) => db.from("deductions" as never).select(INVOICE_DEDUCTION_FIELDS.join(", ")).eq("status", "active").gte("deduction_date", minStart).lte("deduction_date", maxEnd).order("id").range(a, b)),
+    sc ? contextCopy(sc.revisions) : fetchAllRevisions(db),
   ]);
   const { sites: unitRows, contracts, primary: primaryRows, scopes: scopeRows, extras: extraRows } = inputs;
   const btCode = new Map(billingTypes.map((b) => [s(b.id), (b.code as string | null) ?? "man_days"]));

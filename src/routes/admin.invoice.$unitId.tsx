@@ -791,15 +791,11 @@ function PayrollUnitPage() {
       toast.error("The invoice could not be calculated. Retry before exporting.");
       return;
     }
-    const { data: contracts } = await supabase
-      .from("client_contracts")
-      .select("service_type_id")
-      .eq("unit_id", unitId)
-      .eq("record_type", "client")
-      .eq("status", "active")
-      .order("start_date", { ascending: false })
-      .limit(1);
-    const serviceTypeId = contracts?.[0]?.service_type_id ?? null;
+    // Service type of the contract that priced THIS period (not today's active one).
+    const { data: periodContract } = contractId
+      ? await supabase.from("client_contracts").select("service_type_id").eq("id", contractId).maybeSingle()
+      : { data: null };
+    const serviceTypeId = periodContract?.service_type_id ?? null;
     let serviceTypeName = "Security Guard";
     if (serviceTypeId) {
       const { data: serviceType } = await supabase

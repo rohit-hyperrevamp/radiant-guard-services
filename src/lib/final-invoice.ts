@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchInChunks } from "@/lib/supabase-batch";
+import { fetchForIds, fetchInChunks } from "@/lib/supabase-batch";
 
 // ---------------------------------------------------------------------------
 // Final invoices — an invoice only gets a number when it is finalised. The
@@ -61,12 +61,25 @@ export async function loadFinalInvoicesForUnits(
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
   const out = new Map<string, FinalInvoice>();
   if (!ids.length) return out;
-  const rows = await fetchInChunks<UnitRow>(ids, (chunk, from, to) => {
-    let q = supabase.from("final_invoice_units" as never).select(FINAL_UNIT_COLS).in("unit_id", chunk);
+  // `unitIds` null = every unit in the period (narrowed in memory). Ordered by
+  // (unit, period, part) then id, so paging can never skip or repeat a row.
+  const query = (unitIds: string[] | null, from: number, to: number) => {
+    let q = supabase.from("final_invoice_units" as never).select(FINAL_UNIT_COLS);
+    if (unitIds) q = q.in("unit_id", unitIds);
     if (period?.periodEndFrom) q = q.gte("period_end", period.periodEndFrom);
     if (period?.periodEndTo) q = q.lte("period_end", period.periodEndTo);
-    return q.order("unit_id").order("period_start").order("part_key").range(from, to);
-  }, { chunkSize: 200 });
+    return q.order("unit_id").order("period_start").order("part_key").order("id").range(from, to);
+  };
+  const rows = period?.periodEndFrom && period?.periodEndTo
+    // A bounded period: many units read as one period-filtered scan instead of
+    // a dozen unit-id chunks; the same rows for these units either way.
+    ? await fetchForIds<UnitRow>(ids, {
+        chunk: (chunk, from, to) => query(chunk, from, to),
+        scan: (from, to) => query(null, from, to),
+        idOf: (row) => row.unit_id,
+        chunkSize: 200,
+      })
+    : await fetchInChunks<UnitRow>(ids, (chunk, from, to) => query(chunk, from, to), { chunkSize: 200 });
   for (const row of rows) {
     if (!row.final_invoices) continue;
     out.set(unitPeriodKey(row.unit_id, row.period_start, row.period_end, row.part_key), row.final_invoices);

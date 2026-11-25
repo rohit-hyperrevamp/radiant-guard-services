@@ -40,7 +40,7 @@ import { applyRateRevisionsWith, fetchRevisions, rateSegmentsWith, type RateRevi
 import { formulaMasterIds, hydrateFormulasWith, type FormulaMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
-import { holidayMapForDates, type PublicHoliday } from "@/lib/public-holidays";
+import { enabledPublicHolidaysFromRows, holidayMapForDates, type PublicHoliday } from "@/lib/public-holidays";
 import { isSplit, totalsForPart, type InvoiceSplit } from "@/lib/invoice-split";
 import { contractMonthlyBilling } from "@/lib/contract-rate-display";
 
@@ -938,11 +938,16 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
     shared
       ? ref<Row>("payrollDayBases", ["id", "method", "fixed_days", "weekly_off_day", "included_weekdays", "enabled"])
       : db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
-    db.from("billing_day_bases" as never).select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
+    shared
+      ? ref<Row>("billingDayBases", ["id", "method", "fixed_days", "weekly_off_day", "included_weekdays", "enabled"])
+      : db.from("billing_day_bases" as never).select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
     shared
       ? ref<{ id: string; name: string | null }>("designations", ["id", "name"])
       : pages<{ id: string; name: string | null }>((a, b) => db.from("designations").select("id,name").order("id").range(a, b)),
-    db.from("public_holidays" as never).select("id,name,holiday_month,holiday_day,enabled,sort_order").eq("enabled", true).then((r) => ((checkedQueryData(r) ?? []) as unknown as Row[]).map((h) => ({ id: String(h.id), name: String(h.name ?? ""), month: Number(h.holiday_month ?? 1), day: Number(h.holiday_day ?? 1), enabled: Boolean(h.enabled ?? true), sortOrder: Number(h.sort_order ?? 0) }))),
+    // Ordered by month, day — the same order payroll reads them in.
+    shared
+      ? getReference<Row>("publicHolidays").then(enabledPublicHolidaysFromRows)
+      : db.from("public_holidays" as never).select("id,name,holiday_month,holiday_day,enabled,sort_order").eq("enabled", true).order("holiday_month").order("holiday_day").then((r) => enabledPublicHolidaysFromRows((checkedQueryData(r) ?? []) as unknown as Row[])),
     shared
       ? ref<{ id: string; code: string | null }>("additionTypes", ["id", "code"])
       : db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as { id: string; code: string | null }[]),
@@ -981,23 +986,35 @@ export async function loadFormulaMastersFor(resources: Row[], revisions: RateRev
   });
   const { allowanceIds, costIds } = formulaMasterIds([...resources, ...((revisions ?? []) as Row[])].map(shape));
   const out = new Map<string, FormulaMaster>();
+  // App client: the referenced rows of the shared session-cached masters
+  // (invalidated by the allowance / cost component managers on save).
+  if (db === supabase) {
+    const [allowances, costs] = await Promise.all([
+      allowanceIds.size ? getReference<Row>("allowanceTypes") : Promise.resolve([] as Row[]),
+      costIds.size ? getReference<Row>("costComponents") : Promise.resolve([] as Row[]),
+    ]);
+    for (const m of [...allowances.filter((r) => allowanceIds.has(String(r.id))), ...costs.filter((r) => costIds.has(String(r.id)))]) out.set(String(m.id), masterFromRow(m));
+    return out;
+  }
   const cols = "id, formula_mode, formula_expression, formula_version, fixed_calc_method, fixed_duty_components, fixed_duty_divisor";
   const load = async (table: "allowance_types" | "cost_components", ids: string[]) => {
     for (let i = 0; i < ids.length; i += 150) {
       const { data, error } = await db.from(table).select(cols).in("id", ids.slice(i, i + 150));
       if (error) throw error;
-      for (const m of (data ?? []) as Row[]) {
-        out.set(String(m.id), {
-          mode: (m.formula_mode as string | null) ?? null,
-          expr: (m.formula_expression as string | null) ?? null,
-          version: m.formula_version == null ? null : Number(m.formula_version),
-          fixedCalcMethod: (m.fixed_calc_method as string | null) ?? null,
-          fixedDutyComponents: Array.isArray(m.fixed_duty_components) ? (m.fixed_duty_components as string[]) : null,
-          fixedDutyDivisor: (m.fixed_duty_divisor as string | null) ?? null,
-        });
-      }
+      for (const m of (data ?? []) as Row[]) out.set(String(m.id), masterFromRow(m));
     }
   };
   await Promise.all([load("allowance_types", [...allowanceIds]), load("cost_components", [...costIds])]);
   return out;
+}
+
+function masterFromRow(m: Row): FormulaMaster {
+  return {
+    mode: (m.formula_mode as string | null) ?? null,
+    expr: (m.formula_expression as string | null) ?? null,
+    version: m.formula_version == null ? null : Number(m.formula_version),
+    fixedCalcMethod: (m.fixed_calc_method as string | null) ?? null,
+    fixedDutyComponents: Array.isArray(m.fixed_duty_components) ? (m.fixed_duty_components as string[]) : null,
+    fixedDutyDivisor: (m.fixed_duty_divisor as string | null) ?? null,
+  };
 }

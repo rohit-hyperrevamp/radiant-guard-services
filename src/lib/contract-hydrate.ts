@@ -11,6 +11,7 @@
 // resources are loaded and before computeWages runs.
 
 import { supabase } from "@/integrations/supabase/client";
+import { getReference } from "@/lib/reference-data";
 
 type LineWithIds = {
   name: string;
@@ -75,6 +76,16 @@ const MASTER_COLS = "id, formula_mode, formula_expression, formula_version, fixe
 /** Every allowance and cost-component master (bulk callers hydrate thousands of lines at once). */
 export async function loadAllFormulaMasters(db = supabase): Promise<Map<string, FormulaMaster>> {
   const out = new Map<string, FormulaMaster>();
+  // App client: the shared session-cached masters (the allowance / cost component
+  // managers invalidate them on save). Same rows, allowance rows applied first.
+  if (db === supabase) {
+    const [allowances, costs] = await Promise.all([
+      getReference<Record<string, unknown>>("allowanceTypes"),
+      getReference<Record<string, unknown>>("costComponents"),
+    ]);
+    for (const m of [...allowances, ...costs]) out.set(String(m.id), toMaster(m));
+    return out;
+  }
   for (const table of ["allowance_types", "cost_components"] as const) {
     for (let from = 0; ; from += 1000) {
       const { data, error } = await db.from(table).select(MASTER_COLS).order("id").range(from, from + 999);

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getReference } from "@/lib/reference-data";
 
 export const MONTH_NAMES: string[] = [
   "January", "February", "March", "April", "May", "June",
@@ -24,7 +25,28 @@ export function fetchEnabledPublicHolidays(): Promise<PublicHoliday[]> {
   return fetchEnabledPublicHolidaysWith(supabase);
 }
 
+/**
+ * Enabled holidays from raw public_holidays rows, in the order the direct read
+ * returns them (holiday_month, then holiday_day; ties keep their row order).
+ */
+export function enabledPublicHolidaysFromRows(rows: Record<string, unknown>[]): PublicHoliday[] {
+  return rows
+    .filter((r) => r.enabled === true)
+    .map((r) => ({
+      id: String(r.id),
+      name: String(r.name ?? ""),
+      month: Number(r.holiday_month ?? 1),
+      day: Number(r.holiday_day ?? 1),
+      enabled: Boolean(r.enabled ?? true),
+      sortOrder: Number(r.sort_order ?? 0),
+    }))
+    .sort((a, b) => a.month - b.month || a.day - b.day);
+}
+
 export async function fetchEnabledPublicHolidaysWith(db: typeof supabase): Promise<PublicHoliday[]> {
+  // App client: the shared session-cached master (invalidated by the holiday
+  // manager on save). Other clients (server / tests) read directly.
+  if (db === supabase) return enabledPublicHolidaysFromRows(await getReference<Record<string, unknown>>("publicHolidays"));
   const { data, error } = await db
     .from("public_holidays" as never)
     .select("id,name,holiday_month,holiday_day,enabled,sort_order")
@@ -32,14 +54,7 @@ export async function fetchEnabledPublicHolidaysWith(db: typeof supabase): Promi
     .order("holiday_month")
     .order("holiday_day");
   if (error) throw error;
-  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
-    id: String(r.id),
-    name: String(r.name ?? ""),
-    month: Number(r.holiday_month ?? 1),
-    day: Number(r.holiday_day ?? 1),
-    enabled: Boolean(r.enabled ?? true),
-    sortOrder: Number(r.sort_order ?? 0),
-  }));
+  return enabledPublicHolidaysFromRows((data ?? []) as unknown as Record<string, unknown>[]);
 }
 
 export function usePublicHolidays() {

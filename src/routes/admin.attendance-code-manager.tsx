@@ -5,6 +5,7 @@ import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Download, Edit2, Plus, Search, Trash2, CalendarCheck } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
@@ -96,7 +97,10 @@ function useAttendanceCodes() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = () => {
+    invalidateReference(qc, "attendanceCodes");
+    return qc.invalidateQueries({ queryKey: QK });
+  };
   type Payload = Omit<AttendanceCode, "id">;
   const toRow = (p: Payload) => ({
     code: p.code.trim().toUpperCase(),
