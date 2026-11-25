@@ -87,39 +87,46 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.bump_charter_units_gen() FROM PUBLIC, anon, authenticated;
 
-DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.units;
-CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.units'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF
   code, name, location, branch_id, customer_id, billing_state, billing_city, client_state, client_city,
   is_billable, status, hr_executive_id
-  ON public.units FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen();
+  ON public.units FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()$q$;
+END IF; END $t$;
 
-DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.client_contracts;
-CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.client_contracts'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF
   status, unit_id, contract_code, end_date
-  ON public.client_contracts FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen();
+  ON public.client_contracts FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()$q$;
+END IF; END $t$;
 
-DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.candidate_units;
-CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF candidate_id, unit_id
-  ON public.candidate_units FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen();
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.candidate_units'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF candidate_id, unit_id
+  ON public.candidate_units FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()$q$;
+END IF; END $t$;
 
-DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.employee_scope_assignments;
-CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF candidate_id, scope_type, scope_id
-  ON public.employee_scope_assignments FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen();
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.employee_scope_assignments'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF candidate_id, scope_type, scope_id
+  ON public.employee_scope_assignments FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()$q$;
+END IF; END $t$;
 
-DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.customers;
-CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF name, code
-  ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen();
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.customers'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF name, code
+  ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()$q$;
+END IF; END $t$;
 
-DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.candidates;
-CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.candidates'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE OF
   is_enabled, status, non_billable, role_key, unit_id, full_name
-  ON public.candidates FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen();
+  ON public.candidates FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()$q$;
+END IF; END $t$;
 
 DO $$ BEGIN
   IF to_regclass('public.field_officer_scope') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS zz_charter_units_gen ON public.field_officer_scope';
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_charter_units_gen' AND tgrelid='public.field_officer_scope'::regclass) THEN
     EXECUTE 'CREATE TRIGGER zz_charter_units_gen AFTER INSERT OR DELETE OR TRUNCATE OR UPDATE
       ON public.field_officer_scope FOR EACH STATEMENT EXECUTE FUNCTION public.bump_charter_units_gen()';
+    END IF;
   END IF;
 END $$;
 
@@ -216,9 +223,8 @@ REVOKE ALL ON FUNCTION public._attendance_charter_units_compute(boolean, text, u
 -- Public entry point. Drop the zero-arg overload so a no-argument call resolves
 -- unambiguously to the defaulted signature.
 -- ---------------------------------------------------------------------------
-DROP FUNCTION IF EXISTS public.get_attendance_charter_units();
 
-CREATE OR REPLACE FUNCTION public.get_attendance_charter_units(p_lite boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION public.get_attendance_charter_units(p_lite boolean)
 RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path TO 'public' AS $function$
 DECLARE
   _role text;
@@ -230,8 +236,14 @@ DECLARE
   _data jsonb;
 BEGIN
   -- Permission gate BEFORE any cache read.
-  IF NOT public._charter_units_allowed() THEN
+  IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not allowed' USING ERRCODE = '42501';
+  END IF;
+  -- Signed-in users without attendance/payroll/invoice/dashboard access (e.g.
+  -- console users, who must still land on their dashboard) get an empty roster
+  -- instead of an error — and never another unit's data.
+  IF NOT public._charter_units_allowed() THEN
+    RETURN jsonb_build_object('units', '[]'::jsonb, 'active_employees', 0);
   END IF;
   _role := public.current_user_role_key();
   _cand := public.current_user_candidate_id();
@@ -254,6 +266,16 @@ $function$;
 REVOKE ALL ON FUNCTION public.get_attendance_charter_units(boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_attendance_charter_units(boolean) TO authenticated, service_role;
 
+-- Zero-arg entry point kept (no DROP): same full payload as p_lite=false, so
+-- existing callers and the pre-deploy client keep working. One-arg and
+-- zero-arg calls resolve unambiguously because neither has a default.
+CREATE OR REPLACE FUNCTION public.get_attendance_charter_units()
+RETURNS jsonb LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path TO 'public' AS $function$
+  SELECT public.get_attendance_charter_units(false);
+$function$;
+REVOKE ALL ON FUNCTION public.get_attendance_charter_units() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_attendance_charter_units() TO authenticated, service_role;
+
 -- ---------------------------------------------------------------------------
 -- Distinct deployed people across a set of units (the register's visible
 -- window/filter). Same eligibility as the charter; scoped roles are limited to
@@ -266,8 +288,14 @@ DECLARE
   _cand uuid;
   _n integer;
 BEGIN
-  IF NOT public._charter_units_allowed() THEN
+  IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not allowed' USING ERRCODE = '42501';
+  END IF;
+  -- Signed-in users without attendance/payroll/invoice/dashboard access (e.g.
+  -- console users, who must still land on their dashboard) get an empty roster
+  -- instead of an error — and never another unit's data.
+  IF NOT public._charter_units_allowed() THEN
+    RETURN jsonb_build_object('units', '[]'::jsonb, 'active_employees', 0);
   END IF;
   _role := public.current_user_role_key();
   _cand := public.current_user_candidate_id();
