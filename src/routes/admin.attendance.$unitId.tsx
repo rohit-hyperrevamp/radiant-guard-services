@@ -7,7 +7,7 @@ import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { EmployeeSitesPopover } from "@/components/EmployeeSitesPopover";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import {
@@ -71,7 +71,7 @@ import {
   recordScanDuration,
   startScanJob,
 } from "@/lib/attendance-scan-jobs";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -4670,6 +4670,31 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
     setAddDesig("");
   };
 
+  // Stable handlers for the memoised mobile grid rows (state setters only).
+  const mobileRowHandlers = useMemo<MobileRowHandlers>(
+    () => ({
+      toggleSelect: (key, checked) =>
+        setMobileSelectedRows((current) => {
+          const next = new Set(current);
+          const add = checked ?? !next.has(key);
+          if (add) next.add(key);
+          else next.delete(key);
+          return next;
+        }),
+      pickCode: (key, date) => {
+        setMobileDate(date);
+        setPickerCells([`${key}|${date}`]);
+        setPickerOpen(true);
+      },
+      pickOt: (key, date) => {
+        setMobileDate(date);
+        setOtPickerCells([`${key}|${date}`]);
+        setOtPickerOpen(true);
+      },
+    }),
+    [],
+  );
+
   // Attendance requires an active contract for the viewed period. Without one
   // there is nothing to bill or pay against, so the register stays hidden.
   if (!contractInfoLoading && contractInfo && !contractInfo.contractId && (unit as { is_billable?: boolean | null } | null)?.is_billable !== false) {
@@ -5859,156 +5884,31 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                       mr.emp.doj || null,
                     );
                     const selected = mobileSelectedRows.has(mr.key);
-                    return [
-                      <tr
-                        key={`${mr.key}-mobile-att`}
-                        className="bg-card"
-                      >
-                        <td
-                          className={cn(
-                            "sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-2 py-1.5 text-left shadow-sm",
-                            selected && "ring-2 ring-inset ring-primary/30",
-                            !mr.otOnly && editable && "cursor-pointer",
-                          )}
-                          onClick={() => {
-                            if (!editable || mr.otOnly) return;
-                            setMobileSelectedRows((current) => {
-                              const next = new Set(current);
-                              if (next.has(mr.key)) next.delete(mr.key);
-                              else next.add(mr.key);
-                              return next;
-                            });
-                          }}
-                        >
-                          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
-                            {!mr.otOnly ? (
-                              <Checkbox
-                                checked={selected}
-                                aria-label={`Select ${mr.emp.full_name}`}
-                                onClick={(event) => event.stopPropagation()}
-                                onCheckedChange={(checked) =>
-                                  setMobileSelectedRows((current) => {
-                                    const next = new Set(current);
-                                    if (checked) next.add(mr.key);
-                                    else next.delete(mr.key);
-                                    return next;
-                                  })
-                                }
-                              />
-                            ) : (
-                              <Clock3 className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <div className="min-w-0 overflow-hidden px-1 py-1">
-                              <div className="block overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-medium leading-tight text-foreground">
-                                {mr.emp.full_name || "Unnamed"}
-                              </div>
-                              <div className="mt-0.5 block overflow-hidden text-ellipsis whitespace-nowrap text-[9px] leading-tight text-muted-foreground">
-                                {mr.emp.employee_code || "No ID"} · {mr.designationName}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        {periodCells.map((cell) => {
-                          const date = cell.date;
-                          const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
-                          const edOnly = Boolean(mr.otOnly);
-                          const blocked = !editable || date > todayStr || beforeDoj || edOnly;
-                          const entry = entryMap.get(`${mr.key}|${date}`);
-                          const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
-                          const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
-                          return (
-                            <td
-                              key={date}
-                              className={cn(
-                                "border-b border-r border-border p-0",
-                                date === mobileDate && "bg-primary/5",
-                              )}
-                            >
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className={cn(
-                                  "h-11 w-10 min-w-10 rounded-none p-0 text-xs font-medium",
-                                  !entry?.code && displayCode === "A" && "text-muted-foreground",
-                                )}
-                                disabled={blocked}
-                                aria-label={`${mr.emp.full_name}, ${date}: ${displayCode || "not marked"}`}
-                                title={
-                                  blocked
-                                    ? beforeDoj
-                                      ? "Before joining date"
-                                      : edOnly
-                                        ? "Extra Duty only"
-                                        : "Not editable"
-                                    : `${date} · ${codeMeta?.label || displayCode}`
-                                }
-                                style={{ color: codeMeta?.color }}
-                                onClick={() => {
-                                  setMobileDate(date);
-                                  setPickerCells([`${mr.key}|${date}`]);
-                                  setPickerOpen(true);
-                                }}
-                              >
-                                {displayCode}
-                              </Button>
-                            </td>
-                          );
-                        })}
-                        <td className="border-b border-border px-1 font-medium text-foreground">
-                          {totals.tDays}
-                        </td>
-                      </tr>,
-                      <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
-                        <td className="sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-3 py-1 text-left text-[9px] font-medium text-muted-foreground shadow-sm">
-                          Extra duty
-                        </td>
-                        {periodCells.map((cell) => {
-                          const beforeDoj = Boolean(mr.emp.doj) && cell.date < mr.emp.doj;
-                          const blocked = !editable || cell.date > todayStr || beforeDoj;
-                          const entry = entryMap.get(`${mr.key}|${cell.date}`);
-                          const rowShift = shiftHoursFor(
-                            shiftMap,
-                            unitId,
-                            mr.designationId ?? null,
-                            mr.candidateId || null,
-                          );
-                          const hours =
-                            Math.round((Number(entry?.ot_hours) || 0) * rowShift * 100) / 100;
-                          return (
-                            <td
-                              key={cell.date}
-                              className={cn(
-                                "border-b border-r border-border p-0",
-                                hours > 0 && "bg-secondary",
-                              )}
-                            >
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-secondary-foreground"
-                                disabled={blocked}
-                                aria-label={`${mr.emp.full_name}, ${cell.date}: ${hours || 0} Extra Duty hours`}
-                                onClick={() => {
-                                  setMobileDate(cell.date);
-                                  setOtPickerCells([`${mr.key}|${cell.date}`]);
-                                  setOtPickerOpen(true);
-                                }}
-                              >
-                                {hours > 0 ? `${hours}h` : "·"}
-                              </Button>
-                            </td>
-                          );
-                        })}
-                        <td className="border-b border-border px-1 text-[10px] font-medium">
-                          {Math.round(
-                            totals.otDays *
-                              shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null) *
-                              100,
-                          ) / 100}
-                          h
-                        </td>
-                      </tr>,
-                    ];
+                    const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null, mr.candidateId || null);
+                    const rowEntries = periodCells.map((cell) => entryMap.get(`${mr.key}|${cell.date}`));
+                    return (
+                      <MobileMusterRow
+                        key={mr.key}
+                        rowKey={mr.key}
+                        fullName={mr.emp.full_name}
+                        employeeCode={mr.emp.employee_code}
+                        designationName={mr.designationName}
+                        doj={mr.emp.doj}
+                        otOnly={Boolean(mr.otOnly)}
+                        selected={selected}
+                        mobileDate={mobileDate}
+                        editable={editable}
+                        todayStr={todayStr}
+                        periodCells={periodCells}
+                        rowEntries={rowEntries}
+                        entriesSig={mobileEntriesSignature(rowEntries)}
+                        tDays={totals.tDays}
+                        otDays={totals.otDays}
+                        rowShift={rowShift}
+                        codeMap={codeMap}
+                        handlers={mobileRowHandlers}
+                      />
+                    );
                   })
                 )}
               </tbody>
@@ -7073,3 +6973,194 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Mobile muster grid row. Memoised on its own cells' signature and selection
+// so a selection change elsewhere (desktop drag, another row) does not
+// re-render thousands of cells. Plain <button>s with the ghost Button's exact
+// classes / data attributes keep the look and accessibility labels.
+// ---------------------------------------------------------------------------
+type MobileRowHandlers = {
+  toggleSelect: (rowKey: string, checked?: boolean) => void;
+  pickCode: (rowKey: string, date: string) => void;
+  pickOt: (rowKey: string, date: string) => void;
+};
+
+type MobileMusterRowProps = {
+  rowKey: string;
+  fullName: string;
+  employeeCode: string;
+  designationName: string;
+  doj: string;
+  otOnly: boolean;
+  selected: boolean;
+  mobileDate: string;
+  editable: boolean;
+  todayStr: string;
+  periodCells: Array<{ date: string }>;
+  rowEntries: Array<EntryRow | undefined>;
+  /** Changes exactly when this row's code / ED cells change. */
+  entriesSig: string;
+  tDays: number;
+  otDays: number;
+  rowShift: number;
+  codeMap: Map<string, AttendanceCode>;
+  handlers: MobileRowHandlers;
+};
+
+function mobileEntriesSignature(rowEntries: Array<EntryRow | undefined>): string {
+  return rowEntries.map((e) => (e ? `${e.code ?? ""}~${Number(e.ot_hours) || 0}` : "")).join(",");
+}
+
+function ghostButtonProps(className: string, label: string) {
+  return {
+    "data-slot": "button",
+    "data-variant": "ghost",
+    "data-size": "default",
+    // Same rule as Button: no visible text = icon-only metadata.
+    "data-icon-only": label.trim().length > 0 ? "false" : "true",
+    className: cn(buttonVariants({ variant: "ghost", className })),
+  } as const;
+}
+
+const MobileMusterRow = memo(function MobileMusterRow(p: MobileMusterRowProps) {
+  const { rowKey, otOnly, editable, todayStr, doj, fullName, codeMap, handlers } = p;
+  return (
+    <>
+      <tr className="bg-card">
+        <td
+          className={cn(
+            "sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-2 py-1.5 text-left shadow-sm",
+            p.selected && "ring-2 ring-inset ring-primary/30",
+            !otOnly && editable && "cursor-pointer",
+          )}
+          onClick={() => {
+            if (!editable || otOnly) return;
+            handlers.toggleSelect(rowKey);
+          }}
+        >
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5">
+            {!otOnly ? (
+              <Checkbox
+                checked={p.selected}
+                aria-label={`Select ${fullName}`}
+                onClick={(event) => event.stopPropagation()}
+                onCheckedChange={(checked) => handlers.toggleSelect(rowKey, Boolean(checked))}
+              />
+            ) : (
+              <Clock3 className="h-4 w-4 text-muted-foreground" />
+            )}
+            <div className="min-w-0 overflow-hidden px-1 py-1">
+              <div className="block overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-medium leading-tight text-foreground">
+                {fullName || "Unnamed"}
+              </div>
+              <div className="mt-0.5 block overflow-hidden text-ellipsis whitespace-nowrap text-[9px] leading-tight text-muted-foreground">
+                {p.employeeCode || "No ID"} · {p.designationName}
+              </div>
+            </div>
+          </div>
+        </td>
+        {p.periodCells.map((cell, i) => {
+          const date = cell.date;
+          const beforeDoj = Boolean(doj) && date < doj;
+          const edOnly = otOnly;
+          const blocked = !editable || date > todayStr || beforeDoj || edOnly;
+          const entry = p.rowEntries[i];
+          const displayCode = edOnly ? "" : entry?.code || (!blocked ? "A" : "");
+          const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
+          return (
+            <td
+              key={date}
+              className={cn(
+                "border-b border-r border-border p-0",
+                date === p.mobileDate && "bg-primary/5",
+              )}
+            >
+              <button
+                type="button"
+                {...ghostButtonProps(
+                  cn(
+                    "h-11 w-10 min-w-10 rounded-none p-0 text-xs font-medium",
+                    !entry?.code && displayCode === "A" && "text-muted-foreground",
+                  ),
+                  displayCode,
+                )}
+                disabled={blocked}
+                aria-label={`${fullName}, ${date}: ${displayCode || "not marked"}`}
+                title={
+                  blocked
+                    ? beforeDoj
+                      ? "Before joining date"
+                      : edOnly
+                        ? "Extra Duty only"
+                        : "Not editable"
+                    : `${date} · ${codeMeta?.label || displayCode}`
+                }
+                style={{ color: codeMeta?.color }}
+                onClick={() => handlers.pickCode(rowKey, date)}
+              >
+                {displayCode}
+              </button>
+            </td>
+          );
+        })}
+        <td className="border-b border-border px-1 font-medium text-foreground">
+          {p.tDays}
+        </td>
+      </tr>
+      <tr className="bg-muted/25">
+        <td className="sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-3 py-1 text-left text-[9px] font-medium text-muted-foreground shadow-sm">
+          Extra duty
+        </td>
+        {p.periodCells.map((cell, i) => {
+          const beforeDoj = Boolean(doj) && cell.date < doj;
+          const blocked = !editable || cell.date > todayStr || beforeDoj;
+          const entry = p.rowEntries[i];
+          const hours =
+            Math.round((Number(entry?.ot_hours) || 0) * p.rowShift * 100) / 100;
+          const label = hours > 0 ? `${hours}h` : "·";
+          return (
+            <td
+              key={cell.date}
+              className={cn(
+                "border-b border-r border-border p-0",
+                hours > 0 && "bg-secondary",
+              )}
+            >
+              <button
+                type="button"
+                {...ghostButtonProps("h-8 w-10 min-w-10 rounded-none p-0 text-[10px] font-medium text-secondary-foreground", label)}
+                disabled={blocked}
+                aria-label={`${fullName}, ${cell.date}: ${hours || 0} Extra Duty hours`}
+                onClick={() => handlers.pickOt(rowKey, cell.date)}
+              >
+                {label}
+              </button>
+            </td>
+          );
+        })}
+        <td className="border-b border-border px-1 text-[10px] font-medium">
+          {Math.round(p.otDays * p.rowShift * 100) / 100}
+          h
+        </td>
+      </tr>
+    </>
+  );
+}, (a, b) =>
+  a.entriesSig === b.entriesSig &&
+  a.rowKey === b.rowKey &&
+  a.fullName === b.fullName &&
+  a.employeeCode === b.employeeCode &&
+  a.designationName === b.designationName &&
+  a.doj === b.doj &&
+  a.otOnly === b.otOnly &&
+  a.selected === b.selected &&
+  a.mobileDate === b.mobileDate &&
+  a.editable === b.editable &&
+  a.todayStr === b.todayStr &&
+  a.periodCells === b.periodCells &&
+  a.tDays === b.tDays &&
+  a.otDays === b.otDays &&
+  a.rowShift === b.rowShift &&
+  a.codeMap === b.codeMap &&
+  a.handlers === b.handlers);
