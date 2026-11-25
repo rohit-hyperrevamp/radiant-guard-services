@@ -105,9 +105,17 @@ export function requestFinanceRecompute(periods: Periods, unitIds: string[], db 
   const call = db.rpc as unknown as (fn: string, args: unknown) => Promise<{ error: { message: string } | null }>;
   const jobs: Promise<unknown>[] = [];
   for (let i = 0; i < todo.length; i += 250) {
-    jobs.push(call.call(db, "request_finance_totals", {
-      p_periods: todo.slice(i, i + 250).map((u) => ({ u, s: periods.get(u)?.start, e: periods.get(u)?.end })),
-    }).catch(() => undefined));
+    // Supabase query builders are thenables WITHOUT .catch — wrap in a real
+    // Promise. This background request must never break the register.
+    jobs.push(
+      Promise.resolve()
+        .then(() =>
+          call.call(db, "request_finance_totals", {
+            p_periods: todo.slice(i, i + 250).map((u) => ({ u, s: periods.get(u)?.start, e: periods.get(u)?.end })),
+          }),
+        )
+        .catch(() => undefined),
+    );
   }
   return Promise.all(jobs).then(() => undefined);
 }
