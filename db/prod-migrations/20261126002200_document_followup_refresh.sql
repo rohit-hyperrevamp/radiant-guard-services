@@ -242,35 +242,42 @@ REVOKE ALL ON FUNCTION public.document_followup_summary(text, date, date) FROM P
 GRANT EXECUTE ON FUNCTION public.document_followup_summary(text, date, date) TO authenticated, service_role;
 
 -- 4. Invalidation triggers (statement level, sequence bump only).
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.employee_document_receipts;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.employee_document_receipts
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.employee_document_policies;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.employee_document_policies
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.employee_signed_documents;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.employee_signed_documents
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.rec_candidates;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.rec_candidates
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.rec_candidate_documents;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.rec_candidate_documents
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.rehire_requests;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.rehire_requests
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.employee_document_receipts'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.employee_document_receipts
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.employee_document_policies'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.employee_document_policies
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.employee_signed_documents'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.employee_signed_documents
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.rec_candidates'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.rec_candidates
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.rec_candidate_documents'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.rec_candidate_documents
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.rehire_requests'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR UPDATE OR DELETE ON public.rehire_requests
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
 -- candidates: only the columns the pending list reads for COUNTS (names and
 -- codes change list text, not the summary), so photo-thumb regeneration and
 -- other unrelated writes do not invalidate it.
-DROP TRIGGER IF EXISTS zz_rpc_cache_document_followup ON public.candidates;
-CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR DELETE OR UPDATE OF
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_document_followup' AND tgrelid='public.candidates'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_document_followup AFTER INSERT OR DELETE OR UPDATE OF
     status, is_enabled, preferred_joining_date, offboarding_details, offboarded_at,
     photo_url, aadhaar_image_url, aadhaar_back_image_url, pan_image_url, signature_url, other_info, documents,
     aadhaar_number, pan_number, bank_account_number, bank_ifsc, bank_name, date_of_birth, mobile,
     present_address1, permanent_address1, emergency_contact_mobile
   ON public.candidates
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup');
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_document_followup')$q$;
+END IF; END $t$;
 
 -- pg_cron: re-warm every 5 minutes (idempotent: drop any same-named job first).
 DO $do$

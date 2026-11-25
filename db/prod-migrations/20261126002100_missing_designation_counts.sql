@@ -103,26 +103,31 @@ END $function$;
 REVOKE ALL ON FUNCTION public.missing_contract_designation_counts(date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.missing_contract_designation_counts(date) TO authenticated, service_role;
 
-DROP TRIGGER IF EXISTS zz_rpc_cache_missing_designation ON public.candidate_units;
-CREATE TRIGGER zz_rpc_cache_missing_designation
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_missing_designation' AND tgrelid='public.candidate_units'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_missing_designation
   AFTER INSERT OR UPDATE OR DELETE ON public.candidate_units
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation');
-DROP TRIGGER IF EXISTS zz_rpc_cache_missing_designation ON public.contract_resources;
-CREATE TRIGGER zz_rpc_cache_missing_designation
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_missing_designation' AND tgrelid='public.contract_resources'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_missing_designation
   AFTER INSERT OR UPDATE OR DELETE ON public.contract_resources
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation');
-DROP TRIGGER IF EXISTS zz_rpc_cache_missing_designation ON public.client_contracts;
-CREATE TRIGGER zz_rpc_cache_missing_designation
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_missing_designation' AND tgrelid='public.client_contracts'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_missing_designation
   AFTER INSERT OR UPDATE OR DELETE ON public.client_contracts
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation');
-DROP TRIGGER IF EXISTS zz_rpc_cache_missing_designation ON public.units;
-CREATE TRIGGER zz_rpc_cache_missing_designation
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_missing_designation' AND tgrelid='public.units'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_missing_designation
   AFTER INSERT OR DELETE OR UPDATE OF is_billable ON public.units
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation');
-DROP TRIGGER IF EXISTS zz_rpc_cache_missing_designation ON public.candidates;
-CREATE TRIGGER zz_rpc_cache_missing_designation
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation')$q$;
+END IF; END $t$;
+DO $t$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='zz_rpc_cache_missing_designation' AND tgrelid='public.candidates'::regclass) THEN
+  EXECUTE $q$CREATE TRIGGER zz_rpc_cache_missing_designation
   AFTER INSERT OR DELETE OR UPDATE OF status, is_enabled, created_by, reports_to ON public.candidates
-  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation');
+  FOR EACH STATEMENT EXECUTE FUNCTION public.rpc_cache_bump('public.rpc_cache_gen_missing_designation')$q$;
+END IF; END $t$;
 
 COMMIT;
 
