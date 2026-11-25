@@ -1,7 +1,7 @@
 import { INVOICE_ED_MODES, invoiceEdModeForSave, normalizeInvoiceEdMode, type InvoiceEdMode } from "@/lib/invoice-split";
 import { applyCtcPass, refreshBillingAddOns, formulaReferencesBillingBase } from "@/lib/contract-billing-addons";
 import { matchesSearch } from "@/lib/search-match";
-import { applyLineRule, asContractManualAmount, type LineRuleMode } from "@/lib/contract-line-override";
+import { applyBillingAddOnRule, applyLineRule, asContractManualAmount, type LineRule, type LineRuleMode } from "@/lib/contract-line-override";
 import { isHiddenAllowanceChoice, mergePayItems, payItemKey, standardPayItemName } from "@/lib/pay-item-names";
 import { unknownFormulaVariables, normalizeOtEsi, type OtEsiSetting } from "@/lib/payroll-calc";
 import { Switch } from "@/components/ui/switch";
@@ -55,6 +55,7 @@ import {
   evaluateFormula,
   parseFormulaConfig,
   presetToExpression,
+  validateExpression,
   slugifyVar,
   type FormulaContext,
 } from "@/lib/formula-engine";
@@ -1869,6 +1870,8 @@ function computeBenefitAmountExact(
       total_ctc: totalCtc,
       billing_rate: totalCtc + relieverTotal,
       billingrate: totalCtc + relieverTotal,
+      reliever_charges: relieverTotal,
+      reliever: relieverTotal,
       fixed_amount: Number(benefit.amount) || 0,
       days_in_month: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
       working_days: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
@@ -3946,7 +3949,10 @@ function ContractFormDialog({
     for (const r of resources) {
       const names = (r.components ?? []).map((c) => String(c.name ?? ""));
       for (const line of [...(r.components ?? []), ...(r.deductions ?? []), ...(r.employerContributions ?? [])]) {
-        const missing = unknownFormulaVariables((line as { formulaExpression?: string | null }).formulaExpression, names);
+        const lineNames = isBillingAddOn(line)
+          ? [...names, ...(r.benefits ?? []).filter((b) => !isBillingAddOn(b)).map((b) => b.name), "Total CTC", "Billing Rate", "Reliever Charges"]
+          : names;
+        const missing = unknownFormulaVariables((line as { formulaExpression?: string | null }).formulaExpression, lineNames);
         if (missing.length) formulaProblems.push(`${String(line.name ?? "Line")}: ${missing.join(", ")}`);
       }
     }
@@ -5100,12 +5106,22 @@ function LineRuleEditor({
   componentNames,
   onApply,
   onCancel,
+  billingAddOn = false,
 }: {
   item: BenefitItem;
   componentNames: string[];
   onApply: (next: BenefitItem) => void;
   onCancel: () => void;
+  billingAddOn?: boolean;
 }) {
+  const config = parseFormulaConfig(item.formulaMode ?? null, item.formulaExpression ?? null);
+  const percentagePreset = billingAddOn && config?.mode === "preset" &&
+    config.preset.operator === "percent" &&
+    (!config.preset.divisor || config.preset.divisor === "none") &&
+    !config.preset.multipliers?.length && !config.preset.floorAmount &&
+    config.preset.base.kind === "composite" &&
+    config.preset.base.components.every((b) => b.operator === "+")
+    ? config.preset : null;
   const initialExpr = (() => {
     if (!hasConfiguredFormula(item)) return "";
     const cfg = parseFormulaConfig(item.formulaMode ?? null, item.formulaExpression ?? null);
@@ -5113,31 +5129,40 @@ function LineRuleEditor({
     return String(item.formulaExpression ?? "");
   })();
   const [mode, setMode] = useState<LineRuleMode>(
-    hasConfiguredFormula(item) ? "formula" : item.calcType === "percentage" ? "percentage" : "fixed",
+    percentagePreset ? "percentage" : hasConfiguredFormula(item) ? "formula" : item.calcType === "percentage" ? "percentage" : "fixed",
   );
   const [amount, setAmount] = useState(String(round2Display(Number(item.amount) || 0)));
-  const [pct, setPct] = useState(String(item.percentage ?? 0));
-  const [bases, setBases] = useState<string[]>(item.baseComponents.map((b) => b.label));
-  const [cap, setCap] = useState(item.capAmount ? String(item.capAmount) : "");
+  const [pct, setPct] = useState(String(percentagePreset?.percent ?? item.percentage ?? 0));
+  const [bases, setBases] = useState<string[]>(percentagePreset?.base.kind === "composite"
+    ? percentagePreset.base.components.map((b) => b.name)
+    : item.baseComponents.map((b) => b.label));
+  const initialCap = percentagePreset?.capAmount && Number(percentagePreset.percent) > 0
+    ? percentagePreset.capAmount * 100 / Number(percentagePreset.percent)
+    : item.capAmount;
+  const [cap, setCap] = useState(initialCap ? String(initialCap) : "");
   const [expr, setExpr] = useState(initialExpr);
-  const baseOptions = Array.from(new Set([...componentNames, "Gross", ...bases]));
+  const availableNames = billingAddOn ? [...componentNames, "Total CTC", ...(isMgmtFeeLine(item) ? ["Billing Rate", "Reliever Charges"] : [])] : componentNames;
+  const baseOptions = Array.from(new Set([...availableNames, "Gross", ...bases]));
   const vars = Array.from(
-    new Set([...componentNames.map((n) => slugifyVar(n)).filter(Boolean), "gross", "earned_gross", "payable_days", "days_in_month", "ctc"]),
+    new Set([...availableNames.map((n) => slugifyVar(n)).filter(Boolean), "gross", "earned_gross", "payable_days", "days_in_month", "ctc"]),
   );
-  const unknown = mode === "formula" ? unknownFormulaVariables(expr, componentNames) : [];
+  const unknown = mode === "formula" ? unknownFormulaVariables(expr, availableNames) : [];
+  const validation = mode === "formula" ? validateExpression(expr) : null;
   const canApply =
     mode === "fixed"
-      ? Number.isFinite(Number(amount))
+      ? amount.trim().length > 0 && Number.isFinite(Number(amount))
       : mode === "percentage"
-      ? Number(pct) >= 0 && bases.length > 0
-      : expr.trim().length > 0 && unknown.length === 0;
+      ? pct.trim().length > 0 && Number.isFinite(Number(pct)) && Number(pct) >= 0 && bases.length > 0 && (!cap.trim() || (Number.isFinite(Number(cap)) && Number(cap) > 0))
+      : expr.trim().length > 0 && unknown.length === 0 && validation?.ok === true;
 
   const apply = () => {
     if (!canApply) return;
-    if (mode === "fixed") onApply(applyLineRule(item, { mode: "fixed", amount: Number(amount) || 0 }));
-    else if (mode === "percentage")
-      onApply(applyLineRule(item, { mode: "percentage", percentage: Number(pct) || 0, bases, cap: Number(cap) || null }));
-    else onApply(applyLineRule(item, { mode: "formula", expression: expr }));
+    const rule: LineRule = mode === "fixed"
+      ? { mode: "fixed", amount: Number(amount) }
+      : mode === "percentage"
+      ? { mode: "percentage", percentage: Number(pct), bases, cap: Number(cap) || null }
+      : { mode: "formula", expression: expr };
+    onApply(billingAddOn ? applyBillingAddOnRule(item, rule) : applyLineRule(item, rule));
   };
 
   return (
@@ -5179,18 +5204,20 @@ function LineRuleEditor({
               {baseOptions.map((n) => {
                 const on = bases.includes(n);
                 return (
-                  <button
+                  <Button
                     key={n}
                     type="button"
+                    size="sm"
+                    variant={on ? "secondary" : "outline"}
                     onClick={() => setBases((prev) => (on ? prev.filter((x) => x !== n) : [...prev, n]))}
                     className={cn(
-                      "rounded border px-2 py-0.5 text-[11px]",
+                      "h-auto min-h-7 border px-2 py-0.5 text-[11px]",
                       on ? "border-primary/40 bg-primary/10 text-foreground" : "border-border text-muted-foreground",
                     )}
                     aria-pressed={on}
                   >
                     {standardPayItemName(n)}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -5204,23 +5231,28 @@ function LineRuleEditor({
           <Textarea value={expr} onChange={(e) => setExpr(e.target.value)} rows={2} className="font-mono text-xs" placeholder="(basic + da) * 12 / 100" />
           <div className="flex flex-wrap gap-1">
             {[...vars, "+", "-", "*", "/", "(", ")", "min(", "max("].map((v) => (
-              <button
+              <Button
                 key={v}
                 type="button"
-                className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground hover:text-foreground"
+                size="sm"
+                variant="outline"
+                className="h-auto min-h-7 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground hover:text-foreground"
                 onClick={() => setExpr((f) => `${f.trimEnd()} ${v}`.trim())}
               >
                 {v}
-              </button>
+              </Button>
             ))}
           </div>
           {unknown.length > 0 && (
             <p className="text-[11px] text-destructive">Unknown name: {unknown.join(", ")}</p>
           )}
+          {validation && !validation.ok && expr.trim() && (
+            <p className="text-[11px] text-destructive">{validation.error}</p>
+          )}
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <p className="text-[11px] text-muted-foreground">Applies to this contract only. Payroll and invoices use it after you save the contract.</p>
         <div className="flex gap-2">
           <Button type="button" size="sm" variant="ghost" className="h-8" onClick={onCancel}>
@@ -5675,8 +5707,8 @@ export function ResourceFormDialog({
   // description maintained on the Cost Component master, fall back to a
   // readable formula/percentage summary, and never show the raw formula JSON.
   const describeFormulaItem = (b: BenefitItem): string =>
-    describeComponentFormula(b, costComponentById.get(b.costComponentId)?.description ?? null) ||
-    "Custom formula";
+    describeComponentFormula(b, b.contractOverride ? null : costComponentById.get(b.costComponentId)?.description ?? null) ||
+    (isComputedLine(b) ? "Custom formula" : "Fixed amount");
 
 
   const usedBenefitIds = new Set(benefits.map((b) => b.costComponentId));
@@ -6084,16 +6116,6 @@ export function ResourceFormDialog({
     setEmployerContributions((prev) => prev.filter((b) => b !== line));
   };
 
-  // Custom reliever / management fee amounts are matched by their fixed
-  // custom id, never by the row object or a master id, so a typed amount can
-  // never miss its row and silently save as 0.
-  const updateCustomAddOnAmount = (kind: "reliever" | "mgmt", amount: number) => {
-    const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
-    setEmployerContributions((prev) =>
-      prev.map((b) => (b.costComponentId === customId ? withManualAmount(b, amount) : b)),
-    );
-  };
-
   // ---- Billing add-ons (Reliever charges / Management fee) -----------------
   // These are picked as a single choice each (multiple masters can exist), and
   // are stored alongside employer contributions so all downstream calculation
@@ -6116,8 +6138,7 @@ export function ResourceFormDialog({
   // formula-driven is recomputed live against the current Total CTC instead of
   // showing a stale saved figure.
   const liveAddOnAmount = (kind: "reliever" | "mgmt", item: BenefitItem): number => {
-    const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
-    if (item.costComponentId === customId || (item.calcType === "fixed" && !hasConfiguredFormula(item))) {
+    if (!isComputedLine(item)) {
       return Number(item.amount) || 0;
     }
     const coreBenefits = benefits.filter((b) => !isRelieverLine(b) && !isMgmtFeeLine(b));
@@ -6143,8 +6164,7 @@ export function ResourceFormDialog({
       setEmployerContributions((prev) =>
         prev.map((b) => {
           if (!match(b)) return b;
-          const customId = kind === "mgmt" ? CUSTOM_MANAGEMENT_FEE_ID : CUSTOM_RELIEVER_ID;
-          const computed = b.costComponentId !== customId && (b.calcType !== "fixed" || hasConfiguredFormula(b));
+          const computed = isComputedLine(b);
           const next = toggleLineRoundOff(b, computed);
           return computed ? { ...next, amount: liveAddOnAmount(kind, next) } : next;
         }),
@@ -6156,6 +6176,7 @@ export function ResourceFormDialog({
   const setBillingAddOn = (kind: "reliever" | "mgmt", componentId: string) => {
     const match = kind === "reliever" ? isRelieverLine : isMgmtFeeLine;
     preserveDialogScroll(() => {
+      setRuleEditKey(null);
       setBenefits((prev) => prev.filter((b) => !match(b)));
       setEmployerContributions((prev) => {
         const rest = prev.filter((b) => !match(b));
@@ -7295,10 +7316,24 @@ export function ResourceFormDialog({
                   cfg.kind === "reliever" ? isRelieverLine(b) : isMgmtFeeLine(b),
                 );
                 return (
-                  <div key={cfg.kind} className="rounded-lg border border-border bg-card px-3 py-2">
-                    <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {cfg.label}
-                    </Label>
+                  <div key={cfg.kind} className="min-w-0 space-y-2 border-b border-border pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {cfg.label}
+                      </Label>
+                      {item && (
+                        <span className="flex items-center gap-2">
+                          {item.contractOverride && <ContractOverrideBadge />}
+                          <LineRuleActions
+                            editing={ruleEditKey === `addon-${cfg.kind}`}
+                            onToggle={() => setRuleEditKey((key) => key === `addon-${cfg.kind}` ? null : `addon-${cfg.kind}`)}
+                            showReset={!!item.contractOverride && cfg.masters.some((master) => master.id === item.costComponentId)}
+                            onReset={() => resetEmployerLine(item)}
+                            label={cfg.label}
+                          />
+                        </span>
+                      )}
+                    </div>
                     <SearchSelect
                       className="mt-1 h-9"
                       value={cfg.selected || "__none__"}
@@ -7315,8 +7350,7 @@ export function ResourceFormDialog({
                       searchPlaceholder={`Search ${cfg.label.toLowerCase()}…`}
                       emptyText="Nothing found."
                     />
-                    {(item?.costComponentId === CUSTOM_MANAGEMENT_FEE_ID ||
-                      item?.costComponentId === CUSTOM_RELIEVER_ID) && (
+                    {item && !isComputedLine(item) && (
                       <div className="mt-2">
                         <Label className="sr-only" htmlFor={`custom-${cfg.kind}-amount`}>
                           Custom {cfg.label.toLowerCase()} amount
@@ -7329,27 +7363,40 @@ export function ResourceFormDialog({
                           value={Number(item.roundOff ? item.unroundedAmount ?? item.amount : item.amount) || ""}
                           placeholder="Enter custom amount"
                           onChange={(event) =>
-                            updateCustomAddOnAmount(
-                              cfg.kind,
+                            updateEmployerAmount(
+                              item,
                               Math.max(0, Number(event.target.value) || 0),
                             )
                           }
                         />
                       </div>
                     )}
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="text-[11px] text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                      <span className="min-w-0 break-words text-[11px] text-muted-foreground">
                         {item ? describeFormulaItem(item) : "None selected"}
                       </span>
                       {item && (
-                        <span className="flex items-center gap-2">
+                        <span className="flex shrink-0 items-center gap-2">
                           <RoundOffToggle on={!!item.roundOff} label={cfg.label} onToggle={() => toggleAddOnRoundOff(cfg.kind)} />
-                          <span className="text-sm font-semibold text-foreground">
+                          <span className="whitespace-nowrap text-sm font-semibold text-foreground">
                             {liveAddOnAmount(cfg.kind, item).toFixed(2)}
                           </span>
                         </span>
                       )}
                     </div>
+                    {item && ruleEditKey === `addon-${cfg.kind}` && (
+                      <LineRuleEditor
+                        key={`${cfg.kind}-${item.costComponentId}`}
+                        item={item}
+                        componentNames={[
+                          ...components.map((component) => component.name),
+                          ...benefits.filter((benefit) => !isBillingAddOn(benefit)).map((benefit) => benefit.name),
+                        ]}
+                        billingAddOn
+                        onApply={(next) => applyEmployerLineRule(item, next)}
+                        onCancel={() => setRuleEditKey(null)}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -7478,7 +7525,7 @@ export function SalaryBreakdownTable({
   roundOffFinal?: boolean;
 }) {
   const describeRow = (b: BenefitItem) =>
-    describeComponentFormula(b, componentDescriptions?.[b.costComponentId] ?? null);
+    describeComponentFormula(b, b.contractOverride ? null : componentDescriptions?.[b.costComponentId] ?? null);
   const payableDays = computePayableDays(payrollDayBase);
   const divisorDays = payableDays;
 
@@ -7538,7 +7585,6 @@ export function SalaryBreakdownTable({
   // breakdown row must use this same helper so it never disagrees with the
   // Reliever & Management Fee card or the Billing Rate total.
   const relieverAmountFor = (item: BenefitItem) =>
-    item.costComponentId === CUSTOM_RELIEVER_ID ||
     (item.calcType === "fixed" && !hasConfiguredFormula(item))
       ? Number(item.amount) || 0
       : computeBenefitAmount(item, components, coreBenefits, [], coreEmployer);
@@ -7550,7 +7596,6 @@ export function SalaryBreakdownTable({
   const totalCTC = gross + coreEmployerTotal;
   const totalRate = totalCTC + relieverTotal;
   const managementAmountFor = (item: BenefitItem) =>
-    item.costComponentId === CUSTOM_MANAGEMENT_FEE_ID ||
     (item.calcType === "fixed" && !hasConfiguredFormula(item))
       ? Number(item.amount) || 0
       : computeBenefitAmount(item, components, coreBenefits, [], [

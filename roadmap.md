@@ -1,3 +1,8 @@
+## Direct contract Management Fee editing — 25 November
+- [x] Reused the contract component pencil/edit panel for Management Fee and Reliever Charges: fixed amount, percentage/base/cap and formula choices, contract-only ownership and master reset. No existing saved contracts or shared masters were changed.
+- [x] Twenty-three focused tests passed, including save/reload calculation equivalence, custom fixed-to-percentage conversion, caps, rounding, CTC versus Billing Rate and reliever-base aliases; automatic compilation passed.
+- [ ] Signed-in production editing/save/readback awaits authorized live access and GitHub-to-Vercel delivery. Laptop/phone checks of the live contract page redirected to sign-in with no page errors; they do not verify the new panel's layout or persistence through the live UI.
+
 ## Poonawalla Haryana replacement reference CLI4012 — 24 November
 - [x] Backed up current rate structures for 87 active Haryana targets, including the previous reference CLI4508, and the user-updated CLI4012 CON15690 reference.
 - [x] Copied CLI4012's exact saved rates, formulas, master links and selected Extra Duty/rounding/cap settings. Rollback and committed production tests passed all 87 copies and preservation of the reference, other rate structures, contract terms, units, historical revisions, attendance and paid snapshots. No new contracts, status changes or frontend changes; six sites without active contracts remain unchanged.

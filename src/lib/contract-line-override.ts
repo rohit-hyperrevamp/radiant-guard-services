@@ -5,6 +5,8 @@
 // line carries `contractOverride: true` and the Control Center master no
 // longer overwrites it — in the editor, payroll or invoices. "Reset" clears it.
 
+import { type FormulaConfig } from "./formula-engine";
+
 type AmountLine = {
   amount: number;
   roundOff?: boolean;
@@ -61,4 +63,21 @@ export function applyLineRule<T extends RuleLine>(item: T, rule: LineRule): T {
     formulaExpression: rule.expression.trim(),
     contractOverride: true,
   };
+}
+
+/** Billing percentages use the same formula path as saved master add-ons. */
+export function applyBillingAddOnRule<T extends RuleLine>(item: T, rule: LineRule): T {
+  const next = applyLineRule(item, rule);
+  if (rule.mode !== "percentage") return next;
+  const config: FormulaConfig = {
+    mode: "preset",
+    preset: {
+      base: { kind: "composite", components: rule.bases.map((name) => ({ name, operator: "+" })) },
+      operator: "percent",
+      percent: rule.percentage,
+      // Presets cap the result; the contract control caps the wage base.
+      capAmount: rule.cap && rule.cap > 0 ? rule.cap * rule.percentage / 100 : null,
+    },
+  };
+  return { ...next, formulaMode: "preset", formulaExpression: JSON.stringify(config.preset) };
 }
