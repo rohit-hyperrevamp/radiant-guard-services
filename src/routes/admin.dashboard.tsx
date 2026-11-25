@@ -85,7 +85,7 @@ import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-t
 import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
-import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
+import { CHARTER_UNITS_LITE_QK, fetchCharterUnitsLite, readCharterUnitsSnapshot } from "@/lib/charter-units";
 import { istAddDays, istDate } from "@/lib/dashboard-base";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
@@ -467,8 +467,10 @@ function DashboardPage() {
   const liveOfficerCount = new Set((liveRows ?? []).map((row) => row.candidate_id)).size;
 
   const charterUnitsQ = useQuery({
-    queryKey: CHARTER_UNITS_QK,
-    queryFn: fetchCharterUnits,
+    // Lite roster: the dashboard needs unit ids/customer/billing fields and
+    // counts, never guard names (~0.9 MB instead of ~3.4 MB).
+    queryKey: CHARTER_UNITS_LITE_QK,
+    queryFn: fetchCharterUnitsLite,
     enabled: authReady && !!user,
     initialData: () => readCharterUnitsSnapshot() ?? undefined,
     placeholderData: (previous) => previous,
