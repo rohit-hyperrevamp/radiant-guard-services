@@ -162,13 +162,22 @@ export function AttendanceCharter({
   const registerPeriods = useRegisterPeriods(allUnitIds, year, monthIdx, windowsByUnit);
   const allPeriodsByUnit = registerPeriods.periods;
   const allStatusQ = registerPeriods.statusesQ;
+  // Sites whose contract does not cover this window have nothing to fill.
+  const outsideContract = registerPeriods.outsideContract;
   const filteredUnits = useMemo(
-    () => matchedUnits.filter((unit) => matchesAttendanceStatus(allStatusQ.data?.get(unit.id), statusFilter)),
-    [allStatusQ.data, matchedUnits, statusFilter],
+    () =>
+      matchedUnits.filter(
+        (unit) => !outsideContract.has(unit.id) && matchesAttendanceStatus(allStatusQ.data?.get(unit.id), statusFilter),
+      ),
+    [allStatusQ.data, matchedUnits, statusFilter, outsideContract],
   );
   const statusCounts = useMemo(
-    () => summarizeRegisterStatuses(allUnitIds, allStatusQ.data ?? new Map()).attendance,
-    [allUnitIds, allStatusQ.data],
+    () =>
+      summarizeRegisterStatuses(
+        allUnitIds.filter((id) => !outsideContract.has(id)),
+        allStatusQ.data ?? new Map(),
+      ).attendance,
+    [allUnitIds, allStatusQ.data, outsideContract],
   );
 
   const [page, setPage] = useState(0);
@@ -435,8 +444,8 @@ export function AttendanceCharter({
   // Attendance sheets for the selected payroll period, across every matching
   // site (not just the current page), so the tile matches the real charter.
   const sheets = useMemo(() => {
-    return { total: matchedUnits.length, ...statusCounts };
-  }, [matchedUnits.length, statusCounts]);
+    return { total: matchedUnits.length - outsideContract.size, ...statusCounts };
+  }, [matchedUnits.length, outsideContract.size, statusCounts]);
 
   if (registerPeriods.error) return <div className="py-6 text-sm text-destructive">Attendance statuses could not load. Please try again.</div>;
 

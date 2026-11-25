@@ -84,6 +84,57 @@ export function fetchSavedPeriods(ids: string[], year: number, monthIdx: number)
   });
 }
 
+export type ContractSpan = { unit_id: string; start_date: string; end_date: string | null };
+
+/**
+ * Sites whose client contracts (active or expired — the same set
+ * fetchPeriodContract accepts) all fall outside their own period, e.g. a
+ * contract starting 25 Sep viewed in the 21 Aug–20 Sep window. Those sites have
+ * nothing to fill, pay or bill for that window. A site with no readable
+ * contract rows is never excluded, so missing read access cannot hide a site.
+ */
+export function unitsOutsideContract(
+  periods: ReadonlyMap<string, { start: string; end: string }>,
+  spans: readonly ContractSpan[],
+): Set<string> {
+  const byUnit = new Map<string, ContractSpan[]>();
+  for (const s of spans) {
+    const id = String(s.unit_id ?? "");
+    if (!id || !s.start_date) continue;
+    const list = byUnit.get(id) ?? [];
+    list.push(s);
+    byUnit.set(id, list);
+  }
+  const out = new Set<string>();
+  for (const [id, p] of periods) {
+    const list = byUnit.get(id);
+    if (!list?.length) continue;
+    if (!list.some((s) => s.start_date <= p.end && (!s.end_date || s.end_date >= p.start))) out.add(id);
+  }
+  return out;
+}
+
+/**
+ * Contract spans only for sites that have a contract starting after `after`
+ * (a small set): every other site's contracts started earlier, so its current
+ * contract already reaches into the viewed window.
+ */
+async function fetchLateStartContractSpans(ids: string[], after: string): Promise<ContractSpan[]> {
+  const wanted = new Set(ids);
+  const late = await fetchAllPages<{ unit_id: string | null }>((a, b) =>
+    supabase.from("client_contracts").select("unit_id").eq("record_type", "client")
+      .in("status", ["active", "expired"]).gt("start_date", after).order("id").range(a, b));
+  const lateIds = Array.from(new Set(late.map((r) => String(r.unit_id ?? "")).filter((id) => wanted.has(id))));
+  if (!lateIds.length) return [];
+  const base = () => supabase.from("client_contracts").select("unit_id, start_date, end_date")
+    .eq("record_type", "client").in("status", ["active", "expired"]);
+  return fetchForIds<ContractSpan>(lateIds, {
+    chunk: (chunk, a, b) => base().in("unit_id", chunk).order("id").range(a, b),
+    scan: (a, b) => base().order("id").range(a, b),
+    idOf: (row) => row.unit_id,
+  });
+}
+
 /** All three registers and dashboard tiles use the same historical sheet dates. */
 export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: number, windows: Map<string, PayrollWindow>, enabledArg = true) {
   const hasSession = useHasSupabaseSession();
@@ -103,7 +154,23 @@ export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: nu
       return fetchSavedPeriods(ids, year, monthIdx);
     },
   });
-  const periods = useMemo(() => {
+  // Windows open no earlier than the previous month, so contracts starting
+  // after its first day are the only ones that can begin inside or after a window.
+  const lateAfter = monthBounds(monthIdx === 0 ? year - 1 : year, monthIdx === 0 ? 11 : monthIdx - 1).from;
+  const contractsQ = useQuery({
+    queryKey: ["register-contract-spans", unitKey, month],
+    enabled: enabled && hasSession && ids.length > 0,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+    queryFn: async () => {
+      await supabaseSessionReady();
+      return fetchLateStartContractSpans(ids, lateAfter);
+    },
+  });
+  // A failed read never hides sites: it only skips the exclusion.
+  const contractsSettled = contractsQ.isSuccess || !!contractsQ.error;
+  const allPeriods = useMemo(() => {
     const result = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
     for (const id of ids) {
       const expected = payrollPeriodForMonth(year, monthIdx, windows.get(id));
@@ -119,13 +186,33 @@ export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: nu
     }
     return result;
   }, [ids, year, monthIdx, windows, month, savedQ.data]);
+  // Sites with no contract in their window are dropped from every register,
+  // dashboard tile and P&L row for that window (not shown as open or ₹0).
+  const outsideContract = useMemo(
+    () => unitsOutsideContract(allPeriods, contractsQ.data ?? []),
+    [allPeriods, contractsQ.data],
+  );
+  const periods = useMemo(() => {
+    if (!outsideContract.size) return allPeriods;
+    return new Map([...allPeriods].filter(([id]) => !outsideContract.has(id)));
+  }, [allPeriods, outsideContract]);
   const periodKey = [...periods].map(([id, p]) => `${id}:${p.start}:${p.end}`).join("|");
   const statusesQ = useQuery({
     queryKey: [PERIOD_STATUS_QK, "register-all", periodKey],
-    enabled: enabled && hasSession && ids.length > 0 && savedQ.isSuccess,
+    enabled: enabled && hasSession && ids.length > 0 && savedQ.isSuccess && contractsSettled,
     staleTime: 0,
     refetchOnWindowFocus: true,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periods),
   });
-  return { periods, periodKey, periodsReady: enabled && savedQ.isSuccess, statusesQ, isLoading: enabled && hasSession && ids.length > 0 && !savedQ.error && (savedQ.isLoading || (savedQ.isSuccess && statusesQ.isLoading)), error: savedQ.error ?? statusesQ.error };
+  const periodsReady = enabled && savedQ.isSuccess && contractsSettled;
+  return {
+    periods,
+    periodKey,
+    periodsReady,
+    /** Sites with no contract covering their window; callers hide them. */
+    outsideContract,
+    statusesQ,
+    isLoading: enabled && hasSession && ids.length > 0 && !savedQ.error && (savedQ.isLoading || !contractsSettled || (savedQ.isSuccess && statusesQ.isLoading)),
+    error: savedQ.error ?? statusesQ.error,
+  };
 }

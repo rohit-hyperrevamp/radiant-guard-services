@@ -614,7 +614,12 @@ function DashboardPage() {
   const lifecycleQuery = registerPeriods.statusesQ;
   const lifecycleCounts = useMemo(() => {
     if (!lifecycleQuery.data) return undefined;
-    const counts = summarizeRegisterStatuses([...periodSelection.unitIdsForWindow], lifecycleQuery.data);
+    // Sites whose contract does not cover the window are not open work.
+    const outside = registerPeriods.outsideContract;
+    const counts = summarizeRegisterStatuses(
+      [...periodSelection.unitIdsForWindow].filter((id) => !outside.has(id)),
+      lifecycleQuery.data,
+    );
     const moneyCounts = (v: typeof counts.payroll): StatusCounts => ({
       approved: v.approved, pending: v.ready, processed: v.processed, open: v.open, draft: 0, rejected: 0,
     });
@@ -623,7 +628,7 @@ function DashboardPage() {
         open: counts.attendance.open, draft: 0, rejected: 0, processed: 0 },
       runCounts: moneyCounts(counts.payroll), invoiceCounts: moneyCounts(counts.invoice),
     };
-  }, [lifecycleQuery.data, periodSelection.unitIdsForWindow]);
+  }, [lifecycleQuery.data, periodSelection.unitIdsForWindow, registerPeriods.outsideContract]);
 
   // Read small, versioned period aggregates once the section nears the screen.
   // Client coverage comes from the register roster, not the refreshed subset.

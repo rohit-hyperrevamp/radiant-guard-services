@@ -372,15 +372,21 @@ export function FinanceCharter({
   // otherwise every loader ran twice (expected window, then the saved one).
   const periodsReady = registerPeriods.periodsReady;
 
+  // Sites whose contract does not cover this window have nothing to pay or bill.
+  const outsideContract = registerPeriods.outsideContract;
+  const inWindowUnits = useMemo(
+    () => (outsideContract.size ? searchedUnits.filter((u) => !outsideContract.has(u.id)) : searchedUnits),
+    [searchedUnits, outsideContract],
+  );
   const matchedUnits = useMemo(() => {
-    if (statusFilter === "all") return searchedUnits;
-    return searchedUnits.filter((unit) => {
+    if (statusFilter === "all") return inWindowUnits;
+    return inWindowUnits.filter((unit) => {
       const status = mode === "invoice"
         ? allStatusQ.data?.get(unit.id)?.invoice ?? "open"
         : allStatusQ.data?.get(unit.id)?.payroll ?? "open";
       return status === statusFilter;
     });
-  }, [allStatusQ.data, mode, searchedUnits, statusFilter]);
+  }, [allStatusQ.data, mode, inWindowUnits, statusFilter]);
   const pageCount = Math.max(1, Math.ceil(matchedUnits.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
   useEffect(() => setPage(0), [query, statusFilter, stateFilter, cityFilter, units.length, monthIdx, year]);
@@ -726,9 +732,9 @@ export function FinanceCharter({
   // the visible page): where every unit sits in the open → ready → processed
   // lifecycle.
   const registers = useMemo(() => ({
-    total: searchedUnits.length,
-    ...summarizeRegisterStatuses(allUnitIds, allStatusQ.data ?? new Map())[mode],
-  }), [searchedUnits.length, allUnitIds, allStatusQ.data, mode]);
+    total: inWindowUnits.length,
+    ...summarizeRegisterStatuses(inWindowUnits.map((u) => u.id), allStatusQ.data ?? new Map())[mode],
+  }), [inWindowUnits, allStatusQ.data, mode]);
 
   const exportCsv = () => {
     if (mode === "invoice" && !financeQ.isSuccess) {

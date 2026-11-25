@@ -25,6 +25,7 @@ import {
   PENDING_WINDOWS,
   prefetchSavedPeriods,
   SAVED_PERIODS_SCAN_THRESHOLD,
+  unitsOutsideContract,
   windowsPending,
 } from "./use-register-periods";
 
@@ -64,5 +65,30 @@ describe("pending payroll windows marker", () => {
     expect(windowsPending(PENDING_WINDOWS)).toBe(true);
     expect(windowsPending(new Map())).toBe(false);
     expect(PENDING_WINDOWS.size).toBe(0);
+  });
+});
+
+describe("unitsOutsideContract", () => {
+  const aug = { start: "2026-08-21", end: "2026-09-20" };
+
+  it("drops a site whose only contract starts after the viewed window (CLI4792 BALDA, CON16350 from 25 Sep)", () => {
+    const out = unitsOutsideContract(new Map([["balda", aug]]), [{ unit_id: "balda", start_date: "2026-09-25", end_date: "2027-03-20" }]);
+    expect([...out]).toEqual(["balda"]);
+  });
+
+  it("keeps a site when any active or expired contract overlaps its window", () => {
+    const out = unitsOutsideContract(new Map([["s", aug]]), [
+      { unit_id: "s", start_date: "2026-09-25", end_date: null },
+      { unit_id: "s", start_date: "2026-04-01", end_date: "2026-09-24" },
+    ]);
+    expect(out.size).toBe(0);
+  });
+
+  it("keeps a contract that starts on the window's last day", () => {
+    expect(unitsOutsideContract(new Map([["s", aug]]), [{ unit_id: "s", start_date: "2026-09-20", end_date: null }]).size).toBe(0);
+  });
+
+  it("never hides a site whose contracts could not be read", () => {
+    expect(unitsOutsideContract(new Map([["s", aug]]), []).size).toBe(0);
   });
 });
