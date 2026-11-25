@@ -163,3 +163,18 @@ describe("dashboard base cache is per user", () => {
     expect(mocks.fromCalls).toBe(afterFirst * 2);
   });
 });
+
+describe("summarizeMyAttendance absences (review round 2)", () => {
+  it("counts A as absent when its master row has is_paid unset, never paid offs", async () => {
+    const { summarizeMyAttendance } = await import("./dashboard-base");
+    const codes = [
+      { code: "A", counts_as_present: false, is_leave: false, is_paid: null, day_value: 0 },
+      { code: "WO", counts_as_present: false, is_leave: false, is_paid: true, day_value: 0 },
+      { code: "P", counts_as_present: true, is_leave: false, is_paid: true, day_value: 1 },
+    ];
+    const rows = ["A", "A", "WO", "P"].map((code) => ({ code, ot_hours: 0 }));
+    const s = summarizeMyAttendance(rows, codes as never);
+    expect(s.absent).toBe(2);
+    expect(s.present).toBe(1);
+  });
+});

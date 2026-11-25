@@ -58,6 +58,8 @@ export type DashboardInvoicePart = {
   taxable: number;
   /** Tally voucher lines, same as the invoice page's Tally export. */
   tallyLines: { qty: number; rate: number; amount: number; monthly: number }[];
+  /** This part's enabled extra charges, as billed on the printed invoice. */
+  extraCharges: { description: string; amount: number }[];
   mis: DashboardMisLine[];
 };
 
@@ -121,6 +123,7 @@ export async function computeDashboardUnitFinance(periods: Map<string, UnitPerio
           label: (isSplit(split) ? split.parts.find((x) => x.key === part)?.label : null) ?? "Main invoice",
           taxable: t?.taxable ?? 0,
           tallyLines: tallyLines.filter((l) => l.amount > 0),
+          extraCharges: t?.extraLines ?? [],
           mis,
         });
       }

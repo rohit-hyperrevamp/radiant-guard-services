@@ -47,6 +47,10 @@ export function createRateLimiter(limit: number, windowMs: number) {
       hits.set(key, recent);
       return true;
     },
+    /** Forgets a key (e.g. after a successful sign-in). */
+    reset(key: string): void {
+      hits.delete(key);
+    },
     /** True while the key is under its limit (does not record a hit). */
     peek(key: string, now: number = Date.now()): boolean {
       const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);

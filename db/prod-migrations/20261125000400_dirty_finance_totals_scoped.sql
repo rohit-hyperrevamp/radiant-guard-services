@@ -26,7 +26,8 @@
 --     payroll_day_bases, billing_day_bases, attendance_codes, professional_tax_slabs,
 --     pincode_ranges, labour_welfare_funds, public_holidays, addition_types) keep
 --     the full invalidation they always intended, now with an explicit WHERE true.
---   * ELSE (any other table, e.g. customers): RETURN NULL - no update, no dispatch.
+--   * customers: own branch, only that organisation's sites (triggers re-attached below).
+--   * ELSE (any other table): RETURN NULL - no update, no dispatch.
 --   NOT changed: dirty_finance_settings() (inv_settings 'payroll_esi_round_up')
 --   still has a no-WHERE UPDATE - flagged in README as a follow-up.
 --
@@ -94,6 +95,11 @@ DECLARE affected jsonb; BEGIN
  ELSIF TG_TABLE_NAME IN ('units','client_contracts') THEN
  UPDATE public.finance_period_totals t SET generation=generation+1,retry_after=NULL
  WHERE EXISTS(SELECT 1 FROM jsonb_array_elements(affected) r WHERE t.unit_id=CASE WHEN TG_TABLE_NAME='units' THEN (r->>'id')::uuid ELSE (r->>'unit_id')::uuid END);
+ ELSIF TG_TABLE_NAME='customers' THEN
+ -- Organisation edits (invoice split, billing state fallback) affect only that
+ -- organisation's sites. Scoped — never a whole-table update.
+ UPDATE public.finance_period_totals t SET generation=generation+1,retry_after=NULL
+ WHERE t.unit_id IN (SELECT u.id FROM public.units u JOIN jsonb_array_elements(affected) r ON u.customer_id=(r->>'id')::uuid);
  ELSIF TG_TABLE_NAME IN ('final_invoices','contract_rate_revisions','allowance_types','cost_components','payroll_day_bases','billing_day_bases','attendance_codes','professional_tax_slabs','pincode_ranges','labour_welfare_funds','public_holidays','addition_types') THEN
  -- Global money masters: every window may change. Explicit WHERE keeps safe-update guards happy.
  UPDATE public.finance_period_totals SET generation=generation+1,retry_after=NULL WHERE true;
@@ -105,6 +111,18 @@ DECLARE affected jsonb; BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.dirty_finance_totals() FROM PUBLIC,anon,authenticated;
 
+
+-- Re-attach the organisation finance triggers (dropped live on 25 Nov 2026 to
+-- unblock organisation creation). Safe now: customers has its own scoped branch.
+DROP TRIGGER IF EXISTS zz_finance_insert ON public.customers;
+DROP TRIGGER IF EXISTS zz_finance_update ON public.customers;
+DROP TRIGGER IF EXISTS zz_finance_delete ON public.customers;
+CREATE TRIGGER zz_finance_insert AFTER INSERT ON public.customers
+  REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.dirty_finance_totals();
+CREATE TRIGGER zz_finance_update AFTER UPDATE ON public.customers
+  REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.dirty_finance_totals();
+CREATE TRIGGER zz_finance_delete AFTER DELETE ON public.customers
+  REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.dirty_finance_totals();
 COMMIT;
 
 -- ======================================================================

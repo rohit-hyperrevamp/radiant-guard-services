@@ -98,7 +98,9 @@ export function summarizeMyAttendance(
         const dv = Number(m.day_value);
         present += Number.isFinite(dv) && dv > 0 ? dv : 1;
       } else if (m.is_leave) leave++;
-      else if (m.is_paid === false) absent++;
+      // Unpaid codes are absences. A master row with is_paid unset still counts
+      // when the code is the plain "A"; paid offs (WO/H) are never absences.
+      else if (m.is_paid === false || (m.is_paid == null && code === "A")) absent++;
     } else if (code === "P") present++;
     else if (code === "A") absent++;
   }

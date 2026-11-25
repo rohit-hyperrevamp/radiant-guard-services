@@ -81,10 +81,11 @@ export function deductionsForPeriod(rows: RawDeduction[], rosterIds: Set<string>
   });
 }
 
-function mapExtra(r: Row): InvoiceExtraLike & { periodStart: string | null; periodEnd: string | null } {
+function mapExtra(r: Row): InvoiceExtraLike & { periodStart: string | null; periodEnd: string | null; description: string } {
   const quantity = Number(r.quantity) || 0;
   const rate = Number(r.rate) || 0;
   return {
+    description: String(r.description ?? ""),
     periodStart: r.period_start ? s(r.period_start) : null,
     periodEnd: r.period_end ? s(r.period_end) : null,
     quantity,

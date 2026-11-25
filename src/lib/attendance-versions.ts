@@ -172,7 +172,13 @@ export function diffAttendance(
   // upgrade does not flag every row as changed.
   const legacy = isLegacySnapshot(before);
   const beforeMap = new Map(before.map((e) => [snapshotKeyOf(e, legacy), e]));
-  const afterMap = new Map(after.map((e) => [snapshotKeyOf(e, legacy), e]));
+  // In legacy mode the old key can't tell a regular line from a reliever line on
+  // the same date, so compare only the regular (non-reliever) live lines —
+  // otherwise whichever line came last would overwrite the other.
+  const comparable = legacy
+    ? after.filter((e) => !(e as { is_reliever?: boolean | null }).is_reliever)
+    : after;
+  const afterMap = new Map(comparable.map((e) => [snapshotKeyOf(e, legacy), e]));
   const keys = new Set([...beforeMap.keys(), ...afterMap.keys()]);
   const out: EntryDiff[] = [];
   for (const k of keys) {

@@ -699,7 +699,7 @@ export function FinanceCharter({
         const label = part.label;
         // Same lines as the invoice page's own Tally export.
         const voucherLines = part.tallyLines;
-        if (voucherLines.length === 0) continue;
+        if (voucherLines.length === 0 && !(part.extraCharges ?? []).length) continue;
         const period = allPeriodsByUnit.get(unit.id) ?? payrollPeriodForMonth(year, monthIdx);
         const customerId = String(unitRow.customer_id ?? "");
         const customer = customerById.get(customerId) ?? null;
@@ -722,6 +722,9 @@ export function FinanceCharter({
           serviceTypeName: (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard",
           lines: voucherLines,
           gstOption: gstOptions.get(unit.id),
+          // Same extra-charge lines and rupee round-off as the per-invoice export.
+          extraCharges: part.extraCharges ?? [],
+          roundToRupee: true,
         }));
         book.count += 1;
         }

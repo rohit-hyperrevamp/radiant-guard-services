@@ -4,9 +4,10 @@ import { createRateLimiter } from "@/lib/server-guards";
 type OtpMode = "sms" | "fixed";
 
 /**
- * Failed-attempt limit per phone: 4-digit codes must not be brute-forceable.
- * In-memory per server instance (a durable store would be stronger); 5 wrong
- * codes locks that phone for 15 minutes on the instance.
+ * Failed-attempt limit: 4-digit codes must not be brute-forceable. Keyed on
+ * phone + client IP so a stranger can't lock the real user out of their own
+ * number; cleared on a successful sign-in. In-memory per server instance (a
+ * durable store would be stronger); 5 wrong codes = 15-minute lock.
  */
 const failedOtp = createRateLimiter(5, 15 * 60_000);
 
@@ -65,7 +66,9 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
 
     const isSuperAdmin = data.phone === superAdminPhone();
     const fixed = fixedCodeFor(data.phone);
-    const lockKey = `otp:${data.phone}`;
+    const { getRequestIP } = await import("@tanstack/react-start/server");
+    const ip = (getRequestIP({ xForwardedFor: true }) ?? "unknown").split(",")[0]!.trim();
+    const lockKey = `otp:${data.phone}:${ip}`;
     if (!failedOtp.peek(lockKey)) {
       throw new Error("Too many wrong codes. Please wait 15 minutes and try again.");
     }
@@ -100,5 +103,7 @@ export const verifyLoginOtp = createServerFn({ method: "POST" })
         throw new Error("Access disabled. Your account is not active. Please contact your administrator.");
       }
     }
-    return mintPhoneSession(data.phone);
+    const session = await mintPhoneSession(data.phone);
+    failedOtp.reset(lockKey);
+    return session;
   });

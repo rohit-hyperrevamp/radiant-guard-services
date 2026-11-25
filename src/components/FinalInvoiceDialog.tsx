@@ -101,9 +101,11 @@ export function FinalInvoiceDialog({
 
   const resolveSeries = (state: string | null) => {
     const list = (seriesQ.data ?? []).filter((s) => s.enabled);
-    // NOTE (review I3): an unconfigured state silently falls back to the MH series here
-    // and in the numbering SQL; left unchanged pending a decision.
-    return list.find((s) => norm(s.state_name) === norm(state)) ?? list.find((s) => s.state_code === "MH") ?? null;
+    // A site in a state with no series must NOT borrow the Maharashtra series
+    // (wrong state's numbering next to that state's GSTIN). Only a site with no
+    // billing state at all uses the head-office (MH) series.
+    if (!String(state ?? "").trim()) return list.find((s) => s.state_code === "MH") ?? null;
+    return list.find((s) => norm(s.state_name) === norm(state)) ?? null;
   };
 
   // Hard stop: a selection spanning states can never become one invoice.

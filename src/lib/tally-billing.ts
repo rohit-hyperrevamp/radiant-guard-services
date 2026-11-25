@@ -87,6 +87,9 @@ export function buildTallyVoucherRows(args: {
   /** Printed (rounded) grand total. When given, a "Round Off" additional ledger
    *  on the last row brings the voucher total to exactly this amount. */
   grandTotal?: number;
+  /** Round the voucher to whole rupees (like the printed grand total) when the
+   *  exact printed total isn't at hand. */
+  roundToRupee?: boolean;
 }): Record<string, unknown>[] {
   const { unit, companyState, periodStart, periodEnd, serviceTypeName } = args;
   const lines: TallyBillingLine[] = [
@@ -193,9 +196,9 @@ export function buildTallyVoucherRows(args: {
       "TALLYIMPORTSTATUS": "",
     } satisfies Record<string, unknown>;
   });
-  if (args.grandTotal != null && rows.length > 0) {
+  if ((args.grandTotal != null || args.roundToRupee) && rows.length > 0) {
     const voucherTotal = r2(rows.reduce((sum, row) => sum + (Number(row["Total"]) || 0), 0));
-    let roundOff = r2(args.grandTotal - voucherTotal);
+    let roundOff = r2((args.grandTotal ?? Math.round(voucherTotal)) - voucherTotal);
     // Never hide a real pricing difference inside round-off: beyond ₹1 fall back
     // to plain rupee rounding of the voucher itself.
     if (Math.abs(roundOff) > 1) roundOff = r2(Math.round(voucherTotal) - voucherTotal);

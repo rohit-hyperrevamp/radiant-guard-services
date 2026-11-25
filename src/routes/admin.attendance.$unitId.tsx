@@ -3636,6 +3636,9 @@ function MusterRollPage() {
           if (raw == null || String(raw).trim() === "") continue;
           // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
           const cell = String(raw).trim().toUpperCase();
+          // Common "nothing here" placeholders are treated as blank, as before —
+          // only genuinely unreadable values stop the import.
+          if (/^(?:[-–—.]+|N\/?A|NIL)$/.test(cell)) continue;
           const m = cell.match(/^([A-Z]+|(?=,))(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
           if (!m) {
             unparsed.push(`${h.date.slice(8, 10)}: "${String(raw).trim()}"`);

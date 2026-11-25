@@ -238,6 +238,8 @@ export async function processPayrollRun(args: {
       const amount = Math.round((Number(a.amount) || 0) * 100) / 100;
       if (amount <= 0) continue;
       additionRows.push({
+        // Site-scoped like deductions: the posting RPC checks it matches the run.
+        unit_id: unitId,
         candidate_id: r.candidateId,
         addition_type_id: pickAdditionTypeId(a.name, additionTypes),
         addition_name: a.name,

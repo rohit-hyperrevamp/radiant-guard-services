@@ -158,6 +158,12 @@ BEGIN
     IF NEW.punch_date >= (now() AT TIME ZONE 'Asia/Kolkata')::date THEN
       RETURN NEW;
     END IF;
+    -- A night shift that started yesterday is still running: don't mark it
+    -- Absent while the punch is open and under 16 hours old (the app's
+    -- MAX_OPEN_SHIFT_HOURS window). Check-out will record the real code.
+    IF NEW.check_in_at IS NOT NULL AND now() - NEW.check_in_at <= interval '16 hours' THEN
+      RETURN NEW;
+    END IF;
     _code := 'A';
   ELSE
     _hours := GREATEST(0, EXTRACT(EPOCH FROM (NEW.check_out_at - NEW.check_in_at))::numeric / 3600);

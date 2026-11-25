@@ -773,7 +773,11 @@ export function invoiceUnitTaxable(result: InvoiceUnitResult, ctx: Omit<InvoiceM
     const billed = r2(actual);
     const partExtras = resolveExtras(extras, billed).filter((c) => c.enabled && (!isSplit(split) || split.assign.extras === p.key));
     const extrasTotal = r2(partExtras.reduce((s, c) => s + c.amount, 0));
-    return { part: p.key, billed, extras: extrasTotal, taxable: r2(billed + extrasTotal) };
+    const extraLines = partExtras.map((c) => ({
+      description: String((c as { description?: unknown }).description ?? "") || "Extra charge",
+      amount: c.amount,
+    }));
+    return { part: p.key, billed, extras: extrasTotal, extraLines, taxable: r2(billed + extrasTotal) };
   });
   return { parts: out, taxable: r2(out.reduce((s, p) => s + p.taxable, 0)) };
 }
