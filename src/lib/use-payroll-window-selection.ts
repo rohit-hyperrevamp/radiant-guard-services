@@ -6,8 +6,13 @@ import {
   fetchPayrollWindowsByUnit,
   payrollAnchorForDate,
   payrollPeriodForMonth,
+  prefetchActiveContractWindows,
   shiftPayrollAnchor,
+  type PayrollWindow,
 } from "@/lib/payroll-period";
+import { PENDING_WINDOWS, prefetchSavedPeriods } from "@/lib/use-register-periods";
+
+const NO_WINDOWS: Map<string, PayrollWindow> = new Map();
 
 export function usePayrollWindowSelection(
   unitIds: string[],
@@ -32,6 +37,15 @@ export function usePayrollWindowSelection(
     year: new Date().getFullYear(),
   }));
   const anchor = storedAnchor;
+  // While the unit roster is still loading, start the reads that do not need
+  // unit ids (many-units contract windows, the month's saved sheet dates) so
+  // they run in parallel with the roster RPC instead of after it.
+  const rosterPending = stableIds.length === 0;
+  useEffect(() => {
+    if (!rosterPending) return;
+    prefetchActiveContractWindows();
+    prefetchSavedPeriods(anchor.year, anchor.monthIdx);
+  }, [rosterPending, anchor.year, anchor.monthIdx]);
   // Links that carry window/month/year in the URL win once, on arrival.
   useEffect(() => {
     if (initial?.window) setSelectedKey(initial.window);
@@ -77,7 +91,8 @@ export function usePayrollWindowSelection(
     options,
     selectedKey: selectedKey === "all" ? "all" : (selectedWindow?.key ?? "all"),
     selectedWindow,
-    windowsByUnit: windowsQ.data ?? new Map(),
+    windowsByUnit: (windowsQ.data
+      ?? (stableIds.length > 0 && !windowsQ.isError ? PENDING_WINDOWS : NO_WINDOWS)) as Map<string, PayrollWindow>,
     unitIdsForWindow,
     isLoading: windowsQ.isLoading,
     selectWindow,

@@ -1,20 +1,24 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { fetchActiveClientIds } from "@/lib/active-clients";
 import { visibleClientRows } from "@/lib/client-visibility";
+import { buildSearchHay, compileSearch, type SearchHay } from "@/lib/search-match";
 
 /**
  * Shared unit roster used by the Attendance / Invoice / Payroll charters.
  *
- * This used to pull `units`, `candidates`, `candidate_units`,
- * `employee_scope_assignments`, `customers`, `designations` and
- * `client_contracts` page by page and join them in the browser. With ~4000
- * units that meant a dozen round trips through row-level policies, so the page
- * either crawled or timed out ("Could not load attendance units right now").
+ * One pre-joined payload from `get_attendance_charter_units(p_lite)` (gated by
+ * Access Control and cached server-side per scope), filtered to active clients.
+ * The active-client read and the RPC start together once the session is ready.
  *
- * It now reads one pre-joined payload from `get_attendance_charter_units()`
- * (~300ms server-side) and derives the small lookups locally. The last good
- * payload is kept in localStorage so the charter paints instantly on revisit
- * and refreshes quietly behind it.
+ * Lite mode returns the same unit rows without guard-name arrays (first paint);
+ * the full call carries names for search, the sheet picker and breakdowns.
+ *
+ * Nothing is written to browser storage: snapshots were never read back
+ * (`readCharterUnitsSnapshot` always returns null), so writing ~4000 rows to
+ * localStorage on every refresh was pure cost. Legacy copies are removed.
  */
 
 export type EmployeeRef = { id: string; name: string };
@@ -44,7 +48,10 @@ export type CharterUnitRow = {
   client_city?: string | null;
   contract_codes: string[];
   contract_end: string | null;
+  /** People deployed here (home unit or posting) — not scope assignments. */
   active_employee_count: number;
+  /** Deployed + scope-assigned people (= full security_guards length); present from the fast RPC. */
+  guard_count?: number;
   security_guards: EmployeeRef[];
 };
 
@@ -53,22 +60,17 @@ export type CharterPageData = {
   organizations: { id: string; name: string; code: string }[];
   employeesByCustomer: Record<string, ClientEmployee[]>;
   summary: { organizations: number; units: number; activeEmployees: number };
+  /** Distinct deployed people across every unit the RPC returned (null on an older DB). */
+  activeEmployeesDistinct: number | null;
+  /** True when this payload has no guard names (lite mode). */
+  lite: boolean;
 };
 
 export const CHARTER_UNITS_QK = ["charter-units-v3-active"] as const;
+export const CHARTER_UNITS_LITE_QK = ["charter-units-v3-active", "lite"] as const;
 
+// Legacy snapshot keys ("radiant:charter-units:*") from older builds.
 const SNAPSHOT_PREFIX = "radiant:charter-units";
-const SNAPSHOT_VERSION = "v4";
-
-/**
- * The fallback snapshot is owned by the signed-in user (keyed by auth id),
- * never carries guard names, and every other user's or older unkeyed copy
- * is removed on write and on sign-out — a shared device must not show the
- * previous person's roster.
- */
-export function charterSnapshotKey(owner: string): string {
-  return `${SNAPSHOT_PREFIX}:${SNAPSHOT_VERSION}:${owner}`;
-}
 
 function storage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -79,16 +81,15 @@ function storage(): Storage | null {
   }
 }
 
-/** Remove charter snapshots that don't belong to `keepOwner` (all when null). */
-export function clearCharterSnapshots(keepOwner: string | null = null) {
+/** Remove every legacy charter snapshot from this browser. */
+export function clearCharterSnapshots() {
   const store = storage();
   if (!store) return;
   try {
-    const keep = keepOwner ? charterSnapshotKey(keepOwner) : null;
     const stale: string[] = [];
     for (let i = 0; i < store.length; i++) {
       const key = store.key(i);
-      if (key && key.startsWith(SNAPSHOT_PREFIX) && key !== keep) stale.push(key);
+      if (key && key.startsWith(SNAPSHOT_PREFIX)) stale.push(key);
     }
     for (const key of stale) store.removeItem(key);
   } catch {
@@ -96,62 +97,14 @@ export function clearCharterSnapshots(keepOwner: string | null = null) {
   }
 }
 
-let authWatch = false;
-function watchIdentity() {
-  if (authWatch || typeof window === "undefined") return;
-  authWatch = true;
-  try {
-    supabase.auth.onAuthStateChange((_event, session) => {
-      clearCharterSnapshots(session?.user.id ?? null);
-    });
-  } catch {
-    authWatch = false;
-  }
-}
-
-async function currentOwner(): Promise<string | null> {
-  try {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.user.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function readSnapshot(owner: string | null): CharterPageData | null {
-  const store = storage();
-  if (!store || !owner) return null;
-  try {
-    const raw = store.getItem(charterSnapshotKey(owner));
-    if (!raw) return null;
-    const rows = JSON.parse(raw) as CharterUnitRow[];
-    if (!Array.isArray(rows)) return null;
-    return buildPageData(rows);
-  } catch {
-    return null;
-  }
-}
-
-function writeSnapshot(owner: string | null, rows: CharterUnitRow[]) {
-  const store = storage();
-  if (!store) return;
-  clearCharterSnapshots(owner);
-  if (!owner) return;
-  try {
-    // Unit facts only: employee names stay out of persistent storage.
-    const slim = rows.map((row) => ({ ...row, security_guards: [] }));
-    store.setItem(charterSnapshotKey(owner), JSON.stringify(slim));
-  } catch {
-    /* storage full or unavailable — cache is optional */
-  }
-}
+let legacyCleared = false;
 
 export function readCharterUnitsSnapshot(): CharterPageData | null {
   // Browser snapshots cannot establish the current client status.
   return null;
 }
 
-function buildPageData(rows: CharterUnitRow[]): CharterPageData {
+function buildPageData(rows: CharterUnitRow[], activeEmployeesDistinct: number | null = null, lite = false): CharterPageData {
   const units = rows.map((u) => ({
     ...u,
     location: u.location || "",
@@ -162,6 +115,7 @@ function buildPageData(rows: CharterUnitRow[]): CharterPageData {
     contract_codes: u.contract_codes ?? [],
     security_guards: u.security_guards ?? [],
     active_employee_count: Number(u.active_employee_count ?? 0),
+    ...(u.guard_count != null ? { guard_count: Number(u.guard_count) } : {}),
   }));
 
   const organizations = Array.from(
@@ -201,22 +155,156 @@ function buildPageData(rows: CharterUnitRow[]): CharterPageData {
     summary: {
       organizations: organizations.length,
       units: units.length,
-      activeEmployees: units.reduce((s, r) => s + r.active_employee_count, 0),
+      activeEmployees: activeEmployeesDistinct ?? units.reduce((s, r) => s + r.active_employee_count, 0),
     },
+    activeEmployeesDistinct,
+    lite,
   };
 }
 
-export async function fetchCharterUnits(): Promise<CharterPageData> {
-  watchIdentity();
-  const [activeIds, owner] = await Promise.all([fetchActiveClientIds(), currentOwner()]);
-  const { data, error } = await supabase.rpc("get_attendance_charter_units" as never);
+type CharterPayload = { units?: CharterUnitRow[]; active_employees?: number | null };
+
+/** PostgREST "function not found / no matching signature" — DB migration not applied yet. */
+export function isMissingRpcSignature(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST202" || error.code === "42883") return true;
+  return /could not find the function|function .* does not exist/i.test(error.message ?? "");
+}
+
+async function callCharterRpc(lite: boolean): Promise<{ payload: CharterPayload; lite: boolean }> {
+  await supabaseSessionReady();
+  const { data, error } = await supabase.rpc("get_attendance_charter_units" as never, { p_lite: lite } as never);
+  if (!error) return { payload: (data ?? {}) as CharterPayload, lite };
+  // Rolling deploy: an older database only has the zero-argument version.
+  if (!isMissingRpcSignature(error)) throw error;
+  const legacy = await supabase.rpc("get_attendance_charter_units" as never);
+  if (legacy.error) throw legacy.error;
+  return { payload: (legacy.data ?? {}) as CharterPayload, lite: false };
+}
+
+async function loadCharterUnits(lite: boolean): Promise<CharterPageData> {
+  if (!legacyCleared) {
+    legacyCleared = true;
+    clearCharterSnapshots();
+  }
+  // Active-client ids and the roster RPC run in parallel (both wait for the session).
+  const [activeIds, result] = await Promise.all([fetchActiveClientIds(), callCharterRpc(lite)]);
+  const all = result.payload.units ?? [];
+  const rows = visibleClientRows(all, activeIds);
+  // The server total covers every row it returned; it is exact for the visible
+  // list only when no row was dropped here.
+  const total = result.payload.active_employees;
+  const distinct = typeof total === "number" && rows.length === all.length ? total : null;
+  return buildPageData(rows, distinct, result.lite);
+}
+
+/** Full roster, including guard names (search, sheet picker, breakdowns). */
+export function fetchCharterUnits(): Promise<CharterPageData> {
+  return loadCharterUnits(false);
+}
+
+/** Same unit rows without guard names — for first paint and count-only views. */
+export function fetchCharterUnitsLite(): Promise<CharterPageData> {
+  return loadCharterUnits(true);
+}
+
+/** Small stable hash so a large id list can key a query without a huge string. */
+export function unitIdsKey(ids: readonly string[]): string {
+  const sorted = Array.from(new Set(ids)).sort();
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (const id of sorted) {
+    for (let i = 0; i < id.length; i++) {
+      const c = id.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 0x01000193);
+      h2 = Math.imul(h2 ^ c, 0x5bd1e995);
+    }
+    h1 = Math.imul(h1 ^ 0x2c, 0x01000193);
+  }
+  return `${sorted.length}:${(h1 >>> 0).toString(36)}${(h2 >>> 0).toString(36)}`;
+}
+
+/**
+ * Value for the "Active employees" tile: distinct deployed people across
+ * `units` (never a per-unit sum, which double-counts multi-site staff).
+ * Uses the payload total when `units` is the whole roster, else asks the
+ * server for that subset. Falls back to the per-unit sum on an older database.
+ */
+export function pickActiveEmployees(
+  units: ReadonlyArray<Pick<CharterUnitRow, "id" | "active_employee_count">>,
+  data: { units: ReadonlyArray<unknown>; activeEmployeesDistinct: number | null } | undefined,
+  subsetTotal: number | null | undefined,
+): number {
+  if (data?.activeEmployeesDistinct != null && units.length === data.units.length) return data.activeEmployeesDistinct;
+  if (typeof subsetTotal === "number") return subsetTotal;
+  return units.reduce((s, u) => s + (u.active_employee_count || 0), 0);
+}
+
+export async function fetchCharterActiveEmployeeTotal(unitIds: string[]): Promise<number | null> {
+  if (!unitIds.length) return 0;
+  await supabaseSessionReady();
+  const { data, error } = await supabase.rpc("charter_active_employee_total" as never, { p_unit_ids: unitIds } as never);
   if (error) {
-    const cached = readSnapshot(owner);
-    if (cached) return buildPageData(visibleClientRows(cached.units, activeIds));
+    if (isMissingRpcSignature(error)) return null;
     throw error;
   }
-  const payload = (data ?? {}) as { units?: CharterUnitRow[] };
-  const rows = visibleClientRows(payload.units ?? [], activeIds);
-  writeSnapshot(owner, rows);
-  return buildPageData(rows);
+  return Number(data ?? 0);
+}
+
+/** Distinct deployed people across the given units (see pickActiveEmployees). */
+export function useCharterActiveEmployees(
+  units: ReadonlyArray<Pick<CharterUnitRow, "id" | "active_employee_count">>,
+  data: { units: ReadonlyArray<unknown>; activeEmployeesDistinct: number | null } | undefined,
+): number {
+  const ids = useMemo(() => units.map((u) => u.id), [units]);
+  const key = useMemo(() => unitIdsKey(ids), [ids]);
+  const coversAll = data?.activeEmployeesDistinct != null && units.length === data.units.length;
+  const q = useQuery({
+    queryKey: ["charter-active-employee-total", key],
+    enabled: !!data && !coversAll && ids.length > 0,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
+    queryFn: () => fetchCharterActiveEmployeeTotal(ids),
+  });
+  return pickActiveEmployees(units, data, coversAll ? null : q.data);
+}
+
+type SearchableUnit = {
+  name?: string | null;
+  code?: string | null;
+  customer_name?: string | null;
+  customer_code?: string | null;
+  location?: string | null;
+  contract_codes?: readonly string[] | null;
+  security_guards?: ReadonlyArray<{ name: string }> | null;
+};
+
+const hayCache = new WeakMap<object, SearchHay>();
+
+function unitHay(u: SearchableUnit): SearchHay {
+  let hay = hayCache.get(u);
+  if (!hay) {
+    hay = buildSearchHay([
+      u.customer_name,
+      u.customer_code,
+      u.name,
+      u.code,
+      u.location,
+      ...(u.contract_codes ?? []),
+      ...(u.security_guards ?? []).map((g) => g.name),
+    ]);
+    hayCache.set(u, hay);
+  }
+  return hay;
+}
+
+/**
+ * Register search (shared search-match rules: any word order, case-insensitive):
+ * client, unit, location, contract codes and deployed guard names. Search text
+ * is built once per row object and reused on every keystroke.
+ */
+export function filterCharterUnitsBySearch<T extends SearchableUnit>(units: readonly T[], query: string): T[] {
+  const test = compileSearch(query);
+  if (!test) return units.slice();
+  return units.filter((u) => test(unitHay(u)));
 }

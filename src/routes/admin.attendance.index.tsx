@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/lib/use-session-state";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Search, X } from "lucide-react";
 
@@ -14,7 +14,14 @@ import { ListSkeleton } from "@/components/Skeletons";
 import { AttendanceCharter } from "@/components/AttendanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
-import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
+import {
+  CHARTER_UNITS_LITE_QK,
+  CHARTER_UNITS_QK,
+  fetchCharterUnits,
+  fetchCharterUnitsLite,
+  filterCharterUnitsBySearch,
+  type CharterPageData,
+} from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 
 
@@ -64,6 +71,7 @@ type UnitRow = {
   contract_codes: string[];
   contract_end: string | null;
   active_employee_count: number;
+  guard_count?: number;
   security_guards: EmployeeRef[];
 };
 
@@ -103,14 +111,29 @@ function AttendanceUnitsPage() {
 
 
 
-  const { data, isLoading, error } = useQuery({
+  // First paint from the lite roster (no guard names); the full roster (names
+  // for search) follows right after, or is used at once when already cached.
+  const queryClient = useQueryClient();
+  const [hadFull] = useState(() => queryClient.getQueryData<CharterPageData>(CHARTER_UNITS_QK) !== undefined);
+  const liteQ = useQuery({
+    queryKey: CHARTER_UNITS_LITE_QK,
+    queryFn: fetchCharterUnitsLite,
+    enabled: !hadFull,
+    staleTime: 60_000,
+    // A failure here just hands over to the full roster below (which retries).
+    retry: false,
+  });
+  const fullQ = useQuery({
     queryKey: CHARTER_UNITS_QK,
     queryFn: fetchCharterUnits,
-    initialData: () => readCharterUnitsSnapshot() ?? undefined,
+    enabled: hadFull || liteQ.isFetched,
     placeholderData: (prev) => prev,
     staleTime: 60_000,
     refetchOnMount: "always",
   });
+  const data: CharterPageData | undefined = fullQ.data ?? liteQ.data;
+  const error = data ? null : (fullQ.error ?? null);
+  const isLoading = !data && !error;
 
 
   const foScope = useOperationalUnitScope();
@@ -144,8 +167,8 @@ function AttendanceUnitsPage() {
   }, [data?.organizations, windowUnits]);
   const summary = useMemo(
     () => (foScope.isScoped
-      ? { organizations: organizations.length, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }
-      : { organizations: new Set(windowUnits.map((u) => u.customer_id)).size, units: windowUnits.length, activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0) }),
+      ? { organizations: organizations.length, units: windowUnits.length }
+      : { organizations: new Set(windowUnits.map((u) => u.customer_id)).size, units: windowUnits.length }),
     [foScope.isScoped, organizations, windowUnits],
   );
 
@@ -153,29 +176,17 @@ function AttendanceUnitsPage() {
 
 
 
+  // Shared search rules (src/lib/search-match.ts), deferred for large rosters.
+  const deferredQ = useDeferredValue(q);
   const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return windowUnits.filter((u) => {
+    const byFilters = windowUnits.filter((u) => {
       if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
       if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
       if (stateFilter.length > 0 && !stateFilter.includes(stOf(u))) return false;
-      if (term) {
-        const hay = [
-          u.customer_name,
-          u.customer_code,
-          u.name,
-          u.code,
-          u.location,
-          ...u.contract_codes,
-          ...u.security_guards.map((g) => g.name),
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(term)) return false;
-      }
       return true;
     });
-  }, [q, orgFilter, unitFilter, stateFilter, windowUnits]);
+    return filterCharterUnitsBySearch(byFilters, deferredQ);
+  }, [deferredQ, orgFilter, unitFilter, stateFilter, windowUnits]);
 
   const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || stateFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
 

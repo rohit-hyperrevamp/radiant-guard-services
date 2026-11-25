@@ -13,7 +13,7 @@ import { ListSkeleton } from "@/components/Skeletons";
 import { FinanceCharter } from "@/components/FinanceCharter";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
-import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
+import { CHARTER_UNITS_QK, fetchCharterUnits, useCharterActiveEmployees } from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import type { MoneyStatus } from "@/lib/period-status";
@@ -85,7 +85,6 @@ function PayrollUnitsPage() {
   const summary = {
     organizations: organizations.length,
     units: windowUnits.length,
-    activeEmployees: windowUnits.reduce((s, r) => s + r.active_employee_count, 0),
   };
 
   const filtered = useMemo(() => {
@@ -102,6 +101,10 @@ function PayrollUnitsPage() {
       return true;
     });
   }, [q, orgFilter, unitFilter, windowUnits]);
+
+  // "Active employees" tile: distinct deployed people across the listed sites
+  // (a per-site sum double-counts multi-site staff).
+  const activeEmployees = useCharterActiveEmployees(filtered, data);
 
   const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
 
@@ -165,6 +168,7 @@ function PayrollUnitsPage() {
               query={q}
               onQueryChange={setQ}
               organizationCount={summary.organizations}
+              activeEmployees={activeEmployees}
               windowsByUnit={windowsByUnit}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
