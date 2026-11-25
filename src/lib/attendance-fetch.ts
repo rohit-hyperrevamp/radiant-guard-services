@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fetchInChunks } from "@/lib/supabase-batch";
+import { chunkIds, fetchAllPagesParallel, mapPool, runBulk } from "@/lib/supabase-batch";
 
 export type AttendanceEntryFetchRow = {
   unit_id?: string;
@@ -27,20 +27,28 @@ export async function fetchAttendanceEntriesForPeriod(params: {
   const rows: AttendanceEntryFetchRow[] = [];
   const selectCols = `id, ${params.includeUnitId ? "unit_id, " : ""}candidate_id, designation_id, shift_hours, is_reliever, entry_date, code, ot_hours`;
 
-  const fetched = await fetchInChunks<AttendanceEntryFetchRow>(unitIds, (chunk, from, to) =>
-    client
-      .from("attendance_entries")
-      .select(selectCols)
-      .gte("entry_date", params.start)
-      .lte("entry_date", params.end)
-      .in("unit_id", chunk)
-      // A unique tie-breaker is mandatory: with only entry_date, rows sharing a
-      // date are returned in an unstable order across 1000-row pages, so some
-      // days were silently skipped and others repeated (MIS 25 vs sheet 26).
-      .order("entry_date", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to),
+  // Per id chunk: page 1 carries the exact count, then the remaining 1000-row
+  // ranges are requested together (each through the tab-wide pool) instead of
+  // one after another — a 6k-row month is 2 round trips, not 6.
+  const pages = await mapPool(chunkIds(unitIds), 8, (chunk) =>
+    fetchAllPagesParallel<AttendanceEntryFetchRow>(
+      (from, to, first) =>
+        client
+          .from("attendance_entries")
+          .select(selectCols, first ? { count: "exact" } : undefined)
+          .gte("entry_date", params.start)
+          .lte("entry_date", params.end)
+          .in("unit_id", chunk)
+          // A unique tie-breaker is mandatory: with only entry_date, rows sharing a
+          // date are returned in an unstable order across 1000-row pages, so some
+          // days were silently skipped and others repeated (MIS 25 vs sheet 26).
+          .order("entry_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      { run: runBulk },
+    ),
   );
+  const fetched = pages.flat();
   // Belt and braces: one row per (unit, person, line, day) — never double-count.
   const seen = new Set<string>();
   for (const r of fetched as (AttendanceEntryFetchRow & { id?: string })[]) {

@@ -111,7 +111,7 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import { clearReferenceCache } from "./reference-data";
 import { computeInvoiceUnit, loadFormulaMastersFor, loadInvoiceGlobals, loadInvoiceUnitData } from "./invoice-engine";
-import { computePayrollUnitRows, type PayrollUnitInput } from "./payroll-engine";
+import { computePayrollUnitRows, prefetchPayrollUnit, type PayrollUnitInput } from "./payroll-engine";
 
 const START = "2026-09-01";
 const END = "2026-09-30";
@@ -153,6 +153,14 @@ describe("payroll detail loader", () => {
   });
   it("own-wage (non-billable) payroll rows are unchanged", async () => {
     expect(stable(await computePayrollUnitRows(input(false)))).toMatchSnapshot();
+  });
+  it("reads started early by the page give the same rows", async () => {
+    for (const billable of [true, false]) {
+      const direct = stable(await computePayrollUnitRows(input(billable)));
+      clearReferenceCache();
+      const viaPrefetch = stable(await computePayrollUnitRows(input(billable), undefined, prefetchPayrollUnit(U, START, END)));
+      expect(viaPrefetch).toEqual(direct);
+    }
   });
 });
 

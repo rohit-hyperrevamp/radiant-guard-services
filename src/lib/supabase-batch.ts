@@ -162,3 +162,56 @@ export async function fetchForIds<T>(
   const rows = await runBulk(() => fetchAllPages<T>(options.scan));
   return rows.filter((row) => wanted.has(String(options.idOf(row) ?? "")));
 }
+
+type CountedQueryResult = QueryResult & { count?: number | null };
+
+/**
+ * Page through an ordered query with the later pages fetched in parallel.
+ *
+ * `build(from, to, first)` must return the same ordered query for every page
+ * (a unique tie-breaker in `.order()` is mandatory, otherwise pages overlap or
+ * skip rows); on the first page (`first === true`) it should request
+ * `{ count: "exact" }`. Once the total is known the remaining ranges run at
+ * once, each through `run` (e.g. `runBulk`, so the tab-wide pool still caps
+ * concurrency — pass a per-request runner, never one that wraps this call).
+ * Without a count, or if the last page comes back full (rows were added
+ * meanwhile), it carries on serially — it never returns fewer rows than
+ * `fetchAllPages`.
+ */
+export async function fetchAllPagesParallel<T>(
+  build: (from: number, to: number, first: boolean) => PromiseLike<CountedQueryResult>,
+  options?: { pageSize?: number; run?: <R>(task: () => PromiseLike<R>) => Promise<R> },
+): Promise<T[]> {
+  const size = Math.max(1, options?.pageSize ?? PAGE_SIZE);
+  const run = options?.run ?? (<R>(task: () => PromiseLike<R>) => Promise.resolve(task()));
+  const first = await run(() => build(0, size - 1, true));
+  if (first.error) throw first.error;
+  const rows: T[] = [...((first.data ?? []) as T[])];
+  if (rows.length < size) return rows;
+
+  let nextFrom = size;
+  const total = typeof first.count === "number" ? first.count : null;
+  if (total != null && total > size) {
+    const starts: number[] = [];
+    for (let from = size; from < total; from += size) starts.push(from);
+    const pages = await Promise.all(starts.map((from) => run(() => build(from, from + size - 1, false))));
+    let lastFull = true;
+    for (const page of pages) {
+      if (page.error) throw page.error;
+      const data = (page.data ?? []) as T[];
+      rows.push(...data);
+      lastFull = data.length >= size;
+    }
+    if (!lastFull) return rows;
+    nextFrom = starts[starts.length - 1] + size;
+  }
+  // Serial tail: unknown count, or the result grew past the counted end.
+  for (let from = nextFrom; ; from += size) {
+    const page = await run(() => build(from, from + size - 1, false));
+    if (page.error) throw page.error;
+    const data = (page.data ?? []) as T[];
+    rows.push(...data);
+    if (data.length < size) break;
+  }
+  return rows;
+}

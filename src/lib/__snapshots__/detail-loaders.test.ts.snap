@@ -1575,9 +1575,7 @@ exports[`payroll detail loader > own-wage (non-billable) payroll rows are unchan
       "amount": 0,
       "otherGross": 0,
       "otherPt": 0,
-      "otherSites": [
-        "u1",
-      ],
+      "otherSites": [],
       "regionLabel": null,
       "slabId": "pt1",
       "source": "resolved",
@@ -1701,9 +1699,7 @@ exports[`payroll detail loader > own-wage (non-billable) payroll rows are unchan
       "amount": 0,
       "otherGross": 0,
       "otherPt": 0,
-      "otherSites": [
-        "u1",
-      ],
+      "otherSites": [],
       "regionLabel": null,
       "slabId": "pt1",
       "source": "resolved",
@@ -1803,9 +1799,7 @@ exports[`payroll detail loader > own-wage (non-billable) payroll rows are unchan
       "amount": 0,
       "otherGross": 0,
       "otherPt": 0,
-      "otherSites": [
-        "u1",
-      ],
+      "otherSites": [],
       "regionLabel": null,
       "slabId": "pt1",
       "source": "resolved",

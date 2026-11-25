@@ -209,3 +209,32 @@ export async function fetchLiveSnapshot(unitId: string, periodStart: string, per
   const live = await fetchAttendanceEntriesForPeriod({ unitId, start: periodStart, end: periodEnd });
   return live.map(toSnapshot);
 }
+
+/** The same snapshot `fetchLiveSnapshot` builds, from rows already read. */
+export function liveSnapshotFrom(rows: Parameters<typeof toSnapshot>[0][]): AttendanceSnapshotEntry[] {
+  return rows.map(toSnapshot);
+}
+
+/**
+ * The newest frozen version below `beforeVersion` (what
+ * `fetchAttendanceVersions(...).filter(v < beforeVersion).sort(desc)[0]`
+ * picked), reading one row instead of every version's full snapshot.
+ */
+export async function fetchPreviousAttendanceVersion(
+  unitId: string,
+  periodStart: string,
+  periodEnd: string,
+  beforeVersion: number,
+): Promise<AttendanceVersionRow | null> {
+  const { data, error } = await supabase
+    .from("attendance_sheet_versions" as never)
+    .select("id, unit_id, period_start, period_end, version, status, reason, snapshot, created_at, approved_at")
+    .eq("unit_id", unitId)
+    .eq("period_start", periodStart)
+    .eq("period_end", periodEnd)
+    .lt("version", beforeVersion)
+    .order("version", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return ((data ?? [])[0] ?? null) as unknown as AttendanceVersionRow | null;
+}

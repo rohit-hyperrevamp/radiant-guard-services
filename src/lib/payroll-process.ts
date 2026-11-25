@@ -163,6 +163,37 @@ function buildSnapshots(args: {
   return payload;
 }
 
+type PayrollType = { id: string; code: string; name: string };
+
+/**
+ * Signed-in user id (from the local session — the atomic RPC re-checks auth
+ * under invoker RLS) and the deduction/addition type masters, read together;
+ * plus any caller check (`preflight`, e.g. the PT re-check) run alongside.
+ * A failed preflight is reported first, exactly as when it ran before.
+ */
+export async function loadPostingContext(preflight?: Promise<unknown>): Promise<{ uid: string; deductionTypes: PayrollType[]; additionTypes: PayrollType[] }> {
+  const [pre, session, types] = await Promise.allSettled([
+    preflight ?? Promise.resolve(),
+    supabase.auth.getSession(),
+    Promise.all([
+      supabase.from("deduction_types").select("id, code, name"),
+      supabase.from("addition_types").select("id, code, name"),
+    ]),
+  ]);
+  if (pre.status === "rejected") throw pre.reason;
+  if (session.status === "rejected") throw session.reason;
+  const uid = session.value.data.session?.user?.id;
+  if (!uid) throw new Error("Sign in before saving payroll");
+  if (types.status === "rejected") throw asError(types.reason, "Could not load payroll types");
+  const [{ data: dTypes, error: dError }, { data: aTypes, error: aError }] = types.value;
+  if (dError || aError) throw asError(dError || aError, "Could not load payroll types");
+  return {
+    uid,
+    deductionTypes: (dTypes ?? []) as PayrollType[],
+    additionTypes: (aTypes ?? []) as PayrollType[],
+  };
+}
+
 /** One database transaction; never fall back to separate ledger writes. */
 async function savePosting(payload: Record<string, unknown>): Promise<void> {
   const { error } = await supabase.rpc(
@@ -182,6 +213,8 @@ export async function processPayrollRun(args: {
   heldCandidateIds: string[];
   holdReason?: string;
   version?: number;
+  /** Caller check that must pass before saving (runs alongside the type reads). */
+  preflight?: Promise<unknown>;
 }): Promise<ProcessResult> {
   const { runId, unitId, unitLabel, periodStart, periodEnd, rows } = args;
   const lineKeys = new Set<string>();
@@ -193,17 +226,7 @@ export async function processPayrollRun(args: {
   const held = new Set(args.heldCandidateIds);
   const payable = rows.filter((r) => !held.has(r.candidateId));
 
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth?.user?.id;
-  if (!uid) throw new Error("Sign in before saving payroll");
-
-  const [{ data: dTypes, error: dError }, { data: aTypes, error: aError }] = await Promise.all([
-    supabase.from("deduction_types").select("id, code, name"),
-    supabase.from("addition_types").select("id, code, name"),
-  ]);
-  if (dError || aError) throw asError(dError || aError, "Could not load payroll types");
-  const deductionTypes = (dTypes ?? []) as { id: string; code: string; name: string }[];
-  const additionTypes = (aTypes ?? []) as { id: string; code: string; name: string }[];
+  const { uid, deductionTypes, additionTypes } = await loadPostingContext(args.preflight);
   if (deductionTypes.length === 0) throw new Error("No deduction types configured");
   if (additionTypes.length === 0) throw new Error("No addition types configured");
 
@@ -436,17 +459,7 @@ export async function processPayrollAmendment(args: {
       timeZone: "UTC",
     });
 
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth?.user?.id;
-  if (!uid) throw new Error("Sign in before saving payroll");
-
-  const [{ data: dTypes, error: dError }, { data: aTypes, error: aError }] = await Promise.all([
-    supabase.from("deduction_types").select("id, code, name"),
-    supabase.from("addition_types").select("id, code, name"),
-  ]);
-  if (dError || aError) throw asError(dError || aError, "Could not load payroll types");
-  const deductionTypes = (dTypes ?? []) as { id: string; code: string; name: string }[];
-  const additionTypes = (aTypes ?? []) as { id: string; code: string; name: string }[];
+  const { uid, deductionTypes, additionTypes } = await loadPostingContext();
   if (!deductionTypes.length || !additionTypes.length)
     throw new Error("Deduction/addition types not configured");
 
