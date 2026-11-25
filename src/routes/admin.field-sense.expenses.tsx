@@ -110,15 +110,11 @@ function ExpenseManagerPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const qc = useQueryClient();
 
-  // Live updates: refetch when FO app writes a new distance / punch / visit.
+  // Live updates: visits over realtime; punches (high volume, not in the
+  // realtime publication) are picked up by the 60 s poll on dataQ below.
   useEffect(() => {
     const ch = supabase
       .channel("expense-manager-live")
-      .on(
-        "postgres_changes" as never,
-        { event: "*", schema: "public", table: "self_attendance_punches" } as never,
-        () => qc.invalidateQueries({ queryKey: ["expense-manager"] }),
-      )
       .on(
         "postgres_changes" as never,
         { event: "*", schema: "public", table: "field_visits" } as never,
@@ -133,6 +129,7 @@ function ExpenseManagerPage() {
   const dataQ = useQuery({
     queryKey: ["expense-manager", resolved.start, resolved.end],
     staleTime: 30_000,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const [foRes, punchRes, visitRes, trackRes, unitRes] = await Promise.all([
         supabase

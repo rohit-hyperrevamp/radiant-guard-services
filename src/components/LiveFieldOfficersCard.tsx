@@ -1,17 +1,8 @@
-import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Battery, BatteryCharging, ExternalLink, MapPin, Radio, Signal, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { mapsUrl } from "@/lib/self-attendance";
 import { cn } from "@/lib/utils";
-import { createThrottle, REALTIME_THROTTLE_MS } from "@/lib/dashboard-realtime";
-
-function realtimeChannelName() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return `live-fo-punches-${crypto.randomUUID()}`;
-  }
-  return `live-fo-punches-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 type LivePunch = {
   id: string;
@@ -51,7 +42,7 @@ export const LIVE_FIELD_OFFICERS_QK = "live-field-officers";
 /**
  * Field officers checked in today and not checked out. Shared by the
  * "Field officers on duty" card and the dashboard's live count (same key,
- * one request). Polls once a minute; realtime adds at most one refresh / 30 s.
+ * one request). Polls once a minute (punches are not streamed over realtime).
  */
 export function useLiveFieldOfficers(enabled = true) {
   return useQuery({
@@ -78,35 +69,10 @@ export function useLiveFieldOfficers(enabled = true) {
 }
 
 export function LiveFieldOfficersCard() {
-  const qc = useQueryClient();
   const q = useLiveFieldOfficers();
 
-  useEffect(() => {
-    let ch: ReturnType<typeof supabase.channel> | null = null;
-    // Location beacons update punches every few seconds. Refresh this card at
-    // most once per 30 s, and only its own query.
-    const throttle = createThrottle(
-      () => void qc.invalidateQueries({ queryKey: [LIVE_FIELD_OFFICERS_QK, today()], exact: true }),
-      REALTIME_THROTTLE_MS,
-    );
-    try {
-      ch = supabase.channel(realtimeChannelName());
-      ch.on(
-        "postgres_changes",
-        // Only today's rows matter to this card.
-        { event: "*", schema: "public", table: "self_attendance_punches", filter: `punch_date=eq.${today()}` },
-        throttle.run,
-      ).subscribe();
-    } catch (error) {
-      console.error("Live field officer realtime setup failed", error);
-      ch = null;
-    }
-
-    return () => {
-      throttle.cancel();
-      if (ch) void supabase.removeChannel(ch);
-    };
-  }, [qc]);
+  // self_attendance_punches is not in the realtime publication (high volume);
+  // useLiveFieldOfficers polls once a minute instead.
 
   const rows = q.data ?? [];
 

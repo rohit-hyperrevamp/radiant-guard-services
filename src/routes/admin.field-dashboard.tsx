@@ -233,6 +233,8 @@ function FieldOfficerDashboard() {
     queryKey: ["fo-base-v1", phone],
     enabled: !!phone,
     staleTime: 60_000,
+    // Guard postings (candidate_units) are not streamed over realtime: re-read every 5 min.
+    refetchInterval: 5 * 60_000,
     refetchOnWindowFocus: true,
     // Last known name/units paint immediately while the fresh read runs.
     initialData: () => readSnapshot<FoBase>(`fo-base:${phone}`) ?? undefined,
@@ -696,7 +698,6 @@ function FieldOfficerDashboard() {
           : { event: "*", schema: "public", table: "employee_scope_assignments" },
         throttle.run,
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, throttle.run)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "units" }, throttle.run)
       .subscribe();
     return () => {
