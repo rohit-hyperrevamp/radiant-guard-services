@@ -9,7 +9,6 @@ function widgetId(): string {
 }
 
 const MSG91_API = "https://control.msg91.com/api/v5";
-const OTP_RELAY_URL = "https://radiant-guard-services.lovable.app/api/public/otp-relay";
 export type OtpMode = "sms" | "fixed";
 
 /** Named users approved to sign in with a fixed code (last 4 digits of their phone). */
@@ -69,19 +68,6 @@ function msg91Error(message: string | undefined, fallback: string): string {
   return message || fallback;
 }
 
-async function relayOtp(action: "send" | "verify", phone: string, otp?: string): Promise<void> {
-  const response = await fetch(OTP_RELAY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-radiant-caller": "radiant-production-shell",
-    },
-    body: JSON.stringify({ action, phone, otp }),
-  });
-  const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
-  if (!response.ok) throw new Error(msg91Error(payload.message, "SMS service is unavailable. Please try again."));
-}
-
 /**
  * DLT-approved MSG91 OTP template. Indian operators hold any OTP SMS that is
  * not tied to a registered DLT template (MSG91 report: status Pending,
@@ -105,16 +91,10 @@ export async function sendMsg91WidgetOtp(phone: string): Promise<string> {
   return payload.message;
 }
 
-export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<string | undefined> {
+export async function sendMsg91Otp(phone: string): Promise<string | undefined> {
   // Restored original working path: MSG91 account default OTP template.
   const authKey = process.env["MSG91_AUTH_KEY"];
-  if (!authKey) {
-    if (allowRelay) {
-      await relayOtp("send", phone);
-      return undefined;
-    }
-    throw new Error("SMS service is not configured on this deployment.");
-  }
+  if (!authKey) throw new Error("SMS service is not configured on this deployment.");
   const templateId = process.env["MSG91_OTP_TEMPLATE_ID"];
   const query = new URLSearchParams({ mobile: `91${phone}` });
   if (templateId) query.set("template_id", templateId);
@@ -130,16 +110,9 @@ export async function sendMsg91Otp(phone: string, allowRelay = true): Promise<st
   return undefined;
 }
 
-export async function verifyMsg91PhoneOtp(
-  phone: string,
-  otp: string,
-  allowRelay = true,
-): Promise<void> {
+export async function verifyMsg91PhoneOtp(phone: string, otp: string): Promise<void> {
   const authKey = process.env["MSG91_AUTH_KEY"];
-  if (!authKey) {
-    if (allowRelay) return relayOtp("verify", phone, otp);
-    throw new Error("SMS service is not configured on this deployment.");
-  }
+  if (!authKey) throw new Error("SMS service is not configured on this deployment.");
   const query = new URLSearchParams({ mobile: `91${phone}`, otp });
   const response = await fetch(`${MSG91_API}/otp/verify?${query}`, {
     method: "GET",

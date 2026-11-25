@@ -1,4 +1,9 @@
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import tsConfigPaths from "vite-tsconfig-paths";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { nitro } from "nitro/vite";
+import viteReact from "@vitejs/plugin-react";
 
 // The populated Radiant Supabase Cloud database is the application's single source of truth.
 // Vite bakes `import.meta.env.VITE_*` into browser code, so pin the public client
@@ -18,35 +23,52 @@ const define = Object.fromEntries(
   ]),
 );
 
-// The build host injects `process.env.*` defines whose values are fallback
-// expressions (e.g. `(globalThis.process.env.X ?? ("..."))`). esbuild rejects
-// non-literal define values, so drop them and let the server read env at runtime.
-const isLiteral = (v: unknown) => {
-  if (typeof v !== "string") return true;
-  const t = v.trim();
-  if (/^(undefined|null|true|false|-?\d+(\.\d+)?)$/.test(t)) return true;
-  if (/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(t)) return true;
-  try { JSON.parse(t); return true; } catch { return false; }
-};
-const sanitize = (d?: Record<string, unknown>) => {
-  if (!d) return;
-  for (const k of Object.keys(d)) if (!isLiteral(d[k])) delete d[k];
-};
-const sanitizeDefines = {
-  name: "sanitize-env-defines",
-  enforce: "post" as const,
-  configResolved(config: any) {
-    sanitize(config.define);
-    for (const env of Object.values(config.environments ?? {}) as any[]) sanitize(env?.define);
-  },
-  configEnvironment(_name: string, config: any) {
-    sanitize(config.define);
-  },
-};
+export default defineConfig(({ command, mode }) => {
+  const isDevBuild = command === "build" && mode === "development";
 
-export default defineConfig({
-  nitro: { preset: "vercel" },
-  // Disables the wrapper's injected preview values so the single binding wins.
-  envDefine: false,
-  vite: { define, plugins: [sanitizeDefines] },
+  return {
+    define,
+    ...(isDevBuild
+      ? {
+          environments: {
+            client: { define: { "process.env.NODE_ENV": JSON.stringify("development") } },
+          },
+          esbuild: { keepNames: true },
+        }
+      : {}),
+    css: { transformer: "lightningcss" },
+    resolve: {
+      alias: { "@": `${process.cwd()}/src` },
+      dedupe: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "@tanstack/react-query",
+        "@tanstack/query-core",
+      ],
+    },
+    optimizeDeps: {
+      include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      ignoreOutdatedRequests: true,
+    },
+    server: {
+      host: "::",
+      port: 8080,
+      watch: { awaitWriteFinish: { stabilityThreshold: 1000, pollInterval: 100 } },
+    },
+    plugins: [
+      tailwindcss(),
+      tsConfigPaths({ projects: ["./tsconfig.json"] }),
+      tanstackStart({
+        importProtection: {
+          behavior: "error",
+          client: { files: ["**/server/**"], specifiers: ["server-only"] },
+        },
+      }),
+      // Server bundle for Vercel (build only, as before).
+      ...(command === "build" ? [nitro({ preset: "vercel" })] : []),
+      viteReact(),
+    ],
+  };
 });

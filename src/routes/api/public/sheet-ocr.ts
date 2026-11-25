@@ -6,17 +6,11 @@ import type { Database } from "@/integrations/supabase/types";
 import { AttendanceOcrInputSchema, MigrationSheetInputSchema } from "@/lib/sheet-ocr-types";
 
 /**
- * Sheet-reading (OCR) bridge.
- *
- * The self-hosted shell (radiant.hyperrevamp.com) does not carry the AI key, so
- * this route proxies to the Lovable-hosted deployment where the key lives —
- * exactly the pattern used by the native push bridge.
+ * Sheet-reading (OCR) endpoint. Runs on this deployment with GEMINI_API_KEY.
  */
 
 const VITE_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const VITE_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
-const LOVABLE_BRIDGE_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
-const SHEET_OCR_PATH = "/api/public/sheet-ocr";
 
 const RequestSchema = z.discriminatedUnion("action", [
   z.object({
@@ -35,7 +29,6 @@ function isAllowedOrigin(origin: string) {
   try {
     const url = new URL(origin);
     if (url.hostname === "radiant.hyperrevamp.com") return true;
-    if (url.hostname.endsWith(".lovable.app")) return true;
     if (url.hostname.endsWith(".vercel.app")) return true;
     if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
   } catch {
@@ -62,30 +55,6 @@ function jsonResponse(request: Request, body: unknown, status = 200) {
   const headers = corsHeaders(request);
   headers.set("content-type", "application/json; charset=utf-8");
   return new Response(JSON.stringify(body), { status, headers });
-}
-
-function hasAiKey() {
-  return Boolean(process.env["GEMINI_API_KEY"]?.trim());
-}
-
-function isBridgeHost(request: Request) {
-  try {
-    return new URL(request.url).hostname === new URL(LOVABLE_BRIDGE_ORIGIN).hostname;
-  } catch {
-    return false;
-  }
-}
-
-async function proxyToBridge(request: Request, rawBody: string) {
-  const upstream = await fetch(`${LOVABLE_BRIDGE_ORIGIN}${SHEET_OCR_PATH}`, {
-    method: "POST",
-    headers: { "content-type": "text/plain;charset=UTF-8" },
-    body: rawBody,
-  });
-  const text = await upstream.text();
-  const headers = corsHeaders(request);
-  headers.set("content-type", upstream.headers.get("content-type") || "application/json; charset=utf-8");
-  return new Response(text, { status: upstream.status, headers });
 }
 
 function getBackendConfig() {
@@ -129,12 +98,6 @@ export const Route = createFileRoute("/api/public/sheet-ocr")({
       POST: async ({ request }) => {
         try {
           const rawBody = await request.text();
-
-          // No AI key on this host (self-hosted shell) → hand off to Lovable.
-          if (!hasAiKey() && !isBridgeHost(request)) {
-            return proxyToBridge(request, rawBody);
-          }
-
           const input = RequestSchema.parse(JSON.parse(rawBody));
           await authenticate(input.accessToken);
 

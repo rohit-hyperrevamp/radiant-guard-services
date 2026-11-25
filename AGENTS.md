@@ -14,15 +14,14 @@
 - Unit reach for attendance is the `attendance::all_units` switch, else the person's unit/customer/site mapping; admin = admin/super_admin role only (no hard-coded phones) — scope and admin status stay data-driven.
 - Dashboard widgets are `dashboard::w_*` sub-modules checked via `canWidget`; no row = visible (still gated by the data module), an explicit role/department/designation/employee row decides — new dashboard sections should get a widget key.
 - Server privileged DB access uses `supabaseAdmin` from `@/lib/radiant-admin.server`, not generated `client.server` — deploy build can bake preview env.
+- Hosting is Vercel (git push to `main` deploys) with no Lovable dependency: secrets come from Vercel env at runtime (`SUPABASE_SERVICE_ROLE_KEY` via `supabaseServiceRoleKey()`, never committed); static files live in `public/media/<id>/<file>` and `*.asset.json` urls point there.
 - Contract expiry alerts run daily via cron `contract-expiry-alerts` (`send_contract_expiry_alerts()`), recipients decided by `contracts::expiry_alerts` (no row = Contracts view).
 - Exports gated by `<module>::export` via `canExport` (ExportChooser) — one switch per module.
 - Console users land on their dashboard without module grants; team cards gated by dashboard::w_team_clients.
 - Audit trigger `zz_audit` (`audit_row_change(module)`) logs to `system_logs` (actor filled by `system_logs_fill_actor`) — add it to new important tables.
 
-<!-- LOVABLE:BEGIN -->
 - Shared dashboard values use TileNumber to fit complete numbers to measured width; all dashboards reuse one TasksSummaryTile to keep summaries consistent.
 - Pay-item displays/grouping use `pay-item-names`; preserve raw rate/formula lines so naming cannot change calculations.
-<!-- LOVABLE:END -->
 - Access Control/Workflow Manager: Super Admin + `GOVERNANCE_ROLES` only — governance stays with leadership.
 - Payroll day base edits re-shape recent unprocessed attendance (trigger `zz_contract_resources_rebalance_attendance`, limit-made ED flagged `ed_from_cap`).
 - Monthly cap grouping resolves zero imported shifts against the contract and missing designations only for single-role contracts, without rewriting stored line keys; otherwise imports can bypass the cap with a second group.

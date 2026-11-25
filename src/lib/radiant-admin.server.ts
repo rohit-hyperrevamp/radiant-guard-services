@@ -7,12 +7,12 @@
 // empty database. This client reads the pinned production binding directly.
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { PRODUCTION_SUPABASE } from "@/lib/server-env";
+import { PRODUCTION_SUPABASE, supabaseServiceRoleKey } from "@/lib/server-env";
 
 function createRadiantAdminClient() {
   return createClient<Database>(
     PRODUCTION_SUPABASE["SUPABASE_URL"],
-    PRODUCTION_SUPABASE["SUPABASE_SERVICE_ROLE_KEY"],
+    supabaseServiceRoleKey(),
     { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
   );
 }

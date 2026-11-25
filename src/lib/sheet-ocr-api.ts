@@ -7,16 +7,12 @@ import type {
   MigrationSheetResult,
 } from "./sheet-ocr-types";
 
-const LOVABLE_BRIDGE_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
 const SHEET_OCR_PATH = "/api/public/sheet-ocr";
+const PRODUCTION_ORIGIN = "https://radiant.hyperrevamp.com";
 
 function urls() {
-  const list: string[] = [];
-  if (typeof window !== "undefined") {
-    list.push(`${window.location.origin}${SHEET_OCR_PATH}`);
-  }
-  list.push(`${LOVABLE_BRIDGE_ORIGIN}${SHEET_OCR_PATH}`);
-  return Array.from(new Set(list));
+  const origin = typeof window !== "undefined" ? window.location.origin : PRODUCTION_ORIGIN;
+  return [`${origin}${SHEET_OCR_PATH}`];
 }
 
 async function accessToken() {

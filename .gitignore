@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (values live in Vercel → Settings → Environment Variables)
+.env
+.env.*
+!.env.example
+.vercel

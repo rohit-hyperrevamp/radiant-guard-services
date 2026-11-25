@@ -32,7 +32,7 @@ export type ExportRequestPayload = {
   };
 };
 
-const EXPORT_EVENT = "lovable:export-request";
+const EXPORT_EVENT = "radiant:export-request";
 
 function escapeCsvCell(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -460,8 +460,8 @@ export function downloadCsv<T extends Record<string, unknown>>(
     writeCsv(payload);
     return;
   }
-  const w = window as unknown as { __lovableExportChooserMounted?: boolean };
-  if (!w.__lovableExportChooserMounted) {
+  const w = window as unknown as { __radiantExportChooserMounted?: boolean };
+  if (!w.__radiantExportChooserMounted) {
     writeCsv(payload);
     return;
   }
@@ -478,8 +478,8 @@ export function openExport(payload: ExportRequestPayload) {
     writeCsv(payload);
     return;
   }
-  const w = window as unknown as { __lovableExportChooserMounted?: boolean };
-  if (!w.__lovableExportChooserMounted) {
+  const w = window as unknown as { __radiantExportChooserMounted?: boolean };
+  if (!w.__radiantExportChooserMounted) {
     writeCsv(payload);
     return;
   }

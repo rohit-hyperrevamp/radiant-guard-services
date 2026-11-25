@@ -1,26 +1,32 @@
 # Radiant Portal
 
-@project:0d084c05-821a-4764-841f-d97fd247bcbc:"Radiant_New" using the design and color scheme, design the login page with phone and OTP and for now we shall be using dummy OTP of 111111...post login lets just put a welcome message and a logout button
+HR, payroll, attendance, invoicing, CRM and recruitment portal for Radiant Guard Services.
 
-This project was built with [Lovable](https://lovable.dev).
+**Live app**: https://radiant.hyperrevamp.com
 
-**Live app**: https://radiant-guard-services.lovable.app
+## Stack
 
-## Build with Lovable
+- TanStack Start (React 19, SSR) built with Vite, deployed on **Vercel** (Nitro `vercel` preset)
+- **Supabase** (project `yimpxawqoarprhtxapie`) for database, auth and storage
+- Capacitor iOS/Android shells that load the hosted app (`capacitor.config.ts`)
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/dc741c55-be5a-40d9-b6e9-523fed099022).
+## Deployment
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+Pushing to `main` on GitHub deploys to Production on Vercel automatically; other branches get Preview deployments.
+
+Secrets (Supabase service role, MSG91, Gemini, Resend, Firebase, APNs) live in
+Vercel → Project → Settings → Environment Variables. Never commit `.env` files.
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js and [Bun](https://bun.sh) (Vercel installs with Bun and `bun.lock`).
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev      # http://localhost:8080
+bun run build
 ```
+
+Server-only features (OTP, push, sheet reading, privileged lookups) need the same
+environment variables as Vercel in your shell, e.g.
+`vercel env pull .env.local && set -a && source .env.local && set +a` before `bun run dev`.

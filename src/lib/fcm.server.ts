@@ -3,11 +3,9 @@
  *
  * Primary path: the Firebase service account stored in FIREBASE_SERVICE_ACCOUNT_JSON
  * is used to mint a short-lived Google OAuth token (signed JWT grant) and the
- * message is sent to the FCM HTTP v1 API. Fallback path: the Lovable connector
- * gateway, when a Firebase Messaging connection is linked instead.
+ * message is sent to the FCM HTTP v1 API.
  * iOS keeps using APNs directly (see apns.server.ts).
  */
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/firebase_messaging";
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 
 export type FcmPayload = {
@@ -35,16 +33,8 @@ function getServiceAccount(): ServiceAccount | null {
   }
 }
 
-function getGatewayConfig() {
-  const lovableApiKey = process.env.LOVABLE_API_KEY;
-  const connectionApiKey =
-    process.env.FIREBASE_MESSAGING_API_KEY || process.env.FIREBASE_CLOUD_MESSAGING_API_KEY;
-  if (!lovableApiKey || !connectionApiKey) return null;
-  return { lovableApiKey, connectionApiKey };
-}
-
 export function isFcmConfigured(): boolean {
-  return Boolean(getServiceAccount() || getGatewayConfig());
+  return Boolean(getServiceAccount());
 }
 
 function base64Url(input: ArrayBuffer | string): string {
@@ -146,38 +136,24 @@ export async function sendFcmPush(
 ): Promise<{ success: boolean; status?: number; error?: string }> {
   try {
     const account = getServiceAccount();
-    let response: Response;
-
-    if (account) {
-      const accessToken = await getAccessToken(account);
-      response = await fetch(
-        `https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(buildMessage(deviceToken, payload)),
-        },
+    if (!account) {
+      throw new Error(
+        "Android push is not configured yet. Add FIREBASE_SERVICE_ACCOUNT_JSON.",
       );
-    } else {
-      const gateway = getGatewayConfig();
-      if (!gateway) {
-        throw new Error(
-          "Android push is not configured yet. Add FIREBASE_SERVICE_ACCOUNT_JSON or connect Firebase Cloud Messaging.",
-        );
-      }
-      response = await fetch(`${GATEWAY_URL}/v1/projects/_/messages:send`, {
+    }
+
+    const accessToken = await getAccessToken(account);
+    const response = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`,
+      {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${gateway.lovableApiKey}`,
-          "X-Connection-Api-Key": gateway.connectionApiKey,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(buildMessage(deviceToken, payload)),
-      });
-    }
+      },
+    );
 
     if (!response.ok) {
       const text = await response.text();

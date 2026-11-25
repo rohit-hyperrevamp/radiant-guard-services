@@ -2,8 +2,7 @@
  * Single source of truth for the AI account that reads attendance sheets.
  *
  * Attendance sheet reading is the ONLY AI document feature. It goes directly to
- * Google Gemini using the company's own GEMINI_API_KEY — nothing is routed
- * through the Lovable AI gateway, so usage is billed only to the company's
+ * Google Gemini using the company's own GEMINI_API_KEY, so usage is billed only to the company's
  * Google account. Aadhaar / PAN identity checks use SurePass, not AI.
  */
 

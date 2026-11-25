@@ -49,11 +49,11 @@ export const COMPANY_DOCUMENT_TYPES: DocType[] = [
 
 /** CDN URL of the official company stamp (with authorised signature). */
 export const COMPANY_STAMP_URL =
-  "/__l5e/assets-v1/87ea9ec6-0ff1-4c65-8122-abc676b013d3/company-stamp.png";
+  "/media/87ea9ec6-0ff1-4c65-8122-abc676b013d3/company-stamp.png";
 
 /** CDN URL of the company logo used on the ID card (replaceable in the template). */
 export const COMPANY_LOGO_URL =
-  "/__l5e/assets-v1/de428422-b314-4b6d-811b-f955dd1350db/radiant-logo.png";
+  "/media/de428422-b314-4b6d-811b-f955dd1350db/radiant-logo.png";
 
 
 
@@ -123,10 +123,12 @@ export type CandidateForRender = {
 };
 
 /**
- * Assets are served from Lovable's CDN path. PDFs and previews on custom
- * domains need the absolute URL, so resolve it against the current origin.
+ * Assets are served from the app's own `public/media` folder. PDFs and previews
+ * need an absolute URL, so resolve it against the current origin (the
+ * production domain when rendered on the server).
  */
-export const DOCUMENT_ASSET_ORIGIN = "https://radiant-guard-services.lovable.app";
+export const DOCUMENT_ASSET_ORIGIN =
+  typeof window !== "undefined" ? window.location.origin : "https://radiant.hyperrevamp.com";
 
 export function absoluteAssetUrl(path: string): string {
   if (/^https?:/i.test(path)) return path;

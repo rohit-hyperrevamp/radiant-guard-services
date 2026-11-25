@@ -11,7 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 // Browser-side translation via Google's public unauthenticated endpoint.
-// Works on ANY hosting environment (Vercel, Lovable, self-hosted) with no
+// Works on ANY hosting environment (Vercel, self-hosted) with no
 // API key or server function — the endpoint accepts CORS browser calls.
 async function googleTranslate(
   texts: string[],
@@ -148,7 +148,7 @@ const I18nCtx = createContext<Ctx>({
 // DOM auto-translator
 // ----------------------------------------------------------------------------
 // Walks every visible text node and translates it to the target language using
-// the Lovable AI Gateway, with persistent localStorage cache so each unique
+// Google Translate, with persistent localStorage cache so each unique
 // string is paid for at most once. Originals are stashed on the node so we can
 // restore English without a reload.
 // ============================================================================

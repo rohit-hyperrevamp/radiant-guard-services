@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logNativeEvent } from "./native";
 
-const LOVABLE_NATIVE_API_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
+const PRODUCTION_ORIGIN = "https://radiant.hyperrevamp.com";
 const NATIVE_PUSH_API_PATH = "/api/public/native/push";
 
 export type NativePushRegistrationStatus = {
@@ -32,14 +32,9 @@ type RecentNativePushInput = {
 };
 
 function nativePushApiUrls() {
-  const urls: string[] = [];
-  if (typeof window !== "undefined") {
-    // First try the app's own host. On Vercel this route proxies to Lovable
-    // Cloud server-side, avoiding iOS WebView cross-origin "Load Failed" errors.
-    urls.push(`${window.location.origin}${NATIVE_PUSH_API_PATH}`);
-  }
-  urls.push(`${LOVABLE_NATIVE_API_ORIGIN}${NATIVE_PUSH_API_PATH}`);
-  return Array.from(new Set(urls));
+  // Same-origin call avoids iOS WebView cross-origin "Load Failed" errors.
+  const origin = typeof window !== "undefined" ? window.location.origin : PRODUCTION_ORIGIN;
+  return [`${origin}${NATIVE_PUSH_API_PATH}`];
 }
 
 async function accessToken() {
