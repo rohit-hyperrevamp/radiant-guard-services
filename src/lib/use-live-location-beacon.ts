@@ -5,7 +5,7 @@ import { trackingEligible, usableLocationFix } from '@/lib/work-location';
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { fetchTodayPunch, pushTelemetry, readBattery, readNetworkType, distanceMeters } from "@/lib/self-attendance";
 import { insertTrackPoint } from "@/lib/field-visits";
-import { createThrottle, REALTIME_THROTTLE_MS } from "@/lib/dashboard-realtime";
+import { REALTIME_THROTTLE_MS } from "@/lib/dashboard-realtime";
 
 /** How often (ms) we push the officer's position while on duty. */
 const BEACON_INTERVAL_MS = 30_000; // twice a minute
@@ -125,20 +125,29 @@ export function useLiveLocationBeacon() {
   }, [candidateId, eligible, roleKey]);
 }
 
+/** Live punch screens refresh no faster than this. */
+export const LIVE_PUNCH_POLL_MIN_MS = 30_000;
+
 /**
- * Realtime subscription helper: run `onChange` when live punch telemetry
- * changes — at most once per `throttleMs` (default 30 s). Every on-duty
- * officer's beacon writes a punch row every ~30 s, so an unthrottled handler
- * refetched the subscriber's whole screen several times a second.
+ * Run `onChange` every `intervalMs` (never faster than 30 s) while the tab is
+ * visible, plus once when it becomes visible again. self_attendance_punches is
+ * no longer in the realtime publication (every on-duty beacon writes a row
+ * about every 30 s — a high-volume per-row stream), so screens poll instead.
+ * Returns the cleanup function, like the old subscription helper.
  */
-export function subscribeLivePunches(onChange: () => void, throttleMs: number = REALTIME_THROTTLE_MS) {
-  const throttle = createThrottle(onChange, throttleMs);
-  const channel = supabase
-    .channel(`live-punch-telemetry-${Math.random().toString(36).slice(2)}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "self_attendance_punches" }, throttle.run)
-    .subscribe();
+export function subscribeLivePunches(onChange: () => void, intervalMs: number = REALTIME_THROTTLE_MS) {
+  const every = Math.max(LIVE_PUNCH_POLL_MIN_MS, intervalMs);
+  if (typeof window === "undefined") return () => {};
+  const visible = () => typeof document === "undefined" || document.visibilityState === "visible";
+  const timer = window.setInterval(() => {
+    if (visible()) onChange();
+  }, every);
+  const onVisible = () => {
+    if (visible()) onChange();
+  };
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
   return () => {
-    throttle.cancel();
-    void supabase.removeChannel(channel);
+    window.clearInterval(timer);
+    if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
   };
 }

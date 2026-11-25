@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchInChunks } from "@/lib/supabase-batch";
 import { getReference } from "@/lib/reference-data";
+import { supabaseSessionReady } from "@/lib/supabase-ready";
 
 export type PayrollWindow = {
   windowStartDay: number;
@@ -195,13 +196,39 @@ async function fetchActiveContractWindows(): Promise<ContractWindowRow[]> {
   return rows;
 }
 
+/** A prefetched read is reused only by the first caller within this window. */
+const CONTRACT_WINDOWS_PREFETCH_MS = 30_000;
+let prefetchedContractWindows: { at: number; promise: Promise<ContractWindowRow[]> } | null = null;
+
+/**
+ * Start the many-units contract-window read early (e.g. while the unit roster
+ * RPC is still running). The next `fetchPayrollWindowsByUnit` call on the
+ * >PAYROLL_WINDOW_CHUNK_LIMIT path consumes it once; later calls read fresh.
+ */
+export function prefetchActiveContractWindows(): void {
+  if (prefetchedContractWindows && Date.now() - prefetchedContractWindows.at < CONTRACT_WINDOWS_PREFETCH_MS) return;
+  const promise = supabaseSessionReady().then(() => fetchActiveContractWindows());
+  const entry = { at: Date.now(), promise };
+  prefetchedContractWindows = entry;
+  promise.catch(() => {
+    if (prefetchedContractWindows === entry) prefetchedContractWindows = null;
+  });
+}
+
+function takeActiveContractWindows(): Promise<ContractWindowRow[]> {
+  const entry = prefetchedContractWindows;
+  prefetchedContractWindows = null;
+  if (entry && Date.now() - entry.at < CONTRACT_WINDOWS_PREFETCH_MS) return entry.promise;
+  return fetchActiveContractWindows();
+}
+
 /** Load the active client contract's payroll window for every unit. */
 export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<string, PayrollWindow>> {
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
   if (!ids.length) return new Map();
 
   const contractsP: Promise<ContractWindowRow[]> = ids.length > PAYROLL_WINDOW_CHUNK_LIMIT
-    ? fetchActiveContractWindows()
+    ? takeActiveContractWindows()
     : fetchInChunks<ContractWindowRow>(ids, (chunk, from, to) =>
         supabase
           .from("client_contracts")

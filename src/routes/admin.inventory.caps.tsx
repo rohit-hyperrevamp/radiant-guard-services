@@ -65,15 +65,13 @@ function CapsPage() {
 function CapsInner() {
   const qc = useQueryClient();
 
-  // Realtime: auto-refresh when branches, field officers, or caps change
+  // Realtime: auto-refresh when branches or caps change. Field officers
+  // (candidates, high volume — not in the realtime publication) poll below.
   useEffect(() => {
     const ch = supabase
       .channel("inv-caps-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "branches" }, () => {
         qc.invalidateQueries({ queryKey: ["branches-caps"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "candidates" }, () => {
-        qc.invalidateQueries({ queryKey: ["candidates-fo-caps"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "inv_caps" }, () => {
         qc.invalidateQueries({ queryKey: ["inv", "caps"] });
@@ -118,6 +116,7 @@ function CapsInner() {
   });
   const { data: candidates = [] } = useQuery({
     queryKey: ["candidates-fo-caps"],
+    refetchInterval: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("candidates" as never)

@@ -156,7 +156,7 @@ export function ContractDesignationFollowUp({
     };
     const channel = supabase
       .channel(`contract-designation-follow-up-${scope}-${Date.now()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, refresh)
+      // candidate_units is not streamed (high volume); counts poll every 5 min.
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "contract_resources" },

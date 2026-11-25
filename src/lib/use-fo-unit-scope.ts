@@ -65,11 +65,6 @@ function acquireScopeChannel(candidateId: string, queryClient: QueryClient): () 
         { event: "*", schema: "public", table: "employee_scope_assignments", filter: `candidate_id=eq.${candidateId}` },
         throttle.run,
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "candidate_units", filter: `candidate_id=eq.${candidateId}` },
-        throttle.run,
-      )
       .subscribe();
     scopeChannels.set(candidateId, {
       refs: 1,
@@ -130,9 +125,10 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const cuQ = useQuery({
     queryKey: ["fo-candidate-units", candidateId],
     enabled: !!candidateId && isFieldOfficer,
-    // Kept fresh by the scoped realtime channel above; re-reading on every
-    // mount refetched on each card and each navigation.
+    // candidate_units is not in the realtime publication (high volume): poll
+    // every 5 min; re-reading on every mount refetched on each card.
     staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
     queryFn: async () => {
       if (!candidateId) return [];
       const { data, error } = await supabase

@@ -2,33 +2,94 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseSessionReady, useHasSupabaseSession } from "@/lib/supabase-ready";
-import { fetchForIds } from "@/lib/supabase-batch";
+import { fetchAllPages, fetchForIds, runBulk } from "@/lib/supabase-batch";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { resolveSavedAttendancePeriod, type SavedAttendancePeriod } from "@/lib/saved-attendance-period";
 import { fetchPeriodStatusesForUnitPeriods, PERIOD_STATUS_QK } from "@/lib/period-status";
 
 /**
+ * Marker passed as `windows` while payroll windows are still loading
+ * (usePayrollWindowSelection returns it). useRegisterPeriods waits for real
+ * windows instead of resolving periods with defaults and then fetching saved
+ * dates / statuses / contract codes a second time. It is an ordinary empty
+ * Map, so any other reader behaves exactly as before.
+ */
+export const PENDING_WINDOWS: ReadonlyMap<string, PayrollWindow> = new Map();
+
+export function windowsPending(windows: ReadonlyMap<string, PayrollWindow>): boolean {
+  return windows === PENDING_WINDOWS;
+}
+
+/** Above this many ids the read scans the month instead of id chunks (fetchForIds default). */
+export const SAVED_PERIODS_SCAN_THRESHOLD = 450;
+/** A prefetched month scan is consumed once, and only if this fresh. */
+const SAVED_PERIODS_PREFETCH_MS = 20_000;
+const prefetchedScans = new Map<string, { at: number; promise: Promise<SavedAttendancePeriod[]> }>();
+
+function monthBounds(year: number, monthIdx: number) {
+  const month = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
+  return { month, from: `${month}-01`, to: payrollPeriodForMonth(year, monthIdx).end };
+}
+
+function savedPeriodsBase(year: number, monthIdx: number) {
+  const { from, to } = monthBounds(year, monthIdx);
+  return () => supabase.from("attendance_sheets" as never).select("unit_id, period_start, period_end")
+    .gte("period_end", from).lte("period_end", to);
+}
+
+/**
+ * Start the month's sheet-date scan before unit ids are known (while the unit
+ * roster loads). The next many-sites fetchSavedPeriods for that month consumes
+ * it once; every later read is fresh.
+ */
+export function prefetchSavedPeriods(year: number, monthIdx: number): void {
+  const { month } = monthBounds(year, monthIdx);
+  const existing = prefetchedScans.get(month);
+  if (existing && Date.now() - existing.at < SAVED_PERIODS_PREFETCH_MS) return;
+  const base = savedPeriodsBase(year, monthIdx);
+  const promise = supabaseSessionReady().then(() =>
+    runBulk(() => fetchAllPages<SavedAttendancePeriod>((a, b) => base().order("id").range(a, b))),
+  );
+  const entry = { at: Date.now(), promise };
+  prefetchedScans.set(month, entry);
+  promise.catch(() => {
+    if (prefetchedScans.get(month) === entry) prefetchedScans.delete(month);
+  });
+}
+
+/**
  * Saved sheet dates ending in the viewed month. Many sites: one scan of the
  * month's sheets (already filtered server-side by period_end, paged 1,000 at a
- * time) narrowed to `ids` in memory, instead of a dozen URL-limited id chunks.
- * Few sites: plain id chunks. Same rows either way.
+ * time) narrowed to `ids` in memory, instead of a dozen URL-limited id chunks —
+ * reusing a scan prefetched while the roster loaded. Few sites: plain id
+ * chunks. Same rows either way.
  */
 export function fetchSavedPeriods(ids: string[], year: number, monthIdx: number): Promise<SavedAttendancePeriod[]> {
-  const month = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
-  const from = `${month}-01`;
-  const to = payrollPeriodForMonth(year, monthIdx).end;
-  const base = () => supabase.from("attendance_sheets" as never).select("unit_id, period_start, period_end")
-    .gte("period_end", from).lte("period_end", to);
+  const { month } = monthBounds(year, monthIdx);
+  const base = savedPeriodsBase(year, monthIdx);
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  const prefetched = prefetchedScans.get(month);
+  if (prefetched && unique.length > SAVED_PERIODS_SCAN_THRESHOLD) {
+    prefetchedScans.delete(month);
+    if (Date.now() - prefetched.at < SAVED_PERIODS_PREFETCH_MS) {
+      const wanted = new Set(unique);
+      return prefetched.promise.then((rows) => rows.filter((row) => wanted.has(String(row.unit_id ?? ""))));
+    }
+  }
   return fetchForIds<SavedAttendancePeriod>(ids, {
     chunk: (chunk, a, b) => base().in("unit_id", chunk).order("id").range(a, b),
     scan: (a, b) => base().order("id").range(a, b),
     idOf: (row) => row.unit_id,
+    scanThreshold: SAVED_PERIODS_SCAN_THRESHOLD,
   });
 }
 
 /** All three registers and dashboard tiles use the same historical sheet dates. */
-export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: number, windows: Map<string, PayrollWindow>, enabled = true) {
+export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: number, windows: Map<string, PayrollWindow>, enabledArg = true) {
   const hasSession = useHasSupabaseSession();
+  // Periods depend on each unit's payroll window: wait for them, or saved dates,
+  // statuses and every money loader keyed on periods would run twice.
+  const enabled = enabledArg && !windowsPending(windows);
   const unitKey = [...new Set(unitIds)].sort().join(",");
   const ids = useMemo(() => unitKey ? unitKey.split(",") : [], [unitKey]);
   const month = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
@@ -66,5 +127,5 @@ export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: nu
     refetchOnWindowFocus: true,
     queryFn: () => fetchPeriodStatusesForUnitPeriods(periods),
   });
-  return { periods, periodKey, periodsReady: savedQ.isSuccess, statusesQ, isLoading: enabled && hasSession && ids.length > 0 && !savedQ.error && (savedQ.isLoading || (savedQ.isSuccess && statusesQ.isLoading)), error: savedQ.error ?? statusesQ.error };
+  return { periods, periodKey, periodsReady: enabled && savedQ.isSuccess, statusesQ, isLoading: enabled && hasSession && ids.length > 0 && !savedQ.error && (savedQ.isLoading || (savedQ.isSuccess && statusesQ.isLoading)), error: savedQ.error ?? statusesQ.error };
 }

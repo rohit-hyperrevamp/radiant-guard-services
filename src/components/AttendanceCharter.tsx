@@ -1,7 +1,7 @@
 import { useRegisterPeriods } from "@/lib/use-register-periods";
 import { matchesAttendanceStatus, summarizeRegisterStatuses } from "@/lib/register-summary";
 import { matchesSearch } from "@/lib/search-match";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Building2, ChevronDown, ClipboardList, Download, MapPinned, Search } from "lucide-react";
@@ -28,6 +28,11 @@ import {
 import { AttendanceStatusBadge } from "@/components/PeriodStatusBadge";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { SCAN_JOBS_QK, fetchRunningScanJobs, formatRemaining } from "@/lib/attendance-scan-jobs";
+import { filterCharterUnitsBySearch } from "@/lib/charter-units";
+
+/** Poll fast only while a sheet read is running; otherwise once a minute. */
+const SCAN_POLL_ACTIVE_MS = 5000;
+const SCAN_POLL_IDLE_MS = 60_000;
 
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
@@ -42,8 +47,15 @@ export type CharterUnit = {
   name: string;
   customer_name: string;
   contract_codes: string[];
+  /** Deployed + scope-assigned people; available before guard names load (lite roster). */
+  guard_count?: number;
   security_guards: { id: string; name: string }[];
 };
+
+/** Headcount shown as "actual" when coverage has no figure. */
+function guardCount(u: CharterUnit): number {
+  return u.guard_count ?? u.security_guards.length;
+}
 
 export type AttendanceStatusFilter = "all" | "open" | "in_progress" | "submitted" | "approved";
 
@@ -139,17 +151,12 @@ export function AttendanceCharter({
   // Search first, then paginate, and only then load period-to-date attendance.
   // Every heavy read below is scoped to the 25 units actually on screen, so the
   // page never pulls thousands of units' entries in one shot.
+  // Shared search rules (src/lib/search-match.ts); deferred so typing stays responsive.
+  const deferredQuery = useDeferredValue(query);
   const matchedUnits = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    const list = term
-      ? units.filter((u) =>
-          [u.name, u.code, u.customer_name, ...u.contract_codes]
-            .filter(Boolean)
-            .some((v) => String(v).toLowerCase().includes(term)),
-        )
-      : units.slice();
+    const list = filterCharterUnitsBySearch(units, deferredQuery);
     return list.sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
-  }, [units, query]);
+  }, [units, deferredQuery]);
 
   const allUnitIds = useMemo(() => matchedUnits.map((u) => u.id), [matchedUnits]);
   const registerPeriods = useRegisterPeriods(allUnitIds, year, monthIdx, windowsByUnit);
@@ -167,7 +174,7 @@ export function AttendanceCharter({
   const [page, setPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(filteredUnits.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
-  useEffect(() => setPage(0), [query, statusFilter, units.length, monthIdx, year]);
+  useEffect(() => setPage(0), [deferredQuery, statusFilter, units.length, monthIdx, year]);
   const pageUnits = useMemo(
     () => filteredUnits.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
     [filteredUnits, safePage],
@@ -194,7 +201,7 @@ export function AttendanceCharter({
   const scanJobsQ = useQuery({
     queryKey: [SCAN_JOBS_QK, unitIds.join(",")],
     enabled: unitIds.length > 0,
-    refetchInterval: 5000,
+    refetchInterval: (q) => ((q.state.data?.size ?? 0) > 0 ? SCAN_POLL_ACTIVE_MS : SCAN_POLL_IDLE_MS),
     queryFn: () => fetchRunningScanJobs(unitIds),
   });
 
@@ -227,7 +234,8 @@ export function AttendanceCharter({
 
   const entriesQ = useQuery({
     queryKey: ["attendance-charter-entries", periodKey],
-    enabled: unitIds.length > 0,
+    // Wait for each site's saved sheet dates, or this loads twice (expected, then saved period).
+    enabled: unitIds.length > 0 && registerPeriods.periodsReady,
     staleTime: 0,
     queryFn: async () => {
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
@@ -296,7 +304,7 @@ export function AttendanceCharter({
       .map((u) => {
         const cov = coverageByUnit.get(u.id);
         const committed = cov?.committed ?? 0;
-        const actual = cov?.actual ?? u.security_guards.length;
+        const actual = cov?.actual ?? guardCount(u);
         const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const unitShift = shiftHoursFor(shiftQ.data, u.id, null) || DEFAULT_SHIFT_HOURS;
         const people = Array.from(statsByUnit.get(u.id)?.values() ?? []).sort((a, b) =>
@@ -392,7 +400,7 @@ export function AttendanceCharter({
         chosen.map((u) => {
           const cov = exportCoverageByUnit.get(u.id);
           const committed = cov?.committed ?? 0;
-          const actual = cov?.actual ?? u.security_guards.length;
+          const actual = cov?.actual ?? guardCount(u);
           const p = periods.get(u.id)!;
           const unitShift = shiftHoursFor(shifts, u.id, null) || DEFAULT_SHIFT_HOURS;
           const projected = (committed > 0 ? committed : actual) * p.elapsedDays * unitShift;
