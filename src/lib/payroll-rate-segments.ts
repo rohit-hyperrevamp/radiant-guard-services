@@ -1,4 +1,4 @@
-import { computeWages, unknownFormulaVariables, type AttendanceTotals, type ContractResourceLike, type WageComponent, type WageComputation } from "./payroll-calc";
+import { computeWages, isOptionalAllowanceVar, unknownFormulaVariables, type AttendanceTotals, type ContractResourceLike, type WageComponent, type WageComputation } from "./payroll-calc";
 import { isMonthlyFlatPayrollLine, payrollComponentKey, payrollLiabilityKey, prepareContractPayrollResource, savedPayrollPfCap, type PayrollContractIssue } from "./payroll-contract-rules";
 
 export type PreparedPayrollRateSegment = { from: string; to: string; resource: ContractResourceLike };
@@ -39,7 +39,11 @@ export function computeContractRateSegments(input: {
     for (const side of ["components", "benefits", "deductions", "employerContributions"] as const) {
       for (const line of prepared.resource[side]) {
         const unknown = unknownFormulaVariables(line.formulaExpression, prepared.resource.components.map((c) => c.name));
-        if (unknown.length) prepared.issues.push({ kind: "invalid_formula", side, component: line.name, detail: `Unknown saved formula variables: ${unknown.join(", ")}`, blocking: true });
+        // An allowance this role doesn't have evaluates to 0 by design → warn only.
+        const optional = unknown.filter(isOptionalAllowanceVar);
+        const hard = unknown.filter((v) => !isOptionalAllowanceVar(v));
+        if (hard.length) prepared.issues.push({ kind: "invalid_formula", side, component: line.name, detail: `Unknown saved formula variables: ${hard.join(", ")}`, blocking: true });
+        if (optional.length) prepared.issues.push({ kind: "invalid_formula", side, component: line.name, detail: `No such pay line on this role, counted as 0: ${optional.join(", ")}`, blocking: false });
       }
     }
     const scoped = prepared.issues.map((i) => ({ ...i, detail: `${segment.from} to ${segment.to}: ${i.detail}` }));

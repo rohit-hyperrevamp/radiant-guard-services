@@ -424,6 +424,27 @@ const BUILTIN_FORMULA_VARS = new Set([
 const FORMULA_FUNCS = new Set(["min", "max", "round", "floor", "ceil"]);
 
 /**
+ * Billing add-on variables. They are resolved in the billing step (after Total
+ * CTC) — e.g. "Management Fee 10% (CTC + Reliever)" = (total_ctc +
+ * reliever_charges) * 0.10 — and are 0 when the add-on is "Not applicable".
+ * They are never pay lines, so payroll must not treat them as unknown.
+ */
+export const BILLING_ADDON_FORMULA_VARS = new Set([
+  "reliever_charges", "reliever", "relieving_charges", "billing_rate", "management_fee", "final_billing_rate",
+]);
+
+/**
+ * An unknown variable that names an optional allowance (e.g. technical_allowance
+ * in the shared "EPF (Gross-HRA-Tech)" template) on a role that simply has no
+ * such pay line. The engine evaluates it as 0, which is the intended result, so
+ * it is reported as a warning, not a blocking error. Anything else (typos such
+ * as d_a) stays blocking.
+ */
+export function isOptionalAllowanceVar(name: string): boolean {
+  return /(^|_)allowance$/.test(name) || /(^|_)allow$/.test(name);
+}
+
+/**
  * Variables in `expression` that payroll cannot resolve from the role's pay
  * lines. The formula engine treats an unknown name as 0, so a formula written
  * as `basic + d_a` on a role whose line is "DA" silently drops DA — this lists
@@ -433,7 +454,7 @@ export function unknownFormulaVariables(expression: string | null | undefined, c
   const expr = String(expression ?? "").toLowerCase();
   // Preset formulas are stored as JSON and resolve components by name.
   if (!expr.trim() || expr.trim().startsWith("{")) return [];
-  const known = new Set<string>(BUILTIN_FORMULA_VARS);
+  const known = new Set<string>([...BUILTIN_FORMULA_VARS, ...BILLING_ADDON_FORMULA_VARS]);
   const taken = exactFormulaKeys(componentNames);
   for (const n of componentNames) for (const k of formulaNameAliases(n, taken)) known.add(slugifyVar(k));
   const knownLoose = new Set(Array.from(known).map((k) => looseVarKey(k)));

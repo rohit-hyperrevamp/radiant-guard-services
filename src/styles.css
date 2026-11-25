@@ -2564,8 +2564,10 @@ table[data-smart-list][data-smart-stacked="true"] { display: block !important; }
 [data-smart-list][data-smart-stacked="true"] td[colspan] { grid-column: 1 / -1; }
 
 /* Labelled controls are content-width pills, never inferred from SVG children.
-   Explicit icon metadata avoids mistaking an icon + bare text for a circle. */
-[data-slot="button"][data-icon-only="false"]:not(.dashboard-summary-tile):not([data-no-pill]) {
+   Explicit icon metadata avoids mistaking an icon + bare text for a circle.
+   Dropdown triggers (role="combobox") are excluded: they are full-width fields,
+   and shrinking them to content collapsed the box to its chevron (66px). */
+[data-slot="button"][data-icon-only="false"]:not(.dashboard-summary-tile):not([data-no-pill]):not([role="combobox"]) {
   aspect-ratio: auto !important;
   width: auto;
   white-space: nowrap;
