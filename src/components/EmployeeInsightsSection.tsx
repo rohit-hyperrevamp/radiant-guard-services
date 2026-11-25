@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { UserMinus, ShieldAlert, UserCheck, Users, UserPlus, RefreshCw, ArrowRight } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
 import { usePeopleInsights } from "@/lib/people-insights";
+import { fetchEmployeeInsightsCounts } from "@/lib/dashboard-master-counts";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { stepByOrder } from "@/lib/workflows";
@@ -15,25 +15,8 @@ function useEmployeeCounts() {
   return useQuery({
     queryKey: ["employee-insights-counts"],
     staleTime: 60_000,
-    queryFn: async () => {
-      const [employees, candidates, pendingApproval, offboarded] = await Promise.all([
-        supabase.from("candidates").select("id", { count: "exact", head: true })
-          .eq("is_enabled", true).in("status", ["active", "approved"]),
-        supabase.from("candidates").select("id", { count: "exact", head: true })
-          .in("status", ["draft", "submitted", "pending", "candidate"]),
-
-        supabase.from("candidates").select("id", { count: "exact", head: true })
-          .in("status", ["submitted", "pending"]),
-        supabase.from("candidates").select("id", { count: "exact", head: true })
-          .in("status", ["offboarded", "inactive", "exited"]),
-      ]);
-      return {
-        employees: employees.count ?? 0,
-        candidates: candidates.count ?? 0,
-        pendingApproval: pendingApproval.count ?? 0,
-        offboarded: offboarded.count ?? 0,
-      };
-    },
+    // One RPC (single candidates scan) instead of four head-count requests.
+    queryFn: fetchEmployeeInsightsCounts,
   });
 }
 

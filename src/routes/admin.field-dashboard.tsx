@@ -356,7 +356,9 @@ function FieldOfficerDashboard() {
     queryKey: ["fo-stats-v1", meId, userId, unitIdsKey],
     enabled: !!meId,
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    // Heavy multi-table rebuild: every 5 min is enough — the throttled realtime
+    // listener below already refreshes it when postings/scope change.
+    refetchInterval: 5 * 60_000,
     // Show the previous counts straight away instead of zeros/blanks while the
     // aggregation runs; they refresh in place a moment later.
     placeholderData: () => (meId ? readSnapshot<FoStats>(`fo-stats:${meId}`) : undefined),

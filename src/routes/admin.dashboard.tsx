@@ -678,8 +678,8 @@ function DashboardPage() {
   const scopedCountsQuery = useQuery({
     queryKey: ["dashboard-counts-masters-v1", user?.phone, scopedUnitIds],
     enabled: authReady && !managerScope.isLoading && !showInventoryDashboard && !showTransportDashboard && !showHrExecutiveDashboard,
-    // Pages every unit / contract / employee: keep it for 5 min and paint the
-    // last value seen on this device while it revalidates.
+    // One dashboard_master_counts RPC (browser paging fallback): keep it for
+    // 5 min and paint the last value seen on this device while it revalidates.
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,

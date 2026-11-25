@@ -53,8 +53,10 @@ export function UanFollowUp({
   const scoped = Boolean(fieldOfficerUserId || fieldOfficerCandidateId);
   const q = useQuery({
     queryKey: ["uan-follow-up", fieldOfficerUserId ?? "hr", fieldOfficerCandidateId ?? "all"],
-    staleTime: 60_000,
-    refetchInterval: 120_000,
+    // Reads every active employee's compliance JSON: UAN gaps change on
+    // profile edits, not minute to minute, so refresh every 5 minutes.
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
     queryFn: async () => {
       let query = supabase
         .from("candidates")

@@ -65,13 +65,27 @@ export function withAge(row: MissingContractDesignation, now: Date = new Date())
   };
 }
 
-/** Tile numbers: two head-only count calls (no rows are transferred). */
+/**
+ * Tile numbers from ONE evaluation of the base function
+ * (missing_contract_designation_counts, 5-minute server cache keyed by viewer
+ * class). Falls back to two head-only count calls if that RPC is unavailable.
+ */
 async function fetchFollowUpCounts(): Promise<{ total: number; overdue: number }> {
+  const cutoff = followUpOverdueCutoff();
+  try {
+    const { data, error } = await supabase.rpc("missing_contract_designation_counts" as never, { p_cutoff: cutoff } as never);
+    const d = data as { total?: unknown; overdue?: unknown } | null;
+    if (!error && d && typeof d === "object" && "total" in d) {
+      return { total: Number(d.total ?? 0), overdue: Number(d.overdue ?? 0) };
+    }
+  } catch {
+    /* fall back below */
+  }
   const [all, late] = await Promise.all([
     supabase.rpc(RPC, undefined as never, { count: "exact", head: true }),
     supabase
       .rpc(RPC, undefined as never, { count: "exact", head: true })
-      .lte("missing_since" as never, followUpOverdueCutoff() as never),
+      .lte("missing_since" as never, cutoff as never),
   ]);
   if (all.error) throw all.error;
   if (late.error) throw late.error;
