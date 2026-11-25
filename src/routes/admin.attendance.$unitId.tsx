@@ -1,6 +1,8 @@
 import { useUnitDesignations } from "@/lib/unit-designations";
 import { roundDutyDays } from "@/lib/duty-days";
 import { mergeAttendanceHourRows } from "@/lib/attendance-excel-rows";
+import { chunkByRowBudget, crossLaneDuplicates, runInLanes, sharedTokenLanes } from "@/lib/attendance-import-batch";
+import { mapPool } from "@/lib/supabase-batch";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
 import { EmployeeSitesPopover } from "@/components/EmployeeSitesPopover";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -95,7 +97,14 @@ import {
   type AttendanceScopeAssignment,
   type AttendanceUnitContext,
 } from "@/lib/attendance";
-import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import {
+  ATTENDANCE_ENTRY_COLUMNS,
+  attendanceEntryLineKey,
+  fetchAttendanceEntriesForPeriod,
+  fetchCandidateEntriesForPeriod,
+  patchAttendanceEntryRows,
+  replaceCandidateEntryRows,
+} from "@/lib/attendance-fetch";
 import {
   ensureAttendanceUnitMapping,
   forcePrimaryAttendanceMapping,
@@ -188,6 +197,27 @@ type EntryRow = {
   ot_hours: number;
   shift_hours?: number | null;
   is_reliever?: boolean | null;
+};
+
+/** One line's prepared save (see prepareEntryWrite). */
+type PreparedEntryWrite = {
+  payload: Array<{
+    unit_id: string;
+    candidate_id: string;
+    designation_id: string | null;
+    shift_hours: number | null;
+    is_reliever: boolean;
+    entry_date: string;
+    code: string;
+    ot_hours: number;
+    ed_from_cap: boolean;
+  }>;
+  /** The requested cells (after cap/de-dup) that must read back as written. */
+  capped: Array<{ entry_date: string; code: string; ot_hours: number }>;
+  convertedDays: number;
+  movedDays: number;
+  cap: number | null;
+  written?: ImportedCell[];
 };
 
 type OcrRowSummary = {
@@ -541,9 +571,11 @@ function MusterRollPage() {
       ? null
       : Number(unitPhDayValueRaw);
 
+  // Roster reads start with the page (they need only unitId); the site row
+  // (unit-scope context, billable filter) is applied once it arrives.
   const {
-    data: rosterEmployees,
-    isLoading,
+    data: rosterRaw,
+    isLoading: rosterRawLoading,
     error: rosterError,
   } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
@@ -580,29 +612,16 @@ function MusterRollPage() {
       if (primError) throw primError;
       if (linksError) throw linksError;
       if (scopeAssignmentsError) throw scopeAssignmentsError;
-      const rawUnit = (unit as { id: string; branch_id: string | null; customer_id: string | null; billing_state: string | null } | null | undefined) ?? null;
-
-      const context: AttendanceUnitContext | null = rawUnit
-        ? {
-            id: rawUnit.id,
-            branch_id: rawUnit.branch_id,
-            customer_id: rawUnit.customer_id,
-            billing_state: rawUnit.billing_state,
-          }
-        : null;
-
-      const scopeIds = new Set<string>();
+      // Everyone scoped to THIS unit; whether scopes apply is decided once the
+      // site row is known (no site row = no unit context = no scopes, as before).
+      const unitScopeIds = new Set<string>();
       for (const assignment of (scopeAssignments ?? []) as AttendanceScopeAssignment[]) {
-        // Only include people explicitly scoped to THIS unit. Branch / customer /
-        // state scopes on field officers are oversight markers — they must not
-        // pull unrelated people into another unit's muster roll.
-        if (assignment.scope_type === "unit" && context && assignment.scope_id === context.id) {
-          scopeIds.add(assignment.candidate_id);
-        }
+        if (assignment.scope_type === "unit" && assignment.scope_id === unitId) unitScopeIds.add(assignment.candidate_id);
       }
-
+      // Superset of the secondary people (links ∪ unit scopes); narrowed to the
+      // exact original set when the roster is built.
       const secondaryIds = Array.from(
-        new Set([...(links ?? []).map((l) => l.candidate_id), ...scopeIds]),
+        new Set([...(links ?? []).map((l) => l.candidate_id), ...unitScopeIds]),
       );
       let extra: typeof prim = [];
       if (secondaryIds.length) {
@@ -615,105 +634,128 @@ function MusterRollPage() {
         if (error) throw error;
         extra = data ?? [];
       }
-      const all = [...(prim ?? []), ...(extra ?? [])];
-      const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
-      // A guard can be deployed at several units at once — there is no "home unit".
-      // Anyone assigned to this unit (own unit_id, a regular candidate_units link, or
-      // a unit scope) is a regular deployed line. Only people HR added ad-hoc from the
-      // muster search carry is_reliever = true on the link: those are (R) lines and are
-      // tracked as overtime only.
-      const relieverLinks = new Set(
-        ((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
-          .filter((l) => l.is_reliever === true)
-          .map((l) => l.candidate_id),
-      );
-      const assignedIds = new Set<string>([
-        ...(prim ?? []).map((c) => c.id),
-        ...((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
-          .filter((l) => l.is_reliever !== true)
-          .map((l) => l.candidate_id),
-        ...scopeIds,
-      ]);
-      const homeMapped = new Set(Array.from(assignedIds).filter((id) => !relieverLinks.has(id)));
-
-      // The designation a person fills AT THIS UNIT comes from the unit mapping
-      // (contracted role slot), not from their master record. "Security guard" is
-      // a role; the designation drives salary and the payroll-day cap.
-      const linesByCandidate = new Map<string, UnitLine[]>();
-      for (const l of (links ?? []) as Array<UnitLine & { candidate_id: string }>) {
-        const arr = linesByCandidate.get(l.candidate_id) ?? [];
-        arr.push({
-          id: l.id,
-          designation_id: l.designation_id ?? null,
-          shift_hours: l.shift_hours ?? null,
-          is_reliever: l.is_reliever === true,
-          is_primary: l.is_primary === true,
-        });
-        linesByCandidate.set(l.candidate_id, arr);
-      }
-      const unitDesigByCandidate = new Map<string, string>();
-      for (const l of (links ?? []) as Array<{
-        candidate_id: string;
-        designation_id?: string | null;
-      }>) {
-        if (l.designation_id) unitDesigByCandidate.set(l.candidate_id, l.designation_id);
-      }
-
-      const desigIds = Array.from(
-        new Set([
-          ...dedup.map((c) => c.designation_id).filter(Boolean),
-          ...unitDesigByCandidate.values(),
-        ]),
-      ) as string[];
-      const wantDesig = new Set(desigIds);
-      const desigs = (await designationsP).filter((d) => wantDesig.has(d.id));
-      const dMap = new Map(desigs.map((d) => [d.id, d.name]));
-
-      const mappedEmployees = dedup
-        .map((c) => {
-          const isNonBillable =
-            isNonBillableRoleKey(c.role_key) ||
-            (c as { non_billable?: boolean }).non_billable === true;
-          const effectiveDesignationId =
-            unitDesigByCandidate.get(c.id) ?? (c.designation_id as string | null);
-          const designationName =
-            (effectiveDesignationId && dMap.get(effectiveDesignationId)) || "";
-          return {
-            id: c.id,
-            employee_code: c.employee_code || "",
-            full_name: c.full_name || "",
-            designation_id: effectiveDesignationId,
-            designation: designationName,
-            employee_type: classifyAttendanceEmployee(c.role_key, designationName),
-            doj: c.preferred_joining_date || "",
-            left_on: ((c as { offboarded_at?: string | null }).offboarded_at || "").slice(0, 10),
-            // A secondary billable posting at this unit (unit mapping with a
-            // billable designation) puts non-billable staff on this muster too.
-            is_non_billable:
-              isNonBillable &&
-              !(
-                unitDesigByCandidate.has(c.id) &&
-                !/field[\s-]*officer/i.test(dMap.get(unitDesigByCandidate.get(c.id)!) || "")
-              ),
-            is_home_mapped: homeMapped.has(c.id),
-            is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
-            role_key: (c.role_key || "").toLowerCase(),
-            lines: linesByCandidate.get(c.id) ?? [],
-          };
-        })
-
-        // Muster rolls are billable-only for client units. Non-billable staff
-        // (field officers, branch managers, HR, etc.) only appear on the
-        // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
-        .filter((c) => !c.is_non_billable || (unit as { is_billable?: boolean | null } | null)?.is_billable === false)
-        .sort((a, b) =>
-          (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name),
-        );
-
-      return mappedEmployees;
+      const designations = await designationsP;
+      return { prim: prim ?? [], extra: extra ?? [], links: links ?? [], unitScopeIds, designations };
     },
-    enabled: Boolean(unit),
+    enabled: Boolean(unitId),
   });
+  type RosterRaw = NonNullable<typeof rosterRaw>;
+
+  const rosterEmployees = useMemo(() => {
+    if (!rosterRaw || unit === undefined) return undefined;
+    const { prim, links, designations } = rosterRaw as RosterRaw;
+    const context: AttendanceUnitContext | null = unit
+      ? {
+          id: (unit as { id: string }).id,
+          branch_id: (unit as { branch_id: string | null }).branch_id,
+          customer_id: (unit as { customer_id: string | null }).customer_id,
+          billing_state: (unit as { billing_state: string | null }).billing_state,
+        }
+      : null;
+    // Only people explicitly scoped to THIS unit. Branch / customer / state
+    // scopes on field officers are oversight markers — they must not pull
+    // unrelated people into another unit's muster roll.
+    const scopeIds = context && context.id === unitId ? rosterRaw.unitScopeIds : new Set<string>();
+    const secondarySet = new Set<string>([...links.map((l) => l.candidate_id), ...scopeIds]);
+    const extra = rosterRaw.extra.filter((c) => secondarySet.has(c.id));
+    const all = [...(prim ?? []), ...(extra ?? [])];
+    const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
+    // A guard can be deployed at several units at once — there is no "home unit".
+    // Anyone assigned to this unit (own unit_id, a regular candidate_units link, or
+    // a unit scope) is a regular deployed line. Only people HR added ad-hoc from the
+    // muster search carry is_reliever = true on the link: those are (R) lines and are
+    // tracked as overtime only.
+    const relieverLinks = new Set(
+      ((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
+        .filter((l) => l.is_reliever === true)
+        .map((l) => l.candidate_id),
+    );
+    const assignedIds = new Set<string>([
+      ...(prim ?? []).map((c) => c.id),
+      ...((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
+        .filter((l) => l.is_reliever !== true)
+        .map((l) => l.candidate_id),
+      ...scopeIds,
+    ]);
+    const homeMapped = new Set(Array.from(assignedIds).filter((id) => !relieverLinks.has(id)));
+
+    // The designation a person fills AT THIS UNIT comes from the unit mapping
+    // (contracted role slot), not from their master record. "Security guard" is
+    // a role; the designation drives salary and the payroll-day cap.
+    const linesByCandidate = new Map<string, UnitLine[]>();
+    for (const l of (links ?? []) as Array<UnitLine & { candidate_id: string }>) {
+      const arr = linesByCandidate.get(l.candidate_id) ?? [];
+      arr.push({
+        id: l.id,
+        designation_id: l.designation_id ?? null,
+        shift_hours: l.shift_hours ?? null,
+        is_reliever: l.is_reliever === true,
+        is_primary: l.is_primary === true,
+      });
+      linesByCandidate.set(l.candidate_id, arr);
+    }
+    const unitDesigByCandidate = new Map<string, string>();
+    for (const l of (links ?? []) as Array<{
+      candidate_id: string;
+      designation_id?: string | null;
+    }>) {
+      if (l.designation_id) unitDesigByCandidate.set(l.candidate_id, l.designation_id);
+    }
+
+    const desigIds = Array.from(
+      new Set([
+        ...dedup.map((c) => c.designation_id).filter(Boolean),
+        ...unitDesigByCandidate.values(),
+      ]),
+    ) as string[];
+    const wantDesig = new Set(desigIds);
+    const desigs = designations.filter((d) => wantDesig.has(d.id));
+    const dMap = new Map(desigs.map((d) => [d.id, d.name]));
+
+    const mappedEmployees = dedup
+      .map((c) => {
+        const isNonBillable =
+          isNonBillableRoleKey(c.role_key) ||
+          (c as { non_billable?: boolean }).non_billable === true;
+        const effectiveDesignationId =
+          unitDesigByCandidate.get(c.id) ?? (c.designation_id as string | null);
+        const designationName =
+          (effectiveDesignationId && dMap.get(effectiveDesignationId)) || "";
+        return {
+          id: c.id,
+          employee_code: c.employee_code || "",
+          full_name: c.full_name || "",
+          designation_id: effectiveDesignationId,
+          designation: designationName,
+          employee_type: classifyAttendanceEmployee(c.role_key, designationName),
+          doj: c.preferred_joining_date || "",
+          left_on: ((c as { offboarded_at?: string | null }).offboarded_at || "").slice(0, 10),
+          // A secondary billable posting at this unit (unit mapping with a
+          // billable designation) puts non-billable staff on this muster too.
+          is_non_billable:
+            isNonBillable &&
+            !(
+              unitDesigByCandidate.has(c.id) &&
+              !/field[\s-]*officer/i.test(dMap.get(unitDesigByCandidate.get(c.id)!) || "")
+            ),
+          is_home_mapped: homeMapped.has(c.id),
+          is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
+          role_key: (c.role_key || "").toLowerCase(),
+          lines: linesByCandidate.get(c.id) ?? [],
+        };
+      })
+
+      // Muster rolls are billable-only for client units. Non-billable staff
+      // (field officers, branch managers, HR, etc.) only appear on the
+      // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
+      .filter((c) => !c.is_non_billable || (unit as { is_billable?: boolean | null } | null)?.is_billable === false)
+      .sort((a, b) =>
+        (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name),
+      );
+
+    return mappedEmployees;
+  }, [rosterRaw, unit, unitId]);
+  const isLoading = rosterRawLoading || (rosterRaw !== undefined && unit === undefined);
 
   // Contract effective for the viewed month: payroll window + designations
   // available on this unit. Prefer the latest contract that overlaps the
@@ -725,13 +767,16 @@ function MusterRollPage() {
       const viewedMonthEnd = search.end ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
       const { data: contracts, error } = await supabase
         .from("client_contracts")
-        .select("id, payroll_window_id, start_date, end_date, status, record_type")
+        // The contract's lines come embedded in the same read (was a second,
+        // sequential request), in the same sort order.
+        .select("id, payroll_window_id, start_date, end_date, status, record_type, contract_resources(designation_id, quantity, sort_order, payroll_day_base_id)" as "id, payroll_window_id, start_date, end_date, status, record_type")
         .eq("unit_id", unitId)
         .eq("record_type", "client")
         .eq("status", "active")
         .lte("start_date", viewedMonthEnd)
         .or(`end_date.is.null,end_date.gte.${viewedMonthStart}`)
         .order("start_date", { ascending: false })
+        .order("sort_order" as "start_date", { ascending: true, referencedTable: "contract_resources" })
         .limit(1);
       if (error) throw error;
       const winId = contracts?.[0]?.payroll_window_id;
@@ -762,11 +807,7 @@ function MusterRollPage() {
         payrollDayBase: PayrollDayBaseLike | null;
       }> = [];
       if (contractId) {
-        const { data: r } = await supabase
-          .from("contract_resources")
-          .select("designation_id, quantity, sort_order, payroll_day_base_id")
-          .eq("contract_id", contractId)
-          .order("sort_order", { ascending: true });
+        const r = (contracts?.[0] as { contract_resources?: Array<Record<string, unknown>> | null } | undefined)?.contract_resources;
         const rows = (r ?? []).filter((x) => x.designation_id) as Array<{
           designation_id: string;
           quantity: number | null;
@@ -2274,12 +2315,17 @@ function MusterRollPage() {
   // this the UI collapsed every database rejection into a bare "Failed to save".
   const saveErrorMessage = (e: unknown): string => networkErrorMessage(e, "Failed to save");
 
-  const upsertEntries = async (
+  /**
+   * Everything one line's save would write (Payroll-days cap, de-dup), without
+   * writing it — so several lines can go to the database in one upsert.
+   * Null = nothing to write.
+   */
+  const prepareEntryWrite = (
     candidate_id: string,
     designation_id: string | null,
     rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
     line?: { variant?: string; reliever?: boolean; written?: ImportedCell[] },
-  ) => {
+  ): PreparedEntryWrite | null => {
     // Which line of this person the rows belong to. Without an explicit
     // variant, use the person's matching posting at this unit.
     let variant = line?.variant;
@@ -2304,7 +2350,7 @@ function MusterRollPage() {
     const filtered = rows.filter((r) => r.entry_date <= todayStr);
     if (filtered.length === 0) {
       toast.error("All selected dates are in the future — nothing marked");
-      return 0;
+      return null;
     }
 
     // ---- Payroll-days cap: max present days = contract's Payroll Days base.
@@ -2392,7 +2438,7 @@ function MusterRollPage() {
       }
     }
 
-    if (capped.length === 0 && extraRows.length === 0) return 0;
+    if (capped.length === 0 && extraRows.length === 0) return null;
 
     // One row per date: a sheet can list the same person twice (duplicate
     // names / repeated lines). Postgres rejects an upsert that touches the same
@@ -2427,6 +2473,32 @@ function MusterRollPage() {
       ed_from_cap: capConvertedDates.has(r.entry_date),
     }));
 
+    return { payload, capped, convertedDays, movedDays, cap, written: line?.written };
+  };
+
+  /**
+   * Write prepared lines in ONE upsert (one statement, so the database
+   * attendance rules run once over the final state of every touched guard),
+   * then verify each line exactly as the single-line save did. Returns the
+   * saved rows (full entry columns) for patching the sheet cache.
+   */
+  const saveEntryWrites = async (writes: PreparedEntryWrite[]): Promise<{ count: number; saved: EntryRow[] }> => {
+    const live = writes.filter((w) => w.payload.length > 0);
+    if (!live.length) return { count: 0, saved: [] };
+    const payload = live.flatMap((w) => w.payload);
+    // Postgres refuses an upsert that touches the same cell twice; lines never
+    // overlap, but if they ever did, keep the per-line statements.
+    const keys = new Set(payload.map(attendanceEntryLineKey));
+    if (keys.size !== payload.length && live.length > 1) {
+      let count = 0;
+      const saved: EntryRow[] = [];
+      for (const w of live) {
+        const r = await saveEntryWrites([w]);
+        count += r.count;
+        saved.push(...r.saved);
+      }
+      return { count, saved };
+    }
     // A dropped connection ("Failed to fetch") means the write never reached the
     // database, so it is retried instead of being reported as a save failure.
     const savedRows = await withNetworkRetry(async () => {
@@ -2435,38 +2507,95 @@ function MusterRollPage() {
         .upsert(payload as never, {
           onConflict: "unit_id,candidate_id,designation_id,shift_hours,is_reliever,entry_date",
         })
-        .select("entry_date,code,ot_hours");
+        .select(ATTENDANCE_ENTRY_COLUMNS);
       if (error) throw error;
-      return data;
+      return (data ?? []) as unknown as EntryRow[];
     });
     // Imports collect exactly which line cells were written, so replacement
     // removes only stale lines on the dates the file covered.
-    line?.written?.push(
-      ...payload.map((r) => ({
-        candidate_id: r.candidate_id,
-        designation_id: r.designation_id,
-        shift_hours: r.shift_hours,
-        is_reliever: r.is_reliever,
-        entry_date: r.entry_date,
-      })),
-    );
-    const savedByDate = new Map((savedRows ?? []).map((row) => [row.entry_date, row]));
-    const mismatched = capped.filter((row) => {
-      const saved = savedByDate.get(row.entry_date);
-      return !saved || saved.code !== row.code || Number(saved.ot_hours ?? 0) !== row.ot_hours;
-    });
-    if (mismatched.length > 0) {
+    for (const w of live) {
+      w.written?.push(
+        ...w.payload.map((r) => ({
+          candidate_id: r.candidate_id,
+          designation_id: r.designation_id,
+          shift_hours: r.shift_hours,
+          is_reliever: r.is_reliever,
+          entry_date: r.entry_date,
+        })),
+      );
+    }
+    const savedByKey = new Map(savedRows.map((row) => [attendanceEntryLineKey(row), row]));
+    let mismatched = 0;
+    for (const w of live) {
+      const lineOf = w.payload[0]!;
+      for (const row of w.capped) {
+        const saved = savedByKey.get(attendanceEntryLineKey({ ...lineOf, entry_date: row.entry_date }));
+        if (!saved || saved.code !== row.code || Number(saved.ot_hours ?? 0) !== row.ot_hours) mismatched += 1;
+      }
+    }
+    if (mismatched > 0) {
       throw new Error(
-        `Attendance was not saved for ${mismatched.length} selected cell${mismatched.length === 1 ? "" : "s"}`,
+        `Attendance was not saved for ${mismatched} selected cell${mismatched === 1 ? "" : "s"}`,
       );
     }
-    if (convertedDays > 0) {
-      toast.info(
-        `Payroll days limit (${cap}) reached — ${convertedDays} day${convertedDays === 1 ? "" : "s"} recorded as Extra Duty` +
-          (movedDays > 0 ? ` (${movedDays} moved to the next free date)` : ""),
-      );
+    for (const w of live) {
+      if (w.convertedDays > 0) {
+        toast.info(
+          `Payroll days limit (${w.cap}) reached — ${w.convertedDays} day${w.convertedDays === 1 ? "" : "s"} recorded as Extra Duty` +
+            (w.movedDays > 0 ? ` (${w.movedDays} moved to the next free date)` : ""),
+        );
+      }
     }
-    return capped.length;
+    return { count: live.reduce((s, w) => s + w.capped.length, 0), saved: savedRows };
+  };
+
+  const upsertEntries = async (
+    candidate_id: string,
+    designation_id: string | null,
+    rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
+    line?: { variant?: string; reliever?: boolean; written?: ImportedCell[] },
+  ) => {
+    const write = prepareEntryWrite(candidate_id, designation_id, rows, line);
+    if (!write) return 0;
+    return (await saveEntryWrites([write])).count;
+  };
+
+  // ---- Sheet cache after a save -------------------------------------------
+  // A save patches the cached period rows with what the database returned, then
+  // re-reads only the touched people's rows here: the database attendance rules
+  // recompute a guard's whole month (role / ED flags on their other rows), so a
+  // person's complete re-read captures every side effect — no full-sheet re-read.
+  const entriesSaveGen = useRef(new Map<string, number>());
+  const refreshEntriesForCandidates = (candidateIds: string[]) => {
+    const ids = Array.from(new Set(candidateIds.filter(Boolean)));
+    if (!ids.length) return;
+    const key = entriesQK;
+    const gens = new Map(ids.map((id) => {
+      const next = (entriesSaveGen.current.get(id) ?? 0) + 1;
+      entriesSaveGen.current.set(id, next);
+      return [id, next] as const;
+    }));
+    void fetchCandidateEntriesForPeriod({ unitId, candidateIds: ids, start: periodStart, end: periodEnd })
+      .then((fresh) => {
+        // A newer save of the same person re-reads them itself; never let this
+        // older read overwrite it.
+        const current = ids.filter((id) => entriesSaveGen.current.get(id) === gens.get(id));
+        if (!current.length) return;
+        const keep = new Set(current);
+        queryClient.setQueryData<EntryRow[]>(key, (old) =>
+          replaceCandidateEntryRows(old, current, (fresh as EntryRow[]).filter((r) => keep.has(r.candidate_id))));
+      })
+      .catch(() => queryClient.invalidateQueries({ queryKey: key }));
+  };
+  const applySavedEntries = async (saved: EntryRow[], candidateIds: string[]) => {
+    // A full re-read already in flight may predate this save: let it finish
+    // and read again (the previous behaviour) rather than race it.
+    if (queryClient.getQueryState(entriesQK)?.fetchStatus === "fetching") {
+      void queryClient.invalidateQueries({ queryKey: entriesQK });
+      return;
+    }
+    if (saved.length) queryClient.setQueryData<EntryRow[]>(entriesQK, (old) => patchAttendanceEntryRows(old, saved));
+    refreshEntriesForCandidates(candidateIds);
   };
 
   // Importing a past month must never move a guard's current postings/home unit.
@@ -2948,6 +3077,15 @@ function MusterRollPage() {
     const written: ImportedCell[] = [];
     const coveredDates = new Map<string, Set<string>>();
 
+    type SheetItem = {
+      emp: (typeof result.employees)[number];
+      rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+      designationId: string | null;
+      reasons: string[];
+      resolved?: Awaited<ReturnType<typeof resolveSheetPersonForUnit>>;
+      done?: boolean;
+    };
+    const items: SheetItem[] = [];
     for (const emp of result.employees) {
       if (wanted.length) {
         // Exact (case/space-insensitive) name or code only — never substrings.
@@ -2975,39 +3113,38 @@ function MusterRollPage() {
       const designationId =
         emp.designation_id ??
         (contractDesignations.length === 1 ? contractDesignations[0].designationId : null);
-      const resolved = await resolveSheetPersonForUnit({
+      items.push({ emp, rows, designationId, reasons: [] });
+    }
+
+    const resolveItem = (it: SheetItem) =>
+      resolveSheetPersonForUnit({
         unitId,
         contractId: contractInfo?.contractId ?? null,
         ref: {
-          codeTokens: [emp.employee_code, emp.mobile].filter(Boolean) as string[],
-          nameTokens: [emp.name].filter(Boolean) as string[],
-          designationId,
-          designationName: emp.designation_name ?? null,
-          isReliever: looksLikeRelieverText(emp.name, emp.designation_name),
+          codeTokens: [it.emp.employee_code, it.emp.mobile].filter(Boolean) as string[],
+          nameTokens: [it.emp.name].filter(Boolean) as string[],
+          designationId: it.designationId,
+          designationName: it.emp.designation_name ?? null,
+          isReliever: looksLikeRelieverText(it.emp.name, it.emp.designation_name),
         },
         joiningDate: periodStart,
         createdBy,
         allowPostingChanges: importChangesPostings,
-        onUnmatched: (reason) => unmatched.push(reason),
+        onUnmatched: (reason) => it.reasons.push(reason),
       });
-      if (!resolved) {
-        if (emp.name && !unmatched.some((u) => u.startsWith(emp.name))) unmatched.push(emp.name);
-        continue;
-      }
-      if (resolved.created) created += 1;
-      else if (resolved.mapped) mapped += 1;
-      people += 1;
-
-      // Sheet-authoritative only for the dates read for this person; stale
-      // lines on those dates are removed after every write has succeeded.
-      addCoveredDates(coveredDates, resolved.candidateId, rows.map((r) => r.entry_date));
+    const rowsFor = (it: SheetItem) => {
+      const resolved = it.resolved!;
+      return rowsForAttendanceRole(it.rows, resolved.isReliever);
+    };
+    // The single-person path: write, and on a stale reliever link post the
+    // guard here and retry (the sheet is authoritative).
+    const writeItem = async (it: SheetItem) => {
+      const resolved = it.resolved!;
       const writeRows = async () =>
-        upsertEntries(
-          resolved.candidateId,
-          resolved.designationId,
-          rowsForAttendanceRole(rows, resolved.isReliever),
-          { reliever: resolved.isReliever, written },
-        );
+        upsertEntries(resolved.candidateId, resolved.designationId, rowsFor(it), {
+          reliever: resolved.isReliever,
+          written,
+        });
       try {
         await writeRows();
       } catch (writeError) {
@@ -3023,7 +3160,63 @@ function MusterRollPage() {
           await writeRows();
         } else throw writeError;
       }
-      cells += rows.length;
+      it.done = true;
+    };
+
+    // Resolve people 4 at a time. Rows sharing a code/phone/name (the same
+    // person listed twice) stay in one lane and keep the original
+    // resolve-then-write order; everyone else is resolved first and written
+    // in large upserts below.
+    const lanes = sharedTokenLanes(items.map((it) => [it.emp.employee_code, it.emp.mobile, it.emp.name]));
+    await runInLanes(lanes, 4, async (i) => {
+      const it = items[i]!;
+      it.resolved = await resolveItem(it);
+      if (it.resolved && (lanes.find((l) => l.includes(i))?.length ?? 1) > 1) await writeItem(it);
+    });
+    // Two lanes that still reached the same employee are written one by one,
+    // in sheet order.
+    const dupes = new Set(Array.from(crossLaneDuplicates(lanes, (i) => items[i]!.resolved?.candidateId).values()).flat());
+    for (const i of Array.from(dupes).sort((a, b) => a - b)) {
+      const it = items[i]!;
+      if (it.resolved && !it.done) await writeItem(it);
+    }
+    const batch = items.filter((it) => it.resolved && !it.done);
+    const prepared = batch
+      .map((it) => {
+        const resolved = it.resolved!;
+        const write = prepareEntryWrite(resolved.candidateId, resolved.designationId, rowsFor(it), {
+          reliever: resolved.isReliever,
+          written,
+        });
+        return { it, write };
+      });
+    for (const p of prepared) if (!p.write) p.it.done = true;
+    for (const chunk of chunkByRowBudget(prepared.filter((p) => p.write), (p) => p.write!.payload.length, 500)) {
+      try {
+        await saveEntryWrites(chunk.map((p) => p.write!));
+        for (const p of chunk) p.it.done = true;
+      } catch {
+        // A rejected chunk changed nothing (one statement): fall back to the
+        // per-person path, which keeps the stale-reliever-link retry.
+        for (const p of chunk) await writeItem(p.it);
+      }
+    }
+
+    // Counters and messages in sheet order, exactly as the one-by-one loop.
+    for (const it of items) {
+      unmatched.push(...it.reasons);
+      const resolved = it.resolved;
+      if (!resolved) {
+        if (it.emp.name && !unmatched.some((u) => u.startsWith(it.emp.name))) unmatched.push(it.emp.name);
+        continue;
+      }
+      if (resolved.created) created += 1;
+      else if (resolved.mapped) mapped += 1;
+      people += 1;
+      // Sheet-authoritative only for the dates read for this person; stale
+      // lines on those dates are removed after every write has succeeded.
+      addCoveredDates(coveredDates, resolved.candidateId, it.rows.map((r) => r.entry_date));
+      cells += it.rows.length;
     }
 
     await removeEntriesReplacedByImport({ unitId, periodStart, periodEnd, written, coveredDates });
@@ -3823,9 +4016,16 @@ function MusterRollPage() {
       if (pendingPeople.length) {
         const { data: authUser } = await supabase.auth.getUser();
         const createdBy = authUser.user?.id ?? null;
-        for (const person of pendingPeople) {
+        // Resolve 4 at a time; rows sharing a code/name (the same person listed
+        // twice) stay in one lane, in sheet order. Results are applied below in
+        // sheet order exactly as the one-by-one loop did.
+        const outcomes: Array<{ reasons: string[]; resolved?: Awaited<ReturnType<typeof resolveSheetPersonForUnit>>; failed?: boolean }> =
+          pendingPeople.map(() => ({ reasons: [] }));
+        await runInLanes(sharedTokenLanes(pendingPeople.map((p) => p.tokens)), 4, async (i) => {
+          const person = pendingPeople[i]!;
+          const out = outcomes[i]!;
           try {
-            const resolved = await resolveSheetPersonForUnit({
+            out.resolved = await resolveSheetPersonForUnit({
               unitId,
               contractId: contractInfo?.contractId ?? null,
               ref: {
@@ -3838,8 +4038,18 @@ function MusterRollPage() {
               joiningDate: periodStart,
               createdBy,
               allowPostingChanges: importChangesPostings,
-              onUnmatched: (reason) => unmatchedNames.push(reason),
+              onUnmatched: (reason) => out.reasons.push(reason),
             });
+          } catch {
+            out.failed = true;
+          }
+        });
+        for (const [i, person] of pendingPeople.entries()) {
+          const out = outcomes[i]!;
+          unmatchedNames.push(...out.reasons);
+          try {
+            if (out.failed) throw new Error("unresolved");
+            const resolved = out.resolved ?? null;
             if (!resolved) {
               if (person.label && !unmatchedNames.some((u) => u.startsWith(person.label))) {
                 unmatchedNames.push(person.label);
@@ -3882,28 +4092,63 @@ function MusterRollPage() {
       for (const cid of candidatesInSheet) addCoveredDates(xlsxCovered, cid, fileDates);
       const xlsxWritten: ImportedCell[] = [];
 
-      for (const { mr, rows } of byPair.values()) {
+      // Write units in the original order: muster pairs (mapping, then rows),
+      // then auto-resolved pairs. A person with several units keeps that exact
+      // one-by-one order; everyone else is mapped 4 at a time and saved in
+      // upserts of ~500 rows (a rejected chunk falls back to one-by-one).
+      type XlsxUnit = {
+        candidateId: string;
+        designationId: string | null;
+        rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
+        /** Muster pair: the posting is ensured first (its reliever flag decides the rows). */
+        mapping?: { designationId: string | null; reliever: boolean };
+        isReliever?: boolean;
+      };
+      const units: XlsxUnit[] = [
+        ...Array.from(byPair.values()).map(({ mr, rows }) => ({
+          candidateId: mr.candidateId,
+          designationId: mr.designationId,
+          rows,
+          mapping: { designationId: mr.designationId, reliever: mr.reliever === true },
+        })),
+        ...autoPairs.map((pair) => ({
+          candidateId: pair.candidateId,
+          designationId: pair.designationId,
+          rows: pair.rows,
+          isReliever: pair.isReliever,
+        })),
+      ];
+      const ensureUnit = async (u: XlsxUnit) => {
+        if (!u.mapping) return;
         const mapping = await ensureAttendanceUnitMapping(
-          mr.candidateId,
+          u.candidateId,
           unitId,
-          mr.designationId,
-          mr.reliever === true,
+          u.mapping.designationId,
+          u.mapping.reliever,
           importChangesPostings,
         );
-        await upsertEntries(
-          mr.candidateId,
-          mr.designationId,
-          rowsForAttendanceRole(rows, mapping.isReliever),
-          { reliever: mapping.isReliever, written: xlsxWritten },
-        );
+        u.isReliever = mapping.isReliever;
+      };
+      const unitArgs = (u: XlsxUnit) =>
+        [u.candidateId, u.designationId, rowsForAttendanceRole(u.rows, u.isReliever === true), { reliever: u.isReliever === true, written: xlsxWritten }] as const;
+      const unitsPerCandidate = new Map<string, number>();
+      for (const u of units) unitsPerCandidate.set(u.candidateId, (unitsPerCandidate.get(u.candidateId) ?? 0) + 1);
+      for (const u of units) {
+        if ((unitsPerCandidate.get(u.candidateId) ?? 0) < 2) continue;
+        await ensureUnit(u);
+        await upsertEntries(...unitArgs(u));
       }
-      for (const pair of autoPairs) {
-        await upsertEntries(
-          pair.candidateId,
-          pair.designationId,
-          rowsForAttendanceRole(pair.rows, pair.isReliever),
-          { reliever: pair.isReliever, written: xlsxWritten },
-        );
+      const single = units.filter((u) => (unitsPerCandidate.get(u.candidateId) ?? 0) < 2);
+      await mapPool(single, 4, ensureUnit);
+      const preparedUnits = single
+        .map((u) => ({ u, write: prepareEntryWrite(...unitArgs(u)) }))
+        .filter((p) => p.write);
+      for (const chunk of chunkByRowBudget(preparedUnits, (p) => p.write!.payload.length, 500)) {
+        try {
+          await saveEntryWrites(chunk.map((p) => p.write!));
+        } catch {
+          for (const p of chunk) await upsertEntries(...unitArgs(p.u));
+        }
       }
       const clearedStale = await removeEntriesReplacedByImport({
         unitId,
@@ -4159,9 +4404,11 @@ function MusterRollPage() {
   ) => {
     const grouped = groupCells(cells);
     if (grouped.size === 0) return;
+    const touched: string[] = [];
     try {
-      let applied = 0;
       let blocked = 0;
+      // Every line's cells are prepared first and saved in ONE upsert.
+      const writes: PreparedEntryWrite[] = [];
       for (const [rowKey, dates] of grouped) {
         const row = findRow(rowKey);
         if (!row) continue;
@@ -4176,15 +4423,20 @@ function MusterRollPage() {
           code,
           ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
         }));
-        applied += await upsertEntries(row.candidateId, row.designationId, rows, {
+        const write = prepareEntryWrite(row.candidateId, row.designationId, rows, {
           variant: row.variant,
         });
+        if (write) {
+          writes.push(write);
+          touched.push(row.candidateId);
+        }
       }
+      const { count: applied, saved } = await saveEntryWrites(writes);
       if (blocked > 0) {
         toast.error("Reliever lines are Extra Duty only — mark ED hours on the ED row instead");
       }
 
-      await queryClient.invalidateQueries({ queryKey: entriesQK });
+      await applySavedEntries(saved, touched);
       setPickerOpen(false);
       setSelectedCells(new Set());
       if (!preserveMobileSelection) setMobileSelectedRows(new Set());
@@ -4193,6 +4445,9 @@ function MusterRollPage() {
         toast.success(`Applied ${code || "Clear"} to ${applied} cell${applied > 1 ? "s" : ""}`);
       }
     } catch (e) {
+      // The write may still have reached the database (e.g. a read-back
+      // mismatch): show what is actually saved for these people.
+      refreshEntriesForCandidates(touched);
       toast.error(saveErrorMessage(e));
     }
   };
@@ -4263,8 +4518,11 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
   const applyOtToSelection = async (hours: number) => {
     const grouped = groupCells(otPickerCells);
     if (grouped.size === 0) return;
+    const touched: string[] = [];
     try {
       let count = 0;
+      // Every line's cells are prepared first and saved in ONE upsert.
+      const writes: PreparedEntryWrite[] = [];
       for (const [rowKey, dates] of grouped) {
         const row = findRow(rowKey);
         if (!row) continue;
@@ -4276,10 +4534,15 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
           code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
           ot_hours: otDays,
         }));
-        await upsertEntries(row.candidateId, row.designationId, rows, { variant: row.variant });
+        const write = prepareEntryWrite(row.candidateId, row.designationId, rows, { variant: row.variant });
+        if (write) {
+          writes.push(write);
+          touched.push(row.candidateId);
+        }
         count += dates.length;
       }
-      await queryClient.invalidateQueries({ queryKey: entriesQK });
+      const { saved } = await saveEntryWrites(writes);
+      await applySavedEntries(saved, touched);
       setOtPickerOpen(false);
       setOtSelectedCells(new Set());
       setOtSelAnchor(null);
@@ -4289,6 +4552,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
           : `Cleared ED on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
+      refreshEntriesForCandidates(touched);
       toast.error(saveErrorMessage(e));
     }
   };
