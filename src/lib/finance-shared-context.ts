@@ -182,7 +182,7 @@ export async function loadPayrollPeopleReads(db: Db, everyone: string[], months:
       const { y, mo } = monthBounds(m);
       // One split per person / site / month: (person, site) orders pages deterministically.
       const base = () => from.from("pt_site_allocations").select("candidate_id, unit_id, pt_amount").eq("period_year", y).eq("period_month", mo);
-      const ordered = (q: any) => q.order("candidate_id").order("unit_id").order("pt_amount"); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const ordered = (q: any) => q.order("candidate_id").order("unit_id").order("id"); // eslint-disable-line @typescript-eslint/no-explicit-any
       const rows = await monthPeopleRows(ctx, `allocations:${m}`, everyone,
         (chunk, a, b) => ordered(base().in("candidate_id", chunk)).range(a, b),
         (a, b) => ordered(base()).range(a, b));

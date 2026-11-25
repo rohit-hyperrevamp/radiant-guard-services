@@ -72,7 +72,7 @@ export async function fetchPtAllocations(
       .eq("period_month", m)
       // Stable page order (person, site): unordered pages can skip a row, and a
       // skipped recorded split charges PT twice.
-      .order("candidate_id").order("unit_id")
+      .order("candidate_id").order("unit_id").order("id")
       .range(from, to) as never,
   );
   // No catch: a failed read must stop processing, not silently drop the
