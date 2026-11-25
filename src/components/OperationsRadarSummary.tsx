@@ -35,14 +35,14 @@ function batteryTone(pct: number | null) {
  * Radar, consumed on the operations homepage: live field-officer map with the
  * day's ping counts. The full Radar screen stays one click away.
  */
-export function useOperationsRadarLive() {
+export function useOperationsRadarLive(enabled = true) {
   const managerScope = useManagerFieldOfficerScope();
   // Managers only track the officers reporting to them.
   const officerIds = managerScope.isScoped ? [...managerScope.fieldOfficerIds].sort() : null;
 
   return useQuery({
     queryKey: ["ops-radar-live", today(), officerIds ?? "all"],
-    enabled: !managerScope.isLoading,
+    enabled: enabled && !managerScope.isLoading,
     refetchInterval: 30_000,
     queryFn: async (): Promise<LivePunch[]> => {
       if (officerIds && officerIds.length === 0) return [];

@@ -85,3 +85,46 @@ export function dashboardFinanceRows(
     };
   });
 }
+/** Saved, current totals for the register; every other site of the roster is stale and must be computed live. */
+export function splitSavedRegisterTotals(
+  periods: Map<string, { start: string; end: string }>,
+  saved: SavedFinanceRow[],
+) {
+  const ready = new Map<string, ReturnType<typeof dashboardFinanceRows>[number]>();
+  const stale: string[] = [];
+  for (const row of dashboardFinanceRows(periods, saved, [], new Set())) {
+    if (row.totals_status === "ready") ready.set(row.unit_id, row);
+    else stale.push(row.unit_id);
+  }
+  return { ready, stale };
+}
+
+export type RegisterSavedMoney = { invoice_amount: number; payroll_cost: number; deductions: number; net_pay: number; employer_contribution: number };
+export type RegisterLiveMoney = {
+  engine: Map<string, { invoice_amount: number }>;
+  pay: Map<string, { gross: number; deductions: number; net: number; employer: number }>;
+};
+export type RegisterMoney = {
+  invoiceAmount: number; payrollAmount: number; deductionAmount: number; netPayrollAmount: number; employerCost: number;
+  source: "saved" | "live";
+};
+
+/**
+ * One register row's money: the saved current total when there is one, else the
+ * live engine results once that site's live batch has finished (null = still
+ * updating). Field-for-field the precedence the register has always used.
+ */
+export function registerMoney(unitId: string, saved: RegisterSavedMoney | null | undefined, live: RegisterLiveMoney | null | undefined): RegisterMoney | null {
+  if (!saved && !live) return null;
+  const engine = live?.engine.get(unitId);
+  const pay = live?.pay.get(unitId);
+  return {
+    invoiceAmount: saved?.invoice_amount ?? (engine ? engine.invoice_amount : 0),
+    payrollAmount: saved?.payroll_cost ?? pay?.gross ?? 0,
+    deductionAmount: saved?.deductions ?? pay?.deductions ?? 0,
+    netPayrollAmount: saved?.net_pay ?? pay?.net ?? 0,
+    // Same actual-cost separation as the dashboard; billing add-ons stay inside revenue.
+    employerCost: saved?.employer_contribution ?? pay?.employer ?? 0,
+    source: saved ? "saved" : "live",
+  };
+}

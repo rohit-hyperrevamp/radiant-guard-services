@@ -19,3 +19,16 @@ describe("registers use the contract governing the viewed period", () => {
     expect(c?.id).toBe("live");
   });
 });
+
+import { periodContractFilter } from "./contract-finance";
+
+describe("period contract server filter", () => {
+  it("keeps every active contract and only period-overlapping expired ones (null dates included)", () => {
+    const f = periodContractFilter(new Map([
+      ["a", { start: "2026-10-21", end: "2026-11-20" }],
+      ["b", { start: "2026-11-01", end: "2026-11-30" }],
+    ]));
+    expect(f).toBe("status.eq.active,and(status.eq.expired,or(start_date.is.null,start_date.lte.2026-11-30),or(end_date.is.null,end_date.gte.2026-10-21))");
+    expect(periodContractFilter()).toBe("status.eq.active");
+  });
+});

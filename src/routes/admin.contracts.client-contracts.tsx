@@ -669,6 +669,45 @@ function nextProspectCode(existing: string[]): string {
   return `PROS-${String(max + 1).padStart(4, "0")}`;
 }
 
+const REGISTER_PAGE = 1000;
+const REGISTER_CONCURRENCY = 6;
+
+/**
+ * Read every page of an ordered query: page 1 returns the exact row count,
+ * then the remaining pages are fetched concurrently (bounded) and stitched
+ * back in order. Same rows as a sequential page loop, far fewer round trips.
+ */
+async function fetchRegisterPagesParallel(
+  build: (from: number, to: number, withCount: boolean) => PromiseLike<{ data: unknown; error: unknown; count?: number | null }>,
+): Promise<Record<string, unknown>[]> {
+  const first = await build(0, REGISTER_PAGE - 1, true);
+  if (first.error) throw first.error;
+  const head = (first.data ?? []) as Record<string, unknown>[];
+  const total = first.count ?? head.length;
+  if (head.length < REGISTER_PAGE || total <= REGISTER_PAGE) return head;
+  const starts: number[] = [];
+  for (let from = REGISTER_PAGE; from < total; from += REGISTER_PAGE) starts.push(from);
+  const pages: Record<string, unknown>[][] = new Array(starts.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < starts.length) {
+      const i = next++;
+      const { data, error } = await build(starts[i], starts[i] + REGISTER_PAGE - 1, false);
+      if (error) throw error;
+      pages[i] = (data ?? []) as Record<string, unknown>[];
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(REGISTER_CONCURRENCY, starts.length) }, worker));
+  const rows = head.concat(...pages);
+  // Rows inserted while paging can push the tail past the counted total.
+  if (pages[pages.length - 1]?.length === REGISTER_PAGE) {
+    rows.push(...(await fetchAllPages<Record<string, unknown>>((from, to) =>
+      build(from + starts[starts.length - 1] + REGISTER_PAGE, to + starts[starts.length - 1] + REGISTER_PAGE, false) as PromiseLike<{ data: unknown; error: { message: string } | null }>,
+    )));
+  }
+  return rows;
+}
+
 function useContracts() {
   const qc = useQueryClient();
   const contractsQuery = useQuery({
@@ -684,10 +723,12 @@ function useContracts() {
         // though the contract rows had arrived. A flat register read plus the
         // narrow directory RPC is deterministic and avoids full unit records.
         const [contractRows, directoryResult, activeIds] = await Promise.all([
-          fetchAllPages<Record<string, unknown>>((from, to) =>
+          // Pages are read in parallel once the row count is known (the
+          // first page carries it): two round trips instead of ~17 in a row.
+          fetchRegisterPagesParallel((from, to, withCount) =>
             supabase
               .from("client_contracts" as never)
-              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,invoice_ed_mode,gst_option,wo_as_present,status,approval_status,rejection_reason,created_by,created_at")
+              .select("id,contract_code,prospect_code,record_type,prospect_stage,promoted_at,unit_id,start_date,end_date,expiry_date,original_start_date,renewal_count,description,service_type_id,payroll_window_id,billing_type_id,invoice_ed_mode,gst_option,wo_as_present,status,approval_status,rejection_reason,created_by,created_at", withCount ? { count: "exact" } : undefined)
               .order("created_at", { ascending: false })
               .order("id", { ascending: false })
               .range(from, to)

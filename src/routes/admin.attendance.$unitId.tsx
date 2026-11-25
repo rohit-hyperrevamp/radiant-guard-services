@@ -51,6 +51,7 @@ interface SpeechRecognitionLike {
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { getReference } from "@/lib/reference-data";
 import { logActivity } from "@/lib/activity-log";
 import { withNetworkRetry, networkErrorMessage } from "@/lib/net-retry";
 import { notifyApprovers, notifyUser } from "@/lib/notifications";
@@ -417,19 +418,16 @@ function MusterRollPage() {
       const { data: raw, error } = await supabase
         .from("units")
         .select(
-          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode" as never,
+          "id, code, name, location, is_billable, epf_cap_enabled, branch_id, customer_id, billing_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode, customers(name)" as never,
         )
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
-      const data = (raw ?? null) as AttendanceUnitRow | null;
-      if (!data) return null;
-      const { data: cust } = await supabase
-        .from("customers")
-        .select("id, name")
-        .eq("id", String(data.customer_id ?? ""))
-        .maybeSingle();
-      return { ...data, customer_name: cust?.name ?? "" };
+      // Customer name is embedded in the same read (was a second, sequential request).
+      const withCustomer = (raw ?? null) as (AttendanceUnitRow & { customers?: { name?: string | null } | null }) | null;
+      if (!withCustomer) return null;
+      const { customers, ...data } = withCustomer;
+      return { ...(data as AttendanceUnitRow), customer_name: customers?.name ?? "" };
     },
   });
 
@@ -553,37 +551,36 @@ function MusterRollPage() {
       const rosterSelect =
         "id, employee_code, full_name, designation_id, preferred_joining_date, offboarded_at, date_of_birth, is_enabled, status, role_key, non_billable";
 
-      const { data: prim, error: primError } = await supabase
-        .from("candidates")
-        .select(rosterSelect)
-        .eq("unit_id", unitId)
-        .eq("is_enabled", true)
-        .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES]);
-      if (primError) throw primError;
-
+      // Independent reads run together; the designation names come from the
+      // shared reference cache. The site row is the `unit` query this one
+      // waits for (it was read a second time here).
+      const designationsP = getReference<{ id: string; name: string | null }>("designations");
+      designationsP.catch(() => {});
       const [
+        { data: prim, error: primError },
         { data: links, error: linksError },
-        { data: rawUnit, error: rawUnitError },
         { data: scopeAssignments, error: scopeAssignmentsError },
       ] = await Promise.all([
+        supabase
+          .from("candidates")
+          .select(rosterSelect)
+          .eq("unit_id", unitId)
+          .eq("is_enabled", true)
+          .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES]),
         supabase
           .from("candidate_units")
           .select("id, candidate_id, is_reliever, is_primary, designation_id, shift_hours" as "candidate_id, is_reliever, designation_id")
           .eq("unit_id", unitId),
-        supabase
-          .from("units")
-          .select("id, branch_id, customer_id, billing_state")
-          .eq("id", unitId)
-          .maybeSingle(),
         supabase
           .from("employee_scope_assignments")
           .select("candidate_id, scope_type, scope_id")
           .eq("scope_type", "unit")
           .eq("scope_id", unitId),
       ]);
+      if (primError) throw primError;
       if (linksError) throw linksError;
-      if (rawUnitError) throw rawUnitError;
       if (scopeAssignmentsError) throw scopeAssignmentsError;
+      const rawUnit = (unit as { id: string; branch_id: string | null; customer_id: string | null; billing_state: string | null } | null | undefined) ?? null;
 
       const context: AttendanceUnitContext | null = rawUnit
         ? {
@@ -668,11 +665,9 @@ function MusterRollPage() {
           ...unitDesigByCandidate.values(),
         ]),
       ) as string[];
-      const { data: desigs } = await supabase
-        .from("designations")
-        .select("id, name")
-        .in("id", desigIds.length ? desigIds : ["00000000-0000-0000-0000-000000000000"]);
-      const dMap = new Map((desigs ?? []).map((d) => [d.id, d.name]));
+      const wantDesig = new Set(desigIds);
+      const desigs = (await designationsP).filter((d) => wantDesig.has(d.id));
+      const dMap = new Map(desigs.map((d) => [d.id, d.name]));
 
       const mappedEmployees = dedup
         .map((c) => {
@@ -749,15 +744,16 @@ function MusterRollPage() {
         window_start_day: number;
         window_end_day: number;
       };
-      let win: Win | null = null;
-      if (winId) {
-        const { data: winRow } = await supabase
-          .from("payroll_windows")
-          .select("id, label, window_start_day, window_end_day")
-          .eq("id", winId)
-          .maybeSingle();
-        win = (winRow as Win | null) ?? null;
-      }
+      // Payroll windows, day bases and designation names are master tables:
+      // served from the shared reference cache, in parallel with the
+      // contract lines below (they used to be three more sequential reads).
+      const winP = winId
+        ? getReference<Record<string, unknown>>("payrollWindows").then((rows) => {
+            const w = rows.find((r) => r.id === winId);
+            return w ? ({ id: w.id, label: w.label, window_start_day: w.window_start_day, window_end_day: w.window_end_day } as Win) : null;
+          })
+        : Promise.resolve(null);
+      winP.catch(() => {});
 
       let resources: Array<{
         designationId: string;
@@ -792,11 +788,9 @@ function MusterRollPage() {
         const pdbById = new Map<string, PayrollDayBaseLike>();
         const pdbIds = Array.from(new Set(pdbIdByDesig.values()));
         if (pdbIds.length) {
-          const { data: bases } = await supabase
-            .from("payroll_day_bases")
-            .select("id, method, fixed_days, weekly_off_day, included_weekdays, caps_present" as never)
-            .in("id", pdbIds);
-          for (const b of (bases ?? []) as unknown as Array<Record<string, unknown>>) {
+          const wantPdb = new Set(pdbIds);
+          const bases = (await getReference<Record<string, unknown>>("payrollDayBases")).filter((b) => wantPdb.has(String(b.id)));
+          for (const b of bases) {
             pdbById.set(String(b.id), {
               method: String(b.method) as PayrollDayBaseLike["method"] | "fixed_annual_average",
               fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
@@ -811,11 +805,9 @@ function MusterRollPage() {
           }
         }
         if (orderedIds.length) {
-          const { data: ds } = await supabase
-            .from("designations")
-            .select("id, name")
-            .in("id", orderedIds);
-          const nameById = new Map((ds ?? []).map((d) => [d.id, d.name]));
+          const wantDesig = new Set(orderedIds);
+          const ds = (await getReference<{ id: string; name: string | null }>("designations")).filter((d) => wantDesig.has(d.id));
+          const nameById = new Map(ds.map((d) => [d.id, d.name]));
           resources = orderedIds.map((id) => ({
             designationId: id,
             designationName: nameById.get(id) ?? "—",
@@ -824,6 +816,7 @@ function MusterRollPage() {
           }));
         }
       }
+      const win = await winP;
       return { window: win, startDate, contractId, resources };
     },
     enabled: Boolean(unitId),
@@ -1402,16 +1395,18 @@ function MusterRollPage() {
 
   const { data: codes = [] } = useQuery({
     queryKey: ["attendance-codes-enabled"],
+    // Shared reference cache; same rows, columns and order as the direct read
+    // (enabled only, sort_order ascending with blanks last).
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("attendance_codes")
-        .select(
-          "id, code, label, color, counts_as_present, is_paid, is_leave, day_value, sort_order",
-        )
-        .eq("enabled", true)
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as AttendanceCode[];
+      const rows = await getReference<Record<string, unknown>>("attendanceCodes");
+      const cols = ["id", "code", "label", "color", "counts_as_present", "is_paid", "is_leave", "day_value", "sort_order"];
+      return rows
+        .filter((r) => r.enabled === true)
+        .map((r) => Object.fromEntries(cols.map((c) => [c, r[c]])))
+        .sort((a, b) => {
+          if (a.sort_order == null || b.sort_order == null) return (a.sort_order == null ? 1 : 0) - (b.sort_order == null ? 1 : 0);
+          return Number(a.sort_order) - Number(b.sort_order);
+        }) as unknown as AttendanceCode[];
     },
   });
 

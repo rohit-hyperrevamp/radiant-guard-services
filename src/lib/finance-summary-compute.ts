@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { computeDashboardUnitFinance } from "@/lib/dashboard-finance";
 import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
-import type { SavedFinanceRow } from "@/lib/finance-totals";
-import { fetchInChunks } from "@/lib/supabase-batch";
+import { splitSavedRegisterTotals, type SavedFinanceRow } from "@/lib/finance-totals";
+import { fetchForIds, fetchInChunks } from "@/lib/supabase-batch";
 import { latestPostedPayrollTotals, type PostedPayrollSnapshot } from "@/lib/finance-posted-totals";
 
 /** Save aggregates only, never employee names, bank details or invoice export payloads. */
@@ -62,4 +62,58 @@ export async function computeFinanceSummaries(periods: Map<string, { start: stri
   }
   for (const t of out.values()) t.invoice_amount = t.internal ? 0 : Math.round(t.invoice_parts.reduce((n, p) => n + p.taxable, 0) * 100) / 100;
   return out;
+}
+type Periods = Map<string, { start: string; end: string }>;
+
+/**
+ * Saved finance_period_totals for exactly these site periods. Rows are read per
+ * period window (most sites share one or two), never every period a site ever
+ * had: a large window is one period-filtered scan (~2 pages), a small one a
+ * few unit-id chunks.
+ */
+export async function readSavedFinanceRows(periods: Periods, db = supabase): Promise<SavedFinanceRow[]> {
+  const groups = new Map<string, { start: string; end: string; ids: string[] }>();
+  for (const [id, p] of periods) {
+    const key = `${p.start}|${p.end}`;
+    const g = groups.get(key) ?? { start: p.start, end: p.end, ids: [] };
+    g.ids.push(id);
+    groups.set(key, g);
+  }
+  const table = () => db.from("finance_period_totals" as never).select("*");
+  const parts = await Promise.all([...groups.values()].map((g) => fetchForIds<SavedFinanceRow>(g.ids, {
+    chunk: (chunk, from, to) => table().eq("period_start" as never, g.start as never).eq("period_end" as never, g.end as never).in("unit_id" as never, chunk as never).order("unit_id" as never).range(from, to) as never,
+    scan: (from, to) => table().eq("period_start" as never, g.start as never).eq("period_end" as never, g.end as never).order("unit_id" as never).range(from, to) as never,
+    idOf: (row) => row.unit_id,
+  })));
+  return parts.flat();
+}
+
+const recomputeRequested = new Set<string>();
+/**
+ * Ask the server worker (once per site period per page session) to recompute
+ * totals that are missing or stale. Never awaited by the screen; failures are
+ * ignored — the register computes those sites live anyway.
+ */
+export function requestFinanceRecompute(periods: Periods, unitIds: string[], db = supabase): Promise<void> {
+  const todo = unitIds.filter((u) => {
+    const p = periods.get(u);
+    const key = p ? `${u}|${p.start}|${p.end}` : "";
+    if (!p || recomputeRequested.has(key)) return false;
+    recomputeRequested.add(key);
+    return true;
+  });
+  const call = db.rpc as unknown as (fn: string, args: unknown) => Promise<{ error: { message: string } | null }>;
+  const jobs: Promise<unknown>[] = [];
+  for (let i = 0; i < todo.length; i += 250) {
+    jobs.push(call.call(db, "request_finance_totals", {
+      p_periods: todo.slice(i, i + 250).map((u) => ({ u, s: periods.get(u)?.start, e: periods.get(u)?.end })),
+    }).catch(() => undefined));
+  }
+  return Promise.all(jobs).then(() => undefined);
+}
+
+/** Register first paint: saved current totals, plus the sites that still need a live compute. */
+export async function readRegisterSavedTotals(periods: Periods, db = supabase) {
+  const saved = await readSavedFinanceRows(periods, db);
+  return splitSavedRegisterTotals(periods, saved);
 }

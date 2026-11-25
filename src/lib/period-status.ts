@@ -111,6 +111,35 @@ export async function fetchPeriodStatuses(
   return out;
 }
 
+/** Periods per batch_period_statuses call: below the 1,000-row response cap with room for split parts. */
+export const PERIOD_STATUS_RPC_CHUNK = 900;
+const RPC_PAGE = 1000;
+
+type PeriodRequest = { unit_id: string; period_start: string; period_end: string };
+
+export function chunkPeriodRequests<T>(requested: T[], size = PERIOD_STATUS_RPC_CHUNK): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < requested.length; i += size) chunks.push(requested.slice(i, i + size));
+  return chunks;
+}
+
+/** One RPC call per chunk; a full page (split-invoice rows) pulls the next one. */
+async function fetchStatusPages(chunk: PeriodRequest[]): Promise<unknown[]> {
+  const out: unknown[] = [];
+  for (let from = 0; ; from += RPC_PAGE) {
+    // Ordered so pages are stable; rows sharing a unit_id are identical.
+    const { data, error } = await supabase
+      .rpc("batch_period_statuses" as never, { p_periods: chunk } as never)
+      .order("unit_id" as never)
+      .range(from, from + RPC_PAGE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as unknown[];
+    out.push(...page);
+    if (page.length < RPC_PAGE) break;
+  }
+  return out;
+}
+
 export async function fetchPeriodStatusesForUnitPeriods(
   periods: Map<string, { start: string; end: string }>,
 ): Promise<PeriodStatusMap> {
@@ -122,18 +151,13 @@ export async function fetchPeriodStatusesForUnitPeriods(
     period_start: period.start,
     period_end: period.end,
   }));
-  // The API caps any single response at 1,000 rows, so a single call for every
-  // site silently dropped statuses past the first 1,000 (they showed "In progress").
-  const CHUNK = 500;
-  const chunks: typeof requested[] = [];
-  for (let i = 0; i < requested.length; i += CHUNK) chunks.push(requested.slice(i, i + CHUNK));
+  // The API caps any single response at 1,000 rows (and a split invoice adds
+  // a row per part), so each call carries up to 900 periods and is paged in
+  // the rare case it still fills a page — ~2 calls for 1,800 sites instead of 4.
   const results = await Promise.all(
-    chunks.map((chunk) => supabase.rpc("batch_period_statuses" as never, { p_periods: chunk } as never)),
+    chunkPeriodRequests(requested).map((chunk) => fetchStatusPages(chunk)),
   );
-  const failed = results.find((r) => r.error);
-  if (failed?.error) throw failed.error;
-
-  const rows = (results.flatMap((r) => (r.data ?? []) as unknown[]) as unknown) as Array<{
+  const rows = results.flat() as unknown as Array<{
     unit_id: string;
     attendance_status: AttendanceStatus | null;
     tally_invoice_path: string | null;
@@ -204,37 +228,71 @@ export async function setMoneyStatus(params: {
   if (error) throw error;
 }
 
+/** Batching window for realtime refreshes — status flips are rare, refetches are not cheap. */
+export const REALTIME_REFRESH_MS = 30_000;
+
+const REALTIME_PREFIXES = [
+  "dashboard-counts",
+  "dashboard-pnl",
+  "attendance",
+  "finance-charter",
+  "payroll",
+  "invoice",
+  "live-contract-deductions",
+];
+
+/** A changed unit + payroll month (YYYY-MM of period_end), or "all" when the payload lacks them. */
+export type RealtimeTarget = { unitId: string; month: string | null } | "all";
+
+export function realtimeTargetOf(payload: { new?: unknown; old?: unknown }): RealtimeTarget {
+  const rec = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+  const n = rec(payload.new);
+  const o = rec(payload.old);
+  const unitId = (n.unit_id ?? o.unit_id) as string | undefined;
+  if (!unitId) return "all";
+  const end = (n.period_end ?? o.period_end) as string | undefined;
+  return { unitId: String(unitId), month: end ? String(end).slice(0, 7) : null };
+}
+
+const DATE_LIKE = /\d{4}-\d{2}/;
+
 /**
- * Live wiring: any attendance edit (including overtime), sheet transition or
- * payroll-run change anywhere refreshes the attendance / payroll / invoice
- * surfaces immediately — no manual reload, no stale five-minute cache.
+ * Should this query refresh for these changes? Only register / money keys, and
+ * only those naming a changed unit — and, when the key carries dates, the
+ * changed payroll month. "all" (unknown target) refreshes every such key.
+ */
+export function realtimeKeyMatches(queryKey: readonly unknown[], targets: RealtimeTarget[]): boolean {
+  const head = queryKey[0];
+  if (typeof head !== "string") return false;
+  if (head !== PERIOD_STATUS_QK && !REALTIME_PREFIXES.some((p) => head.startsWith(p))) return false;
+  if (targets.some((t) => t === "all")) return true;
+  const text = JSON.stringify(queryKey);
+  const hasDates = DATE_LIKE.test(text);
+  return targets.some((t) => t !== "all" && text.includes(t.unitId) && (!hasDates || !t.month || text.includes(t.month)));
+}
+
+/**
+ * Live wiring: a sheet transition or payroll-run change refreshes the
+ * attendance / payroll / invoice surfaces showing that unit and month. Changes
+ * are collected for REALTIME_REFRESH_MS and flushed together, so a burst of
+ * approvals costs one refresh instead of a refetch storm.
  */
 export function useAttendanceMoneyRealtime() {
   const qc = useQueryClient();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const invalidate = () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        timerRef.current = null;
-        void qc.invalidateQueries({
-          predicate: (query) => {
-            const key = query.queryKey[0];
-            if (typeof key !== "string") return false;
-            return (
-              key === PERIOD_STATUS_QK ||
-              key.startsWith("dashboard-counts") ||
-              key.startsWith("dashboard-pnl") ||
-              key.startsWith("dashboard-counts-masters") ||
-              key.startsWith("attendance") ||
-              key.startsWith("finance-charter") ||
-              key.startsWith("payroll") ||
-              key.startsWith("invoice") ||
-              key.startsWith("live-contract-deductions")
-            );
-          },
-        });
-      }, 5000);
+    let pending: RealtimeTarget[] = [];
+    const flush = () => {
+      timerRef.current = null;
+      const targets = pending;
+      pending = [];
+      if (!targets.length) return;
+      void qc.invalidateQueries({ predicate: (query) => realtimeKeyMatches(query.queryKey, targets) });
+    };
+    const onChange = (payload: { new?: unknown; old?: unknown }) => {
+      pending.push(realtimeTargetOf(payload));
+      // Max-wait batching: the first change starts the window; later ones join it.
+      if (!timerRef.current) timerRef.current = setTimeout(flush, REALTIME_REFRESH_MS);
     };
 
     // Only status changes (sheet submitted/approved, payroll run updated) refresh
@@ -243,12 +301,13 @@ export function useAttendanceMoneyRealtime() {
     // and invoice page continuously and overloaded the database.
     const channel = supabase
       .channel("attendance-money-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "attendance_sheets" }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "payroll_runs" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance_sheets" }, onChange)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payroll_runs" }, onChange)
       .subscribe();
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [qc]);

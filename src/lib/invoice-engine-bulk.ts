@@ -5,7 +5,8 @@ import { checkedQueryData } from "@/lib/finance-source";
  * reads. Every rule that selects rows mirrors loadInvoiceUnitData exactly.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { fetchInChunks } from "@/lib/supabase-batch";
+import { fetchInChunks, mapPool, runBulk } from "@/lib/supabase-batch";
+import { getReference } from "@/lib/reference-data";
 import type { RateRevisionRow } from "@/lib/rate-revisions";
 import { visibleAttendanceCandidateIds } from "@/lib/attendance-roster-eligibility";
 import { resolveOrgInvoiceSplit, type InvoiceSplit } from "@/lib/invoice-split";
@@ -101,6 +102,41 @@ function mapExtra(r: Row): InvoiceExtraLike & { periodStart: string | null; peri
 type RpcFn = (fn: string, args: Row) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = (fn: string, args: Row, db = supabase) => (db.rpc as unknown as RpcFn)(fn, args);
 
+/**
+ * The invoice engine and the payroll engine load the very same period inputs,
+ * contract lines and rate revisions for the same sites at the same moment.
+ * Identical reads (same client, same arguments) started while one is in flight
+ * — or within SHARED_READ_MS after it finished — share that one request. Every
+ * caller gets its own deep copy, so neither engine can see the other's edits.
+ * Browser only (display): server recomputes that save totals always read fresh.
+ */
+export const SHARED_READ_MS = 3_000;
+let sharedReadsOnServer = false;
+/** Tests only: exercise sharing outside a browser. */
+export function enableSharedReadsForTest(on: boolean) { sharedReadsOnServer = on; }
+const sharedReads = new WeakMap<object, Map<string, { at: number | null; promise: Promise<unknown> }>>();
+export function sharedRead<T>(db: object, key: string, load: () => Promise<T>): Promise<T> {
+  if (typeof window === "undefined" && !sharedReadsOnServer) return load();
+  let byKey = sharedReads.get(db);
+  if (!byKey) sharedReads.set(db, (byKey = new Map()));
+  const now = Date.now();
+  for (const [k, e] of byKey) if (e.at !== null && now - e.at > SHARED_READ_MS) byKey.delete(k);
+  let entry = byKey.get(key);
+  if (!entry) {
+    const promise = load();
+    const created = { at: null as number | null, promise: promise as Promise<unknown> };
+    entry = created;
+    byKey.set(key, created);
+    promise.then(
+      () => { created.at = Date.now(); },
+      () => { if (byKey!.get(key) === created) byKey!.delete(key); },
+    );
+  }
+  return (entry.promise as Promise<T>).then((v) => structuredClone(v));
+}
+/** Max invoice_period_entries batches in flight at once. */
+const PERIOD_BATCH_CONCURRENCY = 3;
+
 export type PeriodInputs = {
   sites: Row[];
   contracts: Row[];
@@ -120,8 +156,11 @@ export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>, db = s
   const batches: (typeof list)[] = [];
   for (let i = 0; i < list.length; i += size) batches.push(list.slice(i, i + size));
   const run = async (batch: typeof list) => {
-    const { data, error } = await rpc("invoice_period_entries", { p_units: batch }, db);
-    if (error) throw error;
+    const data = await sharedRead(db, `invoice_period_entries:${JSON.stringify(batch)}`, () => runBulk(async () => {
+      const { data, error } = await rpc("invoice_period_entries", { p_units: batch }, db);
+      if (error) throw error;
+      return data ?? {};
+    }));
     const payload = (data ?? {}) as {
       site?: Row[]; contracts?: Row[]; primary?: unknown[][]; scopes?: unknown[][]; extras?: Row[];
       links?: unknown[][]; people?: unknown[][]; c?: string[]; d?: string[];
@@ -152,7 +191,7 @@ export async function fetchPeriodInputs(periods: Map<string, UnitPeriod>, db = s
       })));
     }
   };
-  for (let i = 0; i < batches.length; i += 5) await Promise.all(batches.slice(i, i + 5).map(run));
+  await mapPool(batches, PERIOD_BATCH_CONCURRENCY, run);
   return out;
 }
 
@@ -161,18 +200,19 @@ export async function fetchContractResources(contractIds: string[], db = supabas
   const size = 250;
   const batches: string[][] = [];
   for (let i = 0; i < contractIds.length; i += size) batches.push(contractIds.slice(i, i + size));
-  const results = await Promise.all(batches.map(async (ids) => {
-    const { data, error } = await rpc("invoice_contract_resources", { p_contract_ids: ids }, db);
-    if (error) throw error;
-    return (data ?? []) as Row[];
-  }));
+  const results = await mapPool(batches, PERIOD_BATCH_CONCURRENCY, (ids) =>
+    sharedRead(db, `invoice_contract_resources:${ids.join(",")}`, () => runBulk(async () => {
+      const { data, error } = await rpc("invoice_contract_resources", { p_contract_ids: ids }, db);
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    })));
   return results.flat();
 }
 
 /** Every approved/expired rate revision (a small table) — the period helpers pick each line's own. */
 export async function fetchAllRevisions(db = supabase): Promise<RateRevisionRow[] | null> {
-  return await fetchInChunks<RateRevisionRow>(["all"], (_c, a, b) =>
-      db.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b));
+  return sharedRead(db, "contract_rate_revisions:approved,expired", () => fetchInChunks<RateRevisionRow>(["all"], (_c, a, b) =>
+      db.from("contract_rate_revisions" as never).select("*").in("status", ["approved", "expired"]).order("id").range(a, b)));
 }
 
 export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db = supabase): Promise<{ units: Map<string, BulkInvoiceUnit>; resources: Row[]; revisions: RateRevisionRow[] | null }> {
@@ -186,7 +226,10 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db 
 
   const [inputs, billingTypes, additionRows, deductionRows, revisions] = await Promise.all([
     fetchPeriodInputs(periods, db),
-    db.from("billing_types" as never).select("id, code").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
+    // Browser client: the shared session-cached master. Other clients (server, tests): read directly.
+    db === supabase
+      ? getReference<Row>("billingTypes")
+      : db.from("billing_types" as never).select("id, code").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
     fetchInChunks<Row>(["x"], (_c, a, b) => db.from("additions" as never).select(`${ADDITION_COLS}, addition_date, end_date, unit_id`).eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
     fetchInChunks<Row>(["x"], (_c, a, b) => db.from("deductions" as never).select(`${DEDUCTION_COLS}, deduction_date, unit_id`).eq("status", "active").gte("deduction_date", minStart).lte("deduction_date", maxEnd).order("id").range(a, b)),
     fetchAllRevisions(db),

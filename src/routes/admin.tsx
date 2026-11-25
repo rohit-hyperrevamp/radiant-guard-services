@@ -230,8 +230,10 @@ function AdminLayout() {
   const [presenceUid, setPresenceUid] = useState<string | null>(null);
   useEffect(() => {
     if (!user) { setPresenceUid(null); return; }
+    // Local session read: getUser() made an auth-server round-trip on every
+    // sign-in / identity refresh just to learn our own id.
     void import("@/integrations/supabase/client").then(({ supabase }) =>
-      supabase.auth.getUser().then(({ data }) => setPresenceUid(data.user?.id ?? null)),
+      supabase.auth.getSession().then(({ data }) => setPresenceUid(data.session?.user.id ?? null)),
     );
   }, [user]);
   useTrackOnlinePresence(presenceUid);

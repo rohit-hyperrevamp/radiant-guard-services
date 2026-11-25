@@ -2,10 +2,13 @@ import { useRegisterPeriods } from "@/lib/use-register-periods";
 import { summarizeRegisterStatuses } from "@/lib/register-summary";
 import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
 import { computeDashboardUnitFinance, type DashboardUnitFinance } from "@/lib/dashboard-finance";
-import { computePayrollUnitsTotals } from "@/lib/payroll-engine";
-import { readDashboardFinance } from "@/lib/finance-summary-read";
+import { computePayrollUnitsTotals, type PayrollUnitTotals } from "@/lib/payroll-engine";
+import { readRegisterSavedTotals, requestFinanceRecompute } from "@/lib/finance-summary-compute";
+import { registerMoney } from "@/lib/finance-totals";
+import { createPool } from "@/lib/supabase-batch";
+import { getReference } from "@/lib/reference-data";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Building2, ChevronDown, Download, FileCheck2, Gauge, IndianRupee, MapPinned, Receipt, Search, Users, Wallet } from "lucide-react";
@@ -20,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance } from "@/lib/contract-finance";
+import { fetchPeriodContractCodes, fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance } from "@/lib/contract-finance";
 import {
   fetchPeriodStatusesForUnitPeriods,
   PERIOD_STATUS_QK,
@@ -102,6 +105,128 @@ function MarginChip({ value }: { value: number }) {
 }
 
 const PAGE_SIZE = 25;
+
+/** Stale sites per live-compute batch (= one invoice_period_entries batch). */
+const LIVE_BATCH_SIZE = 120;
+/** Live-compute batches in flight at once, across every register on the page. */
+const liveComputePool = createPool(3);
+
+type LiveResult = { engine: Map<string, DashboardUnitFinance>; pay: Map<string, PayrollUnitTotals> };
+type RegisterPeriod = ReturnType<typeof payrollPeriodForMonth>;
+
+/** The invoice page's and payroll page's own calculations for these site periods. */
+async function computeRegisterLive(periods: Map<string, { start: string; end: string }>): Promise<LiveResult> {
+  const [engine, pay] = await Promise.all([computeDashboardUnitFinance(periods), computePayrollUnitsTotals(periods)]);
+  return { engine, pay };
+}
+
+type EntryTotal = { unit_id: string; candidate_id: string; designation_id: string | null; shift_hours: number | null; code: string; days: number; ot_hours: number; entry_date: string };
+
+/** Grouped attendance totals per employee/code for these sites over one window. */
+async function fetchEntryTotals(unitIds: string[], start: string, end: string): Promise<EntryTotal[]> {
+  const { data, error } = await (supabase.rpc as any)("finance_charter_entry_totals", { _unit_ids: unitIds, _start: start, _end: end });
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((r) => ({
+    unit_id: r.unit_id as string,
+    candidate_id: r.candidate_id as string,
+    designation_id: (r.designation_id ?? null) as string | null,
+    shift_hours: r.shift_hours == null ? null : Number(r.shift_hours),
+    code: r.code as string,
+    days: Number(r.days) || 0,
+    ot_hours: Number(r.ot_hours) || 0,
+    entry_date: start,
+  }));
+}
+
+/** Per-employee period-to-date figures of one site (the register breakdown). */
+function buildPeople(
+  source: EntryTotal[],
+  finance: UnitFinance | undefined,
+  codeMap: Map<string, CodeRow>,
+  nameById: Map<string, string>,
+  p: RegisterPeriod,
+): PersonMoney[] {
+  const bucket = new Map<string, PersonMoney>();
+  const dates = periodDateList(p.start, p.end);
+  const allocated = allocateInvoiceEntries(source, e => rateFor(finance, e.designation_id, e.candidate_id, e.shift_hours), () => dates, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? (Number(code.day_value ?? 1) || 0) * (e.days ?? 1) : 0; });
+  for (const [index, e] of source.entries()) {
+    const rate = rateFor(finance, e.designation_id, e.candidate_id, e.shift_hours);
+    // Same maths as the MIS sheet: per-day rate = monthly bill ÷ the contract's
+    // billing-days rule (e.g. fixed 26, days minus four), not calendar days.
+    const divisor = rate ? Math.max(1, resolveBillingDivisor(rate, dates) || p.totalDays || 1) : 1;
+    const billPerDay = rate ? billingRatePerDay(rate.billRate, rate, dates) : 0;
+    let person = bucket.get(e.candidate_id);
+    if (!person) {
+      person = {
+        id: e.candidate_id,
+        name: nameById.get(e.candidate_id) ?? "—",
+        designationId: e.designation_id,
+        designationName: rate?.designationName ?? "—",
+        paidDays: 0,
+        otDays: 0,
+        contractedGross: rate?.grossRate ?? 0,
+        contractedBill: rate?.billRate ?? 0,
+        invoiceAmount: 0,
+        payrollAmount: 0,
+        deductionAmount: 0,
+        employerCost: 0,
+        netPayrollAmount: 0,
+      };
+      bucket.set(e.candidate_id, person);
+    }
+    const code = codeMap.get(e.code);
+    const raw = code?.day_value;
+    const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
+    const n = e.days ?? 1;
+    const counted = (code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0) * n;
+    const ot = Number(e.ot_hours) || 0;
+    person.paidDays += counted;
+    person.otDays += ot;
+    const payable = counted + ot;
+    // Billing counts only what the MIS/invoice bills: present days (P, HD)
+    // and paid holidays (PH) plus Extra Duty. Paid weekly offs and paid
+    // leave are part of the wage but are never billed as duties.
+    const billed = (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) * n + ot;
+    if (rate) {
+      const edRate = rate.extraDutyFromMonthlyBilling ? rate.billRate / divisor * 2 : rate.extraDutyBillRate ?? billPerDay;
+      person.invoiceAmount += billPerDay * (billed - ot - allocated[index].moved) + edRate * allocated[index].extraDuty;
+      person.payrollAmount += (rate.grossRate / divisor) * payable;
+      person.deductionAmount += (rate.deductionRate / divisor) * payable;
+      person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
+    }
+  }
+  return Array.from(bucket.values());
+}
+
+/** Breakdown of one expanded site: attendance, full rate card and the engines' per-person money. */
+async function loadBreakdown(
+  unitId: string,
+  period: RegisterPeriod,
+  live: LiveResult | undefined,
+  unitCodes: Map<string, string | null>,
+  nameById: Map<string, string>,
+): Promise<PersonMoney[]> {
+  const [financeMap, entries, codes, liveRes] = await Promise.all([
+    fetchUnitFinance([unitId], new Map([[unitId, period]]), { unitCodes }),
+    fetchEntryTotals([unitId], period.start, period.end),
+    getReference<CodeRow>("attendanceCodes"),
+    live ?? computeRegisterLive(new Map([[unitId, { start: period.start, end: period.end }]])),
+  ]);
+  const people = buildPeople(entries.filter((e) => e.unit_id === unitId), financeMap.get(unitId), new Map(codes.map((c) => [c.code, c])), nameById, period)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  // Invoice values from the invoice engine, payroll from the payroll engine — the detail pages' own maths.
+  const engine = liveRes.engine.get(unitId);
+  if (engine) for (const p of people) p.invoiceAmount = engine.invoice_by_person.get(p.id) ?? 0;
+  const pay = liveRes.pay.get(unitId);
+  if (pay) for (const p of people) {
+    const x = pay.byPerson.get(p.id);
+    p.payrollAmount = x?.gross ?? 0;
+    p.deductionAmount = x?.deductions ?? 0;
+    p.employerCost = x?.employerCost ?? 0;
+    p.netPayrollAmount = Math.max(0, p.payrollAmount - p.deductionAmount);
+  }
+  return people;
+}
 
 export function FinanceCharter({
   mode,
@@ -211,27 +336,20 @@ export function FinanceCharter({
   const allUnitIds = useMemo(() => searchedUnits.map((u) => u.id), [searchedUnits]);
   const { can, canAction, isSuperAdmin } = useCurrentPermissions();
   const canFinalise = mode === "invoice" && (isSuperAdmin || canAction("invoice", "finalise", "edit"));
-  const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : []);
+  // Every register period ends inside the viewed month: read only those finals.
+  const viewedMonth = payrollPeriodForMonth(year, monthIdx);
+  const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : [], { periodEndFrom: viewedMonth.start, periodEndTo: viewedMonth.end });
 
   // Attendance edits (including overtime) push straight through to these
   // numbers — no refresh, no stale cache.
   useAttendanceMoneyRealtime();
 
-  const codesQ = useQuery({
-    queryKey: ["attendance-codes-charter"],
-    enabled: mode === "invoice",
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("attendance_codes" as never)
-        .select("code, counts_as_present, is_paid, day_value");
-      return ((data ?? []) as unknown) as CodeRow[];
-    },
-  });
-
   const registerPeriods = useRegisterPeriods(allUnitIds, year, monthIdx, windowsByUnit);
   const allPeriodsByUnit = registerPeriods.periods;
-  const allPeriodKey = registerPeriods.periodKey;
   const allStatusQ = registerPeriods.statusesQ;
+  // Nothing money-related starts until each site's saved sheet dates are known —
+  // otherwise every loader ran twice (expected window, then the saved one).
+  const periodsReady = registerPeriods.periodsReady;
 
   const matchedUnits = useMemo(() => {
     if (statusFilter === "all") return searchedUnits;
@@ -264,178 +382,119 @@ export function FinanceCharter({
     () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
     [periodsByUnit],
   );
-
-  const financeQ = useQuery({
-    queryKey: ["finance-charter-contracts", periodKey],
-    enabled: unitIds.length > 0,
-    queryFn: () => fetchUnitFinance(unitIds, periodsByUnit),
-  });
-
-  // Invoice values come from the invoice engine — the single-site invoice
-  // page's own calculation — so the register, dashboard and invoice agree.
-  const engineQ = useQuery({
-    queryKey: ["finance-charter-invoice-engine", periodKey],
-    enabled: mode === "invoice" && unitIds.length > 0,
-    staleTime: 60_000,
-    queryFn: () => computeDashboardUnitFinance(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
-  });
-
-  // Payroll values come from the payroll page's own calculation (per site, own period).
-  const payrollQ = useQuery({
-    queryKey: ["finance-charter-payroll-engine", periodKey],
-    enabled: unitIds.length > 0,
-    staleTime: 60_000,
-    queryFn: () => computePayrollUnitsTotals(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
-  });
-
-  const savedTotalsQ = useQuery({
-    queryKey: ["finance-charter-saved-totals-v4", periodKey],
-    enabled: unitIds.length > 0 && can("invoice") && can("payroll"),
-    staleTime: 15_000,
-    refetchInterval: 30_000,
-    queryFn: () => readDashboardFinance(new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }]))),
-  });
-
-  const entriesQ = useQuery({
-    queryKey: ["finance-charter-entries", periodKey],
-    enabled: mode === "invoice" && unitIds.length > 0 && allStatusQ.isSuccess,
-    staleTime: 0,
-    queryFn: async () => {
-      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
-      for (const [unitId, period] of periodsByUnit) {
-        const key = `${period.start}|${period.end}`;
-        const group = groups.get(key) ?? { start: period.start, end: period.end, unitIds: [] };
-        group.unitIds.push(unitId);
-        groups.set(key, group);
-      }
-      // One grouped server read per payroll window instead of paging every raw
-      // attendance row — same totals, a fraction of the data.
-      const pages = await Promise.all(
-        Array.from(groups.values()).map(async (group) => {
-          const { data, error } = await (supabase.rpc as any)("finance_charter_entry_totals", {
-            _unit_ids: group.unitIds,
-            _start: group.start,
-            _end: group.end,
-          });
-          if (error) throw error;
-          return ((data ?? []) as any[]).map((r) => ({
-            unit_id: r.unit_id as string,
-            candidate_id: r.candidate_id as string,
-            designation_id: (r.designation_id ?? null) as string | null,
-            shift_hours: r.shift_hours == null ? null : Number(r.shift_hours),
-            code: r.code as string,
-            days: Number(r.days) || 0,
-            ot_hours: Number(r.ot_hours) || 0,
-            entry_date: group.start,
-          }));
-        }),
-      );
-      return pages.flat();
-    },
-  });
-
+  const plainPeriods = useMemo(
+    () => new Map(Array.from(periodsByUnit, ([id, p]) => [id, { start: p.start, end: p.end }])),
+    [periodsByUnit],
+  );
+  const unitCodes = useMemo(() => new Map(units.map((u) => [u.id, u.code || null])), [units]);
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
     for (const u of units) for (const g of u.security_guards) m.set(g.id, g.name);
     return m;
   }, [units]);
 
-  const codeMap = useMemo(() => {
-    const m = new Map<string, CodeRow>();
-    for (const c of codesQ.data ?? []) m.set(c.code, c);
-    return m;
-  }, [codesQ.data]);
+  // With a status filter the site list depends on statuses: wait, or every loader runs twice.
+  const moneyEnabled = periodsReady && unitIds.length > 0 && (statusFilter === "all" || allStatusQ.isSuccess);
 
-  const statsByUnit = useMemo(() => {
-    const out = new Map<string, Map<string, PersonMoney>>();
-    const source = entriesQ.data ?? [];
-    const allocated = allocateInvoiceEntries(source, e => rateFor(financeQ.data?.get(e.unit_id ?? ""), e.designation_id, e.candidate_id, e.shift_hours), e => { const p = periodsByUnit.get(e.unit_id ?? ""); return p ? periodDateList(p.start, p.end) : []; }, e => { const code = codeMap.get(e.code); return code?.counts_as_present ? (Number(code.day_value ?? 1) || 0) * (e.days ?? 1) : 0; });
-    for (const [index, e] of source.entries()) {
-      const unitId = e.unit_id ?? "";
-      if (!unitId) continue;
-      const finance = financeQ.data?.get(unitId);
-      const rate = rateFor(finance, e.designation_id, e.candidate_id, (e as any).shift_hours);
-      // Same maths as the MIS sheet: per-day rate = monthly bill ÷ the contract's
-      // billing-days rule (e.g. fixed 26, days minus four), not calendar days.
-      const p = periodsByUnit.get(unitId);
-      const dates = p ? periodDateList(p.start, p.end) : [];
-      const divisor = rate ? Math.max(1, resolveBillingDivisor(rate, dates) || p?.totalDays || 1) : 1;
-      const billPerDay = rate ? billingRatePerDay(rate.billRate, rate, dates) : 0;
-      if (!out.has(unitId)) out.set(unitId, new Map());
-      const bucket = out.get(unitId)!;
-      let person = bucket.get(e.candidate_id);
-      if (!person) {
-        person = {
-          id: e.candidate_id,
-          name: nameById.get(e.candidate_id) ?? "—",
-          designationId: e.designation_id,
-          designationName: rate?.designationName ?? "—",
-          paidDays: 0,
-          otDays: 0,
-          contractedGross: rate?.grossRate ?? 0,
-          contractedBill: rate?.billRate ?? 0,
-          invoiceAmount: 0,
-          payrollAmount: 0,
-          deductionAmount: 0,
-          employerCost: 0,
-          netPayrollAmount: 0,
-        };
-        bucket.set(e.candidate_id, person);
-      }
-      const code = codeMap.get(e.code);
-      const raw = code?.day_value;
-      const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
-      const n = (e as { days?: number }).days ?? 1;
-      const counted = (code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0) * n;
-      const ot = Number(e.ot_hours) || 0;
-      person.paidDays += counted;
-      person.otDays += ot;
-      const payable = counted + ot;
-      // Billing counts only what the MIS/invoice bills: present days (P, HD)
-      // and paid holidays (PH) plus Extra Duty. Paid weekly offs and paid
-      // leave are part of the wage but are never billed as duties.
-      const billed = (!code ? 0 : code.counts_as_present || code.code.startsWith("PH") ? dayValue : 0) * n + ot;
-      if (rate) {
-        const edRate = rate.extraDutyFromMonthlyBilling ? rate.billRate / divisor * 2 : rate.extraDutyBillRate ?? billPerDay;
-        person.invoiceAmount += billPerDay * (billed - ot - allocated[index].moved) + edRate * allocated[index].extraDuty;
-        person.payrollAmount += (rate.grossRate / divisor) * payable;
-        person.deductionAmount += (rate.deductionRate / divisor) * payable;
-        person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
-      }
-    }
+  // Contract code, committed strength and rate cards (site level — posting duty
+  // lengths only matter for a per-employee breakdown, loaded when one opens).
+  const financeQ = useQuery({
+    queryKey: ["finance-charter-contracts", periodKey],
+    enabled: mode === "invoice" && moneyEnabled,
+    queryFn: () => fetchUnitFinance(unitIds, periodsByUnit, { postingShifts: false, unitCodes }),
+  });
+  // The Payroll register rows show only the period contract code and status.
+  const contractCodesQ = useQuery({
+    queryKey: ["finance-charter-contract-codes", periodKey],
+    enabled: mode === "payroll" && moneyEnabled,
+    queryFn: () => fetchPeriodContractCodes(unitIds, periodsByUnit),
+  });
 
+  // 1) Saved server totals first: current ones render immediately.
+  const canSaved = can("invoice") && can("payroll");
+  const savedTotalsQ = useQuery({
+    queryKey: ["finance-charter-saved-totals-v5", periodKey],
+    enabled: mode === "invoice" && canSaved && moneyEnabled,
+    staleTime: 15_000,
+    // Pick up server recomputes only while some sites are still stale.
+    refetchInterval: (q) => (q.state.data?.stale.length ? 30_000 : false),
+    queryFn: () => readRegisterSavedTotals(plainPeriods),
+  });
+  const savedSettled = !canSaved || savedTotalsQ.isSuccess || savedTotalsQ.isError;
+  const staleIds = useMemo(() => {
+    if (mode !== "invoice" || !moneyEnabled || !savedSettled) return [];
+    if (!canSaved || !savedTotalsQ.data) return unitIds;
+    return savedTotalsQ.data.stale;
+  }, [mode, moneyEnabled, savedSettled, canSaved, savedTotalsQ.data, unitIds]);
+  useEffect(() => {
+    const stale = savedTotalsQ.data?.stale ?? [];
+    if (stale.length) void requestFinanceRecompute(plainPeriods, stale);
+  }, [savedTotalsQ.data, plainPeriods]);
+
+  // 2) Live engine compute ONLY for stale / missing sites, after first paint,
+  // in batches with at most LIVE_CONCURRENCY in flight. Never blocks the table.
+  const firstPaintDone = financeQ.isSuccess || financeQ.isError;
+  // Sites only ever join the live set (appended), so when a saved-totals refresh
+  // turns a site current the earlier batches keep their keys and are not recomputed;
+  // saved values win for that site anyway.
+  const liveTargetsRef = useRef<{ key: string; ids: string[] }>({ key: "", ids: [] });
+  const liveTargets = useMemo(() => {
+    const prev = liveTargetsRef.current.key === periodKey ? liveTargetsRef.current.ids : [];
+    const have = new Set(prev);
+    const added = staleIds.filter((id) => !have.has(id));
+    const ids = added.length ? [...prev, ...added] : prev;
+    liveTargetsRef.current = { key: periodKey, ids };
+    return ids;
+  }, [periodKey, staleIds]);
+  const liveBatches = useMemo(() => {
+    const out: string[][] = [];
+    for (let i = 0; i < liveTargets.length; i += LIVE_BATCH_SIZE) out.push(liveTargets.slice(i, i + LIVE_BATCH_SIZE));
     return out;
-  }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
+  }, [liveTargets]);
+  const liveQs = useQueries({
+    queries: liveBatches.map((ids) => {
+      const periods = new Map(ids.flatMap((id) => { const p = plainPeriods.get(id); return p ? [[id, p] as const] : []; }));
+      return {
+        queryKey: ["finance-charter-live", Array.from(periods, ([id, p]) => `${id}:${p.start}:${p.end}`).join("|")],
+        enabled: firstPaintDone,
+        staleTime: 60_000,
+        queryFn: () => liveComputePool.run(() => computeRegisterLive(periods)),
+      };
+    }),
+  });
+  const liveByUnit = useMemo(() => {
+    const out = new Map<string, LiveResult>();
+    liveBatches.forEach((ids, i) => {
+      const data = liveQs[i]?.data;
+      if (data) for (const id of ids) out.set(id, data);
+    });
+    return out;
+  }, [liveBatches, liveQs]);
+  // Only sites still without a saved current total count as failed / updating.
+  const liveFailedIds = useMemo(() => {
+    const stale = new Set(staleIds);
+    return liveBatches.flatMap((ids, i) => (liveQs[i]?.isError && !liveQs[i]?.data ? ids.filter((id) => stale.has(id)) : []));
+  }, [staleIds, liveBatches, liveQs]);
+  const updatingCount = useMemo(() => {
+    const failed = new Set(liveFailedIds);
+    return staleIds.filter((id) => !liveByUnit.has(id) && !failed.has(id)).length;
+  }, [staleIds, liveByUnit, liveFailedIds]);
+  const savedLoading = mode === "invoice" && moneyEnabled && !savedSettled;
 
   const allRows = useMemo(() => {
-    // Never present the old simple estimate as an actual invoice or payroll total.
-    if (!payrollQ.isSuccess || (mode === "invoice" && !engineQ.isSuccess)) return [];
+    if (!periodsReady) return [];
     return matchedUnits
       .map((u) => {
         const finance: UnitFinance | undefined = financeQ.data?.get(u.id);
         const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
-        const people = Array.from(statsByUnit.get(u.id)?.values() ?? []).sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
         const monthlyContracted = finance?.monthlyContracted ?? 0;
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
-        const engine = engineQ.data?.get(u.id);
-        if (engine) for (const p of people) p.invoiceAmount = engine.invoice_by_person.get(p.id) ?? 0;
-        const saved = savedTotalsQ.data?.pnlRows.find((r) => r.unit_id === u.id && r.totals_status === "ready");
-        const invoiceAmount = saved?.invoice_amount ?? (engine ? engine.invoice_amount : 0);
-        const pay = payrollQ.data?.get(u.id);
-        if (pay) for (const p of people) {
-          const x = pay.byPerson.get(p.id);
-          p.payrollAmount = x?.gross ?? 0;
-          p.deductionAmount = x?.deductions ?? 0;
-          p.employerCost = x?.employerCost ?? 0;
-          p.netPayrollAmount = Math.max(0, p.payrollAmount - p.deductionAmount);
-        }
-        const payrollAmount = saved?.payroll_cost ?? pay?.gross ?? 0;
-        const deductionAmount = saved?.deductions ?? pay?.deductions ?? 0;
-        const netPayrollAmount = saved?.net_pay ?? pay?.net ?? 0;
-        // Same actual-cost separation as the dashboard; billing add-ons stay inside revenue.
-        const employerCost = saved?.employer_contribution ?? pay?.employer ?? 0;
+        const money = mode === "invoice" ? registerMoney(u.id, savedTotalsQ.data?.ready.get(u.id), liveByUnit.get(u.id)) : null;
+        const invoiceAmount = money?.invoiceAmount ?? 0;
+        const payrollAmount = money?.payrollAmount ?? 0;
+        const deductionAmount = money?.deductionAmount ?? 0;
+        const netPayrollAmount = money?.netPayrollAmount ?? 0;
+        const employerCost = money?.employerCost ?? 0;
         const margin = invoiceAmount - payrollAmount - employerCost;
         const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
           unitId: u.id,
@@ -448,13 +507,14 @@ export function FinanceCharter({
         return {
           unit: u,
           finalInvoice: finalsQ.data?.get(unitPeriodKey(u.id, period.start, period.end)) ?? null,
-          contractCode: finance?.contractCode ?? u.contract_codes[0] ?? "—",
+          contractCode: (mode === "invoice" ? finance?.contractCode : contractCodesQ.data?.get(u.id)) ?? u.contract_codes[0] ?? "—",
           committed: finance?.committed ?? 0,
           actual: u.security_guards.length,
           rates: finance?.rates ?? [],
-          people,
           monthlyContracted,
           contractedMtd,
+          /** False while this site's live totals are still computing (or failed). */
+          moneyReady: money !== null,
           invoiceAmount,
           payrollAmount,
           deductionAmount,
@@ -467,7 +527,42 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [matchedUnits, financeQ.data, statsByUnit, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, engineQ.data, payrollQ.data, savedTotalsQ.data, payrollQ.isSuccess, engineQ.isSuccess, mode]);
+  }, [periodsReady, matchedUnits, financeQ.data, contractCodesQ.data, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, savedTotalsQ.data, liveByUnit, mode]);
+
+  // Per-employee breakdown: loaded only for the sites someone expands.
+  const expandedIds = useMemo(
+    () => (mode === "invoice" ? pageUnits.filter((u) => expanded[u.id] && periodsByUnit.has(u.id)).map((u) => u.id) : []),
+    [mode, pageUnits, expanded, periodsByUnit],
+  );
+  const breakdownQs = useQueries({
+    queries: expandedIds.map((id) => {
+      const period = periodsByUnit.get(id)!;
+      const live = liveByUnit.get(id);
+      return {
+        queryKey: ["finance-charter-breakdown", id, period.start, period.end, live ? "live" : "own"],
+        enabled: moneyEnabled,
+        staleTime: 60_000,
+        queryFn: () => loadBreakdown(id, period, live, unitCodes, nameById),
+      };
+    }),
+  });
+  const peopleByUnit = useMemo(() => {
+    const out = new Map<string, PersonMoney[]>();
+    expandedIds.forEach((id, i) => {
+      const data = breakdownQs[i]?.data;
+      if (data) out.set(id, data);
+    });
+    return out;
+  }, [expandedIds, breakdownQs]);
+  const breakdownLoading = useMemo(
+    () => new Set(expandedIds.filter((_, i) => breakdownQs[i]?.isPending)),
+    [expandedIds, breakdownQs],
+  );
+  const breakdownFailed = useMemo(
+    () => new Set(expandedIds.filter((_, i) => breakdownQs[i]?.isError && !breakdownQs[i]?.data)),
+    [expandedIds, breakdownQs],
+  );
+
   const pageIdSet = useMemo(() => new Set(pageUnits.map((u) => u.id)), [pageUnits]);
   const rows = useMemo(() => allRows.filter((r) => pageIdSet.has(r.unit.id)), [allRows, pageIdSet]);
 
@@ -475,9 +570,10 @@ export function FinanceCharter({
   // number issued yet for the open period.
   // Selection spans every page: picks on page 1 stay selected on page 2.
   const selectableRows = useMemo(
-    // Finalising needs the exact invoice value, so wait for the invoice engine.
-    () => (mode === "invoice" && !engineQ.isSuccess ? [] : allRows.filter((r) => !r.finalInvoice && r.status.attendance === "approved")),
-    [allRows, mode, engineQ.isSuccess],
+    // Finalising needs the exact invoice value: a site is pickable once its saved
+    // or live total is in, never while it is still updating.
+    () => allRows.filter((r) => (mode !== "invoice" || r.moneyReady) && !r.finalInvoice && r.status.attendance === "approved"),
+    [allRows, mode],
   );
   // Invoice numbers are state-driven, so one final invoice can never span two
   // states: the first pick locks the state for the rest of the selection.
@@ -570,8 +666,32 @@ export function FinanceCharter({
     downloadCsv(mode === "invoice" ? "invoice-charter" : "payroll-charter", rowsForCsv);
   };
 
-  // Invoice engine results for the filtered sites (same calculation as the invoice page).
-  const engineData = async () => engineQ.data ?? (await engineQ.refetch()).data ?? new Map<string, DashboardUnitFinance>();
+  // Invoice engine results (same calculation as the invoice page) for these sites:
+  // reuses the background live results, computes the rest on demand (cached 60 s).
+  const queryClient = useQueryClient();
+  const engineData = async (ids: string[]) => {
+    const out = new Map<string, DashboardUnitFinance>();
+    const missing = new Map<string, { start: string; end: string }>();
+    for (const id of ids) {
+      const live = liveByUnit.get(id);
+      if (live) {
+        const e = live.engine.get(id);
+        if (e) out.set(id, e);
+        continue;
+      }
+      const p = allPeriodsByUnit.get(id) ?? payrollPeriodForMonth(year, monthIdx);
+      missing.set(id, { start: p.start, end: p.end });
+    }
+    if (missing.size) {
+      const computed = await queryClient.fetchQuery({
+        queryKey: ["finance-charter-invoice-engine", Array.from(missing, ([id, p]) => `${id}:${p.start}:${p.end}`).join("|")],
+        staleTime: 60_000,
+        queryFn: () => computeDashboardUnitFinance(missing),
+      });
+      for (const [id, e] of computed) out.set(id, e);
+    }
+    return out;
+  };
 
   // Final invoices: a site of a split organization becomes one target per
   // invoice part, valued exactly as the invoice page values that part.
@@ -580,7 +700,7 @@ export function FinanceCharter({
   const openFinal = async () => {
     setPreparingFinal(true);
     try {
-      const engine = await engineData();
+      const engine = await engineData(selectedTargets.map((t) => t.unitId));
       const out: FinalInvoiceTarget[] = [];
       for (const t of selectedTargets) {
         const parts = engine.get(t.unitId)?.parts ?? [];
@@ -626,7 +746,7 @@ export function FinanceCharter({
         .from("org_settings")
         .select("*")
         .limit(1)
-        .maybeSingle(), loadGstBillingBranches(), engineData()]);
+        .maybeSingle(), loadGstBillingBranches(), engineData(ids)]);
 
       const unitRows: Record<string, any>[] = [];
       for (const chunkIds of chunkOf(ids, 100)) {
@@ -802,7 +922,7 @@ export function FinanceCharter({
       const entity = String((org as { company_name?: string } | null)?.company_name ?? "Radiant").trim();
 
       // Employee lines and rates come from the invoice engine — the invoice page's own calculation.
-      const engine = await engineData();
+      const engine = await engineData(ids);
 
       // Site fields printed in the client MIS.
       const unitRows: any[] = [];
@@ -955,9 +1075,8 @@ export function FinanceCharter({
     }
   };
 
-  const loading = mode === "invoice"
-    ? registerPeriods.isLoading || entriesQ.isLoading || financeQ.isLoading || allStatusQ.isLoading
-    : registerPeriods.isLoading || allStatusQ.isLoading;
+  // The table waits only for periods, statuses and contract codes — never for money.
+  const loading = registerPeriods.isLoading || allStatusQ.isLoading || (moneyEnabled && (mode === "invoice" ? financeQ.isPending : contractCodesQ.isPending));
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
   const recordsRef = useRef<HTMLDivElement>(null);
@@ -1020,27 +1139,51 @@ export function FinanceCharter({
             <CharterTile
               label="Invoice value to date"
               sub={`${totals.realisationPct}% of contracted till date`}
-              value={fmtMoneyCompact(totals.invoiceAmount)}
+              value={savedLoading ? "…" : fmtMoneyCompact(totals.invoiceAmount)}
               icon={Receipt}
               accent="emerald"
             />
             <CharterTile
               label="Payroll gross to date"
               sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
-              value={fmtMoneyCompact(totals.payrollAmount)}
+              value={savedLoading ? "…" : fmtMoneyCompact(totals.payrollAmount)}
               icon={Wallet}
               accent="amber"
             />
             <CharterTile
               label="Margin"
               sub={`${totals.marginPct}% · current payroll periods`}
-              value={fmtMoneyCompact(totals.margin)}
+              value={savedLoading ? "…" : fmtMoneyCompact(totals.margin)}
               icon={Gauge}
               accent="rose"
             />
           </>
         )}
       </CharterTileGrid>
+
+      {mode === "invoice" && (savedLoading || updatingCount > 0 || liveFailedIds.length > 0) && (
+        <div role="status" aria-live="polite" className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {(savedLoading || updatingCount > 0) && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+              {savedLoading ? "Loading saved totals…" : `Updating ${updatingCount} site${updatingCount === 1 ? "" : "s"}…`}
+            </span>
+          )}
+          {liveFailedIds.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-destructive">
+              {liveFailedIds.length} site{liveFailedIds.length === 1 ? "" : "s"} could not be calculated — not in the totals.
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => void queryClient.invalidateQueries({ queryKey: ["finance-charter-live"] })}
+              >
+                Retry
+              </Button>
+            </span>
+          )}
+        </div>
+      )}
 
       {mode !== "invoice" && filters}
 
@@ -1154,7 +1297,14 @@ export function FinanceCharter({
             <Receipt className="mr-1.5 h-4 w-4" /> {misBusy ? "Preparing…" : selectedTargets.length > 0 ? `MIS Format (${selectedTargets.length})` : "MIS Format"}
           </Button>
         )}
-        <Button variant="outline" className="h-9 shrink-0 rounded-lg sm:rounded-xl" onClick={exportCsv}>
+        <Button
+          variant="outline"
+          className="h-9 shrink-0 rounded-lg sm:rounded-xl"
+          // Invoice CSV carries money: never export while some sites are still updating.
+          disabled={mode === "invoice" && (savedLoading || updatingCount > 0 || liveFailedIds.length > 0)}
+          title={mode === "invoice" && (savedLoading || updatingCount > 0) ? "Totals are still updating" : undefined}
+          onClick={exportCsv}
+        >
           <Download className="h-4 w-4" /> Export
         </Button>
         </div>
@@ -1381,7 +1531,15 @@ export function FinanceCharter({
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                          Period-to-date per employee
                       </div>
-                      {r.people.length === 0 ? (
+                      {breakdownFailed.has(r.unit.id) ? (
+                        <p className="rounded-xl border border-dashed border-destructive/40 bg-background/60 px-3 py-4 text-center text-xs text-destructive">
+                          Breakdown could not load. Collapse and open it again to retry.
+                        </p>
+                      ) : breakdownLoading.has(r.unit.id) ? (
+                        <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
+                          Loading breakdown…
+                        </p>
+                      ) : (peopleByUnit.get(r.unit.id) ?? []).length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
                            No attendance marked for this unit yet this period.
                         </p>
@@ -1401,7 +1559,7 @@ export function FinanceCharter({
                               </tr>
                             </thead>
                             <tbody>
-                              {r.people.map((p) => (
+                              {(peopleByUnit.get(r.unit.id) ?? []).map((p) => (
                                 <tr key={p.id} className="border-t border-border/50 hover:bg-muted/40">
                                   <td className="px-3 py-1.5 font-medium">{p.name}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.paidDays}</td>

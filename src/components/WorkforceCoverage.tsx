@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { loadDashboardBase } from "@/lib/dashboard-base";
+import { loadDashboardBase, loadDashboardBaseForUnits, type DashboardBase } from "@/lib/dashboard-base";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { Pager, usePaged } from "@/components/Pager";
 import { Button } from "@/components/ui/button";
@@ -65,10 +65,18 @@ const EXCLUDED_ROLE_KEYS = new Set([
   "super_admin",
 ]);
 
-async function fetchCoverage(): Promise<UnitCoverage[]> {
+/**
+ * Coverage rows. With `unitIds`, only those units are read (Attendance
+ * register page); without, the whole company (dashboard card). Rows for a
+ * given unit are identical either way.
+ */
+export async function fetchWorkforceCoverage(unitIds?: readonly string[]): Promise<UnitCoverage[]> {
   // Shared, fully paged base lookups — read once for both coverage cards.
-  const base = await loadDashboardBase();
+  const base = unitIds ? await loadDashboardBaseForUnits(unitIds) : await loadDashboardBase();
+  return computeWorkforceCoverage(base);
+}
 
+export function computeWorkforceCoverage(base: DashboardBase): UnitCoverage[] {
   const contracts = base.contracts;
   if (contracts.length === 0) return [];
 
@@ -151,8 +159,16 @@ async function fetchCoverage(): Promise<UnitCoverage[]> {
     .sort((a, b) => a.unitName.localeCompare(b.unitName));
 }
 
-export function useWorkforceCoverage() {
-  return useQuery({ queryKey: QK_COVERAGE, queryFn: fetchCoverage });
+export function useWorkforceCoverage(unitIds?: readonly string[]) {
+  const scopeKey = unitIds ? [...new Set(unitIds)].sort().join(",") : "all";
+  return useQuery({
+    queryKey: [...QK_COVERAGE, scopeKey],
+    queryFn: () => fetchWorkforceCoverage(unitIds ? scopeKey.split(",").filter(Boolean) : undefined),
+    enabled: !unitIds || unitIds.length > 0,
+    staleTime: 5 * 60_000,
+    // Scoped pages must not show another page's rows while loading.
+    placeholderData: unitIds ? undefined : (previous: UnitCoverage[] | undefined) => previous,
+  });
 }
 
 export type UnmappedGuard = {

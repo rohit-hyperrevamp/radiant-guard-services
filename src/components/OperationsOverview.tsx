@@ -128,7 +128,7 @@ async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsO
   };
 }
 
-export function useOperationsOverview() {
+export function useOperationsOverview(enabled = true) {
   const managerScope = useManagerFieldOfficerScope();
   const sessionReady = useHasSupabaseSession();
   // A manager only ever sees the cumulative picture of the field officers
@@ -140,9 +140,9 @@ export function useOperationsOverview() {
   return useQuery({
     queryKey: ["operations-overview", monthStart(), localDate(), scope.unitIds ?? "all", scope.fieldOfficerCount],
     // Session-gated: a token-less read returns zeros that would be cached.
-    enabled: sessionReady && !managerScope.isLoading,
+    enabled: enabled && sessionReady && !managerScope.isLoading,
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: enabled ? 60_000 : false,
     queryFn: () => loadOperationsOverview(scope),
   });
 }

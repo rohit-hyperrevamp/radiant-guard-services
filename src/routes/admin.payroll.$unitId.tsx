@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
+import { QK_PUBLIC_HOLIDAYS, fetchEnabledPublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
+import { useReference } from "@/lib/reference-data";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
@@ -195,6 +196,11 @@ function buildDates(start: string, end: string): string[] {
   return out;
 }
 
+/** Keep only `cols` from each reference row (the columns the direct read selected). */
+function pickColumns<T>(rows: Record<string, unknown>[], cols: string[]): T[] {
+  return rows.map((r) => Object.fromEntries(cols.map((c) => [c, r[c]])) as T);
+}
+
 function PayrollUnitPage() {
   const { unitId } = Route.useParams();
   const { start, end, candidate: highlightCandidate } = Route.useSearch();
@@ -205,35 +211,14 @@ function PayrollUnitPage() {
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
-  const publicHolidays = usePublicHolidays();
-  const { data: unitPh } = useQuery({
-    queryKey: ["payroll-unit-ph", unitId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("units")
-        .select("ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days" as never)
-        .eq("id", unitId)
-        .maybeSingle();
-      const row = (data ?? null) as {
-        ph_enabled?: boolean | null;
-        ph_multiplier?: number | null;
-        ph_day_value?: number | string | null;
-        ph_excluded_candidate_ids?: string[] | null;
-        ph_excluded_days?: string[] | null;
-      } | null;
-      const dv = row?.ph_day_value;
-      return {
-        enabled: Boolean(row?.ph_enabled),
-        multiplier: Number(row?.ph_multiplier ?? 1) || 1,
-        excluded: (row?.ph_excluded_candidate_ids ?? []).map(String),
-        excludedDays: (row?.ph_excluded_days ?? []).map(String),
-        // PH off for this client → PH marks count 0 days.
-        dayValue: !row?.ph_enabled ? 0 : dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
-      };
-    },
+  // Same react-query key as usePublicHolidays (shared cache), but with the
+  // loading state visible so the register never computes before holidays land.
+  const { data: publicHolidays } = useQuery({
+    queryKey: [...QK_PUBLIC_HOLIDAYS, "enabled"],
+    queryFn: fetchEnabledPublicHolidays,
   });
   // Contract switch: count Weekly Off (WO) as Present days for this period.
-  const { data: woAsPresent = false } = useQuery({
+  const woAsPresentQ = useQuery({
     queryKey: ["payroll-wo-as-present", unitId, start, end],
     queryFn: async () => {
       const { data } = await supabase
@@ -249,67 +234,55 @@ function PayrollUnitPage() {
       return Boolean(((data ?? [])[0] as { wo_as_present?: boolean } | undefined)?.wo_as_present);
     },
   });
-  const phConfig = useMemo(() => {
-    if (!unitPh?.enabled) return null;
-    const map = holidayMapForDates(periodDates, publicHolidays);
-    if (map.size === 0) return null;
-    return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
-  }, [unitPh, periodDates, publicHolidays]);
+  const woAsPresent = woAsPresentQ.data ?? false;
 
-  const { data: unit } = useQuery({
+  // One read for the site row, its customer name and its PH settings (was three
+  // requests, two of them one after another).
+  const { data: unitRead } = useQuery({
     queryKey: ["payroll-unit", unitId],
     queryFn: async () => {
       await supabaseSessionReady();
       const { data } = await supabase
         .from("units")
-        .select("id, code, name, customer_id, billing_state, billing_pincode, pt_state, epf_cap_enabled, is_billable" as never)
+        .select("id, code, name, customer_id, billing_state, billing_pincode, pt_state, epf_cap_enabled, is_billable, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days, customers(name)" as never)
         .eq("id", unitId)
         .maybeSingle();
-      if (!data) return null;
-      const unitRow = data as unknown as { id: string; code: string | null; name: string; customer_id: string | null; billing_state: string | null; billing_pincode: string | null; pt_state: string | null; epf_cap_enabled: boolean | null; is_billable: boolean | null };
-      const { data: cust } = await supabase
-        .from("customers")
-        .select("name")
-        .eq("id", unitRow.customer_id ?? "")
-        .maybeSingle();
-      return { ...unitRow, customer_name: cust?.name ?? "" };
+      const row = (data ?? null) as {
+        id: string; code: string | null; name: string; customer_id: string | null; billing_state: string | null; billing_pincode: string | null; pt_state: string | null; epf_cap_enabled: boolean | null; is_billable: boolean | null;
+        ph_enabled?: boolean | null; ph_multiplier?: number | null; ph_day_value?: number | string | null; ph_excluded_candidate_ids?: string[] | null; ph_excluded_days?: string[] | null;
+        customers?: { name?: string | null } | null;
+      } | null;
+      const dv = row?.ph_day_value;
+      const unitPh = {
+        enabled: Boolean(row?.ph_enabled),
+        multiplier: Number(row?.ph_multiplier ?? 1) || 1,
+        excluded: (row?.ph_excluded_candidate_ids ?? []).map(String),
+        excludedDays: (row?.ph_excluded_days ?? []).map(String),
+        // PH off for this client → PH marks count 0 days.
+        dayValue: !row?.ph_enabled ? 0 : dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
+      };
+      if (!row) return { unit: null, unitPh };
+      const { customers, ph_enabled: _pe, ph_multiplier: _pm, ph_day_value: _pd, ph_excluded_candidate_ids: _pc, ph_excluded_days: _px, ...unitRow } = row;
+      return { unit: { ...unitRow, customer_name: customers?.name ?? "" }, unitPh };
     },
   });
+  const unit = unitRead === undefined ? undefined : unitRead.unit;
+  const unitPh = unitRead?.unitPh;
+  const phConfig = useMemo(() => {
+    if (!unitPh?.enabled) return null;
+    const map = holidayMapForDates(periodDates, publicHolidays ?? []);
+    if (map.size === 0) return null;
+    return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
+  }, [unitPh, periodDates, publicHolidays]);
 
-  const { data: ptSlabs } = useQuery({
-    queryKey: ["pt_slabs_payroll"],
-    queryFn: async (): Promise<PtSlabLike[]> => {
-      const { data, error } = await supabase
-        .from("professional_tax_slabs")
-        .select("id, state, region_label, salary_min, salary_max, tax_per_month, gender");
-      if (error) throw error;
-      return (data ?? []) as PtSlabLike[];
-    },
-  });
-
-  const { data: pincodeRanges } = useQuery({
-    queryKey: ["pincode_ranges_payroll"],
-    queryFn: async (): Promise<PincodeRangeLike[]> => {
-      const { data, error } = await supabase
-        .from("pincode_ranges")
-        .select("state, region_label, range_start, range_end, is_excluded");
-      if (error) throw error;
-      return (data ?? []) as PincodeRangeLike[];
-    },
-  });
-
-  // LWF Master: live-synced so editing LWF Manager in Control Center
-  // affects the very next payroll run.
-  const { data: lwfRows } = useQuery({
-    queryKey: ["labour_welfare_funds_payroll"],
-    queryFn: async (): Promise<LwfRow[]> => {
-      const { data, error } = await supabase
-        .from("labour_welfare_funds")
-        .select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes");
-      if (error) throw error;
-      return (data ?? []) as LwfRow[];
-    },
-  });
+  // PT slabs / pincode ranges / LWF master: shared reference cache (one fetch
+  // per session for every screen), projected to the columns the engine reads.
+  const ptSlabsRef = useReference<Record<string, unknown>>("ptSlabs");
+  const pincodeRangesRef = useReference<Record<string, unknown>>("pincodeRanges");
+  const lwfRef = useReference<Record<string, unknown>>("lwf");
+  const ptSlabs = useMemo(() => ptSlabsRef.data && pickColumns<PtSlabLike>(ptSlabsRef.data, ["id", "state", "region_label", "salary_min", "salary_max", "tax_per_month", "gender"]), [ptSlabsRef.data]);
+  const pincodeRanges = useMemo(() => pincodeRangesRef.data && pickColumns<PincodeRangeLike>(pincodeRangesRef.data, ["state", "region_label", "range_start", "range_end", "is_excluded"]), [pincodeRangesRef.data]);
+  const lwfRows = useMemo(() => lwfRef.data && pickColumns<LwfRow>(lwfRef.data, ["id", "state", "deduction_months", "frequency", "employee_contribution", "employer_contribution", "enabled", "notes"]), [lwfRef.data]);
 
   const sheetQK = ["payroll-sheet", unitId, start, end];
   const { data: sheet } = useQuery({
@@ -512,11 +485,11 @@ function PayrollUnitPage() {
   });
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
-    // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
-    // lands produces a wrong (often zero) first render that only self-corrects
-    // on a hard refresh.
-    enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0), phConfig?.dates.join(",") ?? "", phConfig?.multiplier ?? 0],
+    // `unit` feeds PT state / pincode / EPF-cap policy and the unit PH settings;
+    // public holidays feed PH credit — computing before they land produces a
+    // wrong first render that only self-corrects on a hard refresh.
+    enabled: unit !== undefined && publicHolidays !== undefined && woAsPresentQ.isFetched && !esiRoundFlag.isLoading && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     // Always recompute from the live contract / attendance when the page opens,
     // so a contract edit shows up immediately (no 5-minute cache).
     staleTime: 0,

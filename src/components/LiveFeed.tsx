@@ -4,9 +4,10 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { Bell, CheckCheck, RotateCw, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { listMyNotifications, markAllRead, markNotificationRead, type Notification } from "@/lib/notifications";
+import { listMyNotifications, markAllRead, markNotificationRead, NOTIFICATIONS_POLL_MS, type Notification } from "@/lib/notifications";
 import { shouldRedirect } from "@/lib/notification-routing";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
+import { useMediaQuery } from "@/components/DashboardLazy";
 
 const NQK = ["notifications", "mine"] as const;
 
@@ -23,7 +24,9 @@ export function LiveFeed({ className }: { className?: string }) {
   const { data: items = [], isFetching, refetch } = useQuery({
     queryKey: NQK,
     queryFn: listMyNotifications,
-    refetchInterval: 15_000,
+    // Same key as the bell: one shared poll, no faster than once a minute.
+    staleTime: NOTIFICATIONS_POLL_MS,
+    refetchInterval: NOTIFICATIONS_POLL_MS,
   });
   const unread = items.filter((n) => !n.readAt).length;
   const featured = items[0];
@@ -256,14 +259,18 @@ export function DashboardShell({
   fullWidthBelow?: React.ReactNode;
   fixedRightRail?: boolean;
 }) {
+  // Render the rail once — desktop column OR stacked mobile copy. Mounting
+  // both (one hidden by CSS) ran every rail card's queries and realtime
+  // subscriptions twice.
+  const desktop = useMediaQuery("(min-width: 1024px)");
   return (
     <div className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">
-          <div className="lg:hidden space-y-3"><LiveFeed className="max-h-[320px]" /></div>
+          {desktop === false && <div className="lg:hidden space-y-3"><LiveFeed className="max-h-[320px]" /></div>}
           {children}
         </div>
-        <div className="hidden lg:block">
+        {desktop && <div className="hidden lg:block">
           <div className={cn(
             "flex flex-col gap-3 overflow-y-auto pr-1",
             fixedRightRail
@@ -273,8 +280,8 @@ export function DashboardShell({
             <LiveFeed />
             {rightExtras}
           </div>
-        </div>
-        {rightExtras && <div className="lg:hidden space-y-3">{rightExtras}</div>}
+        </div>}
+        {desktop === false && rightExtras && <div className="lg:hidden space-y-3">{rightExtras}</div>}
       </div>
       {fullWidthBelow}
     </div>

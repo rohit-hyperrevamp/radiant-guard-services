@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { useAuth } from "@/lib/auth";
 import { invalidateDashboardBase } from "@/lib/dashboard-base";
+import { clearActiveClientIdsCache } from "@/lib/active-clients";
 
 /**
  * Cloud-backed admin data store.
@@ -981,6 +982,8 @@ export function useUnits() {
 
   const invalidate = () => {
     invalidateDashboardBase();
+    // A site's status decides which sites count as active everywhere.
+    clearActiveClientIdsCache();
     // Status affects every operational list and open register, not just Clients.
     return qc.invalidateQueries();
   };

@@ -11,6 +11,7 @@ import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { mergePayItems } from "@/lib/pay-item-names";
 import { supabase } from "@/integrations/supabase/client";
+import { getReference, type ReferenceName } from "@/lib/reference-data";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { normShift, shiftKey } from "@/lib/shift-resources";
 import { applyRateRevisionsWith, fetchRevisions, payrollRateSegmentsWith, type RateRevisionRow, type RateSegment } from "@/lib/rate-revisions";
@@ -119,9 +120,70 @@ export type PayrollUnitSource = {
   ptAllocated: Map<string, number>;
 };
 
+/**
+ * Marks a promise as handled so an early failure elsewhere never surfaces as an
+ * unhandled rejection; awaiting it later still throws its error.
+ */
+function quiet<T>(p: Promise<T>): Promise<T> {
+  p.catch(() => {});
+  return p;
+}
+
+const pickCols = (cols: string[]) => (r: AnyRow): AnyRow => Object.fromEntries(cols.map((c) => [c, r[c]]));
+
+/** Rows of the designations master whose id is in `ids` (what `.in("id", ids)` returned). */
+function designationRowsFor(all: AnyRow[], ids: string[]): { id: string; name: string | null }[] {
+  const want = new Set(ids);
+  return all.filter((d) => want.has(d.id)).map((d) => ({ id: d.id as string, name: (d.name ?? null) as string | null }));
+}
+
+/**
+ * Independent reads of the single-site payroll path, started together. Each
+ * resolves to exactly what the corresponding original query returned.
+ */
+function prefetchPayrollUnit(unitId: string, start: string, end: string) {
+  const periodContract = quiet(fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, is_internal"));
+  const contractLines = quiet(periodContract.then(async (pc) => {
+    const contractId = pc?.id;
+    if (!contractId) return { resources: [] as Record<string, unknown>[], revisions: [] as RateRevisionRow[] | null };
+    const { data: r } = await supabase
+      .from("contract_resources")
+      .select(
+        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals, sort_order",
+      )
+      .eq("contract_id", contractId as string)
+      .order("sort_order");
+    const resources = ((r ?? []) as unknown) as Record<string, unknown>[];
+    const revisions: RateRevisionRow[] | null = resources.length ? await fetchRevisions(resources.map((x) => String(x.id))) : [];
+    return { resources, revisions };
+  }));
+  const entries = quiet(fetchAttendanceEntriesForPeriod({ unitId, start, end }));
+  return {
+    // Same unit + period rows: the roster reuses them instead of re-reading.
+    attended: quiet(fetchAttendedCandidateIds(unitId, start, end, undefined, { entries })),
+    entries,
+    periodContract,
+    contractLines,
+    designations: quiet(getReference<AnyRow>("designations")),
+    codes: quiet(getReference<AnyRow>("attendanceCodes").then((rows) => rows.filter((r) => r.enabled === true).map(pickCols(["code", "counts_as_present", "is_paid", "day_value"])))),
+    pdbs: quiet(getReference<AnyRow>("payrollDayBases").then((rows) => rows.map(pickCols(["id", "method", "fixed_days", "weekly_off_day", "included_weekdays", "enabled"])))),
+    addTypes: quiet(getReference<AnyRow>("additionTypes").then((rows) => rows.map(pickCols(["id", "code"])))),
+    postingShifts: quiet(Promise.resolve(supabase
+      .from("candidate_units")
+      .select("candidate_id, shift_hours" as never)
+      .eq("unit_id", unitId)
+      .not("shift_hours" as never, "is", null))),
+  };
+}
+
 export async function computePayrollUnitRows(input: PayrollUnitInput, src?: PayrollUnitSource) {
   const { unitId, start, end, periodDates, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows } = input;
   if (!src) await supabaseSessionReady();
+  // Single-site path: every read that does not depend on another starts now,
+  // in parallel (same queries as before, no longer awaited one after another).
+  // Master tables come from the shared reference cache, projected to the
+  // columns/filters the direct reads used.
+  const pre = src ? null : prefetchPayrollUnit(unitId, start, end);
   // 1. Roster: candidates mapped to this unit (primary + secondary).
   const candidateCols =
     "id, employee_code, full_name, designation_id, gender, is_disabled, bank_account_holder, bank_account_number, bank_ifsc, bank_name, bank_branch, approved_at, preferred_joining_date, application_date, pan_number, compliance";
@@ -153,7 +215,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // are still paid for the days they worked.
   {
     const have = new Set(roster.map((c) => c.id));
-    const attended = (src ? src.attendedIds : await fetchAttendedCandidateIds(unitId, start, end)).filter((id) => !have.has(id));
+    const attended = (src ? src.attendedIds : await pre!.attended).filter((id) => !have.has(id));
     if (attended.length) {
       const { data: leavers } = src
         ? { data: attended.map((id) => src.people.get(id)).filter(Boolean) }
@@ -167,14 +229,11 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   ) as string[];
   const { data: designations } = src
     ? { data: designationIds.filter((id) => src.designations.has(id)).map((id) => ({ id, name: src.designations.get(id)! })) }
-    : await supabase
-      .from("designations")
-      .select("id, name")
-      .in("id", designationIds.length ? designationIds : ["00000000-0000-0000-0000-000000000000"]);
+    : { data: designationRowsFor(await pre!.designations, designationIds) };
   const desigMap = new Map((designations ?? []).map((d) => [d.id, d.name as string]));
 
   // 2. Attendance entries (fetched per day to avoid backend row caps)
-  const entries = (src ? src.entries.map((e) => ({ ...e })) : await fetchAttendanceEntriesForPeriod({ unitId, start, end })) as Array<{
+  const entries = (src ? src.entries.map((e) => ({ ...e })) : await pre!.entries) as Array<{
     candidate_id: string;
     designation_id: string | null;
     entry_date: string;
@@ -182,30 +241,18 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     ot_hours: number | string | null;
   }>;
 
-  const { data: codes } = src ? { data: src.codes as any[] } : await supabase
-    .from("attendance_codes")
-    .select("code, counts_as_present, is_paid, day_value")
-    .eq("enabled", true);
+  const { data: codes } = src ? { data: src.codes as any[] } : { data: await pre!.codes };
 
   // 3. Contract resources for this unit's active contract.
-  const periodContract = src ? src.periodContract : await fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, is_internal");
+  const periodContract = src ? src.periodContract : await pre!.periodContract;
   const contractOnly = input.isBillable !== false && periodContract?.is_internal !== true;
   const contracts = periodContract ? [periodContract as any] : [];
   const contractId = contracts?.[0]?.id;
 
   let resources: Record<string, unknown>[] = [];
   if (src) resources = contractId ? src.resources : [];
-  else if (contractId) {
-    const { data: r } = await supabase
-      .from("contract_resources")
-      .select(
-        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals, sort_order",
-      )
-      .eq("contract_id", contractId)
-      .order("sort_order");
-    resources = ((r ?? []) as unknown) as Record<string, unknown>[];
-  }
-  const revisions = src ? src.rateRevisions ?? [] : resources.length ? await fetchRevisions(resources.map((r) => String(r.id))) : [];
+  else if (contractId) resources = (await pre!.contractLines).resources;
+  const revisions = src ? src.rateRevisions ?? [] : resources.length ? (await pre!.contractLines).revisions : [];
   if (revisions === null) throw new Error("Saved contract rate history could not be loaded. Payroll was not calculated from a guessed current rate.");
   const rawPayrollSegments = new Map<string, RateSegment<Record<string, unknown>>[]>();
   if (contractOnly) {
@@ -224,6 +271,19 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // 3b. Per-employee Additions & Deductions (Control Center catalog).
   // Pull anything dated within the payroll period and still active.
   const candidateIds = roster.map((c) => c.id);
+  // Reads that depend only on the roster (and contract type) start together
+  // here and are awaited where they are used below.
+  const otherSitesP = src ? null : quiet(Promise.all([
+    fetchOtherSitePtTotals(candidateIds, unitId, end),
+    fetchOtherSitesWorked(candidateIds, unitId, end),
+    contractOnly ? Promise.resolve(new Map<string, number>()) : fetchPtAllocations(candidateIds, unitId, end),
+  ]));
+  const employeeWagesP = src || contractOnly || candidateIds.length === 0 ? null : quiet(Promise.resolve(supabase
+    .from("employee_wages" as never)
+    .select(
+      "candidate_id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id",
+    )
+    .in("candidate_id", candidateIds)));
   type PerEmpItem = { name: string; amount: number; prorate?: boolean; countsForPf?: boolean; countsForEsi?: boolean; formula?: string | null; inputs?: { amount?: number; days?: number; per_day?: number } };
   type DayAdj = { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
   const additionsByCandidate = new Map<string, PerEmpItem[]>();
@@ -266,7 +326,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
         .eq("unit_id", unitId)
         .in("candidate_id", candidateIds)
         .lt("entry_date", start),
-      supabase.from("addition_types").select("id, code"),
+      pre!.addTypes.then((data) => ({ data })),
     ]);
     const phTypeIds = new Set<string>(
       ((addTypesRes.data ?? []) as { id: string; code: string | null }[])
@@ -429,18 +489,13 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   if (src) {
     for (const id of allDesigIds) { const n = src.designations.get(id); if (n) desigMap.set(id, n); }
   } else if (allDesigIds.size > 0) {
-    const { data: extraDs } = await supabase
-      .from("designations")
-      .select("id, name")
-      .in("id", Array.from(allDesigIds));
-    for (const d of extraDs ?? []) desigMap.set(d.id, d.name as string);
+    const extraDs = designationRowsFor(await pre!.designations, Array.from(allDesigIds));
+    for (const d of extraDs) desigMap.set(d.id, d.name as string);
   }
 
   // Load ALL enabled payroll day bases — referenced by contract resources
   // AND by cost component / allowance divisors (pdb:<uuid>).
-  const { data: pdbs } = src ? { data: src.pdbs as any[] } : await supabase
-    .from("payroll_day_bases")
-    .select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled");
+  const { data: pdbs } = src ? { data: src.pdbs as any[] } : { data: await pre!.pdbs };
   type PdbMethod = "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays" | "fixed_annual_average" | "actual_minus_days";
   const pdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
     (pdbs ?? []).map((p) => [
@@ -549,11 +604,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     resourceByShiftKey.set(key, r);
     if (!resourceByDesignation.has(r.designationId)) resourceByDesignation.set(r.designationId, r);
   });
-  const postingShiftRes = src ? { data: src.postingShifts } : await supabase
-    .from("candidate_units")
-    .select("candidate_id, shift_hours" as never)
-    .eq("unit_id", unitId)
-    .not("shift_hours" as never, "is", null);
+  const postingShiftRes = src ? { data: src.postingShifts } : await pre!.postingShifts;
   const postingShift = new Map<string, number>();
   for (const l of ((postingShiftRes.data ?? []) as unknown as { candidate_id: string; shift_hours: number }[])) {
     postingShift.set(l.candidate_id, normShift(l.shift_hours));
@@ -573,12 +624,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   {
     const rosterIds = roster.map((c) => c.id);
     if (!contractOnly && rosterIds.length > 0) {
-      const { data: ew } = src ? { data: src.employeeWages.filter((w) => rosterIds.includes(String(w.candidate_id))) } : await supabase
-        .from("employee_wages" as never)
-        .select(
-          "candidate_id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id",
-        )
-        .in("candidate_id", rosterIds);
+      const { data: ew } = src ? { data: src.employeeWages.filter((w) => rosterIds.includes(String(w.candidate_id))) } : await employeeWagesP!;
       const raw = ((ew ?? []) as unknown) as Record<string, unknown>[];
       for (const r of raw) {
         resourceByCandidate.set(String(r.candidate_id), {
@@ -666,11 +712,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // guard working two sites is taxed on the combined gross, once.
   const [otherSitePt, otherSitesWorked, ptAllocated] = src
     ? [src.otherSitePt, new Map<string, string[]>(), src.ptAllocated] as const
-    : await Promise.all([
-    fetchOtherSitePtTotals(candidateIds, unitId, end),
-    fetchOtherSitesWorked(candidateIds, unitId, end),
-    contractOnly ? Promise.resolve(new Map<string, number>()) : fetchPtAllocations(candidateIds, unitId, end),
-  ]);
+    : await otherSitesP!;
 
   const rows = Array.from(pairs.values()).map((p) => {
     const c = rosterById.get(p.candidateId);
@@ -1055,27 +1097,47 @@ export async function computePayrollUnitsTotals(
   // Joining fees dated up to a month before a window can carry into it.
   const dedFrom = (() => { const d = new Date(`${minStart}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 62); return d.toISOString().slice(0, 10); })();
   const all = <T,>(q: (a: number, b: number) => unknown) => fetchInChunks<T>(["x"], (_c, a, b) => q(a, b) as never);
-  const [holidays, esiRoundUp, slabsRes, rangesRes, lwfRes, inputs, revisions, masters, codes, addTypes, pdbs, desigs, additions, deductions] = await Promise.all([
+  // Master tables come from the shared reference cache when reading through the
+  // app client (same pattern as loadInvoiceGlobals); a caller-supplied client
+  // (server/admin) keeps its own direct reads. Rows are projected to exactly the
+  // columns (and filters) the direct reads return. Formula masters stay direct:
+  // a master edit must reach payroll without waiting out the cache TTL.
+  const shared = db === supabase;
+  const ref = <T = AnyRow,>(name: ReferenceName, cols: string[], keep: (r: AnyRow) => boolean = () => true) =>
+    getReference<AnyRow>(name).then((rows) => rows.filter(keep).map(pickCols(cols)) as unknown as T[]);
+  const direct = <T,>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>) =>
+    Promise.resolve(q).then((r) => { if (r.error) throw r.error; return (r.data ?? []) as T[]; });
+  const [holidays, esiRoundUp, ptSlabs, pincodeRanges, lwfRows, inputs, revisions, masters, codes, addTypes, pdbs, desigs, additions, deductions] = await Promise.all([
     fetchEnabledPublicHolidaysWith(db),
     fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true, db),
-    db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender"),
-    db.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded"),
-    db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes"),
+    shared
+      ? ref<PtSlabLike>("ptSlabs", ["id", "state", "region_label", "salary_min", "salary_max", "tax_per_month", "gender"])
+      : direct<PtSlabLike>(db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender")),
+    shared
+      ? ref<PincodeRangeLike>("pincodeRanges", ["state", "region_label", "range_start", "range_end", "is_excluded"])
+      : direct<PincodeRangeLike>(db.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded")),
+    shared
+      ? ref<LwfRow>("lwf", ["id", "state", "deduction_months", "frequency", "employee_contribution", "employer_contribution", "enabled", "notes"])
+      : direct<LwfRow>(db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes")),
     bulk.fetchPeriodInputs(periods, db),
     bulk.fetchAllRevisions(db),
     loadAllFormulaMasters(db),
-    db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
-    db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
-    db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
-    all<AnyRow>((a, b) => db.from("designations").select("id, name").order("id").range(a, b)),
+    shared
+      ? ref("attendanceCodes", ["code", "counts_as_present", "is_paid", "day_value"], (r) => r.enabled === true)
+      : db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
+    shared
+      ? ref("additionTypes", ["id", "code"])
+      : db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
+    shared
+      ? ref("payrollDayBases", ["id", "method", "fixed_days", "weekly_off_day", "included_weekdays", "enabled"])
+      : db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
+    shared
+      ? ref("designations", ["id", "name"])
+      : all<AnyRow>((a, b) => db.from("designations").select("id, name").order("id").range(a, b)),
     all<AnyRow>((a, b) => db.from("additions" as never).select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount, addition_date, end_date, unit_id").eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
     all<AnyRow>((a, b) => db.from("deductions" as never).select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date, unit_id").eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", maxEnd).order("id").range(a, b)),
   ]);
-  for (const r of [slabsRes, rangesRes, lwfRes]) if (r.error) throw r.error;
   if (revisions === null) throw new Error("Saved contract rate history could not be loaded; bulk payroll remains pending.");
-  const ptSlabs = (slabsRes.data ?? []) as PtSlabLike[];
-  const pincodeRanges = (rangesRes.data ?? []) as PincodeRangeLike[];
-  const lwfRows = (lwfRes.data ?? []) as LwfRow[];
   const designations = new Map(desigs.map((d) => [String(d.id), String(d.name)]));
   const s = (v: unknown) => String(v ?? "");
   const group = <T extends AnyRow>(rows: T[], key: (r: T) => string) => {

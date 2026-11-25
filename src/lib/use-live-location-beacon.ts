@@ -5,6 +5,7 @@ import { trackingEligible, usableLocationFix } from '@/lib/work-location';
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { fetchTodayPunch, pushTelemetry, readBattery, readNetworkType, distanceMeters } from "@/lib/self-attendance";
 import { insertTrackPoint } from "@/lib/field-visits";
+import { createThrottle, REALTIME_THROTTLE_MS } from "@/lib/dashboard-realtime";
 
 /** How often (ms) we push the officer's position while on duty. */
 const BEACON_INTERVAL_MS = 30_000; // twice a minute
@@ -124,13 +125,20 @@ export function useLiveLocationBeacon() {
   }, [candidateId, eligible, roleKey]);
 }
 
-/** Realtime subscription helper: run `onChange` whenever live punch telemetry changes. */
-export function subscribeLivePunches(onChange: () => void) {
+/**
+ * Realtime subscription helper: run `onChange` when live punch telemetry
+ * changes — at most once per `throttleMs` (default 30 s). Every on-duty
+ * officer's beacon writes a punch row every ~30 s, so an unthrottled handler
+ * refetched the subscriber's whole screen several times a second.
+ */
+export function subscribeLivePunches(onChange: () => void, throttleMs: number = REALTIME_THROTTLE_MS) {
+  const throttle = createThrottle(onChange, throttleMs);
   const channel = supabase
     .channel(`live-punch-telemetry-${Math.random().toString(36).slice(2)}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "self_attendance_punches" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "self_attendance_punches" }, throttle.run)
     .subscribe();
   return () => {
+    throttle.cancel();
     void supabase.removeChannel(channel);
   };
 }

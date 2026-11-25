@@ -1,11 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import { fetchForIds, fetchInChunks } from "@/lib/supabase-batch";
+import { getReference } from "@/lib/reference-data";
+import { fetchAllRevisions } from "@/lib/invoice-engine-bulk";
 import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
 import { invoiceExtraDutyRate, isCli2989Caretaker } from "@/lib/invoice-duty-rates";
 import { contractMonthlyBilling } from "@/lib/contract-rate-display";
 import { invoiceCapPool, invoicePoolStrength } from "@/lib/invoice-present-cap";
-import { applyRateRevisionsForPeriod } from "@/lib/rate-revisions";
+import { applyRateRevisionsWith } from "@/lib/rate-revisions";
 
 /**
  * Contract-level money for the Invoice / Payroll charters.
@@ -95,42 +97,108 @@ export function pickPeriodContract<T extends { status?: unknown; start_date?: un
   return contracts.filter((c) => c.status === "active").sort(order)[0] ?? null;
 }
 
+type PeriodContractRow = { id: string; unit_id: string | null; contract_code: string | null; status: string; start_date: string | null; end_date: string | null; created_at: string | null };
+
+/**
+ * PostgREST filter for the only contracts pickPeriodContract can choose: every
+ * active one (the fallback), plus expired ones overlapping [minStart, maxEnd]
+ * (a superset of each site's own period — the exact pick still runs in memory).
+ */
+export function periodContractFilter(periods?: Map<string, { start: string; end: string }>): string {
+  const list = periods ? [...periods.values()] : [];
+  if (!list.length) return "status.eq.active";
+  const minStart = list.map((p) => p.start).sort()[0];
+  const maxEnd = list.map((p) => p.end).sort().reverse()[0];
+  return `status.eq.active,and(status.eq.expired,or(start_date.is.null,start_date.lte.${maxEnd}),or(end_date.is.null,end_date.gte.${minStart}))`;
+}
+
+/**
+ * Candidate period contracts for these sites. Many sites: one scan of client
+ * contracts already narrowed to active / period-overlapping rows (a few pages)
+ * instead of a dozen URL-limited unit-id chunks; few sites: unit-id chunks.
+ */
+async function fetchCandidateContracts<T extends PeriodContractRow>(ids: string[], periods: Map<string, { start: string; end: string }> | undefined, columns: string, withResources = false): Promise<T[]> {
+  const filter = periodContractFilter(periods);
+  const base = () => {
+    let q = supabase
+      .from("client_contracts")
+      .select(columns as "*")
+      .eq("record_type", "client")
+      .in("status", ["active", "expired"])
+      .or(filter);
+    if (withResources) q = q.limit(1, { referencedTable: "contract_resources" });
+    return q;
+  };
+  return fetchForIds<T>(ids, {
+    chunk: (chunk, from, to) => base().in("unit_id", chunk).order("id").range(from, to) as never,
+    scan: (from, to) => base().order("id").range(from, to) as never,
+    idOf: (row) => row.unit_id,
+  });
+}
+
+function pickContractsByUnit<T extends PeriodContractRow>(contracts: T[], periods?: Map<string, { start: string; end: string }>): Map<string, T> {
+  const byUnit = new Map<string, T[]>();
+  for (const c of contracts) {
+    if (!c.unit_id) continue;
+    const list = byUnit.get(c.unit_id);
+    if (list) list.push(c);
+    else byUnit.set(c.unit_id, [c]);
+  }
+  const out = new Map<string, T>();
+  for (const [unitId, list] of byUnit) {
+    const c = pickPeriodContract(list, periods?.get(unitId) ?? null);
+    if (c) out.set(unitId, c);
+  }
+  return out;
+}
+
+/**
+ * Just the period contract code per site — what the Payroll register row shows
+ * — without loading rate cards. Same rule as fetchUnitFinance: a site appears
+ * only when its period contract has at least one contract line.
+ */
+export async function fetchPeriodContractCodes(
+  unitIds: string[],
+  periods?: Map<string, { start: string; end: string }>,
+): Promise<Map<string, string>> {
+  const ids = Array.from(new Set(unitIds.filter(Boolean)));
+  const out = new Map<string, string>();
+  if (!ids.length) return out;
+  type Row = PeriodContractRow & { contract_resources?: { id: string }[] | null };
+  const contracts = await fetchCandidateContracts<Row>(ids, periods, "id, unit_id, contract_code, status, start_date, end_date, created_at, contract_resources(id)", true);
+  for (const [unitId, c] of pickContractsByUnit(contracts, periods)) {
+    if ((c.contract_resources ?? []).length > 0) out.set(unitId, c.contract_code || "—");
+  }
+  return out;
+}
+
+export type FetchUnitFinanceOptions = {
+  /**
+   * Posting duty lengths (candidate_units) only refine per-employee rate picks
+   * for a breakdown; site-level money never uses them. Default true.
+   */
+  postingShifts?: boolean;
+  /** Unit codes already on screen (skips re-reading `units`). */
+  unitCodes?: Map<string, string | null>;
+};
+
 export async function fetchUnitFinance(
   unitIds: string[],
   periods?: Map<string, { start: string; end: string }>,
+  options: FetchUnitFinanceOptions = {},
 ): Promise<UnitFinanceMap> {
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
   const out: UnitFinanceMap = new Map();
   if (!ids.length) return out;
 
-  type ContractRow = { id: string; unit_id: string | null; contract_code: string | null; status: string; start_date: string | null; end_date: string | null; created_at: string | null };
-  const contracts = await fetchInChunks<ContractRow>(
-    ids,
-    (chunk, from, to) =>
-      supabase
-        .from("client_contracts")
-        .select("id, unit_id, contract_code, status, start_date, end_date, created_at")
-        .in("unit_id", chunk)
-        .eq("record_type", "client")
-        .in("status", ["active", "expired"])
-        .order("id")
-        .range(from, to),
-  );
-
-  const byUnit = new Map<string, ContractRow[]>();
-  for (const c of contracts) {
-    if (!c.unit_id) continue;
-    byUnit.set(c.unit_id, [...(byUnit.get(c.unit_id) ?? []), c]);
-  }
+  const contracts = await fetchCandidateContracts<PeriodContractRow>(ids, periods, "id, unit_id, contract_code, status, start_date, end_date, created_at");
   const contractByUnit = new Map<string, { id: string; code: string }>();
-  for (const [unitId, list] of byUnit) {
-    const c = pickPeriodContract(list, periods?.get(unitId) ?? null);
-    if (c) contractByUnit.set(unitId, { id: c.id, code: c.contract_code || "—" });
-  }
+  for (const [unitId, c] of pickContractsByUnit(contracts, periods)) contractByUnit.set(unitId, { id: c.id, code: c.contract_code || "—" });
   if (!contractByUnit.size) return out;
 
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
-  const [rawResources, designations, payrollBases, billingBases, postingShifts, units] = await Promise.all([
+  const knownCodes = options.unitCodes;
+  const [rawResources, designations, payrollBases, billingBases, postingShifts, units, revisions] = await Promise.all([
     fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
       supabase
         .from("contract_resources")
@@ -140,17 +208,21 @@ export async function fetchUnitFinance(
         .in("contract_id", chunk)
         .range(from, to),
     ),
-    fetchAllPages<{ id: string; name: string }>((from, to) =>
-      supabase.from("designations").select("id, name").range(from, to),
-    ),
-    supabase.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays"),
+    getReference<{ id: string; name: string }>("designations"),
+    // A failed day-base read leaves the divisor rules unset (as before), never fails the register.
+    getReference<Record<string, unknown>>("payrollDayBases").then((data) => ({ data }), () => ({ data: null })),
     supabase
       .from("billing_day_bases" as never)
       .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
-    fetchPostingShifts(Array.from(contractByUnit.keys())),
-    fetchInChunks<{ id: string; code: string | null }>(ids, (chunk, from, to) =>
-      supabase.from("units").select("id, code").in("id", chunk).range(from, to),
-    ),
+    options.postingShifts === false ? Promise.resolve(new Map<string, 8 | 10 | 12>()) : fetchPostingShifts(Array.from(contractByUnit.keys())),
+    knownCodes && ids.every((id) => knownCodes.has(id))
+      ? Promise.resolve(ids.map((id) => ({ id, code: knownCodes.get(id) ?? null })))
+      : fetchInChunks<{ id: string; code: string | null }>(ids, (chunk, from, to) =>
+          supabase.from("units").select("id, code").in("id", chunk).range(from, to),
+        ),
+    // Every approved/expired revision once (small table, shared with the engines);
+    // each line still picks only its own revisions.
+    hasPeriods(periods) ? fetchAllRevisions() : Promise.resolve(null),
   ]);
   const desigMap = new Map(designations.map((d) => [d.id as string, d.name as string]));
   const unitCodeById = new Map(units.map((u) => [u.id, u.code]));
@@ -184,7 +256,7 @@ export async function fetchUnitFinance(
   const resources: Record<string, unknown>[] = [];
   for (const [key, list] of byPeriod) {
     const [start, end] = key.split("|");
-    resources.push(...(key ? await applyRateRevisionsForPeriod(list, start, end) : list));
+    resources.push(...(key ? applyRateRevisionsWith(list, revisions, start, end) : list));
   }
 
   const grouped = new Map<string, ResourceRate[]>();
@@ -293,6 +365,10 @@ export async function fetchUnitFinance(
 
 
   return out;
+}
+
+function hasPeriods(periods?: Map<string, { start: string; end: string }>): boolean {
+  return !!periods && periods.size > 0;
 }
 
 export function rateFor(

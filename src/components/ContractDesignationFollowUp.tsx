@@ -31,11 +31,30 @@ type MissingContractDesignation = {
 
 type FollowUpRow = MissingContractDesignation & { due: string; days: number };
 const QUERY_KEY = ["contract-designation-follow-up"] as const;
+const RPC = "get_missing_contract_designations" as never;
+const PAGE = 1000;
+/** Results are cached for five minutes: the RPC takes seconds per call. */
+export const FOLLOW_UP_TTL_MS = 5 * 60_000;
 
-function withAge(row: MissingContractDesignation): FollowUpRow {
+function localIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Latest `missing_since` date that counts as overdue (7+ days old) — the same
+ * rule as `withAge(row).days >= 7`, as a server-side filter value.
+ */
+export function followUpOverdueCutoff(now: Date = new Date()): string {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - 7);
+  return localIsoDate(d);
+}
+
+export function withAge(row: MissingContractDesignation, now: Date = new Date()): FollowUpRow {
   const source = row.missing_since.slice(0, 10);
   const start = new Date(`${source}T00:00:00`).getTime();
-  const today = new Date();
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const days = Math.max(0, Math.floor((today.getTime() - start) / 86_400_000));
   return {
@@ -44,6 +63,33 @@ function withAge(row: MissingContractDesignation): FollowUpRow {
     due: new Date(start + 7 * 86_400_000).toISOString().slice(0, 10),
     days,
   };
+}
+
+/** Tile numbers: two head-only count calls (no rows are transferred). */
+async function fetchFollowUpCounts(): Promise<{ total: number; overdue: number }> {
+  const [all, late] = await Promise.all([
+    supabase.rpc(RPC, undefined as never, { count: "exact", head: true }),
+    supabase
+      .rpc(RPC, undefined as never, { count: "exact", head: true })
+      .lte("missing_since" as never, followUpOverdueCutoff() as never),
+  ]);
+  if (all.error) throw all.error;
+  if (late.error) throw late.error;
+  return { total: all.count ?? 0, overdue: late.count ?? 0 };
+}
+
+/** Full list — only loaded once the dialog is opened. */
+async function fetchFollowUpRows(): Promise<FollowUpRow[]> {
+  // Page through every row: a single RPC call is capped at 1,000 rows.
+  const all: MissingContractDesignation[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase.rpc(RPC).range(from, from + PAGE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as unknown as MissingContractDesignation[];
+    all.push(...page);
+    if (page.length < PAGE) break;
+  }
+  return all.map((row) => withAge(row));
 }
 
 export function ContractDesignationFollowUp({
@@ -59,40 +105,43 @@ export function ContractDesignationFollowUp({
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const cacheKey = `contract-designation-follow-up:${fieldOfficer ? "mine" : "all"}`;
-  const query = useQuery({
-    queryKey: [...QUERY_KEY, fieldOfficer ? "mine" : "all"],
-    staleTime: 60_000,
-    refetchInterval: 120_000,
-    queryFn: async () => {
-      // Page through every row: a single RPC call is capped at 1,000 rows,
-      // which made the dashboard show exactly "1000".
-      const all: MissingContractDesignation[] = [];
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase
-          .rpc("get_missing_contract_designations" as never)
-          .range(from, from + 999);
-        if (error) throw error;
-        const page = (data ?? []) as unknown as MissingContractDesignation[];
-        all.push(...page);
-        if (page.length < 1000) break;
-      }
-      // Drop the old device-wide snapshot (it was not tied to the signed-in user).
-      if (typeof window !== "undefined") {
-        try {
-          window.localStorage.removeItem(cacheKey);
-        } catch {
-          /* ignore */
-        }
-      }
-      return all.map(withAge);
-    },
+  const scope = fieldOfficer ? "mine" : "all";
+
+  useEffect(() => {
+    // Drop the old device-wide snapshot (it was not tied to the signed-in user).
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(`contract-designation-follow-up:${scope}`);
+    } catch {
+      /* ignore */
+    }
+  }, [scope]);
+
+  const countsQ = useQuery({
+    queryKey: [...QUERY_KEY, scope, "counts"],
+    staleTime: FOLLOW_UP_TTL_MS,
+    gcTime: FOLLOW_UP_TTL_MS * 2,
+    refetchInterval: FOLLOW_UP_TTL_MS,
+    queryFn: fetchFollowUpCounts,
+  });
+  const listQ = useQuery({
+    queryKey: [...QUERY_KEY, scope, "rows"],
+    enabled: open,
+    staleTime: FOLLOW_UP_TTL_MS,
+    gcTime: FOLLOW_UP_TTL_MS * 2,
+    queryFn: fetchFollowUpRows,
   });
 
   useEffect(() => {
-    const refresh = () => void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    // Mark everything stale; only active queries (the counts, and the list
+    // while open) refetch. Debounced so a bulk edit triggers one refresh.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void queryClient.invalidateQueries({ queryKey: QUERY_KEY }), 3_000);
+    };
     const channel = supabase
-      .channel(`contract-designation-follow-up-${fieldOfficer ? "mine" : "all"}-${Date.now()}`)
+      .channel(`contract-designation-follow-up-${scope}-${Date.now()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, refresh)
       .on(
         "postgres_changes",
@@ -102,12 +151,18 @@ export function ContractDesignationFollowUp({
       .on("postgres_changes", { event: "*", schema: "public", table: "client_contracts" }, refresh)
       .subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
-  }, [fieldOfficer, queryClient]);
+  }, [scope, queryClient]);
 
-  const rows = query.data ?? [];
-  const overdue = useMemo(() => rows.filter((row) => row.days >= 7).length, [rows]);
+  const rows = listQ.data ?? [];
+  // Once the list is loaded it is the source of truth; until then the counts.
+  const total = listQ.data ? rows.length : countsQ.data?.total;
+  const overdue = useMemo(
+    () => (listQ.data ? rows.filter((row) => row.days >= 7).length : countsQ.data?.overdue ?? 0),
+    [listQ.data, rows, countsQ.data],
+  );
 
   return (
     <>
@@ -130,7 +185,7 @@ export function ContractDesignationFollowUp({
         </div>
         <div className="mt-auto flex min-w-0 items-end justify-between gap-3">
           <TileNumber className="font-display font-medium text-foreground">
-            {query.isLoading ? "—" : rows.length}
+            {total == null ? "—" : total}
           </TileNumber>
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-primary ring-1 ring-border sm:h-9 sm:w-9">
             <CalendarClock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -146,7 +201,9 @@ export function ContractDesignationFollowUp({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            {rows.length === 0 ? (
+            {listQ.isLoading ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">Loading follow-ups…</div>
+            ) : rows.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
                 All posted designations are covered by their contracts.
               </div>
@@ -208,7 +265,7 @@ export function ContractDesignationFollowUp({
               })
             )}
           </div>
-          {query.isError && (
+          {(listQ.isError || countsQ.isError) && (
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertTriangle className="h-4 w-4" />
               Could not load contract designation follow-ups.

@@ -79,7 +79,6 @@ import { useManagerFieldOfficerScope, useOperationalUnitScope } from "@/lib/use-
 import { fetchDashboardMasterCounts } from "@/lib/dashboard-master-counts";
 import { useRegisterPeriods } from "@/lib/use-register-periods";
 import { dashboardRegisterSearch, summarizeRegisterStatuses } from "@/lib/register-summary";
-import { useAttendanceMoneyRealtime } from "@/lib/period-status";
 import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 import { CasesSummaryTile, useCaseSummary } from "@/components/CasesSummaryTile";
 import { useTeamPeopleOnly, teamBirthdays, teamAnniversaries } from "@/lib/use-team-people";
@@ -92,6 +91,10 @@ import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { cn } from "@/lib/utils";
 import { useOnlineUserIds } from "@/lib/online-presence";
+import { DeferredMount, LazyMount, TileSkeleton } from "@/components/DashboardLazy";
+import { useLiveFieldOfficers } from "@/components/LiveFieldOfficersCard";
+import { useDashboardMoneyRealtime } from "@/lib/dashboard-realtime-hooks";
+import { hashIds, readSnapshot, writeSnapshot } from "@/lib/dashboard-snapshot";
 
 type ContractExpiringRow = {
   id: string;
@@ -163,6 +166,21 @@ function PeopleInsightsSection({
   hideLive?: boolean;
   roleKeys?: readonly string[];
 }) {
+  // Compact mode renders only the live card: never run the (slow)
+  // people_insights RPC for cards that are not on screen.
+  return (
+    <div className="flex flex-col gap-4">
+      {!hideLive && <LiveFieldOfficersCard />}
+      {!compact && (
+        <DeferredMount delayMs={SLOW_TILE_DELAY_MS}>
+          <PeopleInsightsCards roleKeys={roleKeys} />
+        </DeferredMount>
+      )}
+    </div>
+  );
+}
+
+function PeopleInsightsCards({ roleKeys }: { roleKeys?: readonly string[] }) {
   const all = usePeopleInsights({ roleKeys });
   const team = useTeamPeopleOnly();
   const isLoading = team.teamOnly ? team.isLoading : all.isLoading;
@@ -171,18 +189,13 @@ function PeopleInsightsSection({
   const anniversaries = team.teamOnly ? teamAnniversaries(team.people) : all.anniversaries;
   const sixtyPlus = all.sixtyPlus;
   return (
-    <div className="flex flex-col gap-4">
-      {!hideLive && <LiveFieldOfficersCard />}
-      {!compact && (
-        <>
-          <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
-          <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
-          {showSixtyPlus && (
-            <PeopleInsightsCard kind="sixty-plus" items={sixtyPlus} isLoading={isLoading} />
-          )}
-        </>
+    <>
+      <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
+      <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
+      {showSixtyPlus && (
+        <PeopleInsightsCard kind="sixty-plus" items={sixtyPlus} isLoading={isLoading} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -221,6 +234,9 @@ export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
   errorComponent: DashboardErrorState,
 });
+
+/** Slow RPC tiles start this long after the count tiles have rendered. */
+const SLOW_TILE_DELAY_MS = 600;
 
 const MONTH_NAMES = [
   "January",
@@ -433,11 +449,22 @@ function DashboardPage() {
   const opsFocus = useOperationsFocus();
   const isControlCenter = !!roleKey && CONTROL_CENTER_ROLES.has(roleKey);
   const managerScope = useManagerFieldOfficerScope();
-  const operationsOverviewQ = useOperationsOverview();
-  const operationsLiveQ = useOperationsRadarLive();
+  // The company-wide operations overview (every active unit + today's visits)
+  // only feeds the operations / control-centre homepages; everyone else
+  // skipped rendering it but still downloaded it every minute.
+  const needsOpsOverview = !permsLoading && (opsFocus || isControlCenter);
+  const operationsOverviewQ = useOperationsOverview(needsOpsOverview);
+  // Live field-officer count: managers need their scoped team read; the
+  // company-wide count reuses the "Field officers on duty" card's query.
+  const needsScopedRadar = !permsLoading && (opsFocus || isControlCenter || managerScope.isScoped);
+  const operationsLiveQ = useOperationsRadarLive(needsScopedRadar);
+  const showsLivePeople = canWidget("live_people") && (can("employees") || can("field_sense"));
+  const companyLiveQ = useLiveFieldOfficers(
+    !permsLoading && !managerScope.isLoading && !needsScopedRadar && showsLivePeople,
+  );
   const operationsOverview = operationsOverviewQ.data;
-  const liveOfficerCount = new Set((operationsLiveQ.data ?? []).map((row) => row.candidate_id))
-    .size;
+  const liveRows = needsScopedRadar ? operationsLiveQ.data : companyLiveQ.data;
+  const liveOfficerCount = new Set((liveRows ?? []).map((row) => row.candidate_id)).size;
 
   const charterUnitsQ = useQuery({
     queryKey: CHARTER_UNITS_QK,
@@ -445,10 +472,14 @@ function DashboardPage() {
     enabled: authReady && !!user,
     initialData: () => readCharterUnitsSnapshot() ?? undefined,
     placeholderData: (previous) => previous,
-    staleTime: 60_000,
+    // get_attendance_charter_units takes seconds; the unit list changes rarely
+    // and the snapshot above paints instantly, so revalidate at most every 10 min.
+    staleTime: 10 * 60_000,
   });
   const registerScope = useOperationalUnitScope();
-  useAttendanceMoneyRealtime();
+  // Sheet / payroll-run changes refresh the dashboard's own figures, at most
+  // once every 30 s (the shared hook re-downloaded every money page in 5 s).
+  useDashboardMoneyRealtime();
   const dashboardUnits = useMemo(() => {
     const units = charterUnitsQ.data?.units ?? [];
     return registerScope.isScoped
@@ -619,8 +650,8 @@ function DashboardPage() {
     // (e.g. HR) that hold payroll access but no client-commercial access.
     enabled: financeAvailable && financeInputsReady && financeInView,
     // Read versioned aggregate rows only; the source engines run on changed periods in the worker.
-    staleTime: 15_000,
-    refetchInterval: financeInView ? 30_000 : false,
+    staleTime: 30_000,
+    refetchInterval: financeInView ? 60_000 : false,
     gcTime: 30 * 60_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
@@ -643,15 +674,30 @@ function DashboardPage() {
     () => (managerScope.isScoped ? [...managerScope.unitIds].sort() : null),
     [managerScope.isScoped, managerScope.unitIds],
   );
+  const mastersSnapshotKey = `masters:${user?.phone ?? ""}:${hashIds(scopedUnitIds)}`;
   const scopedCountsQuery = useQuery({
     queryKey: ["dashboard-counts-masters-v1", user?.phone, scopedUnitIds],
     enabled: authReady && !managerScope.isLoading && !showInventoryDashboard && !showTransportDashboard && !showHrExecutiveDashboard,
-    staleTime: 60_000,
-    refetchOnWindowFocus: true,
-    queryFn: () => fetchDashboardMasterCounts(scopedUnitIds ? new Set(scopedUnitIds) : undefined),
+    // Pages every unit / contract / employee: keep it for 5 min and paint the
+    // last value seen on this device while it revalidates.
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    initialData: () =>
+      readSnapshot<Awaited<ReturnType<typeof fetchDashboardMasterCounts>>>(mastersSnapshotKey),
+    initialDataUpdatedAt: 0,
+    queryFn: async () => {
+      const result = await fetchDashboardMasterCounts(scopedUnitIds ? new Set(scopedUnitIds) : undefined);
+      writeSnapshot(mastersSnapshotKey, result);
+      return result;
+    },
   });
 
-  const isLoading = countsQuery.isLoading || scopedCountsQuery.isLoading || charterUnitsQ.isLoading || periodSelection.isLoading || registerPeriods.isLoading;
+  // The top tiles wait only for the two count reads. Attendance / payroll /
+  // invoice tiles show "—" until the register lifecycle (charter units →
+  // payroll windows → sheet periods) arrives, instead of holding every tile.
+  const isLoading = countsQuery.isLoading || scopedCountsQuery.isLoading;
+
   const data = useMemo(() => {
     if (!countsQuery.data) return undefined;
     return {
@@ -833,7 +879,13 @@ function DashboardPage() {
         t.push({
           key: "contract-designations",
           module: "contracts",
-          node: <ContractDesignationFollowUp actionable />,
+          // get_missing_contract_designations takes seconds: queue it behind
+          // the count tiles instead of competing with them.
+          node: (
+            <DeferredMount delayMs={SLOW_TILE_DELAY_MS} fallback={<TileSkeleton />}>
+              <ContractDesignationFollowUp actionable />
+            </DeferredMount>
+          ),
         });
       if (can("employees"))
         t.push({
@@ -851,7 +903,15 @@ function DashboardPage() {
         });
       // UAN follow-up is widget-gated only, so executives in every department
       // see it whenever their managers do (Access Control can still hide it).
-      t.push({ key: "uan", module: "employees", node: <UanFollowUp /> });
+      t.push({
+        key: "uan",
+        module: "employees",
+        node: (
+          <DeferredMount delayMs={SLOW_TILE_DELAY_MS} fallback={<TileSkeleton />}>
+            <UanFollowUp />
+          </DeferredMount>
+        ),
+      });
       if (can("vehicles"))
         t.push({
           key: "veh",
@@ -1185,15 +1245,17 @@ function DashboardPage() {
             <OperationsRadarSummary expanded />
             <DepartmentTeamCard />
             <LiveFieldOfficersCard />
-            <div className="grid gap-4 xl:grid-cols-2">
-              <AdminVisitProgressCard />
-              <AdminFieldOfficerUnitsCard />
-            </div>
-            <AdminEscalationRequestsCard />
-            <FieldSenseLeaderboards />
-            <OperationsClientLocations data={operationsOverview} />
-            <OperationsDeployments />
-            <OperationsOrgTree />
+            <LazyMount minHeight={320}>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <AdminVisitProgressCard />
+                <AdminFieldOfficerUnitsCard />
+              </div>
+            </LazyMount>
+            <LazyMount minHeight={200}><AdminEscalationRequestsCard /></LazyMount>
+            <LazyMount minHeight={280}><FieldSenseLeaderboards /></LazyMount>
+            <LazyMount minHeight={240}><OperationsClientLocations data={operationsOverview} /></LazyMount>
+            <LazyMount minHeight={240}><OperationsDeployments /></LazyMount>
+            <LazyMount minHeight={240}><OperationsOrgTree /></LazyMount>
           </div>
         </div>
       </DashboardShell>
@@ -1254,28 +1316,30 @@ function DashboardPage() {
         }
         fullWidthBelow={
           <>
-            <DepartmentTeamCard />
-            <AttendanceTodayCard />
-            {canWidget("team_clients") && <TeamClientsCard />}
+            {/* Below the fold: each card mounts (and fetches) only as it
+                scrolls near the viewport. */}
+            <LazyMount minHeight={120}><DepartmentTeamCard /></LazyMount>
+            <LazyMount minHeight={120}><AttendanceTodayCard /></LazyMount>
+            {canWidget("team_clients") && <LazyMount minHeight={240}><TeamClientsCard /></LazyMount>}
             {opsFocus ? (
               <>
                 {canWidget("radar") && (
                   <>
-                    <OperationsRadarSummary />
-                    <AdminVisitProgressCard />
-                    <OperationsClientLocations data={operationsOverview} />
-                    {!hideDeployments && <OperationsDeployments />}
+                    <LazyMount minHeight={360}><OperationsRadarSummary /></LazyMount>
+                    <LazyMount minHeight={240}><AdminVisitProgressCard /></LazyMount>
+                    <LazyMount minHeight={240}><OperationsClientLocations data={operationsOverview} /></LazyMount>
+                    {!hideDeployments && <LazyMount minHeight={240}><OperationsDeployments /></LazyMount>}
                   </>
                 )}
-                {canWidget("org_tree") && <OperationsOrgTree />}
+                {canWidget("org_tree") && <LazyMount minHeight={240}><OperationsOrgTree /></LazyMount>}
               </>
             ) : (
               <>
                 {canWidget("radar") &&
                   canWidget("team_clients") &&
                   teamRadarScope.isScoped &&
-                  teamRadarScope.fieldOfficerIds.size > 0 && <OperationsRadarSummary />}
-                {!hideDeployments && canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
+                  teamRadarScope.fieldOfficerIds.size > 0 && <LazyMount minHeight={360}><OperationsRadarSummary /></LazyMount>}
+                {!hideDeployments && canExplicit("dashboard", "w_fo_mapping") && <LazyMount minHeight={240}><OperationsDeployments teamOnly /></LazyMount>}
                 {!isLoading &&
                   data &&
                   lifecycleCounts &&
@@ -1290,12 +1354,14 @@ function DashboardPage() {
                 {!isLoading && data && (
                   <>
                     {can("employees") && canWidget("employee_insights") && (
-                      <EmployeeInsightsSection
-                        showRecruitment={can("recruitment") || roleKey === ROLE_KEYS.LEADERSHIP}
-                      />
+                      <LazyMount minHeight={320}>
+                        <EmployeeInsightsSection
+                          showRecruitment={can("recruitment") || roleKey === ROLE_KEYS.LEADERSHIP}
+                        />
+                      </LazyMount>
                     )}
                     {can("contracts") && canWidget("contract_portfolio") && (
-                      <ClientContractPortfolioCard />
+                      <LazyMount minHeight={280}><ClientContractPortfolioCard /></LazyMount>
                     )}
                     {financeAvailable &&
                       ((can("payroll") && canWidget("payroll_coverage")) ||
@@ -1344,7 +1410,7 @@ function DashboardPage() {
                         <ProfitabilityCard rows={financeRows} />
                       </>
                     )}
-                    {canWidget("org_tree") && departmentTree}
+                    {canWidget("org_tree") && departmentTree && <LazyMount minHeight={240}>{departmentTree}</LazyMount>}
                   </>
                 )}
               </>
@@ -1427,7 +1493,11 @@ function DashboardPage() {
                   {t.node}
                 </motion.div>
               ))}
-          <DocumentFollowupPanel tile />
+          {/* document_followup_summary is the slowest read on the page: start it
+              only after the count tiles have painted. */}
+          <DeferredMount ready={!isLoading} delayMs={SLOW_TILE_DELAY_MS} fallback={<TileSkeleton />}>
+            <DocumentFollowupPanel tile />
+          </DeferredMount>
         </div>
 
         {/* P&L renders full-width below the shell via fullWidthBelow */}
@@ -1500,25 +1570,32 @@ function ReadinessCard({
   );
 }
 
+type NonbillableLiveRow = { user_id: string | null; candidate_id: string; check_in_at: string | null };
+
+/**
+ * One shared read of nonbillable_live_status for every dashboard card (the
+ * team tiles and the "Live now" card used to fetch it under separate keys).
+ * Filtering to the team happens in the browser, so the key is not per-team.
+ */
+function useNonbillableLiveStatus(enabled = true) {
+  return useQuery({
+    queryKey: ["dashboard-nonbillable-live"],
+    enabled,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<NonbillableLiveRow[]> => {
+      const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
+      if (error) throw error;
+      return (data ?? []) as NonbillableLiveRow[];
+    },
+  });
+}
+
 /** Live / checked-in counts for the signed-in manager's own team (team-only dashboards). */
 function useTeamLiveCounts() {
   const online = useOnlineUserIds();
   const team = useTeamPeopleOnly();
-  const q = useQuery({
-    queryKey: ["dashboard-team-live", [...team.ids].sort()],
-    enabled: team.teamOnly && team.ids.size > 0,
-    staleTime: 60_000,
-    refetchInterval: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
-      if (error) throw error;
-      return (data ?? []) as Array<{
-        user_id: string | null;
-        candidate_id: string;
-        check_in_at: string | null;
-      }>;
-    },
-  });
+  const q = useNonbillableLiveStatus(team.teamOnly && team.ids.size > 0);
   const rows = (q.data ?? []).filter((r) => team.ids.has(r.candidate_id));
   return {
     teamOnly: team.teamOnly,
@@ -1537,15 +1614,7 @@ function LivePeopleCard({
 }) {
   const online = useOnlineUserIds();
   const team = useTeamPeopleOnly();
-  const staffQ = useQuery({
-    queryKey: ["dashboard-live-staff-ids"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("nonbillable_live_status" as never);
-      if (error) throw error;
-      return (data ?? []) as Array<{ user_id: string | null; candidate_id: string }>;
-    },
-  });
+  const staffQ = useNonbillableLiveStatus();
   const staffIds = (staffQ.data ?? [])
     .filter((r) => !team.teamOnly || team.ids.has(r.candidate_id))
     .map((r) => r.user_id)

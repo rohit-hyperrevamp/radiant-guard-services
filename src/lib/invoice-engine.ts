@@ -14,6 +14,7 @@ import { roundDutyDays } from "@/lib/duty-days";
 import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { supabase } from "@/integrations/supabase/client";
+import { getReference, type ReferenceName } from "@/lib/reference-data";
 import {
   applyEpfBreakdownToWageComputation,
   applyEmployeeAdditions,
@@ -782,10 +783,46 @@ export function invoiceUnitTaxable(result: InvoiceUnitResult, ctx: Omit<InvoiceM
   return { parts: out, taxable: r2(out.reduce((s, p) => s + p.taxable, 0)) };
 }
 
+/**
+ * Marks a promise as handled so an early failure elsewhere never surfaces as an
+ * unhandled rejection; awaiting it later still throws its error.
+ */
+function quiet<T>(p: Promise<T>): Promise<T> {
+  p.catch(() => {});
+  return p;
+}
+
 /** Load one site's invoice data with the invoice page's own queries. */
 export async function loadInvoiceUnitData(unitId: string, start: string, end: string): Promise<InvoiceUnitData> {
   // Every read below throws on failure: a failed load must surface as an error,
   // never as an invoice priced at the base rate or at ₹0.
+  // Independent reads start together (same queries as before, no longer one
+  // after another): attendance, attended roster and the period contract chain.
+  const entriesP = quiet(fetchAttendanceEntriesForPeriod({ unitId, start, end }));
+  // Same unit + period rows: the roster reuses them instead of re-reading.
+  const attendedP = quiet(fetchAttendedCandidateIds(unitId, start, end, undefined, { entries: entriesP }));
+  // WO-as-Present / exact-day-rate are read from this period's contract (the
+  // one that prices the invoice), not whichever contract is active today.
+  const periodContractP = quiet(fetchPeriodContract<Row>(unitId, start, end, "id, payroll_window_id, billing_type_id, gst_option, wo_as_present, exact_day_rate"));
+  const billingModeP = quiet(periodContractP.then(async (periodContract): Promise<InvoiceBillingMode> => {
+    if (!periodContract?.billing_type_id) return "man_days";
+    // billing_types is a master table: shared reference cache, matched by id.
+    const types = await getReference<{ id: string; code?: string | null }>("billingTypes");
+    const bt = types.find((t) => String(t.id) === String(periodContract.billing_type_id)) ?? null;
+    return billingModeFromCode(bt?.code ?? "man_days");
+  }));
+  const resourcesP = quiet(periodContractP.then(async (periodContract) => {
+    let resources: Row[] = [];
+    let revisions: RateRevisionRow[] | null = null;
+    if (periodContract?.id) {
+      const { data: r, error: resourcesError } = await supabase.from("contract_resources" as never).select(RESOURCE_COLS).eq("contract_id", String(periodContract.id));
+      if (resourcesError) throw resourcesError;
+      resources = (r ?? []) as unknown as Row[];
+      const ids = resources.map((x) => x.id).filter(Boolean).map(String);
+      revisions = ids.length ? await fetchRevisions(ids) : null;
+    }
+    return { resources, revisions };
+  }));
   const [unitRes, primaryRes, linksRes] = await Promise.all([
     supabase
       .from("units")
@@ -810,30 +847,11 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
   const primary = (primaryRes.data ?? []) as InvoiceCandidate[];
   const have = new Set([...primary, ...secondary].map((c) => c.id));
   let leavers: InvoiceCandidate[] = [];
-  const attended = (await fetchAttendedCandidateIds(unitId, start, end)).filter((id) => !have.has(id));
+  const attended = (await attendedP).filter((id) => !have.has(id));
   if (attended.length) {
     const { data, error } = await supabase.from("candidates").select(INVOICE_CANDIDATE_COLS).in("id", attended);
     if (error) throw error;
     leavers = (data ?? []) as InvoiceCandidate[];
-  }
-  const entries = await fetchAttendanceEntriesForPeriod({ unitId, start, end });
-  // WO-as-Present / exact-day-rate are read from this period's contract (the
-  // one that prices the invoice), not whichever contract is active today.
-  const periodContract = await fetchPeriodContract<Row>(unitId, start, end, "id, payroll_window_id, billing_type_id, gst_option, wo_as_present, exact_day_rate");
-  let billingMode: InvoiceBillingMode = "man_days";
-  if (periodContract?.billing_type_id) {
-    const { data: bt, error: btError } = await supabase.from("billing_types" as never).select("code").eq("id", String(periodContract.billing_type_id)).maybeSingle();
-    if (btError) throw btError;
-    billingMode = billingModeFromCode(((bt as unknown) as { code?: string | null } | null)?.code ?? "man_days");
-  }
-  let resources: Row[] = [];
-  let revisions: RateRevisionRow[] | null = null;
-  if (periodContract?.id) {
-    const { data: r, error: resourcesError } = await supabase.from("contract_resources" as never).select(RESOURCE_COLS).eq("contract_id", String(periodContract.id));
-    if (resourcesError) throw resourcesError;
-    resources = (r ?? []) as unknown as Row[];
-    const ids = resources.map((x) => x.id).filter(Boolean).map(String);
-    revisions = ids.length ? await fetchRevisions(ids) : null;
   }
   const roster = Array.from(new Set([...primary, ...secondary, ...leavers].map((c) => c.id)));
   let additions: RawAddition[] = [];
@@ -862,6 +880,7 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
     additions = (addsRes.data ?? []) as unknown as RawAddition[];
     deductions = (dedsRes.data ?? []) as unknown as RawDeduction[];
   }
+  const [entries, periodContract, billingMode, { resources, revisions }] = await Promise.all([entriesP, periodContractP, billingModeP, resourcesP]);
   const billingState = (unit?.billing_state as string | null | undefined) ?? null;
   const billingPincode = (unit?.billing_pincode as string | null | undefined) ?? null;
   const ptStateRaw = (unit?.pt_state as string | null | undefined) || null;
@@ -904,16 +923,38 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
     }
     return out;
   };
+  // Master tables come from the shared reference cache (one fetch per session,
+  // shared with every other screen) when reading through the app client; a
+  // caller-supplied client (server/bulk) keeps its own direct reads. Rows are
+  // projected to exactly the columns (and filters) the direct reads return.
+  const shared = db === supabase;
+  const pick = <T,>(rows: Row[], cols: string[]) => rows.map((r) => Object.fromEntries(cols.map((c) => [c, r[c]])) as T);
+  const ref = <T,>(name: ReferenceName, cols: string[], keep: (r: Row) => boolean = () => true) =>
+    getReference<Row>(name).then((rows) => pick<T>(rows.filter(keep), cols));
   const [codes, pdbs, bdbs, designations, holidays, addTypes, ptSlabs, pincodeRanges, lwfRows] = await Promise.all([
-    db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AttendanceCodeLike[]),
-    db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
+    shared
+      ? ref<AttendanceCodeLike>("attendanceCodes", ["code", "counts_as_present", "is_paid", "day_value"], (r) => r.enabled === true)
+      : db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AttendanceCodeLike[]),
+    shared
+      ? ref<Row>("payrollDayBases", ["id", "method", "fixed_days", "weekly_off_day", "included_weekdays", "enabled"])
+      : db.from("payroll_day_bases").select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
     db.from("billing_day_bases" as never).select("id, method, fixed_days, weekly_off_day, included_weekdays, enabled").then((r) => (checkedQueryData(r) ?? []) as unknown as Row[]),
-    pages<{ id: string; name: string | null }>((a, b) => db.from("designations").select("id,name").order("id").range(a, b)),
+    shared
+      ? ref<{ id: string; name: string | null }>("designations", ["id", "name"])
+      : pages<{ id: string; name: string | null }>((a, b) => db.from("designations").select("id,name").order("id").range(a, b)),
     db.from("public_holidays" as never).select("id,name,holiday_month,holiday_day,enabled,sort_order").eq("enabled", true).then((r) => ((checkedQueryData(r) ?? []) as unknown as Row[]).map((h) => ({ id: String(h.id), name: String(h.name ?? ""), month: Number(h.holiday_month ?? 1), day: Number(h.holiday_day ?? 1), enabled: Boolean(h.enabled ?? true), sortOrder: Number(h.sort_order ?? 0) }))),
-    db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as { id: string; code: string | null }[]),
-    db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender").then((r) => (checkedQueryData(r) ?? []) as PtSlabLike[]),
-    db.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded").then((r) => (checkedQueryData(r) ?? []) as PincodeRangeLike[]),
-    db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes").then((r) => (checkedQueryData(r) ?? []) as LwfRow[]),
+    shared
+      ? ref<{ id: string; code: string | null }>("additionTypes", ["id", "code"])
+      : db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as { id: string; code: string | null }[]),
+    shared
+      ? ref<PtSlabLike>("ptSlabs", ["id", "state", "region_label", "salary_min", "salary_max", "tax_per_month", "gender"])
+      : db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender").then((r) => (checkedQueryData(r) ?? []) as PtSlabLike[]),
+    shared
+      ? ref<PincodeRangeLike>("pincodeRanges", ["state", "region_label", "range_start", "range_end", "is_excluded"])
+      : db.from("pincode_ranges").select("state, region_label, range_start, range_end, is_excluded").then((r) => (checkedQueryData(r) ?? []) as PincodeRangeLike[]),
+    shared
+      ? ref<LwfRow>("lwf", ["id", "state", "deduction_months", "frequency", "employee_contribution", "employer_contribution", "enabled", "notes"])
+      : db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes").then((r) => (checkedQueryData(r) ?? []) as LwfRow[]),
   ]);
   const masters = await (preloadedMasters ?? loadFormulaMastersFor(resources, revisions, db));
   return {

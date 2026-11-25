@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, type Query } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { PageSkeleton } from "@/components/Skeletons";
@@ -13,6 +13,38 @@ if (typeof window !== "undefined") {
     window.sessionStorage.setItem(STALE_BUILD_RELOAD_KEY, String(Date.now()));
     window.location.reload();
   });
+}
+
+/**
+ * Session-scoped identity reads (role, permissions, profile, org scope). The
+ * whole app shell and most cards read them, and every navigation mounts new
+ * observers — with the global `refetchOnMount: true` each page refetched them
+ * once they were 5 min old. Fetch them once per session instead: refetch on
+ * mount only while the cached value has never come from the network (e.g. a
+ * localStorage snapshot passed as initialData) or was invalidated. Sign-out
+ * clears the cache; RBAC edits invalidate explicitly.
+ */
+export const SESSION_QUERY_ROOTS = [
+  "rbac",
+  "me-profile",
+  "me",
+  "current-user-role",
+  "manager-fo-scope",
+  "user-branch-scope",
+  "team-people-direct",
+] as const;
+
+export function refetchOnMountOncePerSession(query: Query): boolean {
+  return query.state.dataUpdateCount === 0 || query.state.isInvalidated;
+}
+
+export function applySessionQueryDefaults(queryClient: QueryClient) {
+  for (const root of SESSION_QUERY_ROOTS) {
+    queryClient.setQueryDefaults([root], {
+      refetchOnMount: refetchOnMountOncePerSession,
+      gcTime: 2 * 60 * 60_000,
+    });
+  }
 }
 
 export const getRouter = () => {
@@ -35,6 +67,8 @@ export const getRouter = () => {
       },
     },
   });
+
+  applySessionQueryDefaults(queryClient);
 
   const router = createRouter({
     routeTree,

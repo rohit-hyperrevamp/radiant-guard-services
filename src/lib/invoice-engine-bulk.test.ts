@@ -38,3 +38,43 @@ describe("bulk invoice contract flags (review I5)", () => {
     expect(oct.units.get("u1")?.data.woAsPresent).toBe(false);
   });
 });
+
+import { enableSharedReadsForTest, fetchPeriodInputs, sharedRead } from "./invoice-engine-bulk";
+
+describe("invoice and payroll engines share identical bulk reads", () => {
+  it("one request for concurrent identical reads, each caller gets its own copy", async () => {
+    enableSharedReadsForTest(true);
+    try {
+      let calls = 0;
+      const payload = {
+        site: [{ id: "u1", code: "C1" }], contracts: [], primary: [["c1", "u1", "E1", "A", null, null, false, null]],
+        scopes: [], extras: [], links: [], people: [], c: [], d: [], units: [],
+      };
+      const db = { rpc: () => { calls++; return new Promise((r) => setTimeout(() => r({ data: payload, error: null }), 5)); } };
+      const periods = new Map([["u1", { start: "2026-10-01", end: "2026-10-31" }]]);
+      const [a, b] = await Promise.all([fetchPeriodInputs(periods, db as never), fetchPeriodInputs(periods, db as never)]);
+      expect(calls).toBe(1);
+      expect(a.sites).toEqual(b.sites);
+      a.sites[0].code = "changed";
+      expect(b.sites[0].code).toBe("C1");
+      // Different periods are a different read.
+      await fetchPeriodInputs(new Map([["u1", { start: "2026-09-01", end: "2026-09-30" }]]), db as never);
+      expect(calls).toBe(2);
+    } finally {
+      enableSharedReadsForTest(false);
+    }
+  });
+
+  it("a failed read is not reused", async () => {
+    enableSharedReadsForTest(true);
+    try {
+      const db = {};
+      let n = 0;
+      await expect(sharedRead(db, "k", () => { n++; return Promise.reject(new Error("down")); })).rejects.toThrow("down");
+      await expect(sharedRead(db, "k", () => { n++; return Promise.resolve(1); })).resolves.toBe(1);
+      expect(n).toBe(2);
+    } finally {
+      enableSharedReadsForTest(false);
+    }
+  });
+});

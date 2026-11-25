@@ -2,10 +2,29 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseSessionReady, useHasSupabaseSession } from "@/lib/supabase-ready";
-import { fetchInChunks } from "@/lib/supabase-batch";
+import { fetchForIds } from "@/lib/supabase-batch";
 import { payrollPeriodForMonth, type PayrollWindow } from "@/lib/payroll-period";
 import { resolveSavedAttendancePeriod, type SavedAttendancePeriod } from "@/lib/saved-attendance-period";
 import { fetchPeriodStatusesForUnitPeriods, PERIOD_STATUS_QK } from "@/lib/period-status";
+
+/**
+ * Saved sheet dates ending in the viewed month. Many sites: one scan of the
+ * month's sheets (already filtered server-side by period_end, paged 1,000 at a
+ * time) narrowed to `ids` in memory, instead of a dozen URL-limited id chunks.
+ * Few sites: plain id chunks. Same rows either way.
+ */
+export function fetchSavedPeriods(ids: string[], year: number, monthIdx: number): Promise<SavedAttendancePeriod[]> {
+  const month = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
+  const from = `${month}-01`;
+  const to = payrollPeriodForMonth(year, monthIdx).end;
+  const base = () => supabase.from("attendance_sheets" as never).select("unit_id, period_start, period_end")
+    .gte("period_end", from).lte("period_end", to);
+  return fetchForIds<SavedAttendancePeriod>(ids, {
+    chunk: (chunk, a, b) => base().in("unit_id", chunk).order("id").range(a, b),
+    scan: (a, b) => base().order("id").range(a, b),
+    idOf: (row) => row.unit_id,
+  });
+}
 
 /** All three registers and dashboard tiles use the same historical sheet dates. */
 export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: number, windows: Map<string, PayrollWindow>, enabled = true) {
@@ -20,10 +39,7 @@ export function useRegisterPeriods(unitIds: string[], year: number, monthIdx: nu
     refetchOnWindowFocus: true,
     queryFn: async () => {
       await supabaseSessionReady();
-      return fetchInChunks<SavedAttendancePeriod>(ids, (chunk, from, to) =>
-        supabase.from("attendance_sheets" as never).select("unit_id, period_start, period_end")
-          .in("unit_id", chunk).gte("period_end", `${month}-01`)
-          .lte("period_end", payrollPeriodForMonth(year, monthIdx).end).order("id").range(from, to));
+      return fetchSavedPeriods(ids, year, monthIdx);
     },
   });
   const periods = useMemo(() => {

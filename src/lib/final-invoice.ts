@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchInChunks } from "@/lib/supabase-batch";
 
 // ---------------------------------------------------------------------------
 // Final invoices — an invoice only gets a number when it is finalised. The
@@ -41,32 +42,49 @@ export function unitPeriodKey(unitId: string, start: string, end: string, part?:
   return part && part !== "main" ? `${base}|${part}` : base;
 }
 
-/** Every final invoice already issued for these units (all periods). */
-export function useFinalInvoicesForUnits(unitIds: string[]) {
+/** Optional period filter on `final_invoice_units.period_end` (inclusive ISO dates). */
+export type FinalInvoicePeriodFilter = { periodEndFrom?: string | null; periodEndTo?: string | null };
+
+const FINAL_UNIT_COLS =
+  "unit_id, period_start, period_end, part_key, final_invoices(id, part_key, part_label, invoice_no, state_code, fiscal_year, month_code, sequence, client_token, party_name, billing_state, invoice_date, period_start, period_end, total_value)";
+
+/**
+ * Final invoices for these units keyed by unitPeriodKey. With a period filter
+ * only rows whose period_end falls in the range are read (a register only
+ * looks up its viewed period). Id chunks are paged and run in parallel
+ * through the shared bulk pool.
+ */
+export async function loadFinalInvoicesForUnits(
+  unitIds: string[],
+  period?: FinalInvoicePeriodFilter,
+): Promise<Map<string, FinalInvoice>> {
+  const ids = Array.from(new Set(unitIds.filter(Boolean)));
+  const out = new Map<string, FinalInvoice>();
+  if (!ids.length) return out;
+  const rows = await fetchInChunks<UnitRow>(ids, (chunk, from, to) => {
+    let q = supabase.from("final_invoice_units" as never).select(FINAL_UNIT_COLS).in("unit_id", chunk);
+    if (period?.periodEndFrom) q = q.gte("period_end", period.periodEndFrom);
+    if (period?.periodEndTo) q = q.lte("period_end", period.periodEndTo);
+    return q.order("unit_id").order("period_start").order("part_key").range(from, to);
+  }, { chunkSize: 200 });
+  for (const row of rows) {
+    if (!row.final_invoices) continue;
+    out.set(unitPeriodKey(row.unit_id, row.period_start, row.period_end, row.part_key), row.final_invoices);
+  }
+  return out;
+}
+
+/** Final invoices issued for these units (all periods, or only `period` when given). */
+export function useFinalInvoicesForUnits(unitIds: string[], period?: FinalInvoicePeriodFilter) {
   const ids = Array.from(new Set(unitIds)).sort();
+  const from = period?.periodEndFrom ?? null;
+  const to = period?.periodEndTo ?? null;
   return useQuery({
-    queryKey: [FINAL_INVOICE_QK, ids.join(",")],
+    // Prefix stays [FINAL_INVOICE_QK, ids] so existing invalidations still match.
+    queryKey: [FINAL_INVOICE_QK, ids.join(","), from, to],
     enabled: ids.length > 0,
     staleTime: 30_000,
-    queryFn: async (): Promise<Map<string, FinalInvoice>> => {
-      const out = new Map<string, FinalInvoice>();
-      const chunk = 200;
-      for (let i = 0; i < ids.length; i += chunk) {
-        const slice = ids.slice(i, i + chunk);
-        const { data, error } = await supabase
-          .from("final_invoice_units" as never)
-          .select(
-            "unit_id, period_start, period_end, part_key, final_invoices(id, part_key, part_label, invoice_no, state_code, fiscal_year, month_code, sequence, client_token, party_name, billing_state, invoice_date, period_start, period_end, total_value)",
-          )
-          .in("unit_id", slice);
-        if (error) throw error;
-        for (const row of (data ?? []) as unknown as UnitRow[]) {
-          if (!row.final_invoices) continue;
-          out.set(unitPeriodKey(row.unit_id, row.period_start, row.period_end, row.part_key), row.final_invoices);
-        }
-      }
-      return out;
-    },
+    queryFn: () => loadFinalInvoicesForUnits(ids, { periodEndFrom: from, periodEndTo: to }),
   });
 }
 

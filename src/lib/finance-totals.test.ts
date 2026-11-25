@@ -68,3 +68,45 @@ describe("authoritative finance totals", () => {
     expect(financeSummaryAmount(25000, 1)).toBe(25000);
   });
 });
+import { registerMoney, splitSavedRegisterTotals, FINANCE_CALCULATION_VERSION as V } from "./finance-totals";
+
+describe("register renders saved totals and computes only stale sites", () => {
+  const p = { start: "2026-10-21", end: "2026-11-20" };
+  const totals = (invoice: number) => ({
+    unit_code: "C", unit_name: "S", customer_name: "O", internal: false, contract_value: 0, committed_payroll: 0,
+    committed_strength: 0, actual_strength: 0, invoice_amount: invoice, payroll_cost: 600, employer_contribution: 90,
+    management_fee: 0, employer_cost: 80, billing_addons: 10, deductions: 50, net_pay: 550, invoice_parts: [],
+  });
+  const row = (unit_id: string, over: Partial<import("./finance-totals").SavedFinanceRow> = {}) => ({
+    unit_id, period_start: p.start, period_end: p.end, generation: 2, calculated_generation: 2,
+    calculation_version: V, computed_at: "2026-11-21T00:00:00Z", last_error: null, totals: totals(1000), ...over,
+  });
+
+  it("splits fresh rows from stale, failed, other-period and missing ones", () => {
+    const periods = new Map([["fresh", p], ["dirty", p], ["failed", p], ["oldwin", p], ["missing", p]]);
+    const { ready, stale } = splitSavedRegisterTotals(periods, [
+      row("fresh"),
+      row("dirty", { calculated_generation: 1 }),
+      row("failed", { totals: null, computed_at: null, last_error: "boom" }),
+      row("oldwin", { period_start: "2026-09-21", period_end: "2026-10-20" }),
+    ]);
+    expect([...ready.keys()]).toEqual(["fresh"]);
+    expect(stale.sort()).toEqual(["dirty", "failed", "missing", "oldwin"]);
+    expect(ready.get("fresh")?.employer_contribution).toBe(80); // actual employer cost, as before
+  });
+
+  it("saved wins; live fills stale sites; nothing is guessed while updating", () => {
+    const live = {
+      engine: new Map([["s", { invoice_amount: 700 }]]),
+      pay: new Map([["s", { gross: 400, deductions: 40, net: 360, employer: 60 }]]),
+    };
+    expect(registerMoney("f", { invoice_amount: 1000, payroll_cost: 600, deductions: 50, net_pay: 550, employer_contribution: 80 }, live))
+      .toEqual({ invoiceAmount: 1000, payrollAmount: 600, deductionAmount: 50, netPayrollAmount: 550, employerCost: 80, source: "saved" });
+    expect(registerMoney("s", undefined, live))
+      .toEqual({ invoiceAmount: 700, payrollAmount: 400, deductionAmount: 40, netPayrollAmount: 360, employerCost: 60, source: "live" });
+    // Live batch finished but the engines produced nothing for this site: zero, as the register always showed.
+    expect(registerMoney("none", undefined, live)?.invoiceAmount).toBe(0);
+    // Still computing: no value at all (shown as "updating", never as ₹0).
+    expect(registerMoney("s", undefined, undefined)).toBeNull();
+  });
+});

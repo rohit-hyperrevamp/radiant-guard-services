@@ -40,15 +40,30 @@ export async function currentUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/** Bell / live-feed poll cadence (shared query key, so one request a minute). */
+export const NOTIFICATIONS_POLL_MS = 60_000;
+/** The bell and feed show the latest few; never download more than this. */
+export const NOTIFICATIONS_LIMIT = 20;
+
+/**
+ * Signed-in user id from the local session — no network round-trip. Read
+ * paths only; row level security still enforces ownership server-side.
+ */
+async function sessionUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export async function listMyNotifications(): Promise<Notification[]> {
-  const uid = await currentUserId();
+  // getUser() called the auth server on every poll; the session is local.
+  const uid = await sessionUserId();
   if (!uid) return [];
   const { data, error } = await supabase
     .from("notifications" as never)
     .select("*")
     .eq("user_id", uid)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(NOTIFICATIONS_LIMIT);
   if (error) throw error;
   return ((data as unknown) as Record<string, unknown>[]).map(rowToNotification);
 }

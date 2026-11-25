@@ -92,20 +92,15 @@ export async function hydrateFormulasFromMaster<T extends ResourceShape>(
   if (!resources.length) return resources;
   const { allowanceIds, costIds } = formulaMasterIds(resources);
   const masterById = new Map<string, FormulaMaster>();
-  if (allowanceIds.size > 0) {
-    const { data } = await supabase
-      .from("allowance_types")
-      .select(MASTER_COLS)
-      .in("id", Array.from(allowanceIds));
-    for (const m of (data ?? []) as Array<Record<string, unknown>>) masterById.set(String(m.id), toMaster(m));
-  }
-  if (costIds.size > 0) {
-    const { data } = await supabase
-      .from("cost_components")
-      .select(MASTER_COLS)
-      .in("id", Array.from(costIds));
-    for (const m of (data ?? []) as Array<Record<string, unknown>>) masterById.set(String(m.id), toMaster(m));
-  }
+  // Both master tables in parallel; allowance rows are applied first, exactly
+  // as the sequential reads did.
+  const read = async (table: "allowance_types" | "cost_components", ids: Set<string>) => {
+    if (ids.size === 0) return [] as Array<Record<string, unknown>>;
+    const { data } = await supabase.from(table).select(MASTER_COLS).in("id", Array.from(ids));
+    return (data ?? []) as Array<Record<string, unknown>>;
+  };
+  const [allowances, costs] = await Promise.all([read("allowance_types", allowanceIds), read("cost_components", costIds)]);
+  for (const m of [...allowances, ...costs]) masterById.set(String(m.id), toMaster(m));
   return hydrateFormulasWith(resources, masterById);
 }
 

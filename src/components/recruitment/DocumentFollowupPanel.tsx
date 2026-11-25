@@ -28,7 +28,7 @@ export function DocumentFollowupPanel({ compact = false, tile = false, initialTy
   const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const range=documentDateRange(period,today,customFrom,customTo);
   // Dashboard cards need counts only; the full page asks the database for one filtered page at a time.
-  const q=useQuery({queryKey:[...DOCUMENT_FOLLOWUP_QK,"summary",status,range.from,range.to],queryFn:()=>fetchDocumentSummary(status,range.from,range.to),placeholderData:keepPreviousData,enabled:enabled&&range.valid,staleTime:120_000,gcTime:30*60_000,refetchOnWindowFocus:true,refetchInterval:300_000});
+  const q=useQuery({queryKey:[...DOCUMENT_FOLLOWUP_QK,"summary",status,range.from,range.to],queryFn:()=>fetchDocumentSummary(status,range.from,range.to),placeholderData:keepPreviousData,enabled:enabled&&range.valid,staleTime:10*60_000,gcTime:30*60_000,refetchOnWindowFocus:false,refetchInterval:10*60_000});
   const filters={type,purpose,overdue:overdueOnly,words:serverSearchWords(term),page,status,from:range.from,to:range.to};
   const list=useQuery({queryKey:[...DOCUMENT_FOLLOWUP_QK,"list",filters],queryFn:()=>fetchDocumentList(filters),enabled:enabled&&!tile&&!compact&&range.valid,staleTime:60_000,gcTime:10*60_000,placeholderData:keepPreviousData});
   const policies=useQuery({queryKey:["document-policies"],queryFn:fetchDocumentPolicies,enabled:enabled&&!tile&&!compact,staleTime:5*60_000});

@@ -15,6 +15,73 @@
 const PAGE_SIZE = 1000;
 const ID_CHUNK_SIZE = 150;
 const CONCURRENCY = 8;
+/** Max bulk reads one browser tab keeps in flight at once (all screens/loaders together). */
+export const BULK_POOL_SIZE = 6;
+
+/**
+ * Tiny promise pool: at most `limit` tasks run at once; the rest wait in FIFO
+ * order. Tasks must be leaf work (a single request / page loop) — a task that
+ * itself waits on the same pool could deadlock it.
+ */
+export type PromisePool = {
+  run<T>(task: () => PromiseLike<T> | T): Promise<T>;
+  readonly active: number;
+  readonly queued: number;
+};
+
+export function createPool(limit: number): PromisePool {
+  const max = Math.max(1, Math.floor(limit) || 1);
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  const next = () => {
+    if (active >= max) return;
+    const start = waiting.shift();
+    if (start) start();
+  };
+  return {
+    get active() { return active; },
+    get queued() { return waiting.length; },
+    run<T>(task: () => PromiseLike<T> | T): Promise<T> {
+      return new Promise<T>((resolve, reject) => {
+        const start = () => {
+          active++;
+          let result: PromiseLike<T> | T;
+          try {
+            result = task();
+          } catch (e) {
+            active--;
+            reject(e);
+            next();
+            return;
+          }
+          Promise.resolve(result).then(
+            (v) => { active--; resolve(v); next(); },
+            (e) => { active--; reject(e); next(); },
+          );
+        };
+        waiting.push(start);
+        next();
+      });
+    },
+  };
+}
+
+/**
+ * The tab-wide pool every bulk loader shares, so one screen can never fire
+ * 30+ concurrent requests into the (small) database. Server code is not
+ * pooled — a process-wide cap there would serialise unrelated requests.
+ */
+const browserPool = createPool(BULK_POOL_SIZE);
+export function runBulk<T>(task: () => PromiseLike<T> | T): Promise<T> {
+  if (typeof window === "undefined") return Promise.resolve().then(task);
+  return browserPool.run(task);
+}
+
+/** Run `fn` over `items` with at most `limit` in flight; results keep input order. */
+export async function mapPool<I, O>(items: I[], limit: number, fn: (item: I, index: number) => PromiseLike<O> | O): Promise<O[]> {
+  const pool = createPool(limit);
+  return Promise.all(items.map((item, i) => pool.run(() => fn(item, i))));
+}
 
 type QueryResult = { data: unknown; error: { message: string } | null };
 
@@ -63,13 +130,35 @@ export async function fetchInChunks<T>(
   if (chunks.length === 0) return [];
 
   const limit = Math.max(1, options?.concurrency ?? CONCURRENCY);
-  const rows: T[] = [];
-  for (let i = 0; i < chunks.length; i += limit) {
-    const batch = chunks.slice(i, i + limit);
-    const results = await Promise.all(
-      batch.map((chunk) => fetchAllPages<T>((from, to) => build(chunk, from, to))),
-    );
-    for (const r of results) rows.push(...r);
+  // Per-call cap, and every chunk also waits for a slot in the tab-wide pool.
+  const results = await mapPool(chunks, limit, (chunk) =>
+    runBulk(() => fetchAllPages<T>((from, to) => build(chunk, from, to))),
+  );
+  return results.flat();
+}
+
+/**
+ * Rows for a large id set: above `scanThreshold` ids, one server-filtered
+ * scan (e.g. "this period's rows") paged 1,000 at a time beats a dozen URL-
+ * limited `.in()` chunks; the scan is narrowed to `ids` in memory. Below it,
+ * plain id chunks. Both paths must select the same rows for the given ids.
+ */
+export async function fetchForIds<T>(
+  ids: string[],
+  options: {
+    chunk: (chunk: string[], from: number, to: number) => PromiseLike<QueryResult>;
+    scan: (from: number, to: number) => PromiseLike<QueryResult>;
+    idOf: (row: T) => string | null | undefined;
+    scanThreshold?: number;
+    chunkSize?: number;
+  },
+): Promise<T[]> {
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  if (!unique.length) return [];
+  if (unique.length <= (options.scanThreshold ?? ID_CHUNK_SIZE * 3)) {
+    return fetchInChunks<T>(unique, options.chunk, { chunkSize: options.chunkSize });
   }
-  return rows;
+  const wanted = new Set(unique);
+  const rows = await runBulk(() => fetchAllPages<T>(options.scan));
+  return rows.filter((row) => wanted.has(String(options.idOf(row) ?? "")));
 }

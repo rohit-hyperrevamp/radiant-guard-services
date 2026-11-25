@@ -55,6 +55,8 @@ import { UanFollowUp } from "@/components/UanFollowUp";
 import { ContractDesignationFollowUp } from "@/components/ContractDesignationFollowUp";
 import { VisitProofs } from "@/components/VisitProofs";
 import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
+import { createThrottle } from "@/lib/dashboard-realtime";
+import { DeferredMount } from "@/components/DashboardLazy";
 
 export const Route = createFileRoute("/admin/field-dashboard")({
   head: () => ({
@@ -678,24 +680,30 @@ function FieldOfficerDashboard() {
 
   useEffect(() => {
     if (!phone) return;
-    const refresh = () => {
+    // Company-wide tables: any guard re-mapping or unit edit anywhere fired
+    // this. Fold bursts into at most one refresh of this officer's own
+    // queries per 30 s, and listen to scope rows for this officer only.
+    const throttle = createThrottle(() => {
       void queryClient.invalidateQueries({ queryKey: ["fo-base-v1", phone] });
-      void queryClient.invalidateQueries({ queryKey: ["fo-stats-v1"] });
-    };
+      void queryClient.invalidateQueries({ queryKey: ["fo-stats-v1", meId] });
+    });
     const channel = supabase
       .channel(dashboardChannelName(phone))
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "employee_scope_assignments" },
-        refresh,
+        meId
+          ? { event: "*", schema: "public", table: "employee_scope_assignments", filter: `candidate_id=eq.${meId}` }
+          : { event: "*", schema: "public", table: "employee_scope_assignments" },
+        throttle.run,
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, refresh)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "units" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "candidate_units" }, throttle.run)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "units" }, throttle.run)
       .subscribe();
     return () => {
+      throttle.cancel();
       void supabase.removeChannel(channel);
     };
-  }, [phone, queryClient]);
+  }, [phone, meId, queryClient]);
 
   const dashQ = baseQ;
   const isLoading = baseQ.isLoading;
@@ -756,7 +764,8 @@ function FieldOfficerDashboard() {
   const pendingIssuanceQ = useQuery({
     queryKey: ["field-officer", "pending-issuance", userId],
     enabled: !!userId && (roleKey === "field_officer" || isSuperAdmin),
-    refetchInterval: 15_000,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from("candidates" as never)
@@ -901,11 +910,15 @@ function FieldOfficerDashboard() {
                 compact
                 className="rounded-none border-0 border-r border-border/50 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none"
               />
-              <ContractDesignationFollowUp
-                fieldOfficer
-                compact
-                className="rounded-none border-0 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none"
-              />
+              {/* get_missing_contract_designations is a multi-second RPC: start
+                  it after the officer's own figures have gone out. */}
+              <DeferredMount delayMs={600} fallback={<div aria-hidden className="animate-pulse bg-card/30" />}>
+                <ContractDesignationFollowUp
+                  fieldOfficer
+                  compact
+                  className="rounded-none border-0 bg-transparent shadow-none hover:bg-card/30 hover:shadow-none"
+                />
+              </DeferredMount>
             </div>
             <TasksSummaryTile summary={taskSummary.data ?? null} />
           </div>

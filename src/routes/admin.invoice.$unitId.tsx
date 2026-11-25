@@ -2,7 +2,6 @@ import { allocateInvoicePresent, invoiceCapPool, invoicePresentLimit, invoicePoo
 import { resolveContractDesignation } from "@/lib/designation-match";
 import { mergePayItems } from "@/lib/pay-item-names";
 import { formatDutyQty, roundDutyDays } from "@/lib/duty-days";
-import { fetchPeriodContract } from "@/lib/period-contract";
 import { fetchAttendedCandidateIds } from "@/lib/period-roster";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,11 +28,9 @@ import {
   type AttendanceCodeLike,
   type AttendanceEntryLike,
   type ContractResourceLike,
-  type PincodeRangeLike,
-  type PtSlabLike,
   normalizeOtEsi,
 } from "@/lib/payroll-calc";
-import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
+import { resolveLwf } from "@/lib/lwf-lookup";
 import { writeXlsx } from "@/lib/csv-export";
 import { buildMisSheet, loadMisDisabledCustomerIds, loadMisTemplateForCustomer, loadMisUnitValues } from "@/lib/mis-template";
 import { misBillingLine } from "@/lib/mis-billing";
@@ -48,7 +45,6 @@ import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
 import { normalizeState, resolveGstBillingBranch, taxSplit, useGstBillingBranches } from "@/lib/gst-billing";
-import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { logActivity } from "@/lib/activity-log";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { PERIOD_STATUS_QK } from "@/lib/period-status";
@@ -58,7 +54,7 @@ import { DEFAULT_SPLIT, EXCLUDE, INVOICE_ITEMS, isSplit, loadOrgInvoiceSplit, to
 import { contractMonthlyBilling, invoiceMonthlyRateLabel } from "@/lib/contract-rate-display";
 import { invoiceQueryFreshness } from "@/lib/invoice-query-freshness";
 import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
-import { computeInvoiceUnit, invoiceLineMath, invoicePartRows, loadInvoiceGlobals, loadInvoiceUnitData } from "@/lib/invoice-engine";
+import { computeInvoiceUnit, invoiceLineMath, invoicePartRows, loadFormulaMastersFor, loadInvoiceGlobals, loadInvoiceUnitData } from "@/lib/invoice-engine";
 
 /** Dated rates store wages only; Extra Duty settings always come from the contract line. */
 function contractOtFields(r: Record<string, unknown>): Record<string, unknown> {
@@ -232,59 +228,13 @@ function PayrollUnitPage() {
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
-  // Public holiday credit — must mirror the payroll page, otherwise billed days
-  // silently drop the PH duties that payroll pays out.
-  const publicHolidays = usePublicHolidays();
-  const { data: unitPh } = useQuery({
-    queryKey: ["invoice-unit-ph", unitId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("units")
-        .select("ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days" as never)
-        .eq("id", unitId)
-        .maybeSingle();
-      const row = (data ?? null) as {
-        ph_enabled?: boolean | null;
-        ph_multiplier?: number | null;
-        ph_day_value?: number | string | null;
-        ph_excluded_candidate_ids?: string[] | null;
-        ph_excluded_days?: string[] | null;
-      } | null;
-      const dv = row?.ph_day_value;
-      return {
-        enabled: Boolean(row?.ph_enabled),
-        multiplier: Number(row?.ph_multiplier ?? 1) || 1,
-        excluded: (row?.ph_excluded_candidate_ids ?? []).map(String),
-        excludedDays: (row?.ph_excluded_days ?? []).map(String),
-        // PH off for this client → PH marks count 0 days.
-        dayValue: !row?.ph_enabled ? 0 : dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
-      };
-    },
-  });
-  // Contract switches (WO as Present, exact day rate) come from this period's
-  // contract — the same one that prices the invoice — so a later renewal never
-  // changes an old invoice.
-  const { data: contractFlags, error: contractFlagsError, refetch: refetchContractFlags } = useQuery({
-    queryKey: ["invoice-wo-as-present", unitId, start, end],
-    queryFn: async () => {
-      await supabaseSessionReady();
-      const row = await fetchPeriodContract<{ wo_as_present?: boolean | null; exact_day_rate?: boolean | null }>(
-        unitId, start, end, "wo_as_present, exact_day_rate",
-      );
-      return { woAsPresent: Boolean(row?.wo_as_present), exactDayRate: Boolean(row?.exact_day_rate) };
-    },
-  });
-  const woAsPresent = contractFlags?.woAsPresent ?? false;
-  const exactDayRate = contractFlags?.exactDayRate ?? false;
-  const phConfig = useMemo(() => {
-    if (!unitPh?.enabled) return null;
-    const map = holidayMapForDates(periodDates, publicHolidays);
-    if (map.size === 0) return null;
-    return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
-  }, [unitPh, periodDates, publicHolidays]);
-
+  // Public-holiday credit, unit PH settings, WO-as-Present / exact-day-rate,
+  // PT slabs, pincode ranges and LWF are all read by the shared invoice engine
+  // inside the compute query below (the same reads the dashboard uses). The
+  // page used to fetch each of them a second time just to gate that query.
   const { data: unit } = useQuery({
-    queryKey: ["payroll-unit", unitId],
+    // Own key: the payroll page caches a different unit shape under "payroll-unit".
+    queryKey: ["invoice-unit", unitId],
     queryFn: async () => {
       await supabaseSessionReady();
       const { data: rawUnit } = await supabase
@@ -312,17 +262,19 @@ function PayrollUnitPage() {
         billing_country: string | null;
       } | null;
       if (!data) return null;
-      const { data: cust } = await supabase
-        .from("customers")
-        .select(
-          "name, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
-        )
-        .eq("id", data.customer_id ?? "")
-        .maybeSingle();
-      const { data: gsts } = await supabase
-        .from("customer_gst_numbers")
-        .select("gstin, state_name")
-        .eq("customer_id", data.customer_id ?? "");
+      const [{ data: cust }, { data: gsts }] = await Promise.all([
+        supabase
+          .from("customers")
+          .select(
+            "name, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
+          )
+          .eq("id", data.customer_id ?? "")
+          .maybeSingle(),
+        supabase
+          .from("customer_gst_numbers")
+          .select("gstin, state_name")
+          .eq("customer_id", data.customer_id ?? ""),
+      ]);
       const stateGstin =
         (gsts ?? []).find(
           (g) => (g.state_name ?? "").toLowerCase() === (data.billing_state ?? "").toLowerCase(),
@@ -371,71 +323,31 @@ function PayrollUnitPage() {
     },
   });
 
-  const { data: ptSlabs } = useQuery({
-    queryKey: ["pt_slabs_invoice"],
-    queryFn: async (): Promise<PtSlabLike[]> => {
-      const { data, error } = await supabase
-        .from("professional_tax_slabs")
-        .select("id, state, region_label, salary_min, salary_max, tax_per_month, gender");
-      if (error) throw error;
-      return (data ?? []) as PtSlabLike[];
-    },
-  });
-
-  const { data: pincodeRanges } = useQuery({
-    queryKey: ["pincode_ranges_invoice"],
-    queryFn: async (): Promise<PincodeRangeLike[]> => {
-      const { data, error } = await supabase
-        .from("pincode_ranges")
-        .select("state, region_label, range_start, range_end, is_excluded");
-      if (error) throw error;
-      return (data ?? []) as PincodeRangeLike[];
-    },
-  });
-
-  const { data: lwfRows } = useQuery({
-    queryKey: ["labour_welfare_funds_invoice"],
-    queryFn: async (): Promise<LwfRow[]> => {
-      const { data, error } = await supabase
-        .from("labour_welfare_funds")
-        .select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes");
-      if (error) throw error;
-      return (data ?? []) as LwfRow[];
-    },
-  });
-
   const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
   const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
   // Professional Tax / LWF follow the site's work state (`pt_state`, same as Pages'
   // PT state) when set; billing_state is only the invoicing address (e.g. head office).
-  const ptState = (unit as { pt_state?: string | null } | null | undefined)?.pt_state || unitState;
-  const ptPincode = (unit as { pt_state?: string | null } | null | undefined)?.pt_state ? null : unitPincode;
-  const epfCapEnabled =
-    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
-
-  const { data, isLoading, error: computeError, refetch: refetchInvoiceQuery, isFetching: invoiceFetching } = useQuery({
-    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), woAsPresent, exactDayRate, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+  const { data, isLoading, error, refetch: refetchInvoice, isFetching: invoiceFetching } = useQuery({
+    // Every input (unit PT state / EPF cap / PH, period contract flags, master
+    // tables) is read inside the engine, so the key is just site + period.
+    queryKey: ["invoice-compute", unitId, start, end],
     // Re-read saved attendance on opening, returning from another tab, or reconnecting.
     ...invoiceQueryFreshness,
-    // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
-    // first render is wrong/zero until a manual refresh.
-    // Contract flags too, so the first render never prices with default flags.
-    enabled: unit !== undefined && contractFlags !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       await supabaseSessionReady();
       // Shared invoice engine: the dashboard runs this same calculation.
-      const source = await loadInvoiceUnitData(unitId, start, end);
-      const globals = await loadInvoiceGlobals(source.resources, source.revisions);
-      return computeInvoiceUnit(source, globals);
+      // Reference data (codes, day bases, PT/LWF …) loads alongside the site
+      // data; formula masters follow once the contract lines are known.
+      const sourceP = loadInvoiceUnitData(unitId, start, end);
+      const globalsP = loadInvoiceGlobals([], null, sourceP.then((s) => loadFormulaMastersFor(s.resources, s.revisions)));
+      globalsP.catch(() => {});
+      const source = await sourceP;
+      const globals = await globalsP;
+      // Exact-day-rate comes from the same period contract that priced the invoice.
+      return { ...computeInvoiceUnit(source, globals), exactDayRate: source.exactDayRate };
     },
   });
-  // The contract-flags read gates the calculation; if it fails the compute
-  // query never runs, so surface its error too (never show a silent ₹0).
-  const error = computeError ?? contractFlagsError ?? null;
-  const refetchInvoice = () =>
-    contractFlagsError ? refetchContractFlags() : refetchInvoiceQuery();
-
-
+  const exactDayRate = data?.exactDayRate ?? false;
 
   const billingMode = data?.billingMode ?? "man_days";
   const contractId = data?.contractId ?? null;

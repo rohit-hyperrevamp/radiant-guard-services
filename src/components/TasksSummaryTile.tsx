@@ -22,7 +22,8 @@ export function useTaskSummary() {
   return useQuery({
     queryKey: ["tasks-summary-tile"],
     enabled: ready,
-    staleTime: 30_000,
+    // Polled once a minute; a fresh mount within that minute reuses the value.
+    staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('task_summary_counts' as never);

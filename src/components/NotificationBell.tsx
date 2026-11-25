@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import {
   listMyNotifications,
   markAllRead,
+  NOTIFICATIONS_LIMIT,
+  NOTIFICATIONS_POLL_MS,
   markNotificationRead,
   type Notification,
 } from "@/lib/notifications";
@@ -79,11 +81,18 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
   const { data: raw = [] } = useQuery({
     queryKey: NQK,
     queryFn: listMyNotifications,
-    refetchInterval: 10_000,
+    // Latest 20, polled once a minute (was every 10 s, 100 rows, plus an
+    // auth-server round-trip per poll).
+    staleTime: NOTIFICATIONS_POLL_MS,
+    refetchInterval: NOTIFICATIONS_POLL_MS,
+    refetchIntervalInBackground: false,
   });
   // Only notifications for modules this role can access (RBAC-driven).
   const items = filterNotificationsByAccess(raw, can);
   const unread = items.filter((n) => !n.readAt).length;
+  // Only the latest NOTIFICATIONS_LIMIT rows are loaded: a full page of unread
+  // means there may be more, so say "20+" rather than a false exact count.
+  const unreadLabel = unread >= NOTIFICATIONS_LIMIT && raw.length >= NOTIFICATIONS_LIMIT ? `${NOTIFICATIONS_LIMIT}+` : String(unread);
   const top = items.slice(0, 8);
 
   // Track seen notification IDs so we only chime on genuinely new arrivals.
@@ -179,7 +188,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
           <div className="min-w-0">
             <div className="text-[17px] font-medium leading-tight text-foreground">Notifications</div>
             <div className="mt-0.5 text-[11px] text-muted-foreground">
-              {unread > 0 ? `${unread} unread update${unread === 1 ? "" : "s"}` : "You’re all caught up"}
+              {unread > 0 ? `${unreadLabel} unread update${unread === 1 ? "" : "s"}` : "You’re all caught up"}
             </div>
           </div>
         </div>

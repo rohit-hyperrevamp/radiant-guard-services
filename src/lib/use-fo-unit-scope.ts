@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { createThrottle } from "@/lib/dashboard-realtime";
 
 type ScopeAssignment = {
   candidate_id: string;
@@ -38,6 +39,58 @@ function realtimeChannelName(candidateId: string) {
 }
 
 /**
+ * One realtime channel per officer, shared (reference-counted) by every
+ * component using this hook — it is mounted by several cards per screen.
+ * Each new channel still gets a unique name: re-subscribing a name that is
+ * being torn down makes Realtime throw while the shell hydrates.
+ */
+const scopeChannels = new Map<string, { refs: number; release: () => void }>();
+
+function acquireScopeChannel(candidateId: string, queryClient: QueryClient): () => void {
+  const existing = scopeChannels.get(candidateId);
+  if (existing) {
+    existing.refs += 1;
+  } else {
+    // Scope edits arrive as bursts (bulk re-mapping writes many rows); fold
+    // them into at most one refresh per 30 s.
+    const throttle = createThrottle(() => {
+      void queryClient.invalidateQueries({ queryKey: ["fo-scope-assignments", candidateId] });
+      void queryClient.invalidateQueries({ queryKey: ["fo-candidate-units", candidateId] });
+      void queryClient.invalidateQueries({ queryKey: ["fo-units-lookup", candidateId] });
+    });
+    const channel = supabase
+      .channel(realtimeChannelName(candidateId))
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "employee_scope_assignments", filter: `candidate_id=eq.${candidateId}` },
+        throttle.run,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "candidate_units", filter: `candidate_id=eq.${candidateId}` },
+        throttle.run,
+      )
+      .subscribe();
+    scopeChannels.set(candidateId, {
+      refs: 1,
+      release: () => {
+        throttle.cancel();
+        void supabase.removeChannel(channel);
+      },
+    });
+  }
+  return () => {
+    const entry = scopeChannels.get(candidateId);
+    if (!entry) return;
+    entry.refs -= 1;
+    if (entry.refs <= 0) {
+      scopeChannels.delete(candidateId);
+      entry.release();
+    }
+  };
+}
+
+/**
  * Resolves the set of units a field officer is scoped to. Combines:
  *   • employee_scope_assignments (scope_type='unit')
  *   • employee_scope_assignments (scope_type='branch' / 'customer') expanded via units
@@ -52,30 +105,7 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
 
   useEffect(() => {
     if (!isFieldOfficer || !candidateId) return;
-    const refresh = () => {
-      void queryClient.invalidateQueries({ queryKey: ["fo-scope-assignments", candidateId] });
-      void queryClient.invalidateQueries({ queryKey: ["fo-candidate-units", candidateId] });
-      void queryClient.invalidateQueries({ queryKey: ["fo-units-lookup", candidateId] });
-    };
-    // Each mount needs its own channel. React can briefly mount this hook more
-    // than once while the admin shell hydrates; reusing a subscribed channel
-    // name makes Realtime throw before the dashboard can render.
-    const channel = supabase
-      .channel(realtimeChannelName(candidateId))
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "employee_scope_assignments", filter: `candidate_id=eq.${candidateId}` },
-        refresh,
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "candidate_units", filter: `candidate_id=eq.${candidateId}` },
-        refresh,
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    return acquireScopeChannel(candidateId, queryClient);
   }, [candidateId, isFieldOfficer, queryClient]);
 
   // Fetch only this officer's assignments. Reusing the admin-wide assignment
@@ -83,9 +113,9 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const scopeQ = useQuery({
     queryKey: ["fo-scope-assignments", candidateId],
     enabled: !!candidateId && isFieldOfficer,
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    // Kept fresh by the scoped realtime channel above; re-reading on every
+    // mount refetched on each card and each navigation.
+    staleTime: 5 * 60_000,
     queryFn: async (): Promise<ScopeAssignment[]> => {
       if (!candidateId) return [];
       const { data, error } = await supabase
@@ -100,9 +130,9 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const cuQ = useQuery({
     queryKey: ["fo-candidate-units", candidateId],
     enabled: !!candidateId && isFieldOfficer,
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    // Kept fresh by the scoped realtime channel above; re-reading on every
+    // mount refetched on each card and each navigation.
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       if (!candidateId) return [];
       const { data, error } = await supabase
@@ -117,7 +147,7 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
   const unitsQ = useQuery({
     queryKey: ["fo-units-lookup", candidateId, scopeQ.data, cuQ.data],
     enabled: !!candidateId && isFieldOfficer && !scopeQ.isLoading && !cuQ.isLoading,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     queryFn: async (): Promise<ScopedUnit[]> => {
       const assignments = scopeQ.data ?? [];
       const directUnitIds = new Set([

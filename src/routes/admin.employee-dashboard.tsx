@@ -1,4 +1,5 @@
 import { TileNumber } from "@/components/TileNumber";
+import { getReference, useReference } from "@/lib/reference-data";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -215,11 +216,9 @@ function EmployeeDashboard() {
               .maybeSingle()
           : Promise.resolve({ data: null }),
         me?.designation_id
-          ? supabase
-              .from("designations")
-              .select("id,name")
-              .eq("id", me.designation_id)
-              .maybeSingle()
+          ? getReference<{ id: string; name: string }>("designations").then((rows) => ({
+              data: rows.find((row) => row.id === me.designation_id) ?? null,
+            }))
           : Promise.resolve({ data: null }),
       ]);
       return {
@@ -263,18 +262,8 @@ function EmployeeDashboard() {
   }, []);
   const monthStart = monthRange.start;
   const monthEnd = monthRange.end;
-  const codesQ = useQuery({
-    queryKey: ["attendance-codes-meta"],
-    enabled: sessionReady,
-    staleTime: 30 * 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("attendance_codes")
-        .select("code,counts_as_present,is_leave,is_paid,day_value");
-      if (error) throw error;
-      return (data as unknown as AttendanceCodeMeta[]) ?? [];
-    },
-  });
+  // Shared, session-cached master table (one read for the whole app).
+  const codesQ = useReference<AttendanceCodeMeta>("attendanceCodes", sessionReady);
   const attQ = useQuery({
     queryKey: ["me-attendance", me?.id, monthStart],
     enabled: !!me?.id,
@@ -297,8 +286,7 @@ function EmployeeDashboard() {
   const myUnitsQ = useQuery({
     queryKey: ["me-assigned-units-v3", me?.id],
     enabled: !!me?.id,
-    staleTime: 0,
-    refetchOnMount: "always",
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_assigned_units" as never);
       if (error) throw error;

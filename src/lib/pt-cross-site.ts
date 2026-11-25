@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchInChunks } from "@/lib/supabase-batch";
+import { getReference } from "@/lib/reference-data";
 import { resolvePtAmount, roundGrossRupees, type PincodeRangeLike, type PtSlabLike } from "@/lib/payroll-calc";
 
 /**
@@ -110,7 +111,8 @@ export async function fetchMonthDutiesBySite(
   const [y, m] = periodEnd.split("-").map(Number);
   const monthStart = `${y}-${String(m).padStart(2, "0")}-01`;
   const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
-  const { data: codes } = await supabase.from("attendance_codes").select("code, counts_as_present, day_value");
+  // Attendance codes master: shared reference cache (all codes, as before).
+  const codes = await getReference<{ code: string; counts_as_present: boolean | null; day_value: number | string | null }>("attendanceCodes").catch(() => null);
   const dayValue = new Map(
     ((codes ?? []) as { code: string; counts_as_present: boolean | null; day_value: number | string | null }[]).map((c) => [
       String(c.code).toUpperCase(),

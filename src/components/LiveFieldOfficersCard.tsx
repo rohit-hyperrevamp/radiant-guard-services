@@ -4,6 +4,7 @@ import { Battery, BatteryCharging, ExternalLink, MapPin, Radio, Signal, Wifi } f
 import { supabase } from "@/integrations/supabase/client";
 import { mapsUrl } from "@/lib/self-attendance";
 import { cn } from "@/lib/utils";
+import { createThrottle, REALTIME_THROTTLE_MS } from "@/lib/dashboard-realtime";
 
 function realtimeChannelName() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -45,12 +46,20 @@ function seenLabel(iso: string | null): string {
   return `${Math.round(s / 3600)}h ago`;
 }
 
-export function LiveFieldOfficersCard() {
-  const qc = useQueryClient();
+export const LIVE_FIELD_OFFICERS_QK = "live-field-officers";
 
-  const q = useQuery({
-    queryKey: ["live-field-officers", today()],
-    refetchInterval: 30_000,
+/**
+ * Field officers checked in today and not checked out. Shared by the
+ * "Field officers on duty" card and the dashboard's live count (same key,
+ * one request). Polls once a minute; realtime adds at most one refresh / 30 s.
+ */
+export function useLiveFieldOfficers(enabled = true) {
+  return useQuery({
+    queryKey: [LIVE_FIELD_OFFICERS_QK, today()],
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: enabled ? 60_000 : false,
+    placeholderData: (previous: LivePunch[] | undefined) => previous,
     queryFn: async (): Promise<LivePunch[]> => {
       const { data, error } = await supabase
         .from("self_attendance_punches" as never)
@@ -66,18 +75,27 @@ export function LiveFieldOfficersCard() {
       return (data ?? []) as unknown as LivePunch[];
     },
   });
+}
+
+export function LiveFieldOfficersCard() {
+  const qc = useQueryClient();
+  const q = useLiveFieldOfficers();
 
   useEffect(() => {
     let ch: ReturnType<typeof supabase.channel> | null = null;
-
+    // Location beacons update punches every few seconds. Refresh this card at
+    // most once per 30 s, and only its own query.
+    const throttle = createThrottle(
+      () => void qc.invalidateQueries({ queryKey: [LIVE_FIELD_OFFICERS_QK, today()], exact: true }),
+      REALTIME_THROTTLE_MS,
+    );
     try {
       ch = supabase.channel(realtimeChannelName());
       ch.on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "self_attendance_punches" },
-        () => {
-          throttledRefresh(() => void qc.invalidateQueries({ queryKey: ["live-field-officers", today()] }))
-        },
+        // Only today's rows matter to this card.
+        { event: "*", schema: "public", table: "self_attendance_punches", filter: `punch_date=eq.${today()}` },
+        throttle.run,
       ).subscribe();
     } catch (error) {
       console.error("Live field officer realtime setup failed", error);
@@ -85,6 +103,7 @@ export function LiveFieldOfficersCard() {
     }
 
     return () => {
+      throttle.cancel();
       if (ch) void supabase.removeChannel(ch);
     };
   }, [qc]);
@@ -182,23 +201,4 @@ export function LiveFieldOfficersCard() {
       </ul>
     </section>
   );
-}
-
-// Location beacons update punches every few seconds. Refetching on each one
-// flooded the database whenever a dashboard was open; refresh at most every 30s.
-let lastRefresh = 0;
-let pendingRefresh: ReturnType<typeof setTimeout> | null = null;
-function throttledRefresh(run: () => void) {
-  const wait = 30_000 - (Date.now() - lastRefresh);
-  if (wait <= 0) {
-    lastRefresh = Date.now();
-    run();
-    return;
-  }
-  if (pendingRefresh) return;
-  pendingRefresh = setTimeout(() => {
-    pendingRefresh = null;
-    lastRefresh = Date.now();
-    run();
-  }, wait);
 }

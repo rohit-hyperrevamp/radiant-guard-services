@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchInChunks } from "@/lib/supabase-batch";
+import { getReference } from "@/lib/reference-data";
 
 export type PayrollWindow = {
   windowStartDay: number;
@@ -131,48 +132,87 @@ export function buildPayrollWindowOptions(
 
 
 
-/** Load the active client contract's payroll window for every unit. */
-export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<string, PayrollWindow>> {
-  const ids = Array.from(new Set(unitIds.filter(Boolean)));
-  const out = new Map<string, PayrollWindow>();
-  if (!ids.length) return out;
+type ContractWindowRow = { unit_id: string | null; payroll_window_id: string | null };
+type PayrollWindowRow = { id: string; window_start_day: number; window_end_day: number };
 
-  const contracts = await fetchInChunks<{ unit_id: string | null; payroll_window_id: string | null }>(
-    ids,
-    (chunk, from, to) =>
-      supabase
-        .from("client_contracts")
-        .select("unit_id, payroll_window_id, start_date")
-        .in("unit_id", chunk)
-        .eq("record_type", "client")
-        .eq("status", "active")
-        .order("start_date", { ascending: false })
-        .range(from, to),
-  );
-
+/**
+ * Pure join: the newest active client contract (rows arrive newest first)
+ * that carries a payroll window decides each requested unit's window.
+ */
+export function resolvePayrollWindowsByUnit(
+  unitIds: Iterable<string>,
+  contracts: ReadonlyArray<ContractWindowRow>,
+  windows: ReadonlyArray<PayrollWindowRow>,
+): Map<string, PayrollWindow> {
+  const wanted = new Set(unitIds);
   const windowIdByUnit = new Map<string, string>();
   for (const contract of contracts) {
-    if (contract.unit_id && contract.payroll_window_id && !windowIdByUnit.has(contract.unit_id)) {
+    if (contract.unit_id && contract.payroll_window_id && wanted.has(contract.unit_id) && !windowIdByUnit.has(contract.unit_id)) {
       windowIdByUnit.set(contract.unit_id, contract.payroll_window_id);
     }
   }
-  const windowIds = Array.from(new Set(windowIdByUnit.values()));
-  if (!windowIds.length) return out;
-
-  const windows = await fetchInChunks<{ id: string; window_start_day: number; window_end_day: number }>(
-    windowIds,
-    (chunk, from, to) =>
-      supabase.from("payroll_windows").select("id, window_start_day, window_end_day").in("id", chunk).range(from, to),
-  );
   const byId = new Map(
-    windows.map((row) => [
-      row.id,
-      { windowStartDay: row.window_start_day, windowEndDay: row.window_end_day },
-    ]),
+    windows.map((row) => [String(row.id), { windowStartDay: row.window_start_day, windowEndDay: row.window_end_day }]),
   );
+  const out = new Map<string, PayrollWindow>();
   for (const [unitId, windowId] of windowIdByUnit) {
     const payrollWindow = byId.get(windowId);
     if (payrollWindow) out.set(unitId, payrollWindow);
   }
   return out;
+}
+
+/** Above this many units one paged read of all active contracts beats id chunks. */
+export const PAYROLL_WINDOW_CHUNK_LIMIT = 600;
+const PAGE = 1000;
+
+async function fetchActiveContractWindows(): Promise<ContractWindowRow[]> {
+  // Only the contracts that matter (active client contracts that carry a
+  // window), paged in parallel once the size is known: ~4 requests instead of
+  // one `.in()` request per 150 units.
+  const base = () =>
+    supabase
+      .from("client_contracts")
+      .select("unit_id, payroll_window_id", { count: "exact" })
+      .eq("record_type", "client")
+      .eq("status", "active")
+      .not("unit_id", "is", null)
+      .not("payroll_window_id", "is", null)
+      .order("start_date", { ascending: false })
+      .order("id", { ascending: true });
+  const first = await base().range(0, PAGE - 1);
+  if (first.error) throw first.error;
+  const rows = [...((first.data ?? []) as ContractWindowRow[])];
+  const total = first.count ?? rows.length;
+  if (rows.length < PAGE || total <= PAGE) return rows;
+  const pages = await Promise.all(
+    Array.from({ length: Math.ceil(total / PAGE) - 1 }, (_, i) => base().range((i + 1) * PAGE, (i + 2) * PAGE - 1)),
+  );
+  for (const page of pages) {
+    if (page.error) throw page.error;
+    rows.push(...((page.data ?? []) as ContractWindowRow[]));
+  }
+  return rows;
+}
+
+/** Load the active client contract's payroll window for every unit. */
+export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<string, PayrollWindow>> {
+  const ids = Array.from(new Set(unitIds.filter(Boolean)));
+  if (!ids.length) return new Map();
+
+  const contractsP: Promise<ContractWindowRow[]> = ids.length > PAYROLL_WINDOW_CHUNK_LIMIT
+    ? fetchActiveContractWindows()
+    : fetchInChunks<ContractWindowRow>(ids, (chunk, from, to) =>
+        supabase
+          .from("client_contracts")
+          .select("unit_id, payroll_window_id, start_date")
+          .in("unit_id", chunk)
+          .eq("record_type", "client")
+          .eq("status", "active")
+          .order("start_date", { ascending: false })
+          .range(from, to),
+      );
+  // payroll_windows is a small master table: shared, cached reference read.
+  const [contracts, windows] = await Promise.all([contractsP, getReference<PayrollWindowRow>("payrollWindows")]);
+  return resolvePayrollWindowsByUnit(ids, contracts, windows);
 }

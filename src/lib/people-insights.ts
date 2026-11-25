@@ -98,7 +98,11 @@ export function usePeopleInsights(options?: { roleKeys?: readonly string[] }) {
       },
     ],
     enabled,
-    staleTime: 5 * 60_000,
+    // people_insights takes seconds and only changes day to day: keep it for
+    // 10 min and keep showing the last result while a refresh runs.
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    placeholderData: (previous: InsightsPayload | undefined) => previous,
     queryFn: async (): Promise<InsightsPayload> => {
       // Scope: field officers to their mapped units, managers to the units of
       // the field officers reporting to them, branch managers without field

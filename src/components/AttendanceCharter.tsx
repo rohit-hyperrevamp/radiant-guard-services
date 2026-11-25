@@ -16,7 +16,7 @@ import { downloadCsv } from "@/lib/csv-export";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
+import { fetchWorkforceCoverage, useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
 import { fetchAttendanceTotalsForPeriod } from "@/lib/attendance-fetch";
 import { fetchShiftHoursMap, shiftHoursFor, DEFAULT_SHIFT_HOURS } from "@/lib/shift-hours";
 import {
@@ -201,7 +201,8 @@ export function AttendanceCharter({
 
 
 
-  const { data: coverage = [] } = useWorkforceCoverage();
+  // Coverage for the visible page only (not every contract in the company).
+  const { data: coverage = [] } = useWorkforceCoverage(unitIds);
   const coverageByUnit = useMemo(() => {
     const m = new Map<string, UnitCoverage>();
     for (const c of coverage) m.set(c.unitId, c);
@@ -364,10 +365,12 @@ export function AttendanceCharter({
         g.unitIds.push(id);
         groups.set(k, g);
       }
-      const [shifts, entryPages] = await Promise.all([
+      const [shifts, entryPages, exportCoverage] = await Promise.all([
         fetchShiftHoursMap(ids),
         Promise.all(Array.from(groups.values()).map((g) => fetchAttendanceTotalsForPeriod({ unitIds: g.unitIds, start: g.start, end: g.end }))),
+        fetchWorkforceCoverage(ids),
       ]);
+      const exportCoverageByUnit = new Map(exportCoverage.map((c) => [c.unitId, c]));
       const agg = new Map<string, { actual: number; ot: number; people: Set<string> }>();
       for (const e of entryPages.flat()) {
         const uid = e.unit_id ?? "";
@@ -387,7 +390,7 @@ export function AttendanceCharter({
       downloadCsv(
         "attendance-charter",
         chosen.map((u) => {
-          const cov = coverageByUnit.get(u.id);
+          const cov = exportCoverageByUnit.get(u.id);
           const committed = cov?.committed ?? 0;
           const actual = cov?.actual ?? u.security_guards.length;
           const p = periods.get(u.id)!;
