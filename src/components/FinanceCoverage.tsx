@@ -1,8 +1,11 @@
 import { financeProfit, financeLossReason, financeSummaryAmount } from "@/lib/finance-totals";
 import { matchesSearch } from "@/lib/search-match";
 import { TileNumber } from "@/components/TileNumber";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Banknote,
   ChevronDown,
   ChevronLeft,
@@ -107,17 +110,38 @@ function Tile({
   sub,
   icon: Icon,
   tone,
+  onClick,
+  pressed,
+  actionLabel,
 }: {
   label: string;
   value: string;
   sub?: string;
   icon: typeof Users;
   tone?: "accent" | "success" | "warning" | "destructive";
+  /** Makes the whole tile a button (e.g. to sort the list below by this figure). */
+  onClick?: () => void;
+  pressed?: boolean;
+  actionLabel?: string;
 }) {
+  const Root = onClick ? "button" : "div";
   return (
-    <div
+    <Root
+      {...(onClick
+        ? {
+            type: "button" as const,
+            onClick,
+            "aria-pressed": pressed,
+            "aria-label": actionLabel,
+            title: actionLabel,
+            "data-panel": true,
+          }
+        : {})}
       className={cn(
         "dashboard-summary-tile flex min-w-0 flex-col rounded-2xl border p-3 bg-gradient-to-br",
+        onClick &&
+          "cursor-pointer text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        pressed && "ring-2 ring-emerald-500/50",
         tone === "success"
           ? "border-emerald-500/40 from-emerald-500/15 to-emerald-500/5"
           : tone === "warning"
@@ -154,7 +178,7 @@ function Tile({
       >
         {value}
       </TileNumber>
-    </div>
+    </Root>
   );
 }
 
@@ -539,6 +563,14 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   const [query, setQuery] = useState("");
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState<string[]>([]);
+  // null = default order (highest profitability first). Clicking Margin sorts
+  // by margin, highest first, and each further click flips max ↔ min.
+  const [marginSort, setMarginSort] = useState<"desc" | "asc" | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const toggleMarginSort = (scroll: boolean) => {
+    setMarginSort((s) => (s === "desc" ? "asc" : "desc"));
+    if (scroll) tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Internal / non-billable units carry cost with no customer revenue by
   // design — including them would make P&L negative by construction.
@@ -617,17 +649,29 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const list = q
       ? scopedRows.filter((r) => matchesSearch(q, [r.unit_name, r.customer_name, r.unit_code]))
       : scopedRows;
-    const val = (r: UnitFinanceRow) =>
-      r.totals_pending
-        ? -Infinity
-        : unitProfit(r);
-    return [...list].sort((a, b) => val(b) - val(a));
-  }, [scopedRows, query]);
+    // Same margin the row displays (0 when there is no invoice).
+    const marginOf = (r: UnitFinanceRow) =>
+      r.actual_invoice > 0 ? (unitProfit(r) / r.actual_invoice) * 100 : 0;
+    const val = (r: UnitFinanceRow) => (marginSort ? marginOf(r) : unitProfit(r));
+    const dir = marginSort === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      // Rows awaiting totals have no figures yet: always keep them last.
+      if (a.totals_pending !== b.totals_pending) return a.totals_pending ? 1 : -1;
+      if (a.totals_pending) return 0;
+      return dir * (val(a) - val(b)) || unitProfit(b) - unitProfit(a);
+    });
+  }, [scopedRows, query, marginSort]);
 
   const paged = usePaged(
     filtered,
-    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${rows.length}`,
+    `${query}|${orgFilter.join(",")}|${stateFilter.join(",")}|${rows.length}|${marginSort ?? ""}`,
   );
+  const marginSortLabel =
+    marginSort === "desc"
+      ? "Sorted by margin, highest first. Click to show lowest first."
+      : marginSort === "asc"
+        ? "Sorted by margin, lowest first. Click to show highest first."
+        : "Sort clients by margin, highest first";
 
   const exportCsv = () =>
     downloadCsv(
@@ -702,9 +746,18 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Margin"
           value={totals.ready > 0 ? `${totals.margin.toFixed(1)}%` : "—"}
-          sub={`${totals.open} client${totals.open === 1 ? "" : "s"} awaiting totals`}
+          sub={
+            marginSort === "desc"
+              ? "List: highest margin first · tap for lowest"
+              : marginSort === "asc"
+                ? "List: lowest margin first · tap for highest"
+                : `${totals.open} client${totals.open === 1 ? "" : "s"} awaiting totals · tap to sort`
+          }
           icon={Gauge}
           tone={totals.margin < 0 ? "destructive" : "success"}
+          onClick={() => toggleMarginSort(true)}
+          pressed={marginSort !== null}
+          actionLabel={marginSortLabel}
         />
       </div>
 
@@ -747,7 +800,10 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         />
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-xl border border-border">
+      <div
+        ref={tableRef}
+        className="mt-3 scroll-mt-4 overflow-x-auto rounded-xl border border-border"
+      >
         <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -756,7 +812,32 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
               <th className="px-3 py-2 text-right font-semibold">Earned Gross</th>
               <th className="px-3 py-2 text-right font-semibold">Employer Contribution</th>
               <th className="px-3 py-2 text-right font-semibold">Profitability</th>
-              <th className="px-3 py-2 text-right font-semibold">Margin</th>
+              <th
+                className="px-3 py-2 text-right font-semibold"
+                aria-sort={
+                  marginSort === "desc" ? "descending" : marginSort === "asc" ? "ascending" : "none"
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleMarginSort(false)}
+                  title={marginSortLabel}
+                  aria-label={marginSortLabel}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded uppercase tracking-wide hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    marginSort && "text-foreground",
+                  )}
+                >
+                  Margin
+                  {marginSort === "desc" ? (
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  ) : marginSort === "asc" ? (
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
+                  )}
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
