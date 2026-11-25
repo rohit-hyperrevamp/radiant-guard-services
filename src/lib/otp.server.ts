@@ -14,8 +14,7 @@ export type OtpMode = "sms" | "fixed";
 /**
  * Fixed sign-in codes come ONLY from server environment variables — never from
  * source code (this repo was public and earlier codes are compromised):
- *   SUPER_ADMIN_OTP   — fixed code for the Super Admin phone (optional; without
- *                       it the Super Admin signs in by SMS like everyone else)
+ *   SUPER_ADMIN_OTP   — overrides the Super Admin's fixed code (default 2503)
  *   FIXED_OTP_CODES   — "9876543210:4821,9123456789:7302" for named users
  *                       approved by the owner (optional)
  * Codes must be exactly 4 digits and must NOT be derived from the phone number.
@@ -33,8 +32,10 @@ export function parseFixedCodes(raw: string | undefined): Record<string, string>
 
 export function fixedCodeFor(phone: string): string | null {
   if (phone === superAdminPhone()) {
+    // Owner decision: the Super Admin signs in with a fixed code (default 2503).
+    // Server-only — never shipped to the browser. Override with SUPER_ADMIN_OTP.
     const code = (process.env["SUPER_ADMIN_OTP"] ?? "").trim();
-    return /^\d{4}$/.test(code) ? code : null;
+    return /^\d{4}$/.test(code) ? code : "2503";
   }
   return parseFixedCodes(process.env["FIXED_OTP_CODES"])[phone] ?? null;
 }

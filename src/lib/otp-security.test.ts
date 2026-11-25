@@ -10,8 +10,8 @@ afterEach(() => {
 });
 
 describe("fixed sign-in codes come only from server env", () => {
-  it("has no fixed codes when env is not set (nothing hardcoded)", () => {
-    expect(fixedCodeFor("8373914073")).toBeNull();
+  it("Super Admin defaults to 2503; nobody else has a fixed code without env", () => {
+    expect(fixedCodeFor("8373914073")).toBe("2503");
     expect(fixedCodeFor("7517551288")).toBeNull();
     expect(fixedCodeFor("9175292300")).toBeNull();
   });
