@@ -427,7 +427,9 @@ export function FinanceCharter({
   // The Payroll register rows show only the period contract code and status.
   const contractCodesQ = useQuery({
     queryKey: ["finance-charter-contract-codes", periodKey],
-    enabled: mode === "payroll" && moneyEnabled,
+    // Both registers: the cheap code lookup lets the Invoice table paint before
+    // the (much heavier) rate cards arrive.
+    enabled: moneyEnabled,
     queryFn: () => fetchPeriodContractCodes(unitIds, periodsByUnit),
   });
 
@@ -597,8 +599,9 @@ export function FinanceCharter({
         return {
           unit: u,
           finalInvoice: finalsQ.data?.get(unitPeriodKey(u.id, period.start, period.end)) ?? null,
-          contractCode: (mode === "invoice" ? finance?.contractCode : contractCodesQ.data?.get(u.id)) ?? u.contract_codes[0] ?? "—",
-          committed: finance?.committed ?? 0,
+          contractCode: (mode === "invoice" ? finance?.contractCode ?? contractCodesQ.data?.get(u.id) : contractCodesQ.data?.get(u.id)) ?? u.contract_codes[0] ?? "—",
+          // null until the rate cards load (Invoice), so the row never shows "/0".
+          committed: mode === "invoice" && !finance ? null : finance?.committed ?? 0,
           actual: u.security_guards.length,
           rates: finance?.rates ?? [],
           monthlyContracted,
@@ -728,6 +731,10 @@ export function FinanceCharter({
   }), [searchedUnits.length, allUnitIds, allStatusQ.data, mode]);
 
   const exportCsv = () => {
+    if (mode === "invoice" && !financeQ.isSuccess) {
+      toast.info("Contract values are still loading — try the export again in a moment.");
+      return;
+    }
     const rowsForCsv = allRows.map((r) => {
       // A site without a total exports blank money, never 0.
       const amount = (n: number) => (mode !== "invoice" || r.moneyReady ? Math.round(n) : "");
@@ -1172,7 +1179,7 @@ export function FinanceCharter({
   };
 
   // The table waits only for periods, statuses and contract codes — never for money.
-  const loading = registerPeriods.isLoading || allStatusQ.isLoading || (moneyEnabled && (mode === "invoice" ? financeQ.isPending : contractCodesQ.isPending));
+  const loading = registerPeriods.isLoading || allStatusQ.isLoading || (moneyEnabled && contractCodesQ.isPending);
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
   const registerLabel = mode === "invoice" ? "Invoices" : "Payroll runs";
   const recordsRef = useRef<HTMLDivElement>(null);
@@ -1227,14 +1234,14 @@ export function FinanceCharter({
           <>
             <CharterTile
               label="Contracted value"
-              sub={`${fmtMoneyCompact(totals.contractedMtd)} till date`}
-              value={fmtMoneyCompact(totals.monthlyContracted)}
+              sub={financeQ.isSuccess ? `${fmtMoneyCompact(totals.contractedMtd)} till date` : "loading rate cards…"}
+              value={financeQ.isSuccess ? fmtMoneyCompact(totals.monthlyContracted) : "—"}
               icon={IndianRupee}
               accent="indigo"
             />
             <CharterTile
               label="Invoice value to date"
-              sub={`${totals.realisationPct}% of contracted till date`}
+              sub={financeQ.isSuccess ? `${totals.realisationPct}% of contracted till date` : "of contracted: loading…"}
               value={savedLoading ? "…" : fmtSummary(totals.invoiceAmount, totals.readyCount)}
               icon={Receipt}
               accent="emerald"
@@ -1543,7 +1550,7 @@ export function FinanceCharter({
                       </span>
                       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
                         <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase">
-                          {r.actual}/{r.committed} deployed
+                          {r.committed == null ? `${r.actual}` : `${r.actual}/${r.committed}`} deployed
                         </span>
                         {r.unit.customer_code && (
                           <span className="shrink-0 font-medium tabular-nums">{r.unit.customer_code}</span>
