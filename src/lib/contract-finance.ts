@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchForIds, fetchInChunks } from "@/lib/supabase-batch";
 import { getReference } from "@/lib/reference-data";
-import { fetchAllRevisions } from "@/lib/invoice-engine-bulk";
+import { fetchAllRevisions, fetchContractResources } from "@/lib/invoice-engine-bulk";
 import type { PayrollDayBaseLike } from "@/lib/payroll-days";
 import { fetchPostingShifts, shiftKey } from "@/lib/shift-resources";
 import { invoiceExtraDutyRate, isCli2989Caretaker } from "@/lib/invoice-duty-rates";
@@ -172,6 +172,13 @@ export async function fetchPeriodContractCodes(
   return out;
 }
 
+/** contract_resources columns the rate card reads (invoice_contract_resources returns a superset). */
+export const RATE_CARD_RESOURCE_COLS = [
+  "id", "contract_id", "designation_id", "quantity", "shift_hours", "components", "benefits", "deductions",
+  "employer_contributions", "payroll_day_base_id", "billing_day_base_id", "invoice_present_cap", "round_off_final",
+  "round_off_totals", "ot_basis", "ot_hourly_rate", "ot_hourly_esic",
+] as const;
+
 export type FetchUnitFinanceOptions = {
   /**
    * Posting duty lengths (candidate_units) only refine per-employee rate picks
@@ -199,21 +206,15 @@ export async function fetchUnitFinance(
   const contractIds = Array.from(contractByUnit.values()).map((c) => c.id);
   const knownCodes = options.unitCodes;
   const [rawResources, designations, payrollBases, billingBases, postingShifts, units, revisions] = await Promise.all([
-    fetchInChunks<Record<string, unknown>>(contractIds, (chunk, from, to) =>
-      supabase
-        .from("contract_resources")
-        .select(
-          "id, contract_id, designation_id, quantity, shift_hours, components, benefits, deductions, employer_contributions, payroll_day_base_id, billing_day_base_id, invoice_present_cap, round_off_final, round_off_totals, ot_basis, ot_hourly_rate, ot_hourly_esic",
-        )
-        .in("contract_id", chunk)
-        .range(from, to),
-    ),
+    // The engines' contract-line read (250 contracts per POST, stored order per
+    // contract), projected to exactly the columns this rate card always used.
+    // First paint waits on this: all chunks at once (still within the tab-wide bulk pool).
+    fetchContractResources(contractIds, supabase, 8).then((rows) => rows.map((r) => Object.fromEntries(RATE_CARD_RESOURCE_COLS.map((c) => [c, r[c]])))),
     getReference<{ id: string; name: string }>("designations"),
     // A failed day-base read leaves the divisor rules unset (as before), never fails the register.
     getReference<Record<string, unknown>>("payrollDayBases").then((data) => ({ data }), () => ({ data: null })),
-    supabase
-      .from("billing_day_bases" as never)
-      .select("id, method, fixed_days, weekly_off_day, included_weekdays"),
+    // Same failure handling as before: a failed read leaves billing divisors unset.
+    getReference<Record<string, unknown>>("billingDayBases").then((data) => ({ data }), () => ({ data: null })),
     options.postingShifts === false ? Promise.resolve(new Map<string, 8 | 10 | 12>()) : fetchPostingShifts(Array.from(contractByUnit.keys())),
     knownCodes && ids.every((id) => knownCodes.has(id))
       ? Promise.resolve(ids.map((id) => ({ id, code: knownCodes.get(id) ?? null })))

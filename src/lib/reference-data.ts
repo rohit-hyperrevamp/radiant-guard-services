@@ -12,7 +12,7 @@
  * - The cache is cleared when the signed-in identity changes, so one user's
  *   scoped rows are never served to another.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const REFERENCE_TTL_MS = 30 * 60_000;
@@ -37,7 +37,20 @@ export const REFERENCE_TABLES = {
   additionTypes: "addition_types",
   costComponents: "cost_components",
   orgSettings: "org_settings",
+  billingDayBases: "billing_day_bases",
+  publicHolidays: "public_holidays",
 } as const;
+
+/**
+ * Tables that feed payroll / invoice money directly get a shorter life: an
+ * edit made in ANOTHER browser reaches an open tab within this window (edits in
+ * this tab invalidate immediately through invalidateReference).
+ */
+export const REFERENCE_MONEY_TTL_MS = 5 * 60_000;
+const MONEY_TABLES = new Set<string>(["allowanceTypes", "costComponents", "billingDayBases", "publicHolidays"]);
+export function referenceTtl(name: ReferenceName): number {
+  return MONEY_TABLES.has(name) ? REFERENCE_MONEY_TTL_MS : REFERENCE_TTL_MS;
+}
 
 export type ReferenceName = keyof typeof REFERENCE_TABLES;
 type Row = Record<string, unknown>;
@@ -78,7 +91,7 @@ if (typeof window !== "undefined") {
 /** Rows of one reference table — shared, de-duplicated and cached. */
 export function getReference<T = Row>(name: ReferenceName): Promise<T[]> {
   const hit = cache.get(name);
-  if (hit && Date.now() - hit.at < REFERENCE_TTL_MS) return hit.promise as Promise<T[]>;
+  if (hit && Date.now() - hit.at < referenceTtl(name)) return hit.promise as Promise<T[]>;
   const promise = fetchAll(REFERENCE_TABLES[name]);
   cache.set(name, { at: Date.now(), promise });
   // A failed load must not be cached — the next caller retries.
@@ -88,12 +101,27 @@ export function getReference<T = Row>(name: ReferenceName): Promise<T[]> {
   return promise as Promise<T[]>;
 }
 
+/** Query-key prefix of data derived from reference tables (e.g. the register finance context). */
+export const REFERENCE_QK = "reference";
+
+/**
+ * Call after saving / deleting rows of a master table (before refreshing the
+ * screen's own queries): drops the session cache for those tables and refreshes
+ * every query built on reference data (["reference", …], including the register
+ * finance context), so payroll / invoice in this tab never price with an old
+ * master. With no names only the derived queries refresh (e.g. a platform flag).
+ */
+export function invalidateReference(qc: QueryClient | null | undefined, ...names: ReferenceName[]): void {
+  for (const n of names) clearReferenceCache(n);
+  if (qc) void qc.invalidateQueries({ queryKey: [REFERENCE_QK] });
+}
+
 /** React hook form of getReference (react-query key: ["reference", name]). */
 export function useReference<T = Row>(name: ReferenceName, enabled = true) {
   return useQuery({
-    queryKey: ["reference", name],
+    queryKey: [REFERENCE_QK, name],
     queryFn: () => getReference<T>(name),
-    staleTime: REFERENCE_TTL_MS,
+    staleTime: referenceTtl(name),
     gcTime: REFERENCE_TTL_MS * 2,
     enabled,
   });

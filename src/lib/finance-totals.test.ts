@@ -84,7 +84,7 @@ describe("register renders saved totals and computes only stale sites", () => {
 
   it("splits fresh rows from stale, failed, other-period and missing ones", () => {
     const periods = new Map([["fresh", p], ["dirty", p], ["failed", p], ["oldwin", p], ["missing", p]]);
-    const { ready, stale } = splitSavedRegisterTotals(periods, [
+    const { ready, stale, failed } = splitSavedRegisterTotals(periods, [
       row("fresh"),
       row("dirty", { calculated_generation: 1 }),
       row("failed", { totals: null, computed_at: null, last_error: "boom" }),
@@ -92,6 +92,7 @@ describe("register renders saved totals and computes only stale sites", () => {
     ]);
     expect([...ready.keys()]).toEqual(["fresh"]);
     expect(stale.sort()).toEqual(["dirty", "failed", "missing", "oldwin"]);
+    expect(failed).toEqual(["failed"]);
     expect(ready.get("fresh")?.employer_contribution).toBe(80); // actual employer cost, as before
   });
 
@@ -104,8 +105,10 @@ describe("register renders saved totals and computes only stale sites", () => {
       .toEqual({ invoiceAmount: 1000, payrollAmount: 600, deductionAmount: 50, netPayrollAmount: 550, employerCost: 80, source: "saved" });
     expect(registerMoney("s", undefined, live))
       .toEqual({ invoiceAmount: 700, payrollAmount: 400, deductionAmount: 40, netPayrollAmount: 360, employerCost: 60, source: "live" });
-    // Live batch finished but the engines produced nothing for this site: zero, as the register always showed.
-    expect(registerMoney("none", undefined, live)?.invoiceAmount).toBe(0);
+    // Live batch finished but the engines produced nothing for this site: unavailable, never ₹0.
+    expect(registerMoney("none", undefined, live)).toBeNull();
+    // Only one engine produced a result (e.g. payroll blocked): still unavailable.
+    expect(registerMoney("half", undefined, { engine: new Map([["half", { invoice_amount: 5 }]]), pay: new Map() })).toBeNull();
     // Still computing: no value at all (shown as "updating", never as ₹0).
     expect(registerMoney("s", undefined, undefined)).toBeNull();
   });

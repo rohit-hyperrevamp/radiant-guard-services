@@ -1076,12 +1076,14 @@ export function payrollUnitTotals(rows: PayrollUnitRow[]): PayrollUnitTotals {
 export async function computePayrollUnitsTotals(
   periods: Map<string, { start: string; end: string }>,
   db = supabase,
+  /** Register-wide shared reads (browser); each batch still gets exactly its own rows. */
+  context?: import("@/lib/finance-shared-context").FinanceSharedContext | null,
 ): Promise<Map<string, PayrollUnitTotals>> {
   const out = new Map<string, PayrollUnitTotals>();
   const ids = Array.from(periods.keys());
   if (!ids.length) return out;
   if (db === supabase) await supabaseSessionReady();
-  const [{ fetchEnabledPublicHolidaysWith, holidayMapForDates }, { fetchPlatformFlag, PLATFORM_SETTING_KEYS }, bulk, { applyRateRevisionsWith }, { hydrateFormulasWith, loadAllFormulaMasters }, { fetchInChunks }, { visibleAttendanceCandidateIds }] = await Promise.all([
+  const [{ fetchEnabledPublicHolidaysWith, holidayMapForDates }, { fetchPlatformFlag, PLATFORM_SETTING_KEYS }, bulk, { applyRateRevisionsWith }, { hydrateFormulasWith, loadAllFormulaMasters }, { fetchInChunks }, { visibleAttendanceCandidateIds }, fsc] = await Promise.all([
     import("@/lib/public-holidays"),
     import("@/lib/platform-settings"),
     import("@/lib/invoice-engine-bulk"),
@@ -1089,13 +1091,16 @@ export async function computePayrollUnitsTotals(
     import("@/lib/contract-hydrate"),
     import("@/lib/supabase-batch"),
     import("@/lib/attendance-roster-eligibility"),
+    import("@/lib/finance-shared-context"),
   ]);
   const starts = [...periods.values()].map((p) => p.start).sort();
   const ends = [...periods.values()].map((p) => p.end).sort();
   const minStart = starts[0]!;
   const maxEnd = ends[ends.length - 1]!;
   // Joining fees dated up to a month before a window can carry into it.
-  const dedFrom = (() => { const d = new Date(`${minStart}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 62); return d.toISOString().slice(0, 10); })();
+  const dedFrom = fsc.payrollDeductionFrom(minStart);
+  // The register's shared reads, when they were made through this client and cover this batch.
+  const sc = fsc.contextCovers(context, db, minStart, maxEnd) ? context : null;
   const all = <T,>(q: (a: number, b: number) => unknown) => fetchInChunks<T>(["x"], (_c, a, b) => q(a, b) as never);
   // Master tables come from the shared reference cache when reading through the
   // app client (same pattern as loadInvoiceGlobals); a caller-supplied client
@@ -1108,8 +1113,8 @@ export async function computePayrollUnitsTotals(
   const direct = <T,>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>) =>
     Promise.resolve(q).then((r) => { if (r.error) throw r.error; return (r.data ?? []) as T[]; });
   const [holidays, esiRoundUp, ptSlabs, pincodeRanges, lwfRows, inputs, revisions, masters, codes, addTypes, pdbs, desigs, additions, deductions] = await Promise.all([
-    fetchEnabledPublicHolidaysWith(db),
-    fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true, db),
+    sc ? fsc.contextCopy(sc.holidays) : fetchEnabledPublicHolidaysWith(db),
+    sc ? sc.esiRoundUp : fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true, db),
     shared
       ? ref<PtSlabLike>("ptSlabs", ["id", "state", "region_label", "salary_min", "salary_max", "tax_per_month", "gender"])
       : direct<PtSlabLike>(db.from("professional_tax_slabs").select("id, state, region_label, salary_min, salary_max, tax_per_month, gender")),
@@ -1120,8 +1125,8 @@ export async function computePayrollUnitsTotals(
       ? ref<LwfRow>("lwf", ["id", "state", "deduction_months", "frequency", "employee_contribution", "employer_contribution", "enabled", "notes"])
       : direct<LwfRow>(db.from("labour_welfare_funds").select("id, state, deduction_months, frequency, employee_contribution, employer_contribution, enabled, notes")),
     bulk.fetchPeriodInputs(periods, db),
-    bulk.fetchAllRevisions(db),
-    loadAllFormulaMasters(db),
+    sc ? fsc.contextCopy(sc.revisions) : bulk.fetchAllRevisions(db),
+    sc ? fsc.contextCopy(sc.masters) : loadAllFormulaMasters(db),
     shared
       ? ref("attendanceCodes", ["code", "counts_as_present", "is_paid", "day_value"], (r) => r.enabled === true)
       : db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AnyRow[]),
@@ -1134,8 +1139,15 @@ export async function computePayrollUnitsTotals(
     shared
       ? ref("designations", ["id", "name"])
       : all<AnyRow>((a, b) => db.from("designations").select("id, name").order("id").range(a, b)),
-    all<AnyRow>((a, b) => db.from("additions" as never).select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, repeat_monthly, prorate_by_days, counts_for_pf, counts_for_esi, formula_expression, per_day_amount, addition_date, end_date, unit_id").eq("status", "active").lte("addition_date", maxEnd).order("id").range(a, b)),
-    all<AnyRow>((a, b) => db.from("deductions" as never).select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date, unit_id").eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", maxEnd).order("id").range(a, b)),
+    // Additions: the single-site rule's lower bound (dated in the window, or
+    // repeating and still running at its start) — each site's own filter below
+    // is stricter, so the rows it keeps are unchanged.
+    sc
+      ? fsc.contextAdditions(sc, fsc.PAYROLL_ADDITION_FIELDS, minStart, maxEnd)
+      : all<AnyRow>((a, b) => db.from("additions" as never).select(fsc.PAYROLL_ADDITION_FIELDS.join(", ")).eq("status", "active").lte("addition_date", maxEnd).or(fsc.additionLowerBound(minStart)).order("id").range(a, b)),
+    sc
+      ? fsc.contextDeductions(sc, fsc.PAYROLL_DEDUCTION_FIELDS, dedFrom, maxEnd)
+      : all<AnyRow>((a, b) => db.from("deductions" as never).select(fsc.PAYROLL_DEDUCTION_FIELDS.join(", ")).eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", maxEnd).order("id").range(a, b)),
   ]);
   if (revisions === null) throw new Error("Saved contract rate history could not be loaded; bulk payroll remains pending.");
   const designations = new Map(desigs.map((d) => [String(d.id), String(d.name)]));
@@ -1214,25 +1226,10 @@ export async function computePayrollUnitsTotals(
 
   const everyone = Array.from(new Set(prepared.flatMap((x) => x.rosterIds)));
   const months = Array.from(new Set(prepared.map((x) => x.end.slice(0, 7))));
-  const [wages, snaps, allocs] = await Promise.all([
-    fetchInChunks<AnyRow>(everyone, (chunk, a, b) => db.from("employee_wages" as never).select("candidate_id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id").in("candidate_id", chunk).range(a, b) as never),
-    Promise.all(months.map((m) => {
-      const [y, mo] = m.split("-").map(Number);
-      const ms = `${m}-01`;
-      const me = new Date(Date.UTC(y!, mo!, 0)).toISOString().slice(0, 10);
-      return fetchInChunks<AnyRow>(everyone, (chunk, a, b) => db
-        .from("payroll_run_snapshots")
-        .select("candidate_id, payroll_run_id, version, gross, deductions, payroll_runs!inner(unit_id, period_end, payroll_status)")
-        .in("candidate_id", chunk).eq("payroll_runs.payroll_status", "processed")
-        .gte("payroll_runs.period_end", ms).lte("payroll_runs.period_end", me).range(a, b) as never).then((rows) => [m, rows] as const);
-    })),
-    Promise.all(months.map((m) => {
-      const [y, mo] = m.split("-").map(Number);
-      return fetchInChunks<AnyRow>(everyone, (chunk, a, b) => (db as unknown as { from: (t: string) => any })
-        .from("pt_site_allocations").select("candidate_id, unit_id, pt_amount")
-        .in("candidate_id", chunk).eq("period_year", y).eq("period_month", mo).range(a, b) as never).then((rows) => [m, rows] as const);
-    })),
-  ]);
+  // Wage setups, other-site processed snapshots and PT splits: candidate-id
+  // chunks for a small roster, else one period scan per month (shared across
+  // the register's batches through the context); same rows either way.
+  const [wages, snaps, allocs] = await fsc.loadPayrollPeopleReads(db, everyone, months, sc);
   const wagesByCand = group(wages, (w) => s(w.candidate_id));
   const snapsByMonth = new Map(snaps);
   const allocsByMonth = new Map(allocs);

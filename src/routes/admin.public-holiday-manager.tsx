@@ -4,6 +4,7 @@ import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { CalendarHeart, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
@@ -62,7 +63,10 @@ function usePublicHolidayAdmin() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK_PUBLIC_HOLIDAYS });
+  const invalidate = () => {
+    invalidateReference(qc, "publicHolidays");
+    return qc.invalidateQueries({ queryKey: QK_PUBLIC_HOLIDAYS });
+  };
   const toRow = (p: Payload) => ({
     name: p.name.trim(),
     holiday_month: Number(p.month),

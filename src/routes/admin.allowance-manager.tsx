@@ -4,6 +4,7 @@ import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { Coins, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
@@ -149,7 +150,10 @@ function useAllowances() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = () => {
+    invalidateReference(qc, "allowanceTypes");
+    return qc.invalidateQueries({ queryKey: QK });
+  };
   type Payload = Omit<Allowance, "id">;
   const toRow = (p: Payload) => ({
     name: p.name.trim(),

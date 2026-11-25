@@ -13,6 +13,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
@@ -112,7 +113,10 @@ function useLwfs() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = () => {
+    invalidateReference(qc, "lwf");
+    return qc.invalidateQueries({ queryKey: QK });
+  };
 
   type Payload = Omit<Lwf, "id">;
   const toRow = (p: Payload) => ({

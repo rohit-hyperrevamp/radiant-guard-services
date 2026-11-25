@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
@@ -204,6 +205,7 @@ function usePayrollDayBases(kind: Kind) {
   });
 
   const invalidate = () => {
+    invalidateReference(qc, kind === "payroll" ? "payrollDayBases" : "billingDayBases");
     void qc.invalidateQueries({ queryKey: QK });
     // Contract resource pickers read these lists too.
     void qc.invalidateQueries();

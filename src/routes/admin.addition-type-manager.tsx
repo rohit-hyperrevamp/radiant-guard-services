@@ -4,6 +4,7 @@ import { RecordViewButton } from "@/components/RecordViewButton";
 import { useMemo, useState } from "react";
 import { TrendingUp, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
@@ -47,7 +48,10 @@ function AdditionTypeManagerPage() {
     },
   });
 
-  const inv = () => qc.invalidateQueries({ queryKey: QK });
+  const inv = () => {
+    invalidateReference(qc, "additionTypes");
+    return qc.invalidateQueries({ queryKey: QK });
+  };
 
   const addMut = useMutation({
     mutationFn: async (p: { name: string; code: string; is_active: boolean }) => {

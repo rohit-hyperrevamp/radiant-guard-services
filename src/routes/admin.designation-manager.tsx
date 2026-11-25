@@ -5,6 +5,7 @@ import { DataPagination, usePagination } from "@/components/DataPagination";
 import { useMemo, useState } from "react";
 import { BadgeCheck, Download, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { downloadCsv } from "@/lib/csv-export";
@@ -73,7 +74,10 @@ function useDesignations() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = () => {
+    invalidateReference(qc, "designations");
+    return qc.invalidateQueries({ queryKey: QK });
+  };
   type Payload = Omit<Designation, "id">;
   const toRow = (p: Payload) => ({
     name: p.name.trim(),

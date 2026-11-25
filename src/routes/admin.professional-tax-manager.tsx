@@ -13,6 +13,7 @@ import {
   Layers,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateReference } from "@/lib/reference-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useStates } from "@/lib/admin-data";
 import { logActivity } from "@/lib/activity-log";
@@ -106,7 +107,10 @@ function usePtSlabs() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: QK });
+  const invalidate = () => {
+    invalidateReference(qc, "ptSlabs");
+    return qc.invalidateQueries({ queryKey: QK });
+  };
 
   type Payload = Omit<PtSlab, "id">;
   const toRow = (p: Payload) => ({

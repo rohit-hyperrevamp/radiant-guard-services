@@ -29,7 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { QK_PUBLIC_HOLIDAYS, fetchEnabledPublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
-import { useReference } from "@/lib/reference-data";
+import { invalidateReference, useReference } from "@/lib/reference-data";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
@@ -478,6 +478,8 @@ function PayrollUnitPage() {
       void logActivity({ module: "Payroll", action: enabled ? "enable" : "disable", entityType: "inv_settings", entityLabel: "Round ESI up" });
     },
     onSuccess: () => {
+      // The register's shared finance context carries this flag too.
+      invalidateReference(queryClient);
       queryClient.invalidateQueries({ queryKey: platformFlagQueryKey(PLATFORM_SETTING_KEYS.esiRoundUp) });
       toast.success("ESI rounding updated");
     },

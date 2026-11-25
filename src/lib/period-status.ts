@@ -241,6 +241,15 @@ const REALTIME_PREFIXES = [
   "live-contract-deductions",
 ];
 
+/**
+ * Never refreshed by a status change: every site's contract rate cards / codes
+ * (a status flip does not change a contract, and the key names every site, so
+ * one approval refetched them all) and the register's live batch computes
+ * (one site's change recomputed a whole 120-site batch; the register
+ * recomputes just the changed site via the useAttendanceMoneyRealtime callback).
+ */
+const REALTIME_EXCLUDED_PREFIXES = ["finance-charter-contract", "finance-charter-live"];
+
 /** A changed unit + payroll month (YYYY-MM of period_end), or "all" when the payload lacks them. */
 export type RealtimeTarget = { unitId: string; month: string | null } | "all";
 
@@ -265,6 +274,7 @@ export function realtimeKeyMatches(queryKey: readonly unknown[], targets: Realti
   const head = queryKey[0];
   if (typeof head !== "string") return false;
   if (head !== PERIOD_STATUS_QK && !REALTIME_PREFIXES.some((p) => head.startsWith(p))) return false;
+  if (REALTIME_EXCLUDED_PREFIXES.some((p) => head.startsWith(p))) return false;
   if (targets.some((t) => t === "all")) return true;
   const text = JSON.stringify(queryKey);
   const hasDates = DATE_LIKE.test(text);
@@ -277,9 +287,11 @@ export function realtimeKeyMatches(queryKey: readonly unknown[], targets: Realti
  * are collected for REALTIME_REFRESH_MS and flushed together, so a burst of
  * approvals costs one refresh instead of a refetch storm.
  */
-export function useAttendanceMoneyRealtime() {
+export function useAttendanceMoneyRealtime(onTargets?: (targets: RealtimeTarget[]) => void) {
   const qc = useQueryClient();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onTargetsRef = useRef(onTargets);
+  onTargetsRef.current = onTargets;
   useEffect(() => {
     let pending: RealtimeTarget[] = [];
     const flush = () => {
@@ -288,6 +300,7 @@ export function useAttendanceMoneyRealtime() {
       pending = [];
       if (!targets.length) return;
       void qc.invalidateQueries({ predicate: (query) => realtimeKeyMatches(query.queryKey, targets) });
+      onTargetsRef.current?.(targets);
     };
     const onChange = (payload: { new?: unknown; old?: unknown }) => {
       pending.push(realtimeTargetOf(payload));

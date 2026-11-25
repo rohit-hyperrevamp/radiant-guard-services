@@ -4,7 +4,8 @@ import { allocateInvoiceEntries } from "@/lib/invoice-present-cap";
 import { computeDashboardUnitFinance, type DashboardUnitFinance } from "@/lib/dashboard-finance";
 import { computePayrollUnitsTotals, type PayrollUnitTotals } from "@/lib/payroll-engine";
 import { readRegisterSavedTotals, requestFinanceRecompute } from "@/lib/finance-summary-compute";
-import { registerMoney } from "@/lib/finance-totals";
+import { financeSummaryAmount, registerMoney } from "@/lib/finance-totals";
+import { getFinanceSharedContext, type FinanceSharedContext } from "@/lib/finance-shared-context";
 import { createPool } from "@/lib/supabase-batch";
 import { getReference } from "@/lib/reference-data";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +30,7 @@ import {
   PERIOD_STATUS_QK,
   useAttendanceMoneyRealtime,
   type MoneyStatus,
+  type RealtimeTarget,
   type PeriodStatus,
 } from "@/lib/period-status";
 import { MoneyStatusBadge } from "@/components/PeriodStatusBadge";
@@ -83,6 +85,12 @@ type PersonMoney = {
 };
 
 
+/** A money total over the sites that have one; "—" when none do (unavailable is not ₹0). */
+function fmtSummary(value: number, readyCount: number) {
+  const amount = financeSummaryAmount(value, readyCount);
+  return amount === null ? "—" : fmtMoneyCompact(amount);
+}
+
 function pct(actual: number, projected: number) {
   if (projected <= 0) return 0;
   return Math.round((actual / projected) * 100);
@@ -114,11 +122,20 @@ const liveComputePool = createPool(3);
 type LiveResult = { engine: Map<string, DashboardUnitFinance>; pay: Map<string, PayrollUnitTotals> };
 type RegisterPeriod = ReturnType<typeof payrollPeriodForMonth>;
 
-/** The invoice page's and payroll page's own calculations for these site periods. */
-async function computeRegisterLive(periods: Map<string, { start: string; end: string }>): Promise<LiveResult> {
-  const [engine, pay] = await Promise.all([computeDashboardUnitFinance(periods), computePayrollUnitsTotals(periods)]);
+type GetContext = () => Promise<FinanceSharedContext | null>;
+
+/**
+ * The invoice page's and payroll page's own calculations for these site periods.
+ * `context` = the register's shared period-wide reads (loaded once, not per batch).
+ */
+async function computeRegisterLive(periods: Map<string, { start: string; end: string }>, context?: FinanceSharedContext | null): Promise<LiveResult> {
+  const [engine, pay] = await Promise.all([computeDashboardUnitFinance(periods, undefined, context), computePayrollUnitsTotals(periods, undefined, context)]);
   return { engine, pay };
 }
+
+type SavedTotals = Awaited<ReturnType<typeof readRegisterSavedTotals>>;
+type PolledTotals = { ready: SavedTotals["ready"]; failed: string[] };
+const NO_POLLED_TOTALS: PolledTotals = { ready: new Map(), failed: [] };
 
 type EntryTotal = { unit_id: string; candidate_id: string; designation_id: string | null; shift_hours: number | null; code: string; days: number; ot_hours: number; entry_date: string };
 
@@ -205,12 +222,13 @@ async function loadBreakdown(
   live: LiveResult | undefined,
   unitCodes: Map<string, string | null>,
   nameById: Map<string, string>,
+  getContext: GetContext,
 ): Promise<PersonMoney[]> {
   const [financeMap, entries, codes, liveRes] = await Promise.all([
     fetchUnitFinance([unitId], new Map([[unitId, period]]), { unitCodes }),
     fetchEntryTotals([unitId], period.start, period.end),
     getReference<CodeRow>("attendanceCodes"),
-    live ?? computeRegisterLive(new Map([[unitId, { start: period.start, end: period.end }]])),
+    live ?? getContext().then((context) => computeRegisterLive(new Map([[unitId, { start: period.start, end: period.end }]]), context)),
   ]);
   const people = buildPeople(entries.filter((e) => e.unit_id === unitId), financeMap.get(unitId), new Map(codes.map((c) => [c.code, c])), nameById, period)
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -340,9 +358,12 @@ export function FinanceCharter({
   const viewedMonth = payrollPeriodForMonth(year, monthIdx);
   const finalsQ = useFinalInvoicesForUnits(mode === "invoice" ? allUnitIds : [], { periodEndFrom: viewedMonth.start, periodEndTo: viewedMonth.end });
 
+  const queryClient = useQueryClient();
   // Attendance edits (including overtime) push straight through to these
-  // numbers — no refresh, no stale cache.
-  useAttendanceMoneyRealtime();
+  // numbers — no refresh, no stale cache. Saved totals refresh through the
+  // hook; a changed site that is being live-computed is recomputed on its own.
+  const realtimeRef = useRef<(targets: RealtimeTarget[]) => void>(() => {});
+  useAttendanceMoneyRealtime((targets) => realtimeRef.current(targets));
 
   const registerPeriods = useRegisterPeriods(allUnitIds, year, monthIdx, windowsByUnit);
   const allPeriodsByUnit = registerPeriods.periods;
@@ -416,16 +437,49 @@ export function FinanceCharter({
     queryKey: ["finance-charter-saved-totals-v5", periodKey],
     enabled: mode === "invoice" && canSaved && moneyEnabled,
     staleTime: 15_000,
-    // Pick up server recomputes only while some sites are still stale.
-    refetchInterval: (q) => (q.state.data?.stale.length ? 30_000 : false),
     queryFn: () => readRegisterSavedTotals(plainPeriods),
   });
+  // Pick up server recomputes: poll ONLY the sites still stale that a recompute
+  // can turn current — never every site, never a failed one (last_error) or one
+  // without a period contract (the server cannot total it).
+  const pollIds = useMemo(() => {
+    const data = savedTotalsQ.data;
+    if (!data) return [];
+    const failed = new Set(data.failed);
+    return data.stale.filter((id) => !failed.has(id) && !(financeQ.isSuccess && !financeQ.data.has(id)));
+  }, [savedTotalsQ.data, financeQ.isSuccess, financeQ.data]);
+  const pollKey = useMemo(() => ["finance-charter-saved-totals-v5-poll", periodKey, pollIds.join(",")] as const, [periodKey, pollIds]);
+  const pollPending = (data: PolledTotals | undefined) => pollIds.filter((id) => !data?.ready.has(id) && !data?.failed.includes(id));
+  const pollQ = useQuery({
+    queryKey: pollKey,
+    enabled: mode === "invoice" && canSaved && moneyEnabled && pollIds.length > 0,
+    // The first poll runs 30 s after the full read, not on top of it.
+    initialData: NO_POLLED_TOTALS,
+    initialDataUpdatedAt: () => Date.now(),
+    staleTime: 30_000,
+    refetchInterval: (q) => (pollPending(q.state.data).length ? 30_000 : false),
+    queryFn: async (): Promise<PolledTotals> => {
+      const prev = queryClient.getQueryData<PolledTotals>(pollKey);
+      const todo = pollPending(prev);
+      const fresh = await readRegisterSavedTotals(new Map(todo.flatMap((id) => { const p = plainPeriods.get(id); return p ? [[id, p] as const] : []; })));
+      return { ready: new Map([...(prev?.ready ?? []), ...fresh.ready]), failed: [...(prev?.failed ?? []), ...fresh.failed] };
+    },
+  });
+  // Saved totals = the full read, overlaid with sites a newer poll found current.
+  const savedTotals = useMemo((): SavedTotals | undefined => {
+    const main = savedTotalsQ.data;
+    const polled = pollQ.data;
+    if (!main || !polled?.ready.size || pollQ.dataUpdatedAt <= savedTotalsQ.dataUpdatedAt) return main;
+    const ready = new Map(main.ready);
+    for (const [id, row] of polled.ready) ready.set(id, row);
+    return { ready, stale: main.stale.filter((id) => !polled.ready.has(id)), failed: main.failed };
+  }, [savedTotalsQ.data, savedTotalsQ.dataUpdatedAt, pollQ.data, pollQ.dataUpdatedAt]);
   const savedSettled = !canSaved || savedTotalsQ.isSuccess || savedTotalsQ.isError;
   const staleIds = useMemo(() => {
     if (mode !== "invoice" || !moneyEnabled || !savedSettled) return [];
-    if (!canSaved || !savedTotalsQ.data) return unitIds;
-    return savedTotalsQ.data.stale;
-  }, [mode, moneyEnabled, savedSettled, canSaved, savedTotalsQ.data, unitIds]);
+    if (!canSaved || !savedTotals) return unitIds;
+    return savedTotals.stale;
+  }, [mode, moneyEnabled, savedSettled, canSaved, savedTotals, unitIds]);
   useEffect(() => {
     const stale = savedTotalsQ.data?.stale ?? [];
     if (stale.length) void requestFinanceRecompute(plainPeriods, stale);
@@ -451,6 +505,9 @@ export function FinanceCharter({
     for (let i = 0; i < liveTargets.length; i += LIVE_BATCH_SIZE) out.push(liveTargets.slice(i, i + LIVE_BATCH_SIZE));
     return out;
   }, [liveTargets]);
+  // One shared context (masters, holidays, ESI flag, revisions, additions,
+  // deductions) for every batch and breakdown of this register — cached 60 s.
+  const getContext: GetContext = () => getFinanceSharedContext(queryClient, plainPeriods).catch(() => null);
   const liveQs = useQueries({
     queries: liveBatches.map((ids) => {
       const periods = new Map(ids.flatMap((id) => { const p = plainPeriods.get(id); return p ? [[id, p] as const] : []; }));
@@ -458,7 +515,36 @@ export function FinanceCharter({
         queryKey: ["finance-charter-live", Array.from(periods, ([id, p]) => `${id}:${p.start}:${p.end}`).join("|")],
         enabled: firstPaintDone,
         staleTime: 60_000,
-        queryFn: () => liveComputePool.run(() => computeRegisterLive(periods)),
+        queryFn: () => liveComputePool.run(async () => computeRegisterLive(periods, await getContext())),
+      };
+    }),
+  });
+  // A status change at a live-computed site recomputes just that site.
+  const [liveSiteRevs, setLiveSiteRevs] = useState<Record<string, number>>({});
+  useEffect(() => setLiveSiteRevs((prev) => (Object.keys(prev).length ? {} : prev)), [periodKey]);
+  realtimeRef.current = (targets) => {
+    if (mode !== "invoice") return;
+    if (targets.some((t) => t === "all")) {
+      void queryClient.invalidateQueries({ queryKey: ["finance-charter-live"] });
+      return;
+    }
+    const live = new Set(liveTargetsRef.current.ids);
+    const hit = targets.flatMap((t) => (t !== "all" && live.has(t.unitId) && (!t.month || plainPeriods.get(t.unitId)?.end.slice(0, 7) === t.month) ? [t.unitId] : []));
+    if (hit.length) setLiveSiteRevs((prev) => {
+      const next = { ...prev };
+      for (const id of hit) next[id] = (next[id] ?? 0) + 1;
+      return next;
+    });
+  };
+  const liveSiteEntries = useMemo(() => Object.entries(liveSiteRevs).filter(([id]) => plainPeriods.has(id)), [liveSiteRevs, plainPeriods]);
+  const liveSiteQs = useQueries({
+    queries: liveSiteEntries.map(([id, rev]) => {
+      const p = plainPeriods.get(id)!;
+      return {
+        queryKey: ["finance-charter-live-site", id, p.start, p.end, rev],
+        enabled: firstPaintDone,
+        staleTime: 60_000,
+        queryFn: () => liveComputePool.run(async () => computeRegisterLive(new Map([[id, p]]), await getContext())),
       };
     }),
   });
@@ -468,8 +554,12 @@ export function FinanceCharter({
       const data = liveQs[i]?.data;
       if (data) for (const id of ids) out.set(id, data);
     });
+    liveSiteEntries.forEach(([id], i) => {
+      const data = liveSiteQs[i]?.data;
+      if (data) out.set(id, data);
+    });
     return out;
-  }, [liveBatches, liveQs]);
+  }, [liveBatches, liveQs, liveSiteEntries, liveSiteQs]);
   // Only sites still without a saved current total count as failed / updating.
   const liveFailedIds = useMemo(() => {
     const stale = new Set(staleIds);
@@ -489,7 +579,7 @@ export function FinanceCharter({
         const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const monthlyContracted = finance?.monthlyContracted ?? 0;
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
-        const money = mode === "invoice" ? registerMoney(u.id, savedTotalsQ.data?.ready.get(u.id), liveByUnit.get(u.id)) : null;
+        const money = mode === "invoice" ? registerMoney(u.id, savedTotals?.ready.get(u.id), liveByUnit.get(u.id)) : null;
         const invoiceAmount = money?.invoiceAmount ?? 0;
         const payrollAmount = money?.payrollAmount ?? 0;
         const deductionAmount = money?.deductionAmount ?? 0;
@@ -515,6 +605,8 @@ export function FinanceCharter({
           contractedMtd,
           /** False while this site's live totals are still computing (or failed). */
           moneyReady: money !== null,
+          /** Live compute finished without a total for this site: unavailable, never ₹0. */
+          moneyUnavailable: mode === "invoice" && money === null && liveByUnit.has(u.id),
           invoiceAmount,
           payrollAmount,
           deductionAmount,
@@ -527,7 +619,8 @@ export function FinanceCharter({
           period,
         };
       });
-  }, [periodsReady, matchedUnits, financeQ.data, contractCodesQ.data, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, savedTotalsQ.data, liveByUnit, mode]);
+  }, [periodsReady, matchedUnits, financeQ.data, contractCodesQ.data, allStatusQ.data, periodsByUnit, year, monthIdx, finalsQ.data, savedTotals, liveByUnit, mode]);
+  const unavailableCount = useMemo(() => allRows.filter((r) => r.moneyUnavailable).length, [allRows]);
 
   // Per-employee breakdown: loaded only for the sites someone expands.
   const expandedIds = useMemo(
@@ -542,7 +635,7 @@ export function FinanceCharter({
         queryKey: ["finance-charter-breakdown", id, period.start, period.end, live ? "live" : "own"],
         enabled: moneyEnabled,
         staleTime: 60_000,
-        queryFn: () => loadBreakdown(id, period, live, unitCodes, nameById),
+        queryFn: () => loadBreakdown(id, period, live, unitCodes, nameById, getContext),
       };
     }),
   });
@@ -612,6 +705,8 @@ export function FinanceCharter({
     const deductionAmount = allRows.reduce((s, r) => s + r.deductionAmount, 0);
     const margin = allRows.reduce((s, r) => s + r.margin, 0);
     return {
+      /** Sites with a saved or live total; the rest are not in the money totals. */
+      readyCount: allRows.filter((r) => r.moneyReady).length,
       monthlyContracted,
       contractedMtd,
       invoiceAmount,
@@ -634,6 +729,8 @@ export function FinanceCharter({
 
   const exportCsv = () => {
     const rowsForCsv = allRows.map((r) => {
+      // A site without a total exports blank money, never 0.
+      const amount = (n: number) => (mode !== "invoice" || r.moneyReady ? Math.round(n) : "");
       if (mode === "payroll") {
         return {
           Name: r.unit.name || r.unit.code,
@@ -647,18 +744,18 @@ export function FinanceCharter({
         Unit: r.unit.name || r.unit.code,
         Committed: r.committed,
         Deployed: r.actual,
-        "Payroll gross (period to date)": Math.round(r.payrollAmount),
+        "Payroll gross (period to date)": amount(r.payrollAmount),
       };
       if (mode === "invoice") {
         return {
           ...base,
           "Contracted value (period)": Math.round(r.monthlyContracted),
           "Contracted value (period to date)": Math.round(r.contractedMtd),
-          "Invoice value (period to date)": Math.round(r.invoiceAmount),
-          "Deductions (period to date)": Math.round(r.deductionAmount),
-          "Net payable (period to date)": Math.round(r.netPayrollAmount),
-          Margin: Math.round(r.margin),
-          "Margin %": r.marginPct,
+          "Invoice value (period to date)": amount(r.invoiceAmount),
+          "Deductions (period to date)": amount(r.deductionAmount),
+          "Net payable (period to date)": amount(r.netPayrollAmount),
+          Margin: amount(r.margin),
+          "Margin %": r.moneyReady ? r.marginPct : "",
         };
       }
       return base;
@@ -668,7 +765,6 @@ export function FinanceCharter({
 
   // Invoice engine results (same calculation as the invoice page) for these sites:
   // reuses the background live results, computes the rest on demand (cached 60 s).
-  const queryClient = useQueryClient();
   const engineData = async (ids: string[]) => {
     const out = new Map<string, DashboardUnitFinance>();
     const missing = new Map<string, { start: string; end: string }>();
@@ -686,7 +782,7 @@ export function FinanceCharter({
       const computed = await queryClient.fetchQuery({
         queryKey: ["finance-charter-invoice-engine", Array.from(missing, ([id, p]) => `${id}:${p.start}:${p.end}`).join("|")],
         staleTime: 60_000,
-        queryFn: () => computeDashboardUnitFinance(missing),
+        queryFn: async () => computeDashboardUnitFinance(missing, undefined, await getContext()),
       });
       for (const [id, e] of computed) out.set(id, e);
     }
@@ -1139,21 +1235,21 @@ export function FinanceCharter({
             <CharterTile
               label="Invoice value to date"
               sub={`${totals.realisationPct}% of contracted till date`}
-              value={savedLoading ? "…" : fmtMoneyCompact(totals.invoiceAmount)}
+              value={savedLoading ? "…" : fmtSummary(totals.invoiceAmount, totals.readyCount)}
               icon={Receipt}
               accent="emerald"
             />
             <CharterTile
               label="Payroll gross to date"
               sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
-              value={savedLoading ? "…" : fmtMoneyCompact(totals.payrollAmount)}
+              value={savedLoading ? "…" : fmtSummary(totals.payrollAmount, totals.readyCount)}
               icon={Wallet}
               accent="amber"
             />
             <CharterTile
               label="Margin"
               sub={`${totals.marginPct}% · current payroll periods`}
-              value={savedLoading ? "…" : fmtMoneyCompact(totals.margin)}
+              value={savedLoading ? "…" : fmtSummary(totals.margin, totals.readyCount)}
               icon={Gauge}
               accent="rose"
             />
@@ -1161,7 +1257,7 @@ export function FinanceCharter({
         )}
       </CharterTileGrid>
 
-      {mode === "invoice" && (savedLoading || updatingCount > 0 || liveFailedIds.length > 0) && (
+      {mode === "invoice" && (savedLoading || updatingCount > 0 || liveFailedIds.length > 0 || unavailableCount > 0) && (
         <div role="status" aria-live="polite" className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {(savedLoading || updatingCount > 0) && (
             <span className="inline-flex items-center gap-1.5">
@@ -1180,6 +1276,11 @@ export function FinanceCharter({
               >
                 Retry
               </Button>
+            </span>
+          )}
+          {unavailableCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              {unavailableCount} site{unavailableCount === 1 ? " has" : "s have"} no calculable total — shown as unavailable, not in the totals.
             </span>
           )}
         </div>

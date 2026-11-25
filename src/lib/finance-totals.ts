@@ -92,11 +92,16 @@ export function splitSavedRegisterTotals(
 ) {
   const ready = new Map<string, ReturnType<typeof dashboardFinanceRows>[number]>();
   const stale: string[] = [];
+  /** Stale sites whose last server recompute failed (a subset of `stale`). */
+  const failed: string[] = [];
   for (const row of dashboardFinanceRows(periods, saved, [], new Set())) {
     if (row.totals_status === "ready") ready.set(row.unit_id, row);
-    else stale.push(row.unit_id);
+    else {
+      stale.push(row.unit_id);
+      if (row.totals_status === "failed") failed.push(row.unit_id);
+    }
   }
-  return { ready, stale };
+  return { ready, stale, failed };
 }
 
 export type RegisterSavedMoney = { invoice_amount: number; payroll_cost: number; deductions: number; net_pay: number; employer_contribution: number };
@@ -111,13 +116,16 @@ export type RegisterMoney = {
 
 /**
  * One register row's money: the saved current total when there is one, else the
- * live engine results once that site's live batch has finished (null = still
- * updating). Field-for-field the precedence the register has always used.
+ * live engine results once that site's live batch has finished. Null = no value:
+ * still updating, or the live batch finished without an invoice AND a payroll
+ * result for this site (unavailable — never shown or summed as ₹0, the same rule
+ * as financeSummaryAmount). Field-for-field the precedence the register has always used.
  */
 export function registerMoney(unitId: string, saved: RegisterSavedMoney | null | undefined, live: RegisterLiveMoney | null | undefined): RegisterMoney | null {
   if (!saved && !live) return null;
   const engine = live?.engine.get(unitId);
   const pay = live?.pay.get(unitId);
+  if (!saved && (!engine || !pay)) return null;
   return {
     invoiceAmount: saved?.invoice_amount ?? (engine ? engine.invoice_amount : 0),
     payrollAmount: saved?.payroll_cost ?? pay?.gross ?? 0,
