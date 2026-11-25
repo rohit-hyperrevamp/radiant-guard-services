@@ -112,9 +112,27 @@ export function computeAttendanceTotals(
 
   let unitPhDays = 0;
   const codeMap = new Map(codes.map((c) => [c.code, c]));
+  // One attendance code per date (the last coded row, as before). An Extra
+  // Duty-only row (no code, e.g. a 0.5 ED reliever line beside P) is a second
+  // duty that day: its ED is added to the day instead of replacing the code.
   const entryMap = new Map<string, AttendanceEntryLike>();
+  const extraEdByDate = new Map<string, number>();
+  const hasCode = (e: AttendanceEntryLike) => String(e.code ?? "").trim() !== "";
   for (const e of entries) {
-    if (e.candidate_id === candidateId) entryMap.set(e.entry_date, e);
+    if (e.candidate_id !== candidateId) continue;
+    const prev = entryMap.get(e.entry_date);
+    if (!prev) { entryMap.set(e.entry_date, e); continue; }
+    if (hasCode(prev) && !hasCode(e)) {
+      extraEdByDate.set(e.entry_date, (extraEdByDate.get(e.entry_date) ?? 0) + (Number(e.ot_hours) || 0));
+    } else if (!hasCode(prev) && hasCode(e)) {
+      extraEdByDate.set(e.entry_date, (extraEdByDate.get(e.entry_date) ?? 0) + (Number(prev.ot_hours) || 0));
+      entryMap.set(e.entry_date, e);
+    } else if (!hasCode(prev) && !hasCode(e)) {
+      extraEdByDate.set(e.entry_date, (extraEdByDate.get(e.entry_date) ?? 0) + (Number(prev.ot_hours) || 0));
+      entryMap.set(e.entry_date, e);
+    } else {
+      entryMap.set(e.entry_date, e);
+    }
   }
 
   let pDays = 0;
@@ -127,7 +145,7 @@ export function computeAttendanceTotals(
   for (const date of periodDates) {
     const e = entryMap.get(date);
     if (!e) continue;
-    otDaysSum += Number(e.ot_hours) || 0;
+    otDaysSum += (Number(e.ot_hours) || 0) + (extraEdByDate.get(date) ?? 0);
     const c = codeMap.get(e.code);
     if (!c) continue;
     // National/public holiday credit is granted for the day itself, whether the

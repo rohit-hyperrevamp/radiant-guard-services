@@ -261,6 +261,21 @@ describe("contract-only client payroll", () => {
     expect(rows[0]?.calculationIssues.some((i) => i.side === "attendance" && i.blocking)).toBe(true);
   });
 
+  it("pays an Extra Duty row on the same day as a coded duty instead of blocking the site", async () => {
+    const src = fixture();
+    const first = src.entries[0];
+    if (!first) throw new Error("Missing attendance fixture");
+    const before = await computePayrollUnitRows(input, fixture());
+    src.entries.push({ ...first, code: "", ot_hours: 0.5 });
+    const rows = await computePayrollUnitRows(input, src);
+    expect(rows[0]?.calculationIssues.some((i) => i.blocking)).toBe(false);
+    expect(rows[0]?.wages).not.toBeNull();
+    // The coded day keeps its P and its own ED; the extra row adds 0.5 ED.
+    expect(rows[0]?.totals.pDays).toBe(before[0]?.totals.pDays);
+    expect(rows[0]?.totals.otDays).toBe((before[0]?.totals.otDays ?? 0) + 0.5);
+    expect(rows[0]?.wages?.earnedGross ?? 0).toBeGreaterThan(before[0]?.wages?.earnedGross ?? 0);
+  });
+
   it("applies an explicitly fixed monthly PF once across roles without inventing a statutory cap", async () => {
     const src = fixture();
     const raw = src.resources[0];
