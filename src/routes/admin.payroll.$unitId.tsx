@@ -1,4 +1,4 @@
-import { computePayrollUnitRows } from "@/lib/payroll-engine";
+import { computePayrollUnitRows, prefetchPayrollUnit, takePayrollPrefetch, type PayrollPrefetchSlot } from "@/lib/payroll-engine";
 import { withContractEdRule } from "@/lib/ed-rule";
 import { roundDutyDays } from "@/lib/duty-days";
 import { matchesSearch } from "@/lib/search-match";
@@ -68,9 +68,9 @@ import {
 
   type AmendmentDelta,
 } from "@/lib/payroll-process";
-import { fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
+import { fetchPreviousAttendanceVersion, fetchLiveSnapshot, liveSnapshotFrom, diffAttendance } from "@/lib/attendance-versions";
 
-import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { fetchAttendanceEntriesForPeriod, type AttendanceEntryFetchRow } from "@/lib/attendance-fetch";
 import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, otherSitePtChanged, ptForSite } from "@/lib/pt-cross-site";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
@@ -311,16 +311,22 @@ function PayrollUnitPage() {
   // Which employees' attendance cells actually moved in this amendment.
   // The money diff is restricted to these people — nobody untouched is ever
   // adjusted, whatever the recomputation says.
+  const sharedEntriesRef = useRef<{ key: string; at: number; entries: Promise<AttendanceEntryFetchRow[]> } | null>(null);
   const { data: amendedCandidateIds } = useQuery({
     queryKey: ["attendance-amendment-diff", unitId, start, end, sheetVersion],
     enabled: amendmentStatus === "approved" && sheetVersion > 1,
     queryFn: async () => {
-      const versions = await fetchAttendanceVersions(unitId, start, end);
-      const prev = versions
-        .filter((v) => v.version < sheetVersion)
-        .sort((a, b) => b.version - a.version)[0];
+      // Only the previous version (not every snapshot), read alongside the
+      // live rows; the live rows reuse the payroll calculation's own read
+      // when it was started moments ago (an approved amendment is locked).
+      const shared = sharedEntriesRef.current;
+      const liveP = shared && shared.key === `${unitId}|${start}|${end}` && Date.now() - shared.at < 30_000
+        ? shared.entries.then(liveSnapshotFrom)
+        : fetchLiveSnapshot(unitId, start, end);
+      liveP.catch(() => {});
+      const prev = await fetchPreviousAttendanceVersion(unitId, start, end, sheetVersion);
       if (!prev) return null;
-      const live = await fetchLiveSnapshot(unitId, start, end);
+      const live = await liveP;
       return new Set(diffAttendance(prev.snapshot ?? [], live).map((d) => d.candidateId));
     },
   });
@@ -486,6 +492,29 @@ function PayrollUnitPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  // The site's own payroll reads (roster, attendance, contract lines, cross-
+  // site PT) do not depend on the unit row / holidays / PT masters the maths
+  // waits for, so they start on mount and the first calculation consumes them.
+  const prefetchRef = useRef<PayrollPrefetchSlot | null>(null);
+  // Set when a calculation for this unit + period has started: a prefetch
+  // that lands after that is never used (later recalculations read live).
+  const computeStartedRef = useRef<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void supabaseSessionReady().then(() => {
+      if (cancelled || computeStartedRef.current === `${unitId}|${start}|${end}`) return;
+      const key = `${unitId}|${start}|${end}`;
+      const pre = prefetchPayrollUnit(unitId, start, end);
+      prefetchRef.current = { key, at: Date.now(), pre };
+      sharedEntriesRef.current = { key, at: Date.now(), entries: pre.entries };
+    });
+    return () => {
+      cancelled = true;
+      prefetchRef.current = null;
+      sharedEntriesRef.current = null;
+    };
+  }, [unitId, start, end]);
+
   const { data, isPending, error } = useQuery({
     queryKey: ["payroll-register-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0), phConfig?.dates.join(",") ?? "", phConfig?.multiplier ?? 0],
     // `unit` feeds PT state / pincode / EPF-cap policy and the unit PH settings;
@@ -498,7 +527,8 @@ function PayrollUnitPage() {
     refetchOnMount: "always",
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      return computePayrollUnitRows({ unitId, isBillable: unit?.is_billable !== false, start, end, periodDates, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows });
+      computeStartedRef.current = `${unitId}|${start}|${end}`;
+      return computePayrollUnitRows({ unitId, isBillable: unit?.is_billable !== false, start, end, periodDates, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows }, undefined, takePayrollPrefetch(prefetchRef, unitId, start, end));
     },
   });
 
@@ -819,21 +849,27 @@ function PayrollUnitPage() {
     mutationFn: async () => {
       if (!run?.id) throw new Error("Payroll run not found");
       if (hasPayrollExceptions) throw new Error("Resolve the saved contract exceptions before processing payroll");
-      if (rows.some((r) => r.pt !== null)) {
       // PT is one slab per person per month: if another site's payroll for
       // the same people was processed after this register was computed,
-      // recompute first so PT is never charged twice.
-      const ptUsed = new Map<string, { gross: number; pt: number } | null>();
-      for (const r of rows) {
-        if (!r.wages || !r.isPrimary || !r.pt) continue;
-        const p = r.pt as { otherGross?: number; otherPt?: number } | null | undefined;
-        ptUsed.set(r.id, { gross: p?.otherGross ?? 0, pt: p?.otherPt ?? 0 });
-      }
-      const ptFresh = await fetchOtherSitePtTotals(Array.from(ptUsed.keys()), unitId, end);
-      if (otherSitePtChanged(ptUsed, ptFresh)) {
-        await queryClient.invalidateQueries({ queryKey: ["payroll-register-compute", unitId, start, end] });
-        throw new Error("Another site's payroll for some of these employees was just processed. Professional Tax has been recalculated — please review and process again.");
-      }
+      // recompute first so PT is never charged twice. The re-check runs
+      // alongside the posting's own reads and must pass before anything is
+      // saved (processPayrollRun awaits it before the atomic RPC).
+      let ptCheck: Promise<void> | undefined;
+      if (rows.some((r) => r.pt !== null)) {
+        const ptUsed = new Map<string, { gross: number; pt: number } | null>();
+        for (const r of rows) {
+          if (!r.wages || !r.isPrimary || !r.pt) continue;
+          const p = r.pt as { otherGross?: number; otherPt?: number } | null | undefined;
+          ptUsed.set(r.id, { gross: p?.otherGross ?? 0, pt: p?.otherPt ?? 0 });
+        }
+        ptCheck = (async () => {
+          const ptFresh = await fetchOtherSitePtTotals(Array.from(ptUsed.keys()), unitId, end);
+          if (otherSitePtChanged(ptUsed, ptFresh)) {
+            await queryClient.invalidateQueries({ queryKey: ["payroll-register-compute", unitId, start, end] });
+            throw new Error("Another site's payroll for some of these employees was just processed. Professional Tax has been recalculated — please review and process again.");
+          }
+        })();
+        ptCheck.catch(() => {});
       }
       const payloadRows = buildPayloadRows();
 
@@ -847,7 +883,7 @@ function PayrollUnitPage() {
         heldCandidateIds: Array.from(holdDraft),
         holdReason,
         version: sheetVersion,
-
+        preflight: ptCheck,
       });
       void logActivity({
         module: "Payroll",
@@ -1835,6 +1871,7 @@ function PayrollUnitPage() {
                       <PaySheetPanel
                         r={r as unknown as PaySheetRow}
                         versions={snapshots.filter((s) => s.candidate_id === r.id)}
+                        otherSitesFor={{ unitId, periodEnd: end, candidateId: r.id }}
                       />
 
                     </td>
@@ -2488,7 +2525,19 @@ function VersionHeadDiff({ prev, curr }: { prev: PaySheetVersion; curr: PaySheet
 }
 
 
-function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PaySheetVersion[] }) {
+function PaySheetPanel({ r: row, versions = [], otherSitesFor }: { r: PaySheetRow; versions?: PaySheetVersion[]; otherSitesFor?: { unitId: string; periodEnd: string; candidateId: string } }) {
+  // "Also worked at …" in the PT note is display-only, so it loads here, off
+  // the payroll calculation's critical path, once the pay sheet is opened.
+  const otherSitesQ = useQuery({
+    queryKey: ["payroll-other-sites-worked", otherSitesFor?.unitId, otherSitesFor?.periodEnd, otherSitesFor?.candidateId],
+    enabled: !!row.pt && !!otherSitesFor,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { unitId, periodEnd, candidateId } = otherSitesFor!;
+      return (await fetchOtherSitesWorked([candidateId], unitId, periodEnd)).get(candidateId) ?? [];
+    },
+  });
+  const r: PaySheetRow = row.pt && otherSitesQ.data ? { ...row, pt: { ...row.pt, otherSites: otherSitesQ.data } } : row;
   const w = r.wages;
   const contractComponents = [...(r.resource.components ?? []), ...(r.resource.benefits ?? [])];
   const contractGrossTotal = contractComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);

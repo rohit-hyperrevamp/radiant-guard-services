@@ -40,7 +40,7 @@ import {
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { employerCostOnly, managementFeeOf } from "@/lib/contract-billing-addons";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, ptForSite } from "@/lib/pt-cross-site";
+import { fetchOtherSitePtTotals, fetchPtAllocations, ptForSite } from "@/lib/pt-cross-site";
 
 export { lwfPeriodMonth } from "@/lib/payroll-calc";
 import { lwfPeriodMonth } from "@/lib/payroll-calc";
@@ -137,33 +137,106 @@ function designationRowsFor(all: AnyRow[], ids: string[]): { id: string; name: s
   return all.filter((d) => want.has(d.id)).map((d) => ({ id: d.id as string, name: (d.name ?? null) as string | null }));
 }
 
+const PAYROLL_RESOURCE_COLS =
+  "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals, sort_order";
+const PAYROLL_CANDIDATE_COLS =
+  "id, employee_code, full_name, designation_id, gender, is_disabled, bank_account_holder, bank_account_number, bank_ifsc, bank_name, bank_branch, approved_at, preferred_joining_date, application_date, pan_number, compliance";
+
+/**
+ * Split embedded `contract_resources(…, contract_rate_revisions(*))` rows into
+ * the two lists the separate reads returned: resources in their own order
+ * (embed key removed) and revisions grouped resource by resource, each
+ * resource's revisions in id order — the order every consumer relies on
+ * (they filter per resource_id).
+ */
+export function splitEmbeddedRevisions(rows: Record<string, unknown>[]): { resources: Record<string, unknown>[]; revisions: RateRevisionRow[] } {
+  const resources: Record<string, unknown>[] = [];
+  const revisions: RateRevisionRow[] = [];
+  for (const row of rows) {
+    const { contract_rate_revisions: embedded, ...resource } = row;
+    resources.push(resource);
+    const list = Array.isArray(embedded) ? (embedded as RateRevisionRow[]) : [];
+    revisions.push(...[...list].sort((x, y) => (String(x.id) < String(y.id) ? -1 : String(x.id) > String(y.id) ? 1 : 0)));
+  }
+  return { resources, revisions };
+}
+
+/** Saved lines + approved/expired rate history of one contract, in one request. */
+async function fetchContractLines(contractId: string): Promise<{ resources: Record<string, unknown>[]; revisions: RateRevisionRow[] | null }> {
+  const embedded = await supabase
+    .from("contract_resources")
+    .select(`${PAYROLL_RESOURCE_COLS}, contract_rate_revisions(*)` as never)
+    .eq("contract_id", contractId)
+    .in("contract_rate_revisions.status" as never, ["approved", "expired"] as never)
+    .order("sort_order")
+    .order("id" as never, { referencedTable: "contract_rate_revisions" } as never);
+  if (!embedded.error) return splitEmbeddedRevisions(((embedded.data ?? []) as unknown) as Record<string, unknown>[]);
+  // Fallback: the original two reads, unchanged.
+  const { data: r } = await supabase
+    .from("contract_resources")
+    .select(PAYROLL_RESOURCE_COLS)
+    .eq("contract_id", contractId)
+    .order("sort_order");
+  const resources = ((r ?? []) as unknown) as Record<string, unknown>[];
+  const revisions: RateRevisionRow[] | null = resources.length ? await fetchRevisions(resources.map((x) => String(x.id))) : [];
+  return { resources, revisions };
+}
+
 /**
  * Independent reads of the single-site payroll path, started together. Each
- * resolves to exactly what the corresponding original query returned.
+ * resolves to exactly what the corresponding original query returned. The
+ * payroll page starts this on mount (before its unit/holiday/PT settings
+ * arrive) and hands it to `computePayrollUnitRows`; the caller must have
+ * waited for a real session first.
  */
-function prefetchPayrollUnit(unitId: string, start: string, end: string) {
+export function prefetchPayrollUnit(unitId: string, start: string, end: string) {
   const periodContract = quiet(fetchPeriodContract<Record<string, unknown>>(unitId, start, end, "id, payroll_window_id, is_internal"));
   const contractLines = quiet(periodContract.then(async (pc) => {
     const contractId = pc?.id;
     if (!contractId) return { resources: [] as Record<string, unknown>[], revisions: [] as RateRevisionRow[] | null };
-    const { data: r } = await supabase
-      .from("contract_resources")
-      .select(
-        "id, designation_id, components, benefits, deductions, employer_contributions, payroll_day_base_id, shift_hours, ot_multiplier, ot_basis, ot_formula, ot_esi, ot_hourly_rate, ot_hourly_esic, round_off_totals, sort_order",
-      )
-      .eq("contract_id", contractId as string)
-      .order("sort_order");
-    const resources = ((r ?? []) as unknown) as Record<string, unknown>[];
-    const revisions: RateRevisionRow[] | null = resources.length ? await fetchRevisions(resources.map((x) => String(x.id))) : [];
-    return { resources, revisions };
+    return fetchContractLines(String(contractId));
   }));
   const entries = quiet(fetchAttendanceEntriesForPeriod({ unitId, start, end }));
+  type CandidateRow = Record<string, any> & { id: string };
+  const primary = quiet(Promise.resolve(supabase
+    .from("candidates")
+    .select(PAYROLL_CANDIDATE_COLS)
+    .eq("unit_id", unitId)
+    .eq("is_enabled", true)
+    .eq("status", "active")).then((r) => ({ data: (r.data ?? null) as CandidateRow[] | null })));
+  const links = quiet(Promise.resolve(supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId))
+    .then((r) => ({ data: (r.data ?? null) as { candidate_id: string }[] | null })));
+  const secondary = quiet(links.then(async ({ data }) => {
+    const linkIds = (data ?? []).map((l) => l.candidate_id);
+    if (linkIds.length === 0) return [] as CandidateRow[];
+    const { data: rows } = await supabase
+      .from("candidates")
+      .select(PAYROLL_CANDIDATE_COLS)
+      .in("id", linkIds)
+      .eq("is_enabled", true)
+      .eq("status", "active");
+    return ((rows ?? []) as unknown) as CandidateRow[];
+  }));
+  // Every id the final roster can contain (home staff ∪ every posting link ∪
+  // everyone with attendance here). Cross-site PT results are keyed by person
+  // and only roster ids are read, so a superset query gives identical output
+  // while starting as soon as attendance arrives, not after the roster stages.
+  const rosterSuperset = quiet(Promise.all([primary, links, entries]).then(([p, l, e]) => Array.from(new Set([
+    ...(p.data ?? []).map((c) => c.id),
+    ...(l.data ?? []).map((x) => x.candidate_id),
+    ...e.map((x) => x.candidate_id),
+  ].filter(Boolean)))));
   return {
     // Same unit + period rows: the roster reuses them instead of re-reading.
     attended: quiet(fetchAttendedCandidateIds(unitId, start, end, undefined, { entries })),
     entries,
     periodContract,
     contractLines,
+    primary,
+    links,
+    secondary,
+    rosterSuperset,
+    otherSitePt: quiet(rosterSuperset.then((ids) => fetchOtherSitePtTotals(ids, unitId, end))),
     designations: quiet(getReference<AnyRow>("designations")),
     codes: quiet(getReference<AnyRow>("attendanceCodes").then((rows) => rows.filter((r) => r.enabled === true).map(pickCols(["code", "counts_as_present", "is_paid", "day_value"])))),
     pdbs: quiet(getReference<AnyRow>("payrollDayBases").then((rows) => rows.map(pickCols(["id", "method", "fixed_days", "weekly_off_day", "included_weekdays", "enabled"])))),
@@ -176,38 +249,45 @@ function prefetchPayrollUnit(unitId: string, start: string, end: string) {
   };
 }
 
-export async function computePayrollUnitRows(input: PayrollUnitInput, src?: PayrollUnitSource) {
+export type PayrollUnitPrefetch = ReturnType<typeof prefetchPayrollUnit>;
+
+/** Reads started early for one unit + period (see `takePayrollPrefetch`). */
+export type PrefetchSlot<T> = { key: string; at: number; pre: T };
+export type PayrollPrefetchSlot = PrefetchSlot<PayrollUnitPrefetch>;
+
+/**
+ * Hand an early-started prefetch to exactly one calculation: the slot is
+ * cleared either way, and it is used only for the same unit + period and
+ * while still fresh, so a later recalculation always re-reads live data.
+ */
+export function takePayrollPrefetch<T>(
+  ref: { current: PrefetchSlot<T> | null },
+  unitId: string,
+  start: string,
+  end: string,
+  now: number = Date.now(),
+  maxAgeMs = 60_000,
+): T | undefined {
+  const slot = ref.current;
+  ref.current = null;
+  if (!slot || slot.key !== `${unitId}|${start}|${end}` || now - slot.at > maxAgeMs) return undefined;
+  return slot.pre;
+}
+
+export async function computePayrollUnitRows(input: PayrollUnitInput, src?: PayrollUnitSource, prefetched?: PayrollUnitPrefetch) {
   const { unitId, start, end, periodDates, ptState, ptPincode, epfCapEnabled, esiRoundUp, woAsPresent, unitPh, phConfig, ptSlabs, pincodeRanges, lwfRows } = input;
-  if (!src) await supabaseSessionReady();
+  if (!src && !prefetched) await supabaseSessionReady();
   // Single-site path: every read that does not depend on another starts now,
   // in parallel (same queries as before, no longer awaited one after another).
   // Master tables come from the shared reference cache, projected to the
-  // columns/filters the direct reads used.
-  const pre = src ? null : prefetchPayrollUnit(unitId, start, end);
+  // columns/filters the direct reads used. The page may have started these
+  // already (on mount) for the same unit + period.
+  const pre = src ? null : prefetched ?? prefetchPayrollUnit(unitId, start, end);
   // 1. Roster: candidates mapped to this unit (primary + secondary).
-  const candidateCols =
-    "id, employee_code, full_name, designation_id, gender, is_disabled, bank_account_holder, bank_account_number, bank_ifsc, bank_name, bank_branch, approved_at, preferred_joining_date, application_date, pan_number, compliance";
-  const [{ data: primary }, { data: links }] = src ? [{ data: src.primary as any[] }, { data: src.linkIds.map((candidate_id) => ({ candidate_id })) }] : await Promise.all([
-    supabase
-      .from("candidates")
-      .select(candidateCols)
-      .eq("unit_id", unitId)
-      .eq("is_enabled", true)
-      .eq("status", "active"),
-    supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
-  ]);
-  const linkIds = (links ?? []).map((l) => l.candidate_id);
+  const [{ data: primary }, { data: links }] = src ? [{ data: src.primary as any[] }, { data: src.linkIds.map((candidate_id) => ({ candidate_id })) }] : await Promise.all([pre!.primary, pre!.links]);
   let secondary: typeof primary = [];
   if (src) secondary = src.secondary as typeof primary;
-  else if (linkIds.length > 0) {
-    const { data } = await supabase
-      .from("candidates")
-      .select(candidateCols)
-      .in("id", linkIds)
-      .eq("is_enabled", true)
-      .eq("status", "active");
-    secondary = data ?? [];
-  }
+  else secondary = await pre!.secondary;
   const roster = Array.from(
     new Map([...(primary ?? []), ...(secondary ?? [])].map((c) => [c.id, c])).values(),
   );
@@ -219,7 +299,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     if (attended.length) {
       const { data: leavers } = src
         ? { data: attended.map((id) => src.people.get(id)).filter(Boolean) }
-        : await supabase.from("candidates").select(candidateCols).in("id", attended);
+        : await supabase.from("candidates").select(PAYROLL_CANDIDATE_COLS).in("id", attended);
       roster.push(...((leavers ?? []) as typeof roster));
     }
   }
@@ -233,7 +313,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   const desigMap = new Map((designations ?? []).map((d) => [d.id, d.name as string]));
 
   // 2. Attendance entries (fetched per day to avoid backend row caps)
-  const entries = (src ? src.entries.map((e) => ({ ...e })) : await pre!.entries) as Array<{
+  const entries = (src ? src.entries.map((e) => ({ ...e })) : (await pre!.entries).map((e) => ({ ...e }))) as Array<{
     candidate_id: string;
     designation_id: string | null;
     entry_date: string;
@@ -273,10 +353,12 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   const candidateIds = roster.map((c) => c.id);
   // Reads that depend only on the roster (and contract type) start together
   // here and are awaited where they are used below.
+  // Cross-site PT reads were started on a superset of these ids (results are
+  // keyed per person; only roster ids are read). The other-sites-worked list
+  // is display-only and loads separately on the page (fetchOtherSitesWorked).
   const otherSitesP = src ? null : quiet(Promise.all([
-    fetchOtherSitePtTotals(candidateIds, unitId, end),
-    fetchOtherSitesWorked(candidateIds, unitId, end),
-    contractOnly ? Promise.resolve(new Map<string, number>()) : fetchPtAllocations(candidateIds, unitId, end),
+    pre!.otherSitePt,
+    contractOnly ? Promise.resolve(new Map<string, number>()) : pre!.rosterSuperset.then((ids) => fetchPtAllocations(ids, unitId, end)),
   ]));
   const employeeWagesP = src || contractOnly || candidateIds.length === 0 ? null : quiet(Promise.resolve(supabase
     .from("employee_wages" as never)
@@ -653,7 +735,18 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // line for any other designation found in their attendance entries.
   const rosterById = new Map(roster.map((c) => [c.id, c]));
   const pairKey = (cid: string, did: string | null, sh = 0) => `${cid}|${did ?? "__none__"}|${sh}`;
+  // Each entry's resolved shift is computed once (it loops the dated rate
+  // segments); entries are not mutated after this point.
+  const entryShiftCache = new Map<object, number>();
   const entryShift = (e: { candidate_id: string; designation_id: string | null; entry_date: string; shift_hours?: number | null }) => {
+    let v = entryShiftCache.get(e);
+    if (v === undefined) {
+      v = resolveEntryShift(e);
+      entryShiftCache.set(e, v);
+    }
+    return v;
+  };
+  const resolveEntryShift = (e: { candidate_id: string; designation_id: string | null; entry_date: string; shift_hours?: number | null }): number => {
     const raw = Number(e.shift_hours) || 0;
     if (raw > 0) return raw;
     if (contractOnly) {
@@ -692,7 +785,15 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // from payroll, which silently dropped PT/deductions (e.g. a Security
   // Guard home role while all duties were as Supervisor/Bouncer).
   const attendedLines = new Set<string>();
-  for (const e of entries) attendedLines.add(pairKey(e.candidate_id, e.designation_id, entryShift(e)));
+  // One pass: entries grouped by line key, insertion (fetch) order kept.
+  const entriesByLine = new Map<string, typeof entries>();
+  for (const e of entries) {
+    const k = pairKey(e.candidate_id, e.designation_id, entryShift(e));
+    attendedLines.add(k);
+    const list = entriesByLine.get(k);
+    if (list) list.push(e);
+    else entriesByLine.set(k, [e]);
+  }
   for (const p of pairs.values()) {
     const c = rosterById.get(p.candidateId);
     if (!c) continue;
@@ -710,8 +811,9 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // Gross and PT already paid to these people at OTHER sites this month
   // (processed payrolls only). PT is one monthly slab per person, so a
   // guard working two sites is taxed on the combined gross, once.
-  const [otherSitePt, otherSitesWorked, ptAllocated] = src
-    ? [src.otherSitePt, new Map<string, string[]>(), src.ptAllocated] as const
+  const otherSitesWorked = new Map<string, string[]>();
+  const [otherSitePt, ptAllocated] = src
+    ? [src.otherSitePt, src.ptAllocated] as const
     : await otherSitesP!;
 
   const rows = Array.from(pairs.values()).map((p) => {
@@ -720,7 +822,9 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     const did = p.designationId ? String(p.designationId) : "";
     const designationName = (p.designationId && desigMap.get(p.designationId)) || "—";
     // Filter entries to just this (candidate, designation) pair so totals reflect only that line.
-    const lineEntries = entries.filter(
+    // The bucket holds every possible match; the exact original predicate
+    // still decides membership.
+    const lineEntries = (entriesByLine.get(pairKey(p.candidateId, p.designationId, p.shift)) ?? []).filter(
       (e) =>
         e.candidate_id === p.candidateId &&
         (e.designation_id ?? null) === p.designationId &&

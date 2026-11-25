@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { fetchInChunks, uniqueRowsById } from "@/lib/supabase-batch";
 
 export const Route = createFileRoute("/admin/employer-contributions")({
   head: () => ({
@@ -46,6 +47,10 @@ type Row = {
 const fmtINR = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 
+const PAGE = 1000;
+/** Newest rows shown (the page's long-standing cap). */
+const ROW_CAP = 5000;
+
 const FREQ_LABEL: Record<string, string> = {
   monthly: "Monthly",
   annual: "Annual",
@@ -60,24 +65,48 @@ function EmployerContributionsPage() {
     queryKey: ["admin", "employer-contributions"],
     queryFn: async (): Promise<Row[]> => {
       await supabaseSessionReady();
-      const { data, error } = await supabase
-        .from("employer_contributions" as never)
-        .select(
-          "id, candidate_id, unit_id, contribution_name, amount, frequency, period_start, period_end, contribution_date, status, notes, source_kind",
-        )
-        .order("contribution_date", { ascending: false })
-        .limit(5000);
-      if (error) throw error;
-      return (data as unknown as Row[]) ?? [];
+      // The newest ROW_CAP rows. PostgREST returns at most 1,000 rows per
+      // request (a bare .limit(5000) silently stopped at 1,000), so page it:
+      // page 1 carries the count, the rest are requested together.
+      const page = (from: number, to: number, count: boolean) =>
+        supabase
+          .from("employer_contributions" as never)
+          .select(
+            "id, candidate_id, unit_id, contribution_name, amount, frequency, period_start, period_end, contribution_date, status, notes, source_kind",
+            count ? { count: "exact" } : undefined,
+          )
+          .order("contribution_date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to);
+      const first = await page(0, PAGE - 1, true);
+      if (first.error) throw first.error;
+      const out = [...((first.data ?? []) as unknown as Row[])];
+      const total = Math.min(ROW_CAP, first.count ?? out.length);
+      if (out.length < PAGE || total <= PAGE) return out;
+      const rest = await Promise.all(
+        Array.from({ length: Math.ceil(total / PAGE) - 1 }, (_, i) => page((i + 1) * PAGE, Math.min((i + 2) * PAGE, ROW_CAP) - 1, false)),
+      );
+      for (const r of rest) {
+        if (r.error) throw r.error;
+        out.push(...((r.data ?? []) as unknown as Row[]));
+      }
+      return uniqueRowsById(out);
     },
   });
 
+  // Names only for the people / sites on screen (the full directory is ~29k
+  // people — an unpaged read stopped at 1,000 and showed "—" past that).
+  const candidateIds = useMemo(() => Array.from(new Set(rows.map((r) => r.candidate_id).filter(Boolean))).sort(), [rows]);
+  const unitIds = useMemo(() => Array.from(new Set(rows.map((r) => r.unit_id).filter((u): u is string => !!u))).sort(), [rows]);
+
   const { data: people = new Map<string, { name: string; code: string }>() } = useQuery({
-    queryKey: ["admin", "employer-contributions", "people"],
+    queryKey: ["admin", "employer-contributions", "people", candidateIds.length, candidateIds[0] ?? "", candidateIds[candidateIds.length - 1] ?? ""],
+    enabled: candidateIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("candidates").select("id, full_name, employee_code");
+      const data = await fetchInChunks<{ id: string; full_name: string | null; employee_code: string | null }>(candidateIds, (chunk, from, to) =>
+        supabase.from("candidates").select("id, full_name, employee_code").in("id", chunk).order("id").range(from, to));
       return new Map(
-        (data ?? []).map((c) => [
+        data.map((c) => [
           c.id as string,
           { name: (c.full_name as string) ?? "—", code: (c.employee_code as string) ?? "" },
         ]),
@@ -86,10 +115,12 @@ function EmployerContributionsPage() {
   });
 
   const { data: units = new Map<string, string>() } = useQuery({
-    queryKey: ["admin", "employer-contributions", "units"],
+    queryKey: ["admin", "employer-contributions", "units", unitIds.length, unitIds[0] ?? "", unitIds[unitIds.length - 1] ?? ""],
+    enabled: unitIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("units").select("id, name, code");
-      return new Map((data ?? []).map((u) => [u.id as string, (u.name as string) || (u.code as string) || "—"]));
+      const data = await fetchInChunks<{ id: string; name: string | null; code: string | null }>(unitIds, (chunk, from, to) =>
+        supabase.from("units").select("id, name, code").in("id", chunk).order("id").range(from, to));
+      return new Map(data.map((u) => [u.id as string, (u.name as string) || (u.code as string) || "—"]));
     },
   });
 

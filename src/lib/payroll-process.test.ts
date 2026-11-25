@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({ error: null as {message:string}|null, payload: null as any }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
- auth: { getUser: async () => ({data:{user:{id:'actor'}}}) },
+ auth: { getUser: async () => ({data:{user:{id:'actor'}}}), getSession: async () => ({data:{session:{user:{id:'actor'}}}}) },
  from: (table:string) => ({select: async () => ({data:[{id:'master',code:'general_deduction',name:'General'}],error:null})}),
  rpc: async (_name:string,args:any) => { state.payload=args._payload; return {error:state.error}; },
 } }));
@@ -24,6 +24,14 @@ describe('single payroll posting boundary',()=>{
   expect(state.payload.deductions[0].amount).toBe(200);
   expect(state.payload.contributions[0].amount).toBe(300);
   expect(state.payload.snapshots[0].net_pay).toBe(1000);
+ });
+ it('a failed preflight (PT re-check) blocks the save and reports its own error',async()=>{
+  await expect(processPayrollRun({...args,preflight:Promise.reject(new Error('PT recalculated'))})).rejects.toThrow('PT recalculated');
+  expect(state.payload).toBeNull();
+ });
+ it('a passing preflight still posts once',async()=>{
+  await processPayrollRun({...args,preflight:Promise.resolve()});
+  expect(state.payload.snapshots[0].posted_by).toBe('actor');
  });
  it('failure returns no successful payroll result',async()=>{
   state.error={message:'transaction failed'};

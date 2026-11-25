@@ -70,6 +70,9 @@ export async function fetchPtAllocations(
       .in("candidate_id", chunk)
       .eq("period_year", y)
       .eq("period_month", m)
+      // Stable page order (person, site): unordered pages can skip a row, and a
+      // skipped recorded split charges PT twice.
+      .order("candidate_id").order("unit_id")
       .range(from, to) as never,
   );
   // No catch: a failed read must stop processing, not silently drop the
@@ -127,6 +130,7 @@ export async function fetchMonthDutiesBySite(
       .in("candidate_id", chunk)
       .gte("entry_date", monthStart)
       .lte("entry_date", monthEnd)
+      .order("id")
       .range(from, to) as never,
   ).catch(() => [] as Row[]);
   for (const r of rows) {
@@ -166,6 +170,7 @@ export async function fetchOtherSitePtTotals(
       .neq("payroll_runs.unit_id", unitId)
       .gte("payroll_runs.period_end", monthStart)
       .lte("payroll_runs.period_end", monthEnd)
+      .order("id")
       .range(from, to) as never,
   );
   // No catch: hiding a failed read would look like "no PT charged elsewhere"
@@ -206,6 +211,7 @@ export async function fetchOtherSitesWorked(
       .neq("unit_id", unitId)
       .gte("entry_date", monthStart)
       .lte("entry_date", monthEnd)
+      .order("id")
       .range(from, to) as never,
   ).catch(() => [] as Row[]);
   const sets = new Map<string, Set<string>>();

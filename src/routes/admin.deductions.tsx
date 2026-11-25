@@ -35,6 +35,7 @@ import {
 import { z } from "zod";
 import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
 import { fetchLiveContractDeductions } from "@/lib/contract-deductions-live";
+import { fetchAllPagesParallel, fetchInChunks, runBulk } from "@/lib/supabase-batch";
 
 const searchSchema = z.object({
   mode: z.enum(["list", "create", "edit"]).default("list"),
@@ -243,30 +244,56 @@ function useDeductionTypes() {
   });
 }
 
+function toEmp(c: Record<string, unknown>): Emp {
+  return {
+    id: c.id as string,
+    full_name: (c.full_name as string) ?? "",
+    employee_code: (c.employee_code as string) ?? "",
+    mobile: (c.mobile as string) ?? "",
+  };
+}
+
+/** Whole working directory, for the create/edit picker. */
 function useEmployees() {
   return useQuery({
     queryKey: ["admin", "employees-lite"],
     queryFn: async (): Promise<Emp[]> => {
-      // Page through everyone — a single request stops at 1,000 rows.
-      const data: { id: string; full_name: string | null; employee_code: string | null; mobile: string | null }[] = [];
-      for (let from = 0; ; from += 1000) {
-        const { data: page, error } = await supabase
+      // Page through everyone — a single request stops at 1,000 rows. Page 1
+      // carries the count; the remaining pages are requested together.
+      const data = await fetchAllPagesParallel<Record<string, unknown>>((from, to, first) =>
+        supabase
           .from("candidates")
-          .select("id,full_name,employee_code,mobile")
+          .select("id,full_name,employee_code,mobile", first ? { count: "exact" } : undefined)
           .in("status", ["approved", "active"])
           .order("full_name")
           .order("id")
-          .range(from, from + 999);
-        if (error) throw error;
-        data.push(...((page ?? []) as typeof data));
-        if (!page || page.length < 1000) break;
-      }
-      return data.map((c) => ({
-        id: c.id as string,
-        full_name: (c.full_name as string) ?? "",
-        employee_code: (c.employee_code as string) ?? "",
-        mobile: (c.mobile as string) ?? "",
-      }));
+          .range(from, to),
+        { run: runBulk },
+      );
+      return data.map(toEmp);
+    },
+  });
+}
+
+/**
+ * Only the people named in the register — not the whole ~29k directory (the
+ * approach the Additions list uses).
+ */
+function useListedEmployees(ids: string[]) {
+  return useQuery({
+    queryKey: ["admin", "deductions-list-employees", ids],
+    enabled: ids.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Emp[]> => {
+      const rows = await fetchInChunks<Record<string, unknown>>(ids, (chunk, from, to) =>
+        supabase
+          .from("candidates")
+          .select("id,full_name,employee_code,mobile")
+          .in("id", chunk)
+          .order("id")
+          .range(from, to),
+      );
+      return rows.map(toEmp);
     },
   });
 }
@@ -302,7 +329,6 @@ function DeductionList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const types = useDeductionTypes();
-  const emps = useEmployees();
 
   const now = new Date();
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
@@ -373,6 +399,11 @@ function DeductionList() {
     queryFn: () => fetchLiveContractDeductions({ unitId: effectiveUnitId, unitName, start, end }),
   });
 
+  const listedIds = useMemo(
+    () => Array.from(new Set((recordedQ.data ?? []).map((d) => d.candidate_id).filter(Boolean))).sort(),
+    [recordedQ.data],
+  );
+  const emps = useListedEmployees(listedIds);
   const typeMap = useMemo(() => new Map((types.data ?? []).map((t) => [t.id, t])), [types.data]);
   const empMap = useMemo(() => new Map((emps.data ?? []).map((e) => [e.id, e])), [emps.data]);
 
